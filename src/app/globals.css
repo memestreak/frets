@@ -25,6 +25,126 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* App components, alongside the design system so utilities still win. */
+@layer components {
+  /* Segmented options rendered as buttons/links rather than radio labels. */
+  .seg-opt {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  /* Doubled class outranks the DS `.seg-opt:not(:has(…)):hover` tint. */
+  .seg .seg-opt.seg-opt[aria-pressed='true'],
+  .nav .seg .seg-opt.seg-opt[aria-current='page'] {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+  .seg-opt:not([aria-pressed='true'], [aria-current='page']):hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+  .seg-opt:focus-visible { outline-offset: -2px; }
+
+  /* Toggle buttons: off = outline, on = accent-100 fill + accent border. */
+  .btn-toggle[aria-pressed='true'] {
+    background: var(--color-accent-100);
+    color: var(--color-accent-800);
+    border-color: var(--color-accent);
+  }
+  .chip { min-width: 48px; padding: 5px 8px; }
+
+  .field-label {
+    display: block; font-size: 12px; margin-bottom: 5px;
+    color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  }
+
+  .keycap {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.8;
+    border: 1px solid currentColor;
+    padding: 0 5px;
+    margin-left: 2px;
+  }
+
+  .answer-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .answer-btn {
+    position: relative;
+    padding: 12px 2px;
+    min-width: 0;
+    line-height: 1;
+    font-size: clamp(13px, 1.6vw, 17px);
+  }
+  .answer-grid[data-variant='note'] .answer-btn {
+    font-size: clamp(12px, 1.4vw, 16px);
+    line-height: 1.1;
+  }
+  .answer-btn[data-state='wrong'] {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: var(--color-bg);
+  }
+  .answer-btn[data-state='correct'] {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-bg);
+  }
+  .answer-btn[data-state='idle']:hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+  .answer-key {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.55;
+  }
+  /* Phones: no keyboard to hint at, and "C♯/D♭" may break after the slash. */
+  @media (max-width: 500px) {
+    .answer-key { display: none; }
+    .answer-btn { flex-wrap: wrap; padding-inline: 0; }
+  }
+
+  .board-frame { padding: 10px 22px 14px; }
+  .fretboard {
+    display: block;
+    width: 100%;
+    height: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  /* Phones: the board keeps its fret width and the frame scrolls. */
+  @media (max-width: 700px) {
+    .board-scroll { overflow-x: auto; }
+    .fretboard { min-width: var(--board-w); }
+  }
+  .fret-cell { fill: transparent; cursor: pointer; }
+  .fret-cell[aria-disabled='true'] { cursor: default; }
+  .fret-cell:focus { outline: none; }
+  .fret-cell:focus-visible {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+
+  .hint-btn {
+    min-width: 150px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

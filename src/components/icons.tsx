@@ -1,0 +1,48 @@
+import type { ReactNode } from 'react';
+
+/** Lucide icon frame: 14px, stroke 1.5. */
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+      strokeLinejoin="round" aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function PauseIcon() {
+  return (
+    <Icon>
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+    </Icon>
+  );
+}
+
+export function SlidersIcon() {
+  return (
+    <Icon>
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </Icon>
+  );
+}
+
+export function EyeIcon() {
+  return (
+    <Icon>
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  );
+}
