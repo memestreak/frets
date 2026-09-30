@@ -1,0 +1,33 @@
+@import "tailwindcss";
+/* The design system sits in the components layer: above Tailwind's
+   preflight (base) so its type and form styles win, below utilities so
+   layout utilities can still adjust a .btn or .card. */
+@import "../styles/industry.css" layer(components);
+
+/* Tailwind is used for layout only; colors come from the DS tokens
+   (e.g. text-(--color-accent)), so drop Tailwind's default palette. */
+@theme {
+  --color-*: initial;
+}
+
+:root {
+  --font-body: var(--font-barlow), system-ui, sans-serif;
+  --font-heading: var(--font-barlow-condensed), system-ui, sans-serif;
+
+  /* Status colors — not in the design system; chosen to sit with the
+     steel accent. */
+  --color-success: #3b8a5c;
+  --color-success-deep: #2b6a45;
+  --color-danger: #b5453f;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

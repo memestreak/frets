@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/industry-c570393a-7803-471e-96c2-10f0c5e48044/styles.css">
+<style>body{margin:0;background:#f2f2f3;color:#1d1f20;font-family:"Barlow",system-ui,sans-serif}a{color:#5980a6}a:hover{color:#416180}button{font-family:inherit}</style>
+</helmet>
+<div style="min-height:100vh; display:flex; flex-direction:column; background:var(--color-bg); color:var(--color-text); font-family:var(--font-body)">
+  <nav class="nav" style="border-bottom:1px solid var(--color-divider); padding:10px 20px">
+    <span class="nav-brand" style="letter-spacing:0.04em">E MINOR</span>
+    <div class="seg" role="group" aria-label="Trainer">
+      <a class="seg-opt" href="Interval Trainer.dc.html" aria-current="page" style="text-decoration:none; background:var(--color-accent); color:var(--color-bg)">Intervals</a>
+      <a class="seg-opt" href="Note Trainer.dc.html" style="text-decoration:none; color:inherit">Notes</a>
+    </div>
+    <a href="#" style="opacity:0.45">Chords</a>
+    <a href="#" style="opacity:0.45">Scales</a>
+    <a href="#" style="opacity:0.45">Ear training</a>
+  </nav>
+
+  <main style="flex:1; display:grid; grid-template-columns:minmax(0,1fr); align-content:start; gap:20px; padding:20px; max-width:1240px; width:100%; margin:0 auto; box-sizing:border-box">
+    <header style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:14px 24px">
+      <div>
+        <h6 style="color:var(--color-accent); margin:0 0 4px">Fretboard · Interval trainer</h6>
+        <h2 style="margin:0">{{ promptTitle }}</h2>
+        <p class="text-muted" style="margin:4px 0 0; font-size:14px">{{ promptSub }}</p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+        <div class="seg" role="group" aria-label="Mode">
+          <sc-for list="{{ modeOpts }}" as="o" hint-placeholder-count="2"><button type="button" class="seg-opt" style="border:0; background: {{ o.bg }}; color: {{ o.fg }}" onClick="{{ o.onClick }}">{{ o.label }}</button></sc-for>
+        </div>
+        <div class="seg" role="group" aria-label="Direction">
+          <sc-for list="{{ dirOpts }}" as="o" hint-placeholder-count="4"><button type="button" class="seg-opt" style="border:0; background: {{ o.bg }}; color: {{ o.fg }}" onClick="{{ o.onClick }}">{{ o.label }}</button></sc-for>
+        </div>
+        <button type="button" class="btn btn-secondary" style="background: {{ pauseBg }}; color: {{ pauseFg }}; border-color: {{ pauseBorder }}" onClick="{{ togglePause }}" aria-pressed="{{ pauseOn }}" title="Wait for a key press before the next question">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg>
+          Pause b/w
+        </button>
+        <button type="button" class="btn btn-secondary" onClick="{{ toggleDrawer }}" aria-expanded="{{ drawerOpen }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          Settings
+        </button>
+      </div>
+    </header>
+
+    <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+      <section class="card blueprint" style="padding:16px 18px; gap:16px">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px 28px">
+          <div class="field">
+            <label>String pairs</label>
+            <div class="seg" role="group"><sc-for list="{{ pairOpts }}" as="o" hint-placeholder-count="4"><button type="button" class="seg-opt" style="border:0; background: {{ o.bg }}; color: {{ o.fg }}" onClick="{{ o.onClick }}">{{ o.label }}</button></sc-for></div>
+            <p class="text-muted" style="font-size:12px; margin:6px 0 0">Ignored when direction is “Same string”.</p>
+          </div>
+          <div class="field">
+            <label>Fret range</label>
+            <div style="display:flex; align-items:center; gap:8px">
+              <input class="input" type="number" min="0" max="23" style="width:72px" value="{{ minFret }}" onChange="{{ setMinFret }}" aria-label="Lowest fret">
+              <span class="text-muted">to</span>
+              <input class="input" type="number" min="1" max="24" style="width:72px" value="{{ maxFret }}" onChange="{{ setMaxFret }}" aria-label="Highest fret">
+            </div>
+          </div>
+          <div class="field">
+            <label>Display</label>
+            <div style="display:flex; flex-wrap:wrap; gap:8px">
+              <button type="button" class="btn btn-secondary" style="background: {{ noteNamesBg }}; color: {{ noteNamesFg }}; border-color: {{ noteNamesBorder }}" onClick="{{ toggleNoteNames }}">Note names</button>
+              <button type="button" class="btn btn-secondary" style="background: {{ compoundBg }}; color: {{ compoundFg }}; border-color: {{ compoundBorder }}" onClick="{{ toggleCompound }}">Allow spans over an octave</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Intervals in the pool</label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px">
+            <sc-for list="{{ poolChips }}" as="c" hint-placeholder-count="12"><button type="button" class="btn" style="min-width:48px; padding:5px 8px; background: {{ c.bg }}; color: {{ c.fg }}; border-color: {{ c.border }}" onClick="{{ c.onClick }}">{{ c.label }}</button></sc-for>
+          </div>
+        </div>
+        <div class="field">
+          <label>Session · per interval</label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:6px 20px; font-size:12px">
+            <sc-for list="{{ perRows }}" as="r" hint-placeholder-count="12">
+              <div style="display:grid; grid-template-columns:34px minmax(0,1fr) 36px; gap:8px; align-items:center">
+                <span style="font-family:var(--font-heading); font-weight:600; font-size:14px">{{ r.label }}</span>
+                <span style="display:block; height:5px; background:var(--color-neutral-200); position:relative"><span style="position:absolute; left:0; top:0; bottom:0; background:var(--color-accent); width: {{ r.w }}"></span></span>
+                <span class="text-muted" style="text-align:right; font-variant-numeric:tabular-nums">{{ r.pct }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap">
+          <span class="text-muted" style="font-size:12px">Standard tuning · E A D G B E · low E drawn on the bottom</span>
+          <button type="button" class="btn btn-ghost" onClick="{{ resetStats }}">Reset session stats</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:0; align-content:start">
+        <section class="card blueprint" style="padding:10px 18px 12px; gap:8px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; min-height:36px">
+            <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap">
+              <span class="card-kicker">{{ answerKicker }}</span>
+              <span class="text-muted" style="font-size:12px">{{ answerHint }}</span>
+              <span style="font-size:15px; font-weight:500; color: {{ feedbackColor }}">{{ feedback }}</span>
+            </div>
+            <div style="display:flex; gap:8px">
+              <button type="button" class="btn btn-ghost" onClick="{{ skip }}">Skip</button>
+              <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+                <button type="button" class="btn btn-primary blueprint" onClick="{{ next }}"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Next <span style="font-family:Barlow, system-ui, sans-serif; font-size:11px; opacity:0.8; border:1px solid currentColor; padding:0 5px; margin-left:2px">{{ nextHint }}</span></button>
+              </sc-if>
+            </div>
+          </div>
+          <sc-if value="{{ showAnswerGrid }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:6px">
+              <sc-for list="{{ answerBtns }}" as="b" hint-placeholder-count="12">
+                <button type="button" class="btn" style="position:relative; padding:12px 2px; min-width:0; font-size:clamp(13px, 1.6vw, 17px); line-height:1; background: {{ b.bg }}; color: {{ b.fg }}; border-color: {{ b.border }}" disabled="{{ b.disabled }}" onClick="{{ b.onClick }}">
+                  {{ b.label }}
+                  <span style="position:absolute; top:3px; right:5px; font-family:Barlow, system-ui, sans-serif; font-size:10px; opacity:0.55">{{ b.key }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showFretPrompt }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; align-items:baseline; justify-content:center; gap:14px; flex-wrap:wrap; text-align:center">
+              <span style="font-family:var(--font-heading); font-weight:600; font-size:44px; line-height:1; color:var(--color-accent)">{{ fretTargetLabel }}</span>
+              <span style="font-size:15px">{{ fretTargetLong }} <span class="text-muted">{{ fretTargetDir }}</span></span>
+            </div>
+          </sc-if>
+        </section>
+      <section class="blueprint" style="padding:10px 22px 14px; background: {{ boardWrapBg }}">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <svg viewBox="{{ viewBox }}" style="width:100%; height:auto; display:block; user-select:none; -webkit-user-select:none; touch-action:manipulation" onContextMenu="{{ noop }}">
+          <rect x="{{ boardX }}" y="{{ boardY }}" width="{{ boardW }}" height="{{ boardH }}" fill="{{ boardFill }}"></rect>
+          <sc-for list="{{ inlays }}" as="d" hint-placeholder-count="4"><circle cx="{{ d.x }}" cy="{{ d.y }}" r="{{ d.r }}" fill="{{ inlayColor }}"></circle></sc-for>
+          <sc-for list="{{ fretLines }}" as="l" hint-placeholder-count="12"><line x1="{{ l.x }}" x2="{{ l.x }}" y1="{{ boardY }}" y2="{{ boardBottom }}" stroke="{{ l.color }}" stroke-width="{{ l.w }}"></line></sc-for>
+          <sc-for list="{{ stringLines }}" as="s" hint-placeholder-count="6">
+            <line x1="{{ boardX }}" x2="{{ boardRight }}" y1="{{ s.y }}" y2="{{ s.y }}" stroke="{{ stringColor }}" stroke-width="{{ s.w }}"></line>
+          </sc-for>
+          {{ textLayer }}
+          <sc-for list="{{ dots }}" as="d" hint-placeholder-count="2">
+            <circle cx="{{ d.x }}" cy="{{ d.y }}" r="12" fill="{{ d.fill }}" stroke="{{ d.stroke }}" stroke-width="1.5" opacity="{{ d.opacity }}"></circle>
+          </sc-for>
+          {{ dotLabels }}
+          <sc-for list="{{ cells }}" as="c" hint-placeholder-count="0"><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ c.w }}" height="{{ c.h }}" fill="transparent" style="cursor:pointer" onClick="{{ c.onClick }}"><title>{{ c.title }}</title></rect></sc-for>
+        </svg>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:10px">
+          <div style="display:flex; align-items:center; gap:14px; font-size:13px; color: {{ legendColor }}">
+            <span style="display:inline-flex; align-items:center; gap:6px"><span style="width:12px; height:12px; border-radius:50%; background: {{ rootFill }}; display:inline-block"></span>Root</span>
+            <span style="display:inline-flex; align-items:center; gap:6px"><span style="width:12px; height:12px; border-radius:50%; background: {{ targetFill }}; display:inline-block"></span>{{ targetLegend }}</span>
+          </div>
+          <button type="button" class="btn btn-primary blueprint" style="touch-action:none; user-select:none; -webkit-user-select:none; min-width:150px" onPointerDown="{{ hintDown }}" onPointerUp="{{ hintUp }}" onPointerLeave="{{ hintUp }}" onPointerCancel="{{ hintUp }}" onContextMenu="{{ noop }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            {{ hintLabel }}
+            <span style="font-family:Barlow, system-ui, sans-serif; font-size:11px; opacity:0.8; border:1px solid currentColor; padding:0 5px; margin-left:4px">H</span>
+          </button>
+        </div>
+      </section>
+      <p class="text-muted" style="margin:0; font-size:12px; padding:0 4px">{{ statsLine }} · per-interval breakdown in Settings</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;fretboard&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;line&quot;,&quot;surface&quot;,&quot;steel&quot;],&quot;default&quot;:&quot;line&quot;,&quot;tsType&quot;:&quot;'line'|'surface'|'steel'&quot;,&quot;section&quot;:&quot;Fretboard&quot;},&quot;answers&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;grid&quot;,&quot;quad&quot;],&quot;default&quot;:&quot;grid&quot;,&quot;tsType&quot;:&quot;'grid'|'quad'&quot;,&quot;section&quot;:&quot;Answer input&quot;}}">
+const TUNING = [40, 45, 50, 55, 59, 64];
+const SNAME = ['E', 'A', 'D', 'G', 'B', 'e'];
+const NOTE = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const IV = ['P1', 'm2', 'M2', 'm3', 'M3', 'P4', 'TT', 'P5', 'm6', 'M6', 'm7', 'M7', 'P8'];
+const LONG = ['unison', 'minor second', 'major second', 'minor third', 'major third', 'perfect fourth', 'tritone', 'perfect fifth', 'minor sixth', 'major sixth', 'minor seventh', 'major seventh', 'octave'];
+const SIMPLE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// interval class: wraps at the octave (13 semitones -> m2, 24 -> P8, 0 -> unison)
+const cls = d => { const a = Math.abs(d); return a === 0 ? 0 : ((a - 1) % 12) + 1; };
+const KEYS = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
+const LS = 'eminor.intervals.v2';
+const REACH = 4; // max frets between root and target — four fingers plus one stretch
+const GREEN = '#3b8a5c', GREEN_DEEP = '#2b6a45', RED = '#b5453f';
+const midi = (s, f) => TUNING[s] + f;
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+
+const THEMES = {
+  line: { wrapBg: 'transparent', board: 'transparent', string: '#1d1f20', fret: 'rgba(29,31,32,0.28)', nut: '#1d1f20', inlay: '#b7b7ba', muted: 'rgba(29,31,32,0.6)', rootFill: '#5980a6', rootFg: '#f2f2f3', tgtFill: '#1d1f20', tgtFg: '#f2f2f3', hintFill: '#d6ebff', hintStroke: '#5980a6', hintFg: '#2c455d', legend: 'rgba(29,31,32,0.7)' },
+  surface: { wrapBg: '#e9e9ea', board: '#f2f2f3', string: '#1d1f20', fret: 'rgba(29,31,32,0.28)', nut: '#1d1f20', inlay: '#b7b7ba', muted: 'rgba(29,31,32,0.6)', rootFill: '#5980a6', rootFg: '#f2f2f3', tgtFill: '#1d1f20', tgtFg: '#f2f2f3', hintFill: '#d6ebff', hintStroke: '#5980a6', hintFg: '#2c455d', legend: 'rgba(29,31,32,0.7)' },
+  steel: { wrapBg: '#749dc4', board: '#749dc4', string: '#f2f2f3', fret: '#416180', nut: '#1d2d3d', inlay: '#b5d9fd', muted: '#1d2d3d', rootFill: '#1d2d3d', rootFg: '#f2f2f3', tgtFill: '#f2f2f3', tgtFg: '#1d2d3d', hintFill: '#2c455d', hintStroke: '#d6ebff', hintFg: '#f2f2f3', legend: '#1d2d3d' },
+};
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) {}
+    this.state = {
+      set: Object.assign({ mode: 'name', dir: 'asc', pairs: 'adj', minFret: 0, maxFret: 15, pool: SIMPLE, compound: false, noteNames: false, pause: false }, saved.set || {}),
+      stats: Object.assign({ streak: 0, best: 0, correct: 0, total: 0, per: {} }, saved.stats || {}),
+      q: null, picked: null, correct: null, answered: false, wrong: [], hint: false, drawer: false,
+    };
+  }
+  componentDidMount() {
+    this.setState({ q: this.gen(this.state.set) });
+    this.kd = e => {
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      if (e.key === 'h' || e.key === 'H') { if (!this.state.hint) this.setState({ hint: true }); return; }
+      if (e.key === 'Enter' || e.key === ' ') { if (this.state.answered) { e.preventDefault(); this.next(); } return; }
+      if (this.state.answered && this.state.set.pause && !/^(Shift|Control|Alt|Meta|Tab|Escape|CapsLock)$/.test(e.key)) { e.preventDefault(); this.next(); return; }
+      const { answered, q, set } = this.state;
+      if (answered || !q || set.mode !== 'name') return;
+      const k = e.key.length === 1 ? e.key.toUpperCase() : '';
+      if (this.answersMode() === 'quad') { const c = q.choices[parseInt(k, 10) - 1]; if (c != null) this.answerName(c); return; }
+      const semis = KEYS.indexOf(k);
+      if (semis > 0 && this.activePool(set).includes(semis)) this.answerName(semis);
+    };
+    this.ku = e => { if (e.key === 'h' || e.key === 'H') this.setState({ hint: false }); };
+    window.addEventListener('keydown', this.kd); window.addEventListener('keyup', this.ku);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.kd); window.removeEventListener('keyup', this.ku); clearTimeout(this.t); }
+  persist(extra) { try { const s = Object.assign({}, this.state, extra); localStorage.setItem(LS, JSON.stringify({ set: s.set, stats: s.stats })); } catch (e) {} }
+  answersMode() { return this.props.answers ?? 'grid'; }
+  activePool(set) { return set.pool.filter(x => SIMPLE.includes(x)); }
+
+  gen(set) {
+    const pool = this.activePool(set); if (!pool.length) return null;
+    const gaps = set.pairs === 'adj' ? [1] : set.pairs === 'skip1' ? [2] : set.pairs === 'skip2' ? [3] : [1, 2, 3, 4, 5];
+    const span = set.maxFret - set.minFret + 1, rf = () => set.minFret + rnd(span);
+    for (let i = 0; i < 600; i++) {
+      let root, tgt, up;
+      if (set.dir === 'same') { const s = rnd(6); root = { s, f: rf() }; tgt = { s, f: rf() }; up = midi(tgt.s, tgt.f) > midi(root.s, root.f); }
+      else {
+        const g = pick(gaps), lo = rnd(6 - g), hi = lo + g;
+        up = set.dir === 'asc' ? true : set.dir === 'desc' ? false : Math.random() < 0.5;
+        const a = { s: lo, f: rf() }, b = { s: hi, f: rf() };
+        root = up ? a : b; tgt = up ? b : a;
+      }
+      if (Math.abs(tgt.f - root.f) > REACH) continue;
+      const d = midi(tgt.s, tgt.f) - midi(root.s, root.f);
+      if (d === 0 || (up && d < 0) || (!up && d > 0)) continue;
+      if (Math.abs(d) > 12 && !set.compound) continue;
+      const semis = cls(d); if (!pool.includes(semis)) continue;
+      const others = pool.filter(x => x !== semis).sort(() => Math.random() - 0.5).slice(0, 3);
+      const choices = [semis, ...others].sort((a, b) => a - b);
+      return { root, tgt, semis, up, choices };
+    }
+    return null;
+  }
+  next() { clearTimeout(this.t); this.setState(s => ({ q: this.gen(s.set), picked: null, correct: null, answered: false, wrong: [] })); }
+  record(semis, ok) {
+    this.setState(s => {
+      const per = Object.assign({}, s.stats.per); const e = per[semis] || { c: 0, t: 0 }; per[semis] = { c: e.c + (ok ? 1 : 0), t: e.t + 1 };
+      const streak = ok ? s.stats.streak + 1 : 0;
+      const stats = { streak, best: Math.max(s.stats.best, streak), correct: s.stats.correct + (ok ? 1 : 0), total: s.stats.total + 1, per };
+      this.persist({ stats }); return { stats };
+    });
+  }
+  // A miss is recorded on the first wrong try; the question stays open until the right answer is found.
+  resolve(ok, picked) {
+    const { q, wrong, set } = this.state;
+    if (ok) { this.setState({ picked, correct: true, answered: true }); if (!wrong.length) this.record(q.semis, true); if (!set.pause) this.t = setTimeout(() => this.next(), 1100); }
+    else { this.setState({ picked, correct: false, wrong: wrong.concat([picked]) }); if (!wrong.length) this.record(q.semis, false); }
+  }
+  answerName(semis) { const { q, answered, wrong } = this.state; if (!q || answered || wrong.includes(semis)) return; this.resolve(semis === q.semis, semis); }
+  answerFret(s, f) { const q = this.state.q; if (!q || this.state.answered || this.state.set.mode !== 'fret') return; const d = midi(s, f) - midi(q.root.s, q.root.f); const ok = (q.up ? d > 0 : d < 0) && cls(d) === q.semis && (Math.abs(d) <= 12 || this.state.set.compound) && Math.abs(f - q.root.f) <= REACH; this.resolve(ok, { s, f }); }
+  upd(patch, regen = true) { this.setState(s => { const set = Object.assign({}, s.set, patch); this.persist({ set }); return regen ? { set, q: this.gen(set), picked: null, correct: null, answered: false, wrong: [] } : { set }; }); clearTimeout(this.t); }
+  seg(opts, cur, key) { return opts.map(([v, label]) => ({ label, bg: v === cur ? 'var(--color-accent)' : 'transparent', fg: v === cur ? 'var(--color-bg)' : 'inherit', onClick: () => this.upd({ [key]: v }) })); }
+  // toggle-button colors; with a prefix, returns {prefixBg, prefixFg, prefixBorder} for spreading into renderVals
+  tog(on, prefix) {
+    const t = on ? { bg: 'var(--color-accent-100)', fg: 'var(--color-accent-800)', border: 'var(--color-accent)' } : { bg: 'transparent', fg: 'inherit', border: 'var(--color-divider)' };
+    return prefix ? { [prefix + 'Bg']: t.bg, [prefix + 'Fg']: t.fg, [prefix + 'Border']: t.border } : t;
+  }
+
+  renderVals() {
+    const { set, stats, q, picked, correct, answered, wrong, hint, drawer } = this.state;
+    const T = THEMES[this.props.fretboard] || THEMES.line;
+    const mode = set.mode, quad = this.answersMode() === 'quad';
+    const dirDesc = { asc: 'Root on the lower string, interval ascends to the higher string.', desc: 'Root on the higher string, interval descends to the lower string.', rand: 'Root on either string; direction changes every question.', same: 'Both notes on one string.' }[set.dir];
+
+    // geometry
+    const minF = set.minFret, maxF = set.maxFret, open = minF === 0, firstF = open ? 1 : minF, n = maxF - firstF + 1, FW = 62, SG = 30, PAD = 20, OPENW = 28, TOP = 16;
+    const boardX = PAD + (open ? OPENW : 0), boardY = TOP, boardW = n * FW, boardH = 5 * SG, boardRight = boardX + boardW, boardBottom = boardY + boardH;
+    const W = boardRight + 12, H = boardBottom + 34;
+    // open strings get a narrow column left of the nut; the board itself starts at the nut
+    const cellX = f => f === 0 ? PAD : boardX + (f - firstF) * FW, cellW = f => f === 0 ? OPENW : FW;
+    const cx = f => cellX(f) + cellW(f) / 2, cy = s => boardY + (5 - s) * SG;
+    const fretLines = []; for (let c = 0; c <= n; c++) { const isNut = open && c === 0; fretLines.push({ x: boardX + c * FW, color: isNut ? T.nut : T.fret, w: isNut ? 5 : 1.2 }); }
+    const stringLines = SNAME.map((name, s) => ({ y: cy(s), name, w: 2.2 - s * 0.3 }));
+    const fretNums = []; for (let f = firstF; f <= maxF; f++) fretNums.push({ x: cx(f), label: String(f) });
+    const inlays = []; for (let f = Math.max(minF, 1); f <= maxF; f++) { const mid = boardY + boardH / 2; if ([3,5,7,9,15,17,19,21].includes(f)) inlays.push({ x: cx(f), y: mid, r: 6 }); if (f === 12 || f === 24) { inlays.push({ x: cx(f), y: mid - SG, r: 6 }); inlays.push({ x: cx(f), y: mid + SG, r: 6 }); } }
+
+    // dots
+    const dots = [];
+    if (q) {
+      const rm = midi(q.root.s, q.root.f);
+      const nn = (s, f) => NOTE[midi(s, f) % 12];
+      if (hint) for (let s = 0; s < 6; s++) for (let f = minF; f <= maxF; f++) { const d = midi(s, f) - rm; if (s === q.root.s && f === q.root.f) continue; const c = cls(d); dots.push({ x: cx(f), y: cy(s), fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg, label: c === 0 ? 'R' : IV[c], fs: 10, opacity: 1 }); }
+      dots.push({ x: cx(q.root.f), y: cy(q.root.s), fill: T.rootFill, stroke: T.rootFill, fg: T.rootFg, label: set.noteNames ? nn(q.root.s, q.root.f) : 'R', fs: 12, opacity: 1 });
+      const showTgt = mode === 'name' || answered;
+      const tf = answered && correct ? GREEN : T.tgtFill;
+      if (showTgt) dots.push({ x: cx(q.tgt.f), y: cy(q.tgt.s), fill: tf, stroke: tf, fg: T.tgtFg, label: answered ? IV[q.semis] : (set.noteNames ? nn(q.tgt.s, q.tgt.f) : '?'), fs: answered ? 10 : 12, opacity: 1 });
+      if (mode === 'fret') wrong.forEach(w => dots.push({ x: cx(w.f), y: cy(w.s), fill: 'transparent', stroke: RED, fg: RED, label: '✕', fs: 12, opacity: 0.9 }));
+    }
+    const isWrongCell = (s, f) => mode === 'fret' && wrong.some(w => w.s === s && w.f === f);
+    const cells = []; if (mode === 'fret' && !answered) for (let s = 0; s < 6; s++) for (let f = minF; f <= maxF; f++) if (!isWrongCell(s, f)) cells.push({ x: cellX(f), y: cy(s) - SG / 2, w: cellW(f), h: SG, title: SNAME[s] + ' string, fret ' + f, onClick: () => this.answerFret(s, f) });
+
+    // answers
+    const pool = this.activePool(set);
+    const list = quad && q ? q.choices : pool;
+    const answerBtns = list.map((semis, i) => {
+      let bg = 'transparent', fg = 'inherit', border = 'var(--color-divider)', disabled = false;
+      if (mode === 'name' && wrong.includes(semis)) { bg = RED; fg = 'var(--color-bg)'; border = RED; disabled = true; }
+      else if (answered && q && semis === q.semis) { bg = GREEN; fg = 'var(--color-bg)'; border = GREEN; }
+      return { label: IV[semis], key: quad ? String(i + 1) : KEYS[semis], bg, fg, border, disabled, onClick: () => this.answerName(semis) };
+    });
+    let feedback = '', feedbackColor = 'inherit';
+    if (!q) feedback = 'No question fits these settings — widen the fret range or interval pool.';
+    else if (answered) { feedback = 'Correct — ' + IV[q.semis] + ', ' + LONG[q.semis] + (wrong.length ? ' (after ' + wrong.length + (wrong.length === 1 ? ' miss)' : ' misses)') : ''); feedbackColor = GREEN_DEEP; }
+    else if (wrong.length) { feedback = 'Not ' + (mode === 'name' ? IV[wrong[wrong.length - 1]] : 'that fret') + ' — try again'; feedbackColor = RED; }
+
+    const perRows = pool.map(semis => { const e = stats.per[semis] || { c: 0, t: 0 }; const pct = e.t ? Math.round(100 * e.c / e.t) : null; return { label: IV[semis], w: (pct ?? 0) + '%', pct: pct == null ? '—' : pct + '%' }; });
+    const statsLine = stats.total ? 'Streak ' + stats.streak + ' · best ' + stats.best + ' · ' + Math.round(100 * stats.correct / stats.total) + '% of ' + stats.total : 'No answers yet this session';
+
+    const h = React.createElement;
+    const textLayer = h('g', { key: 'txt', fill: T.muted, fontSize: 11, fontFamily: 'Barlow, system-ui, sans-serif' },
+      stringLines.map((s, i) => h('text', { key: 's' + i, x: PAD - 4, y: s.y, textAnchor: 'end', dominantBaseline: 'middle' }, s.name)),
+      fretNums.map((f, i) => h('text', { key: 'f' + i, x: f.x, y: boardBottom + 24, textAnchor: 'middle' }, f.label)));
+    const dotLabels = h('g', { key: 'dl', fontWeight: 600, fontFamily: 'Barlow Condensed, Barlow, system-ui, sans-serif', style: { pointerEvents: 'none' } },
+      dots.map((d, i) => h('text', { key: i, x: d.x, y: d.y, fill: d.fg, fontSize: d.fs, textAnchor: 'middle', dominantBaseline: 'central', opacity: d.opacity }, d.label)));
+
+    return {
+      textLayer, dotLabels,
+      promptTitle: mode === 'name' ? 'Name the interval' : 'Find the fret',
+      promptSub: (mode === 'name' ? 'How far is the dot from the root? ' : 'Tap the fret that lands on the interval. ') + dirDesc,
+      modeOpts: this.seg([['name', 'Name it'], ['fret', 'Find it']], mode, 'mode'),
+      dirOpts: this.seg([['asc', 'Asc from low'], ['desc', 'Desc from high'], ['rand', 'Random'], ['same', 'Same string']], set.dir, 'dir'),
+      pairOpts: this.seg([['adj', 'Adjacent'], ['skip1', 'Skip one'], ['skip2', 'Skip two'], ['any', 'Any']], set.pairs, 'pairs'),
+      toggleDrawer: () => this.setState({ drawer: !drawer }), drawerOpen: drawer,
+      pauseOn: set.pause, ...this.tog(set.pause, 'pause'), togglePause: () => { this.upd({ pause: !set.pause }, false); if (set.pause && this.state.answered) this.t = setTimeout(() => this.next(), 800); },
+      minFret: set.minFret, maxFret: set.maxFret,
+      setMinFret: e => { const v = Math.max(0, Math.min(23, +e.target.value || 0)); this.upd({ minFret: v, maxFret: Math.max(set.maxFret, v + 3) }); },
+      setMaxFret: e => { const v = Math.max(1, Math.min(24, +e.target.value || 12)); this.upd({ maxFret: v, minFret: Math.min(set.minFret, v - 3) }); },
+      ...this.tog(set.noteNames, 'noteNames'), toggleNoteNames: () => this.upd({ noteNames: !set.noteNames }, false),
+      ...this.tog(set.compound, 'compound'), toggleCompound: () => this.upd({ compound: !set.compound }),
+      poolChips: SIMPLE.map(semis => { const on = set.pool.includes(semis); const t = this.tog(on); return { label: IV[semis], bg: t.bg, fg: t.fg, border: t.border, onClick: () => this.upd({ pool: on ? set.pool.filter(x => x !== semis) : set.pool.concat(semis).sort((a, b) => a - b) }) }; }),
+      resetStats: () => { const s0 = { streak: 0, best: 0, correct: 0, total: 0, per: {} }; this.persist({ stats: s0 }); this.setState({ stats: s0 }); },
+      viewBox: '0 0 ' + W + ' ' + H, boardX, boardY, boardW, boardH, boardRight, boardBottom,
+      boardWrapBg: T.wrapBg, boardFill: T.board, stringColor: T.string, inlayColor: T.inlay, mutedColor: T.muted, legendColor: T.legend,
+      fretLines, stringLines, inlays, dots, cells,
+      rootFill: T.rootFill, targetFill: T.tgtFill, targetLegend: mode === 'name' ? 'Interval note' : 'Your answer',
+      hintDown: e => { if (e.button && e.button !== 0) return; e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); this.setState({ hint: true }); }, hintUp: () => { if (hint) this.setState({ hint: false }); },
+      hintLabel: hint ? 'Intervals from root' : 'Hold for hint', noop: e => e.preventDefault(),
+      answerKicker: mode === 'name' ? (quad ? 'Pick one' : 'Your answer') : 'Target', answerHint: mode === 'name' ? (quad ? 'Keys 1–4' : 'Keys 1–9, 0, −, =') : 'Tap a fret on the board',
+      showAnswerGrid: mode === 'name', showFretPrompt: mode === 'fret',
+      fretTargetLabel: q ? IV[q.semis] : '', fretTargetLong: q ? LONG[q.semis] : '', fretTargetDir: q ? (q.up ? 'above the root' : 'below the root') : '',
+      answerBtns, feedback, feedbackColor, answered, next: () => this.next(), skip: () => this.next(), nextHint: set.pause ? 'any key' : '↵',
+      statsLine, perRows,
+    };
+  }
+}
+</script>
+</body>
+</html>

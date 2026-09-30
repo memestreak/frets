@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><style>body{margin:0;background:#e9e9ea;font-family:"Barlow",system-ui,sans-serif;color:#1d1f20}a{color:#5980a6}a:hover{color:#416180}.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1d1f20;color:#fff;text-decoration:none}.dv-tname{font:600 13px/1.2 "Barlow Condensed",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em}.dv-intro{max-width:70ch;font-size:13px;line-height:1.5;color:rgba(29,31,32,.7);margin:0 0 24px}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1d1f20;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 "Barlow",system-ui,sans-serif;color:rgba(0,0,0,.6)}.dv-card{width:1100px;max-width:100%;background:#f2f2f3;border:1px solid rgba(0,0,0,.12);overflow:hidden}.dv-opt:target .dv-oid{background:#5980a6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 "Barlow",system-ui,sans-serif;color:rgba(0,0,0,.55)}</style></helmet>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Guitar interval trainer — three treatments</span></div>
+  <p class="dv-intro">Same working quiz in each card (state is independent per card). Assumptions: standard tuning, low E on the bottom, root drawn in the steel accent, the interval note as a dark dot. Hold the primary button (or the H key) to overlay every interval from the root across the fret window; releasing hides it, no penalty. Targets stay within four frets of the root; interval names wrap at the octave. Wrong answers turn red and stay disabled until the right one is found. Settings and per-interval stats live in a collapsible drawer. Options vary the fretboard treatment and the answer input; everything else is shared. Open <a href="Interval%20Trainer.dc.html">Interval Trainer</a> on its own to use it full-width with the Tweaks panel.</p>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Line-drawing board · full interval grid with key shortcuts</div><div class="dv-card"><dc-import name="Interval Trainer" fretboard="line" answers="grid" hint-size="1100px,760px"></dc-import></div></div>
+    <div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Steel field board (accent-900 ground, paper strings) · full grid</div><div class="dv-card"><dc-import name="Interval Trainer" fretboard="steel" answers="grid" hint-size="1100px,760px"></dc-import></div></div>
+    <div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Surface-filled board · four-choice answers (faster on phones)</div><div class="dv-card"><dc-import name="Interval Trainer" fretboard="surface" answers="quad" hint-size="1100px,760px"></dc-import></div></div>
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1b">1b</a> but with the four-choice answers from <a class="dv-oid" href="#1c">1c</a>" · "add a phone layout" · "add the Chords section"</p>
+</section>
+</x-dc>
+</body>
+</html>
