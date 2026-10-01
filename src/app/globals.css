@@ -45,7 +45,6 @@ button {
   .seg-opt:not([aria-pressed='true'], [aria-current='page']):hover {
     background: color-mix(in srgb, var(--color-text) 7%, transparent);
   }
-  .seg-opt:focus-visible { outline-offset: -2px; }
 
   /* Toggle buttons: off = outline, on = accent-100 fill + accent border. */
   .btn-toggle[aria-pressed='true'] {
@@ -68,6 +67,7 @@ button {
     border: 1px solid currentColor;
     padding: 0 5px;
     margin-left: 2px;
+    border-radius: 4px;
   }
 
   .answer-grid {
@@ -82,6 +82,8 @@ button {
     min-width: 0;
     line-height: 1;
     font-size: clamp(13px, 1.6vw, 17px);
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
   }
   .answer-grid[data-variant='note'] .answer-btn {
     font-size: clamp(12px, 1.4vw, 16px);
@@ -98,7 +100,7 @@ button {
     color: var(--color-bg);
   }
   .answer-btn[data-state='idle']:hover {
-    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+    background: color-mix(in srgb, var(--color-text) 7%, var(--color-bg));
   }
   .answer-key {
     position: absolute;
@@ -115,7 +117,9 @@ button {
     .answer-btn { flex-wrap: wrap; padding-inline: 0; }
   }
 
-  .board-frame { padding: 10px 22px 14px; }
+  /* A .card: separate from the answer card above; no flex gap so the
+     board-to-legend spacing stays as it was. */
+  .board-frame { padding: 10px 22px 14px; margin-top: 14px; gap: 0; }
   .fretboard {
     display: block;
     width: 100%;
