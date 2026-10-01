@@ -12,7 +12,7 @@
 
 :root {
   --font-body: var(--font-barlow), system-ui, sans-serif;
-  --font-heading: var(--font-barlow-condensed), system-ui, sans-serif;
+  --font-heading: var(--font-barlow), system-ui, sans-serif;
 
   /* Status colors — not in the design system; chosen to sit with the
      steel accent. */
