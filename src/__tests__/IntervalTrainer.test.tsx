@@ -150,6 +150,27 @@ describe('IntervalTrainer', () => {
     expect(screen.getAllByTestId('dot-hint').length).toBeGreaterThan(0);
   });
 
+  it('bumps the other range to 2 instead of leaving both at 1', () => {
+    render(<IntervalTrainer rng={seededRng(4)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const saved = () =>
+      JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
+    const reach = within(dialog).getByRole('spinbutton', { name: 'Horizontal range' });
+
+    fireEvent.change(reach, { target: { value: '1' } });
+    expect(saved()).toMatchObject({ vRange: 6, hRange: 1 });
+    fireEvent.click(within(dialog).getByRole('button', { name: '1' }));
+    expect(saved()).toMatchObject({ vRange: 1, hRange: 2 });
+    expect(reach).toHaveValue(2);
+
+    fireEvent.change(reach, { target: { value: '1' } });
+    expect(saved()).toMatchObject({ vRange: 2, hRange: 1 });
+    expect(within(dialog).getByRole('button', { name: '2' }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('feedback')).not.toHaveTextContent('No question fits');
+  });
+
   it('keeps the question when a clamped range does not change', () => {
     renderFindIt(8, { mode: 'name', hRange: 12 });
     const where = () => ['dot-root', 'dot-target'].map(id => {

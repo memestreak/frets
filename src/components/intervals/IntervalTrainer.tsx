@@ -17,8 +17,8 @@ import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
-  activePool, clampHRange, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
-  INTERVAL_STORAGE_KEY, V_RANGE_MAX,
+  activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
+  INTERVAL_STORAGE_KEY, V_RANGE_MAX, withHRange, withVRange,
   type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
@@ -201,7 +201,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           <Field label="Vertical range" note="Strings, counting the root’s own.">
             <Segmented<number>
               label="Vertical range" options={V_RANGE_OPTS} value={set.vRange}
-              onChange={v => update({ vRange: v })}
+              onChange={v => update(withVRange(set, v))}
             />
           </Field>
           <Field label="Horizontal range" note="Frets, counting the root’s own.">
@@ -210,8 +210,8 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
                 label="Horizontal range" min={1} max={H_RANGE_MAX} value={set.hRange}
                 onCommit={v => {
                   // Clamping can land on the current value; keep the question.
-                  const hRange = clampHRange(v);
-                  if (hRange !== set.hRange) update({ hRange });
+                  const ranges = withHRange(set, v);
+                  if (ranges.hRange !== set.hRange) update(ranges);
                 }}
               />
               <span className="text-muted">frets</span>

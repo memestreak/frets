@@ -1,7 +1,7 @@
 import {
   clampHRange, correctFrets, defaultIntervalSettings,
   generateIntervalQuestion, inBox, isCorrectFret, isOutOfRange,
-  parseIntervalSettings,
+  parseIntervalSettings, withHRange, withVRange,
   type IntervalQuestion, type IntervalSettings,
 } from '@/lib/intervals';
 import { intervalClass, midi, samePos } from '@/lib/music';
@@ -268,7 +268,32 @@ describe('clampHRange', () => {
   });
 });
 
+describe('withVRange / withHRange', () => {
+  it('set one range and leave the other alone', () => {
+    expect(withVRange({ vRange: 6, hRange: 4 }, 3)).toEqual({ vRange: 3, hRange: 4 });
+    expect(withVRange({ vRange: 6, hRange: 4 }, 1)).toEqual({ vRange: 1, hRange: 4 });
+    expect(withHRange({ vRange: 6, hRange: 4 }, 1)).toEqual({ vRange: 6, hRange: 1 });
+    expect(withHRange({ vRange: 6, hRange: 4 }, 40)).toEqual({ vRange: 6, hRange: 12 });
+  });
+
+  it('bump the other range to 2 rather than leave both at 1', () => {
+    // One string by one fret is the root alone: no question can fit.
+    expect(withVRange({ vRange: 3, hRange: 1 }, 1)).toEqual({ vRange: 1, hRange: 2 });
+    expect(withHRange({ vRange: 1, hRange: 5 }, 1)).toEqual({ vRange: 2, hRange: 1 });
+    expect(withHRange({ vRange: 1, hRange: 5 }, 0)).toEqual({ vRange: 2, hRange: 1 });
+  });
+});
+
 describe('parseIntervalSettings', () => {
+  it('never loads both ranges at 1', () => {
+    expect(parseIntervalSettings({ vRange: 1, hRange: 1 }))
+      .toMatchObject({ vRange: 1, hRange: 2 });
+    expect(parseIntervalSettings({ vRange: 1, hRange: 2 }))
+      .toMatchObject({ vRange: 1, hRange: 2 });
+    expect(parseIntervalSettings({ vRange: 2, hRange: 1 }))
+      .toMatchObject({ vRange: 2, hRange: 1 });
+  });
+
   it('falls back to defaults for missing or invalid fields', () => {
     expect(parseIntervalSettings(null)).toEqual(defaultIntervalSettings());
     expect(parseIntervalSettings({

@@ -55,6 +55,18 @@ type Box = Pick<IntervalSettings, 'vRange' | 'hRange'>;
 type Judging = Box & Pick<IntervalSettings, 'compound'>;
 
 /**
+ * Range changes. One string by one fret is the root alone, which no question
+ * fits, so setting one range to 1 while the other is 1 bumps the other to 2.
+ */
+export const withVRange = (set: Box, vRange: number): Box => ({
+  vRange, hRange: vRange === 1 && set.hRange === 1 ? 2 : set.hRange,
+});
+export const withHRange = (set: Box, n: number): Box => {
+  const hRange = clampHRange(n);
+  return { hRange, vRange: hRange === 1 && set.vRange === 1 ? 2 : set.vRange };
+};
+
+/**
  * Is `pos` in the box around `root` for a question in direction `up`? The
  * ranges count the root's own string and fret, so the box reaches
  * `hRange - 1` frets either way. On other strings it follows the string
@@ -179,12 +191,16 @@ export function parseIntervalSettings(raw: unknown): IntervalSettings {
       (x): x is number => SIMPLE_INTERVALS.includes(x as number),
     ))].sort((a, b) => a - b)
     : d.pool;
+  const vRange = intRange(r.vRange, 1, V_RANGE_MAX, d.vRange);
 
   return {
     mode: oneOf(r.mode, MODES, d.mode),
     dir: oneOf(r.dir, DIRS, d.dir),
-    vRange: intRange(r.vRange, 1, V_RANGE_MAX, d.vRange),
-    hRange: intRange(r.hRange, 1, H_RANGE_MAX, d.hRange),
+    vRange,
+    // Both ranges at 1 leave no question; see `withVRange`.
+    hRange: withVRange(
+      { vRange, hRange: intRange(r.hRange, 1, H_RANGE_MAX, d.hRange) }, vRange,
+    ).hRange,
     minFret,
     maxFret,
     pool,

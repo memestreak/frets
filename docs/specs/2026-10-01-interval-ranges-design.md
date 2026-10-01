@@ -26,6 +26,13 @@ away). In distance terms the target is at most `vRange - 1` strings and
 distances with a vertical maximum of 5; the prototype's fixed reach of four
 frets' distance corresponds to `hRange = 5`.)
 
+Both ranges at 1 would be the root's cell alone, which no question fits, so
+that combination cannot be set. `withVRange` / `withHRange` build the
+settings patch for a range change: setting one range to 1 while the other is
+1 bumps the other to 2. The dialog uses them, and the parser applies the
+same rule to stored settings (a stored 1/1 loads as vertical 1, horizontal
+2).
+
 Two defaults change on purpose:
 
 - `pairs: 'adj'` (adjacent strings only) becomes `vRange: 6`.
