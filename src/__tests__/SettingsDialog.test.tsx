@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { SettingsDialog } from '@/components/quiz/SettingsDialog';
 
+const onDefaults = vi.fn();
+
 function Harness() {
   const [open, setOpen] = useState(false);
   return (
@@ -10,6 +12,7 @@ function Harness() {
       <SettingsDialog
         open={open}
         onClose={() => setOpen(false)}
+        onDefaults={onDefaults}
         footnote="Standard tuning"
       >
         <button type="button">Inner</button>
@@ -42,6 +45,14 @@ describe('SettingsDialog', () => {
     openDialog();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('reports Defaults and stays open', () => {
+    onDefaults.mockClear();
+    openDialog();
+    fireEvent.click(screen.getByRole('button', { name: 'Defaults' }));
+    expect(onDefaults).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 
   it('closes with the ✕ button', () => {

@@ -1,7 +1,7 @@
 import {
   clampHRange, correctFrets, defaultIntervalSettings,
   generateIntervalQuestion, inBox, isCorrectFret, isOutOfRange,
-  parseIntervalSettings, withHRange, withVRange,
+  parseIntervalSettings, resetIntervalSettings, withHRange, withVRange,
   type IntervalQuestion, type IntervalSettings,
 } from '@/lib/intervals';
 import { intervalClass, midi, samePos } from '@/lib/music';
@@ -19,11 +19,21 @@ const span = (q: IntervalQuestion) =>
   midi(q.tgt.s, q.tgt.f) - midi(q.root.s, q.root.f);
 
 describe('defaults', () => {
-  it('uses every string, a five-fret span and compound spans', () => {
+  it('uses both directions, every string, a five-fret span and compound spans', () => {
     expect(defaultIntervalSettings()).toMatchObject({
-      vRange: 6, hRange: 5, compound: true,
+      dir: 'rand', vRange: 6, hRange: 5, compound: true,
     });
     expect(defaultIntervalSettings()).not.toHaveProperty('pairs');
+  });
+
+  it('resets every dialog field but keeps mode and pause', () => {
+    const changed = settings({
+      mode: 'fret', pause: true, dir: 'rand', vRange: 2, hRange: 9, minFret: 3,
+      maxFret: 20, pool: [7], compound: false, noteNames: true,
+    });
+    expect(resetIntervalSettings(changed)).toEqual(
+      settings({ mode: 'fret', pause: true }),
+    );
   });
 });
 
@@ -253,10 +263,10 @@ describe('generateIntervalQuestion', () => {
   });
 
   it('stays on one string at vertical 1 and on one fret at horizontal 1', () => {
-    for (const q of sample(settings({ vRange: 1 }), 100)) {
+    for (const q of sample(settings({ dir: 'asc', vRange: 1 }), 100)) {
       expect(q && q.tgt.s === q.root.s && q.tgt.f > q.root.f).toBe(true);
     }
-    for (const q of sample(settings({ hRange: 1 }), 100)) {
+    for (const q of sample(settings({ dir: 'asc', hRange: 1 }), 100)) {
       expect(q && q.tgt.f === q.root.f && q.tgt.s > q.root.s).toBe(true);
     }
     expect(sample(settings()).some(q => q && q.tgt.s === q.root.s)).toBe(true);
@@ -307,9 +317,9 @@ describe('parseIntervalSettings', () => {
     });
   });
 
-  it('falls back to Ascending for the removed Same string direction', () => {
-    expect(parseIntervalSettings({ dir: 'same' }).dir).toBe('asc');
-    expect(parseIntervalSettings({ dir: 'rand' }).dir).toBe('rand');
+  it('falls back to the default for the removed Same string direction', () => {
+    expect(parseIntervalSettings({ dir: 'same' }).dir).toBe('rand');
+    expect(parseIntervalSettings({ dir: 'asc' }).dir).toBe('asc');
   });
 
   it('accepts in-range integer ranges and ignores a stored pairs value', () => {

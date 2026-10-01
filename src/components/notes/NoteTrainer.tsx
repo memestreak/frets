@@ -15,15 +15,16 @@ import { TrainerHeader } from '@/components/quiz/TrainerHeader';
 import { useAutoAdvance } from '@/hooks/useAutoAdvance';
 import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
-import { clampFret, setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
   ANSWER_KEYS, NOTE_LABELS, pitchClass, SHARP_NAMES, STRING_NAMES, STRINGS,
   type Rng,
 } from '@/lib/music';
 import {
-  generateNoteQuestion, NOTE_STORAGE_KEY, targetRange,
+  clampNoteFret, generateNoteQuestion, NOTE_MAX_FRET, NOTE_STORAGE_KEY,
+  resetNoteSettings, targetRange,
   type NoteMode, type NoteSettings,
 } from '@/lib/notes';
+import { sameSettings } from '@/lib/quizFlow';
 import { itemPercent } from '@/lib/stats';
 import { initNoteState, noteReducer } from './noteState';
 
@@ -84,7 +85,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   if (q) {
     if (hint) {
       for (const s of STRINGS) {
-        for (let f = set.minFret; f <= set.maxFret; f++) {
+        for (let f = 0; f <= NOTE_MAX_FRET; f++) {
           if (q.mode === 'name' && s === q.s && f === q.f) continue;
           dots.push({
             s, f, kind: 'hint', fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg,
@@ -130,7 +131,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   let feedback = '';
   let tone: FeedbackTone = 'neutral';
   if (!q) {
-    feedback = 'No question fits these settings — check strings in scope and the ranges.';
+    feedback = 'No question fits these settings — put a string in scope.';
   } else if (answered) {
     feedback = `Correct — ${noteName}${missSuffix(wrong.length)}`;
     tone = 'success';
@@ -165,7 +166,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
       <TrainerHeader
-        kicker="Fretboard · Note trainer"
         title={TITLES[mode]}
         controls={(
           <Segmented<NoteMode>
@@ -181,10 +181,15 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        onDefaults={() => {
+          // Already at the defaults: keep the question.
+          const reset = resetNoteSettings(set);
+          if (!sameSettings(reset, set)) update(reset);
+        }}
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom · sharps and flats both accepted"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-7 gap-y-[18px]">
-          <Field label="Strings in scope" note="Low E on the left.">
+          <Field label="Strings in scope">
             <div className="flex flex-wrap gap-1.5">
               {STRINGS.map(s => (
                 <ToggleButton
@@ -199,29 +204,16 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
               ))}
             </div>
           </Field>
-          <Field label="Board window">
+          <Field label="Target range">
             <FretPair>
               <FretInput
-                label="Lowest fret shown" min={0} max={23} value={set.minFret}
-                onCommit={v => update(setWindowMin(set, v))}
+                label="Range start fret" min={0} max={NOTE_MAX_FRET} value={set.rFrom}
+                onCommit={v => update({ rFrom: clampNoteFret(v) })}
               />
               <span className="text-muted">to</span>
               <FretInput
-                label="Highest fret shown" min={1} max={24} value={set.maxFret}
-                onCommit={v => update(setWindowMax(set, v))}
-              />
-            </FretPair>
-          </Field>
-          <Field label="Target range" note="Used by “Name it” and “Find in range”.">
-            <FretPair>
-              <FretInput
-                label="Range start fret" min={0} max={24} value={set.rFrom}
-                onCommit={v => update({ rFrom: clampFret(v) })}
-              />
-              <span className="text-muted">to</span>
-              <FretInput
-                label="Range end fret" min={0} max={24} value={set.rTo}
-                onCommit={v => update({ rTo: clampFret(v) })}
+                label="Range end fret" min={0} max={NOTE_MAX_FRET} value={set.rTo}
+                onCommit={v => update({ rTo: clampNoteFret(v) })}
               />
             </FretPair>
           </Field>
@@ -244,8 +236,8 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         </AnswerCard>
         <BoardFrame legend={legend} hint={hint} onHint={setHint} hintActiveLabel="Note names">
           <Fretboard
-            minFret={set.minFret}
-            maxFret={set.maxFret}
+            minFret={0}
+            maxFret={NOTE_MAX_FRET}
             dots={dots}
             scrollToFret={q?.mode === 'name' ? q.f : q?.mode === 'range' ? rA : null}
             band={mode === 'range' ? { from: rA, to: rB, color: STATUS.green } : null}

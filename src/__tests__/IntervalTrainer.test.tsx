@@ -254,14 +254,14 @@ describe('IntervalTrainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     const dir = within(screen.getByRole('dialog', { name: 'Settings' }))
       .getByRole('combobox', { name: 'Direction' });
-    expect(dir).toHaveValue('asc');
+    expect(dir).toHaveValue('rand');
     expect(within(dir).getAllByRole('option').map(o => o.textContent)).toEqual([
       'Ascending', 'Descending', 'Ascending and Descending',
     ]);
 
-    fireEvent.change(dir, { target: { value: 'rand' } });
+    fireEvent.change(dir, { target: { value: 'desc' } });
     const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
-    expect(saved.set.dir).toBe('rand');
+    expect(saved.set.dir).toBe('desc');
   });
 
   it('applies the range settings from the dialog live, without closing', () => {
@@ -284,6 +284,38 @@ describe('IntervalTrainer', () => {
     expect(saved().hRange).toBe(12);
 
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+  });
+
+  it('Defaults resets the dialog fields, keeping mode, pause and stats', () => {
+    const { q } = renderFindIt(8, {
+      pause: true, dir: 'desc', vRange: 6, hRange: 12, minFret: 2, maxFret: 12,
+      pool: [3, 4, 7], compound: false, noteNames: true,
+    });
+    fireEvent.click(cellEl(q.tgt));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Defaults' }));
+
+    const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
+    expect(saved.set).toEqual({ ...defaultIntervalSettings(), mode: 'fret', pause: true });
+    expect(saved.stats.total).toBe(1);
+    expect(within(dialog).getByRole('combobox', { name: 'Direction' })).toHaveValue('rand');
+    expect(within(dialog).getByRole('spinbutton', { name: 'Horizontal range' }))
+      .toHaveValue(5);
+    expect(within(dialog).getByRole('spinbutton', { name: 'Lowest fret' })).toHaveValue(0);
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+  });
+
+  it('Defaults keeps the question when nothing differs', () => {
+    render(<IntervalTrainer rng={seededRng(4)} />);
+    const where = () => ['dot-root', 'dot-target'].map(id => {
+      const el = screen.getByTestId(id);
+      return `${el.dataset.s}:${el.dataset.f}`;
+    }).join(' ');
+    const before = where();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Defaults' }));
+    expect(where()).toBe(before);
   });
 
   it('shows session stats and reset on the page, outside settings', () => {

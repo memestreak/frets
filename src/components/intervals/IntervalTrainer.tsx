@@ -18,13 +18,14 @@ import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
   activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
-  INTERVAL_STORAGE_KEY, V_RANGE_MAX, withHRange, withVRange,
+  INTERVAL_STORAGE_KEY, resetIntervalSettings, V_RANGE_MAX, withHRange, withVRange,
   type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
   samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
+import { sameSettings } from '@/lib/quizFlow';
 import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
 
@@ -170,7 +171,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
       <TrainerHeader
-        kicker="Fretboard · Interval trainer"
         title={mode === 'name' ? 'Name the interval' : 'Find the fret'}
         controls={(
           <Segmented<IntervalMode>
@@ -186,6 +186,11 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        onDefaults={() => {
+          // Already at the defaults: keep the question.
+          const reset = resetIntervalSettings(set);
+          if (!sameSettings(reset, set)) update(reset);
+        }}
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">

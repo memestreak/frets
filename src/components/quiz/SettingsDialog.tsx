@@ -8,6 +8,8 @@ import { CloseIcon } from '../icons';
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+  /** Put the dialog's fields back to their defaults; the dialog stays open. */
+  onDefaults: () => void;
   /** Tuning note shown beside the Done button. */
   footnote: string;
   children: ReactNode;
@@ -19,7 +21,7 @@ interface SettingsDialogProps {
  * closing reports through `onClose`.
  */
 export function SettingsDialog(
-  { open, onClose, footnote, children }: SettingsDialogProps,
+  { open, onClose, onDefaults, footnote, children }: SettingsDialogProps,
 ) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
@@ -86,9 +88,14 @@ export function SettingsDialog(
         <div className="settings-dialog-body">{children}</div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-muted text-[12px]">{footnote}</span>
-          <button type="button" className="btn btn-primary ml-auto" onClick={onClose}>
-            Done
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button type="button" className="btn btn-ghost" onClick={onDefaults}>
+              Defaults
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </dialog>

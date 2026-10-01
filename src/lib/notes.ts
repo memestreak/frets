@@ -1,4 +1,3 @@
-import { clampFret, MIN_WINDOW_SPAN } from './fretWindow';
 import {
   pick, pitchClass, randInt, STRINGS, type Position, type Rng,
 } from './music';
@@ -9,8 +8,6 @@ export interface NoteSettings {
   mode: NoteMode;
   /** Strings in scope, low E first. */
   strings: boolean[];
-  minFret: number;
-  maxFret: number;
   /** Target range, used by Name it and Find in range. */
   rFrom: number;
   rTo: number;
@@ -24,24 +21,36 @@ export type NoteQuestion =
 
 export const NOTE_STORAGE_KEY = 'eminor.notes.v2';
 
+/** The board always draws the open strings through this fret. */
+export const NOTE_MAX_FRET = 15;
+
+/** Clamp an arbitrary fret number to the board. */
+export const clampNoteFret = (value: number): number =>
+  Math.max(0, Math.min(NOTE_MAX_FRET, Math.round(value)));
+
 const MAX_TRIES = 200;
 /** Tries during which a repeat of the previous pitch class is rejected. */
 const AVOID_REPEAT_TRIES = 50;
 
 export const defaultNoteSettings = (): NoteSettings => ({
   mode: 'name', strings: [true, true, true, true, true, true],
-  minFret: 0, maxFret: 15, rFrom: 3, rTo: 7, pause: false,
+  rFrom: 1, rTo: 12, pause: false,
+});
+
+/**
+ * The settings dialog's Defaults: every field it shows goes back to its
+ * default. Mode and Pause b/w sit in the header, so they are kept.
+ */
+export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
+  ...defaultNoteSettings(), mode: set.mode, pause: set.pause,
 });
 
 export const stringsInScope = (set: NoteSettings): number[] =>
   STRINGS.filter(s => set.strings[s]);
 
-/** Target range, ordered and clamped to the board window. */
+/** Target range, ordered. */
 export function targetRange(set: NoteSettings): [number, number] {
-  return [
-    Math.max(set.minFret, Math.min(set.rFrom, set.rTo)),
-    Math.min(set.maxFret, Math.max(set.rFrom, set.rTo)),
-  ];
+  return [Math.min(set.rFrom, set.rTo), Math.max(set.rFrom, set.rTo)];
 }
 
 /** Every in-scope position in the target range with pitch class `pc`. */
@@ -66,7 +75,6 @@ export function generateNoteQuestion(
   const strings = stringsInScope(set);
   if (!strings.length) return null;
   const [a, b] = targetRange(set);
-  if (set.mode !== 'string' && a > b) return null;
 
   for (let i = 0; i < MAX_TRIES; i++) {
     const avoid = (p: number) => p === lastPc && i < AVOID_REPEAT_TRIES;
@@ -81,7 +89,7 @@ export function generateNoteQuestion(
     if (avoid(pc)) continue;
     if (set.mode === 'string') {
       const s = pick(rng, strings);
-      for (let f = set.minFret; f <= set.maxFret; f++) {
+      for (let f = 0; f <= NOTE_MAX_FRET; f++) {
         if (pitchClass(s, f) === pc) return { mode: 'string', pc, s };
       }
     } else {
@@ -100,14 +108,8 @@ export function parseNoteSettings(raw: unknown): NoteSettings {
   if (!raw || typeof raw !== 'object') return d;
   const r = raw as Record<string, unknown>;
   const num = (v: unknown, fb: number) =>
-    typeof v === 'number' && Number.isFinite(v) ? clampFret(v) : fb;
+    typeof v === 'number' && Number.isFinite(v) ? clampNoteFret(v) : fb;
 
-  let minFret = num(r.minFret, d.minFret);
-  let maxFret = num(r.maxFret, d.maxFret);
-  if (maxFret - minFret < MIN_WINDOW_SPAN) {
-    minFret = d.minFret;
-    maxFret = d.maxFret;
-  }
   const strings = Array.isArray(r.strings) && r.strings.length === 6
     && r.strings.every(x => typeof x === 'boolean')
     ? (r.strings as boolean[])
@@ -116,8 +118,6 @@ export function parseNoteSettings(raw: unknown): NoteSettings {
   return {
     mode: MODES.includes(r.mode as NoteMode) ? (r.mode as NoteMode) : d.mode,
     strings,
-    minFret,
-    maxFret,
     rFrom: num(r.rFrom, d.rFrom),
     rTo: num(r.rTo, d.rTo),
     pause: typeof r.pause === 'boolean' ? r.pause : d.pause,

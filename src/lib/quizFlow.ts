@@ -19,6 +19,13 @@ export const freshAttempt = () => ({
   answered: false, wrong: [], advanceMs: null,
 });
 
+/** Field-by-field settings equality, whatever the key order. */
+export function sameSettings<T extends object>(a: T, b: T): boolean {
+  const keys = Object.keys(a) as (keyof T)[];
+  return keys.length === Object.keys(b).length
+    && keys.every(k => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+}
+
 /**
  * A wrong try. The question is scored as a miss on the first wrong try
  * only, and stays open until the right answer is found.

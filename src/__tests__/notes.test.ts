@@ -1,33 +1,52 @@
 import { pitchClass } from '@/lib/music';
 import {
   defaultNoteSettings, generateNoteQuestion, parseNoteSettings, rangeTargets,
-  targetRange, type NoteSettings,
+  resetNoteSettings, targetRange, type NoteSettings,
 } from '@/lib/notes';
 import { seededRng } from './helpers/rng';
 
 const settings = (patch: Partial<NoteSettings> = {}) =>
   ({ ...defaultNoteSettings(), ...patch });
 
+describe('resetNoteSettings', () => {
+  it('resets every dialog field but keeps mode and pause', () => {
+    const changed = settings({
+      mode: 'range', pause: true, rFrom: 9, rTo: 14,
+      strings: [false, true, false, true, false, true],
+    });
+    expect(resetNoteSettings(changed)).toEqual(settings({ mode: 'range', pause: true }));
+  });
+});
+
 describe('targetRange', () => {
-  it('orders the range and clamps it to the window', () => {
+  it('orders the range', () => {
     expect(targetRange(settings({ rFrom: 7, rTo: 3 }))).toEqual([3, 7]);
-    expect(targetRange(settings({ minFret: 5, maxFret: 12, rFrom: 3, rTo: 20 })))
-      .toEqual([5, 12]);
+  });
+});
+
+describe('defaults', () => {
+  it('targets frets 1 to 12 and has no board window', () => {
+    expect(defaultNoteSettings()).toMatchObject({ rFrom: 1, rTo: 12 });
+    expect(defaultNoteSettings()).not.toHaveProperty('minFret');
+    expect(defaultNoteSettings()).not.toHaveProperty('maxFret');
   });
 });
 
 describe('rangeTargets', () => {
   it('finds every in-scope occurrence in the range', () => {
     // E in frets 3–7: A string fret 7 and B string fret 5.
-    expect(rangeTargets(settings(), 4)).toEqual([{ s: 1, f: 7 }, { s: 4, f: 5 }]);
-    const noB = settings({ strings: [true, true, true, true, false, true] });
+    const set = settings({ rFrom: 3, rTo: 7 });
+    expect(rangeTargets(set, 4)).toEqual([{ s: 1, f: 7 }, { s: 4, f: 5 }]);
+    const noB = { ...set, strings: [true, true, true, true, false, true] };
     expect(rangeTargets(noB, 4)).toEqual([{ s: 1, f: 7 }]);
   });
 });
 
 describe('generateNoteQuestion', () => {
   it('Name it: dot on an in-scope string within the target range', () => {
-    const set = settings({ strings: [false, true, false, true, false, false] });
+    const set = settings({
+      strings: [false, true, false, true, false, false], rFrom: 3, rTo: 7,
+    });
     const rng = seededRng(7);
     let last: number | null = null;
     for (let i = 0; i < 300; i++) {
@@ -42,15 +61,16 @@ describe('generateNoteQuestion', () => {
     }
   });
 
-  it('Find on string: the note exists on the target string in the window', () => {
-    const set = settings({ mode: 'string', minFret: 5, maxFret: 8 });
+  it('Find on string: uses the whole board, whatever the target range', () => {
+    const set = settings({ mode: 'string', rFrom: 5, rTo: 5 });
     const rng = seededRng(3);
+    const asked = new Set<number>();
     for (let i = 0; i < 300; i++) {
       const q = generateNoteQuestion(set, null, rng);
       if (q?.mode !== 'string') throw new Error('expected a string question');
-      const frets = [5, 6, 7, 8].filter(f => pitchClass(q.s, f) === q.pc);
-      expect(frets.length).toBeGreaterThan(0);
+      asked.add(q.pc);
     }
+    expect(asked.size).toBe(12);
   });
 
   it('Find in range: targets are every occurrence', () => {
@@ -64,16 +84,18 @@ describe('generateNoteQuestion', () => {
     }
   });
 
-  it('returns null with no strings in scope or an empty range', () => {
+  it('returns null with no strings in scope', () => {
     expect(generateNoteQuestion(settings({ strings: Array(6).fill(false) }), null)).toBeNull();
-    expect(generateNoteQuestion(settings({ minFret: 10, maxFret: 15, rFrom: 3, rTo: 7 }), null))
-      .toBeNull();
   });
 });
 
 describe('parseNoteSettings', () => {
   it('falls back to defaults for invalid fields', () => {
     expect(parseNoteSettings({ mode: 'bogus', strings: [true], rFrom: 40, pause: true }))
-      .toEqual({ ...defaultNoteSettings(), rFrom: 24, pause: true });
+      .toEqual({ ...defaultNoteSettings(), rFrom: 15, pause: true });
+  });
+
+  it('drops a stored board window', () => {
+    expect(parseNoteSettings({ minFret: 5, maxFret: 20 })).toEqual(defaultNoteSettings());
   });
 });

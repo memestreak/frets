@@ -23,13 +23,13 @@ describe('noteReducer', () => {
   });
 
   it('Find on string: any octave on the target string counts', () => {
-    // E on the A string: fret 7 or fret 19.
-    let s = base({ mode: 'string', pc: 4, s: 1 }, { maxFret: 20 });
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 2, f: 2 } }); // E, wrong string
+    // A on the A string: open or fret 12.
+    let s = base({ mode: 'string', pc: 9, s: 1 });
+    s = noteReducer(s, { type: 'answerFret', pos: { s: 3, f: 2 } }); // A, wrong string
     expect(s.wrong).toHaveLength(1);
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 19 } });
+    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 12 } });
     expect(s.answered).toBe(true);
-    expect(s.found).toEqual([{ s: 1, f: 19 }]);
+    expect(s.found).toEqual([{ s: 1, f: 12 }]);
   });
 
   it('Find in range: completes when every target is found', () => {

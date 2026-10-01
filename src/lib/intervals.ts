@@ -43,8 +43,16 @@ export const clampHRange = (n: number): number =>
   Math.min(H_RANGE_MAX, Math.max(1, Math.round(n)));
 
 export const defaultIntervalSettings = (): IntervalSettings => ({
-  mode: 'name', dir: 'asc', vRange: V_RANGE_MAX, hRange: 5, minFret: 0, maxFret: 15,
+  mode: 'name', dir: 'rand', vRange: V_RANGE_MAX, hRange: 5, minFret: 0, maxFret: 15,
   pool: [...SIMPLE_INTERVALS], compound: true, noteNames: false, pause: false,
+});
+
+/**
+ * The settings dialog's Defaults: every field it shows goes back to its
+ * default. Mode and Pause b/w sit in the header, so they are kept.
+ */
+export const resetIntervalSettings = (set: IntervalSettings): IntervalSettings => ({
+  ...defaultIntervalSettings(), mode: set.mode, pause: set.pause,
 });
 
 /** Pool restricted to valid simple intervals. */
