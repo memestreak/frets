@@ -150,12 +150,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       ? [{ label: 'Target string', color: STATUS.green, shape: 'square' }]
       : [{ label: `Target range · ${rangeTxt}`, color: BAND_FILL, shape: 'square' }];
 
-  const sub = mode === 'name'
-    ? `Which note is the dot? Dots land on strings in scope within ${rangeTxt}.`
-    : mode === 'string'
-      ? 'Tap the note on the green string — any octave in the board window counts.'
-      : `Tap every occurrence of the note inside the green band (${rangeTxt}) on the strings in scope.`;
-
   let findSub = '';
   if (q?.mode === 'string') findSub = `on the ${STRING_NAMES[q.s]} string`;
   if (q?.mode === 'range') {
@@ -174,7 +168,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       <TrainerHeader
         kicker="Fretboard · Note trainer"
         title={TITLES[mode]}
-        sub={sub}
         controls={(
           <Segmented<NoteMode>
             label="Mode" options={MODE_OPTS} value={mode}

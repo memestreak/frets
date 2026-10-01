@@ -1,6 +1,6 @@
 import {
   defaultIntervalSettings, generateIntervalQuestion, INTERVAL_STORAGE_KEY,
-  isCorrectFret, parseIntervalSettings, type IntervalQuestion,
+  isCorrectFret, isOutOfRange, parseIntervalSettings, type IntervalQuestion,
   type IntervalSettings,
 } from '@/lib/intervals';
 import { samePos, type Position, type Rng } from '@/lib/music';
@@ -18,6 +18,10 @@ export interface IntervalState extends QuizCore<IntervalWrong> {
   q: IntervalQuestion | null;
   /** Where the correct Find-it answer was tapped. */
   picked: Position | null;
+  /** Find-it taps on the right interval outside the box; not scored. */
+  far: Position[];
+  /** True while the latest tap was one of those. */
+  farLast: boolean;
 }
 
 export type IntervalAction =
@@ -30,7 +34,7 @@ export type IntervalAction =
   | { type: 'resetStats' };
 
 const newQuestion = (state: IntervalState, q: IntervalQuestion | null): IntervalState => ({
-  ...state, ...freshAttempt(), q, picked: null,
+  ...state, ...freshAttempt(), q, picked: null, far: [], farLast: false,
 });
 
 export function initIntervalState(rng: Rng = Math.random): IntervalState {
@@ -41,6 +45,8 @@ export function initIntervalState(rng: Rng = Math.random): IntervalState {
     stats: saved.stats ? parseStats(saved.stats) : emptyStats(),
     q: generateIntervalQuestion(set, rng),
     picked: null,
+    far: [],
+    farLast: false,
     ...freshAttempt(),
   };
 }
@@ -59,9 +65,15 @@ export function intervalReducer(state: IntervalState, action: IntervalAction): I
       if (!q || state.answered || set.mode !== 'fret') return state;
       const { pos } = action;
       if (state.wrong.some(w => typeof w !== 'number' && samePos(w, pos))) return state;
-      return isCorrectFret(q, pos, set.compound)
-        ? { ...applySolve(state, q.semis, set.pause), picked: pos }
-        : applyMiss(state, pos, q.semis);
+      if (state.far.some(p => samePos(p, pos))) return state;
+      if (isCorrectFret(q, pos, set)) {
+        return { ...applySolve(state, q.semis, set.pause), picked: pos, farLast: false };
+      }
+      // The right interval beyond the user's own range is not a miss.
+      if (isOutOfRange(q, pos, set)) {
+        return { ...state, far: [...state.far, pos], farLast: true };
+      }
+      return { ...applyMiss(state, pos, q.semis), farLast: false };
     }
     case 'next':
       return newQuestion(state, action.q);

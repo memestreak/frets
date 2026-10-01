@@ -17,30 +17,25 @@ import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
-  activePool, generateIntervalQuestion, INTERVAL_STORAGE_KEY,
-  type Direction, type IntervalMode, type IntervalSettings, type StringPairs,
+  activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
+  INTERVAL_STORAGE_KEY, V_RANGE_MAX, withHRange, withVRange,
+  type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
-  SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
+  samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
 import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
 
 const MODE_OPTS = [['name', 'Name it'], ['fret', 'Find it']] as const;
 const DIR_OPTS = [
-  ['asc', 'Asc from low'], ['desc', 'Desc from high'],
-  ['rand', 'Random'], ['same', 'Same string'],
+  ['asc', 'Ascending'], ['desc', 'Descending'],
+  ['rand', 'Ascending and Descending'],
 ] as const;
-const PAIR_OPTS = [
-  ['adj', 'Adjacent'], ['skip1', 'Skip one'], ['skip2', 'Skip two'], ['any', 'Any'],
-] as const;
-const DIR_DESC: Record<Direction, string> = {
-  asc: 'Root on the lower string, interval ascends to the higher string.',
-  desc: 'Root on the higher string, interval note below it on the lower string.',
-  rand: 'Root on either string; direction changes every question.',
-  same: 'Both notes on one string.',
-};
+const V_RANGE_OPTS = Array.from(
+  { length: V_RANGE_MAX }, (_, i) => [i + 1, String(i + 1)] as const,
+);
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
 const missSuffix = (n: number) =>
@@ -50,17 +45,20 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const [state, dispatch] = useReducer(intervalReducer, rng, initIntervalState);
   const [hint, setHint] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { set, stats, q, answered, wrong, picked } = state;
+  const { set, stats, q, answered, wrong, picked, far, farLast } = state;
   const { mode } = set;
   const pool = activePool(set);
 
   const persisted = useMemo(() => ({ set, stats }), [set, stats]);
   usePersist(INTERVAL_STORAGE_KEY, persisted);
 
-  const next = () => dispatch({ type: 'next', q: generateIntervalQuestion(set, rng) });
+  const next = () => dispatch({ type: 'next', q: generateIntervalQuestion(set, rng, q) });
   const update = (patch: Partial<IntervalSettings>, regen = true) => {
     const s = { ...set, ...patch };
-    dispatch({ type: 'settings', set: s, q: regen ? generateIntervalQuestion(s, rng) : undefined });
+    dispatch({
+      type: 'settings', set: s,
+      q: regen ? generateIntervalQuestion(s, rng, q) : undefined,
+    });
   };
   const answerName = (semis: number) => dispatch({ type: 'answerName', semis });
 
@@ -101,6 +99,17 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     });
     if (mode === 'name' || answered) {
       const at = picked ?? q.tgt;
+      if (mode === 'fret' && !hint) {
+        // Other fingerings of the interval inside the box. The hint already
+        // labels those cells, so the two never overprint.
+        for (const p of correctFrets(q, set)) {
+          if (samePos(p, at)) continue;
+          dots.push({
+            ...p, kind: 'also', fill: 'transparent', stroke: STATUS.green,
+            fg: STATUS.greenDeep, label: INTERVAL_NAMES[q.semis], fontSize: 10,
+          });
+        }
+      }
       const fill = answered ? STATUS.green : T.tgtFill;
       dots.push({
         ...at, kind: 'target', fill, stroke: fill, fg: T.tgtFg,
@@ -118,6 +127,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           label: '✕', fontSize: 12, opacity: 0.9,
         });
       }
+      // Right interval, beyond the range: marked, but not as a miss.
+      for (const p of far) {
+        dots.push({
+          ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
+          label: INTERVAL_NAMES[q.semis], fontSize: 10,
+        });
+      }
     }
   }
 
@@ -133,11 +149,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   let feedback = '';
   let tone: FeedbackTone = 'neutral';
   if (!q) {
-    feedback = 'No question fits these settings — widen the fret range or interval pool.';
+    feedback = 'No question fits these settings — widen the ranges or interval pool.';
   } else if (answered) {
     feedback = `Correct — ${INTERVAL_NAMES[q.semis]}, ${INTERVAL_LONG_NAMES[q.semis]}`
       + missSuffix(wrong.length);
     tone = 'success';
+  } else if (farLast) {
+    feedback = 'Right interval, but outside your range — find a closer one';
   } else if (wrong.length) {
     const last = wrong[wrong.length - 1];
     feedback = `Not ${typeof last === 'number' ? INTERVAL_NAMES[last] : 'that fret'} — try again`;
@@ -155,20 +173,11 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       <TrainerHeader
         kicker="Fretboard · Interval trainer"
         title={mode === 'name' ? 'Name the interval' : 'Find the fret'}
-        sub={(mode === 'name'
-          ? 'What interval of the root is the dot? '
-          : 'Tap the fret that lands on the interval. ') + DIR_DESC[set.dir]}
         controls={(
-          <>
-            <Segmented<IntervalMode>
-              label="Mode" options={MODE_OPTS} value={mode}
-              onChange={v => update({ mode: v })}
-            />
-            <Segmented<Direction>
-              label="Direction" options={DIR_OPTS} value={set.dir}
-              onChange={v => update({ dir: v })}
-            />
-          </>
+          <Segmented<IntervalMode>
+            label="Mode" options={MODE_OPTS} value={mode}
+            onChange={v => update({ mode: v })}
+          />
         )}
         pause={set.pause}
         onTogglePause={() => dispatch({ type: 'togglePause' })}
@@ -181,11 +190,32 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">
-          <Field label="String pairs" note="Ignored when direction is “Same string”.">
-            <Segmented<StringPairs>
-              label="String pairs" options={PAIR_OPTS} value={set.pairs}
-              onChange={v => update({ pairs: v })}
+          <Field label="Direction">
+            <select
+              className="input w-auto" aria-label="Direction" value={set.dir}
+              onChange={e => update({ dir: e.target.value as Direction })}
+            >
+              {DIR_OPTS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+            </select>
+          </Field>
+          <Field label="Vertical range" note="Strings, counting the root’s own.">
+            <Segmented<number>
+              label="Vertical range" options={V_RANGE_OPTS} value={set.vRange}
+              onChange={v => update(withVRange(set, v))}
             />
+          </Field>
+          <Field label="Horizontal range" note="Frets, counting the root’s own.">
+            <FretPair>
+              <FretInput
+                label="Horizontal range" min={1} max={H_RANGE_MAX} value={set.hRange}
+                onCommit={v => {
+                  // Clamping can land on the current value; keep the question.
+                  const ranges = withHRange(set, v);
+                  if (ranges.hRange !== set.hRange) update(ranges);
+                }}
+              />
+              <span className="text-muted">frets</span>
+            </FretPair>
           </Field>
           <Field label="Fret range">
             <FretPair>
@@ -275,8 +305,8 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             onCellClick={mode === 'fret' && !answered && q
               ? pos => dispatch({ type: 'answerFret', pos })
               : undefined}
-            isCellDisabled={pos => wrong.some(
-              w => typeof w !== 'number' && w.s === pos.s && w.f === pos.f,
+            isCellDisabled={pos => far.some(p => samePos(p, pos)) || wrong.some(
+              w => typeof w !== 'number' && samePos(w, pos),
             )}
           />
         </BoardFrame>

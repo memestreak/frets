@@ -13,6 +13,15 @@ One quiz rule deliberately differs: the prototype names a note below the
 root by its distance down, while `intervalClass` names it by its function
 against the root (G below C is a P5).
 
+The Interval trainer also departs from the prototype's String pairs setting,
+fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
+a box around the root (`inBox` in `lib/intervals.ts`) that drives question
+generation and Find-it judging. Neither the board nor the hint shows the box;
+tapping the right interval outside it is explained, not scored. The generator
+enumerates every valid question, so each possible interval is asked equally
+often and the same question never comes up twice running. See
+`docs/specs/2026-10-01-interval-ranges-design.md`.
+
 ## Commands
 
 ```bash
