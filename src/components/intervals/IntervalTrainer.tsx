@@ -17,8 +17,9 @@ import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
-  activePool, generateIntervalQuestion, INTERVAL_STORAGE_KEY,
-  type Direction, type IntervalMode, type IntervalSettings, type StringPairs,
+  activePool, clampHRange, generateIntervalQuestion, H_RANGE_MAX,
+  INTERVAL_STORAGE_KEY, V_RANGE_MAX,
+  type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
@@ -32,9 +33,9 @@ const DIR_OPTS = [
   ['asc', 'Asc from low'], ['desc', 'Desc from high'],
   ['rand', 'Random'], ['same', 'Same string'],
 ] as const;
-const PAIR_OPTS = [
-  ['adj', 'Adjacent'], ['skip1', 'Skip one'], ['skip2', 'Skip two'], ['any', 'Any'],
-] as const;
+const V_RANGE_OPTS = Array.from(
+  { length: V_RANGE_MAX }, (_, i) => [i + 1, String(i + 1)] as const,
+);
 const DIR_DESC: Record<Direction, string> = {
   asc: 'Root on the lower string, interval ascends to the higher string.',
   desc: 'Root on the higher string, interval note below it on the lower string.',
@@ -181,11 +182,20 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">
-          <Field label="String pairs" note="Ignored when direction is “Same string”.">
-            <Segmented<StringPairs>
-              label="String pairs" options={PAIR_OPTS} value={set.pairs}
-              onChange={v => update({ pairs: v })}
+          <Field label="Vertical range" note="Same string questions ignore this.">
+            <Segmented<number>
+              label="Vertical range" options={V_RANGE_OPTS} value={set.vRange}
+              onChange={v => update({ vRange: v })}
             />
+          </Field>
+          <Field label="Horizontal range">
+            <FretPair>
+              <FretInput
+                label="Horizontal range" min={1} max={H_RANGE_MAX} value={set.hRange}
+                onCommit={v => update({ hRange: clampHRange(v) })}
+              />
+              <span className="text-muted">frets</span>
+            </FretPair>
           </Field>
           <Field label="Fret range">
             <FretPair>

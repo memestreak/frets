@@ -59,7 +59,7 @@ export function intervalReducer(state: IntervalState, action: IntervalAction): I
       if (!q || state.answered || set.mode !== 'fret') return state;
       const { pos } = action;
       if (state.wrong.some(w => typeof w !== 'number' && samePos(w, pos))) return state;
-      return isCorrectFret(q, pos, set.compound)
+      return isCorrectFret(q, pos, set)
         ? { ...applySolve(state, q.semis, set.pause), picked: pos }
         : applyMiss(state, pos, q.semis);
     }

@@ -106,8 +106,7 @@ describe('IntervalTrainer', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
-    // Not the "String pairs" group: Field and Segmented both carry that name.
-    expect(within(dialog).getByRole('button', { name: 'Skip one' }))
+    expect(within(dialog).getByRole('spinbutton', { name: 'Horizontal range' }))
       .toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -119,12 +118,25 @@ describe('IntervalTrainer', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('applies a setting from the dialog live, without closing', () => {
+  it('applies the range settings from the dialog live, without closing', () => {
     render(<IntervalTrainer rng={seededRng(4)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip one' }));
-    const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
-    expect(saved.set.pairs).toBe('skip1');
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const saved = () =>
+      JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
+    expect(saved()).toMatchObject({ vRange: 5, hRange: 4 });
+
+    // Pool chips are named "m3, minor third", so "3" is the range option.
+    fireEvent.click(within(dialog).getByRole('button', { name: '3' }));
+    expect(saved().vRange).toBe(3);
+
+    const reach = within(dialog).getByRole('spinbutton', { name: 'Horizontal range' });
+    fireEvent.change(reach, { target: { value: '7' } });
+    expect(saved().hRange).toBe(7);
+    // Out-of-range input is clamped, not stored as typed.
+    fireEvent.change(reach, { target: { value: '40' } });
+    expect(saved().hRange).toBe(12);
+
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
 

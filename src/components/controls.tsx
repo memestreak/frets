@@ -5,7 +5,7 @@ export function Keycap({ children }: { children: ReactNode }) {
   return <span className="keycap" aria-hidden="true">{children}</span>;
 }
 
-interface SegmentedProps<T extends string> {
+interface SegmentedProps<T extends string | number> {
   label: string;
   options: readonly (readonly [T, string])[];
   value: T;
@@ -13,7 +13,7 @@ interface SegmentedProps<T extends string> {
 }
 
 /** `.seg` segmented control; the active option is filled with the accent. */
-export function Segmented<T extends string>(
+export function Segmented<T extends string | number>(
   { label, options, value, onChange }: SegmentedProps<T>,
 ) {
   return (
