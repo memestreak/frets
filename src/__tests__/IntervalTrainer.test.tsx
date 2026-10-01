@@ -270,7 +270,7 @@ describe('IntervalTrainer', () => {
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const saved = () =>
       JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
-    expect(saved()).toMatchObject({ vRange: 6, hRange: 4 });
+    expect(saved()).toMatchObject({ vRange: 6, hRange: 5 });
 
     // Pool chips are named "m3, minor third", so "3" is the range option.
     fireEvent.click(within(dialog).getByRole('button', { name: '3' }));

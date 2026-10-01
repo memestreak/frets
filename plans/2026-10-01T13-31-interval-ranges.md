@@ -8,6 +8,12 @@ summary: >
 
 # Interval Ranges Implementation Plan
 
+> **Superseded.** This plan was executed, and the design then changed in
+> review: the Find-it dimming and box-limited hint were removed, the ranges
+> became one-based, Same string was dropped and direction moved into the
+> settings dialog. It is kept as a record of the first pass only. The
+> current behaviour is in `docs/specs/2026-10-01-interval-ranges-design.md`.
+
 > **For agentic workers:** REQUIRED: Use subagent-driven-development (if
 > subagents available) or executing-plans to implement this plan. Steps use
 > checkbox (`- [ ]`) syntax for tracking.

@@ -19,9 +19,9 @@ const span = (q: IntervalQuestion) =>
   midi(q.tgt.s, q.tgt.f) - midi(q.root.s, q.root.f);
 
 describe('defaults', () => {
-  it('uses the whole board height, a four-fret reach and compound spans', () => {
+  it('uses every string, a five-fret span and compound spans', () => {
     expect(defaultIntervalSettings()).toMatchObject({
-      vRange: 6, hRange: 4, compound: true,
+      vRange: 6, hRange: 5, compound: true,
     });
     expect(defaultIntervalSettings()).not.toHaveProperty('pairs');
   });
@@ -135,14 +135,17 @@ describe('correctFrets', () => {
   const q = { root: { s: 1, f: 5 }, tgt: { s: 2, f: 3 }, semis: 3, up: true };
 
   it('lists all and only the correct frets in the window', () => {
-    expect(correctFrets(q, settings({ hRange: 5, compound: false })))
+    expect(correctFrets(q, settings({ compound: false })))
       .toEqual([{ s: 1, f: 8 }, { s: 2, f: 3 }]);
-    expect(correctFrets(q, settings({ hRange: 5 }))).toEqual([
+    expect(correctFrets(q, settings())).toEqual([
       { s: 1, f: 8 }, { s: 2, f: 3 }, { s: 4, f: 6 }, { s: 5, f: 1 },
     ]);
     // High e fret 1 falls outside a window that starts at fret 2, and
-    // outside the default four-fret range.
-    expect(correctFrets(q, settings({ hRange: 5, minFret: 2 }))).toEqual([
+    // outside a four-fret range.
+    expect(correctFrets(q, settings({ minFret: 2 }))).toEqual([
+      { s: 1, f: 8 }, { s: 2, f: 3 }, { s: 4, f: 6 },
+    ]);
+    expect(correctFrets(q, settings({ hRange: 4 }))).toEqual([
       { s: 1, f: 8 }, { s: 2, f: 3 }, { s: 4, f: 6 },
     ]);
   });
@@ -319,7 +322,7 @@ describe('parseIntervalSettings', () => {
       expect(parseIntervalSettings({ vRange: bad }).vRange).toBe(6);
     }
     for (const bad of [0, 13, 4.5, '4', null]) {
-      expect(parseIntervalSettings({ hRange: bad }).hRange).toBe(4);
+      expect(parseIntervalSettings({ hRange: bad }).hRange).toBe(5);
     }
   });
 });
