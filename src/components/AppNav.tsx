@@ -6,7 +6,6 @@ const SECTIONS: { id: Section; href: string; label: string }[] = [
   { id: 'intervals', href: '/intervals', label: 'Intervals' },
   { id: 'notes', href: '/notes', label: 'Notes' },
 ];
-const LATER = ['Chords', 'Scales', 'Ear training'];
 
 export function AppNav({ active }: { active: Section }) {
   return (
@@ -27,16 +26,6 @@ export function AppNav({ active }: { active: Section }) {
           </Link>
         ))}
       </div>
-      {LATER.map(label => (
-        <span
-          key={label}
-          className="text-[14px] opacity-45"
-          title="Coming later"
-          aria-disabled="true"
-        >
-          {label}
-        </span>
-      ))}
     </nav>
   );
 }
