@@ -105,20 +105,3 @@ export function PerItemStats({ rows, labelWidth }: { rows: PerItemRow[]; labelWi
     </ul>
   );
 }
-
-/** Collapsible settings card with the tuning note and stats reset. */
-export function SettingsDrawer({
-  id, footnote, onReset, children,
-}: { id: string; footnote: string; onReset: () => void; children: ReactNode }) {
-  return (
-    <section id={id} className="card gap-4 px-[18px] py-4" aria-label="Quiz settings">
-      {children}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-muted text-[12px]">{footnote}</span>
-        <button type="button" className="btn btn-ghost" onClick={onReset}>
-          Reset session stats
-        </button>
-      </div>
-    </section>
-  );
-}

@@ -8,9 +8,9 @@ import {
   AnswerCard, AnswerGrid, FindPrompt, type AnswerButton, type FeedbackTone,
 } from '@/components/quiz/AnswerCard';
 import { BoardFrame } from '@/components/quiz/BoardFrame';
-import {
-  Field, FretInput, FretPair, PerItemStats, SettingsDrawer,
-} from '@/components/quiz/SettingsParts';
+import { SessionStatsCard } from '@/components/quiz/SessionStatsCard';
+import { SettingsDialog } from '@/components/quiz/SettingsDialog';
+import { Field, FretInput, FretPair } from '@/components/quiz/SettingsParts';
 import { TrainerHeader } from '@/components/quiz/TrainerHeader';
 import { useAutoAdvance } from '@/hooks/useAutoAdvance';
 import { usePersist } from '@/hooks/usePersist';
@@ -24,7 +24,7 @@ import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
   SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
-import { itemPercent, statsLine } from '@/lib/stats';
+import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
 
 const MODE_OPTS = [['name', 'Name it'], ['fret', 'Find it']] as const;
@@ -41,7 +41,6 @@ const DIR_DESC: Record<Direction, string> = {
   rand: 'Root on either string; direction changes every question.',
   same: 'Both notes on one string.',
 };
-const DRAWER_ID = 'interval-settings';
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
 const missSuffix = (n: number) =>
@@ -50,7 +49,7 @@ const missSuffix = (n: number) =>
 export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const [state, dispatch] = useReducer(intervalReducer, rng, initIntervalState);
   const [hint, setHint] = useState(false);
-  const [drawer, setDrawer] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { set, stats, q, answered, wrong, picked } = state;
   const { mode } = set;
   const pool = activePool(set);
@@ -65,8 +64,10 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   };
   const answerName = (semis: number) => dispatch({ type: 'answerName', semis });
 
-  useAutoAdvance(state.advanceMs, next);
+  // The quiz waits while the settings dialog covers it.
+  useAutoAdvance(settingsOpen ? null : state.advanceMs, next);
   useQuizKeyboard({
+    enabled: !settingsOpen,
     answered,
     pause: set.pause,
     onNext: next,
@@ -171,79 +172,67 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         )}
         pause={set.pause}
         onTogglePause={() => dispatch({ type: 'togglePause' })}
-        drawerOpen={drawer}
-        onToggleDrawer={() => setDrawer(d => !d)}
-        drawerId={DRAWER_ID}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      {drawer && (
-        <SettingsDrawer
-          id={DRAWER_ID}
-          footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
-          onReset={() => dispatch({ type: 'resetStats' })}
-        >
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-7 gap-y-[18px]">
-            <Field label="String pairs" note="Ignored when direction is “Same string”.">
-              <Segmented<StringPairs>
-                label="String pairs" options={PAIR_OPTS} value={set.pairs}
-                onChange={v => update({ pairs: v })}
-              />
-            </Field>
-            <Field label="Fret range">
-              <FretPair>
-                <FretInput
-                  label="Lowest fret" min={0} max={23} value={set.minFret}
-                  onCommit={v => update(setWindowMin(set, v))}
-                />
-                <span className="text-muted">to</span>
-                <FretInput
-                  label="Highest fret" min={1} max={24} value={set.maxFret}
-                  onCommit={v => update(setWindowMax(set, v))}
-                />
-              </FretPair>
-            </Field>
-            <Field label="Display">
-              <div className="flex flex-wrap gap-2">
-                <ToggleButton
-                  pressed={set.noteNames}
-                  onClick={() => update({ noteNames: !set.noteNames }, false)}
-                >
-                  Note names
-                </ToggleButton>
-                <ToggleButton
-                  pressed={set.compound}
-                  onClick={() => update({ compound: !set.compound })}
-                >
-                  Allow spans over an octave
-                </ToggleButton>
-              </div>
-            </Field>
-          </div>
-          <Field label="Intervals in the pool">
-            <div className="flex flex-wrap gap-1.5">
-              {SIMPLE_INTERVALS.map(semis => (
-                <ToggleButton
-                  key={semis}
-                  className="chip"
-                  pressed={set.pool.includes(semis)}
-                  onClick={() => togglePool(semis)}
-                  aria-label={`${INTERVAL_NAMES[semis]}, ${INTERVAL_LONG_NAMES[semis]}`}
-                >
-                  {INTERVAL_NAMES[semis]}
-                </ToggleButton>
-              ))}
-            </div>
-          </Field>
-          <Field label="Session · per interval">
-            <PerItemStats
-              labelWidth={34}
-              rows={pool.map(semis => ({
-                label: INTERVAL_NAMES[semis], pct: itemPercent(stats, semis),
-              }))}
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
+      >
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-7 gap-y-[18px]">
+          <Field label="String pairs" note="Ignored when direction is “Same string”.">
+            <Segmented<StringPairs>
+              label="String pairs" options={PAIR_OPTS} value={set.pairs}
+              onChange={v => update({ pairs: v })}
             />
           </Field>
-        </SettingsDrawer>
-      )}
+          <Field label="Fret range">
+            <FretPair>
+              <FretInput
+                label="Lowest fret" min={0} max={23} value={set.minFret}
+                onCommit={v => update(setWindowMin(set, v))}
+              />
+              <span className="text-muted">to</span>
+              <FretInput
+                label="Highest fret" min={1} max={24} value={set.maxFret}
+                onCommit={v => update(setWindowMax(set, v))}
+              />
+            </FretPair>
+          </Field>
+          <Field label="Display">
+            <div className="flex flex-wrap gap-2">
+              <ToggleButton
+                pressed={set.noteNames}
+                onClick={() => update({ noteNames: !set.noteNames }, false)}
+              >
+                Note names
+              </ToggleButton>
+              <ToggleButton
+                pressed={set.compound}
+                onClick={() => update({ compound: !set.compound })}
+              >
+                Allow spans over an octave
+              </ToggleButton>
+            </div>
+          </Field>
+        </div>
+        <Field label="Intervals in the pool">
+          <div className="flex flex-wrap gap-1.5">
+            {SIMPLE_INTERVALS.map(semis => (
+              <ToggleButton
+                key={semis}
+                className="chip"
+                pressed={set.pool.includes(semis)}
+                onClick={() => togglePool(semis)}
+                aria-label={`${INTERVAL_NAMES[semis]}, ${INTERVAL_LONG_NAMES[semis]}`}
+              >
+                {INTERVAL_NAMES[semis]}
+              </ToggleButton>
+            ))}
+          </div>
+        </Field>
+      </SettingsDialog>
 
       <div className="grid grid-cols-[minmax(0,1fr)] content-start">
         <AnswerCard
@@ -291,9 +280,15 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             )}
           />
         </BoardFrame>
-        <p className="text-muted m-0 px-1 text-[12px]" data-testid="stats-line">
-          {statsLine(stats)} · per-interval breakdown in Settings
-        </p>
+        <SessionStatsCard
+          stats={stats}
+          itemLabel="Per interval"
+          labelWidth={34}
+          rows={pool.map(semis => ({
+            label: INTERVAL_NAMES[semis], pct: itemPercent(stats, semis),
+          }))}
+          onReset={() => dispatch({ type: 'resetStats' })}
+        />
       </div>
     </div>
   );
