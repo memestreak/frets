@@ -42,11 +42,12 @@ export const pitchClass = (s: number, f: number): number => midi(s, f) % 12;
 
 /**
  * Interval class: wraps at the octave, so 13 semitones is an m2 and 24 is
- * a P8. 0 is unison.
+ * a P8. 0 is unison. `semis` is signed (target minus root) and the class
+ * names the target's function against the root, so 5 semitones below is a
+ * P5, not a P4.
  */
 export function intervalClass(semis: number): number {
-  const a = Math.abs(semis);
-  return a === 0 ? 0 : ((a - 1) % 12) + 1;
+  return semis === 0 ? 0 : ((((semis - 1) % 12) + 12) % 12) + 1;
 }
 
 export const samePos = (a: Position, b: Position): boolean =>

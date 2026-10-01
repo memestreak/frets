@@ -9,6 +9,9 @@ Spec and prototypes: `design_handoff/README.md` and
 is the reference for quiz rules).
 The prototypes remain the reference for quiz rules, not for the look: the
 shipped styling follows `docs/specs/2026-10-01-soft-ui-design.md`.
+One quiz rule deliberately differs: the prototype names a note below the
+root by its distance down, while `intervalClass` names it by its function
+against the root (G below C is a P5).
 
 ## Commands
 

@@ -25,7 +25,7 @@ export interface IntervalSettings {
 export interface IntervalQuestion {
   root: Position;
   tgt: Position;
-  /** Interval class, 1–12. */
+  /** Interval class, 1–12, named from the root even when the target is below. */
   semis: number;
   /** True when the target is above the root. */
   up: boolean;

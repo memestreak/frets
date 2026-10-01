@@ -17,11 +17,20 @@ describe('music', () => {
   it('wraps interval classes at the octave', () => {
     expect(intervalClass(0)).toBe(0);
     expect(intervalClass(1)).toBe(1);
-    expect(intervalClass(-3)).toBe(3);
     expect(intervalClass(12)).toBe(12);
     expect(intervalClass(13)).toBe(1);
     expect(intervalClass(24)).toBe(12);
-    expect(intervalClass(-19)).toBe(7);
+  });
+
+  it('names a lower note by its function against the root', () => {
+    expect(intervalClass(-1)).toBe(11); // M7
+    expect(intervalClass(-3)).toBe(9); // M6
+    expect(intervalClass(-5)).toBe(7); // G below C is a P5
+    expect(intervalClass(-6)).toBe(6);
+    expect(intervalClass(-7)).toBe(5); // P4
+    expect(intervalClass(-12)).toBe(12);
+    expect(intervalClass(-19)).toBe(5);
+    expect(intervalClass(-24)).toBe(12);
   });
 
   it('labels notes with both spellings', () => {

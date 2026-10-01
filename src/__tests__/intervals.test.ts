@@ -88,6 +88,15 @@ describe('isCorrectFret', () => {
     expect(isCorrectFret(q, { s: 4, f: 6 }, false)).toBe(false);
     expect(isCorrectFret(q, { s: 4, f: 6 }, true)).toBe(true);
   });
+
+  it('names a target below the root from the root, not by distance', () => {
+    // Root: A string fret 3 (C3); its P5 played below is G2.
+    const down = { root: { s: 1, f: 3 }, tgt: { s: 0, f: 3 }, semis: 7, up: false };
+    expect(isCorrectFret(down, { s: 0, f: 3 }, false)).toBe(true);
+    // F2 is a fifth down, which is the root's P4.
+    expect(isCorrectFret(down, { s: 0, f: 1 }, false)).toBe(false);
+    expect(isCorrectFret(down, { s: 2, f: 5 }, false)).toBe(false); // G3, above
+  });
 });
 
 describe('parseIntervalSettings', () => {
