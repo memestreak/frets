@@ -51,3 +51,12 @@ scripts/parsed_patterns/
 __pycache__/
 *.egg-info/
 .superpowers/
+
+# placeholder dotfiles the Claude Code sandbox mounts in the repo root
+/.bash_profile
+/.bashrc
+/.gitconfig
+/.profile
+/.ripgreprc
+/.zprofile
+/.zshrc
