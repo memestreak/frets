@@ -17,13 +17,13 @@ import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
-  activePool, clampHRange, generateIntervalQuestion, H_RANGE_MAX,
-  INTERVAL_STORAGE_KEY, V_RANGE_MAX,
+  activePool, clampHRange, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
+  inBox, INTERVAL_STORAGE_KEY, V_RANGE_MAX,
   type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
-  SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
+  samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Position, type Rng,
 } from '@/lib/music';
 import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
@@ -58,10 +58,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const persisted = useMemo(() => ({ set, stats }), [set, stats]);
   usePersist(INTERVAL_STORAGE_KEY, persisted);
 
-  const next = () => dispatch({ type: 'next', q: generateIntervalQuestion(set, rng) });
+  const next = () => dispatch({ type: 'next', q: generateIntervalQuestion(set, rng, q) });
   const update = (patch: Partial<IntervalSettings>, regen = true) => {
     const s = { ...set, ...patch };
-    dispatch({ type: 'settings', set: s, q: regen ? generateIntervalQuestion(s, rng) : undefined });
+    dispatch({
+      type: 'settings', set: s,
+      q: regen ? generateIntervalQuestion(s, rng, q) : undefined,
+    });
   };
   const answerName = (semis: number) => dispatch({ type: 'answerName', semis });
 
@@ -80,6 +83,9 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     },
   });
 
+  // The box around the root: what the ranges allow for this question.
+  const lit = (pos: Position) => !!q && inBox(q.root, q.up, pos, set);
+
   // Board dots: hint overlay, root, target / answer, wrong taps.
   const dots: FretDot[] = [];
   if (q) {
@@ -87,7 +93,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     if (hint) {
       for (const s of STRINGS) {
         for (let f = set.minFret; f <= set.maxFret; f++) {
-          if (s === q.root.s && f === q.root.f) continue;
+          if (!lit({ s, f })) continue;
           const c = intervalClass(midi(s, f) - rootMidi);
           dots.push({
             s, f, kind: 'hint', fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg,
@@ -102,6 +108,16 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     });
     if (mode === 'name' || answered) {
       const at = picked ?? q.tgt;
+      if (mode === 'fret') {
+        // Other fingerings of the interval inside the box.
+        for (const p of correctFrets(q, set)) {
+          if (samePos(p, at)) continue;
+          dots.push({
+            ...p, kind: 'also', fill: 'transparent', stroke: STATUS.green,
+            fg: STATUS.greenDeep, label: INTERVAL_NAMES[q.semis], fontSize: 10,
+          });
+        }
+      }
       const fill = answered ? STATUS.green : T.tgtFill;
       dots.push({
         ...at, kind: 'target', fill, stroke: fill, fg: T.tgtFg,
@@ -134,7 +150,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   let feedback = '';
   let tone: FeedbackTone = 'neutral';
   if (!q) {
-    feedback = 'No question fits these settings — widen the fret range or interval pool.';
+    feedback = 'No question fits these settings — widen the ranges or interval pool.';
   } else if (answered) {
     feedback = `Correct — ${INTERVAL_NAMES[q.semis]}, ${INTERVAL_LONG_NAMES[q.semis]}`
       + missSuffix(wrong.length);
@@ -288,6 +304,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             isCellDisabled={pos => wrong.some(
               w => typeof w !== 'number' && w.s === pos.s && w.f === pos.f,
             )}
+            isCellDimmed={mode === 'fret' && q ? pos => !lit(pos) : undefined}
           />
         </BoardFrame>
         <SessionStatsCard
