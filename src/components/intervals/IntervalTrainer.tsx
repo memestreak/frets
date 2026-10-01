@@ -37,7 +37,7 @@ const PAIR_OPTS = [
 ] as const;
 const DIR_DESC: Record<Direction, string> = {
   asc: 'Root on the lower string, interval ascends to the higher string.',
-  desc: 'Root on the higher string, interval descends to the lower string.',
+  desc: 'Root on the higher string, interval note below it on the lower string.',
   rand: 'Root on either string; direction changes every question.',
   same: 'Both notes on one string.',
 };
@@ -156,7 +156,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         kicker="Fretboard · Interval trainer"
         title={mode === 'name' ? 'Name the interval' : 'Find the fret'}
         sub={(mode === 'name'
-          ? 'How far is the dot from the root? '
+          ? 'What interval of the root is the dot? '
           : 'Tap the fret that lands on the interval. ') + DIR_DESC[set.dir]}
         controls={(
           <>
@@ -250,7 +250,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             <FindPrompt label={INTERVAL_NAMES[q.semis]}>
               {INTERVAL_LONG_NAMES[q.semis]}{' '}
               <span className="text-muted">
-                {q.up ? 'above the root' : 'below the root'}
+                {q.up ? 'above the root' : 'of the root, played below it'}
               </span>
             </FindPrompt>
           )}
