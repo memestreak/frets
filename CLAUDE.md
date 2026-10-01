@@ -50,8 +50,9 @@ binds a local port).
   Tailwind's `components` layer; app component CSS is in the same layer in
   `globals.css`. Use DS tokens (`var(--color-*)`), e.g.
   `text-(--color-accent)`; Tailwind's default palette is disabled.
-- Surfaces: `--color-card` (cards, secondary buttons), `--color-track`
-  (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
+- Surfaces: page and cards are white (`--color-bg`, `--color-card`; cards
+  are set off by their shadow), `--color-tile` (answer tiles, inputs),
+  `--color-track` (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
   `--color-board`, `--color-board-inlay`, `--color-board-fret`.
 - Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
 - DS selectors like `.seg-opt:not(:has(input:checked)):hover` are fairly

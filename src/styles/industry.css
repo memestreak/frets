@@ -6,13 +6,15 @@
    --font-body are re-pointed in globals.css. */
 
 :root {
-  --color-bg: #f2f2f3;
+  --color-bg: #ffffff;
   --color-surface: #e9e9ea;
   --color-text: #1d1f20;
   --color-accent: #5980a6;
   --color-accent-2: #728fab;
   --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
-  --color-card: #fbfbfc;
+  --color-card: #ffffff;
+  /* Light grey fill for answer tiles and inputs on the white ground. */
+  --color-tile: #f2f2f3;
   --color-track: var(--color-neutral-200);
 
   /* Fretboard: light maple fingerboard. */
@@ -157,7 +159,7 @@ figcaption {
 .input {
   width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
   font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
-  background: var(--color-bg);
+  background: var(--color-tile);
   border: 1px solid var(--color-divider); border-radius: var(--radius-sm);
 }
 .input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
