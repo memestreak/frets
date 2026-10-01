@@ -140,7 +140,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       for (const p of far) {
         dots.push({
           ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
-          label: '↔', fontSize: 12,
+          label: INTERVAL_NAMES[q.semis], fontSize: 10,
         });
       }
     }

@@ -123,8 +123,8 @@ Every cell in the window is tappable. A tap is handled as:
 - **Right interval, outside the box** (`isOutOfRange`: not in the box, but
   in the question's pitch direction and naming the asked interval class):
   not a miss. The feedback reads "Right interval, but outside your range —
-  find a closer one" in the neutral tone, the cell gets a muted `↔` marker
-  (dot kind `far`) and stops accepting taps, and nothing is scored. The
+  find a closer one" in the neutral tone, the cell gets a muted outline labelled
+  with the interval name (dot kind `far`) and stops accepting taps, and nothing is scored. The
   limit is the user's own setting, not a knowledge error.
 - **Anything else**, inside or outside the box, including the root's own
   cell: an ordinary miss, as today.
