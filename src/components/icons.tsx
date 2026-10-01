@@ -38,6 +38,15 @@ export function SlidersIcon() {
   );
 }
 
+export function CloseIcon() {
+  return (
+    <Icon>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </Icon>
+  );
+}
+
 export function EyeIcon() {
   return (
     <Icon>

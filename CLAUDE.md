@@ -37,8 +37,11 @@ binds a local port).
   fill, roving-focus tap cells, arrow keys) and `theme.ts` (only the `maple`
   theme ships).
 - `src/components/quiz/` — header, answer card/grid, board frame with
-  hold-for-hint, settings drawer parts.
-- `src/hooks/` — `useQuizKeyboard`, `useAutoAdvance`, `usePersist`.
+  hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
+  parts, `SessionStatsCard` (summary, reset and per-item bars below the
+  board).
+- `src/hooks/` — `useQuizKeyboard`, `useAutoAdvance`, `usePersist`. Trainers
+  suspend the first two while the settings dialog is open.
 - Trainers render client-only (`TrainerLoaders.tsx`, `ssr: false`) because
   their initial state reads localStorage and draws a random question.
 
@@ -68,4 +71,6 @@ with settings changes.
 
 Tests live in `src/__tests__/`. `helpers/rng.ts` provides a seeded RNG;
 trainers accept an `rng` prop. Node 25's global `localStorage` shadows
-jsdom's, so `setup.ts` installs an in-memory Storage.
+jsdom's, so `setup.ts` installs an in-memory Storage. jsdom has no
+`dialog.showModal()` / `close()`, so `setup.ts` also shims them with the
+`open` attribute.

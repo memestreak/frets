@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import IntervalTrainer from '@/components/intervals/IntervalTrainer';
 import { INTERVAL_STORAGE_KEY } from '@/lib/intervals';
 import { intervalClass, midi } from '@/lib/music';
@@ -99,6 +99,75 @@ describe('IntervalTrainer', () => {
       fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${NAMES[semis]},`) }));
     }
     expect(screen.getByTestId('feedback')).toHaveTextContent('No question fits these settings');
+  });
+
+  it('opens settings in a modal dialog and closes it', () => {
+    render(<IntervalTrainer rng={seededRng(4)} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    // Not the "String pairs" group: Field and Segmented both carry that name.
+    expect(within(dialog).getByRole('button', { name: 'Skip one' }))
+      .toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent(
+      screen.getByRole('dialog'), new Event('cancel', { cancelable: true }),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('applies a setting from the dialog live, without closing', () => {
+    render(<IntervalTrainer rng={seededRng(4)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip one' }));
+    const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
+    expect(saved.set.pairs).toBe('skip1');
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
+  });
+
+  it('shows session stats and reset on the page, outside settings', () => {
+    render(<IntervalTrainer rng={seededRng(11)} />);
+    const card = screen.getByRole('region', { name: 'Session stats' });
+    expect(within(card).getAllByRole('meter')).toHaveLength(12);
+
+    fireEvent.keyDown(window, { key: KEYS[askedSemis()] });
+    expect(within(card).getByTestId('stats-line'))
+      .toHaveTextContent('Streak 1 · best 1 · 100% of 1');
+    fireEvent.click(within(card).getByRole('button', { name: 'Reset session stats' }));
+    expect(within(card).getByTestId('stats-line'))
+      .toHaveTextContent('No answers yet this session');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    expect(within(dialog).queryByRole('meter')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Reset session stats' }))
+      .not.toBeInTheDocument();
+  });
+
+  it('ignores answer keys while settings are open', () => {
+    render(<IntervalTrainer rng={seededRng(11)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.keyDown(window, { key: KEYS[askedSemis()] });
+    expect(screen.getByTestId('feedback')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('stats-line'))
+      .toHaveTextContent('No answers yet this session');
+  });
+
+  it('holds auto-advance while settings are open', () => {
+    render(<IntervalTrainer rng={seededRng(11)} />);
+    fireEvent.keyDown(window, { key: KEYS[askedSemis()] });
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(screen.getByRole('button', { name: /Next/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    act(() => { vi.advanceTimersByTime(1099); });
+    expect(screen.getByRole('button', { name: /Next/ })).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(screen.queryByRole('button', { name: /Next/ })).not.toBeInTheDocument();
   });
 
   it('renders no blueprint corner marks', () => {

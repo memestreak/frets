@@ -10,14 +10,11 @@ interface TrainerHeaderProps {
   controls: ReactNode;
   pause: boolean;
   onTogglePause: () => void;
-  drawerOpen: boolean;
-  onToggleDrawer: () => void;
-  drawerId: string;
+  onOpenSettings: () => void;
 }
 
 export function TrainerHeader({
-  kicker, title, sub, controls, pause, onTogglePause, drawerOpen,
-  onToggleDrawer, drawerId,
+  kicker, title, sub, controls, pause, onTogglePause, onOpenSettings,
 }: TrainerHeaderProps) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3.5">
@@ -39,9 +36,8 @@ export function TrainerHeader({
         <button
           type="button"
           className="btn btn-secondary"
-          aria-expanded={drawerOpen}
-          aria-controls={drawerId}
-          onClick={onToggleDrawer}
+          aria-haspopup="dialog"
+          onClick={onOpenSettings}
         >
           <SlidersIcon />
           Settings
