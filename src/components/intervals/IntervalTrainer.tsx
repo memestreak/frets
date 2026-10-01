@@ -180,7 +180,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         onClose={() => setSettingsOpen(false)}
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-7 gap-y-[18px]">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">
           <Field label="String pairs" note="Ignored when direction is “Same string”.">
             <Segmented<StringPairs>
               label="String pairs" options={PAIR_OPTS} value={set.pairs}

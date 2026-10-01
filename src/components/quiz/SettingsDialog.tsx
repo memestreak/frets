@@ -38,11 +38,22 @@ export function SettingsDialog(
     const el = ref.current;
     if (!el) return;
     // Content sits in the inner wrapper, so only the backdrop targets `el`.
-    const onClick = (e: MouseEvent) => {
-      if (e.target === el) close();
+    // The press must start there too: a drag out of a field ends in a click
+    // on the dialog, and should not close it.
+    let pressedBackdrop = false;
+    const onPointerDown = (e: PointerEvent) => {
+      pressedBackdrop = e.target === el;
     };
+    const onClick = (e: MouseEvent) => {
+      if (e.target === el && pressedBackdrop) close();
+      pressedBackdrop = false;
+    };
+    el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('click', onClick);
-    return () => el.removeEventListener('click', onClick);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('click', onClick);
+    };
   }, []);
 
   return (
@@ -75,7 +86,7 @@ export function SettingsDialog(
         <div className="settings-dialog-body">{children}</div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-muted text-[12px]">{footnote}</span>
-          <button type="button" className="btn btn-primary" onClick={onClose}>
+          <button type="button" className="btn btn-primary ml-auto" onClick={onClose}>
             Done
           </button>
         </div>

@@ -69,8 +69,17 @@ describe('SettingsDialog', () => {
     const dialog = openDialog();
     fireEvent.click(screen.getByRole('button', { name: 'Inner' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    // A click whose target is the <dialog> itself landed on the backdrop.
+    // A press and click whose target is the <dialog> itself landed on the
+    // backdrop.
+    fireEvent.pointerDown(dialog);
     fireEvent.click(dialog);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('stays open when a press inside ends on the backdrop', () => {
+    const dialog = openDialog();
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Inner' }));
+    fireEvent.click(dialog);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

@@ -22,6 +22,7 @@ function setup(initial: { enabled?: boolean; answered?: boolean }) {
 describe('useQuizKeyboard', () => {
   it('handles keys by default', () => {
     const { onAnswerKey, onHint } = setup({});
+    expect(onHint).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { key: '3' });
     fireEvent.keyDown(window, { key: 'h' });
     expect(onAnswerKey).toHaveBeenCalledWith('3');
@@ -46,5 +47,8 @@ describe('useQuizKeyboard', () => {
     onHint.mockClear();
     rerender({ enabled: false });
     expect(onHint).toHaveBeenCalledWith(false);
+    onHint.mockClear();
+    rerender({ enabled: true });
+    expect(onHint).not.toHaveBeenCalled();
   });
 });
