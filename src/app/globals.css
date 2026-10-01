@@ -77,7 +77,6 @@ button {
     gap: 6px;
   }
   .answer-btn {
-    position: relative;
     padding: 12px 2px;
     min-width: 0;
     line-height: 1;
@@ -102,18 +101,8 @@ button {
   .answer-btn[data-state='idle']:hover {
     background: color-mix(in srgb, var(--color-text) 7%, var(--color-tile));
   }
-  .answer-key {
-    position: absolute;
-    top: 3px;
-    right: 5px;
-    font-family: var(--font-body);
-    font-size: 10px;
-    font-weight: 400;
-    opacity: 0.55;
-  }
-  /* Phones: no keyboard to hint at, and "C♯/D♭" may break after the slash. */
+  /* Phones: "C♯/D♭" may break after the slash. */
   @media (max-width: 500px) {
-    .answer-key { display: none; }
     .answer-btn { flex-wrap: wrap; padding-inline: 0; }
   }
 

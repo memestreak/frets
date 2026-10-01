@@ -139,7 +139,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
 
   const answerButtons: AnswerButton[] = pool.map(semis => ({
     label: INTERVAL_NAMES[semis],
-    keyLabel: ANSWER_KEYS[semis - 1],
     state: wrong.includes(semis)
       ? 'wrong'
       : answered && q?.semis === semis ? 'correct' : 'idle',
@@ -267,7 +266,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       <div className="grid grid-cols-[minmax(0,1fr)] content-start">
         <AnswerCard
           kicker={mode === 'name' ? 'Your answer' : 'Target'}
-          keyHint={mode === 'name' ? 'Keys 1–9, 0, −, =' : 'Tap a fret on the board'}
+          hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
           feedback={feedback}
           tone={tone}
           answered={answered}

@@ -120,7 +120,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
 
   const answerButtons: AnswerButton[] = NOTE_LABELS.map((label, pc) => ({
     label,
-    keyLabel: ANSWER_KEYS[pc],
     state: wrong.includes(pc)
       ? 'wrong'
       : answered && q?.pc === pc ? 'correct' : 'idle',
@@ -232,7 +231,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       <div className="grid grid-cols-[minmax(0,1fr)] content-start">
         <AnswerCard
           kicker={mode === 'name' ? 'Your answer' : 'Target'}
-          keyHint={mode === 'name' ? 'Keys 1–9, 0, −, =' : 'Tap a fret on the board'}
+          hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
           feedback={feedback}
           tone={tone}
           answered={answered}
