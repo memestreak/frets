@@ -5,7 +5,8 @@ export type FeedbackTone = 'neutral' | 'success' | 'danger';
 
 interface AnswerCardProps {
   kicker: string;
-  keyHint: string;
+  /** Muted instruction beside the kicker, e.g. "Tap a fret on the board". */
+  hint?: string;
   feedback: string;
   tone: FeedbackTone;
   answered: boolean;
@@ -22,14 +23,14 @@ const TONE_CLASS: Record<FeedbackTone, string> = {
 };
 
 export function AnswerCard({
-  kicker, keyHint, feedback, tone, answered, pause, onSkip, onNext, children,
+  kicker, hint, feedback, tone, answered, pause, onSkip, onNext, children,
 }: AnswerCardProps) {
   return (
     <section className="card gap-2 px-[18px] pt-2.5 pb-3">
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="card-kicker">{kicker}</span>
-          <span className="text-muted text-[12px]">{keyHint}</span>
+          {hint && <span className="text-muted text-[12px]">{hint}</span>}
           <span
             className={`text-[15px] font-medium ${TONE_CLASS[tone]}`}
             role="status"
@@ -61,12 +62,11 @@ export function AnswerCard({
 
 export interface AnswerButton {
   label: string;
-  keyLabel: string;
   state: 'idle' | 'wrong' | 'correct';
   onClick: () => void;
 }
 
-/** One row of equal-width answer buttons with keycap hints. */
+/** One row of equal-width answer buttons. */
 export function AnswerGrid({
   buttons, variant,
 }: { buttons: AnswerButton[]; variant: 'interval' | 'note' }) {
@@ -84,7 +84,6 @@ export function AnswerGrid({
           {b.label.split('/').map((part, i) => (
             <span key={part}>{i > 0 && '/'}{part}</span>
           ))}
-          <span className="answer-key" aria-hidden="true">{b.keyLabel}</span>
         </button>
       ))}
     </div>
