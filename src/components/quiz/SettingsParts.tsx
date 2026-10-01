@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, type ChangeEvent, type ReactNode } from 'react';
-import { Corners } from '../Blueprint';
 
 /** `.field` with a group label. */
 export function Field(
@@ -86,7 +85,7 @@ export function PerItemStats({ rows, labelWidth }: { rows: PerItemRow[]; labelWi
             {r.label}
           </span>
           <span
-            className="relative block h-[5px] bg-(--color-neutral-200)"
+            className="relative block h-[5px] overflow-hidden rounded-full bg-(--color-track)"
             role="meter"
             aria-label={`${r.label} accuracy`}
             aria-valuemin={0}
@@ -94,7 +93,7 @@ export function PerItemStats({ rows, labelWidth }: { rows: PerItemRow[]; labelWi
             aria-valuenow={r.pct ?? 0}
           >
             <span
-              className="absolute inset-y-0 left-0 bg-(--color-accent)"
+              className="absolute inset-y-0 left-0 rounded-full bg-(--color-accent)"
               style={{ width: `${r.pct ?? 0}%` }}
             />
           </span>
@@ -112,8 +111,7 @@ export function SettingsDrawer({
   id, footnote, onReset, children,
 }: { id: string; footnote: string; onReset: () => void; children: ReactNode }) {
   return (
-    <section id={id} className="card blueprint gap-4 px-[18px] py-4" aria-label="Quiz settings">
-      <Corners />
+    <section id={id} className="card gap-4 px-[18px] py-4" aria-label="Quiz settings">
       {children}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-muted text-[12px]">{footnote}</span>

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Corners } from '../Blueprint';
 import { Keycap } from '../controls';
 
 export type FeedbackTone = 'neutral' | 'success' | 'danger';
@@ -26,8 +25,7 @@ export function AnswerCard({
   kicker, keyHint, feedback, tone, answered, pause, onSkip, onNext, children,
 }: AnswerCardProps) {
   return (
-    <section className="card blueprint gap-2 px-[18px] pt-2.5 pb-3">
-      <Corners />
+    <section className="card gap-2 px-[18px] pt-2.5 pb-3">
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="card-kicker">{kicker}</span>
@@ -48,10 +46,9 @@ export function AnswerCard({
           {answered && (
             <button
               type="button"
-              className="btn btn-primary blueprint"
+              className="btn btn-primary"
               onClick={onNext}
             >
-              <Corners />
               Next <Keycap>{pause ? 'any key' : '↵'}</Keycap>
             </button>
           )}

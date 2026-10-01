@@ -45,4 +45,11 @@ describe('NoteTrainer', () => {
     const s = ['E', 'A', 'D', 'G', 'B', 'e'].indexOf(name ?? '');
     expect(screen.getByTestId(`string-${s}`)).toHaveAttribute('stroke-width', '3.5');
   });
+
+  it('renders no blueprint corner marks', () => {
+    const { container } = render(<NoteTrainer rng={seededRng(2)} />);
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+    expect(container.querySelector('.corner')).toBeNull();
+    expect(container.querySelector('.blueprint')).toBeNull();
+  });
 });

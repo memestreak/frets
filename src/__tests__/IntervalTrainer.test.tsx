@@ -100,4 +100,11 @@ describe('IntervalTrainer', () => {
     }
     expect(screen.getByTestId('feedback')).toHaveTextContent('No question fits these settings');
   });
+
+  it('renders no blueprint corner marks', () => {
+    const { container } = render(<IntervalTrainer rng={seededRng(2)} />);
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+    expect(container.querySelector('.corner')).toBeNull();
+    expect(container.querySelector('.blueprint')).toBeNull();
+  });
 });

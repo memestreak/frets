@@ -1,7 +1,6 @@
 'use client';
 
 import type { PointerEvent, ReactNode } from 'react';
-import { Corners } from '../Blueprint';
 import { Keycap } from '../controls';
 import { EyeIcon } from '../icons';
 
@@ -20,7 +19,7 @@ interface BoardFrameProps {
   children: ReactNode;
 }
 
-/** Blueprint frame around the fretboard, with legend and hold-for-hint. */
+/** Card around the fretboard, with legend and hold-for-hint. */
 export function BoardFrame({
   legend, hint, onHint, hintActiveLabel, children,
 }: BoardFrameProps) {
@@ -32,8 +31,7 @@ export function BoardFrame({
   const up = () => onHint(false);
 
   return (
-    <section className="blueprint board-frame">
-      <Corners />
+    <section className="card board-frame">
       <div className="board-scroll">{children}</div>
       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2.5">
         <ul className="m-0 flex list-none items-center gap-3.5 p-0 text-[13px] text-[color-mix(in_srgb,var(--color-text)_70%,transparent)]">
@@ -43,7 +41,7 @@ export function BoardFrame({
                 className="inline-block size-3"
                 style={{
                   background: item.color,
-                  borderRadius: item.shape === 'circle' ? '50%' : 0,
+                  borderRadius: item.shape === 'circle' ? '50%' : 3,
                 }}
               />
               {item.label}
@@ -52,7 +50,7 @@ export function BoardFrame({
         </ul>
         <button
           type="button"
-          className="btn btn-primary blueprint hint-btn"
+          className="btn btn-primary hint-btn"
           aria-pressed={hint}
           onPointerDown={down}
           onPointerUp={up}
@@ -71,7 +69,6 @@ export function BoardFrame({
             if (e.key === ' ' || e.key === 'Enter') onHint(false);
           }}
         >
-          <Corners />
           <EyeIcon />
           {hint ? hintActiveLabel : 'Hold for hint'}
           <Keycap>H</Keycap>
