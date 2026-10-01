@@ -1,6 +1,7 @@
 import {
   clampHRange, correctFrets, defaultIntervalSettings,
-  generateIntervalQuestion, inBox, isCorrectFret, parseIntervalSettings,
+  generateIntervalQuestion, inBox, isCorrectFret, isOutOfRange,
+  parseIntervalSettings,
   type IntervalQuestion, type IntervalSettings,
 } from '@/lib/intervals';
 import { intervalClass, midi, samePos } from '@/lib/music';
@@ -118,6 +119,26 @@ describe('isCorrectFret', () => {
     // F2 is a fifth down, which is the root's P4.
     expect(isCorrectFret(down, { s: 0, f: 1 }, desc)).toBe(false);
     expect(isCorrectFret(down, { s: 2, f: 5 }, desc)).toBe(false); // G3, above
+  });
+});
+
+describe('isOutOfRange', () => {
+  // Root: A string fret 5 (D3); m3 above is F3.
+  const q = { root: { s: 1, f: 5 }, tgt: { s: 2, f: 3 }, semis: 3, up: true };
+
+  it('is the asked interval in the asked direction, outside the box', () => {
+    // G string fret 10 (F4): five frets away.
+    expect(isOutOfRange(q, { s: 3, f: 10 }, settings())).toBe(true);
+    // Low E fret 13 (F3): the right note on a lower string.
+    expect(isOutOfRange(q, { s: 0, f: 13 }, settings({ hRange: 12 }))).toBe(true);
+  });
+
+  it('is false inside the box, for other intervals, and for the root', () => {
+    expect(isOutOfRange(q, { s: 2, f: 3 }, settings())).toBe(false); // correct
+    expect(isOutOfRange(q, { s: 2, f: 4 }, settings())).toBe(false); // in box, M3
+    expect(isOutOfRange(q, { s: 3, f: 11 }, settings())).toBe(false); // far, M3
+    expect(isOutOfRange(q, { s: 0, f: 1 }, settings())).toBe(false); // F2, below
+    expect(isOutOfRange(q, q.root, settings())).toBe(false);
   });
 });
 

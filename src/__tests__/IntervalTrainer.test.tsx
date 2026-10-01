@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import IntervalTrainer from '@/components/intervals/IntervalTrainer';
 import {
   correctFrets, defaultIntervalSettings, generateIntervalQuestion, inBox,
-  INTERVAL_STORAGE_KEY, isCorrectFret, type IntervalSettings,
+  INTERVAL_STORAGE_KEY, isCorrectFret, isOutOfRange, type IntervalSettings,
 } from '@/lib/intervals';
 import { intervalClass, midi, samePos, STRINGS, type Position } from '@/lib/music';
 import { seededRng } from './helpers/rng';
@@ -117,34 +117,37 @@ describe('IntervalTrainer', () => {
     expect(screen.getByTestId('feedback')).toHaveTextContent('Not that fret — try again');
   });
 
-  it('Find it: cells outside the box are dimmed and ignore taps', () => {
+  it('Find it: the board shows no box and every cell takes taps', () => {
+    const { set } = renderFindIt(8, { vRange: 1, hRange: 2 });
+    for (const p of cells(set)) expect(cellEl(p)).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('Find it: the right interval outside the range is explained, not scored', () => {
     const { set, q } = renderFindIt(8, { vRange: 1, hRange: 2 });
-    const outside = cells(set).filter(p => !inBox(q.root, q.up, p, set));
-    const inside = cells(set).filter(p => inBox(q.root, q.up, p, set));
-    expect(outside).toContainEqual(q.root);
+    const farPos = cells(set).find(p => isOutOfRange(q, p, set));
+    if (!farPos) throw new Error('no out-of-range fingering in the window');
+    fireEvent.click(cellEl(farPos));
 
-    for (const p of outside) {
-      expect(cellEl(p)).toHaveAttribute('aria-disabled', 'true');
-      fireEvent.click(cellEl(p));
-    }
-    for (const p of inside) expect(cellEl(p)).not.toHaveAttribute('aria-disabled');
-    // Open-string cells have no overlay; every other outside cell has one.
-    expect(screen.getAllByTestId(/^dim-/)).toHaveLength(outside.filter(p => p.f > 0).length);
-
+    expect(screen.getByTestId('feedback')).toHaveTextContent(
+      'Right interval, but outside your range — find a closer one',
+    );
+    expect(screen.getByTestId('dot-far')).toBeInTheDocument();
     expect(screen.queryByTestId('dot-wrong')).not.toBeInTheDocument();
-    expect(screen.getByTestId('feedback')).toBeEmptyDOMElement();
+    expect(cellEl(farPos)).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByTestId('stats-line')).toHaveTextContent('No answers yet this session');
+
+    // The root's own cell is an ordinary miss, and takes over the feedback.
+    fireEvent.click(cellEl(q.root));
+    expect(screen.getByTestId('feedback')).toHaveTextContent('Not that fret — try again');
+    expect(screen.getByTestId('stats-line')).toHaveTextContent('0% of 1');
   });
 
   it.each(['desc', 'rand', 'same'] as const)(
-    'Find it: direction %s lights exactly the box, and the hint follows it',
+    'Find it: direction %s limits the hint to the box',
     dir => {
       const { set, q } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
       const key = (p: Position) => `${p.s}-${p.f}`;
       const inside = cells(set).filter(p => inBox(q.root, q.up, p, set)).map(key);
-      const litCells = cells(set)
-        .filter(p => !cellEl(p).hasAttribute('aria-disabled')).map(key);
-      expect(litCells).toEqual(inside);
       if (dir === 'same') {
         expect(inside.every(k => k.startsWith(`${q.root.s}-`))).toBe(true);
       }
@@ -179,12 +182,7 @@ describe('IntervalTrainer', () => {
     expect(where()).toBe(before);
   });
 
-  it('Name it: the board is not dimmed', () => {
-    render(<IntervalTrainer rng={seededRng(8)} />);
-    expect(screen.queryAllByTestId(/^dim-/)).toHaveLength(0);
-  });
-
-  it('Find it: solving reveals the other correct frets and keeps the box', () => {
+  it('Find it: solving reveals the other correct frets', () => {
     const { set, q } = renderFindIt(8, { pause: true });
     const all = correctFrets(q, set);
     fireEvent.click(cellEl(q.tgt));
@@ -198,7 +196,6 @@ describe('IntervalTrainer', () => {
       expect(samePos(p, q.tgt)).toBe(false);
       expect(isCorrectFret(q, p, set)).toBe(true);
     }
-    expect(screen.getAllByTestId(/^dim-/).length).toBeGreaterThan(0);
   });
 
   it('persists settings and stats to localStorage', () => {

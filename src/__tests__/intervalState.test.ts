@@ -11,6 +11,8 @@ const base = (patch: Partial<IntervalState['set']> = {}): IntervalState => ({
   stats: emptyStats(),
   q,
   picked: null,
+  far: [],
+  farLast: false,
   answered: false,
   wrong: [],
   advanceMs: null,
@@ -55,12 +57,42 @@ describe('intervalReducer', () => {
     expect(s.picked).toEqual({ s: 1, f: 8 });
   });
 
-  it('Find it: ignores a tap outside the box', () => {
-    const s = base({ mode: 'fret' });
-    // The root itself, a lower string, and five frets away.
-    for (const pos of [{ s: 1, f: 5 }, { s: 0, f: 6 }, { s: 2, f: 10 }]) {
-      expect(intervalReducer(s, { type: 'answerFret', pos })).toBe(s);
+  it('Find it: the right interval outside the box is noted, not scored', () => {
+    // G string fret 10 (F4) is a minor third up, but five frets away.
+    const farPos = { s: 3, f: 10 };
+    let s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos: farPos });
+    expect(s).toMatchObject({ far: [farPos], farLast: true, wrong: [], answered: false });
+    expect(s.stats).toEqual(emptyStats());
+    // Tapping it again changes nothing.
+    expect(intervalReducer(s, { type: 'answerFret', pos: farPos })).toBe(s);
+
+    // A real miss takes over the feedback; a later hit still scores as a miss.
+    s = intervalReducer(s, { type: 'answerFret', pos: { s: 2, f: 4 } });
+    expect(s).toMatchObject({ farLast: false, wrong: [{ s: 2, f: 4 }] });
+    expect(s.stats.total).toBe(1);
+
+    const clean = intervalReducer(
+      intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos: farPos }),
+      { type: 'answerFret', pos: { s: 2, f: 3 } },
+    );
+    expect(clean).toMatchObject({ answered: true, farLast: false });
+    expect(clean.stats).toMatchObject({ correct: 1, total: 1 });
+  });
+
+  it('Find it: a wrong note outside the box is an ordinary miss', () => {
+    // The root itself, and a note on a lower string.
+    for (const pos of [{ s: 1, f: 5 }, { s: 0, f: 6 }]) {
+      const s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos });
+      expect(s).toMatchObject({ wrong: [pos], far: [], farLast: false });
+      expect(s.stats.total).toBe(1);
     }
+  });
+
+  it('a new question clears the out-of-range taps', () => {
+    const s = intervalReducer(
+      base({ mode: 'fret' }), { type: 'answerFret', pos: { s: 3, f: 10 } },
+    );
+    expect(intervalReducer(s, { type: 'next', q })).toMatchObject({ far: [], farLast: false });
   });
 
   it('ignores answers from the other mode', () => {

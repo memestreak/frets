@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { BOARD_RADIUS, fretboardGeometry, OPENW } from '@/lib/fretboardGeometry';
 
@@ -42,56 +42,5 @@ describe('Fretboard', () => {
     render(<Fretboard minFret={0} maxFret={12} dots={[]} band={band(0, 0)} />);
     expect(screen.getByTestId('range-band-open')).toBeInTheDocument();
     expect(screen.queryByTestId('range-band')).not.toBeInTheDocument();
-  });
-
-  it('dims cells and stops them accepting taps', () => {
-    const onCellClick = vi.fn();
-    render(
-      <Fretboard
-        minFret={0} maxFret={5} dots={[]} onCellClick={onCellClick}
-        isCellDimmed={p => p.f === 0 || p.f > 2}
-      />,
-    );
-    expect(screen.getByTestId('dim-0-3')).toBeInTheDocument();
-    expect(screen.queryByTestId('dim-0-2')).not.toBeInTheDocument();
-    // The open column has no fingerboard under it to dim.
-    expect(screen.queryByTestId('dim-0-0')).not.toBeInTheDocument();
-
-    for (const id of ['cell-0-3', 'cell-0-0']) {
-      const cell = screen.getByTestId(id);
-      expect(cell).toHaveAttribute('aria-disabled', 'true');
-      fireEvent.click(cell);
-      fireEvent.keyDown(cell, { key: 'Enter' });
-    }
-    expect(onCellClick).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByTestId('cell-0-2'));
-    expect(onCellClick).toHaveBeenCalledWith({ s: 0, f: 2 });
-  });
-
-  it('marks lit open strings, which have no fingerboard to dim around them', () => {
-    const { rerender } = render(
-      <Fretboard minFret={0} maxFret={5} dots={[]} isCellDimmed={p => p.s > 1} />,
-    );
-    const g = fretboardGeometry(0, 5);
-    const lit = screen.getByTestId('open-lit-1');
-    expect(lit).toHaveAttribute('x', String(g.cellX(0)));
-    expect(lit).toHaveAttribute('width', String(OPENW));
-    expect(screen.getByTestId('open-lit-0')).toBeInTheDocument();
-    expect(screen.queryByTestId('open-lit-2')).not.toBeInTheDocument();
-
-    // No box, no markers; and no open column when the window starts higher.
-    rerender(<Fretboard minFret={0} maxFret={5} dots={[]} />);
-    expect(screen.queryByTestId('open-lit-0')).not.toBeInTheDocument();
-    rerender(<Fretboard minFret={2} maxFret={7} dots={[]} isCellDimmed={() => false} />);
-    expect(screen.queryByTestId('open-lit-0')).not.toBeInTheDocument();
-  });
-
-  it('keeps the dimming when the board is not tappable', () => {
-    render(
-      <Fretboard minFret={0} maxFret={5} dots={[]} isCellDimmed={p => p.f > 2} />,
-    );
-    expect(screen.getByTestId('dim-5-4')).toBeInTheDocument();
-    expect(screen.queryByTestId('cell-5-4')).not.toBeInTheDocument();
   });
 });

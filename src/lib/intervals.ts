@@ -82,6 +82,16 @@ export function isCorrectFret(q: IntervalQuestion, tgt: Position, set: Judging):
     && (Math.abs(d) <= 12 || set.compound);
 }
 
+/**
+ * Is `tgt` the asked interval in the asked direction, but outside the box?
+ * The trainer explains such a tap instead of scoring it as a miss.
+ */
+export function isOutOfRange(q: IntervalQuestion, tgt: Position, set: Box): boolean {
+  if (inBox(q.root, q.up, tgt, set)) return false;
+  const d = midi(tgt.s, tgt.f) - midi(q.root.s, q.root.f);
+  return (q.up ? d > 0 : d < 0) && intervalClass(d) === q.semis;
+}
+
 /** Every correct fret for the question inside the fret window. */
 export function correctFrets(q: IntervalQuestion, set: IntervalSettings): Position[] {
   const out: Position[] = [];

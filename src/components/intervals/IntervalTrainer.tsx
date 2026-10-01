@@ -51,7 +51,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const [state, dispatch] = useReducer(intervalReducer, rng, initIntervalState);
   const [hint, setHint] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { set, stats, q, answered, wrong, picked } = state;
+  const { set, stats, q, answered, wrong, picked, far, farLast } = state;
   const { mode } = set;
   const pool = activePool(set);
 
@@ -136,6 +136,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           label: '✕', fontSize: 12, opacity: 0.9,
         });
       }
+      // Right interval, beyond the range: marked, but not as a miss.
+      for (const p of far) {
+        dots.push({
+          ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
+          label: '↔', fontSize: 12,
+        });
+      }
     }
   }
 
@@ -156,6 +163,8 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     feedback = `Correct — ${INTERVAL_NAMES[q.semis]}, ${INTERVAL_LONG_NAMES[q.semis]}`
       + missSuffix(wrong.length);
     tone = 'success';
+  } else if (farLast) {
+    feedback = 'Right interval, but outside your range — find a closer one';
   } else if (wrong.length) {
     const last = wrong[wrong.length - 1];
     feedback = `Not ${typeof last === 'number' ? INTERVAL_NAMES[last] : 'that fret'} — try again`;
@@ -306,10 +315,9 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             onCellClick={mode === 'fret' && !answered && q
               ? pos => dispatch({ type: 'answerFret', pos })
               : undefined}
-            isCellDisabled={pos => wrong.some(
-              w => typeof w !== 'number' && w.s === pos.s && w.f === pos.f,
+            isCellDisabled={pos => far.some(p => samePos(p, pos)) || wrong.some(
+              w => typeof w !== 'number' && samePos(w, pos),
             )}
-            isCellDimmed={mode === 'fret' && q ? pos => !lit(pos) : undefined}
           />
         </BoardFrame>
         <SessionStatsCard

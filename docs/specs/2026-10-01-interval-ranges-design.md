@@ -6,7 +6,7 @@ Let the user set how far the target may sit from the root in the Interval
 trainer, in strings (vertical) and in frets (horizontal). Today the fret
 distance is a hardcoded `REACH = 4` and the string distance is chosen by the
 "String pairs" setting. Both become one box around the root that governs
-which questions are asked, which Find-it cells are lit and tappable, and
+which questions are asked, which cells the hint labels, and
 which taps count as correct.
 
 ## Settings
@@ -40,7 +40,7 @@ window still bounds everything. Nothing links the two settings.
 ## The box
 
 One pure function in `src/lib/intervals.ts` defines the box, and generation,
-judging, dimming and the hint all use it:
+judging and the hint all use it:
 
 ```ts
 /** Is `pos` in the box around `root` for a question in direction `up`? */
@@ -64,7 +64,7 @@ more, a cell on a lower string can be higher in pitch than the root (low E
 fret 10 against A fret 3). Such cells are outside an ascending box, matching
 the header copy "Root on the lower string, interval ascends to the higher
 string". Likewise a cell inside the box can lie in the wrong pitch direction
-(a higher string, many frets down); it is lit, tappable and simply wrong.
+(a higher string, many frets down); it is simply wrong.
 
 ## Quiz rules
 
@@ -113,21 +113,25 @@ target never come up twice running unless it is the only question.
 
 ### Find-it board
 
-In Find-it mode, while a question exists (answered or not):
+The board does not show the box. An earlier version dimmed every cell
+outside it and made those cells untappable; it was built, tried in the
+browser and rejected as visually unwelcome. `Fretboard` is unchanged.
 
-- Cells outside the box, and the root's own cell, are **dimmed and not
-  tappable**. Out-of-box taps therefore cannot happen and need no feedback.
-- Cells in the box are lit. Wrong taps are disabled as today.
+Every cell in the window is tappable. A tap is handled as:
 
-`Fretboard` gains an `isCellDimmed?: (pos) => boolean` prop. A dimmed cell
-draws a translucent overlay over the board fill and is `aria-disabled`, like
-a wrong-tap cell. Strings, string names and fret numbers are not dimmed.
-Arrow keys keep roaming the whole window, as they do over disabled cells
-today. The existing `band` prop is not used: it shades whole fret columns
-and the box is not a column. The overlay colour and opacity are tuned in the
-browser against the maple board; use a DS token, not a literal.
+- **Correct** (`isCorrectFret`): solved, as today.
+- **Right interval, outside the box** (`isOutOfRange`: not in the box, but
+  in the question's pitch direction and naming the asked interval class):
+  not a miss. The feedback reads "Right interval, but outside your range —
+  find a closer one" in the neutral tone, the cell gets a muted `↔` marker
+  (dot kind `far`) and stops accepting taps, and nothing is scored. The
+  limit is the user's own setting, not a knowledge error.
+- **Anything else**, inside or outside the box, including the root's own
+  cell: an ordinary miss, as today.
 
-Name-it mode is not dimmed: both notes are already marked.
+The reducer state holds `far: Position[]` and `farLast: boolean` (whether
+the latest tap was one of these, so the feedback line shows the right
+message); both reset with each new question.
 
 ### Reveal on solve
 
@@ -192,7 +196,7 @@ change.
 `src/__tests__/intervals.test.ts`:
 
 - `inBox`: edges of both ranges; direction-aware strings; the root's string
-  lit only on the direction's side; Same string limited to one string; the
+  included only on the direction's side; Same string limited to one string; the
   root cell excluded;
 - `isCorrectFret`: accepts at the edge of each range and rejects one step
   beyond; accepts a correct fret on the root's string for an ascending
@@ -211,8 +215,9 @@ change.
 - parser: defaults when absent, rejects out-of-range, non-integer and
   non-number values, ignores `pairs`; `compound` defaults to `true`.
 
-`src/__tests__/Fretboard.test.tsx`: dimmed cells render the overlay, are
-`aria-disabled` and ignore click and Enter.
+`src/__tests__/intervalState.test.ts`: an out-of-range tap is recorded in
+`far` and not scored; a wrong note outside the box is a miss; a new question
+clears `far`.
 
 `src/__tests__/IntervalTrainer.test.tsx`:
 
@@ -220,12 +225,13 @@ change.
   for "Skip one", looks for a control that still exists. The persistence
   test sets both new controls and checks `saved.set.vRange` and
   `saved.set.hRange`;
-- Find-it dims cells outside the box and not in Name-it; the hint labels
-  only box cells; solving reveals the other correct frets;
+- Find-it leaves every cell tappable and explains an out-of-range tap
+  without scoring it; the hint labels only box cells; solving reveals the
+  other correct frets;
 - generation order changes for every seed, so tests that depend on a
   specific seeded question are re-derived, not loosened.
 
-The change is verified in a browser: both controls, dimming for each
+The change is verified in a browser: both controls, the hint for each
 direction, a Find-it round at a narrow box, the reveal, the hint, and a
 reload to confirm persistence.
 

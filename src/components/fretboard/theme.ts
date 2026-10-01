@@ -6,7 +6,6 @@ export interface FretboardTheme {
   nut: string;
   inlay: string;
   muted: string;
-  dim: string;
   rootFill: string;
   rootFg: string;
   tgtFill: string;
@@ -24,7 +23,6 @@ export const MAPLE_THEME: FretboardTheme = {
   nut: 'var(--color-neutral-800)',
   inlay: 'var(--color-board-inlay)',
   muted: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
-  dim: 'color-mix(in srgb, var(--color-bg) 62%, transparent)',
   rootFill: 'var(--color-accent)',
   rootFg: 'var(--color-bg)',
   tgtFill: 'var(--color-text)',
