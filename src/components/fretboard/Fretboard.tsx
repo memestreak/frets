@@ -35,6 +35,8 @@ interface FretboardProps {
   onCellClick?: (pos: Position) => void;
   /** Cells that no longer accept taps (already marked wrong or found). */
   isCellDisabled?: (pos: Position) => boolean;
+  /** Cells shown dimmed; they never accept taps. */
+  isCellDimmed?: (pos: Position) => boolean;
   /** Translucent band over a fret range. */
   band?: { from: number; to: number; color: string } | null;
   stringStyle?: (s: number) => StringStyle;
@@ -51,8 +53,8 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  * narrow screens instead of shrinking.
  */
 export function Fretboard({
-  minFret, maxFret, dots, onCellClick, isCellDisabled, band, stringStyle,
-  scrollToFret, theme = MAPLE_THEME,
+  minFret, maxFret, dots, onCellClick, isCellDisabled, isCellDimmed, band,
+  stringStyle, scrollToFret, theme = MAPLE_THEME,
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
@@ -74,6 +76,9 @@ export function Fretboard({
     f: Math.min(Math.max(focus.f, minFret), maxFret),
   };
 
+  const cellOff = (pos: Position) =>
+    (isCellDimmed?.(pos) ?? false) || (isCellDisabled?.(pos) ?? false);
+
   const moveFocus = (e: KeyboardEvent, pos: Position) => {
     const d: Record<string, [number, number]> = {
       ArrowUp: [1, 0], ArrowDown: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
@@ -82,7 +87,7 @@ export function Fretboard({
       e.preventDefault();
       // Keep the global Enter/Space handler from treating this as "Next".
       e.stopPropagation();
-      if (!isCellDisabled?.(pos)) onCellClick?.(pos);
+      if (!cellOff(pos)) onCellClick?.(pos);
       return;
     }
     const step = d[e.key];
@@ -160,6 +165,27 @@ export function Fretboard({
           strokeLinecap={l.nut ? 'round' : undefined}
         />
       ))}
+      {isCellDimmed && (
+        <g
+          clipPath={`url(#${clipId})`} shapeRendering="crispEdges"
+          style={{ fill: theme.dim, pointerEvents: 'none' }}
+        >
+          {STRINGS.map(s => {
+            const rects = [];
+            for (let f = g.firstFret; f <= maxFret; f++) {
+              if (!isCellDimmed({ s, f })) continue;
+              rects.push(
+                <rect
+                  key={`${s}:${f}`} data-testid={`dim-${s}-${f}`}
+                  x={g.cellX(f)} y={g.cy(s) - SG / 2}
+                  width={g.cellW(f)} height={SG}
+                />,
+              );
+            }
+            return rects;
+          })}
+        </g>
+      )}
       {STRINGS.map(s => {
         const st = stringStyle?.(s) ?? {};
         return (
@@ -215,7 +241,7 @@ export function Fretboard({
         const cells = [];
         for (let f = minFret; f <= maxFret; f++) {
           const pos = { s, f };
-          const disabled = isCellDisabled?.(pos) ?? false;
+          const disabled = cellOff(pos);
           const isFocus = focusCell.s === s && focusCell.f === f;
           cells.push(
             <rect
