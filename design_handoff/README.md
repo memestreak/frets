@@ -1,5 +1,12 @@
 # Handoff: Frets — guitar fretboard trainers
 
+> **Note (2026-10-01):** the shipped app has diverged from this handoff's
+> look. The blueprint styling (square corners, hairline frames, corner
+> marks, line-drawn fretboard) was replaced by soft cards, pill controls and
+> a maple fingerboard, and the Chords / Scales / Ear training nav
+> placeholders were removed. See `docs/specs/2026-10-01-soft-ui-design.md`.
+> This document remains the reference for quiz rules and behaviour.
+
 ## Overview
 
 Frets is a guitar-focused music theory practice app. This package covers the first two sections, both quizzes played on a shared fretboard diagram:

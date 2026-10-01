@@ -7,6 +7,8 @@ static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest.
 Spec and prototypes: `design_handoff/README.md` and
 `design_handoff/prototypes/*.dc.html` (their `<script data-dc-script>` logic
 is the reference for quiz rules).
+The prototypes remain the reference for quiz rules, not for the look: the
+shipped styling follows `docs/specs/2026-10-01-soft-ui-design.md`.
 
 ## Commands
 
@@ -31,8 +33,9 @@ binds a local port).
 - `src/components/intervals|notes/` — each trainer is a `useReducer` over a
   pure reducer (`intervalState.ts`, `noteState.ts`). Random questions are
   generated in the component and passed in actions, so reducers stay pure.
-- `src/components/fretboard/` — shared SVG `Fretboard` (roving-focus tap
-  cells, arrow keys) and `theme.ts` (only the `line` theme ships).
+- `src/components/fretboard/` — shared SVG `Fretboard` (rounded fingerboard
+  fill, roving-focus tap cells, arrow keys) and `theme.ts` (only the `maple`
+  theme ships).
 - `src/components/quiz/` — header, answer card/grid, board frame with
   hold-for-hint, settings drawer parts.
 - `src/hooks/` — `useQuizKeyboard`, `useAutoAdvance`, `usePersist`.
@@ -41,10 +44,15 @@ binds a local port).
 
 ## Styling
 
-- `src/styles/industry.css` is the Industry design system, imported into
+- `src/styles/industry.css` is the Industry design system, rethemed in place
+  to the soft look (filled rounded cards, pill buttons and segmented
+  controls); it no longer matches `design_handoff/`. It is imported into
   Tailwind's `components` layer; app component CSS is in the same layer in
   `globals.css`. Use DS tokens (`var(--color-*)`), e.g.
   `text-(--color-accent)`; Tailwind's default palette is disabled.
+- Surfaces: `--color-card` (cards, secondary buttons), `--color-track`
+  (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
+  `--color-board`, `--color-board-inlay`, `--color-board-fret`.
 - Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
 - DS selectors like `.seg-opt:not(:has(input:checked)):hover` are fairly
   specific; overrides may need extra specificity.
