@@ -1,9 +1,5 @@
-/**
- * Fretboard colors. Only the `line` theme ships; `surface` and `steel`
- * from the prototypes can be added here as further entries.
- */
+/** Fretboard colors. Only the `maple` theme ships. */
 export interface FretboardTheme {
-  frameBg: string;
   board: string;
   string: string;
   fret: string;
@@ -20,13 +16,12 @@ export interface FretboardTheme {
   legend: string;
 }
 
-export const LINE_THEME: FretboardTheme = {
-  frameBg: 'transparent',
-  board: 'transparent',
-  string: 'var(--color-text)',
-  fret: 'color-mix(in srgb, var(--color-text) 28%, transparent)',
-  nut: 'var(--color-text)',
-  inlay: 'var(--color-neutral-400)',
+export const MAPLE_THEME: FretboardTheme = {
+  board: 'var(--color-board)',
+  string: 'var(--color-neutral-700)',
+  fret: 'var(--color-board-fret)',
+  nut: 'var(--color-neutral-800)',
+  inlay: 'var(--color-board-inlay)',
   muted: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
   rootFill: 'var(--color-accent)',
   rootFg: 'var(--color-bg)',

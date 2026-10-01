@@ -3,7 +3,7 @@
 import { useMemo, useReducer, useState } from 'react';
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
-import { LINE_THEME as T, STATUS } from '@/components/fretboard/theme';
+import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
 import {
   AnswerCard, AnswerGrid, FindPrompt, type AnswerButton, type FeedbackTone,
 } from '@/components/quiz/AnswerCard';
