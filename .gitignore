@@ -55,8 +55,12 @@ __pycache__/
 # placeholder dotfiles the Claude Code sandbox mounts in the repo root
 /.bash_profile
 /.bashrc
+/.claude/
 /.gitconfig
+/.gitmodules
+/.mcp.json
 /.profile
 /.ripgreprc
+/.vscode
 /.zprofile
 /.zshrc
