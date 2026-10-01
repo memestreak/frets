@@ -15,27 +15,32 @@ which taps count as correct.
 
 | Field    | Meaning                                | Min | Max | Default |
 |----------|----------------------------------------|-----|-----|---------|
-| `vRange` | Max strings between root and target    | 1   | 5   | 5       |
-| `hRange` | Max frets between root and target      | 1   | 12  | 4       |
+| `vRange` | Strings spanned, counting the root's   | 1   | 6   | 6       |
+| `hRange` | Frets spanned, counting the root's     | 1   | 12  | 4       |
 
-Both are upper bounds: `hRange = 4` allows fret distances 0 to 4, and
-`vRange = 3` allows string distances 1 to 3.
+Both are one-based spans that include the root. `vRange = 1` is the root's
+string alone and `vRange = 6` is every string; `hRange = 1` is the root's
+fret alone and `hRange = 4` is a four-fret position (up to three frets
+away). In distance terms the target is at most `vRange - 1` strings and
+`hRange - 1` frets from the root. (An earlier draft used zero-based
+distances with a vertical maximum of 5; the prototype's fixed reach of four
+frets' distance corresponds to `hRange = 5`.)
 
 Two defaults change on purpose:
 
-- `pairs: 'adj'` (adjacent strings only) becomes `vRange: 5`.
+- `pairs: 'adj'` (adjacent strings only) becomes `vRange: 6`.
 - `compound` ("Allow spans over an octave") becomes `true`. With it off, two
-  notes 4 or 5 strings apart within 4 frets are always more than an octave
-  apart, so the default `vRange` of 5 would behave like 3.
+  notes 4 or 5 strings apart within a few frets are always more than an
+  octave apart, so the default `vRange` would behave like a smaller one.
 
 Removed: `REACH`, `MAX_TRIES`, the `StringPairs` type, `PAIR_GAPS`, and the
 `PAIRS` list used by the parser; in `IntervalTrainer.tsx`, the `StringPairs`
-import and `PAIR_OPTS`. Export the limits as constants (`V_RANGE_MAX = 5`,
+import and `PAIR_OPTS`. Export the limits as constants (`V_RANGE_MAX = 6`,
 `H_RANGE_MAX = 12`) and a `clampHRange(n)` helper (round, then clamp to
 1..12) so the dialog and parser share them.
 
-The effective horizontal reach is `min(hRange, maxFret - minFret)`: the fret
-window still bounds everything. Nothing links the two settings.
+The fret window still bounds everything: the effective reach is the smaller
+of `hRange - 1` and `maxFret - minFret`. Nothing links the two settings.
 
 ## The box
 
@@ -48,11 +53,11 @@ inBox(root: Position, up: boolean, pos: Position, set): boolean
 ```
 
 `pos` is in the box when it is not the root itself,
-`|pos.f - root.f| <= hRange`, and one of:
+`|pos.f - root.f| < hRange`, and one of:
 
 - **Another string**: the string lies in the question's direction
   (higher-numbered strings when `up`, lower when not) and
-  `|pos.s - root.s| <= vRange`.
+  `|pos.s - root.s| < vRange`.
 - **The root's string**: the fret lies in the question's direction (higher
   frets when `up`, lower when not).
 
@@ -86,9 +91,10 @@ narrow boxes with small pools (30% of the time for m2 ascending at
 `vRange 5`, `hRange 3`).
 
 1. List every candidate `(root, tgt, up)` with both notes in the fret
-   window: `tgt` on another string, in the box, `up` fixed by the direction
-   (both values for Ascending and Descending). Targets on the root's own
-   string are accepted as answers but never generated.
+   window: `tgt` anywhere in the box, the root's own string included, `up`
+   fixed by the direction (both values for Ascending and Descending). With
+   `vRange = 1` every question is on one string; with `hRange = 1` every
+   question is on one fret; with both at 1 the box is empty.
    Keep a candidate only if `tgt` is a correct fret for its own interval
    class and that class is in the active pool.
 2. If more than one candidate exists, drop the one equal to the previous
@@ -152,8 +158,10 @@ position, by two fields:
 
 ```
 Direction          [ Ascending                ▾ ]
-Vertical range     [1|2|3|4|5]
+Vertical range     [1|2|3|4|5|6]
+                   Strings, counting the root's own.
 Horizontal range   [ 4 ]  frets
+                   Frets, counting the root's own.
 ```
 
 - **Direction** moves out of the header into the dialog as a native
@@ -165,7 +173,7 @@ Horizontal range   [ 4 ]  frets
   to the default, Ascending.
 
 - **Vertical range** uses the existing `Segmented` control with options
-  `[1, '1']` to `[5, '5']`. `Segmented` (`src/components/controls.tsx`) is
+  `[1, '1']` to `[6, '6']`. `Segmented` (`src/components/controls.tsx`) is
   typed `T extends string` today; widen it to `T extends string | number`,
   with no other change.
 - **Horizontal range** uses the existing `FretInput` (commit on blur, Enter
@@ -181,7 +189,7 @@ Changing either value goes through the trainer's existing `update()` path
 
 The storage key stays `eminor.intervals.v2`. `parseIntervalSettings`:
 
-- accepts `vRange` only if it is an integer in 1..5, else the default 5;
+- accepts `vRange` only if it is an integer in 1..6, else the default 6;
 - accepts `hRange` only if it is an integer in 1..12, else the default 4;
 - ignores any stored `pairs` value. There is no migration: the app has no
   users yet.

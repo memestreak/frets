@@ -37,9 +37,9 @@ const V_RANGE_OPTS = Array.from(
   { length: V_RANGE_MAX }, (_, i) => [i + 1, String(i + 1)] as const,
 );
 const DIR_DESC: Record<Direction, string> = {
-  asc: 'Root on the lower string, interval ascends to the higher string.',
-  desc: 'Root on the higher string, interval note below it on the lower string.',
-  rand: 'Root on either string; direction changes every question.',
+  asc: 'The interval note is above the root.',
+  desc: 'The interval note is below the root.',
+  rand: 'The interval note is above or below the root; it changes every question.',
 };
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
@@ -209,13 +209,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
               {DIR_OPTS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
             </select>
           </Field>
-          <Field label="Vertical range">
+          <Field label="Vertical range" note="Strings, counting the root’s own.">
             <Segmented<number>
               label="Vertical range" options={V_RANGE_OPTS} value={set.vRange}
               onChange={v => update({ vRange: v })}
             />
           </Field>
-          <Field label="Horizontal range">
+          <Field label="Horizontal range" note="Frets, counting the root’s own.">
             <FretPair>
               <FretInput
                 label="Horizontal range" min={1} max={H_RANGE_MAX} value={set.hRange}

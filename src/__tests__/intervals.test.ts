@@ -21,7 +21,7 @@ const span = (q: IntervalQuestion) =>
 describe('defaults', () => {
   it('uses the whole board height, a four-fret reach and compound spans', () => {
     expect(defaultIntervalSettings()).toMatchObject({
-      vRange: 5, hRange: 4, compound: true,
+      vRange: 6, hRange: 4, compound: true,
     });
     expect(defaultIntervalSettings()).not.toHaveProperty('pairs');
   });
@@ -29,7 +29,8 @@ describe('defaults', () => {
 
 describe('inBox', () => {
   const root = { s: 2, f: 5 };
-  const box = { vRange: 2, hRange: 3 };
+  // Three strings and four frets, counting the root's own.
+  const box = { vRange: 3, hRange: 4 };
 
   it('lights strings in the direction, up to both ranges', () => {
     expect(inBox(root, true, { s: 3, f: 5 }, box)).toBe(true);
@@ -81,14 +82,14 @@ describe('isCorrectFret', () => {
 
   it('applies the horizontal range at its edge', () => {
     // D string fret 3 is two frets from the root.
-    expect(isCorrectFret(q, { s: 2, f: 3 }, settings({ hRange: 2 }))).toBe(true);
-    expect(isCorrectFret(q, { s: 2, f: 3 }, settings({ hRange: 1 }))).toBe(false);
+    expect(isCorrectFret(q, { s: 2, f: 3 }, settings({ hRange: 3 }))).toBe(true);
+    expect(isCorrectFret(q, { s: 2, f: 3 }, settings({ hRange: 2 }))).toBe(false);
   });
 
   it('applies the vertical range at its edge', () => {
     // B string is three strings from the root.
-    expect(isCorrectFret(q, { s: 4, f: 6 }, settings({ vRange: 3 }))).toBe(true);
-    expect(isCorrectFret(q, { s: 4, f: 6 }, settings({ vRange: 2 }))).toBe(false);
+    expect(isCorrectFret(q, { s: 4, f: 6 }, settings({ vRange: 4 }))).toBe(true);
+    expect(isCorrectFret(q, { s: 4, f: 6 }, settings({ vRange: 3 }))).toBe(false);
   });
 
   it('rejects a right-named note on a lower string for an ascending question', () => {
@@ -134,13 +135,14 @@ describe('correctFrets', () => {
   const q = { root: { s: 1, f: 5 }, tgt: { s: 2, f: 3 }, semis: 3, up: true };
 
   it('lists all and only the correct frets in the window', () => {
-    expect(correctFrets(q, settings({ compound: false })))
+    expect(correctFrets(q, settings({ hRange: 5, compound: false })))
       .toEqual([{ s: 1, f: 8 }, { s: 2, f: 3 }]);
-    expect(correctFrets(q, settings())).toEqual([
+    expect(correctFrets(q, settings({ hRange: 5 }))).toEqual([
       { s: 1, f: 8 }, { s: 2, f: 3 }, { s: 4, f: 6 }, { s: 5, f: 1 },
     ]);
-    // High e fret 1 falls outside a window that starts at fret 2.
-    expect(correctFrets(q, settings({ minFret: 2 }))).toEqual([
+    // High e fret 1 falls outside a window that starts at fret 2, and
+    // outside the default four-fret range.
+    expect(correctFrets(q, settings({ hRange: 5, minFret: 2 }))).toEqual([
       { s: 1, f: 8 }, { s: 2, f: 3 }, { s: 4, f: 6 },
     ]);
   });
@@ -150,8 +152,8 @@ describe('generateIntervalQuestion', () => {
   it.each(['asc', 'desc', 'rand'] as const)(
     'obeys the rules for direction %s',
     dir => {
-      for (const vRange of [1, 3, 5]) {
-        for (const hRange of [1, 4, 12]) {
+      for (const vRange of [2, 4, 6]) {
+        for (const hRange of [2, 5, 12]) {
           const set = settings({
             dir, vRange, hRange, minFret: 2, maxFret: 14, compound: false,
           });
@@ -162,7 +164,7 @@ describe('generateIntervalQuestion', () => {
             expect(d).not.toBe(0);
             expect(q.up).toBe(d > 0);
             expect(Math.abs(d)).toBeLessThanOrEqual(12);
-            expect(Math.abs(q.tgt.f - q.root.f)).toBeLessThanOrEqual(hRange);
+            expect(Math.abs(q.tgt.f - q.root.f)).toBeLessThan(hRange);
             expect(intervalClass(d)).toBe(q.semis);
             expect(isCorrectFret(q, q.tgt, set)).toBe(true);
             for (const p of [q.root, q.tgt]) {
@@ -170,11 +172,10 @@ describe('generateIntervalQuestion', () => {
               expect(p.f).toBeLessThanOrEqual(14);
             }
             const gap = Math.abs(q.tgt.s - q.root.s);
-            // The target is never on the root's own string.
-            expect(gap).toBeGreaterThan(0);
-            expect(gap).toBeLessThanOrEqual(vRange);
-            if (dir === 'asc') expect(q.root.s).toBeLessThan(q.tgt.s);
-            if (dir === 'desc') expect(q.root.s).toBeGreaterThan(q.tgt.s);
+            // Ranges count the root's own string and fret.
+            expect(gap).toBeLessThan(vRange);
+            if (dir === 'asc') expect(q.root.s).toBeLessThanOrEqual(q.tgt.s);
+            if (dir === 'desc') expect(q.root.s).toBeGreaterThanOrEqual(q.tgt.s);
           }
         }
       }
@@ -217,12 +218,12 @@ describe('generateIntervalQuestion', () => {
 
   it('always finds a rare question in a narrow box', () => {
     // A minor second up within three frets exists on few string pairs.
-    const set = settings({ pool: [1], vRange: 5, hRange: 3, compound: false });
+    const set = settings({ pool: [1], vRange: 6, hRange: 4, compound: false });
     expect(sample(set, 300).every(q => q !== null)).toBe(true);
   });
 
   it('does not ask the same question twice running', () => {
-    const set = settings({ pool: [7], vRange: 1, hRange: 2 });
+    const set = settings({ pool: [7], vRange: 2, hRange: 3 });
     const rng = seededRng(7);
     let prev: IntervalQuestion | null = null;
     for (let i = 0; i < 200; i++) {
@@ -238,10 +239,24 @@ describe('generateIntervalQuestion', () => {
 
   it('returns null when nothing fits', () => {
     expect(generateIntervalQuestion(settings({ pool: [] }))).toBeNull();
-    // Adjacent strings one fret apart never span an octave.
+    // Two strings and two frets never span an octave.
     expect(generateIntervalQuestion(
-      settings({ vRange: 1, hRange: 1, pool: [12] }), seededRng(1),
+      settings({ vRange: 2, hRange: 2, pool: [12] }), seededRng(1),
     )).toBeNull();
+    // A range of one string and one fret is the root alone.
+    expect(generateIntervalQuestion(
+      settings({ vRange: 1, hRange: 1 }), seededRng(1),
+    )).toBeNull();
+  });
+
+  it('stays on one string at vertical 1 and on one fret at horizontal 1', () => {
+    for (const q of sample(settings({ vRange: 1 }), 100)) {
+      expect(q && q.tgt.s === q.root.s && q.tgt.f > q.root.f).toBe(true);
+    }
+    for (const q of sample(settings({ hRange: 1 }), 100)) {
+      expect(q && q.tgt.f === q.root.f && q.tgt.s > q.root.s).toBe(true);
+    }
+    expect(sample(settings()).some(q => q && q.tgt.s === q.root.s)).toBe(true);
   });
 });
 
@@ -275,8 +290,8 @@ describe('parseIntervalSettings', () => {
   });
 
   it('rejects out-of-range, non-integer and non-number ranges', () => {
-    for (const bad of [0, 6, 2.5, '3', null]) {
-      expect(parseIntervalSettings({ vRange: bad }).vRange).toBe(5);
+    for (const bad of [0, 7, 2.5, '3', null]) {
+      expect(parseIntervalSettings({ vRange: bad }).vRange).toBe(6);
     }
     for (const bad of [0, 13, 4.5, '4', null]) {
       expect(parseIntervalSettings({ hRange: bad }).hRange).toBe(4);

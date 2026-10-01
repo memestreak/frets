@@ -118,12 +118,12 @@ describe('IntervalTrainer', () => {
   });
 
   it('Find it: the board shows no box and every cell takes taps', () => {
-    const { set } = renderFindIt(8, { vRange: 1, hRange: 2 });
+    const { set } = renderFindIt(8, { vRange: 2, hRange: 3 });
     for (const p of cells(set)) expect(cellEl(p)).not.toHaveAttribute('aria-disabled');
   });
 
   it('Find it: the right interval outside the range is explained, not scored', () => {
-    const { set, q } = renderFindIt(8, { vRange: 1, hRange: 2 });
+    const { set, q } = renderFindIt(8, { vRange: 2, hRange: 3 });
     const farPos = cells(set).find(p => isOutOfRange(q, p, set));
     if (!farPos) throw new Error('no out-of-range fingering in the window');
     fireEvent.click(cellEl(farPos));
@@ -263,7 +263,7 @@ describe('IntervalTrainer', () => {
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const saved = () =>
       JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
-    expect(saved()).toMatchObject({ vRange: 5, hRange: 4 });
+    expect(saved()).toMatchObject({ vRange: 6, hRange: 4 });
 
     // Pool chips are named "m3, minor third", so "3" is the range option.
     fireEvent.click(within(dialog).getByRole('button', { name: '3' }));
@@ -330,7 +330,7 @@ describe('IntervalTrainer', () => {
 
   it('does not repeat the same question when another exists', () => {
     // P5 up on adjacent strings within two frets: several fingerings.
-    renderFindIt(21, { mode: 'name', pool: [7], vRange: 1, hRange: 2 });
+    renderFindIt(21, { mode: 'name', pool: [7], vRange: 2, hRange: 3 });
     const where = () => ['dot-root', 'dot-target'].map(id => {
       const el = screen.getByTestId(id);
       return `${el.dataset.s}:${el.dataset.f}`;
