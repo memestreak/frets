@@ -2,22 +2,15 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-// Barlow / Barlow Condensed (SIL OFL), latin subset, self-hosted so the
-// build does not depend on reaching Google Fonts.
+// Barlow (SIL OFL), latin subset, self-hosted so the build does not depend
+// on reaching Google Fonts. Headings use it too: the design system's Barlow
+// Condensed read as too narrow.
 const barlow = localFont({
   variable: "--font-barlow",
   src: [
     { path: "./fonts/barlow-400.woff2", weight: "400" },
     { path: "./fonts/barlow-500.woff2", weight: "500" },
     { path: "./fonts/barlow-700.woff2", weight: "700" },
-  ],
-});
-
-const barlowCondensed = localFont({
-  variable: "--font-barlow-condensed",
-  src: [
-    { path: "./fonts/barlow-condensed-400.woff2", weight: "400" },
-    { path: "./fonts/barlow-condensed-600.woff2", weight: "600" },
   ],
 });
 
@@ -43,10 +36,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${barlow.variable} ${barlowCondensed.variable} ${monoton.variable}`}>
-        {children}
-      </body>
+    // On <html>, not <body>: globals.css reads these variables at :root.
+    <html
+      lang="en"
+      className={`${barlow.variable} ${monoton.variable}`}
+    >
+      <body>{children}</body>
     </html>
   );
 }
