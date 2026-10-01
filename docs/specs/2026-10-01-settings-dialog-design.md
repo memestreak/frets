@@ -44,7 +44,6 @@ from `SettingsParts.tsx`.
 
 ```ts
 interface SettingsDialogProps {
-  id: string;
   open: boolean;
   onClose: () => void;
   footnote: string;
@@ -54,9 +53,11 @@ interface SettingsDialogProps {
 
 Markup:
 
-- `<dialog id={id} className="settings-dialog" aria-labelledby={headingId}>`
-- A header row: an `<h3>` reading "Settings" and a ✕ icon button with
-  `aria-label="Close settings"`.
+- `<dialog className="settings-dialog" aria-labelledby={headingId}>`, with
+  `headingId` from `useId()`. The element is always mounted.
+- A header row: an `<h3 className="dialog-title">` reading "Settings" and a
+  ✕ icon button with `aria-label="Close settings"` (a new `CloseIcon` in
+  `icons.tsx`).
 - A scrollable body holding `children` (the trainer's fields).
 - A footer row: the muted tuning `footnote` on the left and a primary
   **Done** button on the right.
@@ -73,19 +74,24 @@ Behavior:
 - A click whose target is the `<dialog>` element itself is a backdrop click
   and calls `onClose()`. The dialog's padding is zero and its content sits in
   an inner wrapper so that clicks on content never target the dialog element.
+  The click listener is attached with `addEventListener` through a ref in an
+  effect, not as a JSX `onClick`: jsx-a11y (at error severity) does not
+  treat `<dialog>` as interactive. Esc is the keyboard equivalent.
 - ✕ and Done call `onClose()`.
 - The browser provides the focus trap, the inert background and the return
   of focus to the Settings button on close.
 - While open, the page behind must not scroll: `html:has(dialog[open])`
   gets `overflow: hidden`.
 
-### `SessionStats`
+### `SessionStatsCard`
 
-New file `src/components/quiz/SessionStats.tsx`.
+New file `src/components/quiz/SessionStatsCard.tsx`. The component is not
+called `SessionStats` because `lib/stats.ts` already exports a type of that
+name.
 
 ```ts
-interface SessionStatsProps {
-  stats: Stats;
+interface SessionStatsCardProps {
+  stats: SessionStats;
   rows: PerItemRow[];
   labelWidth: number;
   /** Group label for the bars, e.g. "Per interval". */
@@ -94,10 +100,13 @@ interface SessionStatsProps {
 }
 ```
 
-Markup: a `<section className="card" aria-label="Session stats">` containing
+Markup: a `<section aria-label="Session stats">` with classes
+`card mt-3.5 gap-3 px-[18px] py-3.5`, containing
 
-- a row with the summary line (`statsLine(stats)`, carrying
-  `data-testid="stats-line"`) and a ghost **Reset session stats** button;
+- a row with the summary line and a ghost **Reset session stats** button.
+  The summary is a `<span>` (styled text, not a heading element) at 14px,
+  medium weight, showing `statsLine(stats)` and carrying
+  `data-testid="stats-line"`;
 - the existing `PerItemStats` bars, in a `role="group"` labelled by
   `itemLabel`.
 
@@ -122,15 +131,18 @@ The same change in `IntervalTrainer.tsx` and `NoteTrainer.tsx`:
     pool.
   - Notes: Strings in scope, Board window, Target range.
 - The `Field` holding `PerItemStats` is removed from the settings body.
-- The muted stats paragraph under the board is replaced by `SessionStats`.
+- The muted stats paragraph under the board is replaced by
+  `SessionStatsCard`.
   The " · per-interval breakdown in Settings" and " · per-note breakdown in
   Settings" suffixes are removed.
   - Intervals rows: one per interval in the active pool (as today),
     `labelWidth` 34, `itemLabel` "Per interval".
   - Notes rows: one per note label (as today), `labelWidth` 52, `itemLabel`
     "Per note".
-- `SessionStats` sits below `BoardFrame`, with the same vertical gap the page
-  uses between cards.
+- `SessionStatsCard` takes the old paragraph's place: inside the inner grid,
+  directly after `BoardFrame`, separated by its own 14px top margin
+  (`mt-3.5`), the same gap `.board-frame` keeps from the answer card.
+- The `DRAWER_ID` constants are deleted.
 
 ## Behavior while the dialog is open
 
@@ -152,9 +164,11 @@ The same change in `IntervalTrainer.tsx` and `NoteTrainer.tsx`:
 
 Rules go in `globals.css`, in the `components` layer, using DS tokens.
 
-- `.settings-dialog`: `--color-card` background, `--radius-lg`, the card
-  shadow, no border, zero padding; width `min(560px, calc(100vw - 32px))`;
-  `max-height: calc(100dvh - 32px)`; the inner wrapper is a column flex
+- `.settings-dialog`: `--color-card` background, `--radius-lg`,
+  `--shadow-lg`, no border, zero padding; width
+  `min(560px, calc(100vw - 32px))`; `max-height: calc(100dvh - 32px)`;
+  `margin: auto` set explicitly, because Tailwind's preflight zeroes the
+  margin that centers a native dialog. The inner wrapper is a column flex
   container whose body scrolls (`overflow-y: auto`) while header and footer
   stay in view.
 - `.settings-dialog::backdrop`: a translucent dark scrim
@@ -174,6 +188,11 @@ touched.
 jsdom 29 does not implement `HTMLDialogElement.showModal` or `close`
 (verified). `src/__tests__/setup.ts` gains a shim: `showModal` sets the
 `open` attribute; `close` removes it and dispatches a `close` event.
+
+New unit tests: `SettingsDialog.test.tsx` (open, Done, ✕, `cancel`, native
+`close`, backdrop click closes, click on content does not),
+`SessionStatsCard.test.tsx` and `useQuizKeyboard.test.tsx` (the `enabled`
+option).
 
 Updates to `IntervalTrainer.test.tsx` and `NoteTrainer.test.tsx`:
 
