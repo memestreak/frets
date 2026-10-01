@@ -701,7 +701,8 @@ the `'explains when no question fits'` test:
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
-    expect(within(dialog).getByRole('group', { name: 'String pairs' }))
+    // Not the "String pairs" group: Field and Segmented both carry that name.
+    expect(within(dialog).getByRole('button', { name: 'Skip one' }))
       .toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
