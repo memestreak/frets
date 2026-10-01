@@ -6,7 +6,7 @@ Let the user set how far the target may sit from the root in the Interval
 trainer, in strings (vertical) and in frets (horizontal). Today the fret
 distance is a hardcoded `REACH = 4` and the string distance is chosen by the
 "String pairs" setting. Both become one box around the root that governs
-which questions are asked, which cells the hint labels, and
+which questions are asked and
 which taps count as correct.
 
 ## Settings
@@ -45,7 +45,7 @@ of `hRange - 1` and `maxFret - minFret`. Nothing links the two settings.
 ## The box
 
 One pure function in `src/lib/intervals.ts` defines the box, and generation,
-judging and the hint all use it:
+and judging both use it:
 
 ```ts
 /** Is `pos` in the box around `root` for a question in direction `up`? */
@@ -143,8 +143,10 @@ still reveals nothing.
 
 ### Hold-for-hint
 
-In both modes the hint labels only cells in the box, so it never marks a
-cell that judging rejects. Today it labels every cell in the window.
+Unchanged: the hint labels every cell in the fret window with its interval
+from the root, whatever the ranges. An earlier version limited it to the
+box; that was rejected, since the hint is a reference for the whole board.
+It can therefore label a cell that Find-it would treat as out of range.
 
 ### No question fits
 
@@ -233,13 +235,13 @@ clears `far`.
   test sets both new controls and checks `saved.set.vRange` and
   `saved.set.hRange`;
 - Find-it leaves every cell tappable and explains an out-of-range tap
-  without scoring it; the hint labels only box cells; solving reveals the
+  without scoring it; the hint labels the whole window whatever the
+  ranges; solving reveals the
   other correct frets;
 - generation order changes for every seed, so tests that depend on a
   specific seeded question are re-derived, not loosened.
 
-The change is verified in a browser: both controls, the hint for each
-direction, a Find-it round at a narrow box, the reveal, the hint, and a
+The change is verified in a browser: both controls, each direction, a Find-it round at a narrow box, the reveal, the hint, and a
 reload to confirm persistence.
 
 ## Docs

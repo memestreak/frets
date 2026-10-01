@@ -16,7 +16,7 @@ against the root (G below C is a P5).
 The Interval trainer also departs from the prototype's String pairs setting,
 fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
 a box around the root (`inBox` in `lib/intervals.ts`) that drives question
-generation, Find-it judging and the hint. The board does not show the box;
+generation and Find-it judging. Neither the board nor the hint shows the box;
 tapping the right interval outside it is explained, not scored. The generator
 enumerates every valid question, so each possible interval is asked equally
 often and the same question never comes up twice running. See

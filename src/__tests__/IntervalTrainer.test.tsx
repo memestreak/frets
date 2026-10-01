@@ -83,22 +83,13 @@ describe('IntervalTrainer', () => {
     expect(screen.queryByRole('button', { name: /Next/ })).not.toBeInTheDocument();
   });
 
-  it('shows the hint overlay, limited to the box, while H is held', () => {
-    render(<IntervalTrainer rng={seededRng(3)} />);
+  it('shows the hint overlay on the whole board while H is held', () => {
+    // A narrow range must not shrink the hint.
+    const { set } = renderFindIt(3, { mode: 'name', vRange: 2, hRange: 2 });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
     fireEvent.keyDown(window, { key: 'h' });
-
-    const rootEl = screen.getByTestId('dot-root');
-    const root = { s: Number(rootEl.dataset.s), f: Number(rootEl.dataset.f) };
-    const set = defaultIntervalSettings();
-    // The default direction is ascending.
-    const expected = cells(set).filter(p => inBox(root, true, p, set));
-    const hints = screen.getAllByTestId('dot-hint');
-    expect(hints).toHaveLength(expected.length);
-    for (const h of hints) {
-      const p = { s: Number(h.dataset.s), f: Number(h.dataset.f) };
-      expect(inBox(root, true, p, set)).toBe(true);
-    }
+    // Every cell in the fret window except the root's.
+    expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
 
     expect(screen.getByRole('button', { name: /Intervals from root/ })).toBeInTheDocument();
     fireEvent.keyUp(window, { key: 'h' });
@@ -143,16 +134,11 @@ describe('IntervalTrainer', () => {
   });
 
   it.each(['desc', 'rand'] as const)(
-    'Find it: direction %s limits the hint to the box',
+    'Find it: direction %s still hints the whole board',
     dir => {
-      const { set, q } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
-      const key = (p: Position) => `${p.s}-${p.f}`;
-      const inside = cells(set).filter(p => inBox(q.root, q.up, p, set)).map(key);
-
+      const { set } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
       fireEvent.keyDown(window, { key: 'h' });
-      const hints = screen.getAllByTestId('dot-hint')
-        .map(el => `${el.dataset.s}-${el.dataset.f}`);
-      expect(hints.sort()).toEqual([...inside].sort());
+      expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
     },
   );
 

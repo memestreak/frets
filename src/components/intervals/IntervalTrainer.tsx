@@ -18,12 +18,12 @@ import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
   activePool, clampHRange, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
-  inBox, INTERVAL_STORAGE_KEY, V_RANGE_MAX,
+  INTERVAL_STORAGE_KEY, V_RANGE_MAX,
   type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
   ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
-  samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Position, type Rng,
+  samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
 import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
@@ -82,9 +82,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     },
   });
 
-  // The box around the root: what the ranges allow for this question.
-  const lit = (pos: Position) => !!q && inBox(q.root, q.up, pos, set);
-
   // Board dots: hint overlay, root, target / answer, wrong taps.
   const dots: FretDot[] = [];
   if (q) {
@@ -92,7 +89,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     if (hint) {
       for (const s of STRINGS) {
         for (let f = set.minFret; f <= set.maxFret; f++) {
-          if (!lit({ s, f })) continue;
+          if (s === q.root.s && f === q.root.f) continue;
           const c = intervalClass(midi(s, f) - rootMidi);
           dots.push({
             s, f, kind: 'hint', fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg,
