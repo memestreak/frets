@@ -29,7 +29,7 @@ describe('defaults', () => {
 
 describe('inBox', () => {
   const root = { s: 2, f: 5 };
-  const box = { dir: 'asc', vRange: 2, hRange: 3 } as const;
+  const box = { vRange: 2, hRange: 3 };
 
   it('lights strings in the direction, up to both ranges', () => {
     expect(inBox(root, true, { s: 3, f: 5 }, box)).toBe(true);
@@ -55,12 +55,6 @@ describe('inBox', () => {
   it('never includes the root itself', () => {
     expect(inBox(root, true, root, box)).toBe(false);
     expect(inBox(root, false, root, box)).toBe(false);
-  });
-
-  it("is only the root's string in Same string direction", () => {
-    const same = { ...box, dir: 'same' } as const;
-    expect(inBox(root, true, { s: 2, f: 8 }, same)).toBe(true);
-    expect(inBox(root, true, { s: 3, f: 5 }, same)).toBe(false);
   });
 });
 
@@ -103,12 +97,6 @@ describe('isCorrectFret', () => {
     const up = { root: { s: 1, f: 3 }, tgt: { s: 2, f: 1 }, semis: 3, up: true };
     expect(isCorrectFret(up, { s: 0, f: 11 }, settings({ hRange: 12 }))).toBe(false);
     expect(isCorrectFret(up, { s: 2, f: 1 }, settings({ hRange: 12 }))).toBe(true);
-  });
-
-  it("accepts only the root's string in Same string direction", () => {
-    const same = settings({ dir: 'same' });
-    expect(isCorrectFret(q, { s: 1, f: 8 }, same)).toBe(true);
-    expect(isCorrectFret(q, { s: 2, f: 3 }, same)).toBe(false);
   });
 
   it('names a target below the root from the root, not by distance', () => {
@@ -159,7 +147,7 @@ describe('correctFrets', () => {
 });
 
 describe('generateIntervalQuestion', () => {
-  it.each(['asc', 'desc', 'rand', 'same'] as const)(
+  it.each(['asc', 'desc', 'rand'] as const)(
     'obeys the rules for direction %s',
     dir => {
       for (const vRange of [1, 3, 5]) {
@@ -182,20 +170,22 @@ describe('generateIntervalQuestion', () => {
               expect(p.f).toBeLessThanOrEqual(14);
             }
             const gap = Math.abs(q.tgt.s - q.root.s);
-            if (dir === 'same') {
-              expect(gap).toBe(0);
-              expect(q.up).toBe(true);
-            } else {
-              expect(gap).toBeGreaterThan(0);
-              expect(gap).toBeLessThanOrEqual(vRange);
-              if (dir === 'asc') expect(q.root.s).toBeLessThan(q.tgt.s);
-              if (dir === 'desc') expect(q.root.s).toBeGreaterThan(q.tgt.s);
-            }
+            // The target is never on the root's own string.
+            expect(gap).toBeGreaterThan(0);
+            expect(gap).toBeLessThanOrEqual(vRange);
+            if (dir === 'asc') expect(q.root.s).toBeLessThan(q.tgt.s);
+            if (dir === 'desc') expect(q.root.s).toBeGreaterThan(q.tgt.s);
           }
         }
       }
     },
   );
+
+  it('mixes both directions for Ascending and Descending', () => {
+    const ups = sample(settings({ dir: 'rand' })).map(q => q?.up);
+    expect(ups).toContain(true);
+    expect(ups).toContain(false);
+  });
 
   it('only asks for intervals in the pool', () => {
     const qs = sample(settings({ pool: [3, 7] }));
@@ -246,23 +236,11 @@ describe('generateIntervalQuestion', () => {
     }
   });
 
-  it('reaches an octave on one string at the widest horizontal range', () => {
-    const wide = settings({ dir: 'same', hRange: 12, pool: [12] });
-    for (const q of sample(wide, 50)) {
-      expect(q).not.toBeNull();
-      if (!q) continue;
-      expect(q.tgt.s).toBe(q.root.s);
-      expect(q.tgt.f - q.root.f).toBe(12);
-    }
-    expect(generateIntervalQuestion({ ...wide, hRange: 11 }, seededRng(1))).toBeNull();
-  });
-
   it('returns null when nothing fits', () => {
     expect(generateIntervalQuestion(settings({ pool: [] }))).toBeNull();
-    // An octave on one string needs 12 frets; the window has four.
+    // Adjacent strings one fret apart never span an octave.
     expect(generateIntervalQuestion(
-      settings({ dir: 'same', hRange: 12, minFret: 0, maxFret: 3, pool: [12] }),
-      seededRng(1),
+      settings({ vRange: 1, hRange: 1, pool: [12] }), seededRng(1),
     )).toBeNull();
   });
 });
@@ -284,6 +262,11 @@ describe('parseIntervalSettings', () => {
     })).toEqual({
       ...defaultIntervalSettings(), mode: 'fret', pool: [1, 3], pause: true,
     });
+  });
+
+  it('falls back to Ascending for the removed Same string direction', () => {
+    expect(parseIntervalSettings({ dir: 'same' }).dir).toBe('asc');
+    expect(parseIntervalSettings({ dir: 'rand' }).dir).toBe('rand');
   });
 
   it('accepts in-range integer ranges and ignores a stored pairs value', () => {

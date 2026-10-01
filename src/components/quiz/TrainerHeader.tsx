@@ -6,7 +6,7 @@ interface TrainerHeaderProps {
   kicker: string;
   title: string;
   sub: string;
-  /** Mode (and direction) segmented controls. */
+  /** Mode segmented control. */
   controls: ReactNode;
   pause: boolean;
   onTogglePause: () => void;

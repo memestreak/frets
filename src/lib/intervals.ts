@@ -5,12 +5,13 @@ import {
 } from './music';
 
 export type IntervalMode = 'name' | 'fret';
-export type Direction = 'asc' | 'desc' | 'rand' | 'same';
+/** `rand` asks ascending and descending questions at random. */
+export type Direction = 'asc' | 'desc' | 'rand';
 
 export interface IntervalSettings {
   mode: IntervalMode;
   dir: Direction;
-  /** Max strings between root and target, 1–5. Ignored for Same string. */
+  /** Max strings between root and target, 1–5. */
   vRange: number;
   /** Max frets between root and target, 1–12. */
   hRange: number;
@@ -50,22 +51,21 @@ export const defaultIntervalSettings = (): IntervalSettings => ({
 export const activePool = (set: IntervalSettings): number[] =>
   set.pool.filter(x => SIMPLE_INTERVALS.includes(x));
 
-type Box = Pick<IntervalSettings, 'dir' | 'vRange' | 'hRange'>;
+type Box = Pick<IntervalSettings, 'vRange' | 'hRange'>;
 type Judging = Box & Pick<IntervalSettings, 'compound'>;
 
 /**
  * Is `pos` in the box around `root` for a question in direction `up`? The
  * box reaches `hRange` frets either way. On other strings it follows the
  * string direction (higher strings when `up`) for `vRange` strings; on the
- * root's own string it follows the fret direction. Same string questions
- * stay on the root's string. The root itself is never in the box.
+ * root's own string it follows the fret direction. The root itself is never
+ * in the box.
  */
 export function inBox(root: Position, up: boolean, pos: Position, set: Box): boolean {
   const ds = pos.s - root.s;
   const df = pos.f - root.f;
   if (Math.abs(df) > set.hRange) return false;
   if (ds === 0) return up ? df > 0 : df < 0;
-  if (set.dir === 'same') return false;
   return (up ? ds > 0 : ds < 0) && Math.abs(ds) <= set.vRange;
 }
 
@@ -103,11 +103,10 @@ export function correctFrets(q: IntervalQuestion, set: IntervalSettings): Positi
   return out;
 }
 
-/** Every question the settings allow. Targets on the root's string are only
- * asked in Same string direction. */
+/** Every question the settings allow. Targets on the root's string are
+ * accepted as answers but never asked. */
 function candidates(set: IntervalSettings, pool: number[]): IntervalQuestion[] {
-  const same = set.dir === 'same';
-  const ups = set.dir === 'rand' ? [true, false] : [set.dir !== 'desc'];
+  const ups = set.dir === 'rand' ? [true, false] : [set.dir === 'asc'];
   const out: IntervalQuestion[] = [];
   for (const s of STRINGS) {
     for (let f = set.minFret; f <= set.maxFret; f++) {
@@ -116,7 +115,7 @@ function candidates(set: IntervalSettings, pool: number[]): IntervalQuestion[] {
       const hi = Math.min(set.maxFret, f + set.hRange);
       for (const up of ups) {
         for (const ts of STRINGS) {
-          if ((ts === s) !== same) continue;
+          if (ts === s) continue;
           for (let tf = lo; tf <= hi; tf++) {
             const tgt = { s: ts, f: tf };
             const semis = intervalClass(midi(ts, tf) - midi(s, f));
@@ -153,7 +152,7 @@ export function generateIntervalQuestion(
 }
 
 const MODES: IntervalMode[] = ['name', 'fret'];
-const DIRS: Direction[] = ['asc', 'desc', 'rand', 'same'];
+const DIRS: Direction[] = ['asc', 'desc', 'rand'];
 
 /** Coerce stored JSON into settings, falling back to defaults per field. */
 export function parseIntervalSettings(raw: unknown): IntervalSettings {

@@ -50,14 +50,11 @@ inBox(root: Position, up: boolean, pos: Position, set): boolean
 `pos` is in the box when it is not the root itself,
 `|pos.f - root.f| <= hRange`, and one of:
 
-- **Another string** (not in Same string direction): the string lies in the
-  question's direction (higher-numbered strings when `up`, lower when not)
-  and `|pos.s - root.s| <= vRange`.
+- **Another string**: the string lies in the question's direction
+  (higher-numbered strings when `up`, lower when not) and
+  `|pos.s - root.s| <= vRange`.
 - **The root's string**: the fret lies in the question's direction (higher
-  frets when `up`, lower when not). This holds for every direction.
-
-In Same string direction only the root's string is in the box; `vRange` is
-ignored. Same string questions are always `up`.
+  frets when `up`, lower when not).
 
 The box is defined by string direction, not pitch. With `hRange` of 5 or
 more, a cell on a lower string can be higher in pitch than the root (low E
@@ -89,11 +86,9 @@ narrow boxes with small pools (30% of the time for m2 ascending at
 `vRange 5`, `hRange 3`).
 
 1. List every candidate `(root, tgt, up)` with both notes in the fret
-   window:
-   - Ascending / Descending / Random: `tgt` on another string, in the box,
-     `up` fixed by the direction (both values for Random). Targets on the
-     root's own string are accepted as answers but never generated.
-   - Same string: `tgt` on the root's string, in the box, `up = true`.
+   window: `tgt` on another string, in the box, `up` fixed by the direction
+   (both values for Ascending and Descending). Targets on the root's own
+   string are accepted as answers but never generated.
    Keep a candidate only if `tgt` is a correct fret for its own interval
    class and that class is in the active pool.
 2. If more than one candidate exists, drop the one equal to the previous
@@ -156,10 +151,18 @@ In `IntervalTrainer.tsx` the "String pairs" field is replaced, in the same
 position, by two fields:
 
 ```
+Direction          [ Ascending                ▾ ]
 Vertical range     [1|2|3|4|5]
-                   Same string questions ignore this.
 Horizontal range   [ 4 ]  frets
 ```
+
+- **Direction** moves out of the header into the dialog as a native
+  `<select>` (styled with `.input`) with three options: "Ascending" (`asc`),
+  "Descending" (`desc`) and "Ascending and Descending" (`rand`, which picks
+  a direction at random per question). It always has a value. The header
+  keeps only the Mode control. The old "Same string" direction is removed:
+  `Direction` is `'asc' | 'desc' | 'rand'`, and a stored `'same'` falls back
+  to the default, Ascending.
 
 - **Vertical range** uses the existing `Segmented` control with options
   `[1, '1']` to `[5, '5']`. `Segmented` (`src/components/controls.tsx`) is
@@ -196,21 +199,17 @@ change.
 `src/__tests__/intervals.test.ts`:
 
 - `inBox`: edges of both ranges; direction-aware strings; the root's string
-  included only on the direction's side; Same string limited to one string; the
-  root cell excluded;
+  included only on the direction's side; the root cell excluded;
 - `isCorrectFret`: accepts at the edge of each range and rejects one step
   beyond; accepts a correct fret on the root's string for an ascending
   question; rejects a right-named note on a lower string for an ascending
-  question; rejects other strings in Same string direction. Every existing
-  call moves to the new signature;
+  question. Every existing call moves to the new signature;
 - generation: across directions and several boxes, every question's target
-  passes `isCorrectFret`; string gap is within 1..`vRange` (0 for Same
-  string); over many draws each possible pooled class appears at a roughly
-  equal rate; m2 ascending at `vRange 5`, `hRange 3` never returns `null`;
-  an impossible setup returns `null`; consecutive questions differ when more
-  than one candidate exists; Same string with `hRange: 12` and a wide window
-  produces an octave. The existing test that treats a same-string octave as
-  "far beyond reach" sets an explicit `hRange`;
+  passes `isCorrectFret`; string gap is within 1..`vRange`; over many draws
+  each possible pooled class appears at a roughly equal rate; m2 ascending
+  at `vRange 5`, `hRange 3` never returns `null`; an impossible setup
+  returns `null`; consecutive questions differ when more than one candidate
+  exists; Ascending and Descending produces both directions;
 - `correctFrets`: lists all and only the correct frets in the window;
 - parser: defaults when absent, rejects out-of-range, non-integer and
   non-number values, ignores `pairs`; `compound` defaults to `true`.

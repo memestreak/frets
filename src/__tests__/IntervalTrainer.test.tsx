@@ -142,15 +142,12 @@ describe('IntervalTrainer', () => {
     expect(screen.getByTestId('stats-line')).toHaveTextContent('0% of 1');
   });
 
-  it.each(['desc', 'rand', 'same'] as const)(
+  it.each(['desc', 'rand'] as const)(
     'Find it: direction %s limits the hint to the box',
     dir => {
       const { set, q } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
       const key = (p: Position) => `${p.s}-${p.f}`;
       const inside = cells(set).filter(p => inBox(q.root, q.up, p, set)).map(key);
-      if (dir === 'same') {
-        expect(inside.every(k => k.startsWith(`${q.root.s}-`))).toBe(true);
-      }
 
       fireEvent.keyDown(window, { key: 'h' });
       const hints = screen.getAllByTestId('dot-hint')
@@ -200,7 +197,11 @@ describe('IntervalTrainer', () => {
 
   it('persists settings and stats to localStorage', () => {
     render(<IntervalTrainer rng={seededRng(4)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Desc from high' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Direction' }), { target: { value: 'desc' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     fireEvent.keyDown(window, { key: KEYS[askedSemis()] });
     const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
     expect(saved.set.dir).toBe('desc');
@@ -233,6 +234,27 @@ describe('IntervalTrainer', () => {
       screen.getByRole('dialog'), new Event('cancel', { cancelable: true }),
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('offers direction as a dropdown in settings, not in the header', () => {
+    render(<IntervalTrainer rng={seededRng(4)} />);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    for (const old of ['Asc from low', 'Desc from high', 'Random', 'Same string']) {
+      expect(screen.queryByRole('button', { name: old })).not.toBeInTheDocument();
+    }
+    expect(screen.getByRole('button', { name: 'Find it' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const dir = within(screen.getByRole('dialog', { name: 'Settings' }))
+      .getByRole('combobox', { name: 'Direction' });
+    expect(dir).toHaveValue('asc');
+    expect(within(dir).getAllByRole('option').map(o => o.textContent)).toEqual([
+      'Ascending', 'Descending', 'Ascending and Descending',
+    ]);
+
+    fireEvent.change(dir, { target: { value: 'rand' } });
+    const saved = JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}');
+    expect(saved.set.dir).toBe('rand');
   });
 
   it('applies the range settings from the dialog live, without closing', () => {

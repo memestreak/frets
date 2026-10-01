@@ -30,8 +30,8 @@ import { initIntervalState, intervalReducer } from './intervalState';
 
 const MODE_OPTS = [['name', 'Name it'], ['fret', 'Find it']] as const;
 const DIR_OPTS = [
-  ['asc', 'Asc from low'], ['desc', 'Desc from high'],
-  ['rand', 'Random'], ['same', 'Same string'],
+  ['asc', 'Ascending'], ['desc', 'Descending'],
+  ['rand', 'Ascending and Descending'],
 ] as const;
 const V_RANGE_OPTS = Array.from(
   { length: V_RANGE_MAX }, (_, i) => [i + 1, String(i + 1)] as const,
@@ -40,7 +40,6 @@ const DIR_DESC: Record<Direction, string> = {
   asc: 'Root on the lower string, interval ascends to the higher string.',
   desc: 'Root on the higher string, interval note below it on the lower string.',
   rand: 'Root on either string; direction changes every question.',
-  same: 'Both notes on one string.',
 };
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
@@ -186,16 +185,10 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           ? 'What interval of the root is the dot? '
           : 'Tap the fret that lands on the interval. ') + DIR_DESC[set.dir]}
         controls={(
-          <>
-            <Segmented<IntervalMode>
-              label="Mode" options={MODE_OPTS} value={mode}
-              onChange={v => update({ mode: v })}
-            />
-            <Segmented<Direction>
-              label="Direction" options={DIR_OPTS} value={set.dir}
-              onChange={v => update({ dir: v })}
-            />
-          </>
+          <Segmented<IntervalMode>
+            label="Mode" options={MODE_OPTS} value={mode}
+            onChange={v => update({ mode: v })}
+          />
         )}
         pause={set.pause}
         onTogglePause={() => dispatch({ type: 'togglePause' })}
@@ -208,7 +201,15 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">
-          <Field label="Vertical range" note="Same string questions ignore this.">
+          <Field label="Direction">
+            <select
+              className="input w-auto" aria-label="Direction" value={set.dir}
+              onChange={e => update({ dir: e.target.value as Direction })}
+            >
+              {DIR_OPTS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+            </select>
+          </Field>
+          <Field label="Vertical range">
             <Segmented<number>
               label="Vertical range" options={V_RANGE_OPTS} value={set.vRange}
               onChange={v => update({ vRange: v })}
