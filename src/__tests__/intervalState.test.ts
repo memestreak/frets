@@ -55,6 +55,14 @@ describe('intervalReducer', () => {
     expect(s.picked).toEqual({ s: 1, f: 8 });
   });
 
+  it('Find it: ignores a tap outside the box', () => {
+    const s = base({ mode: 'fret' });
+    // The root itself, a lower string, and five frets away.
+    for (const pos of [{ s: 1, f: 5 }, { s: 0, f: 6 }, { s: 2, f: 10 }]) {
+      expect(intervalReducer(s, { type: 'answerFret', pos })).toBe(s);
+    }
+  });
+
   it('ignores answers from the other mode', () => {
     const s = base({ mode: 'fret' });
     expect(intervalReducer(s, { type: 'answerName', semis: 3 })).toBe(s);

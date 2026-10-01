@@ -108,8 +108,9 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     });
     if (mode === 'name' || answered) {
       const at = picked ?? q.tgt;
-      if (mode === 'fret') {
-        // Other fingerings of the interval inside the box.
+      if (mode === 'fret' && !hint) {
+        // Other fingerings of the interval inside the box. The hint already
+        // labels those cells, so the two never overprint.
         for (const p of correctFrets(q, set)) {
           if (samePos(p, at)) continue;
           dots.push({
@@ -208,7 +209,11 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             <FretPair>
               <FretInput
                 label="Horizontal range" min={1} max={H_RANGE_MAX} value={set.hRange}
-                onCommit={v => update({ hRange: clampHRange(v) })}
+                onCommit={v => {
+                  // Clamping can land on the current value; keep the question.
+                  const hRange = clampHRange(v);
+                  if (hRange !== set.hRange) update({ hRange });
+                }}
               />
               <span className="text-muted">frets</span>
             </FretPair>

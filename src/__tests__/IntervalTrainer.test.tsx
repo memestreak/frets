@@ -136,6 +136,49 @@ describe('IntervalTrainer', () => {
     expect(screen.getByTestId('stats-line')).toHaveTextContent('No answers yet this session');
   });
 
+  it.each(['desc', 'rand', 'same'] as const)(
+    'Find it: direction %s lights exactly the box, and the hint follows it',
+    dir => {
+      const { set, q } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
+      const key = (p: Position) => `${p.s}-${p.f}`;
+      const inside = cells(set).filter(p => inBox(q.root, q.up, p, set)).map(key);
+      const litCells = cells(set)
+        .filter(p => !cellEl(p).hasAttribute('aria-disabled')).map(key);
+      expect(litCells).toEqual(inside);
+      if (dir === 'same') {
+        expect(inside.every(k => k.startsWith(`${q.root.s}-`))).toBe(true);
+      }
+
+      fireEvent.keyDown(window, { key: 'h' });
+      const hints = screen.getAllByTestId('dot-hint')
+        .map(el => `${el.dataset.s}-${el.dataset.f}`);
+      expect(hints.sort()).toEqual([...inside].sort());
+    },
+  );
+
+  it('Find it: the hint replaces the reveal markers while held', () => {
+    const { q } = renderFindIt(8, { pause: true });
+    fireEvent.click(cellEl(q.tgt));
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(screen.queryAllByTestId('dot-also')).toHaveLength(0);
+    expect(screen.getAllByTestId('dot-hint').length).toBeGreaterThan(0);
+  });
+
+  it('keeps the question when a clamped range does not change', () => {
+    renderFindIt(8, { mode: 'name', hRange: 12 });
+    const where = () => ['dot-root', 'dot-target'].map(id => {
+      const el = screen.getByTestId(id);
+      return `${el.dataset.s}:${el.dataset.f}`;
+    }).join(' ');
+    const before = where();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Horizontal range' }),
+      { target: { value: '40' } },
+    );
+    expect(where()).toBe(before);
+  });
+
   it('Name it: the board is not dimmed', () => {
     render(<IntervalTrainer rng={seededRng(8)} />);
     expect(screen.queryAllByTestId(/^dim-/)).toHaveLength(0);

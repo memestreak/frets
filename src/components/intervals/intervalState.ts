@@ -1,5 +1,5 @@
 import {
-  defaultIntervalSettings, generateIntervalQuestion, INTERVAL_STORAGE_KEY,
+  defaultIntervalSettings, generateIntervalQuestion, inBox, INTERVAL_STORAGE_KEY,
   isCorrectFret, parseIntervalSettings, type IntervalQuestion,
   type IntervalSettings,
 } from '@/lib/intervals';
@@ -58,6 +58,8 @@ export function intervalReducer(state: IntervalState, action: IntervalAction): I
     case 'answerFret': {
       if (!q || state.answered || set.mode !== 'fret') return state;
       const { pos } = action;
+      // The board dims cells outside the box; a tap there is not a miss.
+      if (!inBox(q.root, q.up, pos, set)) return state;
       if (state.wrong.some(w => typeof w !== 'number' && samePos(w, pos))) return state;
       return isCorrectFret(q, pos, set)
         ? { ...applySolve(state, q.semis, set.pause), picked: pos }
