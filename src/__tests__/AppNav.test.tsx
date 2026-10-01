@@ -16,6 +16,20 @@ describe('AppNav', () => {
       .toHaveAttribute('aria-current', 'page');
   });
 
+  it('shows the FRETS wordmark', () => {
+    render(<AppNav active="notes" />);
+    expect(screen.getByText('FRETS')).toBeInTheDocument();
+    expect(screen.queryByText('E MINOR')).not.toBeInTheDocument();
+  });
+
+  it('names the active trainer beside the wordmark', () => {
+    const { unmount } = render(<AppNav active="notes" />);
+    expect(screen.getByText('Note trainer')).toBeInTheDocument();
+    unmount();
+    render(<AppNav active="intervals" />);
+    expect(screen.getByText('Interval trainer')).toBeInTheDocument();
+  });
+
   it('shows no placeholders for unbuilt sections', () => {
     render(<AppNav active="intervals" />);
     for (const label of ['Chords', 'Scales', 'Ear training']) {

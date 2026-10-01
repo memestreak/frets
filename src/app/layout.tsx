@@ -21,6 +21,12 @@ const barlowCondensed = localFont({
   ],
 });
 
+// Monoton (SIL OFL), latin subset: the wordmark in the nav only.
+const monoton = localFont({
+  variable: "--font-monoton",
+  src: [{ path: "./fonts/monoton-400.woff2", weight: "400" }],
+});
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -38,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${barlow.variable} ${barlowCondensed.variable}`}>
+      <body className={`${barlow.variable} ${barlowCondensed.variable} ${monoton.variable}`}>
         {children}
       </body>
     </html>
