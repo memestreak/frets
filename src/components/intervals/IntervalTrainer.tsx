@@ -36,11 +36,6 @@ const DIR_OPTS = [
 const V_RANGE_OPTS = Array.from(
   { length: V_RANGE_MAX }, (_, i) => [i + 1, String(i + 1)] as const,
 );
-const DIR_DESC: Record<Direction, string> = {
-  asc: 'The interval note is above the root.',
-  desc: 'The interval note is below the root.',
-  rand: 'The interval note is above or below the root; it changes every question.',
-};
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
 const missSuffix = (n: number) =>
@@ -178,9 +173,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       <TrainerHeader
         kicker="Fretboard · Interval trainer"
         title={mode === 'name' ? 'Name the interval' : 'Find the fret'}
-        sub={(mode === 'name'
-          ? 'What interval of the root is the dot? '
-          : 'Tap the fret that lands on the interval. ') + DIR_DESC[set.dir]}
         controls={(
           <Segmented<IntervalMode>
             label="Mode" options={MODE_OPTS} value={mode}
