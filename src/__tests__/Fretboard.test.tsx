@@ -69,6 +69,24 @@ describe('Fretboard', () => {
     expect(onCellClick).toHaveBeenCalledWith({ s: 0, f: 2 });
   });
 
+  it('marks lit open strings, which have no fingerboard to dim around them', () => {
+    const { rerender } = render(
+      <Fretboard minFret={0} maxFret={5} dots={[]} isCellDimmed={p => p.s > 1} />,
+    );
+    const g = fretboardGeometry(0, 5);
+    const lit = screen.getByTestId('open-lit-1');
+    expect(lit).toHaveAttribute('x', String(g.cellX(0)));
+    expect(lit).toHaveAttribute('width', String(OPENW));
+    expect(screen.getByTestId('open-lit-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('open-lit-2')).not.toBeInTheDocument();
+
+    // No box, no markers; and no open column when the window starts higher.
+    rerender(<Fretboard minFret={0} maxFret={5} dots={[]} />);
+    expect(screen.queryByTestId('open-lit-0')).not.toBeInTheDocument();
+    rerender(<Fretboard minFret={2} maxFret={7} dots={[]} isCellDimmed={() => false} />);
+    expect(screen.queryByTestId('open-lit-0')).not.toBeInTheDocument();
+  });
+
   it('keeps the dimming when the board is not tappable', () => {
     render(
       <Fretboard minFret={0} maxFret={5} dots={[]} isCellDimmed={p => p.f > 2} />,

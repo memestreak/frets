@@ -132,6 +132,18 @@ export function Fretboard({
         rx={BOARD_RADIUS}
         style={{ fill: theme.board }}
       />
+      {/* The open column sits on the page, not the fill, so dimming can't
+          show there; lit open cells get a patch of board instead. */}
+      {isCellDimmed && g.open && (
+        <g style={{ fill: theme.board, pointerEvents: 'none' }}>
+          {STRINGS.filter(s => !isCellDimmed({ s, f: 0 })).map(s => (
+            <rect
+              key={s} data-testid={`open-lit-${s}`}
+              x={g.cellX(0)} y={g.cy(s) - SG / 2} width={OPENW} height={SG}
+            />
+          ))}
+        </g>
+      )}
       {band && g.open && band.from === 0 && band.to >= 0 && (
         <rect
           data-testid="range-band-open"
