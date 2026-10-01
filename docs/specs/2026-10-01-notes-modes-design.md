@@ -3,9 +3,9 @@
 ## Goal
 
 The Note trainer has three modes (Name it, Find on string, Find in range)
-and two settings (Strings in scope, Target range) that each apply to only
-some of the modes: Find on string ignores the range, and only Find in range
-draws it. This work reduces the trainer to two modes, **Name it** and
+and two settings (Strings in scope, Target range). The range applies
+unevenly: Find on string ignores it, and only Find in range draws it. This
+work reduces the trainer to two modes, **Name it** and
 **Find it**, with both settings applying to both modes in the same way.
 
 ## Modes
@@ -71,12 +71,16 @@ handled as:
   fret is correct.
 - **Right note, right string, outside the range** (`isNoteOutOfRange`): not
   a miss. The feedback reads "Right note, but outside your range — look in
-  frets A–B" in the neutral tone, where A–B is the ordered range. The cell
+  frets A–B" in the neutral tone, where A–B is the ordered range ("look at
+  fret A" when the range is a single fret). The cell
   gets a muted outline labelled with the note name (dot kind `far`) and
   stops accepting taps. Nothing is scored, and the question stays open.
   This mirrors the Interval trainer's out-of-range rule.
 - **Anything else**, including the right note on another string: an
   ordinary miss (red ✕, "Not that fret — try again").
+
+The feedback line checks, in order: no question, answered, `farLast`, then
+the latest miss. This is the Interval trainer's order.
 
 ### Question generation
 
@@ -128,12 +132,14 @@ clears `farLast`; a miss clears `farLast`.
 ## Board
 
 - The board still draws frets 0–15 and every cell is tappable in Find it.
-- The range is never drawn: the green band (`band` prop usage, `BAND_FILL`)
-  and its legend entry are removed. `Fretboard` itself is unchanged.
+- The range is never drawn: the green band (`BAND_FILL`) and its legend
+  entry are removed. Nothing else uses `Fretboard`'s `band` prop, so the
+  prop, its `range-band` rects and their tests are removed too.
 - In Find it the asked string is drawn bolder and green, as Find on string
   does today. Out-of-scope strings stay dimmed in both modes.
 - Legend: "Note to name" in Name it, "Target string" in Find it.
-- On solve the tapped cell is solid green, labelled with the note name.
+- On solve the tapped cell is solid green, labelled with the note name
+  (dot kind `found`, as today).
 - `scrollToFret` is the marked fret in Name it and the range's lower end in
   Find it, so the range is in view on narrow screens.
 - Hold-for-hint is unchanged: it labels every cell with its note name,
@@ -161,7 +167,10 @@ keyed by pitch class and are not reset.
   open; the right note on another string is a miss; repeat taps are
   ignored; a new question clears `picked`, `far` and `farLast`.
 - `src/__tests__/NoteTrainer.test.tsx`: two mode options; the Fret range
-  field; the target string prompt; out-of-range feedback; no band.
+  field; the target string prompt; out-of-range feedback; no band. Three
+  existing tests change: "Find in range: counts found targets" is removed,
+  and the two that store `mode: 'string'` ("Defaults resets the dialog
+  fields", "has no Board window setting") move to `'find'`.
 - A browser check of both modes, per the project's UI rule.
 
 ## Out of scope
