@@ -13,6 +13,14 @@ One quiz rule deliberately differs: the prototype names a note below the
 root by its distance down, while `intervalClass` names it by its function
 against the root (G below C is a P5).
 
+The Interval trainer also departs from the prototype's String pairs setting,
+fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
+a box around the root (`inBox` in `lib/intervals.ts`) that drives question
+generation, Find-it judging and dimming, and the hint. The generator
+enumerates every valid question, so each possible interval is asked equally
+often and the same question never comes up twice running. See
+`docs/specs/2026-10-01-interval-ranges-design.md`.
+
 ## Commands
 
 ```bash
@@ -37,7 +45,8 @@ binds a local port).
   pure reducer (`intervalState.ts`, `noteState.ts`). Random questions are
   generated in the component and passed in actions, so reducers stay pure.
 - `src/components/fretboard/` — shared SVG `Fretboard` (rounded fingerboard
-  fill, roving-focus tap cells, arrow keys) and `theme.ts` (only the `maple`
+  fill, roving-focus tap cells, arrow keys, `isCellDimmed` overlay) and
+  `theme.ts` (only the `maple`
   theme ships).
 - `src/components/quiz/` — header, answer card/grid, board frame with
   hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
