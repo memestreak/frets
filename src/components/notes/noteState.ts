@@ -1,7 +1,8 @@
-import { pitchClass, samePos, type Position, type Rng } from '@/lib/music';
+import { samePos, type Position, type Rng } from '@/lib/music';
 import {
-  defaultNoteSettings, generateNoteQuestion, NOTE_STORAGE_KEY,
-  parseNoteSettings, type NoteQuestion, type NoteSettings,
+  defaultNoteSettings, generateNoteQuestion, isCorrectNoteFret,
+  isNoteOutOfRange, NOTE_STORAGE_KEY, parseNoteSettings, type NoteQuestion,
+  type NoteSettings,
 } from '@/lib/notes';
 import {
   applyMiss, applyPause, applySolve, freshAttempt, type QuizCore,
@@ -9,14 +10,18 @@ import {
 import { emptyStats, parseStats } from '@/lib/stats';
 import { loadJson } from '@/lib/storage';
 
-/** A wrong try: a pitch class (Name it) or a board position (Find modes). */
+/** A wrong try: a pitch class (Name it) or a board position (Find it). */
 export type NoteWrong = number | Position;
 
 export interface NoteState extends QuizCore<NoteWrong> {
   set: NoteSettings;
   q: NoteQuestion | null;
-  /** Correct positions tapped so far (Find modes). */
-  found: Position[];
+  /** Where the correct Find-it answer was tapped. */
+  picked: Position | null;
+  /** Find-it taps on the right note outside the fret range; not scored. */
+  far: Position[];
+  /** True while the latest tap was one of those. */
+  farLast: boolean;
 }
 
 export type NoteAction =
@@ -28,7 +33,7 @@ export type NoteAction =
   | { type: 'resetStats' };
 
 const newQuestion = (state: NoteState, q: NoteQuestion | null): NoteState => ({
-  ...state, ...freshAttempt(), q, found: [],
+  ...state, ...freshAttempt(), q, picked: null, far: [], farLast: false,
 });
 
 export function initNoteState(rng: Rng = Math.random): NoteState {
@@ -37,14 +42,13 @@ export function initNoteState(rng: Rng = Math.random): NoteState {
   return {
     set,
     stats: saved.stats ? parseStats(saved.stats) : emptyStats(),
-    q: generateNoteQuestion(set, null, rng),
-    found: [],
+    q: generateNoteQuestion(set, rng),
+    picked: null,
+    far: [],
+    farLast: false,
     ...freshAttempt(),
   };
 }
-
-const hasPos = (list: NoteWrong[], pos: Position) =>
-  list.some(w => typeof w !== 'number' && samePos(w, pos));
 
 export function noteReducer(state: NoteState, action: NoteAction): NoteState {
   const { q, set } = state;
@@ -57,19 +61,18 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
         : applyMiss(state, action.pc, q.pc);
     }
     case 'answerFret': {
-      if (!q || q.mode === 'name' || state.answered) return state;
+      if (!q || q.mode !== 'find' || state.answered) return state;
       const { pos } = action;
-      if (hasPos(state.wrong, pos) || state.found.some(p => samePos(p, pos))) return state;
-      if (q.mode === 'string') {
-        // Any octave of the note on the target string counts.
-        return pos.s === q.s && pitchClass(pos.s, pos.f) === q.pc
-          ? { ...applySolve(state, q.pc, set.pause), found: [pos] }
-          : applyMiss(state, pos, q.pc);
+      if (state.wrong.some(w => typeof w !== 'number' && samePos(w, pos))) return state;
+      if (state.far.some(p => samePos(p, pos))) return state;
+      if (isCorrectNoteFret(q, pos, set)) {
+        return { ...applySolve(state, q.pc, set.pause), picked: pos, farLast: false };
       }
-      if (!q.targets.some(t => samePos(t, pos))) return applyMiss(state, pos, q.pc);
-      const found = [...state.found, pos];
-      const next = { ...state, found };
-      return found.length === q.targets.length ? applySolve(next, q.pc, set.pause) : next;
+      // The right note beyond the user's own range is not a miss.
+      if (isNoteOutOfRange(q, pos, set)) {
+        return { ...state, far: [...state.far, pos], farLast: true };
+      }
+      return { ...applyMiss(state, pos, q.pc), farLast: false };
     }
     case 'next':
       return newQuestion(state, action.q);

@@ -16,8 +16,8 @@ import { useAutoAdvance } from '@/hooks/useAutoAdvance';
 import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
 import {
-  ANSWER_KEYS, NOTE_LABELS, pitchClass, SHARP_NAMES, STRING_NAMES, STRINGS,
-  type Rng,
+  ANSWER_KEYS, NOTE_LABELS, pitchClass, samePos, SHARP_NAMES, STRING_NAMES,
+  STRINGS, type Rng,
 } from '@/lib/music';
 import {
   clampNoteFret, generateNoteQuestion, NOTE_MAX_FRET, NOTE_STORAGE_KEY,
@@ -28,15 +28,11 @@ import { sameSettings } from '@/lib/quizFlow';
 import { itemPercent } from '@/lib/stats';
 import { initNoteState, noteReducer } from './noteState';
 
-const MODE_OPTS = [
-  ['name', 'Name it'], ['string', 'Find on string'], ['range', 'Find in range'],
-] as const;
+const MODE_OPTS = [['name', 'Name it'], ['find', 'Find it']] as const;
 const TITLES: Record<NoteMode, string> = {
   name: 'Name the note',
-  string: 'Find it on the string',
-  range: 'Find every one in range',
+  find: 'Find the note',
 };
-const BAND_FILL = 'color-mix(in srgb, var(--color-success) 50%, transparent)';
 
 const missSuffix = (n: number) =>
   n ? ` (after ${n} ${n === 1 ? 'miss' : 'misses'})` : '';
@@ -45,23 +41,22 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   const [state, dispatch] = useReducer(noteReducer, rng, initNoteState);
   const [hint, setHint] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { set, stats, q, answered, wrong, found } = state;
+  const { set, stats, q, answered, wrong, picked, far, farLast } = state;
   const { mode } = set;
   const [rA, rB] = targetRange(set);
-  const rangeTxt = `frets ${rA}–${rB}`;
+  // The board does not draw the range, so the out-of-range message names it.
+  const rangeHint = rA === rB ? `look at fret ${rA}` : `look in frets ${rA}–${rB}`;
   const inScope = (s: number) => set.strings[s];
 
   const persisted = useMemo(() => ({ set, stats }), [set, stats]);
   usePersist(NOTE_STORAGE_KEY, persisted);
 
-  const next = () => dispatch({
-    type: 'next', q: generateNoteQuestion(set, q?.pc ?? null, rng),
-  });
+  const next = () => dispatch({ type: 'next', q: generateNoteQuestion(set, rng, q) });
   const update = (patch: Partial<NoteSettings>, regen = true) => {
     const s = { ...set, ...patch };
     dispatch({
       type: 'settings', set: s,
-      q: regen ? generateNoteQuestion(s, q?.pc ?? null, rng) : undefined,
+      q: regen ? generateNoteQuestion(s, rng, q) : undefined,
     });
   };
   const answerName = (pc: number) => dispatch({ type: 'answerName', pc });
@@ -102,18 +97,25 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         label: answered ? SHARP_NAMES[q.pc] : '?', fontSize: 12,
       });
     }
-    for (const p of found) {
+    if (picked) {
       dots.push({
-        ...p, kind: 'found', fill: STATUS.green, stroke: STATUS.green, fg: T.tgtFg,
-        label: SHARP_NAMES[q.pc], fontSize: 11,
+        ...picked, kind: 'found', fill: STATUS.green, stroke: STATUS.green,
+        fg: T.tgtFg, label: SHARP_NAMES[q.pc], fontSize: 11,
       });
     }
-    if (q.mode !== 'name') {
+    if (q.mode === 'find') {
       for (const w of wrong) {
         if (typeof w === 'number') continue;
         dots.push({
           ...w, kind: 'wrong', fill: 'transparent', stroke: STATUS.red, fg: STATUS.red,
           label: '✕', fontSize: 12, opacity: 0.9,
+        });
+      }
+      // Right note, beyond the range: marked, but not as a miss.
+      for (const p of far) {
+        dots.push({
+          ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
+          label: SHARP_NAMES[q.pc], fontSize: 10,
         });
       }
     }
@@ -135,9 +137,8 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   } else if (answered) {
     feedback = `Correct — ${noteName}${missSuffix(wrong.length)}`;
     tone = 'success';
-  } else if (q.mode === 'range' && found.length) {
-    feedback = `${found.length} of ${q.targets.length} found`;
-    tone = 'success';
+  } else if (farLast) {
+    feedback = `Right note, but outside your range — ${rangeHint}`;
   } else if (wrong.length) {
     const last = wrong[wrong.length - 1];
     feedback = `Not ${typeof last === 'number' ? NOTE_LABELS[last] : 'that fret'} — try again`;
@@ -146,16 +147,9 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
 
   const legend: LegendItem[] = mode === 'name'
     ? [{ label: 'Note to name', color: T.tgtFill, shape: 'circle' }]
-    : mode === 'string'
-      ? [{ label: 'Target string', color: STATUS.green, shape: 'square' }]
-      : [{ label: `Target range · ${rangeTxt}`, color: BAND_FILL, shape: 'square' }];
+    : [{ label: 'Target string', color: STATUS.green, shape: 'square' }];
 
-  let findSub = '';
-  if (q?.mode === 'string') findSub = `on the ${STRING_NAMES[q.s]} string`;
-  if (q?.mode === 'range') {
-    const n = q.targets.length;
-    findSub = `${n} ${n === 1 ? 'occurrence' : 'occurrences'} in ${rangeTxt}`;
-  }
+  const findSub = q?.mode === 'find' ? `on the ${STRING_NAMES[q.s]} string` : '';
 
   const toggleString = (s: number) => {
     const strings = [...set.strings];
@@ -204,7 +198,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
               ))}
             </div>
           </Field>
-          <Field label="Target range">
+          <Field label="Fret range">
             <FretPair>
               <FretInput
                 label="Range start fret" min={0} max={NOTE_MAX_FRET} value={set.rFrom}
@@ -239,21 +233,21 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
             minFret={0}
             maxFret={NOTE_MAX_FRET}
             dots={dots}
-            scrollToFret={q?.mode === 'name' ? q.f : q?.mode === 'range' ? rA : null}
-            band={mode === 'range' ? { from: rA, to: rB, color: STATUS.green } : null}
+            scrollToFret={q?.mode === 'name' ? q.f : q ? rA : null}
             stringStyle={s => {
-              const target = q?.mode === 'string' && q.s === s;
+              const target = q?.mode === 'find' && q.s === s;
               return {
                 color: target ? STATUS.green : undefined,
                 width: target ? 3.5 : undefined,
                 opacity: inScope(s) ? 1 : 0.3,
               };
             }}
-            onCellClick={mode !== 'name' && !answered && q
+            onCellClick={mode === 'find' && !answered && q
               ? pos => dispatch({ type: 'answerFret', pos })
               : undefined}
-            isCellDisabled={pos => found.some(p => p.s === pos.s && p.f === pos.f)
-              || wrong.some(w => typeof w !== 'number' && w.s === pos.s && w.f === pos.f)}
+            isCellDisabled={pos => far.some(p => samePos(p, pos)) || wrong.some(
+              w => typeof w !== 'number' && samePos(w, pos),
+            )}
           />
         </BoardFrame>
         <SessionStatsCard

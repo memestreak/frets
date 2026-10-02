@@ -1,14 +1,14 @@
 import {
-  pick, pitchClass, randInt, STRINGS, type Position, type Rng,
+  pick, pitchClass, STRINGS, type Position, type Rng,
 } from './music';
 
-export type NoteMode = 'name' | 'string' | 'range';
+export type NoteMode = 'name' | 'find';
 
 export interface NoteSettings {
   mode: NoteMode;
-  /** Strings in scope, low E first. */
+  /** Strings questions are drawn from, low E first. */
   strings: boolean[];
-  /** Target range, used by Name it and Find in range. */
+  /** Fret range, in either order. Both modes stay inside it. */
   rFrom: number;
   rTo: number;
   pause: boolean;
@@ -16,8 +16,8 @@ export interface NoteSettings {
 
 export type NoteQuestion =
   | { mode: 'name'; pc: number; s: number; f: number }
-  | { mode: 'string'; pc: number; s: number }
-  | { mode: 'range'; pc: number; targets: Position[] };
+  | { mode: 'find'; pc: number; s: number };
+export type FindQuestion = Extract<NoteQuestion, { mode: 'find' }>;
 
 export const NOTE_STORAGE_KEY = 'eminor.notes.v2';
 
@@ -27,10 +27,6 @@ export const NOTE_MAX_FRET = 15;
 /** Clamp an arbitrary fret number to the board. */
 export const clampNoteFret = (value: number): number =>
   Math.max(0, Math.min(NOTE_MAX_FRET, Math.round(value)));
-
-const MAX_TRIES = 200;
-/** Tries during which a repeat of the previous pitch class is rejected. */
-const AVOID_REPEAT_TRIES = 50;
 
 export const defaultNoteSettings = (): NoteSettings => ({
   mode: 'name', strings: [true, true, true, true, true, true],
@@ -48,59 +44,71 @@ export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
 export const stringsInScope = (set: NoteSettings): number[] =>
   STRINGS.filter(s => set.strings[s]);
 
-/** Target range, ordered. */
-export function targetRange(set: NoteSettings): [number, number] {
+type Range = Pick<NoteSettings, 'rFrom' | 'rTo'>;
+
+/** Fret range, ordered. */
+export function targetRange(set: Range): [number, number] {
   return [Math.min(set.rFrom, set.rTo), Math.max(set.rFrom, set.rTo)];
 }
 
-/** Every in-scope position in the target range with pitch class `pc`. */
-export function rangeTargets(set: NoteSettings, pc: number): Position[] {
+const inRange = (set: Range, f: number): boolean => {
   const [a, b] = targetRange(set);
-  const out: Position[] = [];
+  return f >= a && f <= b;
+};
+const onTarget = (q: FindQuestion, pos: Position): boolean =>
+  pos.s === q.s && pitchClass(pos.s, pos.f) === q.pc;
+
+/** Is `pos` the asked note on the asked string, inside the fret range? */
+export const isCorrectNoteFret = (q: FindQuestion, pos: Position, set: Range): boolean =>
+  onTarget(q, pos) && inRange(set, pos.f);
+
+/**
+ * Is `pos` the asked note on the asked string, but outside the range? The
+ * trainer explains such a tap instead of scoring it as a miss.
+ */
+export const isNoteOutOfRange = (q: FindQuestion, pos: Position, set: Range): boolean =>
+  onTarget(q, pos) && !inRange(set, pos.f);
+
+/**
+ * Every question the settings allow. Find it lists a note once per string,
+ * even when the range holds it at two frets.
+ */
+function candidates(set: NoteSettings): NoteQuestion[] {
+  const [a, b] = targetRange(set);
+  const out: NoteQuestion[] = [];
   for (const s of stringsInScope(set)) {
-    for (let f = a; f <= b; f++) if (pitchClass(s, f) === pc) out.push({ s, f });
+    const seen = new Set<number>();
+    for (let f = a; f <= b; f++) {
+      const pc = pitchClass(s, f);
+      if (set.mode === 'name') out.push({ mode: 'name', pc, s, f });
+      else if (!seen.has(pc)) {
+        seen.add(pc);
+        out.push({ mode: 'find', pc, s });
+      }
+    }
   }
   return out;
 }
 
 /**
- * Random question for the settings, or null when nothing fits. Avoids
- * repeating `lastPc` when possible.
+ * Random question for the settings, or null when no string is in scope.
+ * Every possible question is equally likely, and `prev`'s note is not asked
+ * again unless it is the only note the settings allow.
  */
 export function generateNoteQuestion(
   set: NoteSettings,
-  lastPc: number | null,
   rng: Rng = Math.random,
+  prev: NoteQuestion | null = null,
 ): NoteQuestion | null {
-  const strings = stringsInScope(set);
-  if (!strings.length) return null;
-  const [a, b] = targetRange(set);
-
-  for (let i = 0; i < MAX_TRIES; i++) {
-    const avoid = (p: number) => p === lastPc && i < AVOID_REPEAT_TRIES;
-    if (set.mode === 'name') {
-      const s = pick(rng, strings);
-      const f = a + randInt(rng, b - a + 1);
-      const pc = pitchClass(s, f);
-      if (avoid(pc)) continue;
-      return { mode: 'name', pc, s, f };
-    }
-    const pc = randInt(rng, 12);
-    if (avoid(pc)) continue;
-    if (set.mode === 'string') {
-      const s = pick(rng, strings);
-      for (let f = 0; f <= NOTE_MAX_FRET; f++) {
-        if (pitchClass(s, f) === pc) return { mode: 'string', pc, s };
-      }
-    } else {
-      const targets = rangeTargets(set, pc);
-      if (targets.length) return { mode: 'range', pc, targets };
-    }
-  }
-  return null;
+  const all = candidates(set);
+  const fresh = prev ? all.filter(c => c.pc !== prev.pc) : all;
+  const from = fresh.length ? fresh : all;
+  return from.length ? pick(rng, from) : null;
 }
 
-const MODES: NoteMode[] = ['name', 'string', 'range'];
+const MODES: NoteMode[] = ['name', 'find'];
+/** Modes from before Find it merged them; both load as `find`. */
+const OLD_FIND_MODES: unknown[] = ['string', 'range'];
 
 /** Coerce stored JSON into settings, falling back to defaults per field. */
 export function parseNoteSettings(raw: unknown): NoteSettings {
@@ -114,9 +122,12 @@ export function parseNoteSettings(raw: unknown): NoteSettings {
     && r.strings.every(x => typeof x === 'boolean')
     ? (r.strings as boolean[])
     : d.strings;
+  const mode = OLD_FIND_MODES.includes(r.mode)
+    ? 'find'
+    : MODES.includes(r.mode as NoteMode) ? (r.mode as NoteMode) : d.mode;
 
   return {
-    mode: MODES.includes(r.mode as NoteMode) ? (r.mode as NoteMode) : d.mode,
+    mode,
     strings,
     rFrom: num(r.rFrom, d.rFrom),
     rTo: num(r.rTo, d.rTo),

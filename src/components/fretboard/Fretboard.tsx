@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  useEffect, useId, useMemo, useRef, useState, type CSSProperties,
+  useEffect, useMemo, useRef, useState, type CSSProperties,
   type KeyboardEvent,
 } from 'react';
 import {
-  BOARD_RADIUS, fretboardGeometry, OPENW, PAD, SG,
+  BOARD_RADIUS, fretboardGeometry, PAD, SG,
 } from '@/lib/fretboardGeometry';
 import { STRING_NAMES, STRINGS, type Position } from '@/lib/music';
 import { MAPLE_THEME, type FretboardTheme } from './theme';
@@ -33,10 +33,8 @@ interface FretboardProps {
   dots: FretDot[];
   /** When set, every cell is a tap target. */
   onCellClick?: (pos: Position) => void;
-  /** Cells that no longer accept taps (already marked wrong or found). */
+  /** Cells that no longer accept taps (already tapped). */
   isCellDisabled?: (pos: Position) => boolean;
-  /** Translucent band over a fret range. */
-  band?: { from: number; to: number; color: string } | null;
   stringStyle?: (s: number) => StringStyle;
   /** Fret to bring into view when the board scrolls (phones). */
   scrollToFret?: number | null;
@@ -51,14 +49,13 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  * narrow screens instead of shrinking.
  */
 export function Fretboard({
-  minFret, maxFret, dots, onCellClick, isCellDisabled, band, stringStyle,
+  minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
   scrollToFret, theme = MAPLE_THEME,
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
   const cellRefs = useRef(new Map<string, SVGRectElement>());
   const svgRef = useRef<SVGSVGElement>(null);
-  const clipId = useId();
 
   // When the frame scrolls horizontally, center the question's fret.
   useEffect(() => {
@@ -99,9 +96,6 @@ export function Fretboard({
   const svgStyle = { '--board-w': `${g.width}px` } as CSSProperties;
   const labelFont = 'var(--font-body)';
   const fillBottom = g.fillY + g.fillH;
-  // The band over fretted positions starts at fret 1; fret 0 is the open
-  // column left of the nut and gets its own segment.
-  const bandFrom = band ? Math.max(band.from, g.firstFret) : 0;
 
   return (
     <svg
@@ -113,40 +107,12 @@ export function Fretboard({
       role={onCellClick ? 'group' : 'img'}
       aria-label={onCellClick ? 'Fretboard: choose a fret' : 'Fretboard'}
     >
-      <defs>
-        <clipPath id={clipId}>
-          <rect
-            x={g.fillX} y={g.fillY} width={g.fillW} height={g.fillH}
-            rx={BOARD_RADIUS}
-          />
-        </clipPath>
-      </defs>
       <rect
         data-testid="board-fill"
         x={g.fillX} y={g.fillY} width={g.fillW} height={g.fillH}
         rx={BOARD_RADIUS}
         style={{ fill: theme.board }}
       />
-      {band && g.open && band.from === 0 && band.to >= 0 && (
-        <rect
-          data-testid="range-band-open"
-          x={g.cellX(0)} y={g.fillY} width={OPENW} height={g.fillH} rx={8}
-          style={{ fill: band.color }}
-          opacity={0.26}
-        />
-      )}
-      {band && bandFrom <= band.to && (
-        <rect
-          data-testid="range-band"
-          clipPath={`url(#${clipId})`}
-          x={g.cellX(bandFrom)}
-          y={g.fillY}
-          width={g.cellX(band.to) + g.cellW(band.to) - g.cellX(bandFrom)}
-          height={g.fillH}
-          style={{ fill: band.color }}
-          opacity={0.26}
-        />
-      )}
       {g.inlays.map((d, i) => (
         <circle key={i} cx={d.x} cy={d.y} r={6} style={{ fill: theme.inlay }} />
       ))}
