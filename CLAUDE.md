@@ -59,6 +59,9 @@ binds a local port).
   hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
   parts, `SessionStatsCard` (summary, reset and per-item bars below the
   board).
+- `src/components/AppShell.tsx` — nav, `<main>` and `AppFooter` (source
+  link and the build's commit hash, from `NEXT_PUBLIC_COMMIT_HASH` set in
+  `next.config.ts`; unlinked `dev` when git was unavailable).
 - `src/hooks/` — `useQuizKeyboard`, `useAutoAdvance`, `usePersist`. Trainers
   suspend the first two while the settings dialog is open.
 - Trainers render client-only (`TrainerLoaders.tsx`, `ssr: false`) because
