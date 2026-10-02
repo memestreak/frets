@@ -36,7 +36,11 @@ npm run dev      # Dev server at localhost:3000
 npm run build    # Static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
+npm run typecheck  # tsc --noEmit (covers tests and config files too)
 ```
+
+`.github/workflows/ci.yml` runs all four checks on Node 22 for every pull
+request and every push to `main`.
 
 In the Claude Code sandbox, `npm install` needs `--cache "$TMPDIR/npm-cache"`,
 and `next build` / `next dev` must run unsandboxed (Turbopack's PostCSS worker
