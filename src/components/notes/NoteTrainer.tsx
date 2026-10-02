@@ -1,30 +1,27 @@
 'use client';
 
-import { useMemo, useReducer, useState } from 'react';
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
 import {
-  AnswerCard, AnswerGrid, FindPrompt, type AnswerButton, type FeedbackTone,
+  AnswerCard, AnswerGrid, FindPrompt, type AnswerButton,
 } from '@/components/quiz/AnswerCard';
+import { answerState, attemptDots, attemptFeedback } from '@/components/quiz/attempt';
 import { BoardFrame, type LegendItem } from '@/components/quiz/BoardFrame';
 import { SessionStatsCard } from '@/components/quiz/SessionStatsCard';
 import { SettingsDialog } from '@/components/quiz/SettingsDialog';
 import { Field, FretInput, FretPair } from '@/components/quiz/SettingsParts';
 import { TrainerHeader } from '@/components/quiz/TrainerHeader';
-import { useAutoAdvance } from '@/hooks/useAutoAdvance';
-import { usePersist } from '@/hooks/usePersist';
-import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
+import { wasTapped } from '@/components/quiz/trainerState';
+import { useTrainer } from '@/hooks/useTrainer';
 import {
-  ANSWER_KEYS, NOTE_LABELS, pitchClass, samePos, SHARP_NAMES, STRING_NAMES,
-  STRINGS, type Rng,
+  NOTE_LABELS, pitchClass, SHARP_NAMES, STRING_NAMES, STRINGS, type Rng,
 } from '@/lib/music';
 import {
   clampNoteFret, generateNoteQuestion, NOTE_MAX_FRET, NOTE_STORAGE_KEY,
   resetNoteSettings, targetRange,
   type NoteMode, type NoteSettings,
 } from '@/lib/notes';
-import { sameSettings } from '@/lib/quizFlow';
 import { itemPercent } from '@/lib/stats';
 import { initNoteState, noteReducer } from './noteState';
 
@@ -34,47 +31,25 @@ const TITLES: Record<NoteMode, string> = {
   find: 'Find the note',
 };
 
-const missSuffix = (n: number) =>
-  n ? ` (after ${n} ${n === 1 ? 'miss' : 'misses'})` : '';
+/** Answer keys name the notes in order, C first. */
+const answerFor = (index: number, set: NoteSettings) =>
+  set.mode === 'name' && index >= 0 ? index : null;
 
 export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
-  const [state, dispatch] = useReducer(noteReducer, rng, initNoteState);
-  const [hint, setHint] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { set, stats, q, answered, wrong, picked, far, farLast } = state;
+  const {
+    state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
+    next, update, applyDefaults, answerName,
+  } = useTrainer({
+    reducer: noteReducer, init: initNoteState,
+    storageKey: NOTE_STORAGE_KEY, generate: generateNoteQuestion,
+    rng, answerFor,
+  });
+  const { set, stats, q, answered, picked } = state;
   const { mode } = set;
   const [rA, rB] = targetRange(set);
   // The board does not draw the range, so the out-of-range message names it.
   const rangeHint = rA === rB ? `look at fret ${rA}` : `look in frets ${rA}–${rB}`;
   const inScope = (s: number) => set.strings[s];
-
-  const persisted = useMemo(() => ({ set, stats }), [set, stats]);
-  usePersist(NOTE_STORAGE_KEY, persisted);
-
-  const next = () => dispatch({ type: 'next', q: generateNoteQuestion(set, rng, q) });
-  const update = (patch: Partial<NoteSettings>, regen = true) => {
-    const s = { ...set, ...patch };
-    dispatch({
-      type: 'settings', set: s,
-      q: regen ? generateNoteQuestion(s, rng, q) : undefined,
-    });
-  };
-  const answerName = (pc: number) => dispatch({ type: 'answerName', pc });
-
-  // The quiz waits while the settings dialog covers it.
-  useAutoAdvance(settingsOpen ? null : state.advanceMs, next);
-  useQuizKeyboard({
-    enabled: !settingsOpen,
-    answered,
-    pause: set.pause,
-    onNext: next,
-    onHint: setHint,
-    onAnswerKey: key => {
-      if (mode !== 'name') return;
-      const pc = ANSWER_KEYS.indexOf(key as (typeof ANSWER_KEYS)[number]);
-      if (pc >= 0) answerName(pc);
-    },
-  });
 
   const dots: FretDot[] = [];
   if (q) {
@@ -103,47 +78,22 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         fg: T.tgtFg, label: SHARP_NAMES[q.pc], fontSize: 11,
       });
     }
-    if (q.mode === 'find') {
-      for (const w of wrong) {
-        if (typeof w === 'number') continue;
-        dots.push({
-          ...w, kind: 'wrong', fill: 'transparent', stroke: STATUS.red, fg: STATUS.red,
-          label: '✕', fontSize: 12, opacity: 0.9,
-        });
-      }
-      // Right note, beyond the range: marked, but not as a miss.
-      for (const p of far) {
-        dots.push({
-          ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
-          label: SHARP_NAMES[q.pc], fontSize: 10,
-        });
-      }
-    }
+    if (q.mode === 'find') dots.push(...attemptDots(state, SHARP_NAMES[q.pc]));
   }
 
   const answerButtons: AnswerButton[] = NOTE_LABELS.map((label, pc) => ({
     label,
-    state: wrong.includes(pc)
-      ? 'wrong'
-      : answered && q?.pc === pc ? 'correct' : 'idle',
+    state: answerState(state, pc, q?.pc),
     onClick: () => answerName(pc),
   }));
 
   const noteName = q ? NOTE_LABELS[q.pc].replace('/', ' / ') : '';
-  let feedback = '';
-  let tone: FeedbackTone = 'neutral';
-  if (!q) {
-    feedback = 'No question fits these settings — put a string in scope.';
-  } else if (answered) {
-    feedback = `Correct — ${noteName}${missSuffix(wrong.length)}`;
-    tone = 'success';
-  } else if (farLast) {
-    feedback = `Right note, but outside your range — ${rangeHint}`;
-  } else if (wrong.length) {
-    const last = wrong[wrong.length - 1];
-    feedback = `Not ${typeof last === 'number' ? NOTE_LABELS[last] : 'that fret'} — try again`;
-    tone = 'danger';
-  }
+  const { feedback, tone } = attemptFeedback(state, {
+    none: 'No question fits these settings — put a string in scope.',
+    correct: noteName,
+    far: `Right note, but outside your range — ${rangeHint}`,
+    names: NOTE_LABELS,
+  });
 
   const legend: LegendItem[] = mode === 'name'
     ? [{ label: 'Note to name', color: T.tgtFill, shape: 'circle' }]
@@ -175,11 +125,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onDefaults={() => {
-          // Already at the defaults: keep the question.
-          const reset = resetNoteSettings(set);
-          if (!sameSettings(reset, set)) update(reset);
-        }}
+        onDefaults={() => applyDefaults(resetNoteSettings(set))}
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom · sharps and flats both accepted"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-7 gap-y-[18px]">
@@ -245,9 +191,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
             onCellClick={mode === 'find' && !answered && q
               ? pos => dispatch({ type: 'answerFret', pos })
               : undefined}
-            isCellDisabled={pos => far.some(p => samePos(p, pos)) || wrong.some(
-              w => typeof w !== 'number' && samePos(w, pos),
-            )}
+            isCellDisabled={pos => wasTapped(state, pos)}
           />
         </BoardFrame>
         <SessionStatsCard

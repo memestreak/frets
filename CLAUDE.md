@@ -49,21 +49,27 @@ binds a local port).
   generators taking an injectable `rng`, settings parsing), `quizFlow.ts`
   (shared miss/solve/pause scoring), `stats.ts`, `fretWindow.ts`,
   `fretboardGeometry.ts`, `storage.ts`.
-- `src/components/intervals|notes/` — each trainer is a `useReducer` over a
-  pure reducer (`intervalState.ts`, `noteState.ts`). Random questions are
-  generated in the component and passed in actions, so reducers stay pure.
+- `src/components/intervals|notes/` — each trainer's `intervalState.ts` /
+  `noteState.ts` is only its rules (answer key, Name-it or Find-it, correct,
+  out of range) handed to the shared reducer in `quiz/trainerState.ts`. The
+  component keeps what differs: its dots, prompt and settings fields. Random
+  questions are generated outside the reducer and passed in actions, so it
+  stays pure.
 - `src/components/fretboard/` — shared SVG `Fretboard` (rounded fingerboard
   fill, roving-focus tap cells, arrow keys) and `theme.ts` (only the `maple`
   theme ships).
 - `src/components/quiz/` — header, answer card/grid, board frame with
   hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
   parts, `SessionStatsCard` (summary, reset and per-item bars below the
-  board).
+  board). Also the code both trainers share: `trainerState.ts` (state,
+  actions, reducer, init from storage) and `attempt.ts` (miss and
+  out-of-range dots, answer-button state, feedback text).
 - `src/components/AppShell.tsx` — nav, `<main>` and `AppFooter` (source
   link and the build's commit hash, from `NEXT_PUBLIC_COMMIT_HASH` set in
   `next.config.ts`; unlinked `dev` when git was unavailable).
-- `src/hooks/` — `useQuizKeyboard`, `useAutoAdvance`, `usePersist`. Trainers
-  suspend the first two while the settings dialog is open.
+- `src/hooks/` — `useTrainer` wires a trainer's reducer to `useQuizKeyboard`,
+  `useAutoAdvance` and `usePersist`, and owns the hint and settings-dialog
+  flags. It suspends the first two while the settings dialog is open.
 - Trainers render client-only (`TrainerLoaders.tsx`, `ssr: false`) because
   their initial state reads localStorage and draws a random question.
 
