@@ -42,8 +42,9 @@ npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
 ```
 
-`.github/workflows/ci.yml` runs all four checks on Node 22 for every pull
-request and every push to `main`.
+`.github/workflows/ci.yml` runs all four checks for every pull request and
+every push to `main`. `.node-version` pins Node 22 for both CI and the
+Cloudflare Pages build; `engines` in `package.json` requires `>=22.13.0`.
 
 In the Claude Code sandbox, `npm install` needs `--cache "$TMPDIR/npm-cache"`,
 and `next build` / `next dev` must run unsandboxed (Turbopack's PostCSS worker

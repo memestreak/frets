@@ -76,9 +76,11 @@ same build-and-deploy process.
 - **Commit hash.** `next.config.ts` reads the short commit hash via
   `git rev-parse` and exposes it as `NEXT_PUBLIC_COMMIT_HASH`. This works
   in the Cloudflare build environment because Pages clones the repository.
-- **Node version.** New Pages projects use the v3 build image (Node 22),
-  which satisfies this project's Next.js requirement. No `.node-version`
-  pin is needed.
+- **Node version.** `.node-version` pins Node 22. The Pages build image
+  reads that file, and so does CI (`node-version-file` in
+  `.github/workflows/ci.yml`), so tests and production builds run on the
+  same major version. `engines` in `package.json` sets the floor for local
+  work (`>=22.13.0`); newer versions are allowed there.
 
 ## Local Verification
 
