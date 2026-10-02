@@ -20,8 +20,8 @@ const findA = { mode: 'find', pc: 9, s: 1 } as const;
 describe('noteReducer', () => {
   it('Name it: wrong then right scores one miss', () => {
     let s = base({ mode: 'name', pc: 0, s: 1, f: 3 });
-    s = noteReducer(s, { type: 'answerName', pc: 2 });
-    s = noteReducer(s, { type: 'answerName', pc: 0 });
+    s = noteReducer(s, { type: 'answerName', key: 2 });
+    s = noteReducer(s, { type: 'answerName', key: 0 });
     expect(s.answered).toBe(true);
     expect(s.stats).toMatchObject({ correct: 0, total: 1 });
     expect(s.stats.per[0]).toEqual({ c: 0, t: 1 });

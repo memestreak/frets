@@ -1,20 +1,19 @@
 'use client';
 
-import { useMemo, useReducer, useState } from 'react';
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
 import {
-  AnswerCard, AnswerGrid, FindPrompt, type AnswerButton, type FeedbackTone,
+  AnswerCard, AnswerGrid, FindPrompt, type AnswerButton,
 } from '@/components/quiz/AnswerCard';
+import { answerState, attemptDots, attemptFeedback } from '@/components/quiz/attempt';
 import { BoardFrame } from '@/components/quiz/BoardFrame';
 import { SessionStatsCard } from '@/components/quiz/SessionStatsCard';
 import { SettingsDialog } from '@/components/quiz/SettingsDialog';
 import { Field, FretInput, FretPair } from '@/components/quiz/SettingsParts';
 import { TrainerHeader } from '@/components/quiz/TrainerHeader';
-import { useAutoAdvance } from '@/hooks/useAutoAdvance';
-import { usePersist } from '@/hooks/usePersist';
-import { useQuizKeyboard } from '@/hooks/useQuizKeyboard';
+import { wasTapped } from '@/components/quiz/trainerState';
+import { useTrainer } from '@/hooks/useTrainer';
 import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
   activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
@@ -22,10 +21,9 @@ import {
   type Direction, type IntervalMode, type IntervalSettings,
 } from '@/lib/intervals';
 import {
-  ANSWER_KEYS, INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
+  INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
   samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
-import { sameSettings } from '@/lib/quizFlow';
 import { itemPercent } from '@/lib/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
 
@@ -39,44 +37,22 @@ const V_RANGE_OPTS = Array.from(
 );
 
 const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
-const missSuffix = (n: number) =>
-  n ? ` (after ${n} ${n === 1 ? 'miss' : 'misses'})` : '';
+/** Answer keys name the intervals in order, m2 first, when in the pool. */
+const answerFor = (index: number, set: IntervalSettings) =>
+  set.mode === 'name' && activePool(set).includes(index + 1) ? index + 1 : null;
 
 export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
-  const [state, dispatch] = useReducer(intervalReducer, rng, initIntervalState);
-  const [hint, setHint] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { set, stats, q, answered, wrong, picked, far, farLast } = state;
+  const {
+    state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
+    next, update, applyDefaults, answerName,
+  } = useTrainer({
+    reducer: intervalReducer, init: initIntervalState,
+    storageKey: INTERVAL_STORAGE_KEY, generate: generateIntervalQuestion,
+    rng, answerFor,
+  });
+  const { set, stats, q, answered, picked } = state;
   const { mode } = set;
   const pool = activePool(set);
-
-  const persisted = useMemo(() => ({ set, stats }), [set, stats]);
-  usePersist(INTERVAL_STORAGE_KEY, persisted);
-
-  const next = () => dispatch({ type: 'next', q: generateIntervalQuestion(set, rng, q) });
-  const update = (patch: Partial<IntervalSettings>, regen = true) => {
-    const s = { ...set, ...patch };
-    dispatch({
-      type: 'settings', set: s,
-      q: regen ? generateIntervalQuestion(s, rng, q) : undefined,
-    });
-  };
-  const answerName = (semis: number) => dispatch({ type: 'answerName', semis });
-
-  // The quiz waits while the settings dialog covers it.
-  useAutoAdvance(settingsOpen ? null : state.advanceMs, next);
-  useQuizKeyboard({
-    enabled: !settingsOpen,
-    answered,
-    pause: set.pause,
-    onNext: next,
-    onHint: setHint,
-    onAnswerKey: key => {
-      if (mode !== 'name') return;
-      const semis = ANSWER_KEYS.indexOf(key as (typeof ANSWER_KEYS)[number]) + 1;
-      if (semis > 0 && pool.includes(semis)) answerName(semis);
-    },
-  });
 
   // Board dots: hint overlay, root, target / answer, wrong taps.
   const dots: FretDot[] = [];
@@ -120,47 +96,21 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         fontSize: answered ? 10 : 12,
       });
     }
-    if (mode === 'fret') {
-      for (const w of wrong) {
-        if (typeof w === 'number') continue;
-        dots.push({
-          ...w, kind: 'wrong', fill: 'transparent', stroke: STATUS.red, fg: STATUS.red,
-          label: '✕', fontSize: 12, opacity: 0.9,
-        });
-      }
-      // Right interval, beyond the range: marked, but not as a miss.
-      for (const p of far) {
-        dots.push({
-          ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
-          label: INTERVAL_NAMES[q.semis], fontSize: 10,
-        });
-      }
-    }
+    if (mode === 'fret') dots.push(...attemptDots(state, INTERVAL_NAMES[q.semis]));
   }
 
   const answerButtons: AnswerButton[] = pool.map(semis => ({
     label: INTERVAL_NAMES[semis],
-    state: wrong.includes(semis)
-      ? 'wrong'
-      : answered && q?.semis === semis ? 'correct' : 'idle',
+    state: answerState(state, semis, q?.semis),
     onClick: () => answerName(semis),
   }));
 
-  let feedback = '';
-  let tone: FeedbackTone = 'neutral';
-  if (!q) {
-    feedback = 'No question fits these settings — widen the ranges or interval pool.';
-  } else if (answered) {
-    feedback = `Correct — ${INTERVAL_NAMES[q.semis]}, ${INTERVAL_LONG_NAMES[q.semis]}`
-      + missSuffix(wrong.length);
-    tone = 'success';
-  } else if (farLast) {
-    feedback = 'Right interval, but outside your range — find a closer one';
-  } else if (wrong.length) {
-    const last = wrong[wrong.length - 1];
-    feedback = `Not ${typeof last === 'number' ? INTERVAL_NAMES[last] : 'that fret'} — try again`;
-    tone = 'danger';
-  }
+  const { feedback, tone } = attemptFeedback(state, {
+    none: 'No question fits these settings — widen the ranges or interval pool.',
+    correct: q ? `${INTERVAL_NAMES[q.semis]}, ${INTERVAL_LONG_NAMES[q.semis]}` : '',
+    far: 'Right interval, but outside your range — find a closer one',
+    names: INTERVAL_NAMES,
+  });
 
   const togglePool = (semis: number) => update({
     pool: set.pool.includes(semis)
@@ -186,11 +136,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onDefaults={() => {
-          // Already at the defaults: keep the question.
-          const reset = resetIntervalSettings(set);
-          if (!sameSettings(reset, set)) update(reset);
-        }}
+        onDefaults={() => applyDefaults(resetIntervalSettings(set))}
         footnote="Standard tuning · E A D G B E · low E drawn on the bottom"
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-7 gap-y-[18px]">
@@ -309,9 +255,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             onCellClick={mode === 'fret' && !answered && q
               ? pos => dispatch({ type: 'answerFret', pos })
               : undefined}
-            isCellDisabled={pos => far.some(p => samePos(p, pos)) || wrong.some(
-              w => typeof w !== 'number' && samePos(w, pos),
-            )}
+            isCellDisabled={pos => wasTapped(state, pos)}
           />
         </BoardFrame>
         <SessionStatsCard

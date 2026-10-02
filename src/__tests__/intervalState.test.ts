@@ -20,28 +20,28 @@ const base = (patch: Partial<IntervalState['set']> = {}): IntervalState => ({
 
 describe('intervalReducer', () => {
   it('scores a first-try hit and schedules auto-advance', () => {
-    const s = intervalReducer(base(), { type: 'answerName', semis: 3 });
+    const s = intervalReducer(base(), { type: 'answerName', key: 3 });
     expect(s.answered).toBe(true);
     expect(s.advanceMs).toBe(AUTO_ADVANCE_MS);
     expect(s.stats).toMatchObject({ correct: 1, total: 1, streak: 1 });
   });
 
   it('scores a miss once and keeps the question open', () => {
-    let s = intervalReducer(base(), { type: 'answerName', semis: 4 });
-    s = intervalReducer(s, { type: 'answerName', semis: 5 });
+    let s = intervalReducer(base(), { type: 'answerName', key: 4 });
+    s = intervalReducer(s, { type: 'answerName', key: 5 });
     expect(s.answered).toBe(false);
     expect(s.wrong).toEqual([4, 5]);
     expect(s.stats).toMatchObject({ correct: 0, total: 1, streak: 0 });
     // Repeating a wrong answer is ignored.
-    expect(intervalReducer(s, { type: 'answerName', semis: 4 })).toBe(s);
-    s = intervalReducer(s, { type: 'answerName', semis: 3 });
+    expect(intervalReducer(s, { type: 'answerName', key: 4 })).toBe(s);
+    s = intervalReducer(s, { type: 'answerName', key: 3 });
     expect(s.answered).toBe(true);
     expect(s.stats.total).toBe(1);
     expect(s.stats.per[3]).toEqual({ c: 0, t: 1 });
   });
 
   it('waits for the user when paused, and resumes when unpaused', () => {
-    let s = intervalReducer(base({ pause: true }), { type: 'answerName', semis: 3 });
+    let s = intervalReducer(base({ pause: true }), { type: 'answerName', key: 3 });
     expect(s.advanceMs).toBeNull();
     s = intervalReducer(s, { type: 'togglePause' });
     expect(s.advanceMs).toBe(UNPAUSE_ADVANCE_MS);
@@ -97,11 +97,11 @@ describe('intervalReducer', () => {
 
   it('ignores answers from the other mode', () => {
     const s = base({ mode: 'fret' });
-    expect(intervalReducer(s, { type: 'answerName', semis: 3 })).toBe(s);
+    expect(intervalReducer(s, { type: 'answerName', key: 3 })).toBe(s);
   });
 
   it('next and regenerating settings reset the attempt', () => {
-    const answered = intervalReducer(base(), { type: 'answerName', semis: 4 });
+    const answered = intervalReducer(base(), { type: 'answerName', key: 4 });
     const n = intervalReducer(answered, { type: 'next', q: null });
     expect(n).toMatchObject({ q: null, wrong: [], answered: false, advanceMs: null });
     const kept = intervalReducer(answered, {
