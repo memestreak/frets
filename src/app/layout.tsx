@@ -36,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // On <html>, not <body>: globals.css reads these variables at :root.
+    // On <html>, not <body>: industry.css reads these variables at :root.
     <html
       lang="en"
       className={`${barlow.variable} ${monoton.variable}`}

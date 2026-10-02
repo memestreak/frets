@@ -210,6 +210,8 @@ No images. Icons are inline Lucide SVGs (`pause`, `sliders-horizontal`, `eye`). 
 ## Files
 - `prototypes/Interval Trainer.dc.html` — interval trainer prototype (template + logic).
 - `prototypes/Note Trainer.dc.html` — note trainer prototype.
+- `prototypes/Interval Trainer Options.dc.html` — design options for the
+  interval trainer shown side by side, one working quiz per card.
 - `prototypes/support.js`, `prototypes/_ds/…/styles.css` — runtime and stylesheet needed to open the prototypes locally.
 - `design-system/styles.css`, `design-system/industry-readme.md` — the Industry design system tokens and guide.
 

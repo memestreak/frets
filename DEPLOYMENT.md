@@ -57,7 +57,8 @@ Once connected, every push to the `main` branch causes Cloudflare to:
 
 1. Pull the latest code.
 2. Run `npm install`.
-3. Run `npm run build`.
+3. Run the build command, `npx next build` (what `npm run build` runs
+   locally).
 4. Deploy the contents of the `out` directory to the global edge network.
 
 Pull requests get preview deployments at their own URLs, which repeat the
