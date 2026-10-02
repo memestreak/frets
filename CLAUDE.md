@@ -5,10 +5,13 @@
 Guitar fretboard trainers (Intervals, Notes). Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest.
 Spec and prototypes: `design_handoff/README.md` and
-`design_handoff/prototypes/*.dc.html` (their `<script data-dc-script>` logic
-is the reference for quiz rules).
-The prototypes remain the reference for quiz rules, not for the look: the
-shipped styling follows `docs/specs/2026-10-01-soft-ui-design.md`.
+`design_handoff/prototypes/*.dc.html`. The prototypes' `<script
+data-dc-script>` logic is where the quiz rules started, and is still the
+reference for anything the specs in `docs/specs/` do not cover. Where a spec
+and a prototype disagree, the spec wins; the departures are listed below.
+The prototypes are not a reference for the look: the shipped styling follows
+`docs/specs/2026-10-01-soft-ui-design.md`.
+
 One quiz rule deliberately differs: the prototype names a note below the
 root by its distance down, while `intervalClass` names it by its function
 against the root (G below C is a P5).
@@ -81,8 +84,9 @@ binds a local port).
 
 - `src/styles/industry.css` is the Industry design system, rethemed in place
   to the soft look (filled rounded cards, pill buttons and segmented
-  controls); it no longer matches `design_handoff/`. It is imported into
-  Tailwind's `components` layer; app component CSS is in the same layer in
+  controls); it no longer matches `design_handoff/`, and holds only the
+  tokens and classes the app uses. It is imported into Tailwind's
+  `components` layer; app-specific component CSS is in the same layer in
   `globals.css`. Use DS tokens (`var(--color-*)`), e.g.
   `text-(--color-accent)`; Tailwind's default palette is disabled.
 - Surfaces: page and cards are white (`--color-bg`, `--color-card`; cards
@@ -90,8 +94,8 @@ binds a local port).
   `--color-track` (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
   `--color-board`, `--color-board-inlay`, `--color-board-fret`.
 - Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
-- DS selectors like `.seg-opt:not(:has(input:checked)):hover` are fairly
-  specific; overrides may need extra specificity.
+- `.seg-opt` is a button (`aria-pressed`) or a link (`aria-current`); its
+  selected and hover rules key off those attributes.
 
 ## Storage
 

@@ -10,42 +10,12 @@
   --color-*: initial;
 }
 
-:root {
-  --font-body: var(--font-barlow), system-ui, sans-serif;
-  --font-heading: var(--font-barlow), system-ui, sans-serif;
-
-  /* Status colors — not in the design system; chosen to sit with the
-     steel accent. */
-  --color-success: #3b8a5c;
-  --color-success-deep: #2b6a45;
-  --color-danger: #b5453f;
-}
-
 button {
   -webkit-tap-highlight-color: transparent;
 }
 
 /* App components, alongside the design system so utilities still win. */
 @layer components {
-  /* Segmented options rendered as buttons/links rather than radio labels. */
-  .seg-opt {
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    font-size: 13px;
-    text-decoration: none;
-  }
-  /* Doubled class outranks the DS `.seg-opt:not(:has(…)):hover` tint. */
-  .seg .seg-opt.seg-opt[aria-pressed='true'],
-  .nav .seg .seg-opt.seg-opt[aria-current='page'] {
-    background: var(--color-accent);
-    color: var(--color-bg);
-  }
-  .seg-opt:not([aria-pressed='true'], [aria-current='page']):hover {
-    background: color-mix(in srgb, var(--color-text) 7%, transparent);
-  }
-
   /* Toggle buttons: off = outline, on = accent-100 fill + accent border. */
   .btn-toggle[aria-pressed='true'] {
     background: var(--color-accent-100);
@@ -53,11 +23,6 @@ button {
     border-color: var(--color-accent);
   }
   .chip { min-width: 48px; padding: 5px 8px; }
-
-  .field-label {
-    display: block; font-size: 12px; margin-bottom: 5px;
-    color: color-mix(in srgb, var(--color-text) 70%, transparent);
-  }
 
   .keycap {
     font-family: var(--font-body);

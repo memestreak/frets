@@ -15,7 +15,7 @@ export function AppNav({ active }: { active: Section }) {
     >
       {/* Small enough at phone width to share one row with the switch. */}
       <div className="mr-auto flex items-center gap-x-2 sm:gap-x-3.5">
-        <span className="nav-brand mr-0 font-(family-name:--font-monoton) text-[18px] leading-none font-normal tracking-[0.06em] text-(--color-accent) sm:text-[30px]">
+        <span className="font-(family-name:--font-monoton) text-[18px] leading-none font-normal tracking-[0.06em] text-(--color-accent) sm:text-[30px]">
           FRETS
         </span>
         <span className="font-(family-name:--font-heading) text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap text-(--color-accent) uppercase sm:text-[13px]">

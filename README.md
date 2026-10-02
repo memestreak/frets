@@ -8,8 +8,8 @@ of the Industry design system (`src/styles/industry.css`). The design handoff
 
 - `/intervals` — name the interval between two dots, or find the fret that
   completes a named interval.
-- `/notes` — name a note, find it on a string, or find every occurrence in a
-  fret range.
+- `/notes` — name the note at a shown position, or find a named note on one
+  string.
 
 Settings and session stats persist in `localStorage`. Deploys as a static
 site (`public/_redirects` sends `/` to `/intervals` on Cloudflare Pages).
