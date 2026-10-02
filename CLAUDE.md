@@ -22,6 +22,13 @@ enumerates every valid question, so each possible interval is asked equally
 often and the same question never comes up twice running. See
 `docs/specs/2026-10-01-interval-ranges-design.md`.
 
+The Note trainer departs from the prototype's three modes: it has Name it
+and Find it, and both settings (Strings in scope, Fret range) apply to both.
+Find it names one string; the right note on that string outside the range is
+explained, not scored, and the board never draws the range. Its generator
+also enumerates every valid question. See
+`docs/specs/2026-10-01-notes-modes-design.md`.
+
 ## Commands
 
 ```bash
