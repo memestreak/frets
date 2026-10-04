@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useReducer, useState } from 'react';
+import { useMemo, useReducer, useRef, useState } from 'react';
+import { stepAnswerFocus } from './AnswerCard';
 import type { TrainerAction, TrainerState } from '@/features/practice/quiz/trainerState';
 import { ANSWER_KEYS, type Rng } from '@/lib/music';
 import { sameSettings } from '@/features/practice/quiz/quizFlow';
@@ -24,7 +25,8 @@ interface TrainerOptions<S, Q> {
 /**
  * Everything the trainers share around their reducer: saving settings and
  * stats, drawing questions, auto-advance, the keyboard, and the hint and
- * settings-dialog flags.
+ * settings-dialog flags. Left/right arrows move focus across the answer
+ * buttons in `answerGridRef`; Enter or Space then presses the focused one.
  */
 export function useTrainer<S extends { pause: boolean }, Q>({
   reducer, init, storageKey, generate, rng, answerFor,
@@ -33,6 +35,10 @@ export function useTrainer<S extends { pause: boolean }, Q>({
   const [hint, setHint] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { set, stats, q } = state;
+  const answerGridRef = useRef<HTMLDivElement>(null);
+  // The last answer button arrows reached: a wrong answer disables it and
+  // can drop focus, and the next arrow steps on from there.
+  const lastAnswerTile = useRef(-1);
 
   const persisted = useMemo(() => ({ set, stats }), [set, stats]);
   usePersist(storageKey, persisted);
@@ -57,6 +63,11 @@ export function useTrainer<S extends { pause: boolean }, Q>({
     pause: set.pause,
     onNext: next,
     onHint: setHint,
+    onArrow: delta => {
+      const grid = answerGridRef.current;
+      if (!grid) return;
+      lastAnswerTile.current = stepAnswerFocus(grid, delta, lastAnswerTile.current) ?? -1;
+    },
     onAnswerKey: key => {
       const answer = answerFor(ANSWER_KEYS.indexOf(key as (typeof ANSWER_KEYS)[number]), set);
       if (answer != null) answerName(answer);
@@ -65,6 +76,6 @@ export function useTrainer<S extends { pause: boolean }, Q>({
 
   return {
     state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
-    next, update, applyDefaults, answerName,
+    next, update, applyDefaults, answerName, answerGridRef,
   };
 }

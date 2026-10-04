@@ -50,7 +50,7 @@ const INTERVAL_DEGREE: readonly Degree[] = [
 export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const {
     state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
-    next, update, applyDefaults, answerName,
+    next, update, applyDefaults, answerName, answerGridRef,
   } = useTrainer({
     reducer: intervalReducer, init: initIntervalState,
     storageKey: INTERVAL_STORAGE_KEY, generate: generateIntervalQuestion,
@@ -231,7 +231,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           onSkip={next}
           onNext={next}
         >
-          {mode === 'name' && <AnswerGrid buttons={answerButtons} variant="interval" />}
+          {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="interval" />}
           {mode === 'fret' && q && (
             <FindPrompt label={INTERVAL_NAMES[q.semis]}>
               {INTERVAL_LONG_NAMES[q.semis]}{' '}

@@ -41,7 +41,7 @@ const answerFor = (index: number, set: NoteSettings) =>
 export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   const {
     state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
-    next, update, applyDefaults, answerName,
+    next, update, applyDefaults, answerName, answerGridRef,
   } = useTrainer({
     reducer: noteReducer, init: initNoteState,
     storageKey: NOTE_STORAGE_KEY, generate: generateNoteQuestion,
@@ -173,7 +173,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
           onSkip={next}
           onNext={next}
         >
-          {mode === 'name' && <AnswerGrid buttons={answerButtons} variant="note" />}
+          {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="note" />}
           {mode !== 'name' && q && <FindPrompt label={noteName}>{findSub}</FindPrompt>}
         </AnswerCard>
         <BoardFrame legend={legend} hint={hint} onHint={setHint} hintActiveLabel="Note names">

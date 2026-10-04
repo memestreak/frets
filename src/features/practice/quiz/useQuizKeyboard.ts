@@ -11,6 +11,8 @@ interface QuizKeyboardOptions {
   onHint: (on: boolean) => void;
   /** Any other key while the question is open (answer shortcuts). */
   onAnswerKey?: (key: string) => void;
+  /** Left (−1) or right (+1) arrow while the question is open. */
+  onArrow?: (delta: -1 | 1) => void;
   /** False suspends key handling, e.g. while a dialog is open. Default true. */
   enabled?: boolean;
 }
@@ -23,7 +25,9 @@ function isTextEntry(target: EventTarget | null): boolean {
 /**
  * Window-level keys: `H` held shows the hint; Enter/Space goes to the next
  * question once answered (with Pause b/w on, any non-modifier key does);
- * other keys go to `onAnswerKey`. Ignored while typing in a field.
+ * left/right arrows go to `onArrow` unless a control (the board) already
+ * used them; other keys go to `onAnswerKey`. Ignored while typing in a field.
+ * Enter/Space on an open question is left to the focused button.
  * With `enabled` false, key presses are ignored and a held hint is released.
  */
 export function useQuizKeyboard(opts: QuizKeyboardOptions) {
@@ -46,6 +50,13 @@ export function useQuizKeyboard(opts: QuizKeyboardOptions) {
       if (pause && !IGNORED_WHEN_PAUSED.test(e.key)) {
         e.preventDefault();
         opts.onNext();
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      if (opts.onArrow && !e.defaultPrevented) {
+        e.preventDefault();
+        opts.onArrow(e.key === 'ArrowLeft' ? -1 : 1);
       }
       return;
     }

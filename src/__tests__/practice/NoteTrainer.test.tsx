@@ -40,6 +40,31 @@ describe('NoteTrainer', () => {
     expect(screen.getByTestId('feedback')).toHaveTextContent(/^Correct — /);
   });
 
+  it('Name it: arrows move focus across the answers, skipping wrong ones', () => {
+    render(<NoteTrainer rng={seededRng(2)} />);
+    const dot = screen.getByTestId('dot-target');
+    const pc = pitchClass(Number(dot.dataset.s), Number(dot.dataset.f));
+    const tiles = screen.getAllByRole('button', { name: /^[A-G]/ })
+      .filter(b => b.classList.contains('answer-btn'));
+    expect(tiles).toHaveLength(12);
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(tiles[11]).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(tiles[0]).toHaveFocus();
+    // Answer one wrong note, then step over it.
+    const wrong = pc === 1 ? 2 : 1;
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    if (wrong === 2) fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(tiles[wrong]).toHaveFocus();
+    fireEvent.click(tiles[wrong]); // what Enter does on the focused button
+    expect(tiles[wrong]).toBeDisabled();
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(tiles[wrong + 1]).toHaveFocus();
+    fireEvent.click(tiles[pc]);
+    expect(screen.getByTestId('feedback')).toHaveTextContent(/^Correct — /);
+  });
+
   it('offers two modes', () => {
     render(<NoteTrainer rng={seededRng(2)} />);
     const mode = screen.getByRole('group', { name: 'Mode' });
