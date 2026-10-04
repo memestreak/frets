@@ -103,7 +103,9 @@ binds a local port).
   tables, spelled scales, diatonic chords (symbols and numerals from its
   own table) and the notes on the neck. `settings.ts` holds the saved
   settings and their parser; `ScaleLab.tsx`, `ScalePanel.tsx` and
-  `ChordStrip.tsx` draw the page.
+  `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
+  (shared parts in `chordDiagram.tsx`) draw a selected chord against the
+  scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

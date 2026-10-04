@@ -177,6 +177,19 @@ button {
   }
   .chord-numeral { font: 600 22px/28px var(--font-display); }
 
+  /* The selected chord's ladder and clock (ChordLadder, ChordClock). */
+  .ladder-scroll { overflow-x: auto; }
+  .chord-diagram { display: block; height: auto; }
+  .chord-ladder { width: 100%; min-width: 640px; }
+  .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
+  .chord-diagram text { font-family: var(--font-sans); }
+  .chord-diagram .diagram-name { font-size: 12px; font-weight: 700; }
+  .chord-diagram .diagram-role { font-size: 12px; font-weight: 700; }
+  .chord-diagram .diagram-note { font-size: 10px; }
+  .chord-diagram .diagram-degree { font: 500 10px var(--font-mono); }
+  /* Bold sans, not mono: M and m must differ at a glance. */
+  .chord-diagram .interval-tag { font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+
   @media (max-width: 700px) {
     .root-key, .root-split { height: 48px; }
     .root-split .root-key { font-size: 10px; }

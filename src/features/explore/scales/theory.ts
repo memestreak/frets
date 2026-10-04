@@ -149,8 +149,17 @@ export interface DiatonicChord {
   tones: string[];
   /** Each tone against the chord root: "1", "♭3", "5", "♭7". */
   labels: string[];
-  /** Semitones of each tone above the scale root, for the neck. */
+  /** Semitones of each tone above the scale root, 0–11, for the neck. */
   semis: number[];
+  /**
+   * Semitones of each tone above the scale root as the stack climbs, so a
+   * tone past the octave counts from 12: for the ladder, which spans two.
+   */
+  rising: number[];
+  /** Each tone above the root, from the third up: "M3", "P5", "m7". */
+  fromRoot: string[];
+  /** The thirds between neighbouring tones, low to high: "M3", "m3". */
+  thirds: string[];
   symbol: string;
   numeral: string;
   quality: string;
@@ -181,6 +190,24 @@ const CHORD_KINDS: Record<string, ChordKind> = {
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
+/** "3M" → "M3", "5d" → "d5": quality first, as guitarists write it. */
+const intervalName = (iv: string): string => {
+  const { q, num } = Interval.get(iv);
+  return `${q}${num}`;
+};
+
+const QUALITY_WORDS: Record<string, string> = {
+  M: 'major', m: 'minor', P: 'perfect', d: 'diminished', A: 'augmented',
+};
+const ORDINALS: Record<number, string> = {
+  2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th',
+};
+
+/** "M3" → "major 3rd", "d5" → "diminished 5th": for screen readers. */
+export function intervalWords(name: string): string {
+  return `${QUALITY_WORDS[name[0]]} ${ORDINALS[Number(name.slice(1))]}`;
+}
+
 /**
  * Chords stacked in thirds on each degree: every other scale note, three
  * for triads, four for sevenths. Only seven-note scales have them; in
@@ -192,7 +219,8 @@ export function diatonicChords(
   const { degrees } = scale;
   if (degrees.length !== 7) return [];
   return degrees.map((root, index) => {
-    const stack = Array.from({ length: size }, (_, k) => degrees[(index + 2 * k) % 7]);
+    const steps = Array.from({ length: size }, (_, k) => index + 2 * k);
+    const stack = steps.map(n => degrees[n % 7]);
     const tones = stack.map(d => d.note);
     const intervals = tones.map(t => Interval.distance(root.note, t));
     const kind = CHORD_KINDS[intervals.slice(1).join(' ')];
@@ -210,6 +238,9 @@ export function diatonicChords(
       tones,
       labels,
       semis: stack.map(d => d.semis),
+      rising: stack.map((d, k) => d.semis + 12 * Math.floor(steps[k] / 7)),
+      fromRoot: intervals.slice(1).map(intervalName),
+      thirds: tones.slice(1).map((t, k) => intervalName(Interval.distance(tones[k], t))),
       // A stack outside the table (rare, in exotic modes) shows its notes.
       symbol: kind ? prettyNote(root.note) + kind.symbol : tones.map(prettyNote).join(' '),
       numeral,
