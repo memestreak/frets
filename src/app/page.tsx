@@ -1,14 +1,21 @@
 import Link from 'next/link';
+import { PageList } from '@/components/PageList';
+import { SECTIONS } from '@/components/sections';
 
-// Static export can't issue an HTTP redirect; Cloudflare Pages handles it
-// via public/_redirects, and this page covers any other static host.
 export default function Home() {
   return (
-    <main className="p-5">
-      <meta httpEquiv="refresh" content="0; url=/intervals" />
-      <p>
-        <Link href="/intervals">Go to the interval trainer</Link>
-      </p>
-    </main>
+    <div className="grid gap-8">
+      {SECTIONS.map(s => (
+        <section key={s.href} className="grid gap-3">
+          <header>
+            <h2 className="m-0">
+              <Link href={s.href} className="text-inherit">{s.label}</Link>
+            </h2>
+            <p className="mt-1 mb-0">{s.summary}</p>
+          </header>
+          <PageList pages={s.pages} />
+        </section>
+      ))}
+    </div>
   );
 }

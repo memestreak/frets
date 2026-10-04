@@ -2,7 +2,11 @@
 
 # Frets
 
-Guitar fretboard trainers (Intervals, Notes). Next.js 16 App Router with
+Guitar fretboard app. Today it has one section, Practice, holding two quiz
+trainers (Intervals, Notes); more sections follow (see
+`docs/specs/2026-10-04-practice-restructure-design.md`). The app has no users
+yet: don't keep old URLs, storage keys or saved state working after a change.
+Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest.
 Spec and prototypes: `design_handoff/README.md` and
 `design_handoff/prototypes/*.dc.html`. The prototypes' `<script
@@ -18,7 +22,7 @@ against the root (G below C is a P5).
 
 The Interval trainer also departs from the prototype's String pairs setting,
 fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
-a box around the root (`inBox` in `lib/intervals.ts`) that drives question
+a box around the root (`inBox` in `features/practice/intervals/intervals.ts`) that drives question
 generation and Find-it judging. Neither the board nor the hint shows the box;
 tapping the right interval outside it is explained, not scored. The generator
 enumerates every valid question, so each possible interval is asked equally
@@ -51,34 +55,46 @@ binds a local port).
 
 ## Layout
 
-- `src/lib/` — pure logic, no React: `music.ts` (tuning, names,
-  `intervalClass`), `intervals.ts` / `notes.ts` (settings, question
-  generators taking an injectable `rng`, settings parsing), `quizFlow.ts`
-  (shared miss/solve/pause scoring), `stats.ts`, `fretWindow.ts`,
-  `fretboardGeometry.ts`, `storage.ts`.
-- `src/components/intervals|notes/` — each trainer's `intervalState.ts` /
-  `noteState.ts` is only its rules (answer key, Name-it or Find-it, correct,
-  out of range) handed to the shared reducer in `quiz/trainerState.ts`. The
-  component keeps what differs: its dots, prompt and settings fields. Random
-  questions are generated outside the reducer and passed in actions, so it
-  stays pure.
-- `src/components/fretboard/` — shared SVG `Fretboard` (rounded fingerboard
-  fill, roving-focus tap cells, arrow keys) and `theme.ts` (only the `maple`
-  theme ships).
-- `src/components/quiz/` — header, answer card/grid, board frame with
-  hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
-  parts, `SessionStatsCard` (summary, reset and per-item bars below the
-  board). Also the code both trainers share: `trainerState.ts` (state,
-  actions, reducer, init from storage) and `attempt.ts` (miss and
-  out-of-range dots, answer-button state, feedback text).
-- `src/components/AppShell.tsx` — nav, `<main>` and `AppFooter` (source
-  link and the build's commit hash, from `NEXT_PUBLIC_COMMIT_HASH` set in
-  `next.config.ts`; unlinked `dev` when git was unavailable).
-- `src/hooks/` — `useTrainer` wires a trainer's reducer to `useQuizKeyboard`,
-  `useAutoAdvance` and `usePersist`, and owns the hint and settings-dialog
-  flags. It suspends the first two while the settings dialog is open.
-- Trainers render client-only (`TrainerLoaders.tsx`, `ssr: false`) because
-  their initial state reads localStorage and draws a random question.
+- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/` and
+  `/practice` are index pages; the trainers are `/practice/intervals` and
+  `/practice/notes`.
+- `src/components/sections.ts` — the app's map: each section with its pages
+  (href, title or label, summary). `AppNav`, the home page and section index pages
+  (`PageList`) are drawn from it, so a new page is an entry here plus a route.
+- `src/components/AppShell.tsx` — `AppNav` (wordmark home and one link per
+  section, which names the current page inside it; read from the URL),
+  `<main>` and `AppFooter` (source link and the build's commit hash, from
+  `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
+  was unavailable).
+- Shared by every feature: `src/lib/` (pure logic, no React: `music.ts`
+  with tuning, names and `intervalClass`; `fretWindow.ts`,
+  `fretboardGeometry.ts`, `storage.ts`), `src/components/fretboard/` (SVG
+  `Fretboard` with rounded fingerboard fill, roving-focus tap cells and
+  arrow keys; `theme.ts`, only the `maple` theme ships),
+  `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
+- `src/features/<section>/` — everything only one section uses. For
+  `practice/`:
+  - `intervals/` and `notes/` — each trainer's pure logic (`intervals.ts` /
+    `notes.ts`: settings, question generators taking an injectable `rng`,
+    settings parsing, storage key), its rules (`intervalState.ts` /
+    `noteState.ts`: answer key, Name-it or Find-it, correct, out of range,
+    handed to the shared reducer) and its component, which keeps what
+    differs: dots, prompt and settings fields. Random questions are
+    generated outside the reducer and passed in actions, so it stays pure.
+  - `quiz/` — what both trainers share: `trainerState.ts` (state, actions,
+    reducer, init from storage), `quizFlow.ts` (miss/solve/pause scoring),
+    `stats.ts`, `attempt.ts` (miss and out-of-range dots, answer-button
+    state, feedback text), the header, answer card/grid, board frame with
+    hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
+    parts, `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
+    to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
+    and settings-dialog flags, and suspends the first two while the dialog
+    is open.
+  - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
+    because their initial state reads localStorage and draws a random
+    question.
+- Code moves into `src/lib/` or `src/components/` only once a second section
+  needs it.
 
 ## Styling
 
@@ -94,18 +110,18 @@ binds a local port).
   `--color-track` (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
   `--color-board`, `--color-board-inlay`, `--color-board-fret`.
 - Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
-- `.seg-opt` is a button (`aria-pressed`) or a link (`aria-current`); its
-  selected and hover rules key off those attributes.
+- `.seg-opt` is a button; its selected and hover rules key off `aria-pressed`.
 
 ## Storage
 
-`localStorage["eminor.intervals.v2"]` and `["eminor.notes.v2"]` hold
-`{ set, stats }`. Parsers in `lib/` validate every field; keep them in step
-with settings changes.
+`localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
+hold `{ set, stats }`. Keys are `frets.<section>.<page>`. The parsers next to
+each key validate every field; keep them in step with settings changes.
 
 ## Testing
 
-Tests live in `src/__tests__/`. `helpers/rng.ts` provides a seeded RNG;
+Tests live in `src/__tests__/`, with a feature's tests in a folder named
+after it (`practice/`). `helpers/rng.ts` provides a seeded RNG;
 trainers accept an `rng` prop. Node 25's global `localStorage` shadows
 jsdom's, so `setup.ts` installs an in-memory Storage. jsdom has no
 `dialog.showModal()` / `close()`, so `setup.ts` also shims them with the

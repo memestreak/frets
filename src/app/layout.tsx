@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 // Barlow (SIL OFL), latin subset, self-hosted so the build does not depend
@@ -27,7 +28,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Frets",
-  description: "Guitar fretboard trainers: intervals and notes",
+  description: "Learn the guitar fretboard",
 };
 
 export default function RootLayout({
@@ -41,7 +42,9 @@ export default function RootLayout({
       lang="en"
       className={`${barlow.variable} ${monoton.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }
