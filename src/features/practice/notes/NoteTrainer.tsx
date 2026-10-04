@@ -2,7 +2,7 @@
 
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
-import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
+import { DOT } from '@/components/fretboard/theme';
 import {
   AnswerCard, AnswerGrid, FindPrompt, type AnswerButton,
 } from '@/features/practice/quiz/AnswerCard';
@@ -24,6 +24,9 @@ import {
 } from '@/features/practice/notes/notes';
 import { itemPercent } from '@/features/practice/quiz/stats';
 import { initNoteState, noteReducer } from './noteState';
+
+/** Find it's string, in the design system's highlight colour. */
+const TARGET_STRING = 'var(--accent)';
 
 const MODE_OPTS = [['name', 'Name it'], ['find', 'Find it']] as const;
 const TITLES: Record<NoteMode, string> = {
@@ -58,7 +61,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         for (let f = 0; f <= NOTE_MAX_FRET; f++) {
           if (q.mode === 'name' && s === q.s && f === q.f) continue;
           dots.push({
-            s, f, kind: 'hint', fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg,
+            s, f, kind: 'hint', ...DOT.other,
             label: SHARP_NAMES[pitchClass(s, f)], fontSize: 10,
             opacity: inScope(s) ? 1 : 0.5,
           });
@@ -66,16 +69,15 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       }
     }
     if (q.mode === 'name') {
-      const fill = answered ? STATUS.green : T.tgtFill;
       dots.push({
-        s: q.s, f: q.f, kind: 'target', fill, stroke: fill, fg: T.tgtFg,
+        s: q.s, f: q.f, kind: 'target', ...(answered ? DOT.correct : DOT.quiz),
         label: answered ? SHARP_NAMES[q.pc] : '?', fontSize: 12,
       });
     }
     if (picked) {
       dots.push({
-        ...picked, kind: 'found', fill: STATUS.green, stroke: STATUS.green,
-        fg: T.tgtFg, label: SHARP_NAMES[q.pc], fontSize: 11,
+        ...picked, kind: 'found', ...DOT.correct,
+        label: SHARP_NAMES[q.pc], fontSize: 11,
       });
     }
     if (q.mode === 'find') dots.push(...attemptDots(state, SHARP_NAMES[q.pc]));
@@ -96,8 +98,8 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   });
 
   const legend: LegendItem[] = mode === 'name'
-    ? [{ label: 'Note to name', color: T.tgtFill, shape: 'circle' }]
-    : [{ label: 'Target string', color: STATUS.green, shape: 'square' }];
+    ? [{ label: 'Note to name', color: DOT.quiz.fill, shape: 'circle' }]
+    : [{ label: 'Target string', color: TARGET_STRING, shape: 'square' }];
 
   const findSub = q?.mode === 'find' ? `on the ${STRING_NAMES[q.s]} string` : '';
 
@@ -183,7 +185,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
             stringStyle={s => {
               const target = q?.mode === 'find' && q.s === s;
               return {
-                color: target ? STATUS.green : undefined,
+                color: target ? TARGET_STRING : undefined,
                 width: target ? 3.5 : undefined,
                 opacity: inScope(s) ? 1 : 0.3,
               };

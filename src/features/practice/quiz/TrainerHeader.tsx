@@ -16,7 +16,7 @@ export function TrainerHeader({
 }: TrainerHeaderProps) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3.5">
-      <h2 className="m-0">{title}</h2>
+      <h1 className="m-0">{title}</h1>
       <div className="flex flex-wrap items-center gap-2.5">
         {controls}
         <ToggleButton

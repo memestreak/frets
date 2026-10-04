@@ -8,15 +8,14 @@ import {
   BOARD_RADIUS, fretboardGeometry, PAD, SG,
 } from '@/lib/fretboardGeometry';
 import { STRING_NAMES, STRINGS, type Position } from '@/lib/music';
-import { MAPLE_THEME, type FretboardTheme } from './theme';
+import { BOARD, type DotColor } from './theme';
 
-export interface FretDot extends Position {
-  fill: string;
-  stroke: string;
-  fg: string;
+export interface FretDot extends Position, DotColor {
   label: string;
   fontSize: number;
   opacity?: number;
+  /** Roots are square, every other dot round. */
+  shape?: 'circle' | 'square';
   /** Identifies the dot in tests and styles (root, target, hint, wrong…). */
   kind: string;
 }
@@ -38,7 +37,6 @@ interface FretboardProps {
   stringStyle?: (s: number) => StringStyle;
   /** Fret to bring into view when the board scrolls (phones). */
   scrollToFret?: number | null;
-  theme?: FretboardTheme;
 }
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
@@ -50,7 +48,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret, theme = MAPLE_THEME,
+  scrollToFret,
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
@@ -94,7 +92,6 @@ export function Fretboard({
   };
 
   const svgStyle = { '--board-w': `${g.width}px` } as CSSProperties;
-  const labelFont = 'var(--font-body)';
   const fillBottom = g.fillY + g.fillH;
 
   return (
@@ -111,18 +108,18 @@ export function Fretboard({
         data-testid="board-fill"
         x={g.fillX} y={g.fillY} width={g.fillW} height={g.fillH}
         rx={BOARD_RADIUS}
-        style={{ fill: theme.board }}
+        style={{ fill: BOARD.fill }}
       />
       {g.inlays.map((d, i) => (
-        <circle key={i} cx={d.x} cy={d.y} r={6} style={{ fill: theme.inlay }} />
+        <circle key={i} cx={d.x} cy={d.y} r={6} style={{ fill: BOARD.inlay }} />
       ))}
       {g.fretLines.map((l, i) => (
         <line
           key={i} x1={l.x} x2={l.x}
           y1={l.nut ? g.fillY + 8 : g.fillY}
           y2={l.nut ? fillBottom - 8 : fillBottom}
-          style={{ stroke: l.nut ? theme.nut : theme.fret }}
-          strokeWidth={l.nut ? 5 : 1.2}
+          style={{ stroke: l.nut ? BOARD.nut : BOARD.fret }}
+          strokeWidth={l.nut ? 5 : 2}
           strokeLinecap={l.nut ? 'round' : undefined}
         />
       ))}
@@ -131,14 +128,17 @@ export function Fretboard({
         return (
           <line
             key={s} x1={g.boardX} x2={g.boardRight} y1={g.cy(s)} y2={g.cy(s)}
-            style={{ stroke: st.color ?? theme.string }}
-            strokeWidth={st.width ?? 2.2 - s * 0.3}
+            style={{ stroke: st.color ?? BOARD.string }}
+            strokeWidth={st.width ?? 2.5 - s * 0.3}
             opacity={st.opacity ?? 1}
             data-testid={`string-${s}`}
           />
         );
       })}
-      <g style={{ fill: theme.muted, fontFamily: labelFont }} fontSize={11} aria-hidden="true">
+      <g
+        style={{ fill: BOARD.label, fontFamily: 'var(--font-sans)' }}
+        fontSize={12} fontWeight={500} aria-hidden="true"
+      >
         {STRINGS.map(s => (
           <text
             key={s} x={PAD - 4}
@@ -156,18 +156,25 @@ export function Fretboard({
       </g>
       {/* One group per dot so later dots fully cover earlier ones. */}
       <g
-        fontWeight={600} aria-hidden="true"
-        style={{ fontFamily: 'var(--font-heading)', pointerEvents: 'none' }}
+        fontWeight={700} aria-hidden="true"
+        style={{ fontFamily: 'var(--font-sans)', pointerEvents: 'none' }}
       >
         {dots.map((d, i) => (
           <g
             key={i} opacity={d.opacity ?? 1}
             data-testid={`dot-${d.kind}`} data-s={d.s} data-f={d.f}
           >
-            <circle
-              cx={g.cx(d.f)} cy={g.cy(d.s)} r={12}
-              style={{ fill: d.fill, stroke: d.stroke }} strokeWidth={1.5}
-            />
+            {d.shape === 'square' ? (
+              <rect
+                x={g.cx(d.f) - 11} y={g.cy(d.s) - 11} width={22} height={22} rx={5}
+                style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
+              />
+            ) : (
+              <circle
+                cx={g.cx(d.f)} cy={g.cy(d.s)} r={12}
+                style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
+              />
+            )}
             <text
               x={g.cx(d.f)} y={g.cy(d.s)} fontSize={d.fontSize}
               textAnchor="middle" dominantBaseline="central" style={{ fill: d.fg }}

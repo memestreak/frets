@@ -13,8 +13,9 @@ Spec and prototypes: `design_handoff/README.md` and
 data-dc-script>` logic is where the quiz rules started, and is still the
 reference for anything the specs in `docs/specs/` do not cover. Where a spec
 and a prototype disagree, the spec wins; the departures are listed below.
-The prototypes are not a reference for the look: the shipped styling follows
-`docs/specs/2026-10-01-soft-ui-design.md`.
+The prototypes are not a reference for the look: the shipped styling is the
+Fretwood design system, applied as `docs/specs/2026-10-04-fretwood-design-system.md`
+describes.
 
 One quiz rule deliberately differs: the prototype names a note below the
 root by its distance down, while `intervalClass` names it by its function
@@ -61,8 +62,9 @@ binds a local port).
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
-- `src/components/AppShell.tsx` — `AppNav` (wordmark home and one link per
-  section, which names the current page inside it; read from the URL),
+- `src/components/AppShell.tsx` — `AppNav` (`BrandMark` and wordmark home,
+  one link per section, which names the current page inside it, read from
+  the URL, and `ThemeSwitch`),
   `<main>` and `AppFooter` (source link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
@@ -70,7 +72,7 @@ binds a local port).
   with tuning, names and `intervalClass`; `fretWindow.ts`,
   `fretboardGeometry.ts`, `storage.ts`), `src/components/fretboard/` (SVG
   `Fretboard` with rounded fingerboard fill, roving-focus tap cells and
-  arrow keys; `theme.ts`, only the `maple` theme ships),
+  arrow keys; `theme.ts` holds the board and dot colours as tokens),
   `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:
@@ -98,24 +100,29 @@ binds a local port).
 
 ## Styling
 
-- `src/styles/industry.css` is the Industry design system, rethemed in place
-  to the soft look (filled rounded cards, pill buttons and segmented
-  controls); it no longer matches `design_handoff/`, and holds only the
-  tokens and classes the app uses. It is imported into Tailwind's
-  `components` layer; app-specific component CSS is in the same layer in
-  `globals.css`. Use DS tokens (`var(--color-*)`), e.g.
-  `text-(--color-accent)`; Tailwind's default palette is disabled.
-- Surfaces: page and cards are white (`--color-bg`, `--color-card`; cards
-  are set off by their shadow), `--color-tile` (answer tiles, inputs),
-  `--color-track` (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
-  `--color-board`, `--color-board-inlay`, `--color-board-fret`.
-- Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
-- `.seg-opt` is a button; its selected and hover rules key off `aria-pressed`.
+- `src/styles/fretwood.css` is the Fretwood design system: its tokens (names
+  as in its `tokens.json`, light on `:root`, dark under
+  `prefers-color-scheme` and `data-theme`), type and the shared component
+  classes (`.btn-*`, `.seg`, `.card`, `.input`). It is imported into
+  Tailwind's `components` layer; app-specific component CSS is in the same
+  layer in `globals.css`. Use tokens directly, e.g. `text-(--ink-muted)`,
+  `bg-(--surface-raised)`; Tailwind's default palette is disabled.
+- Surfaces: `--surface` (page), `--surface-raised` (cards, dialogs, inputs),
+  `--surface-sunken` (segmented track, answer tiles, stat bars). Lines
+  `--line` / `--line-strong`. Text `--ink` / `--ink-muted`. Status
+  `--success`, `--danger`. Fretboard `--fretboard`, `--fret-wire`, `--nut`,
+  `--inlay`, `--string`, `--dot-*`, `--degree-*`.
+- Fonts: `--font-display` (Fraunces, `h1` and wordmark) and `--font-sans`
+  (Figtree), self-hosted in `src/app/fonts/`.
+- Theme: `src/lib/theme.ts` (choice, `data-theme`, the `<head>` boot script)
+  and `ThemeSwitch`. Every colour must be a token so both themes work.
+- `.seg-opt` is a button (`aria-pressed`) or a link (`aria-current`); its
+  selected and hover rules key off those attributes.
 
 ## Storage
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }`. Keys are `frets.<section>.<page>`. The parsers next to
+hold `{ set, stats }`; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

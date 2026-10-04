@@ -13,4 +13,19 @@ describe('Fretboard', () => {
     expect(fill).toHaveAttribute('height', String(g.fillH));
     expect(fill).toHaveAttribute('rx', String(BOARD_RADIUS));
   });
+
+  it('draws square dots as rounded squares and the rest as circles', () => {
+    const dot = { fill: 'red', fg: 'white', label: 'R', fontSize: 12 };
+    render(
+      <Fretboard
+        minFret={0} maxFret={5}
+        dots={[
+          { ...dot, s: 0, f: 3, kind: 'root', shape: 'square' },
+          { ...dot, s: 1, f: 3, kind: 'target' },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId('dot-root').querySelector('rect')).not.toBeNull();
+    expect(screen.getByTestId('dot-target').querySelector('circle')).not.toBeNull();
+  });
 });

@@ -18,8 +18,8 @@ interface AnswerCardProps {
 
 const TONE_CLASS: Record<FeedbackTone, string> = {
   neutral: '',
-  success: 'text-(--color-success-deep)',
-  danger: 'text-(--color-danger)',
+  success: 'text-(--success)',
+  danger: 'text-(--danger)',
 };
 
 export function AnswerCard({
@@ -90,12 +90,12 @@ export function AnswerGrid({
   );
 }
 
-/** Centered Find-it target: large accent label and a description. */
+/** Centered Find-it target: large display label and a description. */
 export function FindPrompt({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline justify-center gap-3.5 text-center">
       <span
-        className="font-(family-name:--font-heading) text-[44px] leading-none font-semibold text-(--color-accent)"
+        className="font-(family-name:--font-display) text-[44px] leading-none font-semibold text-(--primary)"
         data-testid="find-label"
       >
         {label}

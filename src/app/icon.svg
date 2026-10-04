@@ -1,61 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 450 450" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;">
-    <use xlink:href="#_Image1" x="0" y="0" width="450px" height="450px"/>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="80" cy="100.816" r="14.4" style="fill:none;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="224" cy="100.816" r="14.4" style="fill:none;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="272" cy="100.816" r="14.4" style="fill:none;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="320" cy="100.816" r="14.4" style="fill:none;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M77.9,129.816L322.1,129.816" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:10px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M80,202.016L320,202.016" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M80,269.216L320,269.216" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M80,336.416L320,336.416" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M80,403.616L320,403.616" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M80,134.816L80,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M128,134.816L128,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M176,134.816L176,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M224,134.816L224,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M272,134.816L272,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <path d="M320,134.816L320,405.716" style="fill:none;fill-rule:nonzero;stroke:black;stroke-width:4.2px;"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="128" cy="235.616" r="19.68"/>
-    </g>
-    <g transform="matrix(1.35635,0,0,1.35635,-46.1298,-107.127)">
-        <circle cx="176" cy="235.616" r="19.68"/>
-    </g>
-    <g id="Layer1">
-    </g>
-    <defs>
-        <image id="_Image1" width="450px" height="450px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAcIAAAHCCAYAAAB8GMlFAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAGtUlEQVR4nO3VMQEAIAzAMMC/5yFjRxMF/XpnZg4ARL3tAADYZIQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQZoQApBkhAGlGCECaEQKQ9gE51QeA6ldMDQAAAABJRU5ErkJggg=="/>
-    </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <rect width="96" height="96" rx="22" fill="#4f3a2b"></rect>
+  <g stroke="#a8957a" stroke-width="2"><line x1="38" y1="16" x2="38" y2="80"></line><line x1="62" y1="16" x2="62" y2="80"></line></g>
+  <rect x="14" y="16" width="4" height="64" rx="1.5" fill="#efe3cb"></rect>
+  <g stroke="#e3d5bb" stroke-width="1.5"><line x1="16" y1="24" x2="86" y2="24"></line><line x1="16" y1="40" x2="86" y2="40"></line><line x1="16" y1="56" x2="86" y2="56"></line><line x1="16" y1="72" x2="86" y2="72"></line></g>
+  <rect x="18" y="62" width="20" height="20" rx="5" fill="#a8462a" stroke="#f6f0e4" stroke-width="2.5"></rect>
+  <circle cx="50" cy="56" r="9" fill="#5c6e30" stroke="#f6f0e4" stroke-width="2.5"></circle>
+  <circle cx="74" cy="40" r="9" fill="#946a12" stroke="#f6f0e4" stroke-width="2.5"></circle>
+  <circle cx="50" cy="24" r="9" fill="#3d6476" stroke="#f6f0e4" stroke-width="2.5"></circle>
 </svg>
