@@ -35,7 +35,20 @@ export const PRACTICE: Section = {
   ],
 };
 
-export const SECTIONS: readonly Section[] = [PRACTICE];
+export const EXPLORE: Section = {
+  href: '/explore',
+  label: 'Explore',
+  summary: 'Tools for seeing how scales and chords lie on the neck.',
+  pages: [
+    {
+      href: '/explore/scales',
+      title: 'Scale lab',
+      summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
+    },
+  ],
+};
+
+export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE];
 
 /** The section and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {

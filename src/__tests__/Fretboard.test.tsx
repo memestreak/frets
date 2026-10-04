@@ -28,4 +28,21 @@ describe('Fretboard', () => {
     expect(screen.getByTestId('dot-root').querySelector('rect')).not.toBeNull();
     expect(screen.getByTestId('dot-target').querySelector('circle')).not.toBeNull();
   });
+
+  it('draws a dot at its size when one is given', () => {
+    const dot = { fill: 'grey', fg: 'white', label: '', fontSize: 0 };
+    render(
+      <Fretboard
+        minFret={0} maxFret={5}
+        dots={[{ ...dot, s: 0, f: 3, kind: 'small', size: 12 }]}
+      />,
+    );
+    expect(screen.getByTestId('dot-small').querySelector('circle'))
+      .toHaveAttribute('r', '6');
+  });
+
+  it('names a display-only board with its label', () => {
+    render(<Fretboard minFret={0} maxFret={5} dots={[]} label="A Dorian on the fretboard" />);
+    expect(screen.getByRole('img', { name: 'A Dorian on the fretboard' })).toBeInTheDocument();
+  });
 });

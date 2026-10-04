@@ -2,12 +2,14 @@
 
 # Frets
 
-Guitar fretboard app. Today it has one section, Practice, holding two quiz
-trainers (Intervals, Notes); more sections follow (see
-`docs/specs/2026-10-04-practice-restructure-design.md`). The app has no users
+Guitar fretboard app with two sections: Practice, holding two quiz
+trainers (Intervals, Notes), and Explore, holding the Scale lab (see
+`docs/specs/2026-10-04-practice-restructure-design.md` and
+`docs/specs/2026-10-04-scale-lab-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
-static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest.
+static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
+tonal (pinned to 6.4.3: 6.5.0 can't be imported under Node).
 Spec and prototypes: `design_handoff/README.md` and
 `design_handoff/prototypes/*.dc.html`. The prototypes' `<script
 data-dc-script>` logic is where the quiz rules started, and is still the
@@ -56,9 +58,10 @@ binds a local port).
 
 ## Layout
 
-- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/` and
-  `/practice` are index pages; the trainers are `/practice/intervals` and
-  `/practice/notes`.
+- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
+  `/practice` and `/explore` are index pages; the trainers are
+  `/practice/intervals` and `/practice/notes`, the Scale lab
+  `/explore/scales`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
@@ -95,6 +98,12 @@ binds a local port).
   - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
     because their initial state reads localStorage and draws a random
     question.
+- `src/features/explore/` — the Scale lab (`scales/`) and its client-only
+  loader. `theory.ts` is the only file that imports tonal: root and scale
+  tables, spelled scales, diatonic chords (symbols and numerals from its
+  own table) and the notes on the neck. `settings.ts` holds the saved
+  settings and their parser; `ScaleLab.tsx`, `ScalePanel.tsx` and
+  `ChordStrip.tsx` draw the page.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -112,8 +121,9 @@ binds a local port).
   `--line` / `--line-strong`. Text `--ink` / `--ink-muted`. Status
   `--success`, `--danger`. Fretboard `--fretboard`, `--fret-wire`, `--nut`,
   `--inlay`, `--string`, `--dot-*`, `--degree-*`.
-- Fonts: `--font-display` (Fraunces, `h1` and wordmark) and `--font-sans`
-  (Figtree), self-hosted in `src/app/fonts/`.
+- Fonts: `--font-display` (Fraunces, `h1` and wordmark), `--font-sans`
+  (Figtree) and `--font-mono` (JetBrains Mono, the Scale lab's facts),
+  self-hosted in `src/app/fonts/`.
 - Theme: `src/lib/theme.ts` (choice, `data-theme`, the `<head>` boot script)
   and `ThemeSwitch`. Every colour must be a token so both themes work.
 - `.seg-opt` is a button (`aria-pressed`) or a link (`aria-current`); its
@@ -122,13 +132,14 @@ binds a local port).
 ## Storage
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }`; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+hold `{ set, stats }`; `["frets.explore.scales"]` holds the Scale lab's
+settings; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing
 
 Tests live in `src/__tests__/`, with a feature's tests in a folder named
-after it (`practice/`). `helpers/rng.ts` provides a seeded RNG;
+after it (`practice/`, `explore/`). `helpers/rng.ts` provides a seeded RNG;
 trainers accept an `rng` prop. Node 25's global `localStorage` shadows
 jsdom's, so `setup.ts` installs an in-memory Storage. jsdom has no
 `dialog.showModal()` / `close()`, so `setup.ts` also shims them with the

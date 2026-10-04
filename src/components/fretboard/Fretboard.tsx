@@ -16,6 +16,8 @@ export interface FretDot extends Position, DotColor {
   opacity?: number;
   /** Roots are square, every other dot round. */
   shape?: 'circle' | 'square';
+  /** Width of the dot; 24 for circles and 22 for squares when unset. */
+  size?: number;
   /** Identifies the dot in tests and styles (root, target, hint, wrong…). */
   kind: string;
 }
@@ -37,6 +39,8 @@ interface FretboardProps {
   stringStyle?: (s: number) => StringStyle;
   /** Fret to bring into view when the board scrolls (phones). */
   scrollToFret?: number | null;
+  /** Accessible name when the board is a picture (no `onCellClick`). */
+  label?: string;
 }
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
@@ -48,7 +52,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret,
+  scrollToFret, label = 'Fretboard',
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
@@ -102,7 +106,7 @@ export function Fretboard({
       style={svgStyle}
       onContextMenu={e => e.preventDefault()}
       role={onCellClick ? 'group' : 'img'}
-      aria-label={onCellClick ? 'Fretboard: choose a fret' : 'Fretboard'}
+      aria-label={onCellClick ? 'Fretboard: choose a fret' : label}
     >
       <rect
         data-testid="board-fill"
@@ -166,12 +170,13 @@ export function Fretboard({
           >
             {d.shape === 'square' ? (
               <rect
-                x={g.cx(d.f) - 11} y={g.cy(d.s) - 11} width={22} height={22} rx={5}
+                x={g.cx(d.f) - (d.size ?? 22) / 2} y={g.cy(d.s) - (d.size ?? 22) / 2}
+                width={d.size ?? 22} height={d.size ?? 22} rx={5}
                 style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
               />
             ) : (
               <circle
-                cx={g.cx(d.f)} cy={g.cy(d.s)} r={12}
+                cx={g.cx(d.f)} cy={g.cy(d.s)} r={(d.size ?? 24) / 2}
                 style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
               />
             )}

@@ -2,7 +2,8 @@
    Colour values are copied from the Fretwood design system's tokens.json
    (https://claude.ai/artifact/GTUAmXkKGcQu1vVPH8ns3F) and keep its names;
    its README is the rulebook for using them. Fonts are loaded with
-   next/font in layout.tsx, which sets --font-fraunces and --font-figtree.
+   next/font in layout.tsx, which sets --font-fraunces, --font-figtree and
+   --font-jetbrains-mono.
    App-specific component CSS is in globals.css. */
 
 :root {
@@ -54,6 +55,7 @@
 
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-figtree), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 
   --space-1: 4px;
   --space-2: 8px;
