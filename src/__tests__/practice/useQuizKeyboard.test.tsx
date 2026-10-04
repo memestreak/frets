@@ -5,6 +5,7 @@ function setup(initial: { enabled?: boolean; answered?: boolean }) {
   const onNext = vi.fn();
   const onHint = vi.fn();
   const onAnswerKey = vi.fn();
+  const onArrow = vi.fn();
   const view = renderHook(
     (props: { enabled?: boolean; answered?: boolean }) => useQuizKeyboard({
       answered: props.answered ?? false,
@@ -12,11 +13,12 @@ function setup(initial: { enabled?: boolean; answered?: boolean }) {
       onNext,
       onHint,
       onAnswerKey,
+      onArrow,
       enabled: props.enabled,
     }),
     { initialProps: initial },
   );
-  return { onNext, onHint, onAnswerKey, ...view };
+  return { onNext, onHint, onAnswerKey, onArrow, ...view };
 }
 
 describe('useQuizKeyboard', () => {
@@ -50,5 +52,27 @@ describe('useQuizKeyboard', () => {
     onHint.mockClear();
     rerender({ enabled: true });
     expect(onHint).not.toHaveBeenCalled();
+  });
+
+  it('sends left and right arrows to onArrow while the question is open', () => {
+    const { onArrow, onAnswerKey, rerender } = setup({});
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(onArrow.mock.calls).toEqual([[1], [-1]]);
+    expect(onAnswerKey).not.toHaveBeenCalled();
+    onArrow.mockClear();
+    rerender({ answered: true });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(onArrow).not.toHaveBeenCalled();
+  });
+
+  it('leaves arrows a control already handled', () => {
+    const { onArrow } = setup({});
+    const el = document.createElement('button');
+    el.addEventListener('keydown', e => e.preventDefault());
+    document.body.append(el);
+    fireEvent.keyDown(el, { key: 'ArrowRight' });
+    expect(onArrow).not.toHaveBeenCalled();
+    el.remove();
   });
 });

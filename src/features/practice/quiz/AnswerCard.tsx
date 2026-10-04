@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Keycap } from '@/components/controls';
 
 export type FeedbackTone = 'neutral' | 'success' | 'danger';
@@ -68,10 +68,14 @@ export interface AnswerButton {
 
 /** One row of equal-width answer buttons. */
 export function AnswerGrid({
-  buttons, variant,
-}: { buttons: AnswerButton[]; variant: 'interval' | 'note' }) {
+  buttons, variant, ref,
+}: {
+  buttons: AnswerButton[];
+  variant: 'interval' | 'note';
+  ref?: Ref<HTMLDivElement>;
+}) {
   return (
-    <div className="answer-grid" data-variant={variant}>
+    <div className="answer-grid" data-variant={variant} ref={ref}>
       {buttons.map(b => (
         <button
           key={b.label}
@@ -88,6 +92,31 @@ export function AnswerGrid({
       ))}
     </div>
   );
+}
+
+/**
+ * Focuses the answer button `delta` places from the focused one, skipping
+ * disabled (wrong) buttons and wrapping at the ends. With none focused it
+ * steps from button `from`; with `from` out of range too, the first step
+ * lands on the first (right) or last (left) button. Returns the index
+ * focused, or null when every button is disabled.
+ */
+export function stepAnswerFocus(
+  grid: HTMLElement, delta: -1 | 1, from: number,
+): number | null {
+  const tiles = [...grid.querySelectorAll<HTMLButtonElement>('.answer-btn')];
+  const n = tiles.length;
+  const focused = tiles.findIndex(t => t === document.activeElement);
+  let start = focused >= 0 ? focused : from;
+  if (start < 0 || start >= n) start = delta > 0 ? -1 : n;
+  for (let i = 1; i <= n; i++) {
+    const index = (((start + delta * i) % n) + n) % n;
+    if (!tiles[index].disabled) {
+      tiles[index].focus();
+      return index;
+    }
+  }
+  return null;
 }
 
 /** Centered Find-it target: large display label and a description. */
