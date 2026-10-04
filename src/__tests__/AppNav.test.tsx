@@ -8,32 +8,48 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+const nav = vi.hoisted(() => ({ pathname: '/' }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
+
+function renderAt(pathname: string) {
+  nav.pathname = pathname;
+  return render(<AppNav />);
+}
+
 describe('AppNav', () => {
-  it('links the two trainers and marks the active one', () => {
-    render(<AppNav active="notes" />);
-    expect(screen.getByRole('link', { name: 'Intervals' })).toBeInTheDocument();
+  it('links the FRETS wordmark home', () => {
+    renderAt('/practice/notes');
+    expect(screen.getByRole('link', { name: 'FRETS' })).toHaveAttribute('href', '/');
+  });
+
+  it("shows the active section's pages and marks the current one", () => {
+    renderAt('/practice/notes');
+    expect(screen.getByRole('link', { name: 'Intervals' }))
+      .toHaveAttribute('href', '/practice/intervals');
     expect(screen.getByRole('link', { name: 'Notes' }))
       .toHaveAttribute('aria-current', 'page');
   });
 
-  it('shows the FRETS wordmark', () => {
-    render(<AppNav active="notes" />);
-    expect(screen.getByText('FRETS')).toBeInTheDocument();
-    expect(screen.queryByText('E MINOR')).not.toBeInTheDocument();
-  });
-
-  it('names the active trainer beside the wordmark', () => {
-    const { unmount } = render(<AppNav active="notes" />);
-    expect(screen.getByText('Note trainer')).toBeInTheDocument();
+  it('names the current page in place of its section', () => {
+    const { unmount } = renderAt('/practice/notes');
+    expect(screen.getByRole('link', { name: 'Note trainer' }))
+      .toHaveAttribute('href', '/practice');
     unmount();
-    render(<AppNav active="intervals" />);
+    renderAt('/practice/intervals');
     expect(screen.getByText('Interval trainer')).toBeInTheDocument();
   });
 
-  it('shows no placeholders for unbuilt sections', () => {
-    render(<AppNav active="intervals" />);
-    for (const label of ['Chords', 'Scales', 'Ear training']) {
-      expect(screen.queryByText(label)).not.toBeInTheDocument();
-    }
+  it('marks the section itself on its index page', () => {
+    renderAt('/practice');
+    expect(screen.getByRole('link', { name: 'Practice' }))
+      .toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Notes' }))
+      .not.toHaveAttribute('aria-current');
+  });
+
+  it('shows sections but no page switcher on the home page', () => {
+    renderAt('/');
+    expect(screen.getByRole('link', { name: 'Practice' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Notes' })).not.toBeInTheDocument();
   });
 });
