@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Segmented } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
-import { degreeColor, DOT } from '@/components/fretboard/theme';
+import { degreeColor } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
@@ -24,11 +24,7 @@ function dotLabel(n: NeckNote, labels: DotLabels): string {
   return '';
 }
 
-/** Scale notes as board dots; outside a shown chord they shrink to grey. */
 function toDot(n: NeckNote, labels: DotLabels): FretDot {
-  if (!n.inChord) {
-    return { s: n.s, f: n.f, kind: 'other', ...DOT.other, size: 12, label: '', fontSize: 0 };
-  }
   const label = dotLabel(n, labels);
   return {
     s: n.s, f: n.f, kind: n.degree === 1 ? 'root' : 'note',

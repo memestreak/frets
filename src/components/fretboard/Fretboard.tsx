@@ -16,8 +16,6 @@ export interface FretDot extends Position, DotColor {
   opacity?: number;
   /** Roots are square, every other dot round. */
   shape?: 'circle' | 'square';
-  /** Width of the dot; 24 for circles and 22 for squares when unset. */
-  size?: number;
   /** Identifies the dot in tests and styles (root, target, hint, wrong…). */
   kind: string;
 }
@@ -170,13 +168,12 @@ export function Fretboard({
           >
             {d.shape === 'square' ? (
               <rect
-                x={g.cx(d.f) - (d.size ?? 22) / 2} y={g.cy(d.s) - (d.size ?? 22) / 2}
-                width={d.size ?? 22} height={d.size ?? 22} rx={5}
+                x={g.cx(d.f) - 11} y={g.cy(d.s) - 11} width={22} height={22} rx={5}
                 style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
               />
             ) : (
               <circle
-                cx={g.cx(d.f)} cy={g.cy(d.s)} r={(d.size ?? 24) / 2}
+                cx={g.cx(d.f)} cy={g.cy(d.s)} r={12}
                 style={{ fill: d.fill, stroke: BOARD.dotRing }} strokeWidth={2}
               />
             )}

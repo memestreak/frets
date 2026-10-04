@@ -49,10 +49,11 @@ One column, as in the prototype:
 4. **Chords in this scale.** A seven-card strip (canvas "Diatonic chords"
    option B) with Triads / Sevenths and ♭III style / III style. A card shows
    the numeral, the symbol and the quality. Tapping a card selects it and
-   tapping it again clears it. While a chord is selected its tones keep full
-   dots, labelled and coloured by their interval to the chord root (R 3 5
-   ♭7), and the scale's other notes shrink to small unlabelled
-   `--degree-other` dots. Changing the root or scale clears the chord;
+   tapping it again clears it. While a chord is selected the neck shows
+   only its tones, labelled and coloured by their interval to the chord root
+   (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
+   as small grey dots; on review they read as clutter.) Changing the root
+   or scale clears the chord;
    changing size or numerals keeps it.
 
 Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
@@ -101,8 +102,6 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
 
 ## Shared code
 
-- `FretDot.size` sets a dot's width (default 24 for circles, 22 for
-  squares), for the small non-chord dots.
 - `Fretboard`'s `label` names a display-only board for screen readers
   ("A Dorian on the fretboard").
 - JetBrains Mono 500 (latin, SIL OFL) is self-hosted like the other faces,

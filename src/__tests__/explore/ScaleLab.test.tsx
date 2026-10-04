@@ -33,6 +33,8 @@ describe('ScaleLab', () => {
 
   it('shows a tapped chord over the scale and clears it on a second tap', () => {
     render(<ScaleLab />);
+    const dotLabels = () =>
+      new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent));
     const rootFrets = () =>
       screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f);
     expect(rootFrets()).toEqual(['5']);
@@ -41,14 +43,14 @@ describe('ScaleLab', () => {
     expect(fact('Notes')).toHaveTextContent('D F♯ A C');
     expect(fact('Formula')).toHaveTextContent('1 3 5 ♭7');
     expect(fact('Steps')).toBeUndefined();
-    // Three of A Dorian's seven notes fall outside D7 and shrink to grey.
-    expect(screen.getAllByTestId('dot-other').length).toBeGreaterThan(0);
+    // Only D7's tones stay on the neck; B, E and G are gone.
+    expect(dotLabels()).toEqual(new Set(['R', '3', '5', '♭7']));
     // The chord root takes the square: D on the low E string.
     expect(rootFrets()).toEqual(['10']);
 
     fireEvent.click(chordCard('D7'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
-    expect(screen.queryAllByTestId('dot-other')).toHaveLength(0);
+    expect(dotLabels()).toEqual(new Set(['R', '2', '♭3', '4', '5', '6', '♭7']));
   });
 
   it('clears the chord when the scale changes', () => {

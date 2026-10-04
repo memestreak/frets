@@ -226,11 +226,12 @@ export interface NeckNote {
   label: string;
   /** 1–7, picks the colour. */
   degree: number;
-  /** False for scale notes outside the shown chord. */
-  inChord: boolean;
 }
 
-/** Every scale note from the nut to `maxFret`, low E first. */
+/**
+ * Every scale note from the nut to `maxFret`, low E first; with a chord,
+ * only the chord's tones.
+ */
 export function neckNotes(
   scale: Scale, maxFret: number, chord: DiatonicChord | null = null,
 ): NeckNote[] {
@@ -242,12 +243,12 @@ export function neckNotes(
       const semis = (pitchClass(s, f) - rootPc + 12) % 12;
       const d = bySemis.get(semis);
       if (!d) continue;
-      const k = chord ? chord.semis.indexOf(semis) : -1;
-      out.push(
-        k >= 0
-          ? { s, f, note: d.note, label: chord!.labels[k], degree: 2 * k + 1, inChord: true }
-          : { s, f, note: d.note, label: d.label, degree: d.degree, inChord: !chord },
-      );
+      if (!chord) {
+        out.push({ s, f, note: d.note, label: d.label, degree: d.degree });
+        continue;
+      }
+      const k = chord.semis.indexOf(semis);
+      if (k >= 0) out.push({ s, f, note: d.note, label: chord.labels[k], degree: 2 * k + 1 });
     }
   }
   return out;
