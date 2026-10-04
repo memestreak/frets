@@ -99,6 +99,40 @@ describe('ScaleLab', () => {
     expect(screen.queryByRole('img', { name: /D7/ })).toBeNull();
   });
 
+  it('draws the scale alone before a chord is picked', () => {
+    render(<ScaleLab />);
+    expect(screen.getByRole('img', {
+      name: 'A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G',
+    })).toHaveClass('chord-ladder');
+    // Nothing to annotate yet.
+    expect(screen.queryByRole('group', { name: 'Intervals' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Clock' }));
+    expect(screen.getAllByTestId('clock-tone')).toHaveLength(7);
+  });
+
+  it('steps through the chords with the arrow keys once one is picked', () => {
+    render(<ScaleLab />);
+    const title = () => screen.getByRole('heading', { level: 1 });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(title()).toHaveTextContent(/^A Dorian$/);
+
+    fireEvent.click(chordCard('D7'));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(title()).toHaveTextContent('Em7 in A Dorian');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(title()).toHaveTextContent('Cmaj7 in A Dorian');
+
+    // The ends wrap round.
+    fireEvent.click(chordCard('Gmaj7'));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(title()).toHaveTextContent('Am7 in A Dorian');
+
+    // The scale list keeps its own arrows.
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Scale' }), { key: 'ArrowRight' });
+    expect(title()).toHaveTextContent('Am7 in A Dorian');
+  });
+
   it('explains why a pentatonic has no chords', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);

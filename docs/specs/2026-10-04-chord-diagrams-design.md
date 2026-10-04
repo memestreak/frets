@@ -13,10 +13,16 @@ it takes and how far apart they are.
 
 ## Goal
 
-While a chord is selected, the chords section draws it against the scale,
-as a **ladder** or a **clock**, naming its intervals either **from the
-root** or **between tones**. Two switches under the chord cards pick each;
-both are saved. Defaults: Ladder, From the root.
+The chords section draws the scale as a **ladder** or a **clock**. With no
+chord selected every scale note takes its degree colour (as on the neck),
+labelled R 2 ♭3 …; a selected chord is drawn against the scale, naming its
+intervals either **from the root** or **between tones**. Two switches under
+the chord cards pick each (the second only while a chord is selected); both
+are saved. Defaults: Ladder, From the root.
+
+While a chord is selected, ← and → select the previous or next chord,
+wrapping round at the ends, unless focus is in a field that uses the arrows
+(the scale list). Focus and the card strip's scroll follow the selection.
 
 ## Ladder
 
@@ -52,8 +58,8 @@ both are saved. Defaults: Ladder, From the root.
 
 - Intervals are named quality first (M3, m3, P5, d5, A5, M7, m7, d7), not
   as degrees (♭7), because the degrees are already under the tiles.
-- The interval labels are bold Figtree at 13px: in the mono face at 11px,
-  M and m were hard to tell apart.
+- The interval labels are bold Figtree at 12px: in the mono face at 11px,
+  M and m were hard to tell apart, and 13px read as too big.
 - Each diagram is an `img` whose name spells the intervals out: "D7 from
   its root D: major 3rd up to F♯, perfect 5th up to A, minor 7th up to C".
 
