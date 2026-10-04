@@ -5,9 +5,7 @@
  */
 export interface Page {
   href: string;
-  /** Short name for the nav. */
-  label: string;
-  /** Full name for headings and the nav's "you are here". */
+  /** Name for headings, cards and the nav's "you are here". */
   title: string;
   summary: string;
 }
@@ -26,13 +24,11 @@ export const PRACTICE: Section = {
   pages: [
     {
       href: '/practice/intervals',
-      label: 'Intervals',
       title: 'Interval trainer',
       summary: 'Name the interval between two notes, or find it on the neck.',
     },
     {
       href: '/practice/notes',
-      label: 'Notes',
       title: 'Note trainer',
       summary: 'Name the note at a fret, or find a note on a string.',
     },

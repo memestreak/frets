@@ -22,12 +22,10 @@ describe('AppNav', () => {
     expect(screen.getByRole('link', { name: 'FRETS' })).toHaveAttribute('href', '/');
   });
 
-  it("shows the active section's pages and marks the current one", () => {
+  it('has no page switcher inside a section', () => {
     renderAt('/practice/notes');
-    expect(screen.getByRole('link', { name: 'Intervals' }))
-      .toHaveAttribute('href', '/practice/intervals');
-    expect(screen.getByRole('link', { name: 'Notes' }))
-      .toHaveAttribute('aria-current', 'page');
+    expect(screen.getAllByRole('link').map(l => l.textContent))
+      .toEqual(['FRETS', 'Note trainer']);
   });
 
   it('names the current page in place of its section', () => {
@@ -43,13 +41,11 @@ describe('AppNav', () => {
     renderAt('/practice');
     expect(screen.getByRole('link', { name: 'Practice' }))
       .toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Notes' }))
-      .not.toHaveAttribute('aria-current');
   });
 
-  it('shows sections but no page switcher on the home page', () => {
+  it('shows the section by name on the home page', () => {
     renderAt('/');
-    expect(screen.getByRole('link', { name: 'Practice' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Notes' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Practice' }))
+      .not.toHaveAttribute('aria-current');
   });
 });

@@ -76,14 +76,16 @@ the Scale Lab gets settings.
 
 ## Nav
 
-The nav shows three things:
+The nav shows two things:
 
 - The FRETS wordmark, which links home.
 - One link per section. The active section's link shows the current page's
   title (for example "Interval trainer"), so the existing "you are here"
   label is kept.
-- The active section's pages as a segmented control, with `aria-current` on
-  the current page. It is hidden on the home page.
+
+The old Intervals | Notes switch is dropped. To move between pages you go
+through the home page or the section's index, which keeps the nav the same
+size however many pages a section grows to.
 
 The styling stays as it is. The Fretwood restyle (Phase 2) redraws the nav.
 

@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 import { locate, SECTIONS } from './sections';
 
 /**
- * Wordmark (home), one link per section, and the active section's pages as a
- * segmented control. Everything active is read from the URL.
+ * Wordmark (home) and one link per section. Inside a section its link names
+ * the current page. Everything active is read from the URL.
  */
 export function AppNav() {
   const { section, page } = locate(usePathname());
@@ -15,8 +15,7 @@ export function AppNav() {
       className="nav flex-wrap gap-x-2.5 border-b border-(--color-divider) px-3 py-2.5 sm:gap-x-4 sm:px-5"
       aria-label="Sections"
     >
-      {/* Small enough at phone width to share one row with the switch. */}
-      <div className="mr-auto flex items-center gap-x-2 sm:gap-x-3.5">
+      <div className="flex items-center gap-x-2 sm:gap-x-3.5">
         <Link
           href="/"
           className="font-(family-name:--font-monoton) text-[18px] leading-none font-normal tracking-[0.06em] text-(--color-accent) sm:text-[30px]"
@@ -34,20 +33,6 @@ export function AppNav() {
           </Link>
         ))}
       </div>
-      {section && (
-        <div className="seg">
-          {section.pages.map(p => (
-            <Link
-              key={p.href}
-              href={p.href}
-              className="seg-opt max-sm:px-2.5"
-              aria-current={p === page ? 'page' : undefined}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </div>
-      )}
     </nav>
   );
 }

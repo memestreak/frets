@@ -59,10 +59,10 @@ binds a local port).
   `/practice` are index pages; the trainers are `/practice/intervals` and
   `/practice/notes`.
 - `src/components/sections.ts` — the app's map: each section with its pages
-  (href, labels, summary). `AppNav`, the home page and section index pages
+  (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
-- `src/components/AppShell.tsx` — `AppNav` (wordmark home, section links, the
-  active section's pages as a segmented control, all read from the URL),
+- `src/components/AppShell.tsx` — `AppNav` (wordmark home and one link per
+  section, which names the current page inside it; read from the URL),
   `<main>` and `AppFooter` (source link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
@@ -110,8 +110,7 @@ binds a local port).
   `--color-track` (segmented track, stat bars). Radii: `--radius-sm|md|lg|pill`. Fretboard:
   `--color-board`, `--color-board-inlay`, `--color-board-fret`.
 - Status colors: `--color-success`, `--color-success-deep`, `--color-danger`.
-- `.seg-opt` is a button (`aria-pressed`) or a link (`aria-current`); its
-  selected and hover rules key off those attributes.
+- `.seg-opt` is a button; its selected and hover rules key off `aria-pressed`.
 
 ## Storage
 

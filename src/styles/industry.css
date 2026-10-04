@@ -146,17 +146,17 @@ figcaption {
   display: inline-flex; padding: 3px;
   background: var(--color-track); border-radius: var(--radius-pill);
 }
-/* Options are buttons (aria-pressed) or links (aria-current). */
+/* Options are buttons; aria-pressed marks the selected one. */
 .seg-opt {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 13px; font: inherit; font-size: 13px; cursor: pointer;
-  color: inherit; text-decoration: none;
+  color: inherit;
   background: transparent; border: 0; border-radius: var(--radius-pill);
 }
-.seg-opt[aria-pressed='true'], .seg-opt[aria-current='page'] {
+.seg-opt[aria-pressed='true'] {
   background: var(--color-accent); color: var(--color-bg);
 }
-.seg-opt:not([aria-pressed='true'], [aria-current='page']):hover {
+.seg-opt:not([aria-pressed='true']):hover {
   background: color-mix(in srgb, var(--color-text) 7%, transparent);
 }
 
@@ -170,8 +170,6 @@ figcaption {
 
 /* — navigation — */
 .nav { display: flex; align-items: center; row-gap: var(--space-4); }
-.nav .seg-opt { font-size: 14px; }
-.nav .seg-opt:not([aria-current='page']):hover { color: var(--color-accent); }
 
 /* — dialog — */
 .dialog-title {
