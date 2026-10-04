@@ -1,4 +1,6 @@
+import { useId } from 'react';
 import type { Degree } from '@/components/fretboard/theme';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import {
   prettyNote, ROOTS, SCALE_GROUPS, SCALES, type Root, type Scale,
 } from './theory';
@@ -12,12 +14,18 @@ interface ScalePickersProps {
   scale: Scale;
   onRoot: (root: Root) => void;
   onScale: (id: string) => void;
+  /** Titles of the modes either side, or null where the scale has none. */
+  modes: { prev: string; next: string } | null;
+  onRotate: (dir: 1 | -1) => void;
 }
 
-/** The root and scale dropdowns, beside the page title. */
-export function ScalePickers({ scale, onRoot, onScale }: ScalePickersProps) {
+/** The root and scale dropdowns and Rotate mode, beside the page title. */
+export function ScalePickers({
+  scale, onRoot, onScale, modes, onRotate,
+}: ScalePickersProps) {
+  const rotateId = useId();
   return (
-    <div className="flex items-center gap-x-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <label className="flex items-center gap-2">
         <span className="field-label m-0 max-[480px]:sr-only">Root</span>
         <select
@@ -44,6 +52,28 @@ export function ScalePickers({ scale, onRoot, onScale }: ScalePickersProps) {
           ))}
         </select>
       </label>
+      {/* Two bare arrows would be unclear, so this label stays on phones. */}
+      <div role="group" aria-labelledby={rotateId} className="flex items-center gap-2">
+        <span id={rotateId} className="field-label m-0">Rotate mode</span>
+        <div className="mode-steps">
+          <button
+            type="button" className="btn btn-secondary btn-icon" disabled={!modes}
+            aria-label={modes ? `Previous mode: ${modes.prev}` : 'Previous mode'}
+            title={modes?.prev ?? 'Only seven-note scales have modes'}
+            onClick={() => onRotate(-1)}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            type="button" className="btn btn-secondary btn-icon" disabled={!modes}
+            aria-label={modes ? `Next mode: ${modes.next}` : 'Next mode'}
+            title={modes?.next ?? 'Only seven-note scales have modes'}
+            onClick={() => onRotate(1)}
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

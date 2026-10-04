@@ -23,6 +23,13 @@ interface ChordStripProps {
   onView: (view: ChordView) => void;
   intervals: ChordIntervals;
   onIntervals: (intervals: ChordIntervals) => void;
+  /**
+   * Rotate mode's step: the cards keep the picked scale's order and its
+   * root stays where the ladder and clock start, so the tonic moves along.
+   */
+  mode: number;
+  /** Semitones above the scale's root of the picked root. */
+  from: number;
 }
 
 /**
@@ -31,9 +38,11 @@ interface ChordStripProps {
  */
 export function ChordStrip({
   scale, chords, selected, onSelect, size, onSize, numerals, onNumerals,
-  view, onView, intervals, onIntervals,
+  view, onView, intervals, onIntervals, mode, from,
 }: ChordStripProps) {
   const Diagram = view === 'ladder' ? ChordLadder : ChordClock;
+  // In the picked scale's order: card j holds the chord on its jth note.
+  const cards = chords.map((_, j) => chords[(j - mode + 7) % 7]);
 
   // With a chord selected, ← and → step through the chords, wrapping round.
   useEffect(() => {
@@ -69,7 +78,7 @@ export function ChordStrip({
       {chords.length ? (
         <>
           <div className="chord-strip">
-            {chords.map(c => (
+            {cards.map(c => (
               <button
                 key={c.index}
                 type="button"
@@ -79,7 +88,9 @@ export function ChordStrip({
                 aria-pressed={c.index === selected?.index}
                 onClick={() => onSelect(c.index === selected?.index ? null : c)}
               >
-                <span className="chord-numeral">{c.numeral}</span>
+                <span className={`chord-numeral${c.index === 0 ? ' text-(--degree-root)' : ''}`}>
+                  {c.numeral}
+                </span>
                 <span className="font-bold">{c.symbol}</span>
                 <span className="text-[12px] leading-4 text-(--ink-muted)">{c.quality}</span>
               </button>
@@ -98,7 +109,7 @@ export function ChordStrip({
               )}
             </div>
             <div className={view === 'ladder' ? 'ladder-scroll' : undefined}>
-              <Diagram scale={scale} chord={selected} intervals={intervals} />
+              <Diagram scale={scale} chord={selected} intervals={intervals} from={from} />
             </div>
           </div>
           <p className="m-0 text-[13px] text-(--ink-muted)">

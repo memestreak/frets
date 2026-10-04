@@ -1,6 +1,6 @@
 import {
-  diatonicChords, intervalLabel, intervalWords, neckNotes, prettyNote, ROOTS, scaleDef,
-  scaleOf, SCALES, type Root,
+  diatonicChords, intervalLabel, intervalWords, modeFamily, neckNotes, prettyNote, ROOTS,
+  rotateMode, scaleDef, scaleOf, SCALES, type Root,
 } from '@/features/explore/scales/theory';
 
 const scale = (root: Root, id: string) => scaleOf(root, scaleDef(id)!);
@@ -153,5 +153,49 @@ describe('intervalWords', () => {
     expect(intervalWords('M3')).toBe('major 3rd');
     expect(intervalWords('d5')).toBe('diminished 5th');
     expect(intervalWords('m7')).toBe('minor 7th');
+  });
+});
+
+describe('rotateMode', () => {
+  const rotated = (root: Root, id: string, step: number) => {
+    const m = rotateMode(root, scaleDef(id)!, step);
+    return `${m.root} ${m.type.id} +${m.shift}`;
+  };
+
+  it('moves the root up the scale and renames the scale for it', () => {
+    expect(rotated('C', 'ionian', 0)).toBe('C ionian +0');
+    expect(rotated('C', 'ionian', 1)).toBe('D dorian +2');
+    expect(rotated('C', 'ionian', 6)).toBe('B locrian +11');
+    // From a mode other than the first, the family wraps round.
+    expect(rotated('A', 'dorian', 6)).toBe('G ionian +10');
+    expect(rotated('A', 'melodic-minor', 6)).toBe('G# altered +11');
+    expect(rotated('A', 'harmonic-minor', 2)).toBe('C ionian-sharp5 +3');
+  });
+
+  it('respells a root the picker lacks', () => {
+    // C♯ major's third note is E♯: F Phrygian, the same pitches.
+    expect(rotated('C#', 'ionian', 2)).toBe('F phrygian +4');
+    expect(rotated('A#', 'ionian', 6)).toBe('A locrian +11');
+    expect(rotated('Gb', 'ionian', 3)).toBe('B lydian +5');
+  });
+
+  it('keeps the pitches of every mode of every family', () => {
+    const pcs = (root: Root, id: string) =>
+      scale(root, id).degrees.map(d => d.pc).sort((a, b) => a - b).join();
+    for (const type of SCALES.filter(t => modeFamily(t))) {
+      for (const root of ROOTS) {
+        for (let step = 0; step < 7; step++) {
+          const m = rotateMode(root, type, step);
+          expect(pcs(m.root, m.type.id)).toBe(pcs(root, type.id));
+        }
+      }
+    }
+  });
+
+  it('leaves pentatonic and blues scales alone', () => {
+    for (const id of ['major-pentatonic', 'minor-pentatonic', 'minor-blues']) {
+      expect(modeFamily(scaleDef(id)!)).toBeNull();
+      expect(rotated('C', id, 3)).toBe(`C ${id} +0`);
+    }
   });
 });

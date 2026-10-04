@@ -24,6 +24,11 @@ interface ChordLadderProps {
    * root, closing on the octave.
    */
   octaves?: 1 | 2;
+  /**
+   * Semitones above the scale's root where the ladder starts, 0–11: after
+   * Rotate mode it stays on the picked scale and the root moves.
+   */
+  from?: number;
 }
 
 /**
@@ -32,7 +37,9 @@ interface ChordLadderProps {
  * its interval. A chord's tones are coloured and bracketed; without one,
  * every scale note takes its degree colour.
  */
-export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadderProps) {
+export function ChordLadder({
+  scale, chord, intervals, octaves = 2, from = 0,
+}: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
   const levels = Math.max(0, ...spans.map(s => s.level));
@@ -47,7 +54,12 @@ export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadde
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
   const svgRef = useRef<SVGSVGElement>(null);
-  const rootX = PAD + (chord?.rising[0] ?? 0) * CELL;
+  // Each chord tone's cell: the chord keeps its place above the strip's
+  // first note, so after Rotate mode it sits where it did before.
+  const at = chord
+    ? chord.rising.map(r => r - from + (chord.rising[0] < from ? 12 : 0))
+    : [];
+  const rootX = PAD + (at[0] ?? 0) * CELL;
   useEffect(() => {
     const svg = svgRef.current;
     const box = svg?.parentElement;
@@ -80,7 +92,7 @@ export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadde
 
       {Array.from({ length: cells }, (_, semi) => {
         const x = PAD + semi * CELL;
-        const degree = scale.degrees.find(d => d.semis === semi % 12);
+        const degree = scale.degrees.find(d => d.semis === (semi + from) % 12);
         if (!degree) {
           return (
             <rect
@@ -90,7 +102,7 @@ export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadde
             />
           );
         }
-        const k = chord ? chord.rising.indexOf(semi) : -1;
+        const k = chord ? at.indexOf(semi) : -1;
         const on = k >= 0;
         // Without a chord every note is coloured, the root squarer.
         const fill = chord ? (on ? toneFill(k) : 'var(--surface-sunken)') : degreeFill(degree);
@@ -130,8 +142,8 @@ export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadde
       {chord && spans.map(s => {
         // Thirds share their end tones, so pull each in to keep them apart.
         const inset = between ? 3 : 0;
-        const a = cx(chord.rising[s.from]) + inset;
-        const b = cx(chord.rising[s.to]) - inset;
+        const a = cx(at[s.from]) + inset;
+        const b = cx(at[s.to]) - inset;
         const y = top - 4 - LEVEL * s.level;
         return (
           <g key={s.to}>
