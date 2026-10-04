@@ -22,7 +22,7 @@ interface ScalePanelProps {
 export function ScalePanel({ scale, onRoot, onScale }: ScalePanelProps) {
   return (
     <section className="card gap-3" aria-label="Root and scale">
-      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
         <label className="flex items-center gap-2">
           <span className="field-label m-0 max-[480px]:sr-only">Root</span>
           <select

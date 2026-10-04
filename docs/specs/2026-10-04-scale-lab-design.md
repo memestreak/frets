@@ -33,8 +33,8 @@ One column, as in the prototype:
 
 1. **Title.** The `h1` is the scale ("A Dorian", "A natural minor"), or
    "D7 in A Dorian" with a chord selected.
-2. **Root and scale.** A card with no heading: on its top row, right
-   aligned, a Root dropdown (17 spellings: the naturals plus a ♯ and a ♭
+2. **Root and scale.** A card with no heading: on its top row, from the
+   left, a Root dropdown (17 spellings: the naturals plus a ♯ and a ♭
    for each black key), a Scale dropdown with one `<optgroup>` per family
    (list below) and the scale's formula in JetBrains Mono. Under them the
    scale as a one-octave strip from root to root, drawn like the chords
