@@ -1,24 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { AppShell } from "@/components/AppShell";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Barlow (SIL OFL), latin subset, self-hosted so the build does not depend
-// on reaching Google Fonts. Headings use it too: the design system's Barlow
-// Condensed read as too narrow.
-const barlow = localFont({
-  variable: "--font-barlow",
-  src: [
-    { path: "./fonts/barlow-400.woff2", weight: "400" },
-    { path: "./fonts/barlow-500.woff2", weight: "500" },
-    { path: "./fonts/barlow-700.woff2", weight: "700" },
-  ],
+// Fretwood's display and text faces (SIL OFL), latin subset, self-hosted so the build
+// does not depend on reaching Google Fonts. Glyphs outside latin (♭ ♯ ✕)
+// come from the fallback stacks in fretwood.css.
+const fraunces = localFont({
+  variable: "--font-fraunces",
+  src: [{ path: "./fonts/fraunces-600-latin.woff2", weight: "600" }],
 });
-
-// Monoton (SIL OFL), latin subset: the wordmark in the nav only.
-const monoton = localFont({
-  variable: "--font-monoton",
-  src: [{ path: "./fonts/monoton-400.woff2", weight: "400" }],
+const figtree = localFont({
+  variable: "--font-figtree",
+  src: [{ path: "./fonts/figtree-latin.woff2", weight: "400 700" }],
 });
 
 export const viewport: Viewport = {
@@ -37,11 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // On <html>, not <body>: industry.css reads these variables at :root.
+    // On <html>, not <body>: fretwood.css reads these variables at :root.
+    // suppressHydrationWarning: the boot script may set data-theme first.
     <html
       lang="en"
-      className={`${barlow.variable} ${monoton.variable}`}
+      className={`${fraunces.variable} ${figtree.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body>
         <AppShell>{children}</AppShell>
       </body>

@@ -2,10 +2,10 @@
 /* The design system sits in the components layer: above Tailwind's
    preflight (base) so its type and form styles win, below utilities so
    layout utilities can still adjust a .btn or .card. */
-@import "../styles/industry.css" layer(components);
+@import "../styles/fretwood.css" layer(components);
 
-/* Tailwind is used for layout only; colors come from the DS tokens
-   (e.g. text-(--color-accent)), so drop Tailwind's default palette. */
+/* Tailwind is used for layout only; colors come from the Fretwood tokens
+   (e.g. text-(--ink-muted)), so drop Tailwind's default palette. */
 @theme {
   --color-*: initial;
 }
@@ -16,16 +16,16 @@ button {
 
 /* App components, alongside the design system so utilities still win. */
 @layer components {
-  /* Toggle buttons: off = outline, on = accent-100 fill + accent border. */
+  /* Toggle buttons: off = outline, on = primary-soft fill + primary edge. */
   .btn-toggle[aria-pressed='true'] {
-    background: var(--color-accent-100);
-    color: var(--color-accent-800);
-    border-color: var(--color-accent);
+    background: var(--primary-soft);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1.5px var(--primary);
   }
   .chip { min-width: 48px; padding: 5px 8px; }
 
   .keycap {
-    font-family: var(--font-body);
+    font-family: var(--font-sans);
     font-size: 11px;
     font-weight: 400;
     opacity: 0.8;
@@ -46,26 +46,21 @@ button {
     min-width: 0;
     line-height: 1;
     font-size: clamp(13px, 1.6vw, 17px);
-    background: var(--color-tile);
-    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
   }
   .answer-grid[data-variant='note'] .answer-btn {
     font-size: clamp(12px, 1.4vw, 16px);
     line-height: 1.1;
   }
   .answer-btn[data-state='wrong'] {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
-    color: var(--color-bg);
+    background: var(--danger);
+    color: var(--on-primary);
   }
   .answer-btn[data-state='correct'] {
-    background: var(--color-success);
-    border-color: var(--color-success);
-    color: var(--color-bg);
+    background: var(--success);
+    color: var(--on-primary);
   }
-  .answer-btn[data-state='idle']:hover {
-    background: color-mix(in srgb, var(--color-text) 7%, var(--color-tile));
-  }
+  .answer-btn[data-state='idle']:hover { background: var(--line); }
   /* Phones: "C♯/D♭" may break after the slash. */
   @media (max-width: 500px) {
     .answer-btn { flex-wrap: wrap; padding-inline: 0; }
@@ -73,7 +68,7 @@ button {
 
   /* A .card: separate from the answer card above; no flex gap so the
      board-to-legend spacing stays as it was. */
-  .board-frame { padding: 10px 22px 14px; margin-top: 14px; gap: 0; }
+  .board-frame { padding: 12px 22px 16px; margin-top: 14px; gap: 0; }
   .fretboard {
     display: block;
     width: 100%;
@@ -90,8 +85,10 @@ button {
   .fret-cell { fill: transparent; cursor: pointer; }
   .fret-cell[aria-disabled='true'] { cursor: default; }
   .fret-cell:focus { outline: none; }
+  .fret-cell:hover { fill: var(--string); fill-opacity: 0.14; }
+  .fret-cell[aria-disabled='true']:hover { fill: transparent; }
   .fret-cell:focus-visible {
-    stroke: var(--color-accent);
+    stroke: var(--focus-ring);
     stroke-width: 2;
   }
 
@@ -111,15 +108,14 @@ button {
     max-height: calc(100dvh - 32px);
     margin: auto;
     padding: 0;
-    border: 0;
     overflow: hidden;
-    color: var(--color-text);
-    background: var(--color-card);
+    color: var(--ink);
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
   }
   .settings-dialog[open] { display: flex; }
-  .settings-dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+  .settings-dialog::backdrop { background: rgb(30 25 21 / 0.5); }
   .settings-dialog-inner {
     display: flex;
     flex-direction: column;
@@ -143,9 +139,3 @@ button {
   html:has(.settings-dialog[open]) { overflow: hidden; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}

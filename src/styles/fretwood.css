@@ -1,0 +1,254 @@
+/* Fretwood design system: tokens and the shared component classes.
+   Colour values are copied from the Fretwood design system's tokens.json
+   (https://claude.ai/artifact/GTUAmXkKGcQu1vVPH8ns3F) and keep its names;
+   its README is the rulebook for using them. Fonts are loaded with
+   next/font in layout.tsx, which sets --font-fraunces and --font-figtree.
+   App-specific component CSS is in globals.css. */
+
+:root {
+  color-scheme: light;
+  --surface: #f6f0e4;
+  --surface-raised: #fffaf2;
+  --surface-sunken: #ebe2d1;
+  --line: #dccfb9;
+  --line-strong: #8f7e66;
+  --ink: #2e2620;
+  --ink-muted: #66584b;
+  --primary: #a8462a;
+  --primary-hover: #8f3a22;
+  --primary-soft: #f1d9cb;
+  --on-primary: #fffaf2;
+  --secondary: #5c6e30;
+  --on-secondary: #fffaf2;
+  --accent: #d9a23a;
+  --on-accent: #2e2620;
+  --focus-ring: #2f6577;
+  --success: #4f6a2a;
+  --warning: #8a5a0c;
+  --danger: #9b2c1f;
+  --info: #2f6577;
+  --fretboard: #4f3a2b;
+  --fret-wire: #a8957a;
+  --string: #e3d5bb;
+  --inlay: #bba887;
+  --nut: #efe3cb;
+  --dot-ring: #f6f0e4;
+  --dot-quiz: #fffaf2;
+  --on-dot-quiz: #2e2620;
+  --degree-root: #a8462a;
+  --degree-third: #946a12;
+  --degree-fifth: #5c6e30;
+  --degree-seventh: #3d6476;
+  --degree-second: #c9a3b8;
+  --degree-sixth: #9cbccb;
+  --degree-extension: #7a4862;
+  --degree-other: #7a6a59;
+  --on-degree-root: #fffaf2;
+  --on-degree-third: #fffaf2;
+  --on-degree-fifth: #fffaf2;
+  --on-degree-seventh: #fffaf2;
+  --on-degree-second: #2e2620;
+  --on-degree-sixth: #2e2620;
+  --on-degree-extension: #fffaf2;
+  --on-degree-other: #fffaf2;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --control-height: 40px;
+}
+
+/* Dark: follows the system unless the viewer picked Light, or forced by
+   picking Dark (data-theme on <html>, set by ThemeSwitch). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --surface: #1e1915;
+    --surface-raised: #28211c;
+    --surface-sunken: #16120f;
+    --line: #3e342b;
+    --line-strong: #887a6c;
+    --ink: #f2eadd;
+    --ink-muted: #bcae9b;
+    --primary: #e0805c;
+    --primary-hover: #eb9775;
+    --primary-soft: #4a2c20;
+    --on-primary: #1e1915;
+    --secondary: #a6b86e;
+    --on-secondary: #1e1915;
+    --accent: #e6b65a;
+    --on-accent: #1e1915;
+    --focus-ring: #8cc3d6;
+    --success: #a6b86e;
+    --warning: #e6b65a;
+    --danger: #f08a78;
+    --info: #8cc3d6;
+    --fretboard: #3d2c21;
+    --fret-wire: #857560;
+    --string: #cbbba1;
+    --inlay: #7d6c58;
+    --nut: #e6d9c2;
+    --dot-ring: #1e1915;
+    --dot-quiz: #f2eadd;
+    --on-dot-quiz: #1e1915;
+    --degree-root: #e0805c;
+    --degree-third: #e6b65a;
+    --degree-fifth: #a6b86e;
+    --degree-seventh: #5f9ab0;
+    --degree-second: #f0dde7;
+    --degree-sixth: #d6ecf3;
+    --degree-extension: #b07a97;
+    --degree-other: #b3a492;
+    --on-degree-root: #1e1915;
+    --on-degree-third: #1e1915;
+    --on-degree-fifth: #1e1915;
+    --on-degree-seventh: #1e1915;
+    --on-degree-second: #1e1915;
+    --on-degree-sixth: #1e1915;
+    --on-degree-extension: #1e1915;
+    --on-degree-other: #1e1915;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface: #1e1915;
+  --surface-raised: #28211c;
+  --surface-sunken: #16120f;
+  --line: #3e342b;
+  --line-strong: #887a6c;
+  --ink: #f2eadd;
+  --ink-muted: #bcae9b;
+  --primary: #e0805c;
+  --primary-hover: #eb9775;
+  --primary-soft: #4a2c20;
+  --on-primary: #1e1915;
+  --secondary: #a6b86e;
+  --on-secondary: #1e1915;
+  --accent: #e6b65a;
+  --on-accent: #1e1915;
+  --focus-ring: #8cc3d6;
+  --success: #a6b86e;
+  --warning: #e6b65a;
+  --danger: #f08a78;
+  --info: #8cc3d6;
+  --fretboard: #3d2c21;
+  --fret-wire: #857560;
+  --string: #cbbba1;
+  --inlay: #7d6c58;
+  --nut: #e6d9c2;
+  --dot-ring: #1e1915;
+  --dot-quiz: #f2eadd;
+  --on-dot-quiz: #1e1915;
+  --degree-root: #e0805c;
+  --degree-third: #e6b65a;
+  --degree-fifth: #a6b86e;
+  --degree-seventh: #5f9ab0;
+  --degree-second: #f0dde7;
+  --degree-sixth: #d6ecf3;
+  --degree-extension: #b07a97;
+  --degree-other: #b3a492;
+  --on-degree-root: #1e1915;
+  --on-degree-third: #1e1915;
+  --on-degree-fifth: #1e1915;
+  --on-degree-seventh: #1e1915;
+  --on-degree-second: #1e1915;
+  --on-degree-sixth: #1e1915;
+  --on-degree-extension: #1e1915;
+  --on-degree-other: #1e1915;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Base type and the shared components, built from the tokens above.
+   ══════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 16px/24px var(--font-sans);
+}
+/* Fraunces only for page titles; everything smaller is Figtree. */
+h1 { font: 600 30px/36px var(--font-display); margin: 0 0 var(--space-2); }
+h2 { font: 700 22px/28px var(--font-sans); margin: 0 0 var(--space-2); }
+h3 { font: 700 17px/24px var(--font-sans); margin: 0 0 var(--space-2); }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--primary); text-underline-offset: 3px; }
+.text-muted { color: var(--ink-muted); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+::selection { background: var(--primary-soft); color: var(--ink); }
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--control-height); padding: 0 14px;
+  font: 600 13px/16px var(--font-sans); letter-spacing: 0.01em;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  background: transparent; border: 0; border-radius: var(--radius-md);
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: var(--primary-hover); }
+/* Outline: transparent, 1.5px line-strong border drawn inside. */
+.btn-secondary { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.btn-secondary:hover { background: var(--primary-soft); }
+.btn-ghost { color: var(--primary); padding-inline: var(--space-2); }
+.btn-ghost:hover { background: var(--primary-soft); }
+.btn-icon { width: var(--control-height); padding: 0; }
+
+/* — forms — */
+.field-label {
+  display: block; margin-bottom: 6px;
+  font: 600 13px/16px var(--font-sans); color: var(--ink);
+}
+.input {
+  width: 100%; min-height: var(--control-height); padding: 0 10px;
+  font: 400 15px/20px var(--font-sans); color: var(--ink);
+  background: var(--surface-raised);
+  border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
+}
+.input:focus-visible { outline-offset: 0; }
+
+/* — segmented control: a sunken track, the selected option raised — */
+.seg {
+  display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px;
+  background: var(--surface-sunken); border-radius: var(--radius-md);
+}
+/* Options are buttons; aria-pressed marks the selected one. */
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px;
+  font: 600 13px/16px var(--font-sans); color: var(--ink-muted); cursor: pointer;
+  background: transparent; border: 0; border-radius: 8px;
+}
+.seg-opt[aria-pressed='true'] { background: var(--surface-raised); color: var(--ink); }
+.seg-opt:not([aria-pressed='true']):hover { color: var(--ink); }
+
+/* — cards: flat, set off from the page by a hairline border — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--surface-raised); border: 1px solid var(--line);
+}
+.card-kicker {
+  font: 700 11px/16px var(--font-sans); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

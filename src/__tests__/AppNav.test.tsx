@@ -17,15 +17,15 @@ function renderAt(pathname: string) {
 }
 
 describe('AppNav', () => {
-  it('links the FRETS wordmark home', () => {
+  it('links the Frets wordmark home', () => {
     renderAt('/practice/notes');
-    expect(screen.getByRole('link', { name: 'FRETS' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Frets' })).toHaveAttribute('href', '/');
   });
 
   it('has no page switcher inside a section', () => {
     renderAt('/practice/notes');
     expect(screen.getAllByRole('link').map(l => l.textContent))
-      .toEqual(['FRETS', 'Note trainer']);
+      .toEqual(['Frets', 'Note trainer']);
   });
 
   it('names the current page in place of its section', () => {

@@ -81,11 +81,11 @@ export function PerItemStats({ rows, labelWidth }: { rows: PerItemRow[]; labelWi
           className="grid items-center gap-2"
           style={{ gridTemplateColumns: `${labelWidth}px minmax(0,1fr) 36px` }}
         >
-          <span className="font-(family-name:--font-heading) text-[14px] font-semibold">
+          <span className="text-[14px] font-semibold">
             {r.label}
           </span>
           <span
-            className="relative block h-[5px] overflow-hidden rounded-full bg-(--color-track)"
+            className="relative block h-[5px] overflow-hidden rounded-full bg-(--surface-sunken)"
             role="meter"
             aria-label={`${r.label} accuracy`}
             aria-valuemin={0}
@@ -93,7 +93,7 @@ export function PerItemStats({ rows, labelWidth }: { rows: PerItemRow[]; labelWi
             aria-valuenow={r.pct ?? 0}
           >
             <span
-              className="absolute inset-y-0 left-0 rounded-full bg-(--color-accent)"
+              className="absolute inset-y-0 left-0 rounded-full bg-(--primary)"
               style={{ width: `${r.pct ?? 0}%` }}
             />
           </span>

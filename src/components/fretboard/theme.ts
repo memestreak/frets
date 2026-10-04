@@ -1,40 +1,41 @@
-/** Fretboard colors. Only the `maple` theme ships. */
-export interface FretboardTheme {
-  board: string;
-  string: string;
-  fret: string;
-  nut: string;
-  inlay: string;
-  muted: string;
-  rootFill: string;
-  rootFg: string;
-  tgtFill: string;
-  tgtFg: string;
-  hintFill: string;
-  hintStroke: string;
-  hintFg: string;
-  legend: string;
+/**
+ * Fretboard colours. Every value is a Fretwood token, so the board follows
+ * the light / dark theme without a theme prop.
+ */
+export const BOARD = {
+  fill: 'var(--fretboard)',
+  fret: 'var(--fret-wire)',
+  nut: 'var(--nut)',
+  inlay: 'var(--inlay)',
+  string: 'var(--string)',
+  /** String names and fret numbers, drawn off the board. */
+  label: 'var(--ink-muted)',
+  /** Ring around every dot, so dots read on the board and on each other. */
+  dotRing: 'var(--dot-ring)',
+} as const;
+
+/** A dot's fill and the colour of its label. */
+export interface DotColor {
+  fill: string;
+  fg: string;
 }
 
-export const MAPLE_THEME: FretboardTheme = {
-  board: 'var(--color-board)',
-  string: 'var(--color-neutral-700)',
-  fret: 'var(--color-board-fret)',
-  nut: 'var(--color-neutral-800)',
-  inlay: 'var(--color-board-inlay)',
-  muted: 'color-mix(in srgb, var(--color-text) 60%, transparent)',
-  rootFill: 'var(--color-accent)',
-  rootFg: 'var(--color-bg)',
-  tgtFill: 'var(--color-text)',
-  tgtFg: 'var(--color-bg)',
-  hintFill: 'var(--color-accent-200)',
-  hintStroke: 'var(--color-accent)',
-  hintFg: 'var(--color-accent-800)',
-  legend: 'color-mix(in srgb, var(--color-text) 70%, transparent)',
-};
+/** Scale-degree colours from the design system's degree palette. */
+export type Degree =
+  | 'root' | 'second' | 'third' | 'extension' | 'fifth' | 'sixth' | 'seventh'
+  | 'other';
 
-export const STATUS = {
-  green: 'var(--color-success)',
-  greenDeep: 'var(--color-success-deep)',
-  red: 'var(--color-danger)',
-} as const;
+export const degreeColor = (d: Degree): DotColor => ({
+  fill: `var(--degree-${d})`,
+  fg: `var(--on-degree-${d})`,
+});
+
+/** Dot colours for quiz states. */
+export const DOT = {
+  root: degreeColor('root'),
+  /** A question mark. Never a degree colour, which would give the answer away. */
+  quiz: { fill: 'var(--dot-quiz)', fg: 'var(--on-dot-quiz)' },
+  correct: { fill: 'var(--success)', fg: 'var(--on-primary)' },
+  wrong: { fill: 'var(--danger)', fg: 'var(--on-primary)' },
+  other: degreeColor('other'),
+} as const satisfies Record<string, DotColor>;

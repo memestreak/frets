@@ -1,5 +1,7 @@
 # Soft UI: rounded cards, pill controls, maple fingerboard
 
+Superseded by `2026-10-04-fretwood-design-system.md`.
+
 Date: 2026-10-01
 Status: approved design, awaiting implementation plan
 

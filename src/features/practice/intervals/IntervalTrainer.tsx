@@ -2,7 +2,7 @@
 
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
-import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
+import { degreeColor, DOT, type Degree } from '@/components/fretboard/theme';
 import {
   AnswerCard, AnswerGrid, FindPrompt, type AnswerButton,
 } from '@/features/practice/quiz/AnswerCard';
@@ -41,6 +41,12 @@ const noteName = (s: number, f: number) => SHARP_NAMES[midi(s, f) % 12];
 const answerFor = (index: number, set: IntervalSettings) =>
   set.mode === 'name' && activePool(set).includes(index + 1) ? index + 1 : null;
 
+/** Hint colour for each interval class (`intervalClass`), P1 to P8. */
+const INTERVAL_DEGREE: readonly Degree[] = [
+  'root', 'second', 'second', 'third', 'third', 'extension', 'extension',
+  'fifth', 'sixth', 'sixth', 'seventh', 'seventh', 'root',
+];
+
 export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const {
     state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
@@ -64,14 +70,15 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           if (s === q.root.s && f === q.root.f) continue;
           const c = intervalClass(midi(s, f) - rootMidi);
           dots.push({
-            s, f, kind: 'hint', fill: T.hintFill, stroke: T.hintStroke, fg: T.hintFg,
+            s, f, kind: 'hint', ...degreeColor(INTERVAL_DEGREE[c]),
+            shape: INTERVAL_DEGREE[c] === 'root' ? 'square' : 'circle',
             label: c === 0 ? 'R' : INTERVAL_NAMES[c], fontSize: 10,
           });
         }
       }
     }
     dots.push({
-      ...q.root, kind: 'root', fill: T.rootFill, stroke: T.rootFill, fg: T.rootFg,
+      ...q.root, kind: 'root', ...DOT.root, shape: 'square',
       label: set.noteNames ? noteName(q.root.s, q.root.f) : 'R', fontSize: 12,
     });
     if (mode === 'name' || answered) {
@@ -82,14 +89,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         for (const p of correctFrets(q, set)) {
           if (samePos(p, at)) continue;
           dots.push({
-            ...p, kind: 'also', fill: 'transparent', stroke: STATUS.green,
-            fg: STATUS.greenDeep, label: INTERVAL_NAMES[q.semis], fontSize: 10,
+            ...p, kind: 'also', ...DOT.correct, opacity: 0.55,
+            label: INTERVAL_NAMES[q.semis], fontSize: 10,
           });
         }
       }
-      const fill = answered ? STATUS.green : T.tgtFill;
       dots.push({
-        ...at, kind: 'target', fill, stroke: fill, fg: T.tgtFg,
+        ...at, kind: 'target', ...(answered ? DOT.correct : DOT.quiz),
         label: answered
           ? INTERVAL_NAMES[q.semis]
           : set.noteNames ? noteName(at.s, at.f) : '?',
@@ -237,10 +243,11 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         </AnswerCard>
         <BoardFrame
           legend={[
-            { label: 'Root', color: T.rootFill, shape: 'circle' },
+            { label: 'Root', color: DOT.root.fill, shape: 'square' },
             {
               label: mode === 'name' ? 'Interval note' : 'Your answer',
-              color: T.tgtFill, shape: 'circle',
+              color: mode === 'name' ? DOT.quiz.fill : DOT.correct.fill,
+              shape: 'circle',
             },
           ]}
           hint={hint}

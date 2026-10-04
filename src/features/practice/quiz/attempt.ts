@@ -1,5 +1,5 @@
 import type { FretDot } from '@/components/fretboard/Fretboard';
-import { MAPLE_THEME as T, STATUS } from '@/components/fretboard/theme';
+import { DOT } from '@/components/fretboard/theme';
 import type { AnswerButton, FeedbackTone } from './AnswerCard';
 import type { TrainerState } from './trainerState';
 
@@ -21,14 +21,12 @@ export function attemptDots(
   for (const w of wrong) {
     if (typeof w === 'number') continue;
     dots.push({
-      ...w, kind: 'wrong', fill: 'transparent', stroke: STATUS.red, fg: STATUS.red,
-      label: '✕', fontSize: 12, opacity: 0.9,
+      ...w, kind: 'wrong', ...DOT.wrong, label: '✕', fontSize: 12,
     });
   }
   for (const p of far) {
     dots.push({
-      ...p, kind: 'far', fill: 'transparent', stroke: T.muted, fg: T.muted,
-      label: farLabel, fontSize: 10,
+      ...p, kind: 'far', ...DOT.other, label: farLabel, fontSize: 10,
     });
   }
   return dots;
