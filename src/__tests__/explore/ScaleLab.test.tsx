@@ -15,8 +15,9 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A Dorian');
     expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('A');
-    expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    // The one-octave strip under the pickers.
+    // The formula follows the title, in parentheses.
+    expect(formula()).toHaveTextContent('(1 2 ♭3 4 5 6 ♭7)');
+    // The one-octave strip under the title.
     const strip = scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')
       .find(el => el.classList.contains('scale-strip'));
     expect(strip).toBeDefined();
@@ -53,7 +54,7 @@ describe('ScaleLab', () => {
     expect(rootFrets()).toEqual(['10']);
 
     fireEvent.click(chordCard('D7'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian \(/);
     expect(dotLabels()).toEqual(new Set(['R', '2', '♭3', '4', '5', '6', '♭7']));
   });
 
@@ -61,7 +62,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('D7'));
     fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian$/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian \(/);
   });
 
   it('switches to triads and dot labels', () => {
@@ -117,7 +118,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     const title = () => screen.getByRole('heading', { level: 1 });
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent(/^A Dorian$/);
+    expect(title()).toHaveTextContent(/^A Dorian \(/);
 
     fireEvent.click(chordCard('D7'));
     fireEvent.keyDown(window, { key: 'ArrowRight' });

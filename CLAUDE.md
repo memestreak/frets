@@ -124,7 +124,7 @@ binds a local port).
   `--success`, `--danger`. Fretboard `--fretboard`, `--fret-wire`, `--nut`,
   `--inlay`, `--string`, `--dot-*`, `--degree-*`.
 - Fonts: `--font-display` (Fraunces, `h1` and wordmark), `--font-sans`
-  (Figtree) and `--font-mono` (JetBrains Mono, the Scale lab's formula and degrees),
+  (Figtree) and `--font-mono` (JetBrains Mono, the Scale lab's diagram degrees),
   self-hosted in `src/app/fonts/`.
 - Theme: `src/lib/theme.ts` (choice, `data-theme`, the `<head>` boot script)
   and `ThemeSwitch`. Every colour must be a token so both themes work.

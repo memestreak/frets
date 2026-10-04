@@ -32,18 +32,21 @@ the reference for behaviour; the look is Fretwood as the app applies it
 One column, as in the prototype:
 
 1. **Title.** The `h1` is the scale ("A Dorian", "A natural minor"), or
-   "D7 in A Dorian" with a chord selected.
-2. **Root and scale.** A card with no heading: on its top row, from the
-   left, a Root dropdown (17 spellings: the naturals plus a ♯ and a ♭
-   for each black key), a Scale dropdown with one `<optgroup>` per family
-   (list below) and the scale's formula in JetBrains Mono. Under them the
-   scale as a one-octave strip from root to root, drawn like the chords
-   section's ladder (`2026-10-04-chord-diagrams-design.md`): scale notes are
-   tiles in their degree colours with the degree under them, and the notes
-   outside the scale empty squares. The formula and strip stay the scale's
-   while a chord is selected. (Slice 1 had Notes, Formula and Steps facts
-   under the title, a 12-key root row with split black keys and 12 formula
-   chips; on review they took too much room.)
+   "D7 in A Dorian" with a chord selected, followed by the scale's formula
+   in parentheses in a smaller, muted face ("B♭ Ionian ♯5 (1 2 3 4 ♯5 6 7)").
+   On the same line, right-aligned, a Root dropdown (17 spellings: the
+   naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
+   one `<optgroup>` per family (list below). On phones the dropdowns wrap
+   under the title and their labels are visually hidden.
+2. **Scale strip.** No card: under the title, the scale as a one-octave
+   strip from root to root, drawn like the chords section's ladder
+   (`2026-10-04-chord-diagrams-design.md`): scale notes are tiles in their
+   degree colours with the degree under them, and the notes outside the
+   scale empty squares. The formula and strip stay the scale's while a
+   chord is selected. (Slice 1 had Notes, Formula and Steps facts under the
+   title, a 12-key root row with split black keys and 12 formula chips; on
+   review they took too much room. A card holding the dropdowns, formula
+   and strip came next; on review it still read as too heavy.)
 3. **On the neck.** Frets 0–15 on the shared `Fretboard`, display-only.
    Dot labels Interval / Note / None. The root is a square ("R"); every dot
    takes its degree colour. On phones the board scrolls sideways, as in the

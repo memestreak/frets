@@ -7,7 +7,8 @@ import { degreeColor } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
-import { DEGREES, ScalePanel } from './ScalePanel';
+import { ChordLadder } from './ChordLadder';
+import { DEGREES, ScalePickers } from './ScalePanel';
 import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
   type DotLabels, type ScaleLabSettings,
@@ -62,13 +63,25 @@ export default function ScaleLab() {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <h1 className="m-0" aria-live="polite">{title}</h1>
-
-      <ScalePanel
-        scale={scale}
-        onRoot={root => update({ root })}
-        onScale={id => update({ scale: id })}
-      />
+      <header className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <h1 className="m-0" aria-live="polite">
+            {title}{' '}
+            <span
+              className="text-[0.6em] font-normal text-(--ink-muted)"
+              data-testid="scale-formula"
+            >
+              ({scale.degrees.map(d => d.label).join(' ')})
+            </span>
+          </h1>
+          <ScalePickers
+            scale={scale}
+            onRoot={root => update({ root })}
+            onScale={id => update({ scale: id })}
+          />
+        </div>
+        <ChordLadder scale={scale} chord={null} intervals="root" octaves={1} />
+      </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
