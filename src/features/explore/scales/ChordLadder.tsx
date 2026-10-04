@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { ChordIntervals } from './settings';
 import {
-  chordSpans, describeChord, IntervalTag, toneFill, toneInk, toneLabel,
+  chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
+  IntervalTag, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
 import { prettyNote, type DiatonicChord, type Scale } from './theory';
 
@@ -17,28 +18,31 @@ const LEVEL = 22;
 
 interface ChordLadderProps {
   scale: Scale;
-  chord: DiatonicChord;
+  /** With no chord, the scale's notes in their degree colours. */
+  chord: DiatonicChord | null;
   intervals: ChordIntervals;
 }
 
 /**
  * The scale laid out over two octaves, a cell per semitone: scale notes are
  * tiles and the notes outside it empty squares, so each bracket's width is
- * its interval. The chord's tones are coloured and bracketed.
+ * its interval. A chord's tones are coloured and bracketed; without one,
+ * every scale note takes its degree colour.
  */
 export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
-  const spans = chordSpans(chord, intervals);
-  const levels = Math.max(...spans.map(s => s.level));
-  const top = LEVEL * levels + 36;
+  const spans = chord ? chordSpans(chord, intervals) : [];
+  const levels = Math.max(0, ...spans.map(s => s.level));
+  const top = levels ? LEVEL * levels + 36 : 12;
   const width = PAD * 2 + CELL * CELLS - (CELL - TILE);
-  const height = top + TILE_H + 58;
+  const height = top + TILE_H + (chord ? 58 : 44);
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
+  const octaveY = top + TILE_H + (chord ? 52 : 38);
   const between = intervals === 'between';
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
   const svgRef = useRef<SVGSVGElement>(null);
-  const rootX = PAD + chord.rising[0] * CELL;
+  const rootX = PAD + (chord?.rising[0] ?? 0) * CELL;
   useEffect(() => {
     const svg = svgRef.current;
     const box = svg?.parentElement;
@@ -52,14 +56,14 @@ export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
       className="chord-diagram chord-ladder"
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={describeChord(chord, intervals)}
+      aria-label={chord ? describeChord(chord, intervals) : describeScale(scale)}
     >
       <line
-        x1={octaveX} x2={octaveX} y1={top - 6} y2={top + TILE_H + 40}
+        x1={octaveX} x2={octaveX} y1={top - 6} y2={octaveY - 12}
         stroke="var(--line-strong)" strokeDasharray="3 3"
       />
       <text
-        x={octaveX} y={top + TILE_H + 52} textAnchor="middle"
+        x={octaveX} y={octaveY} textAnchor="middle"
         className="diagram-note" fill="var(--ink-muted)"
       >
         octave
@@ -77,28 +81,32 @@ export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
             />
           );
         }
-        const k = chord.rising.indexOf(semi);
+        const k = chord ? chord.rising.indexOf(semi) : -1;
         const on = k >= 0;
+        // Without a chord every note is coloured, the root squarer.
+        const fill = chord ? (on ? toneFill(k) : 'var(--surface-sunken)') : degreeFill(degree);
+        const ink = chord ? (on ? toneInk(k) : 'var(--ink-muted)') : degreeInk(degree);
+        const root = chord ? k === 0 : degree.semis === 0;
         return (
           <g key={semi} data-testid={on ? 'ladder-tone' : 'ladder-note'}>
             <rect
-              x={x} y={top} width={TILE} height={TILE_H} rx={k === 0 ? 3 : 8}
-              fill={on ? toneFill(k) : 'var(--surface-sunken)'}
-              stroke={on ? 'none' : 'var(--line)'}
+              x={x} y={top} width={TILE} height={TILE_H} rx={root ? 3 : 8}
+              fill={fill} stroke={chord && !on ? 'var(--line)' : 'none'}
             />
             <text
               x={x + TILE / 2} y={top + 22} textAnchor="middle" className="diagram-name"
-              fill={on ? toneInk(k) : 'var(--ink-muted)'}
+              fill={ink}
             >
               {prettyNote(degree.note)}
             </text>
             <text
               x={x + TILE / 2} y={top + TILE_H + 15} textAnchor="middle"
-              className="diagram-degree" fill="var(--ink-muted)" opacity={on ? 1 : 0.6}
+              className="diagram-degree" fill="var(--ink-muted)"
+              opacity={chord && !on ? 0.6 : 1}
             >
-              {degree.label}
+              {chord ? degree.label : degreeLabel(degree)}
             </text>
-            {on && (
+            {chord && on && (
               <text
                 x={x + TILE / 2} y={top + TILE_H + 30} textAnchor="middle"
                 className="diagram-role" fill={toneFill(k)}
@@ -110,7 +118,7 @@ export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
         );
       })}
 
-      {spans.map(s => {
+      {chord && spans.map(s => {
         // Thirds share their end tones, so pull each in to keep them apart.
         const inset = between ? 3 : 0;
         const a = cx(chord.rising[s.from]) + inset;
