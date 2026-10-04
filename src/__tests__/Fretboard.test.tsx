@@ -28,4 +28,9 @@ describe('Fretboard', () => {
     expect(screen.getByTestId('dot-root').querySelector('rect')).not.toBeNull();
     expect(screen.getByTestId('dot-target').querySelector('circle')).not.toBeNull();
   });
+
+  it('names a display-only board with its label', () => {
+    render(<Fretboard minFret={0} maxFret={5} dots={[]} label="A Dorian on the fretboard" />);
+    expect(screen.getByRole('img', { name: 'A Dorian on the fretboard' })).toBeInTheDocument();
+  });
 });

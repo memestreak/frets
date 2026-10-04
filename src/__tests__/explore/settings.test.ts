@@ -1,0 +1,24 @@
+import {
+  defaultScaleLabSettings, parseScaleLabSettings,
+} from '@/features/explore/scales/settings';
+
+describe('parseScaleLabSettings', () => {
+  it('falls back to the defaults for missing or non-object data', () => {
+    expect(parseScaleLabSettings(null)).toEqual(defaultScaleLabSettings());
+    expect(parseScaleLabSettings('A dorian')).toEqual(defaultScaleLabSettings());
+  });
+
+  it('keeps valid fields', () => {
+    const set = {
+      root: 'Eb', scale: 'harmonic-minor', chordSize: 3, numerals: 'relative', labels: 'note',
+    };
+    expect(parseScaleLabSettings(set)).toEqual(set);
+  });
+
+  it('replaces each invalid field with its default', () => {
+    expect(parseScaleLabSettings({
+      root: 'H', scale: 'bebop', chordSize: 5, numerals: 'roman', labels: 'finger',
+    })).toEqual(defaultScaleLabSettings());
+    expect(parseScaleLabSettings({ root: 'E#' }).root).toBe('A');
+  });
+});

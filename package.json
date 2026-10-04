@@ -13,7 +13,8 @@
   "dependencies": {
     "next": "^16.3.8",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tonal": "6.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

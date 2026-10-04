@@ -25,7 +25,7 @@ describe('AppNav', () => {
   it('has no page switcher inside a section', () => {
     renderAt('/practice/notes');
     expect(screen.getAllByRole('link').map(l => l.textContent))
-      .toEqual(['Frets', 'Note trainer']);
+      .toEqual(['Frets', 'Note trainer', 'Explore']);
   });
 
   it('names the current page in place of its section', () => {

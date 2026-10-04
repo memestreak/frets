@@ -37,6 +37,8 @@ interface FretboardProps {
   stringStyle?: (s: number) => StringStyle;
   /** Fret to bring into view when the board scrolls (phones). */
   scrollToFret?: number | null;
+  /** Accessible name when the board is a picture (no `onCellClick`). */
+  label?: string;
 }
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
@@ -48,7 +50,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret,
+  scrollToFret, label = 'Fretboard',
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
@@ -102,7 +104,7 @@ export function Fretboard({
       style={svgStyle}
       onContextMenu={e => e.preventDefault()}
       role={onCellClick ? 'group' : 'img'}
-      aria-label={onCellClick ? 'Fretboard: choose a fret' : 'Fretboard'}
+      aria-label={onCellClick ? 'Fretboard: choose a fret' : label}
     >
       <rect
         data-testid="board-fill"

@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Fretwood's display and text faces (SIL OFL), latin subset, self-hosted so the build
+// Fretwood's display, text and mono faces (SIL OFL), latin subset, self-hosted so the build
 // does not depend on reaching Google Fonts. Glyphs outside latin (♭ ♯ ✕)
 // come from the fallback stacks in fretwood.css.
 const fraunces = localFont({
@@ -14,6 +14,10 @@ const fraunces = localFont({
 const figtree = localFont({
   variable: "--font-figtree",
   src: [{ path: "./fonts/figtree-latin.woff2", weight: "400 700" }],
+});
+const jetbrainsMono = localFont({
+  variable: "--font-jetbrains-mono",
+  src: [{ path: "./fonts/jetbrains-mono-500-latin.woff2", weight: "500" }],
 });
 
 export const viewport: Viewport = {
@@ -36,7 +40,7 @@ export default function RootLayout({
     // suppressHydrationWarning: the boot script may set data-theme first.
     <html
       lang="en"
-      className={`${fraunces.variable} ${figtree.variable}`}
+      className={`${fraunces.variable} ${figtree.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <head>
