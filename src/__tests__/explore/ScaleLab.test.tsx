@@ -70,6 +70,35 @@ describe('ScaleLab', () => {
     expect(saved()).toMatchObject({ chordSize: 3, labels: 'note' });
   });
 
+  it('draws the selected chord as a ladder or a clock, and saves the choice', () => {
+    render(<ScaleLab />);
+    expect(screen.queryByRole('img', { name: /D7/ })).toBeNull();
+    fireEvent.click(chordCard('D7'));
+    // The ladder, naming each tone from the root.
+    const ladder = screen.getByRole('img', {
+      name: 'D7 from its root D: major 3rd up to F♯, perfect 5th up to A, minor 7th up to C',
+    });
+    expect(ladder).toHaveClass('chord-ladder');
+    const tones = screen.getAllByTestId('ladder-tone');
+    expect(tones.map(t => t.querySelector('text')?.textContent)).toEqual(['D', 'F♯', 'A', 'C']);
+    expect(ladder).toHaveTextContent(/M3.*P5.*m7/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Between tones' }));
+    expect(screen.getByRole('img', {
+      name: 'D7 in thirds from D: major 3rd up to F♯, then minor 3rd up to A, then minor 3rd up to C',
+    })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clock' }));
+    const clock = screen.getByRole('img', { name: /^D7 in thirds/ });
+    expect(clock).toHaveClass('chord-clock');
+    // Only the chord's tones are named on the clock.
+    expect(screen.getAllByTestId('clock-tone')).toHaveLength(4);
+    expect(saved()).toMatchObject({ chordView: 'clock', chordIntervals: 'between' });
+
+    fireEvent.click(chordCard('D7'));
+    expect(screen.queryByRole('img', { name: /D7/ })).toBeNull();
+  });
+
   it('explains why a pentatonic has no chords', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);

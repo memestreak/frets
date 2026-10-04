@@ -1,5 +1,5 @@
 import {
-  diatonicChords, intervalLabel, neckNotes, prettyNote, ROOTS, scaleDef,
+  diatonicChords, intervalLabel, intervalWords, neckNotes, prettyNote, ROOTS, scaleDef,
   scaleOf, SCALES, type Root,
 } from '@/features/explore/scales/theory';
 
@@ -72,6 +72,9 @@ describe('diatonicChords', () => {
       .toEqual(['i(maj7)', 'iiø7', '♭III+maj7', 'iv7', 'V7', '♭VImaj7', 'vii°7']);
     expect(chords[6].quality).toBe('diminished 7');
     expect(chords[6].labels).toEqual(['1', '♭3', '♭5', '𝄫7']);
+    expect(chords[6].thirds).toEqual(['m3', 'm3', 'm3']);
+    expect(chords[6].fromRoot).toEqual(['m3', 'd5', 'd7']);
+    expect(chords[2].thirds).toEqual(['M3', 'M3', 'm3']);
   });
 
   it('numbers by degree in III style', () => {
@@ -90,6 +93,23 @@ describe('diatonicChords', () => {
     expect(am7.tones).toEqual(['A', 'C', 'E', 'G']);
     expect(am7.labels).toEqual(['1', '♭3', '5', '♭7']);
     expect(am7.semis).toEqual([0, 3, 7, 10]);
+    expect(am7.thirds).toEqual(['m3', 'M3', 'm3']);
+    expect(am7.fromRoot).toEqual(['m3', 'P5', 'm7']);
+  });
+
+  it('climbs past the octave for the ladder', () => {
+    const chords = row('A', 'dorian', 4);
+    expect(chords[3].rising).toEqual([5, 9, 12, 15]);
+    expect(chords[6].rising).toEqual([10, 14, 17, 21]);
+  });
+
+  it('fits every stack in two octaves, rising', () => {
+    for (const def of SCALES) {
+      for (const c of diatonicChords(scaleOf('C', def), 4, 'parallel')) {
+        c.rising.slice(1).forEach((r, k) => expect(r).toBeGreaterThan(c.rising[k]));
+        expect(c.rising.at(-1)).toBeLessThan(24);
+      }
+    }
   });
 
   it('names every chord of every scale from the chord table', () => {
@@ -130,5 +150,13 @@ describe('neckNotes', () => {
     // B at fret 7 is a scale note outside the chord.
     expect(on.find(n => n.s === 0 && n.f === 7)).toBeUndefined();
     expect(new Set(on.map(n => n.note))).toEqual(new Set(['D', 'F', 'A', 'C']));
+  });
+});
+
+describe('intervalWords', () => {
+  it('spells interval names out', () => {
+    expect(intervalWords('M3')).toBe('major 3rd');
+    expect(intervalWords('d5')).toBe('diminished 5th');
+    expect(intervalWords('m7')).toBe('minor 7th');
   });
 });

@@ -54,7 +54,9 @@ One column, as in the prototype:
    (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
    as small grey dots; on review they read as clutter.) Changing the root
    or scale clears the chord;
-   changing size or numerals keeps it.
+   changing size or numerals keeps it. A selected chord is also drawn
+   against the scale as a ladder or a clock
+   (`2026-10-04-chord-diagrams-design.md`).
 
 Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
 

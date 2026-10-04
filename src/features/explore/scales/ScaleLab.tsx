@@ -107,6 +107,7 @@ export default function ScaleLab() {
       </section>
 
       <ChordStrip
+        scale={scale}
         chords={chords}
         selected={chord}
         onSelect={c => setChordIndex(c?.index ?? null)}
@@ -114,6 +115,10 @@ export default function ScaleLab() {
         onSize={chordSize => update({ chordSize })}
         numerals={set.numerals}
         onNumerals={numerals => update({ numerals })}
+        view={set.chordView}
+        onView={chordView => update({ chordView })}
+        intervals={set.chordIntervals}
+        onIntervals={chordIntervals => update({ chordIntervals })}
       />
     </div>
   );
