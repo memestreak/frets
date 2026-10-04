@@ -46,11 +46,6 @@ describe('spelling', () => {
     expect(formula('A', 'minor-blues')).toBe('1 ♭3 4 ♭5 5 ♭7');
   });
 
-  it('lists the steps up to the octave', () => {
-    expect(scale('A', 'dorian').steps.join(' ')).toBe('W H W W W H W');
-    expect(scale('A', 'minor-pentatonic').steps.join(' ')).toBe('W+H W W W+H W');
-    expect(scale('A', 'harmonic-minor').steps.join(' ')).toBe('W H W W H W+H H');
-  });
 });
 
 const row = (root: Root, id: string, size: 3 | 4, style: 'parallel' | 'relative' = 'parallel') =>

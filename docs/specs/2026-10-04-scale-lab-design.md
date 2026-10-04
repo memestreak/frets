@@ -31,17 +31,19 @@ the reference for behaviour; the look is Fretwood as the app applies it
 
 One column, as in the prototype:
 
-1. **Title and facts.** The `h1` is the scale ("A Dorian", "A natural
-   minor"), or "D7 in A Dorian" with a chord selected. Below it: Notes,
-   Formula and Steps (Steps only without a chord; with one, Notes and
-   Formula are the chord's), in JetBrains Mono.
-2. **Root and scale.** A native `<select>` with one `<optgroup>` per family
-   (list below), and the chromatic root row with split black keys (canvas
-   "Root picker" option A): 17 spellings, the naturals plus a ♯ and a ♭ for
-   each black key. Under them, the formula as 12 semitone chips, coloured
-   by degree; the semitones the scale skips are outlined. The chips are
-   read-only in this slice and hidden from assistive tech (the facts carry
-   the formula as text).
+1. **Title.** The `h1` is the scale ("A Dorian", "A natural minor"), or
+   "D7 in A Dorian" with a chord selected.
+2. **Root and scale.** A card with no heading: on its top row, right
+   aligned, a Root dropdown (17 spellings: the naturals plus a ♯ and a ♭
+   for each black key), a Scale dropdown with one `<optgroup>` per family
+   (list below) and the scale's formula in JetBrains Mono. Under them the
+   scale as a one-octave strip from root to root, drawn like the chords
+   section's ladder (`2026-10-04-chord-diagrams-design.md`): scale notes are
+   tiles in their degree colours with the degree under them, and the notes
+   outside the scale empty squares. The formula and strip stay the scale's
+   while a chord is selected. (Slice 1 had Notes, Formula and Steps facts
+   under the title, a 12-key root row with split black keys and 12 formula
+   chips; on review they took too much room.)
 3. **On the neck.** Frets 0–15 on the shared `Fretboard`, display-only.
    Dot labels Interval / Note / None. The root is a square ("R"); every dot
    takes its degree colour. On phones the board scrolls sideways, as in the

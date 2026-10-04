@@ -34,15 +34,6 @@ function toDot(n: NeckNote, labels: DotLabels): FretDot {
   };
 }
 
-function Fact({ name, value }: { name: string; value: string }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <dt className="text-[12px] leading-4 font-medium text-(--ink-muted)">{name}</dt>
-      <dd className="m-0 font-(family-name:--font-mono) text-[14px] font-medium">{value}</dd>
-    </div>
-  );
-}
-
 export default function ScaleLab() {
   const [set, setSet] = useState(
     () => parseScaleLabSettings(loadJson(SCALE_LAB_STORAGE_KEY)),
@@ -67,20 +58,11 @@ export default function ScaleLab() {
 
   const scaleName = `${prettyNote(scale.root)} ${scale.type.title}`;
   const title = chord ? `${chord.symbol} in ${scaleName}` : scaleName;
-  const shownNotes = chord ? chord.tones : scale.degrees.map(d => d.note);
-  const formula = chord ? chord.labels : scale.degrees.map(d => d.label);
   const dots = neckNotes(scale, SCALE_LAB_MAX_FRET, chord).map(n => toDot(n, set.labels));
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="grid gap-1.5" aria-live="polite">
-        <h1 className="m-0">{title}</h1>
-        <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1.5">
-          <Fact name="Notes" value={shownNotes.map(prettyNote).join(' ')} />
-          <Fact name="Formula" value={formula.join(' ')} />
-          {!chord && <Fact name="Steps" value={scale.steps.join(' ')} />}
-        </dl>
-      </header>
+      <h1 className="m-0" aria-live="polite">{title}</h1>
 
       <ScalePanel
         scale={scale}

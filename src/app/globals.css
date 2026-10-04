@@ -99,56 +99,6 @@ button {
     -webkit-user-select: none;
   }
 
-  /* Scale lab root keys: naturals whole, black keys split into ♯ over ♭. */
-  .root-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .root-key {
-    min-width: 0;
-    height: 56px;
-    padding: 0;
-    font: 600 15px/18px var(--font-sans);
-    color: var(--ink);
-    background: var(--surface-sunken);
-    border: 0;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .root-key:hover { background: var(--line); }
-  .root-key[aria-pressed='true'] { background: var(--primary); color: var(--on-primary); }
-  .root-split { display: flex; flex-direction: column; gap: 2px; height: 56px; }
-  .root-split .root-key {
-    flex: 1;
-    height: auto;
-    font-size: 12px;
-    line-height: 14px;
-    background: var(--line);
-    border-radius: 6px;
-  }
-  .root-split .root-key:hover { background: var(--surface-sunken); }
-  .root-split .root-key[aria-pressed='true'] { background: var(--primary); color: var(--on-primary); }
-
-  /* The scale's formula across the 12 semitones; skipped ones outlined. */
-  .formula-row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .formula-chip {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    font: 700 14px/16px var(--font-sans);
-    color: var(--ink-muted);
-    border: 1.5px solid var(--line-strong);
-    border-radius: var(--radius-md);
-  }
-  .formula-chip[data-on='true'] { border-color: transparent; }
-  .formula-chip[data-root='true'] { border-radius: var(--radius-sm); }
-
   .chord-strip {
     display: grid;
     grid-template-columns: repeat(7, minmax(96px, 1fr));
@@ -181,6 +131,8 @@ button {
   .ladder-scroll { overflow-x: auto; }
   .chord-diagram { display: block; height: auto; }
   .chord-ladder { width: 100%; min-width: 640px; }
+  /* Same cell size as the two-octave ladder on a laptop. */
+  .scale-strip { width: 100%; max-width: 560px; }
   .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
   .chord-diagram text { font-family: var(--font-sans); }
   .chord-diagram .diagram-name { font-size: 12px; font-weight: 700; }
@@ -189,12 +141,6 @@ button {
   .chord-diagram .diagram-degree { font: 500 10px var(--font-mono); }
   /* Bold sans, not mono: M and m must differ at a glance. */
   .chord-diagram .interval-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.2px; }
-
-  @media (max-width: 700px) {
-    .root-key, .root-split { height: 48px; }
-    .root-split .root-key { font-size: 10px; }
-    .formula-chip { height: 34px; font-size: 12px; }
-  }
 
   /* Settings: a native modal <dialog>. Preflight zeroes the margin that
      centers it, so restore `auto`. Padding lives on the inner wrapper so a

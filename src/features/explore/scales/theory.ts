@@ -114,11 +114,7 @@ export interface Scale {
   root: Root;
   type: ScaleDef;
   degrees: ScaleDegree[];
-  /** Steps between neighbours, closing on the octave: "W", "H", "W+H". */
-  steps: string[];
 }
-
-const STEP_NAMES: Record<number, string> = { 1: 'H', 2: 'W', 3: 'W+H' };
 
 export function scaleOf(root: Root, type: ScaleDef): Scale {
   const rootPc = Note.get(root).chroma;
@@ -130,12 +126,7 @@ export function scaleOf(root: Root, type: ScaleDef): Scale {
       semis: (pc - rootPc + 12) % 12, pc,
     };
   });
-  const steps = degrees.map((d, i) => {
-    const next = i + 1 < degrees.length ? degrees[i + 1].semis : 12;
-    const gap = next - d.semis;
-    return STEP_NAMES[gap] ?? String(gap);
-  });
-  return { root, type, degrees, steps };
+  return { root, type, degrees };
 }
 
 export type ChordSize = 3 | 4;
