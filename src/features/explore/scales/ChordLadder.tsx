@@ -24,6 +24,11 @@ interface ChordLadderProps {
    * root, closing on the octave.
    */
   octaves?: 1 | 2;
+  /**
+   * Semitones above the scale's root where the strip starts, 0–11: after
+   * Rotate mode the strip stays on the picked scale and the root moves.
+   */
+  from?: number;
 }
 
 /**
@@ -32,7 +37,9 @@ interface ChordLadderProps {
  * its interval. A chord's tones are coloured and bracketed; without one,
  * every scale note takes its degree colour.
  */
-export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadderProps) {
+export function ChordLadder({
+  scale, chord, intervals, octaves = 2, from = 0,
+}: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
   const levels = Math.max(0, ...spans.map(s => s.level));
@@ -80,7 +87,7 @@ export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadde
 
       {Array.from({ length: cells }, (_, semi) => {
         const x = PAD + semi * CELL;
-        const degree = scale.degrees.find(d => d.semis === semi % 12);
+        const degree = scale.degrees.find(d => d.semis === (semi + from) % 12);
         if (!degree) {
           return (
             <rect

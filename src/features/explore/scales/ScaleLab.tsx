@@ -14,7 +14,8 @@ import {
   type DotLabels, type ScaleLabSettings,
 } from './settings';
 import {
-  diatonicChords, neckNotes, prettyNote, scaleDef, scaleOf, type NeckNote,
+  diatonicChords, modeFamily, neckNotes, prettyNote, rotateMode, scaleDef, scaleOf,
+  type NeckNote, type Root, type ScaleDef,
 } from './theory';
 
 const LABEL_OPTS = [['interval', 'Interval'], ['note', 'Note'], ['none', 'None']] as const;
@@ -42,15 +43,34 @@ export default function ScaleLab() {
   const [chordIndex, setChordIndex] = useState<number | null>(null);
   usePersist(SCALE_LAB_STORAGE_KEY, set);
 
-  const update = (patch: Partial<ScaleLabSettings>) => {
-    setSet(s => ({ ...s, ...patch }));
-    // A chord belongs to one scale; the size and numerals keep it.
-    if (patch.root || patch.scale) setChordIndex(null);
-  };
+  const update = (patch: Partial<ScaleLabSettings>) => setSet(s => ({ ...s, ...patch }));
 
-  const scale = useMemo(
-    () => scaleOf(set.root, scaleDef(set.scale)!), [set.root, set.scale],
-  );
+  const picked = scaleDef(set.scale)!;
+  const shown = rotateMode(set.root, picked, set.mode);
+  const scale = useMemo(() => {
+    const { root, type } = rotateMode(set.root, scaleDef(set.scale)!, set.mode);
+    return scaleOf(root, type);
+  }, [set.root, set.scale, set.mode]);
+
+  // A dropdown starts again from what it shows: the strip begins at the root.
+  // A chord belongs to one scale; the size and numerals keep it.
+  const pick = (root: Root, type: ScaleDef) => {
+    update({ root, scale: type.id, mode: 0 });
+    setChordIndex(null);
+  };
+  // Rotating keeps the same seven chords, so the selected one stays, one
+  // place along.
+  const rotate = (dir: 1 | -1) => {
+    update({ mode: (set.mode + dir + 7) % 7 });
+    setChordIndex(i => (i === null ? null : (i - dir + 7) % 7));
+  };
+  const modeTitle = (step: number) => {
+    const m = rotateMode(set.root, picked, (step + 7) % 7);
+    return `${prettyNote(m.root)} ${m.type.title}`;
+  };
+  const modes = modeFamily(picked)
+    ? { prev: modeTitle(set.mode - 1), next: modeTitle(set.mode + 1) }
+    : null;
   const chords = useMemo(
     () => diatonicChords(scale, set.chordSize, set.numerals),
     [scale, set.chordSize, set.numerals],
@@ -76,11 +96,16 @@ export default function ScaleLab() {
           </h1>
           <ScalePickers
             scale={scale}
-            onRoot={root => update({ root })}
-            onScale={id => update({ scale: id })}
+            onRoot={root => pick(root, shown.type)}
+            onScale={id => pick(shown.root, scaleDef(id)!)}
+            modes={modes}
+            onRotate={rotate}
           />
         </div>
-        <ChordLadder scale={scale} chord={null} intervals="root" octaves={1} />
+        <ChordLadder
+          scale={scale} chord={null} intervals="root" octaves={1}
+          from={(12 - shown.shift) % 12}
+        />
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">

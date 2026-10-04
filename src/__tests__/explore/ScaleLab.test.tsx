@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 
@@ -137,9 +137,66 @@ describe('ScaleLab', () => {
     expect(title()).toHaveTextContent('Am7 in A Dorian');
   });
 
+  it('rotates the mode along the picked scale', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    const title = () => screen.getByRole('heading', { level: 1 });
+    const next = () => screen.getByRole('button', { name: /^Next mode/ });
+    const prev = () => screen.getByRole('button', { name: /^Previous mode/ });
+    const strip = () => screen.getAllByRole('img').find(el => el.classList.contains('scale-strip'))!;
+    const stripNames = () => within(strip()).getAllByTestId('ladder-note')
+      .map(g => g.querySelector('text')!.textContent).join(' ');
+    const square = () => within(strip()).getAllByTestId('ladder-note')
+      .find(g => g.querySelector('rect')!.getAttribute('rx') === '3')!.textContent;
+
+    expect(next()).toHaveAccessibleName('Next mode: D Dorian');
+    fireEvent.click(next());
+    expect(title()).toHaveTextContent(/^D Dorian \(/);
+    expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('D');
+    expect(screen.getByRole('combobox', { name: 'Scale' })).toHaveValue('dorian');
+    // The strip stays on C major; the root square moves to D.
+    expect(stripNames()).toBe('C D E F G A B C');
+    expect(square()).toMatch(/^D/);
+    expect(saved()).toMatchObject({ root: 'C', scale: 'ionian', mode: 1 });
+
+    // The ends wrap round.
+    fireEvent.click(prev());
+    fireEvent.click(prev());
+    expect(title()).toHaveTextContent(/^B Locrian \(/);
+    expect(prev()).toHaveAccessibleName('Previous mode: A natural minor');
+
+    // A dropdown starts again from what it shows.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Scale' }), {
+      target: { value: 'phrygian' },
+    });
+    expect(title()).toHaveTextContent(/^B Phrygian \(/);
+    expect(stripNames()).toMatch(/^B C D/);
+    expect(saved()).toMatchObject({ root: 'B', scale: 'phrygian', mode: 0 });
+  });
+
+  it('keeps the selected chord through a rotation', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    fireEvent.click(chordCard('Dm7'));
+    expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
+    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Dm7 in D Dorian');
+    expect(chordCard('Dm7')).toHaveAccessibleName(/^i7, /);
+  });
+
+  it('reopens on the rotated mode', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({
+      root: 'C', scale: 'ionian', mode: 4,
+    }));
+    render(<ScaleLab />);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^G Mixolydian \(/);
+  });
+
   it('explains why a pentatonic has no chords', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.getByText(/only seven-note scales have them/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next mode' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous mode' })).toBeDisabled();
   });
 });

@@ -36,14 +36,18 @@ One column, as in the prototype:
    in parentheses in a smaller, muted face ("B♭ Ionian ♯5 (1 2 3 4 ♯5 6 7)").
    On the same line, right-aligned, a Root dropdown (17 spellings: the
    naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
-   one `<optgroup>` per family (list below). On phones the dropdowns wrap
-   under the title and their labels are visually hidden.
+   one `<optgroup>` per family (list below), then Rotate mode: ‹ › buttons
+   joined as one control under a "Rotate mode" label (see Rules). On
+   phones the controls wrap under the title; the Root and Scale labels are
+   visually hidden, the Rotate mode label stays.
 2. **Scale strip.** No card: under the title, the scale as a one-octave
    strip from root to root, drawn like the chords section's ladder
    (`2026-10-04-chord-diagrams-design.md`): scale notes are tiles in their
    degree colours with the degree under them, and the notes outside the
    scale empty squares. The formula and strip stay the scale's while a
-   chord is selected. (Slice 1 had Notes, Formula and Steps facts under the
+   chord is selected. After Rotate mode the strip still starts on the root
+   picked from the dropdowns, and the new root's square tile moves along
+   it; colours and degrees follow the new root. (Slice 1 had Notes, Formula and Steps facts under the
    title, a 12-key root row with split black keys and 12 formula chips; on
    review they took too much room. A card holding the dropdowns, formula
    and strip came next; on review it still read as too heavy.)
@@ -58,8 +62,8 @@ One column, as in the prototype:
    only its tones, labelled and coloured by their interval to the chord root
    (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
    as small grey dots; on review they read as clutter.) Changing the root
-   or scale clears the chord;
-   changing size or numerals keeps it. A selected chord is also drawn
+   or scale from the dropdowns clears the chord; Rotate mode and changing
+   size or numerals keep it. A selected chord is also drawn
    against the scale as a ladder or a clock
    (`2026-10-04-chord-diagrams-design.md`).
 
@@ -95,6 +99,19 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
   major scale (♭III, ♯iv°); III style by its position in the scale. The case
   follows the third (lower case when it is minor or diminished); the suffix
   follows the table: °, +, maj7, 7, ø7, °7, (maj7), +maj7, +7.
+- **Rotate mode.** › moves the root up to the next note of the scale and
+  names the scale for that root: C major, D Dorian, E Phrygian … B
+  Locrian, then round to C major again; ‹ goes the other way. The notes
+  never change. It works for the three seven-note families, whose modes
+  the table lists in order; for pentatonic and blues scales both buttons
+  are disabled (only two of major pentatonic's five modes have an entry).
+  The buttons' names and tooltips give the mode they lead to ("Next mode:
+  D Dorian"). A root the dropdown lacks is respelled to the one it has
+  (C♯ major's third mode is F Phrygian, not E♯ Phrygian): 47 of the 357
+  steps across the three families need it. Picking a root or scale starts
+  again from what the dropdowns then show. A selected chord stays
+  selected, its numeral counted from the new root. ← and → stay with the
+  chords.
 - **Degree colours** (canvas "Scale-view colours" option A): degree 1 root,
   2 second, 3 third, 4 extension, 5 fifth, 6 sixth, 7 seventh.
 
@@ -104,7 +121,8 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
   field at a file the package doesn't ship, so Node and Vitest can't import
   it.
 - `theory.ts` is the only file that imports tonal. It is pure: the root and
-  scale tables, `scaleOf`, `diatonicChords` and `neckNotes` (standard tuning
+  scale tables, `scaleOf`, `modeFamily` / `rotateMode`, `diatonicChords`
+  and `neckNotes` (standard tuning
   from `src/lib/music.ts`). `src/lib/music.ts` stays pitch-class only.
 
 ## Shared code
@@ -117,8 +135,11 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
 ## Saved state
 
 `localStorage["frets.explore.scales"]` holds
-`{ root, scale, chordSize, numerals, labels }`, parsed field by field like
-the trainers' settings. The selected chord is not saved.
+`{ root, scale, mode, chordSize, numerals, labels, chordView, chordIntervals }`,
+parsed field by field like the trainers' settings. `root` and `scale` are
+what was last picked from the dropdowns and `mode` how many steps Rotate
+mode has taken from there (0–6, 0 for scales outside a family), so a
+reload keeps the strip where it was. The selected chord is not saved.
 
 ## Later slices
 

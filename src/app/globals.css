@@ -133,6 +133,10 @@ button {
   .chord-ladder { width: 100%; min-width: 640px; }
   /* Same cell size as the two-octave ladder on a laptop. */
   .scale-strip { width: 100%; max-width: 560px; }
+  /* Rotate mode's two arrows as one control. */
+  .mode-steps { display: inline-flex; }
+  .mode-steps .btn:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }
+  .mode-steps .btn:last-child { border-start-start-radius: 0; border-end-start-radius: 0; margin-inline-start: -1.5px; }
   .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
   .chord-diagram text { font-family: var(--font-sans); }
   .chord-diagram .diagram-name { font-size: 12px; font-weight: 700; }

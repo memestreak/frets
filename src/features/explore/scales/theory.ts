@@ -74,6 +74,49 @@ export const SCALE_GROUPS = [MAJOR, MELODIC, HARMONIC, PENTATONIC] as const;
 export const scaleDef = (id: string): ScaleDef | undefined =>
   SCALES.find(t => t.id === id);
 
+/**
+ * The seven modes a scale belongs to, in order from its parent: each list
+ * above that holds seven scales is one family, mode 1 first. Pentatonic
+ * and blues scales have none.
+ */
+export function modeFamily(type: ScaleDef): readonly ScaleDef[] | null {
+  const family = SCALES.filter(t => t.group === type.group);
+  return family.length === 7 ? family : null;
+}
+
+/** A spelled note as a root the picker offers: E# → F, Cb → B, G## → A. */
+function listedRoot(note: string): Root {
+  if ((ROOTS as readonly string[]).includes(note)) return note as Root;
+  const same = ROOTS.filter(r => Note.get(r).chroma === Note.get(note).chroma);
+  return same.find(r => r.length === 1)
+    ?? same.find(r => r[1] === (note.includes('#') ? '#' : 'b'))
+    ?? same[0];
+}
+
+export interface Rotation {
+  root: Root;
+  type: ScaleDef;
+  /** Semitones from the starting root up to the new one, 0–11. */
+  shift: number;
+}
+
+/**
+ * The mode `step` notes up the scale, renamed for its new root: C major
+ * step 1 is D Dorian, step 6 B Locrian. A root the picker lacks is
+ * respelled, so the notes keep their pitches but may change letter.
+ * Scales outside a family, and step 0, stay as they are.
+ */
+export function rotateMode(root: Root, type: ScaleDef, step: number): Rotation {
+  const family = modeFamily(type);
+  if (!family || step === 0) return { root, type, shift: 0 };
+  const degree = scaleOf(root, type).degrees[step];
+  return {
+    root: listedRoot(degree.note),
+    type: family[(family.indexOf(type) + step) % 7],
+    shift: degree.semis,
+  };
+}
+
 /** "F##" → "F𝄪", "Bb" → "B♭". */
 export function prettyNote(note: string): string {
   const acc = note.slice(1)
