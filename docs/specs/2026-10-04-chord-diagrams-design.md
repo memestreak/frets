@@ -27,7 +27,9 @@ wrapping round at the ends, unless focus is in a field that uses the arrows
 ## Ladder
 
 - Two octaves from the scale root, one cell per semitone (24 cells, enough
-  for every diatonic stack). Scale notes are tiles with the note name, and
+  for every diatonic stack). After Rotate mode it starts on the root picked
+  from the dropdowns instead, so each chord keeps its cells and only the
+  colours and degrees follow the new root. Scale notes are tiles with the note name, and
   their degree in the scale under them. Semitones outside the scale are
   empty squares, so a bracket's width is its interval.
 - The chord's tones are filled in role colours (root, third, fifth,
@@ -44,7 +46,8 @@ wrapping round at the ends, unless focus is in a field that uses the arrows
 
 ## Clock
 
-- The twelve semitones round a circle, scale root at the top. Scale notes
+- The twelve semitones round a circle, scale root at the top (after Rotate
+  mode, the root picked from the dropdowns). Scale notes
   are dots, semitones outside the scale empty squares.
 - The chord's tones are coloured dots (root square) with their role label,
   and only they are named. Nothing is drawn across the circle.

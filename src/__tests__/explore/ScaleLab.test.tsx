@@ -187,6 +187,35 @@ describe('ScaleLab', () => {
     expect(chordCard('Dm7')).toHaveAccessibleName(/^i7, /);
   });
 
+  it('keeps the chords in the picked scale\'s order through a rotation', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    const symbols = () => Array.from(document.querySelectorAll('.chord-card'))
+      .map(c => c.querySelector('.font-bold')!.textContent).join(' ');
+    const tonic = () => document.querySelector('.chord-card .text-\\(--degree-root\\)')!
+      .closest('button')!.querySelector('.font-bold')!.textContent;
+    const order = 'Cmaj7 Dm7 Em7 Fmaj7 G7 Am7 Bm7♭5';
+    expect(symbols()).toBe(order);
+    expect(tonic()).toBe('Cmaj7');
+
+    fireEvent.click(chordCard('Dm7'));
+    const ladderCells = () => screen.getAllByTestId('ladder-tone')
+      .map(g => g.querySelector('rect')!.getAttribute('x')).join();
+    const before = ladderCells();
+    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
+    // Same cards in the same places; the tonic moves to Dm7.
+    expect(symbols()).toBe(order);
+    expect(tonic()).toBe('Dm7');
+    // Dm7 stays where it was on the ladder, which still starts on C.
+    expect(ladderCells()).toBe(before);
+
+    // The clock keeps C at the top.
+    fireEvent.click(screen.getByRole('button', { name: 'Clock' }));
+    const top = Array.from(document.querySelectorAll('.chord-clock text.diagram-name'))
+      .find(t => Math.abs(Number(t.getAttribute('x'))) < 0.01 && Number(t.getAttribute('y')) < 0);
+    expect(top?.textContent).toBe('C');
+  });
+
   it('reopens on the rotated mode', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({
       root: 'C', scale: 'ionian', mode: 4,

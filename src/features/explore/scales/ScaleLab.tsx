@@ -64,6 +64,8 @@ export default function ScaleLab() {
     update({ mode: (set.mode + dir + 7) % 7 });
     setChordIndex(i => (i === null ? null : (i - dir + 7) % 7));
   };
+  // Where the picked root sits above the shown one: the diagrams start there.
+  const from = (12 - shown.shift) % 12;
   const modeTitle = (step: number) => {
     const m = rotateMode(set.root, picked, (step + 7) % 7);
     return `${prettyNote(m.root)} ${m.type.title}`;
@@ -103,10 +105,7 @@ export default function ScaleLab() {
             onRotate={rotate}
           />
         </div>
-        <ChordLadder
-          scale={scale} chord={null} intervals="root" octaves={1}
-          from={(12 - shown.shift) % 12}
-        />
+        <ChordLadder scale={scale} chord={null} intervals="root" octaves={1} from={from} />
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">
@@ -140,6 +139,8 @@ export default function ScaleLab() {
         onView={chordView => update({ chordView })}
         intervals={set.chordIntervals}
         onIntervals={chordIntervals => update({ chordIntervals })}
+        mode={set.mode}
+        from={from}
       />
     </div>
   );

@@ -13,7 +13,7 @@ const ARC = 106;
 const RING = 20;
 const DOT = 13;
 
-/** Angle of a semitone above the scale root, which sits at the top. */
+/** Angle of a semitone above the note at the top. */
 const angle = (semi: number) => ((semi * 30 - 90) * Math.PI) / 180;
 const polar = (a: number, r: number) => [r * Math.cos(a), r * Math.sin(a)] as const;
 
@@ -22,16 +22,22 @@ interface ChordClockProps {
   /** With no chord, the scale's notes in their degree colours. */
   chord: DiatonicChord | null;
   intervals: ChordIntervals;
+  /**
+   * Semitones above the scale's root of the note at the top, 0–11: after
+   * Rotate mode the picked scale's root stays there and the root moves.
+   */
+  from?: number;
 }
 
 /**
- * The twelve semitones round a circle, scale root at the top: scale notes
+ * The twelve semitones round a circle, the picked root at the top: scale notes
  * are dots, the notes outside it empty squares. A chord's tones are
  * coloured and named, and its intervals are bracketed arcs outside the
  * circle, so nothing crosses the middle. Without a chord, every scale note
  * takes its degree colour and is named.
  */
-export function ChordClock({ scale, chord, intervals }: ChordClockProps) {
+export function ChordClock({ scale, chord, intervals, from = 0 }: ChordClockProps) {
+  const at = (semi: number) => angle(semi - from);
   const spans = chord ? chordSpans(chord, intervals) : [];
   const fromRoot = intervals === 'root';
   const outer = ARC + RING * (Math.max(1, ...spans.map(s => s.level)) - 1);
@@ -54,8 +60,8 @@ export function ChordClock({ scale, chord, intervals }: ChordClockProps) {
         const inset = fromRoot ? 0.05 : 0.09;
         const start = chord.rising[s.from];
         const span = chord.rising[s.to] - start;
-        const a0 = angle(start) + inset;
-        const a1 = angle(start + span) - inset;
+        const a0 = at(start) + inset;
+        const a1 = at(start + span) - inset;
         const [x0, y0] = polar(a0, r);
         const [x1, y1] = polar(a1, r);
         const [t0x, t0y] = polar(a0, r - 8);
@@ -73,7 +79,7 @@ export function ChordClock({ scale, chord, intervals }: ChordClockProps) {
       })}
 
       {Array.from({ length: 12 }, (_, semi) => {
-        const [x, y] = polar(angle(semi), R);
+        const [x, y] = polar(at(semi), R);
         if (!scaleSemis.has(semi)) {
           return (
             <rect
@@ -96,7 +102,7 @@ export function ChordClock({ scale, chord, intervals }: ChordClockProps) {
         const ink = chord ? toneInk(k) : degreeInk(degree);
         const label = chord ? toneLabel(chord, k) : degreeLabel(degree);
         const root = chord ? k === 0 : semi === 0;
-        const [nx, ny] = polar(angle(semi), nameR);
+        const [nx, ny] = polar(at(semi), nameR);
         return (
           <g key={semi} data-testid="clock-tone">
             {root ? (

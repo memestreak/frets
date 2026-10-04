@@ -25,8 +25,8 @@ interface ChordLadderProps {
    */
   octaves?: 1 | 2;
   /**
-   * Semitones above the scale's root where the strip starts, 0–11: after
-   * Rotate mode the strip stays on the picked scale and the root moves.
+   * Semitones above the scale's root where the ladder starts, 0–11: after
+   * Rotate mode it stays on the picked scale and the root moves.
    */
   from?: number;
 }
@@ -54,7 +54,12 @@ export function ChordLadder({
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
   const svgRef = useRef<SVGSVGElement>(null);
-  const rootX = PAD + (chord?.rising[0] ?? 0) * CELL;
+  // Each chord tone's cell: the chord keeps its place above the strip's
+  // first note, so after Rotate mode it sits where it did before.
+  const at = chord
+    ? chord.rising.map(r => r - from + (chord.rising[0] < from ? 12 : 0))
+    : [];
+  const rootX = PAD + (at[0] ?? 0) * CELL;
   useEffect(() => {
     const svg = svgRef.current;
     const box = svg?.parentElement;
@@ -97,7 +102,7 @@ export function ChordLadder({
             />
           );
         }
-        const k = chord ? chord.rising.indexOf(semi) : -1;
+        const k = chord ? at.indexOf(semi) : -1;
         const on = k >= 0;
         // Without a chord every note is coloured, the root squarer.
         const fill = chord ? (on ? toneFill(k) : 'var(--surface-sunken)') : degreeFill(degree);
@@ -137,8 +142,8 @@ export function ChordLadder({
       {chord && spans.map(s => {
         // Thirds share their end tones, so pull each in to keep them apart.
         const inset = between ? 3 : 0;
-        const a = cx(chord.rising[s.from]) + inset;
-        const b = cx(chord.rising[s.to]) - inset;
+        const a = cx(at[s.from]) + inset;
+        const b = cx(at[s.to]) - inset;
         const y = top - 4 - LEVEL * s.level;
         return (
           <g key={s.to}>

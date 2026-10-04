@@ -111,9 +111,12 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
   D Dorian"). A root the dropdown lacks is respelled to the one it has
   (C♯ major's third mode is F Phrygian, not E♯ Phrygian): 47 of the 357
   steps across the three families need it. Picking a root or scale starts
-  again from what the dropdowns then show. A selected chord stays
-  selected, its numeral counted from the new root. ← and → stay with the
-  chords.
+  again from what the dropdowns then show. The chords section stays on
+  the picked scale too: the cards keep its order (in D Dorian from C
+  major, Cmaj7 is still first) with their numerals counted from the new
+  root, whose card's numeral takes the root colour, and the ladder and
+  clock start on the picked root. A selected chord stays selected. ← and
+  → stay with the chords.
 - **Degree colours** (canvas "Scale-view colours" option A): degree 1 root,
   2 second, 3 third, 4 extension, 5 fifth, 6 sixth, 7 seventh.
 
