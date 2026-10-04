@@ -5,6 +5,7 @@ import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 const formula = () => screen.getByTestId('scale-formula');
 const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
 const saved = () => JSON.parse(localStorage.getItem(SCALE_LAB_STORAGE_KEY) ?? '{}');
+const board = () => screen.getByRole('img', { name: / on the fretboard$/ });
 const chordCard = (symbol: string) =>
   screen.getByRole('button', { name: new RegExp(`, ${symbol},`) });
 
@@ -45,8 +46,9 @@ describe('ScaleLab', () => {
       screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f);
     expect(rootFrets()).toEqual(['5']);
     fireEvent.click(chordCard('D7'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('D7 in A Dorian');
-    // The formula stays the scale's.
+    // The title and formula stay the scale's; the board names the chord.
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian \(/);
+    expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
     expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
     // Only D7's tones stay on the neck; B, E and G are gone.
     expect(dotLabels()).toEqual(new Set(['R', '3', '5', '♭7']));
@@ -122,19 +124,19 @@ describe('ScaleLab', () => {
 
     fireEvent.click(chordCard('D7'));
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent('Em7 in A Dorian');
+    expect(board()).toHaveAccessibleName('Em7 in A Dorian on the fretboard');
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    expect(title()).toHaveTextContent('Cmaj7 in A Dorian');
+    expect(board()).toHaveAccessibleName('Cmaj7 in A Dorian on the fretboard');
 
     // The ends wrap round.
     fireEvent.click(chordCard('Gmaj7'));
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent('Am7 in A Dorian');
+    expect(board()).toHaveAccessibleName('Am7 in A Dorian on the fretboard');
 
     // The scale list keeps its own arrows.
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Scale' }), { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent('Am7 in A Dorian');
+    expect(board()).toHaveAccessibleName('Am7 in A Dorian on the fretboard');
   });
 
   it('rotates the mode along the picked scale', () => {
@@ -180,7 +182,8 @@ describe('ScaleLab', () => {
     fireEvent.click(chordCard('Dm7'));
     expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
     fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Dm7 in D Dorian');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^D Dorian \(/);
+    expect(board()).toHaveAccessibleName('Dm7 in D Dorian on the fretboard');
     expect(chordCard('Dm7')).toHaveAccessibleName(/^i7, /);
   });
 

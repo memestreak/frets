@@ -77,8 +77,9 @@ export default function ScaleLab() {
   );
   const chord = chordIndex === null ? null : chords[chordIndex] ?? null;
 
-  const scaleName = `${prettyNote(scale.root)} ${scale.type.title}`;
-  const title = chord ? `${chord.symbol} in ${scaleName}` : scaleName;
+  // The title stays the scale's; a selected chord shows on the board and the diagram.
+  const title = `${prettyNote(scale.root)} ${scale.type.title}`;
+  const boardLabel = chord ? `${chord.symbol} in ${title}` : title;
   const dots = neckNotes(scale, SCALE_LAB_MAX_FRET, chord).map(n => toDot(n, set.labels));
 
   return (
@@ -121,7 +122,7 @@ export default function ScaleLab() {
             minFret={0}
             maxFret={SCALE_LAB_MAX_FRET}
             dots={dots}
-            label={`${title} on the fretboard`}
+            label={`${boardLabel} on the fretboard`}
           />
         </div>
       </section>
