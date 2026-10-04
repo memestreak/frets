@@ -7,7 +7,8 @@ import { degreeColor } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
-import { DEGREES, ScalePanel } from './ScalePanel';
+import { ChordLadder } from './ChordLadder';
+import { DEGREES, ScalePickers } from './ScalePanel';
 import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
   type DotLabels, type ScaleLabSettings,
@@ -34,15 +35,6 @@ function toDot(n: NeckNote, labels: DotLabels): FretDot {
   };
 }
 
-function Fact({ name, value }: { name: string; value: string }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <dt className="text-[12px] leading-4 font-medium text-(--ink-muted)">{name}</dt>
-      <dd className="m-0 font-(family-name:--font-mono) text-[14px] font-medium">{value}</dd>
-    </div>
-  );
-}
-
 export default function ScaleLab() {
   const [set, setSet] = useState(
     () => parseScaleLabSettings(loadJson(SCALE_LAB_STORAGE_KEY)),
@@ -67,26 +59,29 @@ export default function ScaleLab() {
 
   const scaleName = `${prettyNote(scale.root)} ${scale.type.title}`;
   const title = chord ? `${chord.symbol} in ${scaleName}` : scaleName;
-  const shownNotes = chord ? chord.tones : scale.degrees.map(d => d.note);
-  const formula = chord ? chord.labels : scale.degrees.map(d => d.label);
   const dots = neckNotes(scale, SCALE_LAB_MAX_FRET, chord).map(n => toDot(n, set.labels));
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="grid gap-1.5" aria-live="polite">
-        <h1 className="m-0">{title}</h1>
-        <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1.5">
-          <Fact name="Notes" value={shownNotes.map(prettyNote).join(' ')} />
-          <Fact name="Formula" value={formula.join(' ')} />
-          {!chord && <Fact name="Steps" value={scale.steps.join(' ')} />}
-        </dl>
+      <header className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <h1 className="m-0" aria-live="polite">
+            {title}{' '}
+            <span
+              className="text-[0.6em] font-normal text-(--ink-muted)"
+              data-testid="scale-formula"
+            >
+              ({scale.degrees.map(d => d.label).join(' ')})
+            </span>
+          </h1>
+          <ScalePickers
+            scale={scale}
+            onRoot={root => update({ root })}
+            onScale={id => update({ scale: id })}
+          />
+        </div>
+        <ChordLadder scale={scale} chord={null} intervals="root" octaves={1} />
       </header>
-
-      <ScalePanel
-        scale={scale}
-        onRoot={root => update({ root })}
-        onScale={id => update({ scale: id })}
-      />
 
       <section className="card gap-4" aria-labelledby="neck-h">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">

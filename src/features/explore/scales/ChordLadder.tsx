@@ -6,8 +6,6 @@ import {
 } from './chordDiagram';
 import { prettyNote, type DiatonicChord, type Scale } from './theory';
 
-/** Two octaves, one cell per semitone: every diatonic stack fits. */
-const CELLS = 24;
 const CELL = 30;
 const TILE = 26;
 const TILE_H = 34;
@@ -21,6 +19,11 @@ interface ChordLadderProps {
   /** With no chord, the scale's notes in their degree colours. */
   chord: DiatonicChord | null;
   intervals: ChordIntervals;
+  /**
+   * Two octaves fit every diatonic stack; one draws the scale from root to
+   * root, closing on the octave.
+   */
+  octaves?: 1 | 2;
 }
 
 /**
@@ -29,12 +32,14 @@ interface ChordLadderProps {
  * its interval. A chord's tones are coloured and bracketed; without one,
  * every scale note takes its degree colour.
  */
-export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
+export function ChordLadder({ scale, chord, intervals, octaves = 2 }: ChordLadderProps) {
+  const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
   const levels = Math.max(0, ...spans.map(s => s.level));
   const top = levels ? LEVEL * levels + 36 : 12;
-  const width = PAD * 2 + CELL * CELLS - (CELL - TILE);
-  const height = top + TILE_H + (chord ? 58 : 44);
+  const width = PAD * 2 + CELL * cells - (CELL - TILE);
+  // Room under the tiles for degrees, chord roles and the octave mark.
+  const height = top + TILE_H + (chord ? 58 : octaves === 2 ? 44 : 22);
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
   const octaveY = top + TILE_H + (chord ? 52 : 38);
@@ -53,23 +58,27 @@ export function ChordLadder({ scale, chord, intervals }: ChordLadderProps) {
   return (
     <svg
       ref={svgRef}
-      className="chord-diagram chord-ladder"
+      className={`chord-diagram ${octaves === 2 ? 'chord-ladder' : 'scale-strip'}`}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={chord ? describeChord(chord, intervals) : describeScale(scale)}
     >
-      <line
-        x1={octaveX} x2={octaveX} y1={top - 6} y2={octaveY - 12}
-        stroke="var(--line-strong)" strokeDasharray="3 3"
-      />
-      <text
-        x={octaveX} y={octaveY} textAnchor="middle"
-        className="diagram-note" fill="var(--ink-muted)"
-      >
-        octave
-      </text>
+      {octaves === 2 && (
+        <>
+          <line
+            x1={octaveX} x2={octaveX} y1={top - 6} y2={octaveY - 12}
+            stroke="var(--line-strong)" strokeDasharray="3 3"
+          />
+          <text
+            x={octaveX} y={octaveY} textAnchor="middle"
+            className="diagram-note" fill="var(--ink-muted)"
+          >
+            octave
+          </text>
+        </>
+      )}
 
-      {Array.from({ length: CELLS }, (_, semi) => {
+      {Array.from({ length: cells }, (_, semi) => {
         const x = PAD + semi * CELL;
         const degree = scale.degrees.find(d => d.semis === semi % 12);
         if (!degree) {

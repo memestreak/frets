@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 
-const fact = (name: string) =>
-  screen.queryAllByText(name).find(el => el.tagName === 'DT')?.nextElementSibling;
+const formula = () => screen.getByTestId('scale-formula');
+const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
 const saved = () => JSON.parse(localStorage.getItem(SCALE_LAB_STORAGE_KEY) ?? '{}');
 const chordCard = (symbol: string) =>
   screen.getByRole('button', { name: new RegExp(`, ${symbol},`) });
@@ -11,23 +11,29 @@ const chordCard = (symbol: string) =>
 describe('ScaleLab', () => {
   beforeEach(() => localStorage.clear());
 
-  it('opens on A Dorian with its facts and sevenths', () => {
+  it('opens on A Dorian with its formula, strip and sevenths', () => {
     render(<ScaleLab />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A Dorian');
-    expect(fact('Notes')).toHaveTextContent('A B C D E F♯ G');
-    expect(fact('Formula')).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    expect(fact('Steps')).toHaveTextContent('W H W W W H W');
+    expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('A');
+    // The formula follows the title, in parentheses.
+    expect(formula()).toHaveTextContent('(1 2 ♭3 4 5 6 ♭7)');
+    // The one-octave strip under the title.
+    const strip = scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')
+      .find(el => el.classList.contains('scale-strip'));
+    expect(strip).toBeDefined();
     expect(screen.getAllByRole('button', { name: /^\S+7, / })).toHaveLength(7);
   });
 
   it('changes root and scale, and saves them', () => {
     render(<ScaleLab />);
-    fireEvent.click(screen.getByRole('button', { name: 'E♭' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'Eb' } });
     fireEvent.change(screen.getByRole('combobox', { name: 'Scale' }), {
       target: { value: 'harmonic-minor' },
     });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('E♭ harmonic minor');
-    expect(fact('Notes')).toHaveTextContent('E♭ F G♭ A♭ B♭ C♭ D');
+    expect(formula()).toHaveTextContent('1 2 ♭3 4 5 ♭6 7');
+    expect(scaleImgs('E♭ harmonic minor: 1 E♭, 2 F, ♭3 G♭, 4 A♭, 5 B♭, ♭6 C♭, 7 D'))
+      .toHaveLength(2);
     expect(saved()).toMatchObject({ root: 'Eb', scale: 'harmonic-minor' });
   });
 
@@ -40,24 +46,23 @@ describe('ScaleLab', () => {
     expect(rootFrets()).toEqual(['5']);
     fireEvent.click(chordCard('D7'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('D7 in A Dorian');
-    expect(fact('Notes')).toHaveTextContent('D F♯ A C');
-    expect(fact('Formula')).toHaveTextContent('1 3 5 ♭7');
-    expect(fact('Steps')).toBeUndefined();
+    // The formula stays the scale's.
+    expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
     // Only D7's tones stay on the neck; B, E and G are gone.
     expect(dotLabels()).toEqual(new Set(['R', '3', '5', '♭7']));
     // The chord root takes the square: D on the low E string.
     expect(rootFrets()).toEqual(['10']);
 
     fireEvent.click(chordCard('D7'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian \(/);
     expect(dotLabels()).toEqual(new Set(['R', '2', '♭3', '4', '5', '6', '♭7']));
   });
 
   it('clears the chord when the scale changes', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('D7'));
-    fireEvent.click(screen.getByRole('button', { name: 'C' }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian$/);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian \(/);
   });
 
   it('switches to triads and dot labels', () => {
@@ -101,9 +106,8 @@ describe('ScaleLab', () => {
 
   it('draws the scale alone before a chord is picked', () => {
     render(<ScaleLab />);
-    expect(screen.getByRole('img', {
-      name: 'A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G',
-    })).toHaveClass('chord-ladder');
+    expect(scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')
+      .some(el => el.classList.contains('chord-ladder'))).toBe(true);
     // Nothing to annotate yet.
     expect(screen.queryByRole('group', { name: 'Intervals' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Clock' }));
@@ -114,7 +118,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     const title = () => screen.getByRole('heading', { level: 1 });
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent(/^A Dorian$/);
+    expect(title()).toHaveTextContent(/^A Dorian \(/);
 
     fireEvent.click(chordCard('D7'));
     fireEvent.keyDown(window, { key: 'ArrowRight' });
