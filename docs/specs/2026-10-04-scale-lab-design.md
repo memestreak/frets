@@ -31,12 +31,13 @@ the reference for behaviour; the look is Fretwood as the app applies it
 
 One column, as in the prototype:
 
-1. **Title.** The `h1` is the scale ("A Dorian", "A natural minor"),
-   followed by its formula in parentheses in a smaller, muted face
-   ("B♭ Ionian ♯5 (1 2 3 4 ♯5 6 7)"). It stays the scale's while a chord is
+1. **Title.** The `h1` is the scale ("A Dorian", "A natural minor"). Its
+   formula sits on its own line below the name, outside the heading, in
+   17px muted Figtree with no parentheses ("1 2 3 4 ♯5 6 7"); the name and
+   formula share one polite live region. Both stay the scale's while a chord is
    selected; the board's accessible name says "D7 in A Dorian on the
    fretboard".
-   On the same line, right-aligned, a Root dropdown (17 spellings: the
+   Beside the name and formula, right-aligned and centred on them, a Root dropdown (17 spellings: the
    naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
    one `<optgroup>` per family (list below), then Rotate mode: ‹ › buttons
    joined as one control under a "Rotate mode" label (see Rules), and a

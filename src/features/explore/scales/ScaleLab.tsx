@@ -103,15 +103,12 @@ export default function ScaleLab() {
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
       <header className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <h1 className="m-0" aria-live="polite">
-            {title}{' '}
-            <span
-              className="text-[0.6em] font-normal text-(--ink-muted)"
-              data-testid="scale-formula"
-            >
-              ({scale.degrees.map(d => d.label).join(' ')})
-            </span>
-          </h1>
+          <div aria-live="polite">
+            <h1 className="m-0">{title}</h1>
+            <p className="m-0 mt-1 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)" data-testid="scale-formula">
+              {scale.degrees.map(d => d.label).join(' ')}
+            </p>
+          </div>
           <ScalePickers
             scale={scale}
             onRoot={root => pick(root, shown.type)}
