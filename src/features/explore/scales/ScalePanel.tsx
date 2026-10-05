@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { Degree } from '@/components/fretboard/theme';
-import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
+import { ChevronLeftIcon, ChevronRightIcon, ResetIcon } from '@/components/icons';
 import {
   prettyNote, ROOTS, SCALE_GROUPS, SCALES, type Root, type Scale,
 } from './theory';
@@ -17,11 +17,14 @@ interface ScalePickersProps {
   /** Titles of the modes either side, or null where the scale has none. */
   modes: { prev: string; next: string } | null;
   onRotate: (dir: 1 | -1) => void;
+  /** The picked scale's title while rotated away from it, else null. */
+  home: string | null;
+  onReset: () => void;
 }
 
 /** The root and scale dropdowns and Rotate mode, beside the page title. */
 export function ScalePickers({
-  scale, onRoot, onScale, modes, onRotate,
+  scale, onRoot, onScale, modes, onRotate, home, onReset,
 }: ScalePickersProps) {
   const rotateId = useId();
   return (
@@ -73,6 +76,16 @@ export function ScalePickers({
             <ChevronRightIcon />
           </button>
         </div>
+        {/* Holds its place when hidden, so nothing shifts as it comes and goes. */}
+        <button
+          type="button" className={`btn btn-ghost${home ? '' : ' invisible'}`}
+          aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
+          aria-hidden={!home} tabIndex={home ? undefined : -1}
+          onClick={onReset}
+        >
+          <ResetIcon />
+          Reset
+        </button>
       </div>
     </div>
   );

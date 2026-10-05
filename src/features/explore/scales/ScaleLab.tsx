@@ -58,12 +58,14 @@ export default function ScaleLab() {
     update({ root, scale: type.id, mode: 0 });
     setChordIndex(null);
   };
-  // Rotating keeps the same seven chords, so the selected one stays, one
-  // place along.
-  const rotate = (dir: 1 | -1) => {
-    update({ mode: (set.mode + dir + 7) % 7 });
-    setChordIndex(i => (i === null ? null : (i - dir + 7) % 7));
+  // Rotating keeps the same seven chords, so the selected one stays, as
+  // many places along as the root moved.
+  const goToMode = (mode: number) => {
+    const by = mode - set.mode;
+    update({ mode });
+    setChordIndex(i => (i === null ? null : (i - by + 7) % 7));
   };
+  const rotate = (dir: 1 | -1) => goToMode((set.mode + dir + 7) % 7);
   // Where the picked root sits above the shown one: the diagrams start there.
   const from = (12 - shown.shift) % 12;
   const modeTitle = (step: number) => {
@@ -73,6 +75,19 @@ export default function ScaleLab() {
   const modes = modeFamily(picked)
     ? { prev: modeTitle(set.mode - 1), next: modeTitle(set.mode + 1) }
     : null;
+  // Tapping a note in the strip rotates to it; the strip starts on the
+  // picked root, so a cell is that many semitones above it.
+  const pickedDegrees = scaleOf(set.root, picked).degrees;
+  const modeAtCell = (cell: number) => pickedDegrees.findIndex(d => d.semis === cell % 12);
+  const stripTap = modes && {
+    label: (cell: number) => {
+      const mode = modeAtCell(cell);
+      if (mode < 0 || mode === set.mode) return null;
+      const { root } = rotateMode(set.root, picked, mode);
+      return `Make ${prettyNote(root)} the root: ${modeTitle(mode)}`;
+    },
+    onTap: (cell: number) => goToMode(modeAtCell(cell)),
+  };
   const chords = useMemo(
     () => diatonicChords(scale, set.chordSize, set.numerals),
     [scale, set.chordSize, set.numerals],
@@ -103,9 +118,14 @@ export default function ScaleLab() {
             onScale={id => pick(shown.root, scaleDef(id)!)}
             modes={modes}
             onRotate={rotate}
+            home={set.mode ? modeTitle(0) : null}
+            onReset={() => goToMode(0)}
           />
         </div>
-        <ChordLadder scale={scale} chord={null} intervals="root" octaves={1} from={from} />
+        <ChordLadder
+          scale={scale} chord={null} intervals="root" octaves={1} from={from}
+          tap={stripTap ?? undefined}
+        />
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">

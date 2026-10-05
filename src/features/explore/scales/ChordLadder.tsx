@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import type { ChordIntervals } from './settings';
 import {
   chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
@@ -29,6 +29,11 @@ interface ChordLadderProps {
    * Rotate mode it stays on the picked scale and the root moves.
    */
   from?: number;
+  /**
+   * Makes the scale notes buttons, by cell from the left: what tapping one
+   * does, named for screen readers. Null leaves that note plain.
+   */
+  tap?: { label: (cell: number) => string | null; onTap: (cell: number) => void };
 }
 
 /**
@@ -38,7 +43,7 @@ interface ChordLadderProps {
  * every scale note takes its degree colour.
  */
 export function ChordLadder({
-  scale, chord, intervals, octaves = 2, from = 0,
+  scale, chord, intervals, octaves = 2, from = 0, tap,
 }: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
@@ -72,7 +77,8 @@ export function ChordLadder({
       ref={svgRef}
       className={`chord-diagram ${octaves === 2 ? 'chord-ladder' : 'scale-strip'}`}
       viewBox={`0 0 ${width} ${height}`}
-      role="img"
+      // With buttons inside, it is a group rather than a picture.
+      role={tap ? 'group' : 'img'}
       aria-label={chord ? describeChord(chord, intervals) : describeScale(scale)}
     >
       {octaves === 2 && (
@@ -108,8 +114,19 @@ export function ChordLadder({
         const fill = chord ? (on ? toneFill(k) : 'var(--surface-sunken)') : degreeFill(degree);
         const ink = chord ? (on ? toneInk(k) : 'var(--ink-muted)') : degreeInk(degree);
         const root = chord ? k === 0 : degree.semis === 0;
+        const tapLabel = tap?.label(semi) ?? null;
+        const button = tapLabel === null ? {} : {
+          role: 'button', tabIndex: 0, 'aria-label': tapLabel, className: 'tap',
+          onClick: () => tap!.onTap(semi),
+          onKeyDown: (e: KeyboardEvent) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            tap!.onTap(semi);
+          },
+        };
         return (
-          <g key={semi} data-testid={on ? 'ladder-tone' : 'ladder-note'}>
+          <g key={semi} data-testid={on ? 'ladder-tone' : 'ladder-note'} {...button}>
+            {tapLabel && <title>{tapLabel}</title>}
             <rect
               x={x} y={top} width={TILE} height={TILE_H} rx={root ? 3 : 8}
               fill={fill} stroke={chord && !on ? 'var(--line)' : 'none'}
