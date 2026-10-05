@@ -96,6 +96,26 @@ describe('IntervalTrainer', () => {
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
   });
 
+  it('keeps an H-held hint when the mouse leaves the hint button', () => {
+    render(<IntervalTrainer rng={seededRng(1)} />);
+    const btn = screen.getByRole('button', { name: /Hold for hint/ });
+    fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.pointerLeave(btn);
+    fireEvent.pointerUp(btn);
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyUp(window, { key: 'h' });
+    expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('ends a pointer-held hint when the pointer leaves the hint button', () => {
+    render(<IntervalTrainer rng={seededRng(1)} />);
+    const btn = screen.getByRole('button', { name: /Hold for hint/ });
+    fireEvent.pointerDown(btn, { button: 0, pointerId: 1 });
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.pointerLeave(btn);
+    expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('Find it: a wrong cell in the box gets an ✕ and stops accepting taps', () => {
     const { set, q } = renderFindIt(8);
     const miss = cells(set).find(

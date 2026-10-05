@@ -38,3 +38,10 @@ fade, soft fill, pressed in, and a swapping label at a fixed width.
 The Interval trainer's default `hRange` drops from 5 to 4: the target is
 at most three frets from the root unless the player widens it in Settings.
 `docs/specs/2026-10-01-interval-ranges-design.md` is updated to match.
+
+## Hint hold sources
+
+Pointer up, leave and cancel on the hint button end only a hold that a
+pointer press started. A hint held with H (or Space/Enter on the focused
+button) now lasts until that key is released, even if the mouse moves off
+the button meanwhile.
