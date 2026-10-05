@@ -39,23 +39,30 @@ One column, as in the prototype:
    fretboard".
    Beside the name and formula, right-aligned and centred on them, a Root dropdown (17 spellings: the
    naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
-   one `<optgroup>` per family (list below), then Rotate mode: ‹ › buttons
-   joined as one control under a "Rotate mode" label (see Rules), and a
-   "↺ Reset" button that shows only while rotated and keeps its place when
-   hidden, so nothing shifts. On
-   phones the controls wrap under the title; the Root and Scale labels are
-   visually hidden, the Rotate mode label stays.
+   one `<optgroup>` per family (list below), then a "↺ Reset" button that
+   shows only while rotated (see Rotate mode in Rules) and keeps its place
+   when hidden, so nothing shifts. On phones the controls wrap under the
+   title, the Root and Scale labels are visually hidden, and the hidden
+   Reset takes no room, since it would wrap to an empty line of its own.
+   (‹ › Rotate mode buttons stood before Reset until tapping strip notes
+   made them redundant.)
 2. **Scale strip.** No card: under the title, the scale as a one-octave
    strip from root to root, drawn like the chords section's ladder
    (`2026-10-04-chord-diagrams-design.md`): scale notes are tiles in their
    degree colours with the degree under them, and the notes outside the
    scale empty squares. The formula and strip stay the scale's while a
-   chord is selected. After Rotate mode the strip still starts on the root
+   chord is selected. After a rotation the strip still starts on the root
    picked from the dropdowns, and the new root's square tile moves along
    it; colours and degrees follow the new root. In a seven-note family
    every scale note but the root is a button: tapping it rotates to that
    note ("Make E the root: E Phrygian"), and the picked root at either end
-   goes back to the picked scale. (Slice 1 had Notes, Formula and Steps facts under the
+   goes back to the picked scale. Pointing at a tappable note with a mouse,
+   or reaching it with Tab, shows a tooltip above it: its action in bold
+   ("Make E the root: E Phrygian"), then "Same notes, new root: a relative
+   mode." Touch screens cannot hover, so on them (`hover: none`) a muted
+   line under the strip says "Tap a note to make it the root. Same notes,
+   new root: a relative mode." Neither shows for pentatonic or blues
+   scales, which have no notes to tap. (Slice 1 had Notes, Formula and Steps facts under the
    title, a 12-key root row with split black keys and 12 formula chips; on
    review they took too much room. A card holding the dropdowns, formula
    and strip came next; on review it still read as too heavy.)
@@ -70,7 +77,7 @@ One column, as in the prototype:
    only its tones, labelled and coloured by their interval to the chord root
    (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
    as small grey dots; on review they read as clutter.) Changing the root
-   or scale from the dropdowns clears the chord; Rotate mode and changing
+   or scale from the dropdowns clears the chord; a rotation and changing
    size keeps it. A selected chord is also drawn
    against the scale as a ladder or a clock
    (`2026-10-04-chord-diagrams-design.md`).
@@ -109,14 +116,13 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
   scale, was dropped: it only restates the card's order.) The case
   follows the third (lower case when it is minor or diminished); the suffix
   follows the table: °, +, maj7, 7, ø7, °7, (maj7), +maj7, +7.
-- **Rotate mode.** › moves the root up to the next note of the scale and
-  names the scale for that root: C major, D Dorian, E Phrygian … B
-  Locrian, then round to C major again; ‹ goes the other way. The notes
-  never change. It works for the three seven-note families, whose modes
-  the table lists in order; for pentatonic and blues scales both buttons
-  are disabled (only two of major pentatonic's five modes have an entry).
-  The buttons' names and tooltips give the mode they lead to ("Next mode:
-  D Dorian"). A root the dropdown lacks is respelled to the one it has
+- **Rotate mode.** Tapping a strip note makes it the root and names the
+  scale for that root: from C major, D gives D Dorian, E gives E Phrygian
+  … B gives B Locrian. The notes never change, so these are relative
+  modes (parallel modes share the root instead: C Dorian beside C major).
+  It works for the three seven-note families, whose modes the table lists
+  in order; pentatonic and blues scales have no notes to tap (only two of
+  major pentatonic's five modes have an entry). A root the dropdown lacks is respelled to the one it has
   (C♯ major's third mode is F Phrygian, not E♯ Phrygian): 47 of the 357
   steps across the three families need it. Picking a root or scale starts
   again from what the dropdowns then show. The chords section stays on

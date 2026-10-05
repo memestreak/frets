@@ -27,7 +27,7 @@ wrapping round at the ends, unless focus is in a field that uses the arrows
 ## Ladder
 
 - Two octaves from the scale root, one cell per semitone (24 cells, enough
-  for every diatonic stack). After Rotate mode it starts on the root picked
+  for every diatonic stack). After a rotation it starts on the root picked
   from the dropdowns instead, so each chord keeps its cells and only the
   colours and degrees follow the new root. Scale notes are tiles with the note name, and
   their degree in the scale under them. Semitones outside the scale are

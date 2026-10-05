@@ -9,6 +9,7 @@ import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
 import { ChordLadder } from './ChordLadder';
 import { DEGREES, ScalePickers } from './ScalePanel';
+import { StripTip } from './StripTip';
 import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
   type DotLabels, type ScaleLabSettings,
@@ -65,21 +66,17 @@ export default function ScaleLab() {
     update({ mode });
     setChordIndex(i => (i === null ? null : (i - by + 7) % 7));
   };
-  const rotate = (dir: 1 | -1) => goToMode((set.mode + dir + 7) % 7);
   // Where the picked root sits above the shown one: the diagrams start there.
   const from = (12 - shown.shift) % 12;
   const modeTitle = (step: number) => {
     const m = rotateMode(set.root, picked, (step + 7) % 7);
     return `${prettyNote(m.root)} ${m.type.title}`;
   };
-  const modes = modeFamily(picked)
-    ? { prev: modeTitle(set.mode - 1), next: modeTitle(set.mode + 1) }
-    : null;
   // Tapping a note in the strip rotates to it; the strip starts on the
   // picked root, so a cell is that many semitones above it.
   const pickedDegrees = scaleOf(set.root, picked).degrees;
   const modeAtCell = (cell: number) => pickedDegrees.findIndex(d => d.semis === cell % 12);
-  const stripTap = modes && {
+  const stripTap = modeFamily(picked) ? {
     label: (cell: number) => {
       const mode = modeAtCell(cell);
       if (mode < 0 || mode === set.mode) return null;
@@ -87,7 +84,7 @@ export default function ScaleLab() {
       return `Make ${prettyNote(root)} the root: ${modeTitle(mode)}`;
     },
     onTap: (cell: number) => goToMode(modeAtCell(cell)),
-  };
+  } : null;
   const chords = useMemo(
     () => diatonicChords(scale, set.chordSize),
     [scale, set.chordSize],
@@ -113,16 +110,16 @@ export default function ScaleLab() {
             scale={scale}
             onRoot={root => pick(root, shown.type)}
             onScale={id => pick(shown.root, scaleDef(id)!)}
-            modes={modes}
-            onRotate={rotate}
             home={set.mode ? modeTitle(0) : null}
             onReset={() => goToMode(0)}
           />
         </div>
-        <ChordLadder
-          scale={scale} chord={null} intervals="root" octaves={1} from={from}
-          tap={stripTap ?? undefined}
-        />
+        <StripTip enabled={!!stripTap} shown={title}>
+          <ChordLadder
+            scale={scale} chord={null} intervals="root" octaves={1} from={from}
+            tap={stripTap ?? undefined}
+          />
+        </StripTip>
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">

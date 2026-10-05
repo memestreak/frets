@@ -126,7 +126,6 @@ export function ChordLadder({
         };
         return (
           <g key={semi} data-testid={on ? 'ladder-tone' : 'ladder-note'} {...button}>
-            {tapLabel && <title>{tapLabel}</title>}
             <rect
               x={x} y={top} width={TILE} height={TILE_H} rx={root ? 3 : 8}
               fill={fill} stroke={chord && !on ? 'var(--line)' : 'none'}

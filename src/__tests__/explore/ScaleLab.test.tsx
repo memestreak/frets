@@ -145,16 +145,17 @@ describe('ScaleLab', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
     render(<ScaleLab />);
     const title = () => screen.getByRole('heading', { level: 1 });
-    const next = () => screen.getByRole('button', { name: /^Next mode/ });
-    const prev = () => screen.getByRole('button', { name: /^Previous mode/ });
+    const makeRoot = (note: string) =>
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(`^Make ${note} the root`) })[0]);
     const strip = () => document.querySelector<HTMLElement>('.scale-strip')!;
     const stripNames = () => within(strip()).getAllByTestId('ladder-note')
       .map(g => g.querySelector('text')!.textContent).join(' ');
     const square = () => within(strip()).getAllByTestId('ladder-note')
       .find(g => g.querySelector('rect')!.getAttribute('rx') === '3')!.textContent;
 
-    expect(next()).toHaveAccessibleName('Next mode: D Dorian');
-    fireEvent.click(next());
+    // There are no step buttons: the strip's notes do the rotating.
+    expect(screen.queryByRole('button', { name: /mode/ })).toBeNull();
+    makeRoot('D');
     expect(title()).toHaveTextContent(/^D Dorian$/);
     expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('D');
     expect(screen.getByRole('combobox', { name: 'Scale' })).toHaveValue('dorian');
@@ -163,11 +164,8 @@ describe('ScaleLab', () => {
     expect(square()).toMatch(/^D/);
     expect(saved()).toMatchObject({ root: 'C', scale: 'ionian', mode: 1 });
 
-    // The ends wrap round.
-    fireEvent.click(prev());
-    fireEvent.click(prev());
+    makeRoot('B');
     expect(title()).toHaveTextContent(/^B Locrian$/);
-    expect(prev()).toHaveAccessibleName('Previous mode: A natural minor');
 
     // A dropdown starts again from what it shows.
     fireEvent.change(screen.getByRole('combobox', { name: 'Scale' }), {
@@ -205,10 +203,29 @@ describe('ScaleLab', () => {
     expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
   });
 
+  it('explains a strip note on mouse hover, not on touch', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    const e = screen.getByRole('button', { name: 'Make E the root: E Phrygian' });
+    const tip = () => screen.queryByRole('tooltip');
+
+    fireEvent.pointerOver(e, { pointerType: 'touch' });
+    expect(tip()).toBeNull();
+    fireEvent.pointerOver(e, { pointerType: 'mouse' });
+    expect(tip()).toHaveTextContent('Make E the root: E Phrygian');
+    expect(tip()).toHaveTextContent('Same notes, new root: a relative mode.');
+    fireEvent.click(e);
+    expect(tip()).toBeNull();
+
+    // Touch screens get the same advice as a line under the strip.
+    expect(screen.getByText(/^Tap a note to make it the root\./)).toHaveClass('strip-touch-hint');
+  });
+
   it('has no notes to tap in a pentatonic', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'major-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
+    expect(screen.queryByText(/^Tap a note/)).toBeNull();
   });
 
   it('keeps the selected chord through a rotation', () => {
@@ -216,7 +233,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('Dm7'));
     expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
-    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make D the root: D Dorian' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^D Dorian$/);
     expect(board()).toHaveAccessibleName('Dm7 in D Dorian on the fretboard');
     expect(chordCard('Dm7')).toHaveAccessibleName(/^i7, /);
@@ -237,7 +254,7 @@ describe('ScaleLab', () => {
     const ladderCells = () => screen.getAllByTestId('ladder-tone')
       .map(g => g.querySelector('rect')!.getAttribute('x')).join();
     const before = ladderCells();
-    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make D the root: D Dorian' }));
     // Same cards in the same places; the tonic moves to Dm7.
     expect(symbols()).toBe(order);
     expect(tonic()).toBe('Dm7');
@@ -263,7 +280,6 @@ describe('ScaleLab', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.getByText(/only seven-note scales have them/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next mode' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Previous mode' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
   });
 });
