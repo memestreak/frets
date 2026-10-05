@@ -40,7 +40,7 @@ const answerFor = (index: number, set: NoteSettings) =>
 
 export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   const {
-    state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
+    state, dispatch, hint, toggleHint, settingsOpen, setSettingsOpen,
     next, update, applyDefaults, answerName, answerGridRef,
   } = useTrainer({
     reducer: noteReducer, init: initNoteState,
@@ -163,20 +163,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       </SettingsDialog>
 
       <div className="grid grid-cols-[minmax(0,1fr)] content-start">
-        <AnswerCard
-          kicker={mode === 'name' ? 'Your answer' : 'Target'}
-          hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
-          feedback={feedback}
-          tone={tone}
-          answered={answered}
-          pause={set.pause}
-          onSkip={next}
-          onNext={next}
-        >
-          {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="note" />}
-          {mode !== 'name' && q && <FindPrompt label={noteName}>{findSub}</FindPrompt>}
-        </AnswerCard>
-        <BoardFrame legend={legend} hint={hint} onHint={setHint}>
+        <BoardFrame legend={legend} hint={hint} onToggleHint={toggleHint}>
           <Fretboard
             minFret={0}
             maxFret={NOTE_MAX_FRET}
@@ -196,6 +183,19 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
             isCellDisabled={pos => wasTapped(state, pos)}
           />
         </BoardFrame>
+        <AnswerCard
+          kicker={mode === 'name' ? 'Your answer' : 'Target'}
+          hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
+          feedback={feedback}
+          tone={tone}
+          answered={answered}
+          pause={set.pause}
+          onSkip={next}
+          onNext={next}
+        >
+          {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="note" />}
+          {mode !== 'name' && q && <FindPrompt label={noteName}>{findSub}</FindPrompt>}
+        </AnswerCard>
         <SessionStatsCard
           stats={stats}
           itemLabel="Per note"

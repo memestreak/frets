@@ -26,7 +26,7 @@ export function AnswerCard({
   kicker, hint, feedback, tone, answered, pause, onSkip, onNext, children,
 }: AnswerCardProps) {
   return (
-    <section className="card gap-2 px-[18px] pt-2.5 pb-3">
+    <section className="card mt-3.5 gap-2 px-[18px] pt-2.5 pb-3">
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="card-kicker">{kicker}</span>
