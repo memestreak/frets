@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
+import { TIP_DELAY_MS } from '@/features/explore/scales/StripTip';
 
 const formula = () => screen.getByTestId('scale-formula');
 const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
@@ -211,9 +212,16 @@ describe('ScaleLab', () => {
 
     fireEvent.pointerOver(e, { pointerType: 'touch' });
     expect(tip()).toBeNull();
+    vi.useFakeTimers();
     fireEvent.pointerOver(e, { pointerType: 'mouse' });
+    // It waits a second before showing.
+    act(() => vi.advanceTimersByTime(TIP_DELAY_MS - 1));
+    expect(tip()).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    vi.useRealTimers();
     expect(tip()).toHaveTextContent('Make E the root: E Phrygian');
     expect(tip()).toHaveTextContent('Same notes, new root: a relative mode.');
+    fireEvent.pointerDown(e);
     fireEvent.click(e);
     expect(tip()).toBeNull();
 

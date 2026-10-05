@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 const RELATIVE = 'Same notes, new root: a relative mode.';
 /** Half the tooltip's widest, to keep it on screen beside the strip's ends. */
 const HALF_TIP = 130;
+/** How long the pointer rests on a note before its tooltip shows. */
+export const TIP_DELAY_MS = 1000;
 
 interface StripTipProps {
   /** False when the strip has no notes to tap (not a seven-note scale). */
@@ -14,8 +16,8 @@ interface StripTipProps {
 }
 
 /**
- * Wraps the scale strip. Pointing at a tappable note with a mouse, or
- * reaching it with the keyboard, shows a tooltip above it naming the mode
+ * Wraps the scale strip. Resting a mouse on a tappable note for a second,
+ * or reaching it with the keyboard, shows a tooltip above it naming the mode
  * it rotates to. Touch screens cannot hover, so there a line under the strip
  * says the same instead.
  */
@@ -33,11 +35,16 @@ export function StripTip({ enabled, shown, children }: StripTipProps) {
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
+    // A pending mouse tooltip, and whether one is up: once it is, moving to
+    // the next note swaps it at once rather than waiting again.
+    let timer: number | undefined;
+    let showing = false;
     // The note under the event, if it is one the strip lets you tap.
     const show = (target: EventTarget | null) => {
       const note = (target as Element | null)?.closest('.tap');
       const label = note?.getAttribute('aria-label');
-      if (!note || !label) return setTip(null);
+      if (!note || !label) return hide();
+      showing = true;
       const n = note.getBoundingClientRect();
       const b = box.getBoundingClientRect();
       const centre = Math.min(
@@ -47,17 +54,29 @@ export function StripTip({ enabled, shown, children }: StripTipProps) {
       setTip({ label, x: centre - b.left, y: n.top - b.top });
     };
     const onOver = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') show(e.target);
+      if (e.pointerType === 'touch') return;
+      window.clearTimeout(timer);
+      if (showing) return show(e.target);
+      const target = e.target;
+      timer = window.setTimeout(() => show(target), TIP_DELAY_MS);
     };
     const onFocus = (e: FocusEvent) => {
       if ((e.target as Element).matches(':focus-visible')) show(e.target);
     };
-    const hide = () => setTip(null);
+    function hide() {
+      window.clearTimeout(timer);
+      showing = false;
+      setTip(null);
+    }
     box.addEventListener('pointerover', onOver);
     box.addEventListener('pointerleave', hide);
     box.addEventListener('focusin', onFocus);
     box.addEventListener('focusout', hide);
+    // Tapping a note changes the scale; the next hover waits again.
+    box.addEventListener('pointerdown', hide);
     return () => {
+      window.clearTimeout(timer);
+      box.removeEventListener('pointerdown', hide);
       box.removeEventListener('pointerover', onOver);
       box.removeEventListener('pointerleave', hide);
       box.removeEventListener('focusin', onFocus);

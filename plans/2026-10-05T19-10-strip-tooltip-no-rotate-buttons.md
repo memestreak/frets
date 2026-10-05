@@ -10,7 +10,8 @@ Spec: `docs/specs/2026-10-04-scale-lab-design.md` (Page 1–2, Rules: Rotate mod
 3. `StripTip.tsx`: wraps the strip; native `pointerover` / `focusin`
    listeners on the wrapper show a tooltip above a `.tap` note (mouse or
    pen, or keyboard focus), built from the note's `aria-label` plus the
-   relative-mode line; it hides on leave, blur and when the shown scale
+   relative-mode line, after a 1s rest for the mouse (none once one is up,
+   none for focus); it hides on leave, blur and when the shown scale
    changes. A `.strip-touch-hint` line shows under `(hover: none)`.
 4. `ChordLadder.tsx`: drop the SVG `<title>` so the native tooltip does
    not double up.

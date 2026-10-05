@@ -56,8 +56,9 @@ One column, as in the prototype:
    it; colours and degrees follow the new root. In a seven-note family
    every scale note but the root is a button: tapping it rotates to that
    note ("Make E the root: E Phrygian"), and the picked root at either end
-   goes back to the picked scale. Pointing at a tappable note with a mouse,
-   or reaching it with Tab, shows a tooltip above it: its action in bold
+   goes back to the picked scale. Resting a mouse on a tappable note for a
+   second (then moving to the next one swaps it at once), or reaching it
+   with Tab, shows a tooltip above it: its action in bold
    ("Make E the root: E Phrygian"), then "Same notes, new root: a relative
    mode." Touch screens cannot hover, so on them (`hover: none`) a muted
    line under the strip says "Tap a note to make it the root. Same notes,
