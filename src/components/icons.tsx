@@ -56,6 +56,22 @@ export function EyeIcon() {
   );
 }
 
+export function ChevronLeftIcon() {
+  return (
+    <Icon>
+      <path d="m15 18-6-6 6-6" />
+    </Icon>
+  );
+}
+
+export function ChevronRightIcon() {
+  return (
+    <Icon>
+      <path d="m9 18 6-6-6-6" />
+    </Icon>
+  );
+}
+
 export function ResetIcon() {
   return (
     <Icon>

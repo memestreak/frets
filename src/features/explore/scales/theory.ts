@@ -1,5 +1,6 @@
 import { Interval, Note, ScaleType } from 'tonal';
 import { pitchClass, STRINGS } from '@/lib/music';
+import { prettyNote } from '@/lib/notation';
 
 /*
  * The Scale lab's music theory: spelled notes and intervals from tonal,
@@ -115,14 +116,6 @@ export function rotateMode(root: Root, type: ScaleDef, step: number): Rotation {
     type: family[(family.indexOf(type) + step) % 7],
     shift: degree.semis,
   };
-}
-
-/** "F##" → "F𝄪", "Bb" → "B♭". */
-export function prettyNote(note: string): string {
-  const acc = note.slice(1)
-    .replace('##', '𝄪').replace('bb', '𝄫')
-    .replace('#', '♯').replace('b', '♭');
-  return note[0] + acc;
 }
 
 const ACCIDENTALS: Record<number, string> = {

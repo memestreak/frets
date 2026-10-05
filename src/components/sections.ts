@@ -48,7 +48,25 @@ export const EXPLORE: Section = {
   ],
 };
 
-export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE];
+export const CHORDS: Section = {
+  href: '/chords',
+  label: 'Chords',
+  summary: 'Look up a chord and every way to play it, or name the one you play.',
+  pages: [
+    {
+      href: '/chords/library',
+      title: 'Chord library',
+      summary: 'Pick a root and a chord type, see its open and moveable shapes.',
+    },
+    {
+      href: '/chords/lab',
+      title: 'Chord lab',
+      summary: 'Tap notes on the neck to name a chord, or build one tone by tone.',
+    },
+  ],
+};
+
+export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE, CHORDS];
 
 /** The section and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {

@@ -1,8 +1,8 @@
-import type { Degree } from '@/components/fretboard/theme';
-import { DEGREES } from './ScalePanel';
+import { DEGREES, type Degree } from '@/components/fretboard/theme';
+import { prettyNote } from '@/lib/notation';
 import type { ChordIntervals } from './settings';
 import {
-  intervalWords, prettyNote, type DiatonicChord, type Scale, type ScaleDegree,
+  intervalWords, type DiatonicChord, type Scale, type ScaleDegree,
 } from './theory';
 
 /** Chord tones take the colours of root, third, fifth and seventh. */

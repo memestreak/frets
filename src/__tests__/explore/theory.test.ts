@@ -1,5 +1,6 @@
+import { prettyNote } from '@/lib/notation';
 import {
-  diatonicChords, intervalLabel, intervalWords, modeFamily, neckNotes, prettyNote, ROOTS,
+  diatonicChords, intervalLabel, intervalWords, modeFamily, neckNotes, ROOTS,
   rotateMode, scaleDef, scaleOf, SCALES, type Root,
 } from '@/features/explore/scales/theory';
 

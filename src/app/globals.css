@@ -163,6 +163,63 @@ button {
   .strip-touch-hint { display: none; }
   @media (hover: none) { .strip-touch-hint { display: block; } }
   .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
+
+  /* The Chord library's shapes: five per line, wrapping; on a phone the
+     grid scrolls sideways rather than shrink the diagrams. */
+  .shape-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(104px, 168px));
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px;
+  }
+  .shape-btn {
+    display: block;
+    min-width: 0;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    background: none;
+    cursor: pointer;
+  }
+  .shape-btn:hover { background: var(--surface-sunken); }
+  .shape-btn[aria-pressed='true'] {
+    background: var(--primary-soft);
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  .shape-diagram { display: block; width: 100%; height: auto; }
+
+  /* The Chord lab's tone chips and chord names. */
+  .tone-chip {
+    min-width: 44px;
+    padding: 6px 8px;
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    color: var(--ink-muted);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tone-chip[aria-pressed='true'] { font-weight: 700; }
+  .tone-chip:disabled { cursor: default; }
+  .name-btn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    background: none;
+    text-align: start;
+    cursor: pointer;
+  }
+  .name-btn:hover { background: var(--surface-sunken); }
+  .name-btn[aria-pressed='true'] {
+    background: var(--primary-soft);
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  .name-btn b { min-width: 7ch; font-size: 1.1rem; }
+  .name-btn span { font-size: 0.875rem; color: var(--ink-muted); }
+  .shape-diagram text { font-family: var(--font-sans); }
   .chord-diagram text { font-family: var(--font-sans); }
   .chord-diagram .diagram-name { font-size: 12px; font-weight: 700; }
   .chord-diagram .diagram-role { font-size: 12px; font-weight: 700; }
