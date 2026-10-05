@@ -48,8 +48,7 @@ describe('spelling', () => {
 
 });
 
-const row = (root: Root, id: string, size: 3 | 4, style: 'parallel' | 'relative' = 'parallel') =>
-  diatonicChords(scale(root, id), size, style);
+const row = (root: Root, id: string, size: 3 | 4) => diatonicChords(scale(root, id), size);
 
 describe('diatonicChords', () => {
   it('stacks the triads of C major', () => {
@@ -72,14 +71,12 @@ describe('diatonicChords', () => {
     expect(chords[2].thirds).toEqual(['M3', 'M3', 'm3']);
   });
 
-  it('numbers by degree in III style', () => {
-    expect(row('A', 'aeolian', 3, 'relative').map(c => c.numeral))
-      .toEqual(['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII']);
-    expect(row('A', 'aeolian', 3, 'parallel').map(c => c.numeral))
+  it('numbers chords against the major scale on the same root', () => {
+    expect(row('A', 'aeolian', 3).map(c => c.numeral))
       .toEqual(['i', 'ii°', '♭III', 'iv', 'v', '♭VI', '♭VII']);
   });
 
-  it('marks raised degrees in ♭III style', () => {
+  it('marks raised degrees', () => {
     expect(row('C', 'lydian', 3)[3].numeral).toBe('♯iv°');
   });
 
@@ -100,7 +97,7 @@ describe('diatonicChords', () => {
 
   it('fits every stack in two octaves, rising', () => {
     for (const def of SCALES) {
-      for (const c of diatonicChords(scaleOf('C', def), 4, 'parallel')) {
+      for (const c of diatonicChords(scaleOf('C', def), 4)) {
         c.rising.slice(1).forEach((r, k) => expect(r).toBeGreaterThan(c.rising[k]));
         expect(c.rising.at(-1)).toBeLessThan(24);
       }
@@ -112,7 +109,7 @@ describe('diatonicChords', () => {
     for (const def of SCALES) {
       for (const root of ROOTS) {
         for (const size of [3, 4] as const) {
-          for (const c of diatonicChords(scaleOf(root, def), size, 'parallel')) {
+          for (const c of diatonicChords(scaleOf(root, def), size)) {
             expect(c.symbol, `${root} ${def.id}`).not.toContain(' ');
           }
         }
@@ -137,7 +134,7 @@ describe('neckNotes', () => {
 
   it('keeps only chord tones, labelled against the chord root', () => {
     const sc = scale('A', 'aeolian');
-    const dm7 = diatonicChords(sc, 4, 'parallel')[3];
+    const dm7 = diatonicChords(sc, 4)[3];
     const on = neckNotes(sc, 12, dm7);
     // Low E string: D at fret 10 is the chord root, A at 5 its fifth.
     expect(on.find(n => n.s === 0 && n.f === 10)).toMatchObject({ label: '1', degree: 1 });

@@ -173,8 +173,6 @@ export function scaleOf(root: Root, type: ScaleDef): Scale {
 }
 
 export type ChordSize = 3 | 4;
-/** ♭III style numbers chords against the major scale; III style by degree. */
-export type NumeralStyle = 'parallel' | 'relative';
 
 export interface DiatonicChord {
   /** Index of the chord root in the scale, 0–6. */
@@ -248,7 +246,7 @@ export function intervalWords(name: string): string {
  * smaller scales alternate notes are not thirds.
  */
 export function diatonicChords(
-  scale: Scale, size: ChordSize, style: NumeralStyle,
+  scale: Scale, size: ChordSize,
 ): DiatonicChord[] {
   const { degrees } = scale;
   if (degrees.length !== 7) return [];
@@ -262,9 +260,8 @@ export function diatonicChords(
 
     const third = Interval.get(intervals[1]);
     const minorish = third.alt < 0;
-    const roman = style === 'parallel'
-      ? ACCIDENTALS[Interval.get(root.interval).alt] + ROMAN[root.degree - 1]
-      : ROMAN[index];
+    // Numbered against the major scale on the same root: ♭III, ♯iv°.
+    const roman = ACCIDENTALS[Interval.get(root.interval).alt] + ROMAN[root.degree - 1];
     const numeral = (minorish ? roman.toLowerCase() : roman) + (kind?.suffix ?? '');
 
     return {

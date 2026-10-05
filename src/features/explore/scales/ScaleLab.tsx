@@ -53,7 +53,7 @@ export default function ScaleLab() {
   }, [set.root, set.scale, set.mode]);
 
   // A dropdown starts again from what it shows: the strip begins at the root.
-  // A chord belongs to one scale; the size and numerals keep it.
+  // A chord belongs to one scale; the size keeps it.
   const pick = (root: Root, type: ScaleDef) => {
     update({ root, scale: type.id, mode: 0 });
     setChordIndex(null);
@@ -89,8 +89,8 @@ export default function ScaleLab() {
     onTap: (cell: number) => goToMode(modeAtCell(cell)),
   };
   const chords = useMemo(
-    () => diatonicChords(scale, set.chordSize, set.numerals),
-    [scale, set.chordSize, set.numerals],
+    () => diatonicChords(scale, set.chordSize),
+    [scale, set.chordSize],
   );
   const chord = chordIndex === null ? null : chords[chordIndex] ?? null;
 
@@ -153,8 +153,6 @@ export default function ScaleLab() {
         onSelect={c => setChordIndex(c?.index ?? null)}
         size={set.chordSize}
         onSize={chordSize => update({ chordSize })}
-        numerals={set.numerals}
-        onNumerals={numerals => update({ numerals })}
         view={set.chordView}
         onView={chordView => update({ chordView })}
         intervals={set.chordIntervals}
