@@ -2,12 +2,16 @@ import type { ComponentProps } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AppNav } from '@/components/AppNav';
 
-// jsdom can't follow a link, so the stand-in keeps the click on the page.
 vi.mock('next/link', () => ({
-  default: ({ children, onClick, ...rest }: ComponentProps<'a'>) => (
-    <a {...rest} onClick={e => { onClick?.(e); e.preventDefault(); }}>{children}</a>
+  default: ({ children, ...rest }: ComponentProps<'a'>) => (
+    <a {...rest}>{children}</a>
   ),
 }));
+
+// jsdom can't follow a link, so clicks on one stay on the page.
+const stayOnPage = (e: MouseEvent) => e.preventDefault();
+beforeAll(() => document.addEventListener('click', stayOnPage));
+afterAll(() => document.removeEventListener('click', stayOnPage));
 
 const nav = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
