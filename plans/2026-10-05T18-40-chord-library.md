@@ -10,7 +10,7 @@ Spec: `docs/specs/2026-10-05-chord-library-design.md`.
    `chordTheory.js` with per-string pruning (only chord tones in the
    window) so a chord takes milliseconds. Tests.
 4. Components: `ChordDiagram`, `VoicingGroups`, `chordDots`, then
-   `library/ChordPickers`, `VoicingStepper`, `settings`, `ChordLibrary`.
+   `library/ChordPickers`, `VoicingStepper`, `chordUrls` (the `?chord=` slug), `ChordLibrary`.
 5. Routes `/chords`, `/chords/library`, the loader, the `CHORDS` section;
    update `sections.test.ts`.
 6. CSS for the diagram grid in `globals.css`.

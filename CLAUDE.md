@@ -117,7 +117,8 @@ binds a local port).
   constant) and splits them into open, the best few moveable, and all
   moveable. `ChordDiagram.tsx`, `VoicingGroups.tsx` and `chordDots.ts` are
   shared with the Chord lab to come; `library/ChordLibrary.tsx` is the page
-  and its only stateful component.
+  and its only stateful component. The chord is in the URL, not storage:
+  `/chords/library?chord=am7b5`, slugs in `library/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -147,8 +148,7 @@ binds a local port).
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
 hold `{ set, stats }`; `["frets.explore.scales"]` holds the Scale lab's
-settings; `["frets.chords.library"]` holds the Chord library's `{ root,
-type }`; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+settings; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

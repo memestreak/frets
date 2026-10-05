@@ -1,9 +1,20 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import ChordLibrary from '@/features/chords/library/ChordLibrary';
-import { CHORD_LIBRARY_STORAGE_KEY } from '@/features/chords/library/settings';
+
+/** The page's URL query, and the URLs it pushed. */
+const nav = vi.hoisted(() => ({ search: '', push: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(nav.search),
+  useRouter: () => ({ push: nav.push }),
+}));
+
+/** Renders the page at /chords/library plus `search`. */
+function renderAt(search = '') {
+  nav.search = search;
+  return render(<ChordLibrary />);
+}
 
 const heading = () => screen.getByRole('heading', { level: 1 });
-const saved = () => JSON.parse(localStorage.getItem(CHORD_LIBRARY_STORAGE_KEY) ?? '{}');
 const group = (name: 'Open' | 'Moveable') => screen.getByRole('region', { name: `${name} shapes` });
 const shapes = (name: 'Open' | 'Moveable') => within(group(name)).queryAllByRole('button');
 const caption = () => screen.getByTestId('shape-caption');
@@ -12,10 +23,10 @@ const boardDots = () =>
   screen.getAllByTestId(/^dot-/).map(d => `${d.dataset.s}:${d.dataset.f}`).sort();
 
 describe('ChordLibrary', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => nav.push.mockClear());
 
   it('opens on Am7 with its formula, notes and first open shape on the neck', () => {
-    render(<ChordLibrary />);
+    renderAt();
     expect(heading()).toHaveTextContent('Am7');
     expect(screen.getByTestId('chord-formula')).toHaveTextContent('(1 ♭3 5 ♭7)');
     expect(screen.getByTestId('chord-notes')).toHaveTextContent('A C E G');
@@ -25,18 +36,28 @@ describe('ChordLibrary', () => {
     expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('changes the chord from the dropdowns and saves it', () => {
-    render(<ChordLibrary />);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: 'M' } });
+  it('shows the chord the URL names', () => {
+    renderAt('?chord=c');
     expect(heading()).toHaveTextContent(/^C \(/);
     expect(screen.getByTestId('chord-notes')).toHaveTextContent('C E G');
-    expect(saved()).toEqual({ root: 'C', type: 'M' });
     expect(shapes('Open')[0]).toHaveAttribute('data-voicing', 'x-3-2-0-1-0');
   });
 
+  it('shows Am7 for a chord it does not know', () => {
+    renderAt('?chord=h7');
+    expect(heading()).toHaveTextContent('Am7');
+  });
+
+  it('goes to the URL of the chord picked in the dropdowns', () => {
+    renderAt('?chord=fsharpm7');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
+    expect(nav.push).toHaveBeenLastCalledWith('/chords/library?chord=cm7', { scroll: false });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Type' }), { target: { value: '7#9' } });
+    expect(nav.push).toHaveBeenLastCalledWith('/chords/library?chord=fsharp7sharp9', { scroll: false });
+  });
+
   it('puts a tapped shape on the neck', () => {
-    render(<ChordLibrary />);
+    renderAt();
     const barre = within(group('Moveable')).getByRole('button', { name: /root on E · frets 5–7/ });
     fireEvent.click(barre);
     expect(barre).toHaveAttribute('aria-pressed', 'true');
@@ -45,7 +66,7 @@ describe('ChordLibrary', () => {
   });
 
   it('steps through the open shapes, then the moveable ones', () => {
-    render(<ChordLibrary />);
+    renderAt();
     const prev = screen.getByRole('button', { name: 'Previous shape' });
     const next = screen.getByRole('button', { name: 'Next shape' });
     expect(prev).toBeDisabled();
@@ -58,7 +79,7 @@ describe('ChordLibrary', () => {
   });
 
   it('shows every moveable shape on request, and the best few again', () => {
-    render(<ChordLibrary />);
+    renderAt();
     const few = shapes('Moveable').length;
     fireEvent.click(screen.getByRole('button', { name: /^Show all \d+ shapes$/ }));
     expect(shapes('Moveable').length).toBeGreaterThan(few);
@@ -67,8 +88,7 @@ describe('ChordLibrary', () => {
   });
 
   it('says so when a chord has no open shape', () => {
-    localStorage.setItem(CHORD_LIBRARY_STORAGE_KEY, JSON.stringify({ root: 'C', type: 'm6' }));
-    render(<ChordLibrary />);
+    renderAt('?chord=cm6');
     expect(within(group('Open')).getByText('No open shape for Cm6.')).toBeInTheDocument();
     expect(caption()).toHaveTextContent(/^Moveable 1 of /);
   });

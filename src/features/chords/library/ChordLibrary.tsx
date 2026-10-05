@@ -1,19 +1,20 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Fretboard } from '@/components/fretboard/Fretboard';
-import { usePersist } from '@/hooks/usePersist';
-import { loadJson } from '@/lib/storage';
 import { voicingDots } from '../chordDots';
 import { chordOf, formulaOf } from '../chordTypes';
 import { VoicingGroups } from '../VoicingGroups';
 import { findVoicings, voicingCaption, voicingKey, type Voicing } from '../voicings';
 import { ChordPickers } from './ChordPickers';
 import {
-  CHORD_LIBRARY_MAX_FRET, CHORD_LIBRARY_STORAGE_KEY, parseChordLibrarySettings,
-  type ChordLibrarySettings,
-} from './settings';
+  CHORD_PARAM, chordFromSlug, chordHref, chordSlug, type ChordChoice,
+} from './chordUrls';
 import { VoicingStepper } from './VoicingStepper';
+
+/** The neck shows the open strings through this fret. */
+const MAX_FRET = 15;
 
 /** "Open 1 of 3 · root on A · frets 1–2" */
 function stepperCaption(voicing: Voicing | undefined, open: Voicing[], moveable: Voicing[]): string {
@@ -25,26 +26,31 @@ function stepperCaption(voicing: Voicing | undefined, open: Voicing[], moveable:
 }
 
 /**
- * The Chord library page: pick a root and type, see one voicing on the
- * neck and every shape below it. The only component here with state: the
- * chord (saved), the shape on the neck and whether Moveable shows all.
+ * The Chord library page. The chord comes from the URL
+ * (/chords/library?chord=am7b5), and picking another goes to its URL, so
+ * links and Back work. A key per chord starts each one again from its
+ * first shape and its best few.
  */
-export default function ChordLibrary() {
-  const [set, setSet] = useState(
-    () => parseChordLibrarySettings(loadJson(CHORD_LIBRARY_STORAGE_KEY)),
-  );
+export default function ChordLibraryPage() {
+  const choice = chordFromSlug(useSearchParams().get(CHORD_PARAM));
+  const slug = chordSlug(choice);
+  return <ChordLibrary key={slug} choice={choice} />;
+}
+
+/**
+ * One chord: one voicing on the neck and every shape below it. The only
+ * component here with state: the shape on the neck and whether Moveable
+ * shows all.
+ */
+function ChordLibrary({ choice }: { choice: ChordChoice }) {
+  const router = useRouter();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-  usePersist(CHORD_LIBRARY_STORAGE_KEY, set);
 
-  // A new chord starts again from its first shape and its best few.
-  const pick = (patch: Partial<ChordLibrarySettings>) => {
-    setSet(s => ({ ...s, ...patch }));
-    setSelectedKey(null);
-    setShowAll(false);
-  };
+  const pick = (patch: Partial<ChordChoice>) =>
+    router.push(chordHref({ ...choice, ...patch }), { scroll: false });
 
-  const chord = useMemo(() => chordOf(set.root, set.type), [set.root, set.type]);
+  const chord = useMemo(() => chordOf(choice.root, choice.type), [choice.root, choice.type]);
   const voicings = useMemo(() => findVoicings(chord), [chord]);
   const moveable = showAll ? voicings.allMoveable : voicings.moveable;
   // ‹ › walk the open shapes, then the moveable ones, as listed below.
@@ -67,7 +73,7 @@ export default function ChordLibrary() {
             </span>
           </h1>
           <ChordPickers
-            root={set.root} typeId={set.type}
+            root={choice.root} typeId={choice.type}
             onRoot={root => pick({ root })} onType={type => pick({ type })}
           />
         </div>
@@ -77,7 +83,7 @@ export default function ChordLibrary() {
       <section className="card gap-4" aria-label="On the neck">
         <div className="board-scroll">
           <Fretboard
-            minFret={0} maxFret={CHORD_LIBRARY_MAX_FRET}
+            minFret={0} maxFret={MAX_FRET}
             dots={voicing ? voicingDots(chord, voicing) : []}
             scrollToFret={voicing ? Math.min(...voicing.filter(f => f !== null)) : null}
             label={boardLabel}

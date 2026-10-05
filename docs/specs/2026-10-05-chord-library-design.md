@@ -120,17 +120,25 @@ All of these numbers are named constants in `voicings.ts`.
     Moveable, five per line, Show all) and `chordDots.ts` (voicing → neck
     dots): shared with the Chord lab to come.
   - `library/`: `ChordLibrary.tsx` (the page, the only stateful component),
-    `ChordPickers.tsx`, `VoicingStepper.tsx`, `settings.ts`.
+    `ChordPickers.tsx`, `VoicingStepper.tsx`, `chordUrls.ts` (slugs).
   - `ChordsLoaders.tsx`: client-only loader, like the other sections'.
 - Moved for a second user: `prettyNote` to `src/lib/notation.ts`, and the
   degree-number colours (`DEGREES`) to `components/fretboard/theme.ts`.
 - `sections.ts` gains a `CHORDS` section; `/chords` gets an index page like
   `/practice` and `/explore`.
 
-## Saved state
+## URL
 
-`localStorage["frets.chords.library"]` holds `{ root, type }` with a
-validating parser. The selected voicing and Show all are not saved.
+Each chord has its own URL on the one page:
+`/chords/library?chord=am7b5`. The slug is the root and the type in lower
+case; a capital M is written `maj` (four types differ from another only by
+it: `amaj7b5` vs `am7b5`) and `#` is written `sharp` (`fsharpm7`,
+`c7sharp9`). Picking a root or type pushes the new chord's URL, so links
+and Back work. With no `chord`, or one it doesn't know, the page shows
+Am7. Nothing is saved in localStorage; the selected voicing and Show all
+are not in the URL. (The page is static, so the chord is read in the
+browser; a path such as `/chords/library/am7b5` would have needed 1,272
+prebuilt pages or a host rewrite rule.)
 
 ## Tests
 
@@ -139,7 +147,8 @@ validating parser. The selected voicing and Show all are not saved.
 - voicings: well-known shapes appear (open C, open Am7, E-shape and
   A-shape barres); every voicing obeys the playable rules; the best few
   are a subset of all; open and moveable don't overlap.
-- settings parser rejects bad fields.
-- ChordLibrary: opens on the default chord; changing root and type updates
-  the title and saves; tapping a diagram puts it on the neck; ‹ › step;
+- URLs: slugs as above; every root and type has its own slug of letters
+  and digits that reads back; unknown slugs fall back to Am7.
+- ChordLibrary: opens on the default chord; shows the chord the URL
+  names; changing root and type pushes its URL; tapping a diagram puts it on the neck; ‹ › step;
   Show all adds shapes.
