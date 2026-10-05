@@ -1,14 +1,9 @@
 import { useId } from 'react';
-import type { Degree } from '@/components/fretboard/theme';
 import { ChevronLeftIcon, ChevronRightIcon, ResetIcon } from '@/components/icons';
+import { prettyNote } from '@/lib/notation';
 import {
-  prettyNote, ROOTS, SCALE_GROUPS, SCALES, type Root, type Scale,
+  ROOTS, SCALE_GROUPS, SCALES, type Root, type Scale,
 } from './theory';
-
-/** Degree colours by degree number 1–7. */
-export const DEGREES: readonly Degree[] = [
-  'root', 'second', 'third', 'extension', 'fifth', 'sixth', 'seventh',
-];
 
 interface ScalePickersProps {
   scale: Scale;

@@ -3,7 +3,8 @@ import {
   chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
   IntervalTag, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
-import { prettyNote, type DiatonicChord, type Scale } from './theory';
+import { prettyNote } from '@/lib/notation';
+import type { DiatonicChord, Scale } from './theory';
 
 /** The circle the twelve semitones sit on. */
 const R = 86;

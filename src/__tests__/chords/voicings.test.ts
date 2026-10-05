@@ -1,0 +1,78 @@
+import { TUNING } from '@/lib/music';
+import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/features/chords/chordTypes';
+import {
+  diagramStartFret, findVoicings, fingersNeeded, voicingCaption, voicingKey, type Voicing,
+} from '@/features/chords/voicings';
+
+const keys = (vs: Voicing[]) => vs.map(voicingKey);
+
+function expectPlayable(v: Voicing, chord: ChordInfo) {
+  const strings = v.flatMap((f, s) => (f === null ? [] : [s]));
+  const tones = strings.map(s => (TUNING[s] + v[s]! - chord.rootPc + 120) % 12);
+  const chordTones = chord.tones.map(t => t.semis);
+  const fretted = v.filter((f): f is number => f !== null && f > 0);
+  expect(strings.length).toBeGreaterThanOrEqual(3);
+  expect(tones[0]).toBe(0);
+  expect(tones.every(t => chordTones.includes(t))).toBe(true);
+  for (const t of chord.tones.filter(t => t.required)) expect(tones).toContain(t.semis);
+  if (fretted.length) expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(3);
+  expect(fingersNeeded(v)).toBeLessThanOrEqual(4);
+}
+
+describe('findVoicings', () => {
+  it('finds the shapes every guitarist knows', () => {
+    const c = findVoicings(chordOf('C', 'M'));
+    expect(keys(c.open)).toContain('x-3-2-0-1-0');
+    expect(keys(c.moveable)).toContain('8-10-10-9-8-8'); // E-shape barre
+    expect(keys(c.moveable)).toContain('x-3-5-5-5-3'); // A-shape barre
+
+    const am7 = findVoicings(chordOf('A', 'm7'));
+    expect(keys(am7.open)).toContain('x-0-2-0-1-0');
+    expect(keys(am7.moveable)).toContain('5-7-5-5-5-5');
+
+    // Same notes as the full F barre, but its own shape: the bass is on the D string.
+    expect(keys(findVoicings(chordOf('F', 'M')).moveable)).toContain('x-x-3-2-1-1');
+    expect(keys(findVoicings(chordOf('G', '7')).open)).toContain('3-2-0-0-0-1');
+    expect(keys(findVoicings(chordOf('E', 'M')).open)).toContain('0-2-2-1-0-0');
+  });
+
+  it('keeps every shape playable, the best few among all, and open apart from moveable', () => {
+    for (const [root, id] of [['A', 'm7'], ['C', 'M'], ['G', '7'], ['Bb', '13'], ['F#', 'dim7']] as const) {
+      const chord = chordOf(root, id);
+      const { open, moveable, allMoveable } = findVoicings(chord);
+      for (const v of [...open, ...allMoveable]) expectPlayable(v, chord);
+      expect(keys(allMoveable)).toEqual(expect.arrayContaining(keys(moveable)));
+      expect(allMoveable.length).toBeGreaterThan(moveable.length);
+      expect(open.every(v => v.includes(0))).toBe(true);
+      expect(allMoveable.some(v => v.includes(0))).toBe(false);
+    }
+  });
+
+  it('lists moveable shapes from the nut up', () => {
+    const lowest = (v: Voicing) => Math.min(...v.filter((f): f is number => f !== null));
+    const frets = findVoicings(chordOf('A', 'm7')).moveable.map(lowest);
+    expect(frets).toEqual([...frets].sort((a, b) => a - b));
+  });
+
+  it('has nothing open for a chord without an open shape', () => {
+    expect(findVoicings(chordOf('C', 'm6')).open).toEqual([]);
+  });
+
+  it('runs fast enough to search every chord type', () => {
+    const start = performance.now();
+    for (const t of CHORD_TYPES) findVoicings(chordOf(CHORD_ROOTS[3], t.id));
+    expect(performance.now() - start).toBeLessThan(5000);
+  });
+});
+
+describe('captions and diagram windows', () => {
+  it('says where a shape sits', () => {
+    expect(voicingCaption([5, 7, 5, 5, 5, 5])).toBe('root on E · frets 5–7');
+    expect(voicingCaption([null, 0, 2, 0, 1, 0])).toBe('root on A · frets 1–2');
+  });
+
+  it('starts a diagram at fret 1 when the shape fits there', () => {
+    expect(diagramStartFret([null, 3, 2, 0, 1, 0])).toBe(1);
+    expect(diagramStartFret([null, 12, 14, 12, 13, 12])).toBe(12);
+  });
+});

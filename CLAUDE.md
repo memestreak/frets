@@ -2,10 +2,12 @@
 
 # Frets
 
-Guitar fretboard app with two sections: Practice, holding two quiz
-trainers (Intervals, Notes), and Explore, holding the Scale lab (see
-`docs/specs/2026-10-04-practice-restructure-design.md` and
-`docs/specs/2026-10-04-scale-lab-design.md`). The app has no users
+Guitar fretboard app with three sections: Practice, holding two quiz
+trainers (Intervals, Notes), Explore, holding the Scale lab, and Chords,
+holding the Chord library (see
+`docs/specs/2026-10-04-practice-restructure-design.md`,
+`docs/specs/2026-10-04-scale-lab-design.md` and
+`docs/specs/2026-10-05-chord-library-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -72,10 +74,11 @@ binds a local port).
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
 - Shared by every feature: `src/lib/` (pure logic, no React: `music.ts`
-  with tuning, names and `intervalClass`; `fretWindow.ts`,
-  `fretboardGeometry.ts`, `storage.ts`), `src/components/fretboard/` (SVG
-  `Fretboard` with rounded fingerboard fill, roving-focus tap cells and
-  arrow keys; `theme.ts` holds the board and dot colours as tokens),
+  with tuning, names and `intervalClass`; `notation.ts` with `prettyNote`;
+  `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`),
+  `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
+  fill, roving-focus tap cells and arrow keys; `theme.ts` holds the board
+  and dot colours as tokens, and `DEGREES`, the colour per degree number),
   `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:
@@ -106,6 +109,15 @@ binds a local port).
   `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`) draw a selected chord against the
   scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
+- `src/features/chords/` — the Chord library (`library/`) and its
+  client-only loader. `chordTypes.ts` is the section's only tonal import:
+  tonal's chord types with our groups and symbols, roots, and `chordOf`
+  (spelled notes, tone labels, which tones a voicing may leave out).
+  `voicings.ts` searches the neck for playable shapes (each rule a named
+  constant) and splits them into open, the best few moveable, and all
+  moveable. `ChordDiagram.tsx`, `VoicingGroups.tsx` and `chordDots.ts` are
+  shared with the Chord lab to come; `library/ChordLibrary.tsx` is the page
+  and its only stateful component.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -135,7 +147,8 @@ binds a local port).
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
 hold `{ set, stats }`; `["frets.explore.scales"]` holds the Scale lab's
-settings; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+settings; `["frets.chords.library"]` holds the Chord library's `{ root,
+type }`; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

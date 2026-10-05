@@ -3,18 +3,19 @@
 import { useMemo, useState } from 'react';
 import { Segmented } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
-import { degreeColor } from '@/components/fretboard/theme';
+import { degreeColor, DEGREES } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
+import { prettyNote } from '@/lib/notation';
 import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
 import { ChordLadder } from './ChordLadder';
-import { DEGREES, ScalePickers } from './ScalePanel';
+import { ScalePickers } from './ScalePanel';
 import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
   type DotLabels, type ScaleLabSettings,
 } from './settings';
 import {
-  diatonicChords, modeFamily, neckNotes, prettyNote, rotateMode, scaleDef, scaleOf,
+  diatonicChords, modeFamily, neckNotes, rotateMode, scaleDef, scaleOf,
   type NeckNote, type Root, type ScaleDef,
 } from './theory';
 

@@ -25,6 +25,11 @@ export type Degree =
   | 'root' | 'second' | 'third' | 'extension' | 'fifth' | 'sixth' | 'seventh'
   | 'other';
 
+/** Degree colours by degree number 1–7 (9 is a 2, 11 a 4, 13 a 6). */
+export const DEGREES: readonly Degree[] = [
+  'root', 'second', 'third', 'extension', 'fifth', 'sixth', 'seventh',
+];
+
 export const degreeColor = (d: Degree): DotColor => ({
   fill: `var(--degree-${d})`,
   fg: `var(--on-degree-${d})`,

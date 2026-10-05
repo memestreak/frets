@@ -1,4 +1,4 @@
-import { EXPLORE, locate, PRACTICE } from '@/components/sections';
+import { CHORDS, EXPLORE, locate, PRACTICE } from '@/components/sections';
 
 describe('locate', () => {
   it('finds the section and page of a page URL', () => {
@@ -12,6 +12,10 @@ describe('locate', () => {
     expect(locate('/explore/scales')).toEqual({
       section: EXPLORE,
       page: EXPLORE.pages[0],
+    });
+    expect(locate('/chords/library')).toEqual({
+      section: CHORDS,
+      page: CHORDS.pages[0],
     });
   });
 
