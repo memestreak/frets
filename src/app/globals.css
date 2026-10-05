@@ -149,10 +149,19 @@ button {
   .scale-strip .tap:focus { outline: none; }
   .scale-strip .tap:hover rect:first-of-type,
   .scale-strip .tap:focus-visible rect:first-of-type { stroke: var(--ink); stroke-width: 2px; }
-  /* Rotate mode's two arrows as one control. */
-  .mode-steps { display: inline-flex; }
-  .mode-steps .btn:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }
-  .mode-steps .btn:last-child { border-start-start-radius: 0; border-end-start-radius: 0; margin-inline-start: -1.5px; }
+  /* What tapping a strip note does: a tooltip for a mouse or the keyboard,
+     a line under the strip on touch screens, which cannot hover. */
+  .strip-tip {
+    position: absolute; z-index: 10; pointer-events: none;
+    transform: translate(-50%, calc(-100% - 8px));
+    width: max-content; max-width: min(260px, calc(100vw - 32px));
+    padding: 6px 10px; border-radius: 8px;
+    background: var(--ink); color: var(--surface);
+    font-size: 13px; line-height: 18px;
+  }
+  .strip-tip-note { opacity: 0.75; }
+  .strip-touch-hint { display: none; }
+  @media (hover: none) { .strip-touch-hint { display: block; } }
   .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
 
   /* The Chord library's shapes: five per line, wrapping; on a phone the

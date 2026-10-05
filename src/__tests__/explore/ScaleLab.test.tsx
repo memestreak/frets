@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
+import { TIP_DELAY_MS } from '@/features/explore/scales/StripTip';
 
 const formula = () => screen.getByTestId('scale-formula');
 const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
@@ -16,8 +17,9 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A Dorian');
     expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('A');
-    // The formula follows the title, in parentheses.
-    expect(formula()).toHaveTextContent('(1 2 ♭3 4 5 6 ♭7)');
+    // The formula sits under the title, outside the heading.
+    expect(formula()).toHaveTextContent(/^1 2 ♭3 4 5 6 ♭7$/);
+    expect(screen.getByRole('heading', { level: 1 })).not.toContainElement(formula());
     // The one-octave strip under the title.
     // Its notes are buttons, so it is a group.
     expect(screen.getByRole('group', { name: 'A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G' }))
@@ -48,7 +50,7 @@ describe('ScaleLab', () => {
     expect(rootFrets()).toEqual(['5']);
     fireEvent.click(chordCard('D7'));
     // The title and formula stay the scale's; the board names the chord.
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian \(/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
     expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
     expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
     // Only D7's tones stay on the neck; B, E and G are gone.
@@ -57,7 +59,7 @@ describe('ScaleLab', () => {
     expect(rootFrets()).toEqual(['10']);
 
     fireEvent.click(chordCard('D7'));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian \(/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
     expect(dotLabels()).toEqual(new Set(['R', '2', '♭3', '4', '5', '6', '♭7']));
   });
 
@@ -65,7 +67,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('D7'));
     fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian \(/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian$/);
   });
 
   it('switches to triads and dot labels', () => {
@@ -121,7 +123,7 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     const title = () => screen.getByRole('heading', { level: 1 });
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(title()).toHaveTextContent(/^A Dorian \(/);
+    expect(title()).toHaveTextContent(/^A Dorian$/);
 
     fireEvent.click(chordCard('D7'));
     fireEvent.keyDown(window, { key: 'ArrowRight' });
@@ -144,17 +146,18 @@ describe('ScaleLab', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
     render(<ScaleLab />);
     const title = () => screen.getByRole('heading', { level: 1 });
-    const next = () => screen.getByRole('button', { name: /^Next mode/ });
-    const prev = () => screen.getByRole('button', { name: /^Previous mode/ });
+    const makeRoot = (note: string) =>
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(`^Make ${note} the root`) })[0]);
     const strip = () => document.querySelector<HTMLElement>('.scale-strip')!;
     const stripNames = () => within(strip()).getAllByTestId('ladder-note')
       .map(g => g.querySelector('text')!.textContent).join(' ');
     const square = () => within(strip()).getAllByTestId('ladder-note')
       .find(g => g.querySelector('rect')!.getAttribute('rx') === '3')!.textContent;
 
-    expect(next()).toHaveAccessibleName('Next mode: D Dorian');
-    fireEvent.click(next());
-    expect(title()).toHaveTextContent(/^D Dorian \(/);
+    // There are no step buttons: the strip's notes do the rotating.
+    expect(screen.queryByRole('button', { name: /mode/ })).toBeNull();
+    makeRoot('D');
+    expect(title()).toHaveTextContent(/^D Dorian$/);
     expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('D');
     expect(screen.getByRole('combobox', { name: 'Scale' })).toHaveValue('dorian');
     // The strip stays on C major; the root square moves to D.
@@ -162,17 +165,14 @@ describe('ScaleLab', () => {
     expect(square()).toMatch(/^D/);
     expect(saved()).toMatchObject({ root: 'C', scale: 'ionian', mode: 1 });
 
-    // The ends wrap round.
-    fireEvent.click(prev());
-    fireEvent.click(prev());
-    expect(title()).toHaveTextContent(/^B Locrian \(/);
-    expect(prev()).toHaveAccessibleName('Previous mode: A natural minor');
+    makeRoot('B');
+    expect(title()).toHaveTextContent(/^B Locrian$/);
 
     // A dropdown starts again from what it shows.
     fireEvent.change(screen.getByRole('combobox', { name: 'Scale' }), {
       target: { value: 'phrygian' },
     });
-    expect(title()).toHaveTextContent(/^B Phrygian \(/);
+    expect(title()).toHaveTextContent(/^B Phrygian$/);
     expect(stripNames()).toMatch(/^B C D/);
     expect(saved()).toMatchObject({ root: 'B', scale: 'phrygian', mode: 0 });
   });
@@ -188,26 +188,52 @@ describe('ScaleLab', () => {
 
     fireEvent.click(chordCard('Dm7'));
     fireEvent.click(screen.getByRole('button', { name: 'Make E the root: E Phrygian' }));
-    expect(title()).toHaveTextContent(/^E Phrygian \(/);
+    expect(title()).toHaveTextContent(/^E Phrygian$/);
     expect(saved()).toMatchObject({ root: 'C', scale: 'ionian', mode: 2 });
     // The chord stays selected, its numeral counted from E.
     expect(chordCard('Dm7')).toHaveAccessibleName(/^♭vii7, /);
 
     // The keyboard works too, and the C at either end goes home.
     fireEvent.keyDown(screen.getByRole('button', { name: 'Make G the root: G Mixolydian' }), { key: 'Enter' });
-    expect(title()).toHaveTextContent(/^G Mixolydian \(/);
+    expect(title()).toHaveTextContent(/^G Mixolydian$/);
     expect(screen.getAllByRole('button', { name: 'Make C the root: C major' })).toHaveLength(2);
 
     fireEvent.click(reset()!);
-    expect(title()).toHaveTextContent(/^C major \(/);
+    expect(title()).toHaveTextContent(/^C major$/);
     expect(reset()).toBeNull();
     expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
+  });
+
+  it('explains a strip note on mouse hover, not on touch', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    const e = screen.getByRole('button', { name: 'Make E the root: E Phrygian' });
+    const tip = () => screen.queryByRole('tooltip');
+
+    fireEvent.pointerOver(e, { pointerType: 'touch' });
+    expect(tip()).toBeNull();
+    vi.useFakeTimers();
+    fireEvent.pointerOver(e, { pointerType: 'mouse' });
+    // It waits a second before showing.
+    act(() => vi.advanceTimersByTime(TIP_DELAY_MS - 1));
+    expect(tip()).toBeNull();
+    act(() => vi.advanceTimersByTime(1));
+    vi.useRealTimers();
+    expect(tip()).toHaveTextContent('Make E the root: E Phrygian');
+    expect(tip()).toHaveTextContent('Same notes, new root: a relative mode.');
+    fireEvent.pointerDown(e);
+    fireEvent.click(e);
+    expect(tip()).toBeNull();
+
+    // Touch screens get the same advice as a line under the strip.
+    expect(screen.getByText(/^Tap a note to make it the root\./)).toHaveClass('strip-touch-hint');
   });
 
   it('has no notes to tap in a pentatonic', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'major-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
+    expect(screen.queryByText(/^Tap a note/)).toBeNull();
   });
 
   it('keeps the selected chord through a rotation', () => {
@@ -215,8 +241,8 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('Dm7'));
     expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
-    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^D Dorian \(/);
+    fireEvent.click(screen.getByRole('button', { name: 'Make D the root: D Dorian' }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^D Dorian$/);
     expect(board()).toHaveAccessibleName('Dm7 in D Dorian on the fretboard');
     expect(chordCard('Dm7')).toHaveAccessibleName(/^i7, /);
   });
@@ -236,7 +262,7 @@ describe('ScaleLab', () => {
     const ladderCells = () => screen.getAllByTestId('ladder-tone')
       .map(g => g.querySelector('rect')!.getAttribute('x')).join();
     const before = ladderCells();
-    fireEvent.click(screen.getByRole('button', { name: /^Next mode/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make D the root: D Dorian' }));
     // Same cards in the same places; the tonic moves to Dm7.
     expect(symbols()).toBe(order);
     expect(tonic()).toBe('Dm7');
@@ -255,14 +281,13 @@ describe('ScaleLab', () => {
       root: 'C', scale: 'ionian', mode: 4,
     }));
     render(<ScaleLab />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^G Mixolydian \(/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^G Mixolydian$/);
   });
 
   it('explains why a pentatonic has no chords', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.getByText(/only seven-note scales have them/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next mode' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Previous mode' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
   });
 });
