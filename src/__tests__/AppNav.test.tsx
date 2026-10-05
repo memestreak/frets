@@ -55,6 +55,18 @@ describe('AppNav', () => {
     expect(menu()).not.toBeVisible();
   });
 
+  it('opens the same menu from the location, and Esc returns focus there', () => {
+    renderAt('/practice/notes');
+    const location = screen.getByRole('button', { name: 'Practice › Note trainer' });
+    fireEvent.click(location);
+    expect(menu()).toBeVisible();
+    expect(location).toHaveAttribute('aria-expanded', 'true');
+    expect(menuButton()).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(within(menu()).getAllByRole('link')[0], { key: 'Escape' });
+    expect(menu()).not.toBeVisible();
+    expect(location).toHaveFocus();
+  });
+
   it('lists every page under its section and marks the current one', () => {
     renderAt('/practice/notes');
     openMenu();

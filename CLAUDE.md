@@ -67,8 +67,8 @@ binds a local port).
   from it, so a new page is an entry here plus a route.
 - `src/components/AppShell.tsx` — `AppNav` (`BrandMark` and wordmark home,
   the location "Section › Page" read from the URL, `ThemeSwitch` (one
-  button cycling Auto, Light, Dark) and Menu, which opens a panel listing
-  every page; see `docs/specs/2026-10-05-site-navigation-design.md`),
+  button cycling Auto, Light, Dark) and Menu; Menu and the location both
+  open a panel listing every page; see `docs/specs/2026-10-05-site-navigation-design.md`),
   `<main>` and `AppFooter` (source link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).

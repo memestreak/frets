@@ -27,25 +27,26 @@ The bar, left to right:
   wordmark is visually hidden; the link keeps the name "Frets".
 - The location, on every page but Home: the section name, muted, then
   "›", then the page title in `--ink`, e.g. "Practice › Interval trainer".
-  It is text, not a link, and truncates with an ellipsis if it runs out of
-  room.
+  It is a button that opens the same menu as Menu (Jeremy's ask after
+  trying the preview), with a `--surface-sunken` fill on hover and while
+  the menu is open, and truncates with an ellipsis if it runs out of room.
 - The theme button (below).
 - The Menu button: a secondary button with a menu icon and "Menu"; below
   640px the icon alone, still named "Menu".
 
 ### Menu panel
 
-The Menu button toggles a panel that hangs from the bar's bottom edge
-across its full width, over the page. It holds one column per section
+The Menu button and the location both toggle a panel that hangs from the
+bar's bottom edge across its full width, over the page. It holds one column per section
 (stacked below 640px): the section name as a small uppercase heading, then
 each page as a link showing its title and its one-line summary. The current
 page's link has the `--primary-soft` fill, reads "You are here" beside its
 title, and carries `aria-current="page"`.
 
-The panel closes when you pick a page, press Esc, press Menu again, or
-press anywhere outside the bar. Opening it moves focus to its first link;
-Esc returns focus to the Menu button. While it is open, key presses inside
-the bar don't reach the trainers' or the Scale lab's window shortcuts, so
+The panel closes when you pick a page, press Esc, press Menu or the
+location again, or press anywhere outside the bar. Opening it moves focus
+to its first link; Esc returns focus to whichever of the two opened it.
+While it is open, key presses inside the bar don't reach the trainers' or the Scale lab's window shortcuts, so
 digits and arrows don't answer a question behind the menu.
 
 ### Theme button

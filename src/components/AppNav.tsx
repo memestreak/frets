@@ -12,7 +12,7 @@ const MENU_ID = 'site-menu';
 
 /**
  * Wordmark (home), where you are ("Practice › Interval trainer"), the theme
- * button and Menu, which opens a panel listing every page. The location and
+ * button and Menu. Menu and the location both open a panel listing every page. The location and
  * the menu's current page are read from the URL.
  */
 export function AppNav() {
@@ -22,10 +22,15 @@ export function AppNav() {
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === pathname;
   const navRef = useRef<HTMLElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  // The button that opened the menu (Menu or the location); Esc returns here.
+  const openerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const close = () => setOpenOn(null);
+  const toggle = (opener: HTMLButtonElement) => {
+    openerRef.current = opener;
+    setOpenOn(open ? null : pathname);
+  };
 
   useEffect(() => {
     const nav = navRef.current;
@@ -40,7 +45,7 @@ export function AppNav() {
       e.stopPropagation();
       if (e.key === 'Escape') {
         setOpenOn(null);
-        buttonRef.current?.focus();
+        openerRef.current?.focus();
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
@@ -64,20 +69,26 @@ export function AppNav() {
         </span>
       </Link>
       {section && page && (
-        <p className="m-0 min-w-0 truncate text-[14px] font-semibold" data-testid="nav-location">
+        <button
+          type="button"
+          className="-mx-2 min-w-0 cursor-pointer truncate rounded-(--radius-sm) border-0 bg-transparent px-2 py-1 font-(family-name:--font-sans) text-[14px] font-semibold text-(--ink) hover:bg-(--surface-sunken) aria-expanded:bg-(--surface-sunken)"
+          aria-expanded={open}
+          aria-controls={MENU_ID}
+          data-testid="nav-location"
+          onClick={e => toggle(e.currentTarget)}
+        >
           <span className="text-(--ink-muted)">{section.label} ›</span> {page.title}
-        </p>
+        </button>
       )}
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <ThemeSwitch />
         <button
-          ref={buttonRef}
           type="button"
           className="btn btn-secondary max-sm:w-(--control-height) max-sm:px-0"
           aria-expanded={open}
           aria-controls={MENU_ID}
           aria-label="Menu"
-          onClick={() => setOpenOn(open ? null : pathname)}
+          onClick={e => toggle(e.currentTarget)}
         >
           <MenuIcon />
           <span className="max-sm:hidden">Menu</span>
