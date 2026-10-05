@@ -1,5 +1,5 @@
 import {
-  modeFamily, ROOTS, scaleDef, type ChordSize, type NumeralStyle, type Root,
+  modeFamily, ROOTS, scaleDef, type ChordSize, type Root,
 } from './theory';
 
 export type DotLabels = 'interval' | 'note' | 'none';
@@ -16,7 +16,6 @@ export interface ScaleLabSettings {
   /** How many notes Rotate mode has moved the root up the picked scale, 0–6. */
   mode: number;
   chordSize: ChordSize;
-  numerals: NumeralStyle;
   labels: DotLabels;
   chordView: ChordView;
   chordIntervals: ChordIntervals;
@@ -28,12 +27,11 @@ export const SCALE_LAB_STORAGE_KEY = 'frets.explore.scales';
 export const SCALE_LAB_MAX_FRET = 15;
 
 export const defaultScaleLabSettings = (): ScaleLabSettings => ({
-  root: 'A', scale: 'dorian', mode: 0, chordSize: 4, numerals: 'parallel', labels: 'interval',
+  root: 'A', scale: 'dorian', mode: 0, chordSize: 4, labels: 'interval',
   chordView: 'ladder', chordIntervals: 'root',
 });
 
 const CHORD_SIZES: unknown[] = [3, 4];
-const NUMERALS: unknown[] = ['parallel', 'relative'];
 const LABELS: unknown[] = ['interval', 'note', 'none'];
 const CHORD_VIEWS: unknown[] = ['ladder', 'clock'];
 const CHORD_INTERVALS: unknown[] = ['root', 'between'];
@@ -51,7 +49,6 @@ export function parseScaleLabSettings(raw: unknown): ScaleLabSettings {
     mode: rotates && Number.isInteger(r.mode) && (r.mode as number) >= 0 && (r.mode as number) < 7
       ? (r.mode as number) : d.mode,
     chordSize: CHORD_SIZES.includes(r.chordSize) ? (r.chordSize as ChordSize) : d.chordSize,
-    numerals: NUMERALS.includes(r.numerals) ? (r.numerals as NumeralStyle) : d.numerals,
     labels: LABELS.includes(r.labels) ? (r.labels as DotLabels) : d.labels,
     chordView: CHORD_VIEWS.includes(r.chordView) ? (r.chordView as ChordView) : d.chordView,
     chordIntervals: CHORD_INTERVALS.includes(r.chordIntervals)

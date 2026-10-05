@@ -63,18 +63,18 @@ One column, as in the prototype:
    takes its degree colour. On phones the board scrolls sideways, as in the
    trainers.
 4. **Chords in this scale.** A seven-card strip (canvas "Diatonic chords"
-   option B) with Triads / Sevenths and ♭III style / III style. A card shows
+   option B) with a Triads / Sevenths switch. A card shows
    the numeral, the symbol and the quality. Tapping a card selects it and
    tapping it again clears it. While a chord is selected the neck shows
    only its tones, labelled and coloured by their interval to the chord root
    (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
    as small grey dots; on review they read as clutter.) Changing the root
    or scale from the dropdowns clears the chord; Rotate mode and changing
-   size or numerals keep it. A selected chord is also drawn
+   size keeps it. A selected chord is also drawn
    against the scale as a ladder or a clock
    (`2026-10-04-chord-diagrams-design.md`).
 
-Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
+Defaults on first visit: A Dorian, Sevenths, Interval labels.
 
 ### Scales
 
@@ -102,8 +102,10 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
   Cm(maj7), Cm7♭5, C°7, C+maj7, C+7. Every chord of every listed scale on
   every root is in the table (a test checks this). A stack outside it would
   show its notes.
-- **Numerals.** ♭III style numbers a chord by its root's degree against the
-  major scale (♭III, ♯iv°); III style by its position in the scale. The case
+- **Numerals.** A chord is numbered by its root's degree against the major
+  scale on the same root (♭III, ♯iv°), so a numeral names the same chord
+  whatever the scale. (A III style switch, numbering by position in the
+  scale, was dropped: it only restates the card's order.) The case
   follows the third (lower case when it is minor or diminished); the suffix
   follows the table: °, +, maj7, 7, ø7, °7, (maj7), +maj7, +7.
 - **Rotate mode.** › moves the root up to the next note of the scale and
@@ -145,7 +147,7 @@ Defaults on first visit: A Dorian, Sevenths, ♭III style, Interval labels.
 ## Saved state
 
 `localStorage["frets.explore.scales"]` holds
-`{ root, scale, mode, chordSize, numerals, labels, chordView, chordIntervals }`,
+`{ root, scale, mode, chordSize, labels, chordView, chordIntervals }`,
 parsed field by field like the trainers' settings. `root` and `scale` are
 what was last picked from the dropdowns and `mode` how many steps Rotate
 mode has taken from there (0–6, 0 for scales outside a family), so a

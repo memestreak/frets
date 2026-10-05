@@ -3,10 +3,9 @@ import { Segmented } from '@/components/controls';
 import { ChordClock } from './ChordClock';
 import { ChordLadder } from './ChordLadder';
 import type { ChordIntervals, ChordView } from './settings';
-import type { ChordSize, DiatonicChord, NumeralStyle, Scale } from './theory';
+import type { ChordSize, DiatonicChord, Scale } from './theory';
 
 const SIZE_OPTS = [[3, 'Triads'], [4, 'Sevenths']] as const;
-const NUMERAL_OPTS = [['parallel', '♭III style'], ['relative', 'III style']] as const;
 const VIEW_OPTS = [['ladder', 'Ladder'], ['clock', 'Clock']] as const;
 const INTERVAL_OPTS = [['root', 'From the root'], ['between', 'Between tones']] as const;
 
@@ -17,8 +16,6 @@ interface ChordStripProps {
   onSelect: (chord: DiatonicChord | null) => void;
   size: ChordSize;
   onSize: (size: ChordSize) => void;
-  numerals: NumeralStyle;
-  onNumerals: (style: NumeralStyle) => void;
   view: ChordView;
   onView: (view: ChordView) => void;
   intervals: ChordIntervals;
@@ -37,7 +34,7 @@ interface ChordStripProps {
  * card shows the chord on the neck and draws it against the scale.
  */
 export function ChordStrip({
-  scale, chords, selected, onSelect, size, onSize, numerals, onNumerals,
+  scale, chords, selected, onSelect, size, onSize,
   view, onView, intervals, onIntervals, mode, from,
 }: ChordStripProps) {
   const Diagram = view === 'ladder' ? ChordLadder : ChordClock;
@@ -71,9 +68,6 @@ export function ChordStrip({
           Chords in this scale
         </h2>
         <Segmented<ChordSize> label="Chord size" options={SIZE_OPTS} value={size} onChange={onSize} />
-        <Segmented<NumeralStyle>
-          label="Numeral style" options={NUMERAL_OPTS} value={numerals} onChange={onNumerals}
-        />
       </div>
       {chords.length ? (
         <>
