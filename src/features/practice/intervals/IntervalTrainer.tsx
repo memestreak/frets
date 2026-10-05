@@ -49,7 +49,7 @@ const INTERVAL_DEGREE: readonly Degree[] = [
 
 export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
   const {
-    state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
+    state, dispatch, hint, toggleHint, settingsOpen, setSettingsOpen,
     next, update, applyDefaults, answerName, answerGridRef,
   } = useTrainer({
     reducer: intervalReducer, init: initIntervalState,
@@ -221,6 +221,29 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
       </SettingsDialog>
 
       <div className="grid grid-cols-[minmax(0,1fr)] content-start">
+        <BoardFrame
+          legend={[
+            { label: 'Root', color: DOT.root.fill, shape: 'square' },
+            {
+              label: mode === 'name' ? 'Interval note' : 'Your answer',
+              color: mode === 'name' ? DOT.quiz.fill : DOT.correct.fill,
+              shape: 'circle',
+            },
+          ]}
+          hint={hint}
+          onToggleHint={toggleHint}
+        >
+          <Fretboard
+            minFret={set.minFret}
+            maxFret={set.maxFret}
+            dots={dots}
+            scrollToFret={q?.root.f}
+            onCellClick={mode === 'fret' && !answered && q
+              ? pos => dispatch({ type: 'answerFret', pos })
+              : undefined}
+            isCellDisabled={pos => wasTapped(state, pos)}
+          />
+        </BoardFrame>
         <AnswerCard
           kicker={mode === 'name' ? 'Your answer' : 'Target'}
           hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
@@ -241,29 +264,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             </FindPrompt>
           )}
         </AnswerCard>
-        <BoardFrame
-          legend={[
-            { label: 'Root', color: DOT.root.fill, shape: 'square' },
-            {
-              label: mode === 'name' ? 'Interval note' : 'Your answer',
-              color: mode === 'name' ? DOT.quiz.fill : DOT.correct.fill,
-              shape: 'circle',
-            },
-          ]}
-          hint={hint}
-          onHint={setHint}
-        >
-          <Fretboard
-            minFret={set.minFret}
-            maxFret={set.maxFret}
-            dots={dots}
-            scrollToFret={q?.root.f}
-            onCellClick={mode === 'fret' && !answered && q
-              ? pos => dispatch({ type: 'answerFret', pos })
-              : undefined}
-            isCellDisabled={pos => wasTapped(state, pos)}
-          />
-        </BoardFrame>
         <SessionStatsCard
           stats={stats}
           itemLabel="Per interval"

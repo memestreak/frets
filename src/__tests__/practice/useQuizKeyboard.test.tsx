@@ -3,7 +3,7 @@ import { useQuizKeyboard } from '@/features/practice/quiz/useQuizKeyboard';
 
 function setup(initial: { enabled?: boolean; answered?: boolean }) {
   const onNext = vi.fn();
-  const onHint = vi.fn();
+  const onToggleHint = vi.fn();
   const onAnswerKey = vi.fn();
   const onArrow = vi.fn();
   const view = renderHook(
@@ -11,47 +11,43 @@ function setup(initial: { enabled?: boolean; answered?: boolean }) {
       answered: props.answered ?? false,
       pause: false,
       onNext,
-      onHint,
+      onToggleHint,
       onAnswerKey,
       onArrow,
       enabled: props.enabled,
     }),
     { initialProps: initial },
   );
-  return { onNext, onHint, onAnswerKey, onArrow, ...view };
+  return { onNext, onToggleHint, onAnswerKey, onArrow, ...view };
 }
 
 describe('useQuizKeyboard', () => {
   it('handles keys by default', () => {
-    const { onAnswerKey, onHint } = setup({});
-    expect(onHint).not.toHaveBeenCalled();
+    const { onAnswerKey, onToggleHint } = setup({});
+    expect(onToggleHint).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { key: '3' });
     fireEvent.keyDown(window, { key: 'h' });
     expect(onAnswerKey).toHaveBeenCalledWith('3');
-    expect(onHint).toHaveBeenCalledWith(true);
+    expect(onToggleHint).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles the hint once per H press, ignoring auto-repeat', () => {
+    const { onToggleHint } = setup({});
+    fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.keyDown(window, { key: 'h', repeat: true });
+    fireEvent.keyUp(window, { key: 'h' });
+    expect(onToggleHint).toHaveBeenCalledTimes(1);
   });
 
   it('ignores answer, hint and next keys when disabled', () => {
-    const { onAnswerKey, onHint, onNext, rerender } = setup({ enabled: false });
-    onHint.mockClear();
+    const { onAnswerKey, onToggleHint, onNext, rerender } = setup({ enabled: false });
     fireEvent.keyDown(window, { key: '3' });
     fireEvent.keyDown(window, { key: 'h' });
     rerender({ enabled: false, answered: true });
     fireEvent.keyDown(window, { key: 'Enter' });
     expect(onAnswerKey).not.toHaveBeenCalled();
-    expect(onHint).not.toHaveBeenCalledWith(true);
+    expect(onToggleHint).not.toHaveBeenCalled();
     expect(onNext).not.toHaveBeenCalled();
-  });
-
-  it('releases a held hint when it becomes disabled', () => {
-    const { onHint, rerender } = setup({ enabled: true });
-    fireEvent.keyDown(window, { key: 'h' });
-    onHint.mockClear();
-    rerender({ enabled: false });
-    expect(onHint).toHaveBeenCalledWith(false);
-    onHint.mockClear();
-    rerender({ enabled: true });
-    expect(onHint).not.toHaveBeenCalled();
   });
 
   it('sends left and right arrows to onArrow while the question is open', () => {

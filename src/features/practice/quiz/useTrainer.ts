@@ -24,17 +24,20 @@ interface TrainerOptions<S, Q> {
 
 /**
  * Everything the trainers share around their reducer: saving settings and
- * stats, drawing questions, auto-advance, the keyboard, and the hint and
- * settings-dialog flags. Left/right arrows move focus across the answer
+ * stats, drawing questions, auto-advance, the keyboard, the hint (on for
+ * one question at a time) and the settings-dialog flag. Left/right arrows move focus across the answer
  * buttons in `answerGridRef`; Enter or Space then presses the focused one.
  */
 export function useTrainer<S extends { pause: boolean }, Q>({
   reducer, init, storageKey, generate, rng, answerFor,
 }: TrainerOptions<S, Q>) {
   const [state, dispatch] = useReducer(reducer, rng, init);
-  const [hint, setHint] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { set, stats, q } = state;
+  // The question the hint was turned on for: a new question turns it off.
+  const [hintFor, setHintFor] = useState<Q | null>(null);
+  const hint = q != null && hintFor === q;
+  const toggleHint = () => setHintFor(hint ? null : q);
   const answerGridRef = useRef<HTMLDivElement>(null);
   // The last answer button arrows reached: a wrong answer disables it and
   // can drop focus, and the next arrow steps on from there.
@@ -62,7 +65,7 @@ export function useTrainer<S extends { pause: boolean }, Q>({
     answered: state.answered,
     pause: set.pause,
     onNext: next,
-    onHint: setHint,
+    onToggleHint: toggleHint,
     onArrow: delta => {
       const grid = answerGridRef.current;
       if (!grid) return;
@@ -75,7 +78,7 @@ export function useTrainer<S extends { pause: boolean }, Q>({
   });
 
   return {
-    state, dispatch, hint, setHint, settingsOpen, setSettingsOpen,
+    state, dispatch, hint, toggleHint, settingsOpen, setSettingsOpen,
     next, update, applyDefaults, answerName, answerGridRef,
   };
 }

@@ -95,7 +95,7 @@ binds a local port).
     reducer, init from storage), `quizFlow.ts` (miss/solve/pause scoring),
     `stats.ts`, `attempt.ts` (miss and out-of-range dots, answer-button
     state, feedback text), the header, answer card/grid, board frame with
-    hold-for-hint, `SettingsDialog` (native modal `<dialog>`) and its field
+    hint toggle, `SettingsDialog` (native modal `<dialog>`) and its field
     parts, `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
     to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
     and settings-dialog flags, and suspends the first two while the dialog

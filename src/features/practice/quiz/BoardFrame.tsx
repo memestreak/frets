@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, type PointerEvent, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Keycap } from '@/components/controls';
 import { EyeIcon } from '@/components/icons';
 
@@ -13,29 +13,14 @@ export interface LegendItem {
 interface BoardFrameProps {
   legend: LegendItem[];
   hint: boolean;
-  onHint: (on: boolean) => void;
+  onToggleHint: () => void;
   children: ReactNode;
 }
 
-/** Card around the fretboard, with legend and hold-for-hint. */
+/** Card around the fretboard, with legend and hint toggle. */
 export function BoardFrame({
-  legend, hint, onHint, children,
+  legend, hint, onToggleHint, children,
 }: BoardFrameProps) {
-  // Pointer events end only a hold the pointer started, so moving the mouse
-  // off the button doesn't cut short a hint held with H or Space.
-  const pointerHeld = useRef(false);
-  const down = (e: PointerEvent<HTMLButtonElement>) => {
-    if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    pointerHeld.current = true;
-    onHint(true);
-  };
-  const up = () => {
-    if (!pointerHeld.current) return;
-    pointerHeld.current = false;
-    onHint(false);
-  };
-
   return (
     <section className="card board-frame">
       <div className="board-scroll">{children}</div>
@@ -58,25 +43,10 @@ export function BoardFrame({
           type="button"
           className="btn btn-primary hint-btn"
           aria-pressed={hint}
-          onPointerDown={down}
-          onPointerUp={up}
-          onPointerLeave={up}
-          onPointerCancel={up}
-          onContextMenu={e => e.preventDefault()}
-          onKeyDown={e => {
-            // Space/Enter act as a momentary hold, like the H key.
-            if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
-              e.preventDefault();
-              e.stopPropagation();
-              onHint(true);
-            }
-          }}
-          onKeyUp={e => {
-            if (e.key === ' ' || e.key === 'Enter') onHint(false);
-          }}
+          onClick={onToggleHint}
         >
           <EyeIcon />
-          Hold for hint
+          Hint
           <Keycap>H</Keycap>
         </button>
       </div>
