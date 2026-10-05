@@ -140,9 +140,10 @@ function* combinations(window: number[], chord: ChordInfo): Generator<Voicing> {
 
 const cache = new Map<string, Voicings>();
 
-/** Every playable voicing of the chord, sorted into open and moveable. Cached. */
+/** Every playable voicing of the chord, sorted into open and moveable. Cached by root and tones. */
 export function findVoicings(chord: ChordInfo): Voicings {
-  const cacheKey = `${chord.rootPc}:${chord.type.id}`;
+  const tones = chord.tones.map(t => `${t.semis}${t.required ? '' : '?'}`);
+  const cacheKey = `${chord.rootPc}:${tones.join(',')}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 

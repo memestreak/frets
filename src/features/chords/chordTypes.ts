@@ -28,6 +28,8 @@ export interface ChordTypeDef {
   group: ChordGroup;
   /** tonal interval names, root first: "1P", "3m", "5P", "7m". */
   intervals: readonly string[];
+  /** The tones as semitones above the root, 0–11, ascending: how the lab matches notes to types. */
+  semis: readonly number[];
 }
 
 /** Listed first, in this order, because they are the ones most people want. */
@@ -55,10 +57,13 @@ function groupOf(id: string, intervals: readonly string[]): ChordGroup {
   return 'Sixths and sevenths';
 }
 
+const semisOf = (interval: string) => Interval.get(interval).semitones % 12;
+
 function typeDef(id: string, name: string, intervals: readonly string[]): ChordTypeDef {
   const symbol = prettySymbol(id);
   const label = !symbol ? name : name ? `${symbol} · ${name}` : symbol;
-  return { id, symbol, label, group: groupOf(id, intervals), intervals };
+  const semis = intervals.map(semisOf).sort((a, b) => a - b);
+  return { id, symbol, label, group: groupOf(id, intervals), intervals, semis };
 }
 
 /** Every chord type tonal knows: the common ones first, then the rest in tonal's order. */
@@ -92,8 +97,9 @@ export interface ChordInfo {
   root: ChordRoot;
   /** Pitch class of the root, 0–11. */
   rootPc: number;
-  type: ChordTypeDef;
-  /** "Am7", "F♯°7"... */
+  /** Null for a set of tones no chord type has (see `chordFromTones`). */
+  type: ChordTypeDef | null;
+  /** "Am7", "F♯°7"...; "" when `type` is null. */
   symbol: string;
   /** Spelled notes, root first: "A", "C", "E", "G". */
   notes: string[];
@@ -119,26 +125,53 @@ function isOptional(interval: string, intervals: readonly string[]): boolean {
   return false;
 }
 
+function toneOf(interval: string, required: boolean): ChordTone {
+  const { num } = Interval.get(interval);
+  return {
+    interval,
+    label: toneLabel(interval),
+    semis: semisOf(interval),
+    degree: ((num - 1) % 7) + 1,
+    required,
+  };
+}
+
 export function chordOf(root: ChordRoot, typeId: string): ChordInfo {
   const type = chordTypeDef(typeId)!;
-  const rootPc = Note.get(root).chroma;
-  const tones = type.intervals.map(interval => {
-    const { num, semitones } = Interval.get(interval);
-    return {
-      interval,
-      label: toneLabel(interval),
-      semis: semitones % 12,
-      degree: ((num - 1) % 7) + 1,
-      required: !isOptional(interval, type.intervals),
-    };
-  });
   return {
     root,
-    rootPc,
+    rootPc: Note.get(root).chroma,
     type,
     symbol: prettyNote(root) + type.symbol,
     notes: Chord.getChord(type.id, root).notes.map(prettyNote),
-    tones,
+    tones: type.intervals.map(iv => toneOf(iv, !isOptional(iv, type.intervals))),
+  };
+}
+
+/** How a tone with no chord type to name it is written: ♭ for the black-key tones. */
+const PLAIN_INTERVALS = ['1P', '2m', '2M', '3m', '3M', '4P', '5d', '5P', '6m', '6M', '7m', '7M'];
+
+/** "♭3" for 3 semitones: a tone's label when no chord type names it. */
+export const plainToneLabel = (semis: number): string => toneLabel(PLAIN_INTERVALS[semis]);
+
+/**
+ * The chord with exactly these tones above a root (semitones 0–11, the
+ * root included): the first chord type with them, or an unnamed chord whose
+ * tones take plain interval names and are all required.
+ */
+export function chordFromTones(rootPc: number, semis: readonly number[]): ChordInfo {
+  const wanted = [...new Set(semis.map(s => ((s % 12) + 12) % 12))].sort((a, b) => a - b);
+  const root = CHORD_ROOTS[rootPc];
+  const type = CHORD_TYPES.find(t => t.semis.join() === wanted.join());
+  if (type) return chordOf(root, type.id);
+  const intervals = wanted.map(s => PLAIN_INTERVALS[s]);
+  return {
+    root,
+    rootPc,
+    type: null,
+    symbol: '',
+    notes: intervals.map(iv => prettyNote(Note.transpose(root, iv))),
+    tones: intervals.map(iv => toneOf(iv, true)),
   };
 }
 

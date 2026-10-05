@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { voicingDots } from '../chordDots';
+import { ChordHeader } from '../ChordHeader';
 import { chordOf, formulaOf } from '../chordTypes';
 import { VoicingGroups } from '../VoicingGroups';
 import { findVoicings, voicingCaption, voicingKey, type Voicing } from '../voicings';
@@ -64,21 +65,12 @@ function ChordLibrary({ choice }: { choice: ChordChoice }) {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="grid gap-1">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <h1 className="m-0" aria-live="polite">
-            {chord.symbol}{' '}
-            <span className="text-[0.6em] font-normal text-(--ink-muted)" data-testid="chord-formula">
-              ({formulaOf(chord)})
-            </span>
-          </h1>
-          <ChordPickers
-            root={choice.root} typeId={choice.type}
-            onRoot={root => pick({ root })} onType={type => pick({ type })}
-          />
-        </div>
-        <p className="m-0 text-(--ink-muted)" data-testid="chord-notes">{chord.notes.join(' ')}</p>
-      </header>
+      <ChordHeader title={chord.symbol} formula={formulaOf(chord)} notes={chord.notes.join(' ')}>
+        <ChordPickers
+          root={choice.root} typeId={choice.type}
+          onRoot={root => pick({ root })} onType={type => pick({ type })}
+        />
+      </ChordHeader>
 
       <section className="card gap-4" aria-label="On the neck">
         <div className="board-scroll">

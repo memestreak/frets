@@ -22,16 +22,17 @@ export function VoicingGroups({
 }: VoicingGroupsProps) {
   const { open, moveable, allMoveable } = voicings;
   const hasMore = allMoveable.length > moveable.length;
+  const name = chord.symbol || 'these notes';
   return (
     <div className="grid gap-5">
       <VoicingGroup
         title="Open" chord={chord} voicings={open}
-        emptyText={`No open shape for ${chord.symbol}.`}
+        emptyText={`No open shape for ${name}.`}
         selectedKey={selectedKey} onSelect={onSelect}
       />
       <VoicingGroup
         title="Moveable" chord={chord} voicings={showAll ? allMoveable : moveable}
-        emptyText={`No moveable shape for ${chord.symbol}.`}
+        emptyText={`No moveable shape for ${name}.`}
         selectedKey={selectedKey} onSelect={onSelect}
       />
       {hasMore && (

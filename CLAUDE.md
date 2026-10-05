@@ -4,10 +4,11 @@
 
 Guitar fretboard app with three sections: Practice, holding two quiz
 trainers (Intervals, Notes), Explore, holding the Scale lab, and Chords,
-holding the Chord library (see
+holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
-`docs/specs/2026-10-04-scale-lab-design.md` and
-`docs/specs/2026-10-05-chord-library-design.md`). The app has no users
+`docs/specs/2026-10-04-scale-lab-design.md`,
+`docs/specs/2026-10-05-chord-library-design.md` and
+`docs/specs/2026-10-05-chord-lab-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -61,9 +62,10 @@ binds a local port).
 ## Layout
 
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
-  `/practice` and `/explore` are index pages; the trainers are
+  `/practice`, `/explore` and `/chords` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`.
+  `/explore/scales`, the Chord library `/chords/library` and the Chord lab
+  `/chords/lab`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
@@ -109,15 +111,17 @@ binds a local port).
   `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`) draw a selected chord against the
   scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
-- `src/features/chords/` — the Chord library (`library/`) and its
-  client-only loader. `chordTypes.ts` is the section's only tonal import:
-  tonal's chord types with our groups and symbols, roots, and `chordOf`
-  (spelled notes, tone labels, which tones a voicing may leave out).
+- `src/features/chords/` — the Chord library (`library/`, with its
+  client-only loader) and the Chord lab (`lab/`). `chordTypes.ts` is the
+  section's only tonal import: tonal's chord types with our groups and
+  symbols, roots, `chordOf` (spelled notes, tone labels, which tones a
+  voicing may leave out) and `chordFromTones` (a type, or an unnamed chord,
+  from a set of tones). `naming.ts` gives every name for a set of notes.
   `voicings.ts` searches the neck for playable shapes (each rule a named
   constant) and splits them into open, the best few moveable, and all
-  moveable. `ChordDiagram.tsx`, `VoicingGroups.tsx` and `chordDots.ts` are
-  shared with the Chord lab to come; `library/ChordLibrary.tsx` is the page
-  and its only stateful component. The chord is in the URL, not storage:
+  moveable. `ChordHeader.tsx`, `ChordDiagram.tsx`, `VoicingGroups.tsx` and
+  `chordDots.ts` are shared by both pages; `library/ChordLibrary.tsx` and
+  `lab/ChordLab.tsx` are the pages and their only stateful components. The chord is in the URL, not storage:
   `/chords/library?chord=am7b5`, slugs in `library/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
@@ -154,7 +158,7 @@ each key validate every field; keep them in step with settings changes.
 ## Testing
 
 Tests live in `src/__tests__/`, with a feature's tests in a folder named
-after it (`practice/`, `explore/`). `helpers/rng.ts` provides a seeded RNG;
+after it (`practice/`, `explore/`, `chords/`). `helpers/rng.ts` provides a seeded RNG;
 trainers accept an `rng` prop. Node 25's global `localStorage` shadows
 jsdom's, so `setup.ts` installs an in-memory Storage. jsdom has no
 `dialog.showModal()` / `close()`, so `setup.ts` also shims them with the
