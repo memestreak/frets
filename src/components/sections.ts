@@ -1,24 +1,22 @@
 /**
- * The app's map: top-level sections and the pages inside each. The nav, the
- * home page and each section's index page are all drawn from this list, so a
- * new feature is one entry here plus its route under `src/app/`.
+ * The app's map: top-level sections and the pages inside each. The nav's
+ * location and menu and the home page are drawn from this list, so a new
+ * feature is one entry here plus its route under `src/app/`.
  */
 export interface Page {
   href: string;
-  /** Name for headings, cards and the nav's "you are here". */
+  /** Name for headings, cards, the nav's location and its menu. */
   title: string;
   summary: string;
 }
 
 export interface Section {
-  href: string;
   label: string;
   summary: string;
   pages: readonly Page[];
 }
 
 export const PRACTICE: Section = {
-  href: '/practice',
   label: 'Practice',
   summary: 'Quizzes that drill the fretboard until you know it cold.',
   pages: [
@@ -36,7 +34,6 @@ export const PRACTICE: Section = {
 };
 
 export const EXPLORE: Section = {
-  href: '/explore',
   label: 'Explore',
   summary: 'Tools for seeing how scales and chords lie on the neck.',
   pages: [
@@ -50,11 +47,11 @@ export const EXPLORE: Section = {
 
 export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE];
 
-/** The section and page a pathname belongs to; either may be undefined. */
+/** The page at a pathname and its section; both undefined off the map. */
 export function locate(pathname: string): { section?: Section; page?: Page } {
-  const section = SECTIONS.find(
-    s => pathname === s.href || pathname.startsWith(`${s.href}/`),
-  );
-  const page = section?.pages.find(p => pathname === p.href);
-  return { section, page };
+  for (const section of SECTIONS) {
+    const page = section.pages.find(p => p.href === pathname);
+    if (page) return { section, page };
+  }
+  return {};
 }

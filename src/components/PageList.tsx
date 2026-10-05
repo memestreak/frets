@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Page } from './sections';
 
 /**
- * A card per page, each linking to it: the body of the index pages.
+ * A card per page, each linking to it: the home page's list of a section.
  * `heading` is the level of each card's title under the page's outline.
  */
 export function PageList(

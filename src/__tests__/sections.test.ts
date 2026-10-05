@@ -15,12 +15,9 @@ describe('locate', () => {
     });
   });
 
-  it('finds the section but no page on a section index', () => {
-    expect(locate('/practice')).toEqual({ section: PRACTICE, page: undefined });
-  });
-
-  it('finds nothing at home or under a lookalike prefix', () => {
-    expect(locate('/')).toEqual({ section: undefined, page: undefined });
-    expect(locate('/practiced')).toEqual({ section: undefined, page: undefined });
+  it('finds nothing at home, at a section path or under a lookalike', () => {
+    expect(locate('/')).toEqual({});
+    expect(locate('/practice')).toEqual({});
+    expect(locate('/practice/notesy')).toEqual({});
   });
 });

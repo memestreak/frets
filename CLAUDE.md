@@ -58,16 +58,17 @@ binds a local port).
 
 ## Layout
 
-- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
-  `/practice` and `/explore` are index pages; the trainers are
+- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/` is
+  the home page listing every page; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`.
+  `/explore/scales`. Sections have no index pages.
 - `src/components/sections.ts` — the app's map: each section with its pages
-  (href, title or label, summary). `AppNav`, the home page and section index pages
-  (`PageList`) are drawn from it, so a new page is an entry here plus a route.
+  (href, title, summary). `AppNav` and the home page (`PageList`) are drawn
+  from it, so a new page is an entry here plus a route.
 - `src/components/AppShell.tsx` — `AppNav` (`BrandMark` and wordmark home,
-  one link per section, which names the current page inside it, read from
-  the URL, and `ThemeSwitch`),
+  the location "Section › Page" read from the URL, `ThemeSwitch` (one
+  button cycling Auto, Light, Dark) and Menu, which opens a panel listing
+  every page; see `docs/specs/2026-10-05-site-navigation-design.md`),
   `<main>` and `AppFooter` (source link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
