@@ -8,7 +8,7 @@ interface QuizKeyboardOptions {
   answered: boolean;
   pause: boolean;
   onNext: () => void;
-  onHint: (on: boolean) => void;
+  onToggleHint: () => void;
   /** Any other key while the question is open (answer shortcuts). */
   onAnswerKey?: (key: string) => void;
   /** Left (−1) or right (+1) arrow while the question is open. */
@@ -23,12 +23,12 @@ function isTextEntry(target: EventTarget | null): boolean {
 }
 
 /**
- * Window-level keys: `H` held shows the hint; Enter/Space goes to the next
+ * Window-level keys: `H` toggles the hint; Enter/Space goes to the next
  * question once answered (with Pause b/w on, any non-modifier key does);
  * left/right arrows go to `onArrow` unless a control (the board) already
  * used them; other keys go to `onAnswerKey`. Ignored while typing in a field.
  * Enter/Space on an open question is left to the focused button.
- * With `enabled` false, key presses are ignored and a held hint is released.
+ * With `enabled` false, key presses are ignored.
  */
 export function useQuizKeyboard(opts: QuizKeyboardOptions) {
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
@@ -36,7 +36,7 @@ export function useQuizKeyboard(opts: QuizKeyboardOptions) {
     if (isTextEntry(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
     const { answered, pause } = opts;
     if (e.key === 'h' || e.key === 'H') {
-      if (!e.repeat) opts.onHint(true);
+      if (!e.repeat) opts.onToggleHint();
       return;
     }
     if (e.key === 'Enter' || e.key === ' ') {
@@ -63,28 +63,9 @@ export function useQuizKeyboard(opts: QuizKeyboardOptions) {
     opts.onAnswerKey?.(e.key);
   });
 
-  const onKeyUp = useEffectEvent((e: KeyboardEvent) => {
-    if (e.key === 'h' || e.key === 'H') opts.onHint(false);
-  });
-
-  const onBlur = useEffectEvent(() => opts.onHint(false));
-
-  const enabled = opts.enabled !== false;
-  useEffect(() => {
-    if (!enabled) onBlur();
-  }, [enabled]);
-
   useEffect(() => {
     const down = (e: KeyboardEvent) => onKeyDown(e);
-    const up = (e: KeyboardEvent) => onKeyUp(e);
-    const blur = () => onBlur();
     window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    window.addEventListener('blur', blur);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
-      window.removeEventListener('blur', blur);
-    };
+    return () => window.removeEventListener('keydown', down);
   }, []);
 }

@@ -83,37 +83,35 @@ describe('IntervalTrainer', () => {
     expect(screen.queryByRole('button', { name: /Next/ })).not.toBeInTheDocument();
   });
 
-  it('shows the hint overlay on the whole board while H is held', () => {
+  it('H toggles the hint overlay on the whole board', () => {
     // A narrow range must not shrink the hint.
     const { set } = renderFindIt(3, { mode: 'name', vRange: 2, hRange: 2 });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
     fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.keyUp(window, { key: 'h' });
     // Every cell in the fret window except the root's.
     expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
-
-    expect(screen.getByRole('button', { name: /Hold for hint/ })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.keyUp(window, { key: 'h' });
+    expect(screen.getByRole('button', { name: /Hint/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'h' });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
   });
 
-  it('keeps an H-held hint when the mouse leaves the hint button', () => {
+  it('the hint button toggles the hint on and off', () => {
     render(<IntervalTrainer rng={seededRng(1)} />);
-    const btn = screen.getByRole('button', { name: /Hold for hint/ });
-    fireEvent.keyDown(window, { key: 'h' });
-    fireEvent.pointerLeave(btn);
-    fireEvent.pointerUp(btn);
+    const btn = screen.getByRole('button', { name: /Hint/ });
+    fireEvent.click(btn);
     expect(btn).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.keyUp(window, { key: 'h' });
+    fireEvent.click(btn);
     expect(btn).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('ends a pointer-held hint when the pointer leaves the hint button', () => {
+  it('turns the hint off when the next question loads', () => {
     render(<IntervalTrainer rng={seededRng(1)} />);
-    const btn = screen.getByRole('button', { name: /Hold for hint/ });
-    fireEvent.pointerDown(btn, { button: 0, pointerId: 1 });
-    expect(btn).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.pointerLeave(btn);
+    const btn = screen.getByRole('button', { name: /Hint/ });
+    fireEvent.click(btn);
+    fireEvent.click(screen.getByRole('button', { name: /Skip/ }));
     expect(btn).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
   });
 
   it('Find it: a wrong cell in the box gets an ✕ and stops accepting taps', () => {
@@ -162,7 +160,7 @@ describe('IntervalTrainer', () => {
     },
   );
 
-  it('Find it: the hint replaces the reveal markers while held', () => {
+  it('Find it: the hint replaces the reveal markers while on', () => {
     const { q } = renderFindIt(8, { pause: true });
     fireEvent.click(cellEl(q.tgt));
     fireEvent.keyDown(window, { key: 'h' });
