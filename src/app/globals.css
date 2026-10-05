@@ -164,14 +164,17 @@ button {
   @media (hover: none) { .strip-touch-hint { display: block; } }
   .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
 
-  /* The Chord library's shapes: five per line, wrapping; on a phone the
-     grid scrolls sideways rather than shrink the diagrams. */
+  /* The Chords pages' shapes: five per line, wrapping. */
   .shape-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(104px, 168px));
     gap: 8px;
     overflow-x: auto;
     padding: 2px;
+  }
+  /* Phones: three per line, so the diagrams stay readable without scrolling sideways. */
+  @media (max-width: 700px) {
+    .shape-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   .shape-btn {
     display: block;

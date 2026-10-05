@@ -89,7 +89,8 @@ black-key tones).
 
 ## Saved state
 
-None. The lab opens on an open C each time.
+None, and no URL: the lab opens on an open C each time, and a shape
+isn't linkable (Jeremy, 2026-10-05).
 
 ## Tests
 

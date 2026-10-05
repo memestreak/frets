@@ -41,9 +41,9 @@ One column, like the Scale lab:
    **Show all N shapes** link lists them all; it then reads **Show the best
    few**.
 
-On phones the neck scrolls sideways (as elsewhere) and each group of
-diagrams keeps five per line and scrolls sideways too, rather than shrink
-the diagrams below a readable size.
+On phones (700px wide or less) the neck scrolls sideways, as elsewhere,
+and the diagrams go three per line, wrapping, so they stay readable
+without scrolling (Jeremy's pick, 2026-10-05).
 
 ## Diagrams
 
@@ -117,7 +117,7 @@ All of these numbers are named constants in `voicings.ts`.
   - `voicings.ts`: pure voicing search (`findVoicings`), the easiness
     score, and captions.
   - `ChordDiagram.tsx` (one small diagram), `VoicingGroups.tsx` (Open and
-    Moveable, five per line, Show all) and `chordDots.ts` (voicing → neck
+    Moveable, five per line or three on phones, Show all) and `chordDots.ts` (voicing → neck
     dots): shared with the Chord lab to come.
   - `library/`: `ChordLibrary.tsx` (the page, the only stateful component),
     `ChordPickers.tsx`, `VoicingStepper.tsx`, `chordUrls.ts` (slugs).

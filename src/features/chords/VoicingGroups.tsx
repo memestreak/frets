@@ -14,8 +14,9 @@ interface VoicingGroupsProps {
 }
 
 /**
- * The Open and Moveable groups of diagrams, five per line. Under Moveable,
- * a link switches between the best few and every shape.
+ * The Open and Moveable groups of diagrams, five per line (three on
+ * phones). Under Moveable, a link switches between the best few and every
+ * shape.
  */
 export function VoicingGroups({
   chord, voicings, showAll, onShowAll, selectedKey, onSelect,
