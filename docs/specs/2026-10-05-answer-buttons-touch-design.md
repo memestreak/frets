@@ -23,3 +23,12 @@ wrapping at the ends, and number keys still pick by position.
 
 Options shown to Jeremy before merging: one row (today), six per row, four
 per row and three per row, in light and dark.
+
+## Hint button
+
+The hint button used to read "Intervals from root" / "Note names" while
+held, which widened it and reflowed the row around it. It now keeps the
+label "Hold for hint" at all times; while held (`aria-pressed="true"`) it
+swaps its solid fill for `--primary-soft` with a `--primary` label and
+outline. The `hintActiveLabel` prop is gone. Options shown to Jeremy:
+fade, soft fill, pressed in, and a swapping label at a fixed width.

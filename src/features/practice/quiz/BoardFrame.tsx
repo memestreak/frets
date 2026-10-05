@@ -14,14 +14,12 @@ interface BoardFrameProps {
   legend: LegendItem[];
   hint: boolean;
   onHint: (on: boolean) => void;
-  /** Label shown on the hint button while it is held. */
-  hintActiveLabel: string;
   children: ReactNode;
 }
 
 /** Card around the fretboard, with legend and hold-for-hint. */
 export function BoardFrame({
-  legend, hint, onHint, hintActiveLabel, children,
+  legend, hint, onHint, children,
 }: BoardFrameProps) {
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
@@ -70,7 +68,7 @@ export function BoardFrame({
           }}
         >
           <EyeIcon />
-          {hint ? hintActiveLabel : 'Hold for hint'}
+          Hold for hint
           <Keycap>H</Keycap>
         </button>
       </div>

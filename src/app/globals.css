@@ -108,6 +108,13 @@ button {
     user-select: none;
     -webkit-user-select: none;
   }
+  /* Held: the label stays put (so nothing reflows); the fill goes soft. */
+  .hint-btn[aria-pressed='true'],
+  .hint-btn[aria-pressed='true']:hover {
+    background: var(--primary-soft);
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+  }
 
   .chord-strip {
     display: grid;

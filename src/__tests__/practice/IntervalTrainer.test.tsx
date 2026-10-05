@@ -91,7 +91,7 @@ describe('IntervalTrainer', () => {
     // Every cell in the fret window except the root's.
     expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
 
-    expect(screen.getByRole('button', { name: /Intervals from root/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Hold for hint/ })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyUp(window, { key: 'h' });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
   });

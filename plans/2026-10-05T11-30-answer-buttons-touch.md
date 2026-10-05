@@ -10,4 +10,6 @@ Spec: `docs/specs/2026-10-05-answer-buttons-touch-design.md`.
 2. Measure with Playwright at 320, 390, 700, 768 and 1280px in both
    trainers: no horizontal scroll, two rows at ≤700px, at least 44px wide
    at 390px.
-3. `npm run lint`, `npm test`, `npm run typecheck`, `npm run build`.
+3. Hint button: drop `hintActiveLabel`; the label stays "Hold for hint" and
+   `.hint-btn[aria-pressed=true]` gets the soft fill.
+4. `npm run lint`, `npm test`, `npm run typecheck`, `npm run build`.
