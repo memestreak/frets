@@ -32,3 +32,9 @@ label "Hold for hint" at all times; while held (`aria-pressed="true"`) it
 swaps its solid fill for `--primary-soft` with a `--primary` label and
 outline. The `hintActiveLabel` prop is gone. Options shown to Jeremy:
 fade, soft fill, pressed in, and a swapping label at a fixed width.
+
+## Default horizontal range
+
+The Interval trainer's default `hRange` drops from 5 to 4: the target is
+at most three frets from the root unless the player widens it in Settings.
+`docs/specs/2026-10-01-interval-ranges-design.md` is updated to match.

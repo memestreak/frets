@@ -43,7 +43,7 @@ export const clampHRange = (n: number): number =>
   Math.min(H_RANGE_MAX, Math.max(1, Math.round(n)));
 
 export const defaultIntervalSettings = (): IntervalSettings => ({
-  mode: 'name', dir: 'rand', vRange: V_RANGE_MAX, hRange: 5, minFret: 0, maxFret: 15,
+  mode: 'name', dir: 'rand', vRange: V_RANGE_MAX, hRange: 4, minFret: 0, maxFret: 15,
   pool: [...SIMPLE_INTERVALS], compound: true, noteNames: false, pause: false,
 });
 

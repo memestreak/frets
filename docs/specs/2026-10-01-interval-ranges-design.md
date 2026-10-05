@@ -21,13 +21,14 @@ of four frets.
 | Field    | Meaning                                | Min | Max | Default |
 |----------|----------------------------------------|-----|-----|---------|
 | `vRange` | Strings spanned, counting the root's   | 1   | 6   | 6       |
-| `hRange` | Frets spanned, counting the root's     | 1   | 12  | 5       |
+| `hRange` | Frets spanned, counting the root's     | 1   | 12  | 4       |
 | `dir`    | `'asc'`, `'desc'` or `'rand'`          |     |     | `'asc'` |
 
 Both ranges are one-based spans that include the root. `vRange = 1` is the
 root's string alone and `vRange = 6` is every string. `hRange = 1` is the
 root's fret alone and `hRange = 5` reaches four frets from the root, the
-same reach the prototype had. In distance terms the target is at most
+same reach the prototype had. The default is 4 (three frets either way,
+changed 2026-10-05). In distance terms the target is at most
 `vRange - 1` strings and `hRange - 1` frets away.
 
 Both ranges at 1 would be the root's cell alone, which no question fits, so
@@ -195,7 +196,7 @@ trainer.
 The storage key is `eminor.intervals.v2`. `parseIntervalSettings`:
 
 - accepts `vRange` only if it is an integer in 1..6, else the default 6;
-- accepts `hRange` only if it is an integer in 1..12, else the default 5;
+- accepts `hRange` only if it is an integer in 1..12, else the default 4;
 - loads a stored 1/1 as vertical 1, horizontal 2;
 - falls back to Ascending for a stored `dir` of `'same'`;
 - ignores any stored `pairs` value.

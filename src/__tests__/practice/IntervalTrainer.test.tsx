@@ -270,7 +270,7 @@ describe('IntervalTrainer', () => {
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const saved = () =>
       JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
-    expect(saved()).toMatchObject({ vRange: 6, hRange: 5 });
+    expect(saved()).toMatchObject({ vRange: 6, hRange: 4 });
 
     // Pool chips are named "m3, minor third", so "3" is the range option.
     fireEvent.click(within(dialog).getByRole('button', { name: '3' }));
@@ -301,7 +301,7 @@ describe('IntervalTrainer', () => {
     expect(saved.stats.total).toBe(1);
     expect(within(dialog).getByRole('combobox', { name: 'Direction' })).toHaveValue('rand');
     expect(within(dialog).getByRole('spinbutton', { name: 'Horizontal range' }))
-      .toHaveValue(5);
+      .toHaveValue(4);
     expect(within(dialog).getByRole('spinbutton', { name: 'Lowest fret' })).toHaveValue(0);
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
