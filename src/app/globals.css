@@ -133,6 +133,11 @@ button {
   .chord-ladder { width: 100%; min-width: 640px; }
   /* Same cell size as the two-octave ladder on a laptop. */
   .scale-strip { width: 100%; max-width: 560px; }
+  /* Notes in the scale strip that rotate to themselves when tapped. */
+  .scale-strip .tap { cursor: pointer; }
+  .scale-strip .tap:focus { outline: none; }
+  .scale-strip .tap:hover rect:first-of-type,
+  .scale-strip .tap:focus-visible rect:first-of-type { stroke: var(--ink); stroke-width: 2px; }
   /* Rotate mode's two arrows as one control. */
   .mode-steps { display: inline-flex; }
   .mode-steps .btn:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }

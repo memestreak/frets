@@ -39,7 +39,9 @@ One column, as in the prototype:
    On the same line, right-aligned, a Root dropdown (17 spellings: the
    naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
    one `<optgroup>` per family (list below), then Rotate mode: ‹ › buttons
-   joined as one control under a "Rotate mode" label (see Rules). On
+   joined as one control under a "Rotate mode" label (see Rules), and a
+   "↺ Reset" button that shows only while rotated and keeps its place when
+   hidden, so nothing shifts. On
    phones the controls wrap under the title; the Root and Scale labels are
    visually hidden, the Rotate mode label stays.
 2. **Scale strip.** No card: under the title, the scale as a one-octave
@@ -49,7 +51,10 @@ One column, as in the prototype:
    scale empty squares. The formula and strip stay the scale's while a
    chord is selected. After Rotate mode the strip still starts on the root
    picked from the dropdowns, and the new root's square tile moves along
-   it; colours and degrees follow the new root. (Slice 1 had Notes, Formula and Steps facts under the
+   it; colours and degrees follow the new root. In a seven-note family
+   every scale note but the root is a button: tapping it rotates to that
+   note ("Make E the root: E Phrygian"), and the picked root at either end
+   goes back to the picked scale. (Slice 1 had Notes, Formula and Steps facts under the
    title, a 12-key root row with split black keys and 12 formula chips; on
    review they took too much room. A card holding the dropdowns, formula
    and strip came next; on review it still read as too heavy.)

@@ -19,9 +19,9 @@ describe('ScaleLab', () => {
     // The formula follows the title, in parentheses.
     expect(formula()).toHaveTextContent('(1 2 ♭3 4 5 6 ♭7)');
     // The one-octave strip under the title.
-    const strip = scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')
-      .find(el => el.classList.contains('scale-strip'));
-    expect(strip).toBeDefined();
+    // Its notes are buttons, so it is a group.
+    expect(screen.getByRole('group', { name: 'A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G' }))
+      .toHaveClass('scale-strip');
     expect(screen.getAllByRole('button', { name: /^\S+7, / })).toHaveLength(7);
   });
 
@@ -33,8 +33,9 @@ describe('ScaleLab', () => {
     });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('E♭ harmonic minor');
     expect(formula()).toHaveTextContent('1 2 ♭3 4 5 ♭6 7');
-    expect(scaleImgs('E♭ harmonic minor: 1 E♭, 2 F, ♭3 G♭, 4 A♭, 5 B♭, ♭6 C♭, 7 D'))
-      .toHaveLength(2);
+    const name = 'E♭ harmonic minor: 1 E♭, 2 F, ♭3 G♭, 4 A♭, 5 B♭, ♭6 C♭, 7 D';
+    expect(screen.getByRole('group', { name })).toHaveClass('scale-strip');
+    expect(scaleImgs(name)[0]).toHaveClass('chord-ladder');
     expect(saved()).toMatchObject({ root: 'Eb', scale: 'harmonic-minor' });
   });
 
@@ -145,7 +146,7 @@ describe('ScaleLab', () => {
     const title = () => screen.getByRole('heading', { level: 1 });
     const next = () => screen.getByRole('button', { name: /^Next mode/ });
     const prev = () => screen.getByRole('button', { name: /^Previous mode/ });
-    const strip = () => screen.getAllByRole('img').find(el => el.classList.contains('scale-strip'))!;
+    const strip = () => document.querySelector<HTMLElement>('.scale-strip')!;
     const stripNames = () => within(strip()).getAllByTestId('ladder-note')
       .map(g => g.querySelector('text')!.textContent).join(' ');
     const square = () => within(strip()).getAllByTestId('ladder-note')
@@ -174,6 +175,39 @@ describe('ScaleLab', () => {
     expect(title()).toHaveTextContent(/^B Phrygian \(/);
     expect(stripNames()).toMatch(/^B C D/);
     expect(saved()).toMatchObject({ root: 'B', scale: 'phrygian', mode: 0 });
+  });
+
+  it('rotates to a tapped note and resets', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
+    render(<ScaleLab />);
+    const title = () => screen.getByRole('heading', { level: 1 });
+    const reset = () => screen.queryByRole('button', { name: /^Reset to / });
+    // Nothing to reset yet, and the root is not a button.
+    expect(reset()).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Make C the root/ })).toBeNull();
+
+    fireEvent.click(chordCard('Dm7'));
+    fireEvent.click(screen.getByRole('button', { name: 'Make E the root: E Phrygian' }));
+    expect(title()).toHaveTextContent(/^E Phrygian \(/);
+    expect(saved()).toMatchObject({ root: 'C', scale: 'ionian', mode: 2 });
+    // The chord stays selected, its numeral counted from E.
+    expect(chordCard('Dm7')).toHaveAccessibleName(/^♭vii7, /);
+
+    // The keyboard works too, and the C at either end goes home.
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Make G the root: G Mixolydian' }), { key: 'Enter' });
+    expect(title()).toHaveTextContent(/^G Mixolydian \(/);
+    expect(screen.getAllByRole('button', { name: 'Make C the root: C major' })).toHaveLength(2);
+
+    fireEvent.click(reset()!);
+    expect(title()).toHaveTextContent(/^C major \(/);
+    expect(reset()).toBeNull();
+    expect(chordCard('Dm7')).toHaveAccessibleName(/^ii7, /);
+  });
+
+  it('has no notes to tap in a pentatonic', () => {
+    localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'major-pentatonic' }));
+    render(<ScaleLab />);
+    expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
   });
 
   it('keeps the selected chord through a rotation', () => {
