@@ -176,7 +176,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
           {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="note" />}
           {mode !== 'name' && q && <FindPrompt label={noteName}>{findSub}</FindPrompt>}
         </AnswerCard>
-        <BoardFrame legend={legend} hint={hint} onHint={setHint} hintActiveLabel="Note names">
+        <BoardFrame legend={legend} hint={hint} onHint={setHint}>
           <Fretboard
             minFret={0}
             maxFret={NOTE_MAX_FRET}

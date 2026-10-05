@@ -1,6 +1,6 @@
 'use client';
 
-import type { PointerEvent, ReactNode } from 'react';
+import { useRef, type PointerEvent, type ReactNode } from 'react';
 import { Keycap } from '@/components/controls';
 import { EyeIcon } from '@/components/icons';
 
@@ -14,21 +14,27 @@ interface BoardFrameProps {
   legend: LegendItem[];
   hint: boolean;
   onHint: (on: boolean) => void;
-  /** Label shown on the hint button while it is held. */
-  hintActiveLabel: string;
   children: ReactNode;
 }
 
 /** Card around the fretboard, with legend and hold-for-hint. */
 export function BoardFrame({
-  legend, hint, onHint, hintActiveLabel, children,
+  legend, hint, onHint, children,
 }: BoardFrameProps) {
+  // Pointer events end only a hold the pointer started, so moving the mouse
+  // off the button doesn't cut short a hint held with H or Space.
+  const pointerHeld = useRef(false);
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    pointerHeld.current = true;
     onHint(true);
   };
-  const up = () => onHint(false);
+  const up = () => {
+    if (!pointerHeld.current) return;
+    pointerHeld.current = false;
+    onHint(false);
+  };
 
   return (
     <section className="card board-frame">
@@ -70,7 +76,7 @@ export function BoardFrame({
           }}
         >
           <EyeIcon />
-          {hint ? hintActiveLabel : 'Hold for hint'}
+          Hold for hint
           <Keycap>H</Keycap>
         </button>
       </div>

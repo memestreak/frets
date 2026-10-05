@@ -252,7 +252,6 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           ]}
           hint={hint}
           onHint={setHint}
-          hintActiveLabel="Intervals from root"
         >
           <Fretboard
             minFret={set.minFret}

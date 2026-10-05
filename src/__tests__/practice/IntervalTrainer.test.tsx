@@ -91,9 +91,29 @@ describe('IntervalTrainer', () => {
     // Every cell in the fret window except the root's.
     expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
 
-    expect(screen.getByRole('button', { name: /Intervals from root/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Hold for hint/ })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyUp(window, { key: 'h' });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
+  });
+
+  it('keeps an H-held hint when the mouse leaves the hint button', () => {
+    render(<IntervalTrainer rng={seededRng(1)} />);
+    const btn = screen.getByRole('button', { name: /Hold for hint/ });
+    fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.pointerLeave(btn);
+    fireEvent.pointerUp(btn);
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyUp(window, { key: 'h' });
+    expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('ends a pointer-held hint when the pointer leaves the hint button', () => {
+    render(<IntervalTrainer rng={seededRng(1)} />);
+    const btn = screen.getByRole('button', { name: /Hold for hint/ });
+    fireEvent.pointerDown(btn, { button: 0, pointerId: 1 });
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.pointerLeave(btn);
+    expect(btn).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('Find it: a wrong cell in the box gets an ✕ and stops accepting taps', () => {
@@ -270,7 +290,7 @@ describe('IntervalTrainer', () => {
     const dialog = screen.getByRole('dialog', { name: 'Settings' });
     const saved = () =>
       JSON.parse(localStorage.getItem(INTERVAL_STORAGE_KEY) ?? '{}').set;
-    expect(saved()).toMatchObject({ vRange: 6, hRange: 5 });
+    expect(saved()).toMatchObject({ vRange: 6, hRange: 4 });
 
     // Pool chips are named "m3, minor third", so "3" is the range option.
     fireEvent.click(within(dialog).getByRole('button', { name: '3' }));
@@ -301,7 +321,7 @@ describe('IntervalTrainer', () => {
     expect(saved.stats.total).toBe(1);
     expect(within(dialog).getByRole('combobox', { name: 'Direction' })).toHaveValue('rand');
     expect(within(dialog).getByRole('spinbutton', { name: 'Horizontal range' }))
-      .toHaveValue(5);
+      .toHaveValue(4);
     expect(within(dialog).getByRole('spinbutton', { name: 'Lowest fret' })).toHaveValue(0);
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
   });
