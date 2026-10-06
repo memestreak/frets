@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { AppShell } from "@/components/AppShell";
-import { THEME_BOOT_SCRIPT } from "@/lib/theme";
+import { SURFACE_COLORS, THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Fretwood's display, text and mono faces (SIL OFL), latin subset, self-hosted so the build
@@ -23,11 +23,18 @@ const jetbrainsMono = localFont({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Follows the system theme only: a meta tag can't see the in-app choice.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: SURFACE_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: SURFACE_COLORS.dark },
+  ],
 };
 
 export const metadata: Metadata = {
   title: "Frets",
   description: "Learn the guitar fretboard",
+  // The name under the icon when added to an iPhone home screen.
+  appleWebApp: { title: "Frets" },
 };
 
 export default function RootLayout({

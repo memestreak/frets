@@ -51,6 +51,7 @@ npm run build    # Static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
+npm run icons    # Re-render public/icons/*.png after changing the mark's SVGs
 ```
 
 `.github/workflows/ci.yml` runs all four checks on Node 22 for every pull
@@ -67,6 +68,9 @@ binds a local port).
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, the Chord library `/chords/library` and the Chord lab
   `/chords/lab`.
+- `src/app/manifest.ts` and `public/icons/` make the app installable (home
+  screen, "Install app"); no service worker yet, so no offline use. See
+  `docs/specs/2026-10-06-installable-app-design.md`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
