@@ -47,7 +47,7 @@ without scrolling (Jeremy's pick, 2026-10-05).
 
 ## Diagrams
 
-Small horizontal chord charts: low E at the bottom, four frets, the nut
+Small horizontal chord charts: low E at the bottom, five frets, the nut
 drawn when the shape starts at fret 1 and the starting fret number under
 the first column otherwise, × left of a muted string, a ring left of the
 nut for an open string. Dots take the degree colour of their tone (9 takes
@@ -83,7 +83,8 @@ Generated, not hand-entered. A voicing is one fret or a mute per string.
 - every note is a chord tone, and every required tone is there;
 - at least three strings sound, with at most one muted string between
   the lowest and highest;
-- the fretted notes span at most three frets (four fret positions);
+- the fretted notes span at most four frets (five fret positions), so
+  stretches such as x-x-7-5-x-3 are allowed (Jeremy, 2026-10-06);
 - at most four fingers: one per fretted note, except that the notes on the
   lowest fret count as one (a barre).
 

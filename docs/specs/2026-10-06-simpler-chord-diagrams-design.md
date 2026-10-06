@@ -10,15 +10,22 @@ number moved further from the frets.
 | Element | Before | After |
 |---|---|---|
 | Board | wood fill, strings of different thickness | plain lines in `--line-strong`, like a printed chord chart |
-| Frets drawn | 5 | 4 (`DIAGRAM_FRETS`): no shape spans more, so the fifth column was always empty |
+| Frets drawn | 5 | 5 (`DIAGRAM_FRETS`, from the span rule), a little narrower each |
 | Nut | cream bar on the wood | `--ink` bar |
 | Fret number | always, close under the board | only when the shape starts above fret 1 (the nut says fret 1), with a clear gap under the low E |
 | Muted string | red × | × in `--ink-muted` |
 | Open string | full dot with its label | a ring in its degree colour (square ring for the root) |
 | Dots | degree colour, interval label, ring around the dot | degree colour only, no text, no ring; the root stays square |
 
-Losing the four-fret column makes each dot and the whole diagram larger at
-the same width, which is what helps most on phones (three per line).
+The mockups drew four frets, because the generator then capped shapes at
+four fret positions and the fifth column was always empty. Jeremy asked
+for five-fret stretches too (2026-10-06), so the span limit went up to
+four frets (five positions) and the diagrams draw five. `DIAGRAM_FRETS` is
+computed from the span rule, so the two can't drift apart. Dots are still
+larger than before (radius 8.5 against 7.5).
+
+The search now builds one window per lowest fret and stops as soon as the
+bass isn't the root, which keeps it fast with the wider window.
 
 ## The key
 

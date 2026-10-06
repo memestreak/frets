@@ -4,7 +4,7 @@ import type { ChordInfo } from './chordTypes';
 import { DIAGRAM_FRETS, diagramStartFret, type Voicing } from './voicings';
 
 /* Geometry of one small diagram, in SVG units. */
-const CELL = 26;
+const CELL = 24;
 const STRING_GAP = 18;
 const LEFT = 22; // room for × and open-string rings left of the nut
 const TOP = 10;

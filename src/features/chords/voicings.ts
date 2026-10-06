@@ -14,7 +14,7 @@ export type Voicing = readonly (number | null)[];
 /** Highest fret a voicing may use. */
 const HIGHEST_FRET = 15;
 /** Highest fretted note minus lowest, in frets. */
-const MAX_SPAN = 3;
+const MAX_SPAN = 4;
 const MAX_FINGERS = 4;
 const MIN_STRINGS = 3;
 /** Muted strings allowed between the lowest and highest sounding strings. */
@@ -89,22 +89,21 @@ const isOpenShape = (v: Voicing) =>
 /** Moveable shapes have no open strings, so they slide to any root. */
 const isMoveable = (v: Voicing) => !v.includes(0);
 
-/**
- * True when `fuller` is `v` with more strings above the same bass note,
- * adding no new tone: x-3-2-0-1-x next to x-3-2-0-1-0.
- */
-function doubles(fuller: Voicing, v: Voicing, rootPc: number): boolean {
-  const toneCount = (x: Voicing) =>
-    new Set(soundingStrings(x).map(s => toneOn(rootPc, s, x[s]!))).size;
-  return soundingStrings(fuller)[0] === soundingStrings(v)[0] &&
-    soundingStrings(fuller).length > soundingStrings(v).length &&
-    v.every((f, s) => !isSounding(f) || f === fuller[s]) &&
-    toneCount(fuller) === toneCount(v);
-}
-
 /** Drops shapes that only leave strings out of a fuller shape with the same tones. */
-const dropDoublings = (voicings: Voicing[], rootPc: number) =>
-  voicings.filter(v => !voicings.some(w => doubles(w, v, rootPc)));
+function dropDoublings(voicings: Voicing[], rootPc: number): Voicing[] {
+  // Worked out once per shape: the lists can run to hundreds of shapes.
+  const facts = voicings.map(v => {
+    const strings = soundingStrings(v);
+    return { v, strings, tones: new Set(strings.map(s => toneOn(rootPc, s, v[s]!))).size };
+  });
+  /** `fuller` is `v` with more strings above the same bass note, adding no new tone: x-3-2-0-1-0 over x-3-2-0-1-x. */
+  const doubles = (fuller: typeof facts[number], v: typeof facts[number]) =>
+    fuller.strings[0] === v.strings[0] &&
+    fuller.strings.length > v.strings.length &&
+    fuller.tones === v.tones &&
+    v.strings.every(s => v.v[s] === fuller.v[s]);
+  return facts.filter(v => !facts.some(w => doubles(w, v))).map(f => f.v);
+}
 
 /** The easiest shape for each bass note (string and fret) and number of strings. */
 function easiestPerBass(voicings: Voicing[]): Voicing[] {
@@ -125,19 +124,24 @@ const byFullness = (a: Voicing, b: Voicing) =>
   soundingStrings(b).length - soundingStrings(a).length || difficulty(a) - difficulty(b);
 
 /**
- * Every combination of one choice per string, where a string's choices
- * are a mute or a fret in `window` that plays a chord tone.
+ * Every combination of one choice per string with the root in the bass,
+ * where a string's choices are a mute or a fret in `window` that plays a
+ * chord tone.
  */
 function* combinations(window: number[], chord: ChordInfo): Generator<Voicing> {
   const tones = new Set(chord.tones.map(t => t.semis));
   const choices = TUNING.map((_, s) => [
     null, ...window.filter(f => tones.has(toneOn(chord.rootPc, s, f))),
   ]);
-  function* fromString(s: number, chosen: (number | null)[]): Generator<Voicing> {
+  function* fromString(s: number, chosen: (number | null)[], hasBass: boolean): Generator<Voicing> {
     if (s === choices.length) { yield chosen; return; }
-    for (const c of choices[s]) yield* fromString(s + 1, [...chosen, c]);
+    for (const c of choices[s]) {
+      // The lowest sounding string must play the root; stop early when it doesn't.
+      if (c !== null && !hasBass && toneOn(chord.rootPc, s, c) !== 0) continue;
+      yield* fromString(s + 1, [...chosen, c], hasBass || c !== null);
+    }
   }
-  yield* fromString(0, []);
+  yield* fromString(0, [], false);
 }
 
 const cache = new Map<string, Voicings>();
@@ -149,15 +153,19 @@ export function findVoicings(chord: ChordInfo): Voicings {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const found = new Map<string, Voicing>();
-  for (let low = 1; low + MAX_SPAN <= HIGHEST_FRET; low++) {
-    const window = [0, low, low + 1, low + 2, low + 3];
+  // One window per lowest fret, so each shape is found once: the open
+  // string and the frets from `low` to `low + MAX_SPAN`.
+  const found: Voicing[] = [];
+  for (let low = 1; low <= HIGHEST_FRET; low++) {
+    const top = Math.min(low + MAX_SPAN, HIGHEST_FRET);
+    const window = [0, ...Array.from({ length: top - low + 1 }, (_, i) => low + i)];
     for (const v of combinations(window, chord)) {
-      const key = voicingKey(v);
-      if (!found.has(key) && isPlayable(v, chord)) found.set(key, v);
+      const fretted = frettedNotes(v);
+      const lowest = fretted.length ? Math.min(...fretted) : 1; // all-open shapes once, at low 1
+      if (lowest === low && isPlayable(v, chord)) found.push(v);
     }
   }
-  const candidates = [...found.values()];
+  const candidates = found;
   const allMoveable = dropDoublings(candidates.filter(isMoveable), chord.rootPc);
   const result = {
     open: dropDoublings(candidates.filter(isOpenShape), chord.rootPc).sort(byFullness),

@@ -15,7 +15,7 @@ function expectPlayable(v: Voicing, chord: ChordInfo) {
   expect(tones[0]).toBe(0);
   expect(tones.every(t => chordTones.includes(t))).toBe(true);
   for (const t of chord.tones.filter(t => t.required)) expect(tones).toContain(t.semis);
-  if (fretted.length) expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(3);
+  if (fretted.length) expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(4);
   expect(fingersNeeded(v)).toBeLessThanOrEqual(4);
 }
 
@@ -52,6 +52,10 @@ describe('findVoicings', () => {
     const lowest = (v: Voicing) => Math.min(...v.filter((f): f is number => f !== null));
     const frets = findVoicings(chordOf('A', 'm7')).moveable.map(lowest);
     expect(frets).toEqual([...frets].sort((a, b) => a - b));
+  });
+
+  it('allows a stretch across five frets', () => {
+    expect(keys(findVoicings(chordOf('A', 'm7')).allMoveable)).toContain('x-x-7-5-x-3');
   });
 
   it('has nothing open for a chord without an open shape', () => {
