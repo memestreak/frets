@@ -29,7 +29,7 @@ spec records only how the app applies them.
 | Token file | `src/styles/fretwood.css` (replaces `industry.css`). Light values sit on `:root`. Dark values apply under `prefers-color-scheme: dark` unless `data-theme="light"`, and always under `data-theme="dark"`. |
 | Theme choice | An Auto / Light / Dark switch in the nav, saved as JSON under `localStorage["frets.theme"]`. A boot script in `<head>` applies it before first paint. |
 | Type | Fraunces 600 for page titles (`h1`) and the wordmark; Figtree 400–700 for everything else. Both are self-hosted with `next/font/local` (latin subset). JetBrains Mono is left out until something uses it. |
-| Wordmark | The Fretwood mark (`BrandMark`, drawn with tokens so it follows the theme) and "Frets" in Fraunces. `icon.svg` and `apple-icon.png` are the same mark with the light values. |
+| Wordmark | The mark (`BrandMark`, an open E minor chart drawn with tokens so it follows the theme; see `2026-10-06-e-minor-mark-design.md`) and "Frets" in Fraunces. `icon.svg` and every raster icon are the same mark with the light values. |
 | Page titles | Each page has one `h1`: the trainer title, the section name, or a visually hidden "Frets" on the home page. |
 | Cards | `--surface-raised` with a 1px `--line` border and `--radius-lg`. No shadows. |
 | Controls | `.btn-primary` / `.btn-secondary` / `.btn-ghost`, `.seg` segmented control and `.input` follow the README's component rules. Answer tiles sit on `--surface-sunken`. |
