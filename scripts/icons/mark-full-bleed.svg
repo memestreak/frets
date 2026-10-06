@@ -2,14 +2,31 @@
   <!-- The mark from src/app/icon.svg on a square, full-bleed background,
        shrunk so it stays inside the circle Android may crop a maskable icon
        to (radius 40% of the size). -->
-  <rect width="96" height="96" fill="#4f3a2b"></rect>
-  <g transform="translate(48 48) scale(0.8) translate(-50 -49)">
-    <g stroke="#a8957a" stroke-width="2"><line x1="38" y1="16" x2="38" y2="80"></line><line x1="62" y1="16" x2="62" y2="80"></line></g>
-    <rect x="14" y="16" width="4" height="64" rx="1.5" fill="#efe3cb"></rect>
-    <g stroke="#e3d5bb" stroke-width="1.5"><line x1="16" y1="24" x2="86" y2="24"></line><line x1="16" y1="40" x2="86" y2="40"></line><line x1="16" y1="56" x2="86" y2="56"></line><line x1="16" y1="72" x2="86" y2="72"></line></g>
-    <rect x="18" y="62" width="20" height="20" rx="5" fill="#a8462a" stroke="#f6f0e4" stroke-width="2.5"></rect>
-    <circle cx="50" cy="56" r="9" fill="#5c6e30" stroke="#f6f0e4" stroke-width="2.5"></circle>
-    <circle cx="74" cy="40" r="9" fill="#946a12" stroke="#f6f0e4" stroke-width="2.5"></circle>
-    <circle cx="50" cy="24" r="9" fill="#3d6476" stroke="#f6f0e4" stroke-width="2.5"></circle>
+  <rect width="96" height="96" fill="#4f3a2b"/>
+  <g transform="translate(48 48) scale(0.8) translate(-48 -50)">
+    <g stroke="#a8957a" stroke-width="2">
+      <line x1="12" y1="49" x2="84" y2="49"/>
+      <line x1="12" y1="66" x2="84" y2="66"/>
+      <line x1="12" y1="83" x2="84" y2="83"/>
+    </g>
+    <rect x="12" y="28" width="72" height="4" rx="1.5" fill="#efe3cb"/>
+    <g stroke="#e3d5bb" stroke-width="1.5">
+      <line x1="16" y1="32" x2="16" y2="87"/>
+      <line x1="28.8" y1="32" x2="28.8" y2="87"/>
+      <line x1="41.6" y1="32" x2="41.6" y2="87"/>
+      <line x1="54.4" y1="32" x2="54.4" y2="87"/>
+      <line x1="67.2" y1="32" x2="67.2" y2="87"/>
+      <line x1="80" y1="32" x2="80" y2="87"/>
+    </g>
+    <g fill="none" stroke="#f6f0e4" stroke-width="2">
+      <rect x="11.5" y="13.5" width="9" height="9" rx="1.5"/>
+      <circle cx="54.4" cy="18" r="4.5"/>
+      <circle cx="67.2" cy="18" r="4.5"/>
+      <rect x="75.5" y="13.5" width="9" height="9" rx="1.5"/>
+    </g>
+    <g stroke="#f6f0e4" stroke-width="2">
+      <rect x="22.3" y="51" width="13" height="13" rx="2" fill="#a8462a"/>
+      <circle cx="41.6" cy="57.5" r="6.5" fill="#5c6e30"/>
+    </g>
   </g>
 </svg>

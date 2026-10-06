@@ -51,7 +51,7 @@ npm run build    # Static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
-npm run icons    # Re-render public/icons/*.png after changing the mark's SVGs
+npm run icons    # Re-render every icon and favicon.ico after changing the mark's SVGs
 ```
 
 `.github/workflows/ci.yml` runs all four checks on Node 22 for every pull

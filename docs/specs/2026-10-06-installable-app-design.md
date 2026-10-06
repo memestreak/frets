@@ -35,9 +35,10 @@ Frets shows no install button or banner of its own.
   rounded mark, `purpose: any`) and `maskable-512.png` (the mark on a
   square background, shrunk to fit Android's maskable safe circle,
   `purpose: maskable`). `npm run icons` (`scripts/make-icons.mjs`, sharp)
-  renders them from `src/app/icon.svg` and
-  `scripts/icons/mark-full-bleed.svg`; the PNGs are committed.
-  `src/app/apple-icon.png` stays as it is.
+  renders them, `src/app/apple-icon.png` and `src/app/favicon.ico` from
+  `src/app/icon.svg` and `scripts/icons/mark-full-bleed.svg`; the output
+  is committed. The mark itself is in
+  `docs/specs/2026-10-06-e-minor-mark-design.md`.
 - Layout metadata: `appleWebApp.title` "Frets" (the label under the iOS
   icon; Next also emits `mobile-web-app-capable`), and `theme-color`
   metas for light and dark (the status bar colour in the installed app).
