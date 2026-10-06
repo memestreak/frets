@@ -47,12 +47,13 @@ without scrolling (Jeremy's pick, 2026-10-05).
 
 ## Diagrams
 
-Small horizontal fretboards in the style of the rest of the app: low E at
-the bottom, five frets, the starting fret number under the first column,
-the nut drawn when the shape starts at fret 1, × left of a muted string,
-an open string as a dot left of the nut. Dots show the interval label (R,
-♭3, 5, ♭7, 9…) in the degree colour (9 takes the 2's colour, 11 the 4's,
-13 the 6's); the root is a square.
+Small horizontal chord charts: low E at the bottom, four frets, the nut
+drawn when the shape starts at fret 1 and the starting fret number under
+the first column otherwise, × left of a muted string, a ring left of the
+nut for an open string. Dots take the degree colour of their tone (9 takes
+the 2's colour, 11 the 4's, 13 the 6's) and carry no text; the root is a
+square. A key above the groups names the colours. See
+`2026-10-06-simpler-chord-diagrams-design.md`.
 
 ## Chord types
 

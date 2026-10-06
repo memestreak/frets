@@ -36,6 +36,13 @@ describe('ChordLibrary', () => {
     expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('names the dot colours of the shape diagrams', () => {
+    renderAt('?chord=c9');
+    const key = screen.getByRole('list', { name: 'Dot colours' });
+    expect(within(key).getAllByRole('listitem').map(li => li.textContent))
+      .toEqual(['R', '3', '5', '♭7', '9']);
+  });
+
   it('shows the chord the URL names', () => {
     renderAt('?chord=c');
     expect(heading()).toHaveTextContent(/^C \(/);

@@ -21,6 +21,8 @@ const MIN_STRINGS = 3;
 const MAX_INNER_MUTES = 1;
 /** Open shapes stay within this many frets of the nut. */
 const OPEN_SHAPE_MAX_FRET = 4;
+/** Frets a diagram draws: enough for any moveable shape and any open shape. */
+export const DIAGRAM_FRETS = Math.max(MAX_SPAN + 1, OPEN_SHAPE_MAX_FRET);
 
 export interface Voicings {
   /** Shapes that ring open strings, most strings first. */
@@ -175,7 +177,7 @@ export function voicingCaption(v: Voicing): string {
   return `root on ${STRING_NAMES[soundingStrings(v)[0]]} · ${where}`;
 }
 
-/** The first fret a diagram shows: 1 when the shape fits the first four frets, else its lowest fret. */
+/** The first fret a diagram shows: 1 for an open shape or one within the first four frets, else its lowest fret. */
 export function diagramStartFret(v: Voicing): number {
   const fretted = frettedNotes(v);
   if (!fretted.length || Math.max(...fretted) <= OPEN_SHAPE_MAX_FRET) return 1;

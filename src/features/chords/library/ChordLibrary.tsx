@@ -89,7 +89,7 @@ function ChordLibrary({ choice }: { choice: ChordChoice }) {
       </section>
 
       <VoicingGroups
-        chord={chord} voicings={voicings}
+        chord={chord} voicings={voicings} showKey
         showAll={showAll} onShowAll={setShowAll}
         selectedKey={voicing ? voicingKey(voicing) : null}
         onSelect={v => setSelectedKey(voicingKey(v))}

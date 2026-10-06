@@ -1,10 +1,13 @@
 import { ChordDiagram } from './ChordDiagram';
+import { ToneKey } from './ToneKey';
 import type { ChordInfo } from './chordTypes';
 import { voicingCaption, voicingKey, type Voicing, type Voicings } from './voicings';
 
 interface VoicingGroupsProps {
   chord: ChordInfo;
   voicings: Voicings;
+  /** Show `ToneKey` above the groups. The lab leaves it out: its tone chips already name the colours. */
+  showKey: boolean;
   /** Moveable shows every shape rather than the best few. */
   showAll: boolean;
   onShowAll: (showAll: boolean) => void;
@@ -15,17 +18,18 @@ interface VoicingGroupsProps {
 
 /**
  * The Open and Moveable groups of diagrams, five per line (three on
- * phones). Under Moveable, a link switches between the best few and every
- * shape.
+ * phones), optionally under a key to the dot colours. Under Moveable, a
+ * link switches between the best few and every shape.
  */
 export function VoicingGroups({
-  chord, voicings, showAll, onShowAll, selectedKey, onSelect,
+  chord, voicings, showKey, showAll, onShowAll, selectedKey, onSelect,
 }: VoicingGroupsProps) {
   const { open, moveable, allMoveable } = voicings;
   const hasMore = allMoveable.length > moveable.length;
   const name = chord.symbol || 'these notes';
   return (
     <div className="grid gap-5">
+      {showKey && <ToneKey chord={chord} />}
       <VoicingGroup
         title="Open" chord={chord} voicings={open}
         emptyText={`No open shape for ${name}.`}
