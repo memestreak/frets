@@ -8,8 +8,9 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
-`docs/specs/2026-10-05-chord-lab-design.md` and
-`docs/specs/2026-10-06-simpler-chord-diagrams-design.md`). The app has no users
+`docs/specs/2026-10-05-chord-lab-design.md`,
+`docs/specs/2026-10-06-simpler-chord-diagrams-design.md` and
+`docs/specs/2026-10-06-chord-arpeggio-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -82,7 +83,8 @@ binds a local port).
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
 - Shared by every feature: `src/lib/` (pure logic, no React: `music.ts`
-  with tuning, names and `intervalClass`; `notation.ts` with `prettyNote`;
+  with tuning, names, `intervalClass` and
+  `positionsOnNeck`; `notation.ts` with `prettyNote`;
   `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`),
   `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
   fill, roving-focus tap cells and arrow keys; `theme.ts` holds the board
@@ -126,7 +128,8 @@ binds a local port).
   `voicings.ts` searches the neck for playable shapes (each rule a named
   constant) and splits them into open, the best few moveable, and all
   moveable. `ChordHeader.tsx`, `ChordDiagram.tsx`, `ToneKey.tsx`, `VoicingGroups.tsx`
-  and `chordDots.ts` are shared by both pages; `library/ChordLibrary.tsx` and
+  and `chordDots.ts` (shape dots, and the arpeggio the library's Arpeggio toggle
+  shows) are shared by both pages; `library/ChordLibrary.tsx` and
   `lab/ChordLab.tsx` are the pages and their only stateful components. The chord is in the URL, not storage:
   `/chords/library?chord=am7b5`, slugs in `library/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section

@@ -108,6 +108,46 @@ describe('ChordLibrary', () => {
     expect(shapes('Moveable')).toHaveLength(few);
   });
 
+  it('shows the arpeggio in place of a shape, until a shape is chosen', () => {
+    const { rerender } = renderAt();
+    const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    // Every A, C, E and G from the nut to fret 15, all at full strength, and no shape chosen.
+    expect(boardDots()).toHaveLength(34);
+    expect(screen.getAllByTestId(/^dot-/).every(d => d.getAttribute('opacity') === '1')).toBe(true);
+    expect([...shapes('Open'), ...shapes('Moveable')]
+      .some(b => b.getAttribute('aria-pressed') === 'true')).toBe(false);
+    expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
+    expect(screen.getByRole('button', { name: 'Previous shape' })).toBeDisabled();
+    // Pressing it again keeps it, like tapping the chosen shape.
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+
+    // It stays picked for the next chord.
+    nav.search = '?chord=c';
+    rerender(<ChordLibrary />);
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('img', { name: 'C arpeggio on the fretboard' })).toBeInTheDocument();
+
+    // Choosing a shape puts it back on the neck alone.
+    fireEvent.click(shapes('Open')[0]);
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    expect(boardDots()).toEqual(['1:3', '2:2', '3:0', '4:1', '5:0']);
+  });
+
+  it('steps from the arpeggio to the first shape', () => {
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
+    expect(caption()).toHaveTextContent(/^Open 1 of 3/);
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('says so when a chord has no open shape', () => {
     renderAt('?chord=cm6');
     expect(within(group('Open')).getByText('No open shape for Cm6.')).toBeInTheDocument();
