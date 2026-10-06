@@ -35,7 +35,8 @@ One column, like the Scale lab:
 3. **Open** and **Moveable**: two groups of small diagrams, five per line,
    wrapping onto as many lines as needed. Tapping one puts it on the neck;
    ← and → select the previous or next shape, in the order shown. The
-   selected shape has a ring and no fill, so its dots stay clear.
+   selected shape sits on the sunken surface with a ring; hovering changes
+   nothing.
    The diagrams carry no fret-number text (no `x-0-2-0-1-0`). An empty
    group says so ("No open shape for this chord.") rather than
    disappearing.
