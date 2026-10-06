@@ -27,6 +27,11 @@ function stepperCaption(voicing: Voicing | undefined, open: Voicing[], moveable:
     + ` · ${voicingCaption(voicing)}`;
 }
 
+/** "A, C, E and G" */
+function listNotes(notes: string[]): string {
+  return notes.length < 2 ? notes.join('') : `${notes.slice(0, -1).join(', ')} and ${notes.at(-1)}`;
+}
+
 /**
  * The Chord library page. The chord comes from the URL
  * (/chords/library?chord=am7b5), and picking another goes to its URL, so
@@ -45,15 +50,17 @@ export default function ChordLibraryPage() {
 
 interface ChordLibraryProps {
   choice: ChordChoice;
-  /** Whether the neck shows every chord tone around the chosen shape. */
+  /** Whether the neck shows every chord tone instead of a shape. */
   arpeggio: boolean;
   onArpeggio: (on: boolean) => void;
 }
 
 /**
- * One chord: one voicing on the neck, optionally inside its arpeggio, and
- * every shape below it. Its own state: the shape on the neck and whether
- * Moveable shows all.
+ * One chord: one voicing or the whole arpeggio on the neck, and every
+ * shape below it. The Arpeggio button is picked like one more shape:
+ * pressing it clears the chosen shape, and choosing a shape (tap, ‹ ›,
+ * arrow keys) clears it. Its own state: the last shape chosen and
+ * whether Moveable shows all.
  */
 function ChordLibrary({ choice, arpeggio, onArpeggio }: ChordLibraryProps) {
   const router = useRouter();
@@ -68,16 +75,25 @@ function ChordLibrary({ choice, arpeggio, onArpeggio }: ChordLibraryProps) {
   const moveable = showAll ? voicings.allMoveable : voicings.moveable;
   // ‹ › walk the open shapes, then the moveable ones, as listed below.
   const sequence = [...voicings.open, ...moveable];
-  const index = Math.max(0, sequence.findIndex(v => voicingKey(v) === selectedKey));
-  const voicing = sequence[index];
+  // With the arpeggio picked no shape is chosen, so › and → go to the first.
+  const index = arpeggio
+    ? -1
+    : Math.max(0, sequence.findIndex(v => voicingKey(v) === selectedKey));
+  const voicing: Voicing | undefined = sequence[index];
+  const select = (v: Voicing) => {
+    setSelectedKey(voicingKey(v));
+    onArpeggio(false);
+  };
 
-  const shapeLabel = voicing ? `${chord.symbol}, ${voicingCaption(voicing)}` : chord.symbol;
-  const boardLabel = arpeggio
-    ? `${chord.symbol} arpeggio with ${shapeLabel} in front, on the fretboard`
-    : `${shapeLabel} on the fretboard`;
+  const onBoard = arpeggio ? `${chord.symbol} arpeggio`
+    : voicing ? `${chord.symbol}, ${voicingCaption(voicing)}`
+    : chord.symbol;
   const dots = arpeggio
-    ? arpeggioDots(chord, voicing, MAX_FRET)
+    ? arpeggioDots(chord, MAX_FRET)
     : voicing ? voicingDots(chord, voicing) : [];
+  const caption = arpeggio
+    ? `Arpeggio · every ${listNotes(chord.notes)} up to fret ${MAX_FRET}`
+    : stepperCaption(voicing, voicings.open, moveable);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
@@ -94,16 +110,16 @@ function ChordLibrary({ choice, arpeggio, onArpeggio }: ChordLibraryProps) {
             minFret={0} maxFret={MAX_FRET}
             dots={dots}
             scrollToFret={voicing ? Math.min(...voicing.filter(f => f !== null)) : null}
-            label={boardLabel}
+            label={`${onBoard} on the fretboard`}
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <VoicingStepper
             index={index} total={sequence.length}
-            caption={stepperCaption(voicing, voicings.open, moveable)}
-            onStep={by => setSelectedKey(voicingKey(sequence[index + by]))}
+            caption={caption}
+            onStep={by => select(sequence[index + by])}
           />
-          <ToggleButton pressed={arpeggio} onClick={() => onArpeggio(!arpeggio)}>
+          <ToggleButton pressed={arpeggio} onClick={() => onArpeggio(true)}>
             Arpeggio
           </ToggleButton>
         </div>
@@ -113,7 +129,7 @@ function ChordLibrary({ choice, arpeggio, onArpeggio }: ChordLibraryProps) {
         chord={chord} voicings={voicings} showKey
         showAll={showAll} onShowAll={setShowAll}
         selectedKey={voicing ? voicingKey(voicing) : null}
-        onSelect={v => setSelectedKey(voicingKey(v))}
+        onSelect={select}
       />
     </div>
   );

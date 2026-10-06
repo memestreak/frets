@@ -108,28 +108,44 @@ describe('ChordLibrary', () => {
     expect(shapes('Moveable')).toHaveLength(few);
   });
 
-  it('shows the arpeggio across the neck behind the chosen shape', () => {
+  it('shows the arpeggio in place of a shape, until a shape is chosen', () => {
     const { rerender } = renderAt();
-    const toggle = screen.getByRole('button', { name: 'Arpeggio' });
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    // Every A, C, E and G from the nut to fret 15.
+    const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    // Every A, C, E and G from the nut to fret 15, all at full strength, and no shape chosen.
     expect(boardDots()).toHaveLength(34);
-    // x-0-2-0-1-0 stays at full strength; the rest is faint.
-    const full = screen.getAllByTestId(/^dot-/).filter(d => !d.hasAttribute('opacity') || d.getAttribute('opacity') === '1');
-    expect(full.map(d => `${d.dataset.s}:${d.dataset.f}`).sort())
-      .toEqual(['1:0', '2:2', '3:0', '4:1', '5:0']);
-    expect(screen.getByRole('img', { name: /Am7 arpeggio/ })).toBeInTheDocument();
+    expect(screen.getAllByTestId(/^dot-/).every(d => d.getAttribute('opacity') === '1')).toBe(true);
+    expect([...shapes('Open'), ...shapes('Moveable')]
+      .some(b => b.getAttribute('aria-pressed') === 'true')).toBe(false);
+    expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
+    expect(screen.getByRole('button', { name: 'Previous shape' })).toBeDisabled();
+    // Pressing it again keeps it, like tapping the chosen shape.
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
 
-    // It stays on for the next chord.
+    // It stays picked for the next chord.
     nav.search = '?chord=c';
     rerender(<ChordLibrary />);
-    expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('img', { name: /^C arpeggio/ })).toBeInTheDocument();
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('img', { name: 'C arpeggio on the fretboard' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    // Choosing a shape puts it back on the neck alone.
+    fireEvent.click(shapes('Open')[0]);
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
     expect(boardDots()).toEqual(['1:3', '2:2', '3:0', '4:1', '5:0']);
+  });
+
+  it('steps from the arpeggio to the first shape', () => {
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
+    expect(caption()).toHaveTextContent(/^Open 1 of 3/);
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('says so when a chord has no open shape', () => {

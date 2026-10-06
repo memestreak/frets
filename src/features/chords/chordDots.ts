@@ -4,9 +4,6 @@ import { positionsOnNeck, TUNING } from '@/lib/music';
 import type { ChordInfo, ChordTone } from './chordTypes';
 import type { Voicing } from './voicings';
 
-/** How strongly the arpeggio's dots outside the chosen shape are drawn. */
-export const ARPEGGIO_FADE = 0.8;
-
 /** The chord tone a string plays at a fret. Voicings only hold chord tones. */
 export function toneAt(chord: ChordInfo, string: number, fret: number): ChordTone {
   const semis = (TUNING[string] + fret - chord.rootPc + 120) % 12;
@@ -34,18 +31,8 @@ export function voicingDots(chord: ChordInfo, voicing: Voicing): FretDot[] {
   return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret)]));
 }
 
-/**
- * The arpeggio: every chord tone from the nut to `maxFret`. The voicing's
- * notes are drawn at full strength and last, so they sit on top; the rest
- * are faint. With no voicing, every tone is at full strength.
- */
-export function arpeggioDots(
-  chord: ChordInfo, voicing: Voicing | undefined, maxFret: number,
-): FretDot[] {
-  const inShape = (s: number, f: number) => !voicing || voicing[s] === f;
-  const positions = positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret);
-  const faint = positions.filter(p => !inShape(p.s, p.f))
-    .map(p => ({ ...toneDot(chord, p.s, p.f), opacity: ARPEGGIO_FADE }));
-  const shape = positions.filter(p => inShape(p.s, p.f)).map(p => toneDot(chord, p.s, p.f));
-  return [...faint, ...shape];
+/** The arpeggio: every chord tone from the nut to `maxFret`. */
+export function arpeggioDots(chord: ChordInfo, maxFret: number): FretDot[] {
+  return positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
+    .map(p => toneDot(chord, p.s, p.f));
 }

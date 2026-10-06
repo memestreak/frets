@@ -12,3 +12,7 @@ Jeremy, 2026-10-06: option A (whole neck, no box), behind a toggle button.
 5. Lint, typecheck, test, build; screenshots in
    /mnt/project-files/chords/arpeggio/.
 6. Spec, CLAUDE.md.
+
+Revision (Jeremy, 2026-10-06): the button is picked like a shape. It
+clears the chosen shape and shows every tone at full strength; choosing a
+shape turns it off. `arpeggioDots` loses its voicing and fade.
