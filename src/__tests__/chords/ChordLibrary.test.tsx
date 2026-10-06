@@ -85,6 +85,20 @@ describe('ChordLibrary', () => {
     expect(shapes('Moveable')[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('steps through the shapes with the arrow keys', () => {
+    renderAt();
+    const open = shapes('Open');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' }); // already at the first shape
+    expect(open[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Open')[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(caption()).toHaveTextContent(/^Open 2 of/);
+    for (let i = 1; i < open.length; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Moveable')[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(shapes('Open').at(-1)).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('shows every moveable shape on request, and the best few again', () => {
     renderAt();
     const few = shapes('Moveable').length;

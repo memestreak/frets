@@ -33,7 +33,9 @@ One column, like the Scale lab:
    the voicings, with a caption such as "Moveable 2 of 9 · root on E ·
    frets 5–7". The open groups come first, then the moveable ones.
 3. **Open** and **Moveable**: two groups of small diagrams, five per line,
-   wrapping onto as many lines as needed. Tapping one puts it on the neck.
+   wrapping onto as many lines as needed. Tapping one puts it on the neck;
+   ← and → select the previous or next shape, in the order shown. The
+   selected shape has a ring and no fill, so its dots stay clear.
    The diagrams carry no fret-number text (no `x-0-2-0-1-0`). An empty
    group says so ("No open shape for this chord.") rather than
    disappearing.

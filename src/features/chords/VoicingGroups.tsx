@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ChordDiagram } from './ChordDiagram';
 import { ToneKey } from './ToneKey';
 import type { ChordInfo } from './chordTypes';
@@ -19,7 +20,8 @@ interface VoicingGroupsProps {
 /**
  * The Open and Moveable groups of diagrams, five per line (three on
  * phones), optionally under a key to the dot colours. Under Moveable, a
- * link switches between the best few and every shape.
+ * link switches between the best few and every shape. ← and → select the
+ * previous or next shape, in the order shown.
  */
 export function VoicingGroups({
   chord, voicings, showKey, showAll, onShowAll, selectedKey, onSelect,
@@ -27,6 +29,8 @@ export function VoicingGroups({
   const { open, moveable, allMoveable } = voicings;
   const hasMore = allMoveable.length > moveable.length;
   const name = chord.symbol || 'these notes';
+  const shown = [...open, ...(showAll ? allMoveable : moveable)];
+  useArrowSteps(shown, selectedKey, onSelect);
   return (
     <div className="grid gap-5">
       {showKey && <ToneKey chord={chord} />}
@@ -87,4 +91,32 @@ function VoicingGroup({
       )}
     </section>
   );
+}
+
+/**
+ * ← and → anywhere on the page select the previous or next shape in
+ * `shapes`, stopping at the ends; with no shape selected, → selects the
+ * first. Keys a field or the fretboard already used are left alone.
+ */
+function useArrowSteps(
+  shapes: Voicing[], selectedKey: string | null, onSelect: (voicing: Voicing) => void,
+) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
+      const index = shapes.findIndex(v => voicingKey(v) === selectedKey);
+      const next = shapes[e.key === 'ArrowRight' ? index + 1 : index - 1];
+      if (!next) return;
+      e.preventDefault();
+      onSelect(next);
+      // Keep focus and scroll with the selection.
+      const btn = document.querySelector<HTMLElement>(`[data-voicing="${voicingKey(next)}"]`);
+      if (document.activeElement?.classList.contains('shape-btn')) btn?.focus();
+      btn?.scrollIntoView?.({ block: 'nearest' });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shapes, selectedKey, onSelect]);
 }

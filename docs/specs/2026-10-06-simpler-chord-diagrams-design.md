@@ -37,3 +37,11 @@ each tone in its colour.
 
 The big neck is unchanged: it still labels every dot of the chosen shape,
 so tapping a diagram shows its intervals.
+
+## Selection and keys
+
+Jeremy, 2026-10-06: the tinted fill on the selected shape hid its dots
+(the root is the same red), so the selected shape now has only the 2px
+ring. ← and → select the previous or next shape on both Chords pages, in
+the order shown (Open, then Moveable), stopping at the ends; they are left
+alone when a field or the fretboard has used them.
