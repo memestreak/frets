@@ -5,7 +5,7 @@ import type { ChordInfo, ChordTone } from './chordTypes';
 import type { Voicing } from './voicings';
 
 /** How strongly the arpeggio's dots outside the chosen shape are drawn. */
-export const ARPEGGIO_FADE = 0.32;
+export const ARPEGGIO_FADE = 0.65;
 
 /** The chord tone a string plays at a fret. Voicings only hold chord tones. */
 export function toneAt(chord: ChordInfo, string: number, fret: number): ChordTone {

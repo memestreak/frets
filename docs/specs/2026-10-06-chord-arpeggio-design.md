@@ -13,7 +13,7 @@ whole neck**, with no position box for now, turned on by a toggle button.
 - Off (the default): the neck shows only the chosen shape, as before.
 - On: every chord tone from the nut to fret 15. The chosen shape's notes
   are at full strength and drawn last, so they sit on top; every other
-  chord tone is drawn faint (`ARPEGGIO_FADE`, 0.32 opacity). Dots keep the
+  chord tone is drawn faint (`ARPEGGIO_FADE`, 0.65 opacity; 0.32 was too faint, Jeremy 2026-10-06). Dots keep the
   shape's look: degree colour, interval label, square root.
 - Every tone of the chord's spelling is shown, including tones a shape may
   leave out (the 5 of a 9 chord). With no playable shape, every tone is at
