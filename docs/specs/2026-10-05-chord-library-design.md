@@ -33,7 +33,10 @@ One column, like the Scale lab:
    the voicings, with a caption such as "Moveable 2 of 9 · root on E ·
    frets 5–7". The open groups come first, then the moveable ones.
 3. **Open** and **Moveable**: two groups of small diagrams, five per line,
-   wrapping onto as many lines as needed. Tapping one puts it on the neck.
+   wrapping onto as many lines as needed. Tapping one puts it on the neck;
+   ← and → select the previous or next shape, in the order shown. The
+   selected shape sits on the sunken surface with a ring; hovering changes
+   nothing.
    The diagrams carry no fret-number text (no `x-0-2-0-1-0`). An empty
    group says so ("No open shape for this chord.") rather than
    disappearing.
@@ -47,12 +50,13 @@ without scrolling (Jeremy's pick, 2026-10-05).
 
 ## Diagrams
 
-Small horizontal fretboards in the style of the rest of the app: low E at
-the bottom, five frets, the starting fret number under the first column,
-the nut drawn when the shape starts at fret 1, × left of a muted string,
-an open string as a dot left of the nut. Dots show the interval label (R,
-♭3, 5, ♭7, 9…) in the degree colour (9 takes the 2's colour, 11 the 4's,
-13 the 6's); the root is a square.
+Small horizontal chord charts: low E at the bottom, five frets, the nut
+drawn when the shape starts at fret 1 and the starting fret number under
+the first column otherwise, × left of a muted string, a ring left of the
+nut for an open string. Dots take the degree colour of their tone (9 takes
+the 2's colour, 11 the 4's, 13 the 6's) and carry no text; the root is a
+square. A key above the groups names the colours. See
+`2026-10-06-simpler-chord-diagrams-design.md`.
 
 ## Chord types
 
@@ -82,7 +86,8 @@ Generated, not hand-entered. A voicing is one fret or a mute per string.
 - every note is a chord tone, and every required tone is there;
 - at least three strings sound, with at most one muted string between
   the lowest and highest;
-- the fretted notes span at most three frets (four fret positions);
+- the fretted notes span at most four frets (five fret positions), so
+  stretches such as x-x-7-5-x-3 are allowed (Jeremy, 2026-10-06);
 - at most four fingers: one per fretted note, except that the notes on the
   lowest fret count as one (a barre).
 

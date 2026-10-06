@@ -124,7 +124,7 @@ export default function ChordLab() {
           </div>
           {chord && (
             <VoicingGroups
-              chord={chord} voicings={voicings}
+              chord={chord} voicings={voicings} showKey={false}
               showAll={showAll} onShowAll={setShowAll}
               selectedKey={voicingKey(frets)}
               onSelect={play}

@@ -1,7 +1,7 @@
 import { TUNING } from '@/lib/music';
 import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/features/chords/chordTypes';
 import {
-  diagramStartFret, findVoicings, fingersNeeded, voicingCaption, voicingKey, type Voicing,
+  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, voicingCaption, voicingKey, type Voicing,
 } from '@/features/chords/voicings';
 
 const keys = (vs: Voicing[]) => vs.map(voicingKey);
@@ -15,7 +15,7 @@ function expectPlayable(v: Voicing, chord: ChordInfo) {
   expect(tones[0]).toBe(0);
   expect(tones.every(t => chordTones.includes(t))).toBe(true);
   for (const t of chord.tones.filter(t => t.required)) expect(tones).toContain(t.semis);
-  if (fretted.length) expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(3);
+  if (fretted.length) expect(Math.max(...fretted) - Math.min(...fretted)).toBeLessThanOrEqual(4);
   expect(fingersNeeded(v)).toBeLessThanOrEqual(4);
 }
 
@@ -54,6 +54,10 @@ describe('findVoicings', () => {
     expect(frets).toEqual([...frets].sort((a, b) => a - b));
   });
 
+  it('allows a stretch across five frets', () => {
+    expect(keys(findVoicings(chordOf('A', 'm7')).allMoveable)).toContain('x-x-7-5-x-3');
+  });
+
   it('has nothing open for a chord without an open shape', () => {
     expect(findVoicings(chordOf('C', 'm6')).open).toEqual([]);
   });
@@ -74,5 +78,17 @@ describe('captions and diagram windows', () => {
   it('starts a diagram at fret 1 when the shape fits there', () => {
     expect(diagramStartFret([null, 3, 2, 0, 1, 0])).toBe(1);
     expect(diagramStartFret([null, 12, 14, 12, 13, 12])).toBe(12);
+  });
+
+  it('fits every shape of every chord type in a diagram', () => {
+    for (const t of CHORD_TYPES) {
+      const { open, allMoveable } = findVoicings(chordOf('A', t.id));
+      for (const v of [...open, ...allMoveable]) {
+        const fretted = v.filter((f): f is number => f !== null && f > 0);
+        if (fretted.length) {
+          expect(Math.max(...fretted) - diagramStartFret(v)).toBeLessThan(DIAGRAM_FRETS);
+        }
+      }
+    }
   });
 });

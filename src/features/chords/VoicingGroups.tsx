@@ -1,10 +1,14 @@
+import { useEffect } from 'react';
 import { ChordDiagram } from './ChordDiagram';
+import { ToneKey } from './ToneKey';
 import type { ChordInfo } from './chordTypes';
 import { voicingCaption, voicingKey, type Voicing, type Voicings } from './voicings';
 
 interface VoicingGroupsProps {
   chord: ChordInfo;
   voicings: Voicings;
+  /** Show `ToneKey` above the groups. The lab leaves it out: its tone chips already name the colours. */
+  showKey: boolean;
   /** Moveable shows every shape rather than the best few. */
   showAll: boolean;
   onShowAll: (showAll: boolean) => void;
@@ -15,17 +19,21 @@ interface VoicingGroupsProps {
 
 /**
  * The Open and Moveable groups of diagrams, five per line (three on
- * phones). Under Moveable, a link switches between the best few and every
- * shape.
+ * phones), optionally under a key to the dot colours. Under Moveable, a
+ * link switches between the best few and every shape. ← and → select the
+ * previous or next shape, in the order shown.
  */
 export function VoicingGroups({
-  chord, voicings, showAll, onShowAll, selectedKey, onSelect,
+  chord, voicings, showKey, showAll, onShowAll, selectedKey, onSelect,
 }: VoicingGroupsProps) {
   const { open, moveable, allMoveable } = voicings;
   const hasMore = allMoveable.length > moveable.length;
   const name = chord.symbol || 'these notes';
+  const shown = [...open, ...(showAll ? allMoveable : moveable)];
+  useArrowSteps(shown, selectedKey, onSelect);
   return (
     <div className="grid gap-5">
+      {showKey && <ToneKey chord={chord} />}
       <VoicingGroup
         title="Open" chord={chord} voicings={open}
         emptyText={`No open shape for ${name}.`}
@@ -83,4 +91,32 @@ function VoicingGroup({
       )}
     </section>
   );
+}
+
+/**
+ * ← and → anywhere on the page select the previous or next shape in
+ * `shapes`, stopping at the ends; with no shape selected, → selects the
+ * first. Keys a field or the fretboard already used are left alone.
+ */
+function useArrowSteps(
+  shapes: Voicing[], selectedKey: string | null, onSelect: (voicing: Voicing) => void,
+) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
+      const index = shapes.findIndex(v => voicingKey(v) === selectedKey);
+      const next = shapes[e.key === 'ArrowRight' ? index + 1 : index - 1];
+      if (!next) return;
+      e.preventDefault();
+      onSelect(next);
+      // Keep focus and scroll with the selection.
+      const btn = document.querySelector<HTMLElement>(`[data-voicing="${voicingKey(next)}"]`);
+      if (document.activeElement?.classList.contains('shape-btn')) btn?.focus();
+      btn?.scrollIntoView?.({ block: 'nearest' });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shapes, selectedKey, onSelect]);
 }

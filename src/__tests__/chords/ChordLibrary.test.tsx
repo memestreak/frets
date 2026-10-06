@@ -36,6 +36,13 @@ describe('ChordLibrary', () => {
     expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('names the dot colours of the shape diagrams', () => {
+    renderAt('?chord=c9');
+    const key = screen.getByRole('list', { name: 'Dot colours' });
+    expect(within(key).getAllByRole('listitem').map(li => li.textContent))
+      .toEqual(['R', '3', '5', '♭7', '9']);
+  });
+
   it('shows the chord the URL names', () => {
     renderAt('?chord=c');
     expect(heading()).toHaveTextContent(/^C \(/);
@@ -76,6 +83,20 @@ describe('ChordLibrary', () => {
     fireEvent.click(next);
     expect(caption()).toHaveTextContent(/^Moveable 1 of /);
     expect(shapes('Moveable')[0]).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('steps through the shapes with the arrow keys', () => {
+    renderAt();
+    const open = shapes('Open');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' }); // already at the first shape
+    expect(open[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Open')[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(caption()).toHaveTextContent(/^Open 2 of/);
+    for (let i = 1; i < open.length; i++) fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(shapes('Moveable')[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(shapes('Open').at(-1)).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows every moveable shape on request, and the best few again', () => {

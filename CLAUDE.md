@@ -7,8 +7,9 @@ trainers (Intervals, Notes), Explore, holding the Scale lab, and Chords,
 holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
-`docs/specs/2026-10-05-chord-library-design.md` and
-`docs/specs/2026-10-05-chord-lab-design.md`). The app has no users
+`docs/specs/2026-10-05-chord-library-design.md`,
+`docs/specs/2026-10-05-chord-lab-design.md` and
+`docs/specs/2026-10-06-simpler-chord-diagrams-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -119,8 +120,8 @@ binds a local port).
   from a set of tones). `naming.ts` gives every name for a set of notes.
   `voicings.ts` searches the neck for playable shapes (each rule a named
   constant) and splits them into open, the best few moveable, and all
-  moveable. `ChordHeader.tsx`, `ChordDiagram.tsx`, `VoicingGroups.tsx` and
-  `chordDots.ts` are shared by both pages; `library/ChordLibrary.tsx` and
+  moveable. `ChordHeader.tsx`, `ChordDiagram.tsx`, `ToneKey.tsx`, `VoicingGroups.tsx`
+  and `chordDots.ts` are shared by both pages; `library/ChordLibrary.tsx` and
   `lab/ChordLab.tsx` are the pages and their only stateful components. The chord is in the URL, not storage:
   `/chords/library?chord=am7b5`, slugs in `library/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
