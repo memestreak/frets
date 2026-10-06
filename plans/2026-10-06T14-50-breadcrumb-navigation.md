@@ -13,3 +13,10 @@ https://claude.ai/artifact/Ri1o1uVNMnvJLqXiaehcRB.
 5. Lint, typecheck, tests, build; screenshots at 1280px and 390px in both
    themes; no horizontal scroll.
 6. Close PR #26.
+
+Follow-up, Jeremy 15:00: clicking the crumbs opens the site menu.
+
+7. Crumbs become one button opening PR #26's panel (current section heading
+   in primary, current page "You are here", section headings link to
+   section pages); focus the current page on open, Esc back to crumbs.
+8. Tests for open/close, marks, focus, key isolation; spec; screenshots.

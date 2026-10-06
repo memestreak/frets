@@ -72,6 +72,14 @@ export function ChevronRightIcon() {
   );
 }
 
+export function ChevronDownIcon() {
+  return (
+    <Icon>
+      <path d="m6 9 6 6 6-6" />
+    </Icon>
+  );
+}
+
 export function ResetIcon() {
   return (
     <Icon>
