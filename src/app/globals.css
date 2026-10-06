@@ -190,6 +190,9 @@ button {
     background: var(--surface-sunken);
     box-shadow: inset 0 0 0 2px var(--primary);
   }
+  /* The selected shape's ring already shows where the arrow keys are, so
+     no focus outline on top of it; an unselected shape keeps its outline. */
+  .shape-btn[aria-pressed='true']:focus-visible { outline: none; }
   .shape-diagram { display: block; width: 100%; height: auto; }
   /* Names the colours of the diagrams' unlabelled dots. */
   .tone-key {

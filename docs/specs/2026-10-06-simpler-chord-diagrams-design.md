@@ -43,6 +43,7 @@ so tapping a diagram shows its intervals.
 Jeremy, 2026-10-06: the tinted fill on the selected shape hid its dots
 (the root is the same red), so the selected shape sits on the sunken
 surface (near black in dark mode) with the 2px ring. Hovering a shape
-changes nothing. ← and → select the previous or next shape on both Chords pages, in
+changes nothing, and the selected shape shows no focus outline on top of
+its ring (an unselected shape reached with Tab still does). ← and → select the previous or next shape on both Chords pages, in
 the order shown (Open, then Moveable), stopping at the ends; they are left
 alone when a field or the fretboard has used them.
