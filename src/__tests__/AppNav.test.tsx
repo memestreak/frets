@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { AppNav } from '@/components/AppNav';
 
 vi.mock('next/link', () => ({
@@ -16,36 +16,45 @@ function renderAt(pathname: string) {
   return render(<AppNav />);
 }
 
+const crumbs = () => within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+  .getAllByRole('listitem')
+  .map(li => li.textContent);
+
 describe('AppNav', () => {
-  it('links the Frets wordmark home', () => {
-    renderAt('/practice/notes');
+  it('shows the path to a page, linking every crumb but the last', () => {
+    renderAt('/explore/scales');
+    expect(crumbs()).toEqual(['Frets', '›Explore', '›Scale lab']);
     expect(screen.getByRole('link', { name: 'Frets' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Explore' }))
+      .toHaveAttribute('href', '/explore');
+    expect(screen.queryByRole('link', { name: 'Scale lab' })).toBeNull();
+    expect(screen.getByText('Scale lab')).toHaveAttribute('aria-current', 'page');
   });
 
-  it('has no page switcher inside a section', () => {
-    renderAt('/practice/notes');
-    expect(screen.getAllByRole('link').map(l => l.textContent))
-      .toEqual(['Frets', 'Note trainer', 'Explore', 'Chords']);
-  });
-
-  it('names the current page in place of its section', () => {
-    const { unmount } = renderAt('/practice/notes');
-    expect(screen.getByRole('link', { name: 'Note trainer' }))
-      .toHaveAttribute('href', '/practice');
-    unmount();
-    renderAt('/practice/intervals');
-    expect(screen.getByText('Interval trainer')).toBeInTheDocument();
-  });
-
-  it('marks the section itself on its index page', () => {
+  it('ends at the section on its section page', () => {
     renderAt('/practice');
-    expect(screen.getByRole('link', { name: 'Practice' }))
+    expect(crumbs()).toEqual(['Frets', '›Practice']);
+    expect(screen.queryByRole('link', { name: 'Practice' })).toBeNull();
+    expect(screen.getByText('Practice')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('is just Frets at home, marked as the current page', () => {
+    renderAt('/');
+    expect(crumbs()).toEqual(['Frets']);
+    expect(screen.getByRole('link', { name: 'Frets' }))
       .toHaveAttribute('aria-current', 'page');
   });
 
-  it('shows the section by name on the home page', () => {
-    renderAt('/');
-    expect(screen.getByRole('link', { name: 'Practice' }))
+  it('does not mark Frets as current away from home', () => {
+    renderAt('/chords/lab');
+    expect(screen.getByRole('link', { name: 'Frets' }))
       .not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps the theme switch outside the breadcrumb', () => {
+    renderAt('/practice/notes');
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(breadcrumb).queryByRole('button')).toBeNull();
+    expect(screen.getByRole('button', { name: /^Theme: / })).toBeInTheDocument();
   });
 });

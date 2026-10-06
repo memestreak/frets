@@ -74,9 +74,10 @@ binds a local port).
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
-- `src/components/AppShell.tsx` — `AppNav` (`BrandMark` and wordmark home,
-  one link per section, which names the current page inside it, read from
-  the URL, and `ThemeSwitch`),
+- `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
+  `BrandMark` and wordmark home, then the section and the page, each crumb
+  but the last a link; then `ThemeSwitch`, one button cycling Auto, Light,
+  Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
   `<main>` and `AppFooter` (source link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).

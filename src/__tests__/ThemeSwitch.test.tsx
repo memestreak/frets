@@ -3,9 +3,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { THEME_BOOT_SCRIPT, THEME_KEY } from '@/lib/theme';
 
 const root = document.documentElement;
-const pressed = () => screen
-  .getAllByRole('button')
-  .find(b => b.getAttribute('aria-pressed') === 'true')?.textContent;
+const button = () => screen.getByRole('button', { name: /^Theme: / });
 
 afterEach(() => {
   root.removeAttribute('data-theme');
@@ -15,18 +13,22 @@ afterEach(() => {
 describe('ThemeSwitch', () => {
   it('follows the system until a theme is picked', () => {
     render(<ThemeSwitch />);
-    expect(pressed()).toBe('Auto');
+    expect(button()).toHaveAccessibleName('Theme: Auto');
+    expect(button()).toHaveAttribute('title', 'Theme: Auto. Click for Light.');
     expect(root).not.toHaveAttribute('data-theme');
   });
 
-  it('applies and saves the pick', () => {
+  it('cycles Auto, Light, Dark and saves each pick', () => {
     render(<ThemeSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    fireEvent.click(button());
+    expect(root).toHaveAttribute('data-theme', 'light');
+    expect(button()).toHaveAccessibleName('Theme: Light');
+    fireEvent.click(button());
     expect(root).toHaveAttribute('data-theme', 'dark');
     expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toBe('dark');
-    expect(pressed()).toBe('Dark');
-    fireEvent.click(screen.getByRole('button', { name: 'Auto' }));
+    fireEvent.click(button());
     expect(root).not.toHaveAttribute('data-theme');
+    expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toBe('auto');
   });
 
   it('shows the theme the boot script restored', () => {
@@ -34,7 +36,7 @@ describe('ThemeSwitch', () => {
     new Function(THEME_BOOT_SCRIPT)();
     expect(root).toHaveAttribute('data-theme', 'light');
     render(<ThemeSwitch />);
-    expect(pressed()).toBe('Light');
+    expect(button()).toHaveAccessibleName('Theme: Light');
   });
 
   it('boot script ignores a bad saved value', () => {
