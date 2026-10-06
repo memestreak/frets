@@ -6,6 +6,13 @@ export type ThemeChoice = 'auto' | 'light' | 'dark';
 
 export const THEME_KEY = 'frets.theme';
 
+/**
+ * `--surface` in each theme, for the places that can't read CSS tokens: the
+ * web manifest and the `theme-color` meta that tints a phone's status bar.
+ * Kept in step with fretwood.css (a test checks).
+ */
+export const SURFACE_COLORS = { light: '#f6f0e4', dark: '#1e1915' } as const;
+
 export const parseTheme = (raw: unknown): ThemeChoice =>
   raw === 'light' || raw === 'dark' ? raw : 'auto';
 
