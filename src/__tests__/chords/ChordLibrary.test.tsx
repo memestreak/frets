@@ -108,6 +108,30 @@ describe('ChordLibrary', () => {
     expect(shapes('Moveable')).toHaveLength(few);
   });
 
+  it('shows the arpeggio across the neck behind the chosen shape', () => {
+    const { rerender } = renderAt();
+    const toggle = screen.getByRole('button', { name: 'Arpeggio' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    // Every A, C, E and G from the nut to fret 15.
+    expect(boardDots()).toHaveLength(34);
+    // x-0-2-0-1-0 stays at full strength; the rest is faint.
+    const full = screen.getAllByTestId(/^dot-/).filter(d => !d.hasAttribute('opacity') || d.getAttribute('opacity') === '1');
+    expect(full.map(d => `${d.dataset.s}:${d.dataset.f}`).sort())
+      .toEqual(['1:0', '2:2', '3:0', '4:1', '5:0']);
+    expect(screen.getByRole('img', { name: /Am7 arpeggio/ })).toBeInTheDocument();
+
+    // It stays on for the next chord.
+    nav.search = '?chord=c';
+    rerender(<ChordLibrary />);
+    expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('img', { name: /^C arpeggio/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    expect(boardDots()).toEqual(['1:3', '2:2', '3:0', '4:1', '5:0']);
+  });
+
   it('says so when a chord has no open shape', () => {
     renderAt('?chord=cm6');
     expect(within(group('Open')).getByText('No open shape for Cm6.')).toBeInTheDocument();

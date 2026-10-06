@@ -1,5 +1,5 @@
 import { Interval, Note, ScaleType } from 'tonal';
-import { pitchClass, STRINGS } from '@/lib/music';
+import { positionsOnNeck } from '@/lib/music';
 import { prettyNote } from '@/lib/notation';
 
 /*
@@ -291,20 +291,11 @@ export function neckNotes(
   scale: Scale, maxFret: number, chord: DiatonicChord | null = null,
 ): NeckNote[] {
   const bySemis = new Map(scale.degrees.map(d => [d.semis, d]));
-  const rootPc = scale.degrees[0].pc;
-  const out: NeckNote[] = [];
-  for (const s of STRINGS) {
-    for (let f = 0; f <= maxFret; f++) {
-      const semis = (pitchClass(s, f) - rootPc + 12) % 12;
-      const d = bySemis.get(semis);
-      if (!d) continue;
-      if (!chord) {
-        out.push({ s, f, note: d.note, label: d.label, degree: d.degree });
-        continue;
-      }
-      const k = chord.semis.indexOf(semis);
-      if (k >= 0) out.push({ s, f, note: d.note, label: chord.labels[k], degree: 2 * k + 1 });
-    }
-  }
-  return out;
+  const shown = chord ? chord.semis : scale.degrees.map(d => d.semis);
+  return positionsOnNeck(scale.degrees[0].pc, shown, maxFret).map(({ s, f, semis }) => {
+    const d = bySemis.get(semis)!;
+    if (!chord) return { s, f, note: d.note, label: d.label, degree: d.degree };
+    const k = chord.semis.indexOf(semis);
+    return { s, f, note: d.note, label: chord.labels[k], degree: 2 * k + 1 };
+  });
 }

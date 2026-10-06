@@ -40,6 +40,29 @@ export interface Position {
 export const midi = (s: number, f: number): number => TUNING[s] + f;
 export const pitchClass = (s: number, f: number): number => midi(s, f) % 12;
 
+/** A place on the neck, and how many semitones above a root its note is. */
+export interface NeckPosition extends Position {
+  /** 0–11. */
+  semis: number;
+}
+
+/**
+ * Every string and fret, nut to `maxFret`, whose note is one of `semis`
+ * semitones above `rootPc`. Low E first, then up each string.
+ */
+export function positionsOnNeck(
+  rootPc: number, semis: readonly number[], maxFret: number,
+): NeckPosition[] {
+  const out: NeckPosition[] = [];
+  for (const s of STRINGS) {
+    for (let f = 0; f <= maxFret; f++) {
+      const above = (pitchClass(s, f) - rootPc + 12) % 12;
+      if (semis.includes(above)) out.push({ s, f, semis: above });
+    }
+  }
+  return out;
+}
+
 /**
  * Interval class: wraps at the octave, so 13 semitones is an m2 and 24 is
  * a P8. 0 is unison. `semis` is signed (target minus root) and the class
