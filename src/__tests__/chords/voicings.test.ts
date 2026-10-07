@@ -1,8 +1,9 @@
 import { TUNING } from '@/lib/music';
-import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/features/chords/chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/lib/chords/chordTypes';
 import {
-  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, voicingCaption, voicingKey, type Voicing,
-} from '@/features/chords/voicings';
+  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, LAST_POSITION, POSITION_FRETS,
+  shapesInPosition, voicingCaption, voicingKey, type Voicing,
+} from '@/lib/chords/voicings';
 
 const keys = (vs: Voicing[]) => vs.map(voicingKey);
 
@@ -90,5 +91,34 @@ describe('captions and diagram windows', () => {
         }
       }
     }
+  });
+});
+
+describe('shapesInPosition', () => {
+  const am7 = findVoicings(chordOf('A', 'm7'));
+
+  it('offers the core shapes that fit in five frets, easiest first', () => {
+    expect(keys(shapesInPosition(am7, 5))).toEqual(['5-7-5-5-5-5', 'x-x-7-5-8-5', '5-x-5-5-8-5']);
+  });
+
+  it('takes in the open strings only in the first position', () => {
+    expect(keys(shapesInPosition(am7, 1))).toContain('x-0-2-0-1-0');
+    for (let first = 2; first <= LAST_POSITION; first++) {
+      for (const v of shapesInPosition(am7, first)) {
+        expect(v).not.toContain(0);
+        for (const f of v) if (f !== null) expect(f - first).toBeLessThan(POSITION_FRETS);
+      }
+    }
+  });
+
+  it('falls back to the easiest shape when no core shape fits', () => {
+    const fits = (first: number) => shapesInPosition(am7, first);
+    // Every position has a shape for Am7, from the nut to the last position.
+    for (let first = 1; first <= LAST_POSITION; first++) expect(fits(first).length).toBeGreaterThan(0);
+    const core = new Set(keys([...am7.open, ...am7.moveable]));
+    const fallbacks = Array.from({ length: LAST_POSITION }, (_, i) => fits(i + 1))
+      .filter(list => !core.has(voicingKey(list[0])));
+    for (const list of fallbacks) expect(list).toHaveLength(1);
+    expect(fallbacks.length).toBeGreaterThan(0);
   });
 });

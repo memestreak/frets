@@ -7,6 +7,11 @@ const formula = () => screen.getByTestId('scale-formula');
 const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
 const saved = () => JSON.parse(localStorage.getItem(SCALE_LAB_STORAGE_KEY) ?? '{}');
 const board = () => screen.getByRole('img', { name: / on the fretboard$/ });
+const dotLabels = () => new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent));
+/** Each dot as "string:fret label", low string first. */
+const dotsAt = () => screen.getAllByTestId(/^dot-/)
+  .map(d => `${d.dataset.s}:${d.dataset.f} ${d.textContent}`)
+  .sort();
 const chordCard = (symbol: string) =>
   screen.getByRole('button', { name: new RegExp(`, ${symbol},`) });
 
@@ -41,10 +46,8 @@ describe('ScaleLab', () => {
     expect(saved()).toMatchObject({ root: 'Eb', scale: 'harmonic-minor' });
   });
 
-  it('shows a tapped chord over the scale and clears it on a second tap', () => {
+  it('shows a tapped chord\'s shape in the position and clears it on a second tap', () => {
     render(<ScaleLab />);
-    const dotLabels = () =>
-      new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent));
     const rootFrets = () =>
       screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f);
     expect(rootFrets()).toEqual(['5']);
@@ -53,14 +56,86 @@ describe('ScaleLab', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
     expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
     expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    // Only D7's tones stay on the neck; B, E and G are gone.
-    expect(dotLabels()).toEqual(new Set(['R', '3', '5', '♭7']));
-    // The chord root takes the square: D on the low E string.
-    expect(rootFrets()).toEqual(['10']);
+    // D7's easiest shape in frets 5–9, x-x-x-7-7-8, and nothing else.
+    expect(dotsAt()).toEqual(['3:7 R', '4:7 3', '5:8 ♭7']);
 
     fireEvent.click(chordCard('D7'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
     expect(dotLabels()).toEqual(new Set(['R', '2', '♭3', '4', '5', '6', '♭7']));
+  });
+
+  it('draws the chords\' shapes in one position, steps it and saves it', () => {
+    render(<ScaleLab />);
+    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    expect(card.getAllByRole('button', { name: /: shape in Frets 5–9$/ })).toHaveLength(7);
+    expect(screen.getByTestId('board-box')).toBeInTheDocument();
+    fireEvent.click(card.getByRole('button', { name: 'Higher position' }));
+    expect(card.getByText('Frets 6–10')).toBeInTheDocument();
+    expect(saved()).toMatchObject({ position: 6 });
+    for (let i = 0; i < 5; i++) fireEvent.click(card.getByRole('button', { name: 'Lower position' }));
+    // The first position takes in the open strings.
+    expect(card.getByText('Open–5')).toBeInTheDocument();
+    expect(card.getByRole('button', { name: 'Lower position' })).toBeDisabled();
+  });
+
+  it('selects a chord from its shape, cycles its shapes and links to the library', () => {
+    render(<ScaleLab />);
+    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    fireEvent.click(card.getByRole('button', { name: /^Am7 \(i7\)/ }));
+    expect(chordCard('Am7')).toHaveAttribute('aria-pressed', 'true');
+    expect(card.getByText('1 of 3')).toBeInTheDocument();
+    const link = () => card.getByRole('link', { name: 'Am7 in the Chord library →' });
+    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-7-5-5-5-5');
+    expect(dotsAt()).toEqual(['0:5 R', '1:7 5', '2:5 ♭7', '3:5 ♭3', '4:5 5', '5:5 R']);
+
+    fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
+    expect(card.getByText('2 of 3')).toBeInTheDocument();
+    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=x-x-7-5-8-5');
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    expect(card.getByText('3 of 3')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    expect(card.getByText('2 of 3')).toBeInTheDocument();
+
+    // Each chord keeps its shape while the position stays.
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(card.getByText('2 of 3')).toBeInTheDocument();
+  });
+
+  it('shows the arpeggio around the shape, labelling only the shape', () => {
+    render(<ScaleLab />);
+    const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
+    expect(arpeggio()).toBeDisabled();
+    fireEvent.click(chordCard('D7'));
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    // Every D7 tone up to fret 15; only the shape's three carry labels.
+    const dots = screen.getAllByTestId(/^dot-/);
+    expect(dots.length).toBeGreaterThan(20);
+    expect(dotsAt().filter(d => !d.endsWith(' '))).toEqual(['3:7 R', '4:7 3', '5:8 ♭7']);
+    expect(screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f))
+      .toEqual(['10']);
+    // It stays on for the next chord, and goes off with the selection.
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(chordCard('Em7'));
+    expect(arpeggio()).toBeDisabled();
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('goes back to the scale on a click outside the controls, or Esc', () => {
+    render(<ScaleLab />);
+    const scaleBoard = 'A Dorian on the fretboard';
+    fireEvent.click(chordCard('D7'));
+    // Controls keep the chord.
+    fireEvent.click(screen.getByRole('button', { name: 'Higher position' }));
+    expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
+    fireEvent.click(screen.getByRole('heading', { level: 1 }));
+    expect(board()).toHaveAccessibleName(scaleBoard);
+
+    fireEvent.click(chordCard('D7'));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(board()).toHaveAccessibleName(scaleBoard);
   });
 
   it('clears the chord when the scale changes', () => {

@@ -1,4 +1,4 @@
-import { chordFromTones } from '@/features/chords/chordTypes';
+import { chordFromTones } from '@/lib/chords/chordTypes';
 import { nameNotes } from '@/features/chords/naming';
 
 const PC: Record<string, number> = {

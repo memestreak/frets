@@ -1,7 +1,7 @@
-import { CHORD_ROOTS, CHORD_TYPES } from '@/features/chords/chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES } from '@/lib/chords/chordTypes';
 import {
   chordFromSlug, chordHref, chordSlug, DEFAULT_CHORD,
-} from '@/features/chords/library/chordUrls';
+} from '@/lib/chords/chordUrls';
 
 describe('chord URLs', () => {
   it('spells slugs in lower case, with maj for a capital M and sharp for #', () => {
@@ -12,6 +12,8 @@ describe('chord URLs', () => {
     expect(chordSlug({ root: 'F#', type: '7#9' })).toBe('fsharp7sharp9');
     expect(chordSlug({ root: 'E', type: 'm/ma7' })).toBe('emmaj7');
     expect(chordHref({ root: 'D', type: '9' })).toBe('/chords/library?chord=d9');
+    expect(chordHref({ root: 'A', type: 'm7' }, [null, 0, 2, 0, 1, 0]))
+      .toBe('/chords/library?chord=am7&shape=x-0-2-0-1-0');
   });
 
   it('gives every root and type its own slug of plain letters and digits', () => {

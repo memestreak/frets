@@ -12,6 +12,8 @@ export const BOARD = {
   label: 'var(--ink-muted)',
   /** Ring around every dot, so dots read on the board and on each other. */
   dotRing: 'var(--dot-ring)',
+  /** Outline of a fret range (`Fretboard`'s `box`). */
+  box: 'var(--primary)',
 } as const;
 
 /** A dot's fill and the colour of its label. */

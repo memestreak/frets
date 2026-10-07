@@ -1,4 +1,4 @@
-import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo, type ChordTypeDef } from './chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo, type ChordTypeDef } from '@/lib/chords/chordTypes';
 
 /*
  * Every name for a set of notes, for the Chord lab's "Name it". Each note

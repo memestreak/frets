@@ -1,7 +1,7 @@
 import { prettyNote } from '@/lib/notation';
 import {
   CHORD_GROUPS, CHORD_ROOTS, CHORD_TYPES, type ChordRoot,
-} from '../chordTypes';
+} from '@/lib/chords/chordTypes';
 
 interface ChordPickersProps {
   root: ChordRoot;

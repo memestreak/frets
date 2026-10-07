@@ -197,6 +197,35 @@ button {
      no focus outline on top of it; an unselected shape keeps its outline. */
   .shape-btn[aria-pressed='true']:focus-visible { outline: none; }
   .shape-diagram { display: block; width: 100%; height: auto; }
+  /* The Scale lab's "In one position" card: seven shapes in a row, three
+     per line on phones, each with its numeral and name under it. */
+  .position-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+  @media (max-width: 700px) {
+    .position-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .position-tile { display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; }
+  .position-shape {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    width: 100%;
+    font: 400 14px/18px var(--font-sans);
+    color: var(--ink);
+  }
+  .position-shape .chord-numeral { font-size: 18px; line-height: 24px; }
+  .position-none {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 148 / 128;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .shape-step { min-height: 28px; width: 28px; padding: 0; font-size: 16px; }
   /* Names the colours of the diagrams' unlabelled dots. */
   .tone-key {
     display: flex;

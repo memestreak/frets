@@ -106,7 +106,7 @@ export function ChordStrip({
           </div>
           <p className="m-0 text-[13px] text-(--ink-muted)">
             {selected
-              ? `Showing ${selected.symbol} over the scale. ← and → step through the chords; tap it again to see the whole scale.`
+              ? `Showing ${selected.symbol} over the scale. ← and → step through the chords; tap it again, tap outside the controls or press Esc to see the whole scale.`
               : 'Tap a chord to see its tones over the scale.'}
           </p>
         </>
