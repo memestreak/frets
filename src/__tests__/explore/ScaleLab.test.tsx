@@ -252,8 +252,10 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     const symbols = () => Array.from(document.querySelectorAll('.chord-card'))
       .map(c => c.querySelector('.font-bold')!.textContent).join(' ');
-    const tonic = () => document.querySelector('.chord-card .text-\\(--degree-root\\)')!
-      .closest('button')!.querySelector('.font-bold')!.textContent;
+    // The tonic is the card numbered I or i (not II, III or IV).
+    const tonic = () => Array.from(document.querySelectorAll('.chord-card'))
+      .find(c => /^[iI](?![iIvV])/.test(c.querySelector('.chord-numeral')!.textContent!))!
+      .querySelector('.font-bold')!.textContent;
     const order = 'Cmaj7 Dm7 Em7 Fmaj7 G7 Am7 Bm7♭5';
     expect(symbols()).toBe(order);
     expect(tonic()).toBe('Cmaj7');

@@ -82,9 +82,7 @@ export function ChordStrip({
                 aria-pressed={c.index === selected?.index}
                 onClick={() => onSelect(c.index === selected?.index ? null : c)}
               >
-                <span className={`chord-numeral${c.index === 0 ? ' text-(--degree-root)' : ''}`}>
-                  {c.numeral}
-                </span>
+                <span className="chord-numeral">{c.numeral}</span>
                 <span className="font-bold">{c.symbol}</span>
                 <span className="text-[12px] leading-4 text-(--ink-muted)">{c.quality}</span>
               </button>
