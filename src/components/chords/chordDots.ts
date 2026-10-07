@@ -1,8 +1,8 @@
 import type { FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES, type DotColor } from '@/components/fretboard/theme';
 import { positionsOnNeck, TUNING } from '@/lib/music';
-import type { ChordInfo, ChordTone } from './chordTypes';
-import type { Voicing } from './voicings';
+import type { ChordInfo, ChordTone } from '@/lib/chords/chordTypes';
+import type { Voicing } from '@/lib/chords/voicings';
 
 /** The chord tone a string plays at a fret. Voicings only hold chord tones. */
 export function toneAt(chord: ChordInfo, string: number, fret: number): ChordTone {

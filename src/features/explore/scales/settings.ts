@@ -1,3 +1,4 @@
+import { LAST_POSITION } from '@/lib/chords/voicings';
 import {
   modeFamily, ROOTS, scaleDef, type ChordSize, type Root,
 } from './theory';
@@ -19,6 +20,8 @@ export interface ScaleLabSettings {
   labels: DotLabels;
   chordView: ChordView;
   chordIntervals: ChordIntervals;
+  /** First fret of the position the shapes card plays in, 1 to `LAST_POSITION`. */
+  position: number;
 }
 
 export const SCALE_LAB_STORAGE_KEY = 'frets.explore.scales';
@@ -28,7 +31,7 @@ export const SCALE_LAB_MAX_FRET = 15;
 
 export const defaultScaleLabSettings = (): ScaleLabSettings => ({
   root: 'A', scale: 'dorian', mode: 0, chordSize: 4, labels: 'interval',
-  chordView: 'ladder', chordIntervals: 'root',
+  chordView: 'ladder', chordIntervals: 'root', position: 5,
 });
 
 const CHORD_SIZES: unknown[] = [3, 4];
@@ -53,5 +56,7 @@ export function parseScaleLabSettings(raw: unknown): ScaleLabSettings {
     chordView: CHORD_VIEWS.includes(r.chordView) ? (r.chordView as ChordView) : d.chordView,
     chordIntervals: CHORD_INTERVALS.includes(r.chordIntervals)
       ? (r.chordIntervals as ChordIntervals) : d.chordIntervals,
+    position: Number.isInteger(r.position) && (r.position as number) >= 1
+      && (r.position as number) <= LAST_POSITION ? (r.position as number) : d.position,
   };
 }

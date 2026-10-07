@@ -1,4 +1,5 @@
-import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from '../chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from './chordTypes';
+import { voicingKey, type Voicing } from './voicings';
 
 /*
  * Each chord has its own Chord library URL: /chords/library?chord=am7b5.
@@ -35,8 +36,13 @@ export const chordSlug = ({ root, type }: ChordChoice): string => rootSlug(root)
 /** The query parameter that names the chord. */
 export const CHORD_PARAM = 'chord';
 
-export const chordHref = (choice: ChordChoice): string =>
-  `/chords/library?${CHORD_PARAM}=${chordSlug(choice)}`;
+/** The query parameter that names a shape to open on: its `voicingKey`, "x-0-2-0-1-0". */
+export const SHAPE_PARAM = 'shape';
+
+/** The chord's page; with a shape, the page opens on that shape. */
+export const chordHref = (choice: ChordChoice, shape?: Voicing): string =>
+  `/chords/library?${CHORD_PARAM}=${chordSlug(choice)}`
+  + (shape ? `&${SHAPE_PARAM}=${voicingKey(shape)}` : '');
 
 /** Every root and type by slug. Throws at load if two chords share a slug. */
 const BY_SLUG = new Map<string, ChordChoice>();

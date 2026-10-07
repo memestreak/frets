@@ -1,7 +1,7 @@
 import { STRINGS } from '@/lib/music';
 import { toneAt, toneColor } from './chordDots';
-import type { ChordInfo } from './chordTypes';
-import { DIAGRAM_FRETS, diagramStartFret, type Voicing } from './voicings';
+import type { ChordInfo } from '@/lib/chords/chordTypes';
+import { DIAGRAM_FRETS, diagramStartFret, type Voicing } from '@/lib/chords/voicings';
 
 /* Geometry of one small diagram, in SVG units. */
 const CELL = 24;
@@ -27,6 +27,8 @@ const stringY = (s: number) => TOP + (5 - s) * STRING_GAP;
 interface ChordDiagramProps {
   chord: ChordInfo;
   voicing: Voicing;
+  /** First fret drawn; by default `diagramStartFret`. The Scale lab starts every diagram at its position. */
+  startFret?: number;
 }
 
 /**
@@ -35,8 +37,8 @@ interface ChordDiagramProps {
  * otherwise, × on muted strings, a ring on open strings. Dots carry the
  * degree colour and no text (`ToneKey` names the colours); the root is square.
  */
-export function ChordDiagram({ chord, voicing }: ChordDiagramProps) {
-  const start = diagramStartFret(voicing);
+export function ChordDiagram({ chord, voicing, startFret }: ChordDiagramProps) {
+  const start = startFret ?? diagramStartFret(voicing);
   // Centre of a fretted note's column; open strings sit left of the nut.
   const x = (fret: number) => (fret === 0 ? LEFT / 2 : LEFT + (fret - start + 0.5) * CELL);
 

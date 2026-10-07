@@ -39,6 +39,8 @@ interface FretboardProps {
   scrollToFret?: number | null;
   /** Accessible name when the board is a picture (no `onCellClick`). */
   label?: string;
+  /** Frets to outline, both ends included (the Scale lab's position); 0 takes in the open strings. */
+  box?: { from: number; to: number } | null;
 }
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
@@ -50,7 +52,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret, label = 'Fretboard',
+  scrollToFret, label = 'Fretboard', box,
 }: FretboardProps) {
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
@@ -137,6 +139,15 @@ export function Fretboard({
           />
         );
       })}
+      {box && (
+        <rect
+          data-testid="board-box"
+          x={g.cellX(box.from) + 1.5} y={g.fillY + 1.5}
+          width={g.cellX(box.to) + g.cellW(box.to) - g.cellX(box.from) - 3} height={g.fillH - 3}
+          rx={BOARD_RADIUS - 2}
+          style={{ fill: 'none', stroke: BOARD.box }} strokeWidth={3}
+        />
+      )}
       <g
         style={{ fill: BOARD.label, fontFamily: 'var(--font-sans)' }}
         fontSize={12} fontWeight={500} aria-hidden="true"

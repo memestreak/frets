@@ -9,8 +9,9 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
 `docs/specs/2026-10-05-chord-lab-design.md`,
-`docs/specs/2026-10-06-simpler-chord-diagrams-design.md` and
-`docs/specs/2026-10-06-chord-arpeggio-design.md`). The app has no users
+`docs/specs/2026-10-06-simpler-chord-diagrams-design.md`,
+`docs/specs/2026-10-06-chord-arpeggio-design.md` and
+`docs/specs/2026-10-07-scale-lab-position-shapes-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -85,10 +86,21 @@ binds a local port).
 - Shared by every feature: `src/lib/` (pure logic, no React: `music.ts`
   with tuning, names, `intervalClass` and
   `positionsOnNeck`; `notation.ts` with `prettyNote`;
-  `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`),
+  `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`; `chords/` with
+  `chordTypes.ts`, the only tonal import outside the Scale lab: tonal's
+  chord types with our groups and symbols, roots, `chordOf` (spelled
+  notes, tone labels, which tones a voicing may leave out) and
+  `chordFromTones` (a type, or an unnamed chord, from a set of tones);
+  `voicings.ts`, which searches the neck for playable shapes (each rule a
+  named constant), splits them into open, the best few moveable and all
+  moveable, and picks the shapes in a five-fret position
+  (`shapesInPosition`); `chordUrls.ts`, the Chord library's URLs),
   `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
-  fill, roving-focus tap cells and arrow keys; `theme.ts` holds the board
+  fill, roving-focus tap cells and arrow keys, and an optional `box`
+  outlining a fret range; `theme.ts` holds the board
   and dot colours as tokens, and `DEGREES`, the colour per degree number),
+  `src/components/chords/` (`ChordDiagram`, the small shape diagram;
+  `ToneKey`; `chordDots.ts`, shape and arpeggio dots for the neck),
   `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:
@@ -119,19 +131,19 @@ binds a local port).
   `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`) draw a selected chord against the
   scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
+  `PositionShapes.tsx` (logic in `positions.ts`) is the "In one position"
+  card: every diatonic chord's shape in the same five frets, with ‹ n of m ›
+  to cycle a chord's shapes, an Arpeggio toggle and a link to the chord in
+  the Chord library. With a chord selected, a click on anything but a
+  control, or Esc, goes back to the scale.
 - `src/features/chords/` — the Chord library (`library/`, with its
-  client-only loader) and the Chord lab (`lab/`). `chordTypes.ts` is the
-  section's only tonal import: tonal's chord types with our groups and
-  symbols, roots, `chordOf` (spelled notes, tone labels, which tones a
-  voicing may leave out) and `chordFromTones` (a type, or an unnamed chord,
-  from a set of tones). `naming.ts` gives every name for a set of notes.
-  `voicings.ts` searches the neck for playable shapes (each rule a named
-  constant) and splits them into open, the best few moveable, and all
-  moveable. `ChordHeader.tsx`, `ChordDiagram.tsx`, `ToneKey.tsx`, `VoicingGroups.tsx`
-  and `chordDots.ts` (shape dots, and the arpeggio the library's Arpeggio toggle
-  shows) are shared by both pages; `library/ChordLibrary.tsx` and
-  `lab/ChordLab.tsx` are the pages and their only stateful components. The chord is in the URL, not storage:
-  `/chords/library?chord=am7b5`, slugs in `library/chordUrls.ts`.
+  client-only loader) and the Chord lab (`lab/`), built on `src/lib/chords/`
+  and `src/components/chords/`. `naming.ts` gives every name for a set of
+  notes. `ChordHeader.tsx` and `VoicingGroups.tsx` are shared by both
+  pages; `library/ChordLibrary.tsx` and `lab/ChordLab.tsx` are the pages
+  and their only stateful components. The chord is in the URL, not storage:
+  `/chords/library?chord=am7b5`, optionally `&shape=x-0-2-0-1-0` to open on
+  a shape; slugs in `src/lib/chords/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

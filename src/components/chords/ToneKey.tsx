@@ -1,5 +1,5 @@
 import { toneColor } from './chordDots';
-import type { ChordInfo } from './chordTypes';
+import type { ChordInfo } from '@/lib/chords/chordTypes';
 
 /**
  * The chord's tones as colour swatches with their labels (■ R ● ♭3 ● 5 ● ♭7),

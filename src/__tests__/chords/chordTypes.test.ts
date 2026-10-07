@@ -1,7 +1,7 @@
 import { ChordType } from 'tonal';
 import {
   CHORD_GROUPS, CHORD_TYPES, chordOf, chordTypeDef, formulaOf, toneLabel,
-} from '@/features/chords/chordTypes';
+} from '@/lib/chords/chordTypes';
 
 describe('CHORD_TYPES', () => {
   it('lists every tonal chord type once', () => {

@@ -3,12 +3,12 @@
 import { useMemo, useState } from 'react';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { TUNING, type Position } from '@/lib/music';
-import { voicingDots } from '../chordDots';
+import { voicingDots } from '@/components/chords/chordDots';
 import { ChordHeader } from '../ChordHeader';
-import { chordFromTones, formulaOf, type ChordInfo } from '../chordTypes';
+import { chordFromTones, formulaOf, type ChordInfo } from '@/lib/chords/chordTypes';
 import { nameNotes } from '../naming';
 import { VoicingGroups } from '../VoicingGroups';
-import { findVoicings, voicingKey, type Voicing, type Voicings } from '../voicings';
+import { findVoicings, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 import { NameList } from './NameList';
 import { ToneChips } from './ToneChips';
 
