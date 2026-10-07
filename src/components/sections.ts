@@ -45,6 +45,11 @@ export const EXPLORE: Section = {
       title: 'Scale lab',
       summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
     },
+    {
+      href: '/explore/circle',
+      title: 'Circle of fifths',
+      summary: 'See how keys and modes relate: their chords, signatures and neighbours.',
+    },
   ],
 };
 

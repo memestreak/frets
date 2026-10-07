@@ -318,5 +318,94 @@ button {
   }
   /* No page scroll behind the open dialog. */
   html:has(.settings-dialog[open]) { overflow: hidden; }
-}
 
+  /* The circle of fifths. No blue anywhere on a click or tap: no tap
+     flash, no text selection, no focus outline unless from the keyboard,
+     and then an ink ring. Degree colours are set inline by the cells. */
+  .cof-wheel {
+    display: block; width: 100%; height: auto; margin: 0 auto;
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+  }
+  .cof-wheel :focus, .cof-wheel :focus-visible { outline: none; }
+  .cof-cell path { fill: var(--surface-raised); stroke: var(--line); stroke-width: 1; transition: fill 0.2s; }
+  .cof-dim path { fill: var(--surface); }
+  .cof-cell text { fill: var(--ink); pointer-events: none; font-family: var(--font-sans); }
+  .cof-cell .cof-numeral { fill: var(--ink-muted); font-weight: 600; }
+  .cof-pickable { cursor: pointer; }
+  .cof-pickable:hover path:not([style*='fill']) { fill: var(--surface-sunken); }
+  .cof-edge path { fill: var(--surface); stroke-width: 2.5; stroke-dasharray: 4 2; }
+  .cof-ring-solid path { stroke: var(--ink); stroke-width: 3; }
+  .cof-ring-dashed path { stroke: var(--ink); stroke-width: 2.2; stroke-dasharray: 4 2; }
+  .cof-pickable:focus-visible path { stroke: var(--ink); stroke-width: 3; stroke-dasharray: none; }
+  .cof-arrow { fill: none; stroke: var(--degree-fifth); stroke-width: 2; pointer-events: none; }
+  .cof-arrow-head { fill: var(--degree-fifth); }
+  .cof-arrow-hit { fill: none; stroke: transparent; stroke-width: 12; }
+  .cof-rim { font-family: var(--font-sans); font-weight: 600; fill: var(--ink-muted); cursor: pointer; }
+  .cof-rim:hover, .cof-rim:focus-visible { fill: var(--ink); text-decoration: underline; }
+  .cof-rim[aria-pressed='true'] { fill: var(--ink); font-weight: 800; text-decoration: underline; }
+  .cof-staff-hit { fill: transparent; }
+  .cof-staff-line { stroke: var(--line-strong); stroke-width: 0.8; }
+  .cof-staff-home .cof-staff-line { stroke: var(--ink); stroke-width: 1.1; }
+  .cof-accidental { fill: var(--ink); font-family: var(--font-sans); pointer-events: none; }
+  .cof-centre { fill: var(--ink); font-family: var(--font-display); font-weight: 600; }
+  .cof-centre-sub { fill: var(--ink-muted); font-family: var(--font-sans); }
+  @media (prefers-reduced-motion: reduce) { .cof-cell path { transition: none; } }
+
+  .cof-tip {
+    position: fixed; z-index: 20; pointer-events: none;
+    max-width: min(300px, calc(100vw - 16px));
+    padding: 8px 11px; border-radius: 8px;
+    background: var(--ink); color: var(--surface);
+    font-size: 13px; line-height: 19px;
+  }
+  .cof-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .cof-check input { width: 16px; height: 16px; accent-color: var(--ink); }
+  .cof-heading {
+    margin: 0; font-family: var(--font-sans); font-size: 12px; line-height: 16px;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+  }
+
+  /* Chips and cells under the wheel: fixed widths and constant borders,
+     so a new selection never moves anything. */
+  .cof-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .cof-chip {
+    display: inline-grid; justify-items: center; width: 64px; padding: 4px 0;
+    border: 2px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--surface-raised); font-weight: 600; line-height: 1.2;
+  }
+  .cof-chip small { font-size: 11px; font-weight: 600; opacity: 0.85; }
+  .cof-chip-outside { border-style: dashed; background: transparent; }
+  .cof-chip-ringed { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+  .cof-relative { display: grid; grid-template-columns: repeat(auto-fill, 104px); gap: 6px; }
+  .cof-relative-cell {
+    display: grid; justify-items: center; width: 104px; padding: 4px 0;
+    border: 2px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--surface-raised); font: inherit; font-weight: 600; line-height: 1.2;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .cof-relative-cell small { font-size: 11px; color: var(--ink-muted); }
+  .cof-relative-cell:hover { background: var(--surface-sunken); }
+  .cof-relative-cell[aria-pressed='true'] { border-color: var(--ink); }
+  .cof-relative-cell:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .cof-parallel-scroll { overflow-x: auto; padding: 2px; }
+  .cof-parallel { border-collapse: separate; border-spacing: 0 3px; table-layout: fixed; width: 560px; font-size: 15px; }
+  .cof-col-name { width: 140px; }
+  .cof-col-degree { width: 40px; }
+  .cof-col-parent { width: 140px; }
+  .cof-parallel tr { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .cof-parallel tr:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cof-parallel tr > * { background: var(--surface-raised); }
+  .cof-parallel tr:hover > * { background: var(--surface-sunken); }
+  .cof-parallel tr > :first-child { border-radius: 8px 0 0 8px; }
+  .cof-parallel tr > :last-child { border-radius: 0 8px 8px 0; }
+  .cof-parallel th { text-align: left; font-weight: 600; padding: 6px 10px; white-space: nowrap; }
+  .cof-parallel td { text-align: center; padding: 6px 0; font-family: var(--font-mono); font-size: 13px; }
+  .cof-parallel td span { display: inline-block; min-width: 28px; padding: 1px 0; border-radius: 6px; }
+  .cof-parallel td.cof-changed { font-weight: 800; }
+  .cof-parallel td.cof-changed span { background: var(--ink); color: var(--surface); }
+  .cof-parallel td.cof-parent { text-align: left; font-family: var(--font-sans); color: var(--ink-muted); padding-left: 10px; white-space: nowrap; }
+  /* The current row's outline is an inset shadow: no border, so no size change. */
+  .cof-row-current > * { box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  .cof-row-current > :first-child { box-shadow: inset 2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  .cof-row-current > :last-child { box-shadow: inset -2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
+}
