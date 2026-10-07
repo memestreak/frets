@@ -199,10 +199,11 @@ export default function ScaleLab() {
             minFret={0}
             maxFret={SCALE_LAB_MAX_FRET}
             dots={dots}
-            box={chords.length
+            // The position is outlined only while a chord is selected.
+            box={chord
               ? { from: set.position === 1 ? 0 : set.position, to: positionEnd(set.position) }
               : null}
-            scrollToFret={chords.length ? set.position + 2 : null}
+            scrollToFret={chord ? set.position + 2 : null}
             label={`${boardLabel} on the fretboard`}
           />
         </div>

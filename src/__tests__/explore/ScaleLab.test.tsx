@@ -68,6 +68,9 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     const card = within(screen.getByRole('region', { name: 'In one position' }));
     expect(card.getAllByRole('button', { name: /: shape in Frets 5–9$/ })).toHaveLength(7);
+    // The neck outlines the position only while a chord is selected.
+    expect(screen.queryByTestId('board-box')).toBeNull();
+    fireEvent.click(chordCard('D7'));
     expect(screen.getByTestId('board-box')).toBeInTheDocument();
     fireEvent.click(card.getByRole('button', { name: 'Higher position' }));
     expect(card.getByText('Frets 6–10')).toBeInTheDocument();

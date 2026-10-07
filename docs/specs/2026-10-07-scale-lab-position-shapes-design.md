@@ -16,7 +16,8 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
   and harmonic minor families had a shape in every position checked; four
   frets lost one to four chords per position. Positions run from 1 (the
   open strings plus frets 1–5, shown "Open–5") to 11 (frets 11–15). ‹ ›
-  in the card header step one fret. The neck outlines the position. Saved
+  in the card header step one fret. The neck outlines the position
+  only while a chord is selected (Jeremy, 2026-10-07). Saved
   in `frets.explore.scales` as `position`, default 5.
 - **Diagrams:** the Chord library's `ChordDiagram`, every one starting at
   the position's first fret, so the row reads as one hand position. Each
