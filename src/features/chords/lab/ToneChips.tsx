@@ -1,5 +1,5 @@
-import { toneColor } from '../chordDots';
-import { plainToneLabel, type ChordInfo } from '../chordTypes';
+import { toneColor } from '@/components/chords/chordDots';
+import { plainToneLabel, type ChordInfo } from '@/lib/chords/chordTypes';
 
 interface ToneChipsProps {
   chord: ChordInfo;

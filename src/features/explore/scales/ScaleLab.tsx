@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Segmented } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES } from '@/components/fretboard/theme';
@@ -9,6 +9,8 @@ import { prettyNote } from '@/lib/notation';
 import { loadJson } from '@/lib/storage';
 import { ChordStrip } from './ChordStrip';
 import { ChordLadder } from './ChordLadder';
+import { PositionShapes } from './PositionShapes';
+import { chordsInPosition, clampPosition, positionEnd } from './positions';
 import { ScalePickers } from './ScalePanel';
 import { StripTip } from './StripTip';
 import {
@@ -17,8 +19,11 @@ import {
 } from './settings';
 import {
   diatonicChords, modeFamily, neckNotes, rotateMode, scaleDef, scaleOf,
-  type NeckNote, type Root, type ScaleDef,
+  type DiatonicChord, type NeckNote, type Root, type ScaleDef,
 } from './theory';
+
+/** What a click may land on without clearing the selected chord. */
+const CONTROLS = 'a, button, input, select, textarea, label, summary, dialog, [role="button"]';
 
 const LABEL_OPTS = [['interval', 'Interval'], ['note', 'Note'], ['none', 'None']] as const;
 
@@ -43,6 +48,11 @@ export default function ScaleLab() {
     () => parseScaleLabSettings(loadJson(SCALE_LAB_STORAGE_KEY)),
   );
   const [chordIndex, setChordIndex] = useState<number | null>(null);
+  // The neck shows every chord tone around the shape; not saved.
+  const [arpeggio, setArpeggio] = useState(false);
+  // Which shape each chord shows in the position, by chord index. Kept for
+  // one scale, chord size and position (`for`); anything else starts again.
+  const [shapePicks, setShapePicks] = useState({ for: '', byChord: {} as Record<number, number> });
   usePersist(SCALE_LAB_STORAGE_KEY, set);
 
   const update = (patch: Partial<ScaleLabSettings>) => setSet(s => ({ ...s, ...patch }));
@@ -59,6 +69,7 @@ export default function ScaleLab() {
   const pick = (root: Root, type: ScaleDef) => {
     update({ root, scale: type.id, mode: 0 });
     setChordIndex(null);
+    setArpeggio(false);
   };
   // Rotating keeps the same seven chords, so the selected one stays, as
   // many places along as the root moved.
@@ -91,11 +102,63 @@ export default function ScaleLab() {
     [scale, set.chordSize],
   );
   const chord = chordIndex === null ? null : chords[chordIndex] ?? null;
+  const selectChord = (c: DiatonicChord | null) => {
+    setChordIndex(c?.index ?? null);
+    if (!c) setArpeggio(false);
+  };
+
+  const inPosition = useMemo(
+    () => chordsInPosition(scale, chords, set.position),
+    [scale, chords, set.position],
+  );
+  const picksFor = `${scale.root} ${scale.type.id} ${set.chordSize} ${set.position}`;
+  const shapeIndexOf = (index: number) =>
+    shapePicks.for === picksFor ? shapePicks.byChord[index] ?? 0 : 0;
+  const shapeIndex = chord ? shapeIndexOf(chord.index) : 0;
+  const shape = chord ? inPosition[chord.index]?.shapes[shapeIndex] ?? null : null;
+  const pickShape = (index: number) => {
+    if (!chord) return;
+    setShapePicks(p => ({
+      for: picksFor,
+      byChord: { ...(p.for === picksFor ? p.byChord : {}), [chord.index]: index },
+    }));
+  };
+
+  // With a chord selected, a click on anything but a control, or Esc, goes
+  // back to the scale.
+  useEffect(() => {
+    if (chordIndex === null) return;
+    const clear = () => {
+      setChordIndex(null);
+      setArpeggio(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as Element | null)?.closest?.(CONTROLS)) return;
+      // Leave a click that ends selecting text alone.
+      if (window.getSelection()?.toString()) return;
+      clear();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) clear();
+    };
+    document.addEventListener('click', onClick);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onClick);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [chordIndex]);
 
   // The title stays the scale's; a selected chord shows on the board and the diagram.
   const title = `${prettyNote(scale.root)} ${scale.type.title}`;
   const boardLabel = chord ? `${chord.symbol} in ${title}` : title;
-  const dots = neckNotes(scale, SCALE_LAB_MAX_FRET, chord).map(n => toDot(n, set.labels));
+  // A selected chord shows its shape; with the arpeggio on, every chord
+  // tone too, labelled only on the shape. A chord with no shape here shows
+  // every tone, labelled.
+  const onShape = (n: NeckNote) => shape?.[n.s] === n.f;
+  const notes = neckNotes(scale, SCALE_LAB_MAX_FRET, chord);
+  const dots = (shape && !arpeggio ? notes.filter(onShape) : notes)
+    .map(n => toDot(n, shape && arpeggio && !onShape(n) ? 'none' : set.labels));
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
@@ -136,16 +199,35 @@ export default function ScaleLab() {
             minFret={0}
             maxFret={SCALE_LAB_MAX_FRET}
             dots={dots}
+            box={chords.length
+              ? { from: set.position === 1 ? 0 : set.position, to: positionEnd(set.position) }
+              : null}
+            scrollToFret={chords.length ? set.position + 2 : null}
             label={`${boardLabel} on the fretboard`}
           />
         </div>
       </section>
 
+      {chords.length > 0 && (
+        <PositionShapes
+          inPosition={inPosition}
+          mode={set.mode}
+          position={set.position}
+          onPosition={first => update({ position: clampPosition(first) })}
+          selected={chord}
+          onSelect={selectChord}
+          shapeIndex={shapeIndex}
+          onShapeIndex={pickShape}
+          arpeggio={arpeggio}
+          onArpeggio={setArpeggio}
+        />
+      )}
+
       <ChordStrip
         scale={scale}
         chords={chords}
         selected={chord}
-        onSelect={c => setChordIndex(c?.index ?? null)}
+        onSelect={selectChord}
         size={set.chordSize}
         onSize={chordSize => update({ chordSize })}
         view={set.chordView}

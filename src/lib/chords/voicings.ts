@@ -23,6 +23,10 @@ const MAX_INNER_MUTES = 1;
 const OPEN_SHAPE_MAX_FRET = 4;
 /** Frets a diagram draws: enough for any moveable shape and any open shape. */
 export const DIAGRAM_FRETS = Math.max(MAX_SPAN + 1, OPEN_SHAPE_MAX_FRET);
+/** Frets in a position: the widest stretch a shape may take. */
+export const POSITION_FRETS = MAX_SPAN + 1;
+/** The highest position's first fret, so the position ends at the highest fret. */
+export const LAST_POSITION = HIGHEST_FRET - MAX_SPAN;
 
 export interface Voicings {
   /** Shapes that ring open strings, most strings first. */
@@ -174,6 +178,29 @@ export function findVoicings(chord: ChordInfo): Voicings {
   };
   cache.set(cacheKey, result);
   return result;
+}
+
+/**
+ * Whether every fretted note lies in the position from fret `first`; open
+ * strings only count in the first position, at the nut.
+ */
+const inPosition = (v: Voicing, first: number) =>
+  v.every(f => f === null || (f === 0 ? first === 1 : f >= first && f < first + POSITION_FRETS));
+
+const byEase = (a: Voicing, b: Voicing) =>
+  difficulty(a) - difficulty(b) || soundingStrings(b).length - soundingStrings(a).length;
+
+/**
+ * The shapes to offer in the position starting at fret `first`, easiest
+ * first: the open shapes and the best few moveable ones that fit in it.
+ * When none of those fits, the easiest of all the shapes that do, so a
+ * chord with any shape in the position has one to show.
+ */
+export function shapesInPosition(voicings: Voicings, first: number): Voicing[] {
+  const core = [...voicings.open, ...voicings.moveable].filter(v => inPosition(v, first));
+  if (core.length) return core.sort(byEase);
+  const fallback = voicings.allMoveable.filter(v => inPosition(v, first)).sort(byEase);
+  return fallback.slice(0, 1);
 }
 
 /** "root on A · frets 5–7", or "root on A · open" for a shape with no fretted notes. */

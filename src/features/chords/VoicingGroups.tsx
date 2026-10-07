@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { ChordDiagram } from './ChordDiagram';
-import { ToneKey } from './ToneKey';
-import type { ChordInfo } from './chordTypes';
-import { voicingCaption, voicingKey, type Voicing, type Voicings } from './voicings';
+import { ChordDiagram } from '@/components/chords/ChordDiagram';
+import { ToneKey } from '@/components/chords/ToneKey';
+import type { ChordInfo } from '@/lib/chords/chordTypes';
+import { voicingCaption, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 
 interface VoicingGroupsProps {
   chord: ChordInfo;

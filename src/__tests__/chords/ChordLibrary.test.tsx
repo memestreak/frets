@@ -50,6 +50,21 @@ describe('ChordLibrary', () => {
     expect(shapes('Open')[0]).toHaveAttribute('data-voicing', 'x-3-2-0-1-0');
   });
 
+  it('opens on the shape the URL names, listing every shape when it is not among the best few', () => {
+    renderAt('?chord=am7&shape=5-7-5-5-5-5');
+    expect(boardDots()).toEqual(['0:5', '1:7', '2:5', '3:5', '4:5', '5:5']);
+    expect(screen.getByRole('button', { name: /Show all/ })).toBeInTheDocument();
+
+    renderAt('?chord=am7&shape=5-x-5-2-1-x');
+    expect(screen.getAllByTestId(/^dot-/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Show the best few' }).length).toBe(1);
+  });
+
+  it('opens on the first shape for a shape it does not know', () => {
+    renderAt('?chord=am7&shape=9-9-9-9-9-9');
+    expect(caption()).toHaveTextContent('Open 1 of 3');
+  });
+
   it('shows Am7 for a chord it does not know', () => {
     renderAt('?chord=h7');
     expect(heading()).toHaveTextContent('Am7');

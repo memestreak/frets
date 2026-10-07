@@ -40,6 +40,7 @@ interface ToggleButtonProps {
   className?: string;
   title?: string;
   'aria-label'?: string;
+  disabled?: boolean;
 }
 
 /** Secondary button with an on state (accent-100 fill, accent border). */

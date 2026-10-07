@@ -4,15 +4,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { ToggleButton } from '@/components/controls';
 import { Fretboard } from '@/components/fretboard/Fretboard';
-import { arpeggioDots, voicingDots } from '../chordDots';
+import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
 import { ChordHeader } from '../ChordHeader';
-import { chordOf, formulaOf } from '../chordTypes';
+import { chordOf, formulaOf } from '@/lib/chords/chordTypes';
 import { VoicingGroups } from '../VoicingGroups';
-import { findVoicings, voicingCaption, voicingKey, type Voicing } from '../voicings';
+import { findVoicings, voicingCaption, voicingKey, type Voicing } from '@/lib/chords/voicings';
 import { ChordPickers } from './ChordPickers';
 import {
-  CHORD_PARAM, chordFromSlug, chordHref, chordSlug, type ChordChoice,
-} from './chordUrls';
+  CHORD_PARAM, chordFromSlug, chordHref, chordSlug, SHAPE_PARAM, type ChordChoice,
+} from '@/lib/chords/chordUrls';
 import { VoicingStepper } from './VoicingStepper';
 
 /** The neck shows the open strings through this fret. */
@@ -35,21 +35,28 @@ function listNotes(notes: string[]): string {
 /**
  * The Chord library page. The chord comes from the URL
  * (/chords/library?chord=am7b5), and picking another goes to its URL, so
- * links and Back work. A key per chord starts each one again from its
+ * links and Back work. A link may also name the shape to open on
+ * (&shape=x-0-2-0-1-0), as the Scale lab's links do. A key per chord starts each one again from its
  * first shape and its best few; the Arpeggio switch lives here, so it
  * stays on from one chord to the next.
  */
 export default function ChordLibraryPage() {
-  const choice = chordFromSlug(useSearchParams().get(CHORD_PARAM));
+  const params = useSearchParams();
+  const choice = chordFromSlug(params.get(CHORD_PARAM));
   const slug = chordSlug(choice);
   const [arpeggio, setArpeggio] = useState(false);
   return (
-    <ChordLibrary key={slug} choice={choice} arpeggio={arpeggio} onArpeggio={setArpeggio} />
+    <ChordLibrary
+      key={slug} choice={choice} initialShape={params.get(SHAPE_PARAM)}
+      arpeggio={arpeggio} onArpeggio={setArpeggio}
+    />
   );
 }
 
 interface ChordLibraryProps {
   choice: ChordChoice;
+  /** `voicingKey` of the shape to open on; an unknown one opens on the first. */
+  initialShape: string | null;
   /** Whether the neck shows every chord tone instead of a shape. */
   arpeggio: boolean;
   onArpeggio: (on: boolean) => void;
@@ -62,16 +69,20 @@ interface ChordLibraryProps {
  * arrow keys) clears it. Its own state: the last shape chosen and
  * whether Moveable shows all.
  */
-function ChordLibrary({ choice, arpeggio, onArpeggio }: ChordLibraryProps) {
+function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibraryProps) {
   const router = useRouter();
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
-
   const pick = (patch: Partial<ChordChoice>) =>
     router.push(chordHref({ ...choice, ...patch }), { scroll: false });
 
   const chord = useMemo(() => chordOf(choice.root, choice.type), [choice.root, choice.type]);
   const voicings = useMemo(() => findVoicings(chord), [chord]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(initialShape);
+  // A linked shape outside the best few opens with every shape listed.
+  const [showAll, setShowAll] = useState(() => {
+    const isKey = (v: Voicing) => voicingKey(v) === initialShape;
+    return !voicings.open.some(isKey) && !voicings.moveable.some(isKey)
+      && voicings.allMoveable.some(isKey);
+  });
   const moveable = showAll ? voicings.allMoveable : voicings.moveable;
   // ‹ › walk the open shapes, then the moveable ones, as listed below.
   const sequence = [...voicings.open, ...moveable];
