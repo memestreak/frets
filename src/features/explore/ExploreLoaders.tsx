@@ -13,3 +13,9 @@ export const ScaleLabClient = dynamic(
   () => import('./scales/ScaleLab'),
   { ssr: false, loading: Loading },
 );
+
+/** The circle of fifths reads its view from the URL's query string. */
+export const CircleOfFifthsClient = dynamic(
+  () => import('./circle/CircleOfFifths'),
+  { ssr: false, loading: Loading },
+);

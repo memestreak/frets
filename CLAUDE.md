@@ -3,14 +3,16 @@
 # Frets
 
 Guitar fretboard app with three sections: Practice, holding two quiz
-trainers (Intervals, Notes), Explore, holding the Scale lab, and Chords,
+trainers (Intervals, Notes), Explore, holding the Scale lab and the Circle
+of fifths, and Chords,
 holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
 `docs/specs/2026-10-05-chord-lab-design.md`,
 `docs/specs/2026-10-06-simpler-chord-diagrams-design.md` and
-`docs/specs/2026-10-06-chord-arpeggio-design.md`). The app has no users
+`docs/specs/2026-10-06-chord-arpeggio-design.md` and
+`docs/specs/2026-10-07-circle-of-fifths-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -67,7 +69,8 @@ binds a local port).
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
   `/practice`, `/explore` and `/chords` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`, the Chord library `/chords/library` and the Chord lab
+  `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=mode`
+  for its Mode view), the Chord library `/chords/library` and the Chord lab
   `/chords/lab`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
@@ -111,14 +114,21 @@ binds a local port).
   - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
     because their initial state reads localStorage and draws a random
     question.
-- `src/features/explore/` — the Scale lab (`scales/`) and its client-only
-  loader. `theory.ts` is the only file that imports tonal: root and scale
+- `src/features/explore/` — the Scale lab (`scales/`), the Circle of
+  fifths (`circle/`) and their client-only loaders. `theory.ts` is the only file that imports tonal: root and scale
   tables, spelled scales, mode rotation, diatonic chords (symbols and
   numerals from its own table) and the notes on the neck. `settings.ts` holds the saved
   settings and their parser; `ScaleLab.tsx`, `ScalePanel.tsx` and
   `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`) draw a selected chord against the
   scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
+  `circle/` is the Circle of fifths, Key and Mode views on one wheel:
+  `circle.ts` (pure: spokes, cells, key signatures, numerals, and the
+  `keyWheel` / `modeWheel` models saying what every cell, chip and tip
+  shows; spelling from `theory.ts`), `CircleWheel.tsx` (draws a model,
+  knows no theory), `HoverTips.tsx` (the one-second tip for any
+  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` and the page,
+  `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
 - `src/features/chords/` — the Chord library (`library/`, with its
   client-only loader) and the Chord lab (`lab/`). `chordTypes.ts` is the
   section's only tonal import: tonal's chord types with our groups and

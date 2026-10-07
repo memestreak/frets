@@ -118,6 +118,13 @@ export function rotateMode(root: Root, type: ScaleDef, step: number): Rotation {
   };
 }
 
+/** A note's pitch class, 0–11: "C" → 0, "F#" → 6, "E#" → 5. */
+export const chromaOf = (note: string): number => Note.get(note).chroma;
+
+/** A note moved up by a tonal interval, spelled: ("D", "5P") → "A". */
+export const transposeNote = (note: string, interval: string): string =>
+  Note.transpose(note, interval);
+
 const ACCIDENTALS: Record<number, string> = {
   [-2]: '𝄫', [-1]: '♭', 0: '', 1: '♯', 2: '𝄪',
 };
