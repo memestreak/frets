@@ -11,8 +11,8 @@ interface ModePanelProps {
 /**
  * The Mode view's sections under the wheel: the mode's chords, its relative
  * modes (same notes, other roots) and its parallel modes (same root, other
- * notes). Every cell and column has a fixed width, so picking another root
- * or mode moves nothing.
+ * notes). Every cell and column has a fixed width, and the relative modes
+ * keep one order, so picking another root or mode moves nothing.
  */
 export function ModePanel({ wheel, onPick }: ModePanelProps) {
   return (
@@ -23,9 +23,9 @@ export function ModePanel({ wheel, onPick }: ModePanelProps) {
 
       <PanelSection title="Relative modes: same notes, other roots">
         <div className="cof-relative">
-          {wheel.relative.map(r => (
+          {wheel.relative.map((r, i) => (
             <button
-              key={r.label}
+              key={i}
               type="button"
               className="cof-relative-cell"
               aria-pressed={r.current}
