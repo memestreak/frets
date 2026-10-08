@@ -112,9 +112,12 @@ describe('modeWheel', () => {
       .toBe('C Mixolydian: the notes of F major. Against C major: ♭7.');
   });
 
-  it('lists the relative modes from the mode’s own root', () => {
-    expect(modeWheel('C', 'dorian', { allNumerals: false }).relative.map(r => r.label))
-      .toEqual(['C Dorian', 'D Phrygian', 'E♭ Lydian', 'F Mixolydian', 'G Aeolian', 'A Locrian', 'B♭ Ionian']);
+  it('lists the relative modes in the parent key’s order, whichever is shown', () => {
+    const order = ['B♭ Ionian', 'C Dorian', 'D Phrygian', 'E♭ Lydian', 'F Mixolydian', 'G Aeolian', 'A Locrian'];
+    expect(modeWheel('C', 'dorian', { allNumerals: false }).relative.map(r => r.label)).toEqual(order);
+    const lydian = modeWheel('Eb', 'lydian', { allNumerals: false }).relative;
+    expect(lydian.map(r => r.label)).toEqual(order);
+    expect(lydian.find(r => r.current)!.label).toBe('E♭ Lydian');
   });
 
   it('marks the one note each parallel mode flattens', () => {

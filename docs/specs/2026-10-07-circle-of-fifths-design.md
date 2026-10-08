@@ -84,9 +84,11 @@ kind of explanation goes in a tip. Touch screens get no tips yet.
   Mixolydian ♭VII, Dorian IV, Aeolian ♭VI, Phrygian ♭II, Locrian ♭V
   (Ionian has none).
 - **Chords**: the seven chords as chips, ringed the same way.
-- **Relative modes: same notes, other roots**: seven equal cells
-  (`C Dorian`, `D Phrygian`, `E♭ Lydian`…); clicking one keeps the notes
-  and moves the root. The current one is outlined.
+- **Relative modes: same notes, other roots**: seven equal cells in the
+  parent key's order, Ionian first (`B♭ Ionian`, `C Dorian`,
+  `D Phrygian`…); clicking one keeps the notes and moves the root. The
+  current one is outlined; the order never changes, so only the outline
+  moves (Jeremy, 2026-10-08).
 - **Parallel modes: same root, other notes**: one row per mode on the
   root, brightest first, with its formula and whose notes it uses
   ("B♭ major's notes"). The note each row flattens from the row above is

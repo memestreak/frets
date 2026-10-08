@@ -20,7 +20,7 @@ export function PanelSection({ title, children }: { title: string; children: Rea
 export function ChordChips({ chips }: { chips: readonly ChordChip[] }) {
   return (
     <ul className="cof-chips">
-      {chips.map(c => {
+      {chips.map((c, i) => {
         const degree = DEGREES[c.degree - 1];
         const style = c.outside
           ? { borderColor: `var(--degree-${degree})` }
@@ -29,7 +29,7 @@ export function ChordChips({ chips }: { chips: readonly ChordChip[] }) {
         if (c.outside) classes.push('cof-chip-outside');
         if (c.ringed) classes.push('cof-chip-ringed');
         return (
-          <li key={`${c.numeral} ${c.name}`} className={classes.join(' ')} style={style} data-tip={c.tip}>
+          <li key={i} className={classes.join(' ')} style={style} data-tip={c.tip}>
             <small>{c.numeral}</small>
             {c.name}
           </li>

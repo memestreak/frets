@@ -440,7 +440,10 @@ export function modeWheel(root: Root, id: ModeId, opts: { allNumerals: boolean }
     };
   });
 
-  const relative = Array.from({ length: 7 }, (_, index) => {
+  // In the parent key's order, Ionian first, so picking one only moves the outline.
+  const ionian = Array.from({ length: 7 }, (_, i) => i).find(i => relativeOf(i).mode === 'ionian')!;
+  const relative = Array.from({ length: 7 }, (_, k) => {
+    const index = (ionian + k) % 7;
     const r = relativeOf(index);
     return { ...r, current: index === 0, label: `${prettyNote(r.root)} ${modeDef(r.mode).name}` };
   });
