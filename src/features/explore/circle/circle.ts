@@ -1,6 +1,6 @@
 import { prettyNote } from '@/lib/notation';
 import {
-  chromaOf, diatonicChords, rotateMode, scaleDef, scaleOf, transposeNote,
+  chromaOf, diatonicChords, scaleDef, scaleOf, transposeNote,
   type DiatonicChord, type Root, type Scale,
 } from '../scales/theory';
 
@@ -122,6 +122,8 @@ export function numeralOf(cell: Cell, tonicPc: number): Numeral {
 
 /** What one cell shows. A cell with none of these is drawn plain. */
 export interface CellLook {
+  /** The chord spelled in the key or mode, where it differs from the wheel's name. */
+  name?: string;
   /** Filled with this degree's colour (1–7): a chord of the key or mode. */
   fill?: number;
   /** A dashed border in this degree's colour: a chord from outside. */
@@ -139,12 +141,22 @@ export interface WheelArrow {
   tip: string;
 }
 
-/** A label outside the rim, on a spoke: the Mode view's mode names. */
-export interface RimLabel {
+/**
+ * One note of the ring outside the wheel, on its spoke. A major scale is
+ * seven neighbouring spokes: those are lit, and the root is the pin.
+ */
+export interface RingNote {
   spoke: number;
-  text: string;
-  current: boolean;
-  tip: string;
+  /** Spelled as the key or mode spells it when lit, as the wheel does otherwise. */
+  name: string;
+  lit: boolean;
+  /** The key's tonic or the mode's root. */
+  root: boolean;
+  /** Mode view: the mode that starts on this note, written outside it. */
+  label?: string;
+  /** Mode view: picking the note makes it the root, keeping the notes. */
+  pick?: { root: string; mode: ModeId };
+  tip?: string;
 }
 
 /** A chord listed under the wheel. */
@@ -162,8 +174,13 @@ export interface ChordChip {
 export interface WheelModel {
   cells: Map<string, CellLook>;
   arrows: WheelArrow[];
-  rim: RimLabel[];
-  /** The spoke whose notes are in use: its key signature is drawn darker. */
+  /** The ring of notes, spoke 0 first. */
+  notes: RingNote[];
+  /**
+   * The spoke of the major key whose notes are in use: its key signature
+   * is drawn darker, and the ring's lit run is this spoke and the five
+   * after it, plus the one before.
+   */
   homeSpoke: number;
   /** The selected key's tonic cell (the Key view's pressed cell), if any. */
   tonic: Cell | null;
@@ -202,6 +219,26 @@ function numberTheRest(cells: Map<string, CellLook>, tonicPc: number, context: s
       ...look, numeral, tip: look.tip ?? `${cellName(cell)}: ${numeral} in ${context}, outside it.`,
     });
   }
+}
+
+/** Spoke 0's note first: the ring's names where nothing is lit. */
+const RING_NAMES: readonly Root[] = MAJOR_KEYS;
+
+/**
+ * The ring for a scale whose notes are the major key on `home`: the seven
+ * notes from the spoke before it to five after it are lit, spelled as the
+ * scale spells them, and `rootPcValue` is the pin.
+ */
+function ringNotes(home: number, scale: Scale, rootPcValue: number): RingNote[] {
+  const spelled = new Map(scale.degrees.map(d => [d.pc, d.note]));
+  return Array.from({ length: 12 }, (_, spoke) => {
+    const pc = mod12(spoke * 7);
+    const lit = mod12(spoke - home + 1) < 7;
+    return {
+      spoke, lit, root: lit && pc === rootPcValue,
+      name: prettyNote(lit ? spelled.get(pc)! : RING_NAMES[spoke]),
+    };
+  });
 }
 
 // ------------------------------------------------------------------ Key view
@@ -275,7 +312,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   const home = placeTriads(scale);
   const cells = new Map<string, CellLook>();
   for (const p of home) {
-    cells.set(p.id, { fill: p.degree, numeral: p.chord.numeral, tip: describeInKey(p, k, scale) });
+    cells.set(p.id, { name: p.chord.symbol, fill: p.degree, numeral: p.chord.numeral, tip: describeInKey(p, k, scale) });
   }
   const chords = home.map(p => chipOf(p));
 
@@ -287,7 +324,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
     const v = cellOf(fifth.pc, 'major')!;
     const symbol = prettyNote(fifth.note);
     const tip = `${symbol}: V in ${name}. Raising ${prettyNote(seventh.note)} to ${raised} (harmonic minor) makes the v chord major, so it pulls home like a major key's V. Most minor-key music uses it.`;
-    cells.set(cellId(v), { edge: 5, numeral: 'V', tip });
+    cells.set(cellId(v), { name: symbol, edge: 5, numeral: 'V', tip });
     chords.push({ name: symbol, numeral: 'V', degree: 5, outside: true, tip });
   }
 
@@ -299,7 +336,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
     for (const p of placeTriads(keyScale(parallel))) {
       if (homeIds.has(p.id)) continue;
       const tip = `${p.chord.symbol}: ${p.chord.numeral} in ${name}, borrowed from ${parallelName}, the parallel ${parallel.minor ? 'minor' : 'major'}. Same tonic, different notes, so it sits outside the key's chords.`;
-      if (!cells.has(p.id)) cells.set(p.id, { edge: p.degree, numeral: p.chord.numeral, tip });
+      if (!cells.has(p.id)) cells.set(p.id, { name: p.chord.symbol, edge: p.degree, numeral: p.chord.numeral, tip });
       borrowed.push(chipOf(p, { outside: true, tip }));
     }
   }
@@ -325,7 +362,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   if (opts.allNumerals) numberTheRest(cells, tonicPc, name);
 
   return {
-    title: name, cells, arrows, rim: [], homeSpoke: k.spoke, tonic: keyCell(k),
+    title: name, cells, arrows, notes: ringNotes(k.spoke, scale, tonicPc), homeSpoke: k.spoke, tonic: keyCell(k),
     centre: [prettyNote(keyTonic(k)), k.minor ? 'minor' : 'major'],
     chords, parallelName, borrowed, dominants,
   };
@@ -340,25 +377,58 @@ export interface ModeDef {
   name: string;
   /** Spokes from the root's major key to the key whose notes the mode uses. */
   offset: number;
+  /** The degree of that key (0–6) the mode starts on: Dorian starts on its 2nd. */
+  start: number;
   /** Index (0–6) of the chord that carries the mode's sound; null for Ionian. */
   signature: number | null;
   /** The degree that sets the mode apart from major or minor: Dorian's 6. */
   character: string | null;
 }
 
-/** The seven modes of the major scale, brightest first. */
+/**
+ * The seven modes of the major scale, brightest first. On the ring they
+ * run the same way, clockwise from the spoke before the key's own.
+ */
 export const MODES: readonly ModeDef[] = [
-  { id: 'lydian', name: 'Lydian', offset: 1, signature: 1, character: '♯4' },
-  { id: 'ionian', name: 'Ionian', offset: 0, signature: null, character: null },
-  { id: 'mixolydian', name: 'Mixolydian', offset: -1, signature: 6, character: '♭7' },
-  { id: 'dorian', name: 'Dorian', offset: -2, signature: 3, character: '6' },
-  { id: 'aeolian', name: 'Aeolian', offset: -3, signature: 5, character: '♭6' },
-  { id: 'phrygian', name: 'Phrygian', offset: -4, signature: 1, character: '♭2' },
-  { id: 'locrian', name: 'Locrian', offset: -5, signature: 4, character: '♭5' },
+  { id: 'lydian', name: 'Lydian', offset: 1, start: 3, signature: 1, character: '♯4' },
+  { id: 'ionian', name: 'Ionian', offset: 0, start: 0, signature: null, character: null },
+  { id: 'mixolydian', name: 'Mixolydian', offset: -1, start: 4, signature: 6, character: '♭7' },
+  { id: 'dorian', name: 'Dorian', offset: -2, start: 1, signature: 3, character: '6' },
+  { id: 'aeolian', name: 'Aeolian', offset: -3, start: 5, signature: 5, character: '♭6' },
+  { id: 'phrygian', name: 'Phrygian', offset: -4, start: 2, signature: 1, character: '♭2' },
+  { id: 'locrian', name: 'Locrian', offset: -5, start: 6, signature: 4, character: '♭5' },
 ];
 
 export const modeDef = (id: ModeId): ModeDef => MODES.find(m => m.id === id)!;
-const modeScale = (root: Root, id: ModeId): Scale => scaleOf(root, scaleDef(id)!);
+
+/** The other spelling of the outer ring's two keys that have a common one. */
+const OTHER_SPELLING: Partial<Record<Root, Root>> = { 'F#': 'Gb', Db: 'C#' };
+
+/** The major key whose notes a mode uses, and the mode's root spelled in it. */
+interface ParentKey {
+  spoke: number;
+  key: Root;
+  /** tonal ASCII; may be a note the root picker lacks, such as "E#". */
+  root: string;
+}
+
+/**
+ * A mode's notes are a major key's: spell the mode as that key spells
+ * them, so its chords never need double flats. The root keeps its name
+ * where the key's other spelling allows it (F♯ Lydian uses C♯ major's
+ * notes, F Locrian G♭ major's); otherwise it takes the key's name for it
+ * (D♭ Locrian uses D major's notes, so it is C♯ Locrian).
+ */
+export function parentKey(root: string, id: ModeId): ParentKey {
+  const mode = modeDef(id);
+  const spoke = mod12(majorSpoke(chromaOf(root)) + mode.offset);
+  const keys = [MAJOR_KEYS[spoke], OTHER_SPELLING[MAJOR_KEYS[spoke]]].filter((k): k is Root => !!k);
+  const options = keys.map(key => ({ spoke, key, root: scaleOf(key, IONIAN).degrees[mode.start].note }));
+  return options.find(o => o.root === root) ?? options[0];
+}
+
+/** A mode spelled from its parent key. */
+const modeScale = (parent: ParentKey, id: ModeId): Scale => scaleOf(parent.root as Root, scaleDef(id)!);
 
 /** The degree labels a mode changes against the major scale: Dorian ♭3 ♭7. */
 function alteredDegrees(scale: Scale): string[] {
@@ -367,49 +437,54 @@ function alteredDegrees(scale: Scale): string[] {
 
 /** A mode on a root, and whether it is the one shown. */
 export interface ModeChoice {
-  root: Root;
+  /** tonal ASCII. */
+  root: string;
   mode: ModeId;
   current: boolean;
 }
 
-/** One row of the Parallel modes table. */
-export interface ParallelRow extends ModeChoice {
+/** One chord in the Parallel modes table. */
+export interface TableChord {
   name: string;
-  /** Formula labels, "1" to "7". */
-  degrees: string[];
-  /** Which degrees this row flattens from the row above (none for the first). */
-  changed: boolean[];
-  /** The major key whose notes it uses, e.g. "B♭". */
-  parent: string;
+  numeral: string;
+  /** 1–7: picks the degree colour. */
+  degree: number;
+  /** The current mode has this chord on this degree too. */
+  same: boolean;
+  tip: string;
+}
+
+/** One row of the Parallel modes table: a mode on the same root. */
+export interface ParallelRow extends ModeChoice {
+  /** "C Lydian". */
+  title: string;
+  /** "Lydian". */
+  name: string;
+  /** Its parent key's spoke: the ring's run when this row is previewed. */
+  spoke: number;
+  chords: TableChord[];
+  /** The note this row has instead of the row above's: "B → B♭"; null for the first. */
+  swap: string | null;
+  tip: string;
 }
 
 export interface ModeWheel extends WheelModel {
   title: string;
   formula: string[];
-  chords: ChordChip[];
-  relative: (ModeChoice & { label: string })[];
   parallel: ParallelRow[];
 }
 
-/** Everything the Mode view shows for a mode on a root. */
-export function modeWheel(root: Root, id: ModeId, opts: { allNumerals: boolean }): ModeWheel {
+/** Everything the Mode view shows for a mode on a root (tonal ASCII). */
+export function modeWheel(rootNote: string, id: ModeId, opts: { allNumerals: boolean }): ModeWheel {
   const mode = modeDef(id);
-  const scale = modeScale(root, id);
-  const rootName = prettyNote(root);
+  const parent = modeScaleParts(rootNote, id);
+  const { scale, title } = parent;
+  const rootName = prettyNote(parent.root);
   const rootPcValue = scale.degrees[0].pc;
-  const rootSpoke = majorSpoke(rootPcValue);
-  const parentSpoke = mod12(rootSpoke + mode.offset);
-  const parentName = prettyNote(MAJOR_KEYS[parentSpoke]);
-  const title = `${rootName} ${mode.name}`;
-
-  // The relative modes: the same notes from each degree of this mode.
-  const relativeOf = (index: number) => {
-    const r = rotateMode(root, scaleDef(id)!, index);
-    return { root: r.root, mode: r.type.id as ModeId };
-  };
+  const parentName = prettyNote(parent.key);
+  const keyNotes = scaleOf(parent.key, IONIAN).degrees;
 
   const cells = new Map<string, CellLook>();
-  const chords: ChordChip[] = [];
   for (const p of placeTriads(scale)) {
     const isRoot = p.degree === 1;
     const isSignature = p.chord.index === mode.signature;
@@ -420,58 +495,84 @@ export function modeWheel(root: Root, id: ModeId, opts: { allNumerals: boolean }
         ? ` The root's own chord. ${title} is the major scale: its own key's notes.`
         : ` The root's own chord. ${title} uses ${parentName} major's notes, ${away} spoke${away === 1 ? '' : 's'} ${mode.offset > 0 ? 'clockwise' : 'counterclockwise'}.`;
     } else {
-      const rel = relativeOf(p.chord.index);
-      tip += ` Start on ${prettyNote(rel.root)} instead and the same notes are ${prettyNote(rel.root)} ${modeDef(rel.mode).name}.`;
+      const other = prettyNote(scale.degrees[p.chord.index].note);
+      const otherMode = MODES.find(m => m.start === (mode.start + p.chord.index) % 7)!;
+      tip += ` Start on ${other} instead and the same notes are ${other} ${otherMode.name}.`;
     }
     if (isSignature) tip += ` The ${mode.name} sound: it holds the ${mode.character}, the note that sets this mode apart.`;
-    const ringed = isRoot || isSignature;
-    cells.set(p.id, { fill: p.degree, numeral: p.chord.numeral, ring: ringed ? 'solid' : undefined, tip });
-    chords.push(chipOf(p, { ringed, tip }));
+    cells.set(p.id, {
+      name: p.chord.symbol, fill: p.degree, numeral: p.chord.numeral,
+      ring: isRoot || isSignature ? 'solid' : undefined, tip,
+    });
   }
 
-  const rim: RimLabel[] = MODES.map(m => {
-    const notes = prettyNote(MAJOR_KEYS[mod12(rootSpoke + m.offset)]);
-    const changes = alteredDegrees(modeScale(root, m.id));
+  // The ring: the parent key's notes lit, each named for the mode that starts on it.
+  const notes = ringNotes(parent.spoke, scale, rootPcValue).map(n => {
+    if (!n.lit) return n;
+    const k = mod12(n.spoke - parent.spoke + 1);
+    const m = MODES[k];
+    const note = keyNotes.find(d => d.pc === mod12(n.spoke * 7))!.note;
+    const label = `${prettyNote(note)} ${m.name}`;
     return {
-      spoke: mod12(rootSpoke + m.offset),
-      text: m.name,
-      current: m.id === id,
-      tip: `${rootName} ${m.name}: the notes of ${notes} major. ${changes.length ? `Against ${rootName} major: ${changes.join(' ')}.` : `${rootName} major itself.`}`,
+      ...n, label: m.name, pick: { root: note, mode: m.id },
+      tip: n.root
+        ? `${label}: the mode shown. The lit notes are ${parentName} major's; the pin is the root.`
+        : `${label}: the same notes as ${title}, starting on ${prettyNote(note)}.`,
     };
   });
 
-  const relative = Array.from({ length: 7 }, (_, index) => {
-    const r = relativeOf(index);
-    return { ...r, current: index === 0, label: `${prettyNote(r.root)} ${modeDef(r.mode).name}` };
-  });
-
-  const parallel = MODES.map((m, k): ParallelRow => {
-    const degrees = modeScale(root, m.id).degrees.map(d => d.label);
-    const above = k ? modeScale(root, MODES[k - 1].id).degrees.map(d => d.label) : null;
+  const current = placeTriads(scale);
+  let above: Scale | null = null;
+  const parallel = MODES.map((m): ParallelRow => {
+    const row = modeScaleParts(parent.root, m.id);
+    const changes = alteredDegrees(row.scale);
+    const tip = `${row.title}: the notes of ${prettyNote(row.key)} major. ${changes.length ? `Against ${prettyNote(row.root)} major: ${changes.join(' ')}.` : `${prettyNote(row.root)} major itself.`}`;
+    const chords = placeTriads(row.scale).map((p, j): TableChord => {
+      const same = p.chord.numeral === current[j].chord.numeral;
+      return {
+        name: p.chord.symbol, numeral: p.chord.numeral, degree: p.degree, same,
+        tip: same
+          ? `${p.chord.symbol}: ${p.chord.numeral}, in ${title} too.`
+          : `${p.chord.symbol}: ${p.chord.numeral} in ${row.title}. ${title} has ${current[j].chord.symbol} here: borrow ${p.chord.symbol} for ${m.name} colour.`,
+      };
+    });
+    let swap: string | null = null;
+    if (above) {
+      const pcs = new Set(row.scale.degrees.map(d => d.pc));
+      const prev = new Set(above.degrees.map(d => d.pc));
+      const out = above.degrees.find(d => !pcs.has(d.pc))!;
+      const into = row.scale.degrees.find(d => !prev.has(d.pc))!;
+      swap = `${prettyNote(out.note)} → ${prettyNote(into.note)}`;
+    }
+    above = row.scale;
     return {
-      root, mode: m.id, current: m.id === id, name: m.name, degrees,
-      changed: degrees.map((d, j) => !!above && above[j] !== d),
-      parent: prettyNote(MAJOR_KEYS[mod12(rootSpoke + m.offset)]),
+      root: row.root, mode: m.id, current: m.id === id, title: row.title, name: m.name,
+      spoke: row.spoke, chords, swap, tip,
     };
   });
 
   if (opts.allNumerals) numberTheRest(cells, rootPcValue, title);
 
   return {
-    title, formula: scale.degrees.map(d => d.label), cells, arrows: [], rim,
-    homeSpoke: parentSpoke, tonic: null, centre: [rootName, mode.name],
-    chords, relative, parallel,
+    title, formula: scale.degrees.map(d => d.label), cells, arrows: [], notes,
+    homeSpoke: parent.spoke, tonic: null, centre: [rootName, mode.name], parallel,
   };
+}
+
+/** A mode's parent key, its spelled scale and its title: "C♯ Locrian". */
+function modeScaleParts(rootNote: string, id: ModeId) {
+  const parent = parentKey(rootNote, id);
+  return { ...parent, scale: modeScale(parent, id), title: `${prettyNote(parent.root)} ${modeDef(id).name}` };
 }
 
 // ------------------------------------------------------------ view switching
 
 /** The Mode view's start for a key: its tonic, Aeolian if minor, else Ionian. */
-export const modeForKey = (k: Key): { root: Root; mode: ModeId } =>
+export const modeForKey = (k: Key): { root: string; mode: ModeId } =>
   ({ root: keyTonic(k), mode: k.minor ? 'aeolian' : 'ionian' });
 
 /** The Key view's key for a mode: minor for Aeolian, else major, on its root. */
-export function keyForMode(root: Root, mode: ModeId): Key {
+export function keyForMode(root: string, mode: ModeId): Key {
   const pc = chromaOf(root);
   return mode === 'aeolian'
     ? { spoke: cellOf(pc, 'minor')!.spoke, minor: true }

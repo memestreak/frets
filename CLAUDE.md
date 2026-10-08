@@ -142,10 +142,12 @@ binds a local port).
   control, or Esc, goes back to the scale.
   `circle/` is the Circle of fifths, Key and Mode views on one wheel:
   `circle.ts` (pure: spokes, cells, key signatures, numerals, and the
-  `keyWheel` / `modeWheel` models saying what every cell, chip and tip
-  shows; spelling from `theory.ts`), `CircleWheel.tsx` (draws a model,
-  knows no theory), `HoverTips.tsx` (the one-second tip for any
-  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` and the page,
+  `keyWheel` / `modeWheel` models saying what every cell, ring note, chip
+  and tip shows; a mode is spelled from its parent key, `parentKey`;
+  spelling from `theory.ts`), `CircleWheel.tsx` (draws a model, with the
+  ring of notes round it; knows no theory), `HoverTips.tsx` (the one-second tip for any
+  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
+  table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
 - `src/features/chords/` — the Chord library (`library/`, with its
   client-only loader) and the Chord lab (`lab/`), built on `src/lib/chords/`

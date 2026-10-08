@@ -3,10 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Segmented } from '@/components/controls';
-import type { Root } from '../scales/theory';
 import {
-  keyForMode, keyWheel, MAJOR_KEYS, MODES, modeForKey, modeWheel,
-  type Cell, type Key, type KeyOptions, type ModeId, type Ring,
+  keyForMode, keyWheel, MAJOR_KEYS, modeForKey, modeWheel,
+  type Cell, type Key, type KeyOptions, type ModeId, type Ring, type RingNote,
 } from './circle';
 import { CircleWheel } from './CircleWheel';
 import { HoverTips } from './HoverTips';
@@ -20,7 +19,12 @@ const VIEW_OPTS = [['key', 'Key'], ['mode', 'Mode']] as const;
 const PICKABLE: Record<View, readonly Ring[]> = { key: ['major', 'minor'], mode: ['major'] };
 
 const C_MAJOR: Key = { spoke: 0, minor: false };
-const C_DORIAN = { root: 'C' as Root, mode: 'dorian' as ModeId };
+/** The Mode view's mode: its root in tonal ASCII ("C#", "E#") and the mode. */
+interface Modal {
+  root: string;
+  mode: ModeId;
+}
+const C_DORIAN: Modal = { root: 'C', mode: 'dorian' };
 
 interface Toggles extends KeyOptions {
   signatures: boolean;
@@ -37,7 +41,9 @@ export default function CircleOfFifths() {
   const pathname = usePathname();
   const view: View = useSearchParams().get(VIEW_PARAM) === 'mode' ? 'mode' : 'key';
   const [key, setKey] = useState<Key>(C_MAJOR);
-  const [modal, setModal] = useState(C_DORIAN);
+  const [modal, setModal] = useState<Modal>(C_DORIAN);
+  /** The parent spoke of a hovered or focused Parallel modes row. */
+  const [preview, setPreview] = useState<number | null>(null);
   const [toggles, setToggles] = useState<Toggles>(ALL_OFF);
   const toggle = (name: keyof Toggles) => setToggles(t => ({ ...t, [name]: !t[name] }));
 
@@ -58,6 +64,9 @@ export default function CircleOfFifths() {
   const pickCell = (cell: Cell) => {
     if (view === 'key') setKey({ spoke: cell.spoke, minor: cell.ring === 'minor' });
     else setModal(m => ({ ...m, root: MAJOR_KEYS[cell.spoke] }));
+  };
+  const pickNote = (note: RingNote) => {
+    if (note.pick) setModal(note.pick);
   };
 
   return (
@@ -92,17 +101,22 @@ export default function CircleOfFifths() {
           </div>
         </header>
 
-        <CircleWheel
-          model={model}
-          signatures={toggles.signatures}
-          pickable={PICKABLE[view]}
-          onPick={pickCell}
-          onRim={i => setModal(m => ({ ...m, mode: MODES[i].id }))}
-        />
-
-        {view === 'key'
-          ? <KeyPanel wheel={keyModel} options={toggles} />
-          : <ModePanel wheel={modeModel} onPick={(root, mode) => setModal({ root, mode })} />}
+        {/* Side by side on wide screens, so a pick and what it changes are both in view. */}
+        <div className="cof-body">
+          <CircleWheel
+            model={model}
+            signatures={toggles.signatures}
+            pickable={PICKABLE[view]}
+            onPick={pickCell}
+            onNote={pickNote}
+            preview={view === 'mode' ? preview : null}
+          />
+          <div className="grid min-w-0 content-start gap-5">
+            {view === 'key'
+              ? <KeyPanel wheel={keyModel} options={toggles} />
+              : <ModePanel wheel={modeModel} onPick={(root, mode) => setModal({ root, mode })} onPreview={setPreview} />}
+          </div>
+        </div>
       </div>
     </HoverTips>
   );

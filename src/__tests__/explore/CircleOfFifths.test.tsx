@@ -73,27 +73,40 @@ describe('CircleOfFifths', () => {
     renderAt('?view=mode');
     expect(heading()).toHaveTextContent('C Dorian');
     expect(screen.getByTestId('mode-formula')).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    expect(screen.getByRole('button', { name: 'Dorian' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'C Dorian' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('row', { selected: true })).toHaveTextContent(/^C Dorian/);
     // The Key view's own checkboxes keep their room but are out of reach.
     expect(screen.getByLabelText('Parallel key')).toBeDisabled();
   });
 
-  it('picks a mode from the rim, the parallel table or the relative cells', () => {
+  it('picks a mode from the parallel table or a lit note on the ring', () => {
     renderAt('?view=mode');
-    fireEvent.click(screen.getByRole('button', { name: 'Lydian' }));
-    expect(heading()).toHaveTextContent('C Lydian');
     fireEvent.click(screen.getByRole('rowheader', { name: 'C Phrygian' }));
     expect(heading()).toHaveTextContent('C Phrygian');
-    // C Phrygian's notes from D♭ instead.
+    // C Phrygian's notes from D♭ instead: only the root moves.
     fireEvent.click(screen.getByRole('button', { name: 'D♭ Lydian' }));
     expect(heading()).toHaveTextContent('D♭ Lydian');
+    expect(screen.getByRole('button', { name: 'D♭ Lydian' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('moves the root from the outer ring, keeping the mode', () => {
+  it('previews a parallel mode’s notes on the ring while its row is hovered', () => {
+    renderAt('?view=mode');
+    expect(screen.queryByTestId('run-preview')).toBeNull();
+    fireEvent.pointerEnter(screen.getByRole('rowheader', { name: 'C Lydian' }).closest('tr')!);
+    expect(screen.getByTestId('run-preview')).toBeInTheDocument();
+    fireEvent.pointerLeave(screen.getByRole('rowheader', { name: 'C Lydian' }).closest('tbody')!);
+    expect(screen.queryByTestId('run-preview')).toBeNull();
+  });
+
+  it('moves the root from the outer ring, keeping the mode, and spells it from its key', () => {
     renderAt('?view=mode');
     fireEvent.click(cell('major:1'));
     expect(heading()).toHaveTextContent('G Dorian');
-    expect(chips('Chords')[0]).toBe('iGm');
+    fireEvent.click(screen.getByRole('rowheader', { name: 'G Locrian' }));
+    fireEvent.click(cell('major:7'));
+    // D♭ Locrian uses D major's notes, so it is spelled C♯ Locrian.
+    expect(heading()).toHaveTextContent('C♯ Locrian');
+    expect(cell('dim:2')).toHaveAccessibleName('C♯°, i°');
   });
 
   it('keeps the root when switching views', () => {
@@ -103,7 +116,7 @@ describe('CircleOfFifths', () => {
     expect(nav.push).toHaveBeenLastCalledWith('/explore/circle?view=mode', { scroll: false });
     page.follow();
     expect(heading()).toHaveTextContent('A Aeolian');
-    fireEvent.click(screen.getByRole('button', { name: 'Dorian' }));
+    fireEvent.click(screen.getByRole('rowheader', { name: 'A Dorian' }));
     fireEvent.click(screen.getByRole('button', { name: 'Key' }));
     expect(nav.push).toHaveBeenLastCalledWith('/explore/circle', { scroll: false });
     page.follow();
