@@ -12,14 +12,15 @@ import { HoverTips } from './HoverTips';
 import { KeyPanel } from './KeyPanel';
 import { ModePanel } from './ModePanel';
 
-type View = 'key' | 'mode';
+/** The plain circle of keys, or the Advanced view: modes, with the ring and table. */
+type View = 'key' | 'advanced';
 const VIEW_PARAM = 'view';
-const VIEW_OPTS = [['key', 'Key'], ['mode', 'Mode']] as const;
-/** The rings a tap can pick from: the Key view's major and minor keys, the Mode view's roots. */
-const PICKABLE: Record<View, readonly Ring[]> = { key: ['major', 'minor'], mode: ['major'] };
+const VIEW_OPTS = [['key', 'Circle'], ['advanced', 'Advanced']] as const;
+/** The rings a tap can pick from: the Circle's major and minor keys, the Advanced view's roots. */
+const PICKABLE: Record<View, readonly Ring[]> = { key: ['major', 'minor'], advanced: ['major'] };
 
 const C_MAJOR: Key = { spoke: 0, minor: false };
-/** The Mode view's mode: its root in tonal ASCII ("C#", "E#") and the mode. */
+/** The Advanced view's mode: its root in tonal ASCII ("C#", "E#") and the mode. */
 interface Modal {
   root: string;
   mode: ModeId;
@@ -32,14 +33,14 @@ interface Toggles extends KeyOptions {
 const ALL_OFF: Toggles = { signatures: false, allNumerals: false, parallel: false, dominants: false };
 
 /**
- * The circle of fifths page. The view (Key or Mode) is in the URL; the
+ * The circle of fifths page. The view (Circle or Advanced) is in the URL; the
  * key, the mode and the checkboxes are only state, and the page opens on
  * C major or C Dorian. Switching views keeps the root.
  */
 export default function CircleOfFifths() {
   const router = useRouter();
   const pathname = usePathname();
-  const view: View = useSearchParams().get(VIEW_PARAM) === 'mode' ? 'mode' : 'key';
+  const view: View = useSearchParams().get(VIEW_PARAM) === 'advanced' ? 'advanced' : 'key';
   const [key, setKey] = useState<Key>(C_MAJOR);
   const [modal, setModal] = useState<Modal>(C_DORIAN);
   /** The parent spoke of a hovered or focused Parallel modes row. */
@@ -49,9 +50,9 @@ export default function CircleOfFifths() {
 
   const switchView = (next: View) => {
     if (next === view) return;
-    if (next === 'mode') setModal(modeForKey(key));
+    if (next === 'advanced') setModal(modeForKey(key));
     else setKey(keyForMode(modal.root, modal.mode));
-    router.push(next === 'mode' ? `${pathname}?${VIEW_PARAM}=mode` : pathname, { scroll: false });
+    router.push(next === 'advanced' ? `${pathname}?${VIEW_PARAM}=advanced` : pathname, { scroll: false });
   };
 
   const keyModel = useMemo(() => keyWheel(key, toggles), [key, toggles]);
@@ -76,12 +77,12 @@ export default function CircleOfFifths() {
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
             <div aria-live="polite">
               <h1 className="m-0">{model.title}</h1>
-              {/* The Key view keeps the line, empty, so switching views moves nothing. */}
+              {/* The Circle keeps the line, empty, so the checkboxes stay put across views. */}
               <p
                 className="m-0 mt-1 min-h-6 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)"
                 data-testid="mode-formula"
               >
-                {view === 'mode' ? modeModel.formula.join(' ') : ''}
+                {view === 'advanced' ? modeModel.formula.join(' ') : ''}
               </p>
             </div>
             <Segmented<View> label="View" options={VIEW_OPTS} value={view} onChange={switchView} />
@@ -89,7 +90,7 @@ export default function CircleOfFifths() {
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Check label="Key signatures" on={toggles.signatures} onChange={() => toggle('signatures')} />
             <Check label="All numerals" on={toggles.allNumerals} onChange={() => toggle('allNumerals')} />
-            {/* Key view only; Mode view keeps their room so nothing moves. */}
+            {/* The Circle's only; the Advanced view keeps their room so nothing moves. */}
             <Check
               label="Parallel key" on={toggles.parallel} onChange={() => toggle('parallel')}
               hidden={view !== 'key'}
@@ -101,15 +102,16 @@ export default function CircleOfFifths() {
           </div>
         </header>
 
-        {/* Side by side on wide screens, so a pick and what it changes are both in view. */}
-        <div className="cof-body">
+        {/* The Circle: the wheel large on its own row. Advanced: side by side on
+            wide screens, so a pick and what it changes are both in view. */}
+        <div className={view === 'advanced' ? 'cof-body cof-body-side' : 'cof-body'}>
           <CircleWheel
             model={model}
             signatures={toggles.signatures}
             pickable={PICKABLE[view]}
             onPick={pickCell}
             onNote={pickNote}
-            preview={view === 'mode' ? preview : null}
+            preview={view === 'advanced' ? preview : null}
           />
           <div className="grid min-w-0 content-start gap-5">
             {view === 'key'

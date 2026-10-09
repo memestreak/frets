@@ -10,7 +10,7 @@ interface ModePanelProps {
 }
 
 /**
- * The Mode view's section beside the wheel: every mode on the same root,
+ * The Advanced view's section beside the wheel: every mode on the same root,
  * brightest first, as its seven chords. The current row is in its degree
  * colours, like the wheel; elsewhere a chord the current mode shares is
  * plain, and one it lacks has a dashed border in its degree colour: a

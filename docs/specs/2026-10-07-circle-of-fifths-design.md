@@ -6,24 +6,30 @@ wants the **Key wheel** (A) and **Modes** (E) for now, on **one page**
 with a **Key | Mode** switch. Modulation planning, the wheel-and-neck view
 and the progression tracer are later slices.
 
+Jeremy, 2026-10-09: the views are **Circle | Advanced**. The Circle is
+the conventional circle of fifths (the Key view), its wheel large on its
+own row; Advanced holds the mode features, beside the wheel on wide
+screens.
+
 ## Page
 
 `/explore/circle`, in Explore after the Scale lab. The view is in the URL:
-`?view=mode` for Mode, nothing (or anything else) for Key, so either view
+`?view=advanced` for Advanced, nothing (or anything else) for the Circle, so either view
 can be linked. Nothing else is in the URL or saved: the page opens on
-C major, and on C Dorian in Mode view.
+C major, and on C Dorian in Advanced view.
 
-- Header: the title (`C major`, `A minor`, `C Dorian`) and the Key | Mode
-  `Segmented` on its line. Mode view shows the mode's formula under the
+- Header: the title (`C major`, `A minor`, `C Dorian`) and the Circle | Advanced
+  `Segmented` on its line. Advanced view shows the mode's formula under the
   title, like the Scale lab (`1 2 ♭3 4 5 6 ♭7`).
 - A row of checkboxes, all off by default: **Key signatures**, **All
-  numerals**, and in Key view **Parallel key** and **Secondary dominants**.
-  Mode view keeps those two in place but invisible, so the row (and what
+  numerals**, and in Circle view **Parallel key** and **Secondary dominants**.
+  Advanced view keeps those two in place but invisible, so the row (and what
   is below it) doesn't move when the view changes.
-- The wheel, then the sections for the view. From 1000px wide they sit
-  side by side, wheel on the left, so a pick and what it changes are both
-  in view (Jeremy, 2026-10-08); narrower, they stack. The wheel is the same
-  size in both views, so switching views moves nothing.
+- The wheel, then the sections for the view. In the Circle the wheel is
+  on its own full-width row, as large as fits (up to 600px for the rings),
+  with its sections below. In Advanced, from 1000px wide, the wheel and
+  the Parallel modes table sit side by side, so a pick and what it changes
+  are both in view (Jeremy, 2026-10-08); narrower, they stack.
 - Switching views keeps the root: C major becomes C Ionian, A minor
   A Aeolian; going back, Aeolian becomes a minor key and every other mode
   the major key on its root.
@@ -46,16 +52,16 @@ C major, and on C Dorian in Mode view.
   plainest degree: natural, else flat (E in C is III, G♭ is ♭V).
 - **Key signatures** draws a small treble staff outside each spoke with
   its sharps or flats in order; no counts. The staff of the current key
-  (in Mode view, the key whose notes the mode uses) is drawn darker.
+  (in Advanced view, the key whose notes the mode uses) is drawn darker.
 - Clicking or tapping shows no blue: no tap flash, no focus outline after
   a click, no text selection. Keyboard focus shows an ink ring.
 
-- **Ring of notes** (2026-10-08), Mode view only, round the outside: each spoke's note. A
+- **Ring of notes** (2026-10-08), Advanced view only, round the outside: each spoke's note. A
   major scale is seven neighbouring spokes, from the one before its key
   to five after it; the key's or mode's seven notes are lit on a sunken
   band, outlined as one run, and spelled as it spells them. The root is
-  an ink pin. Key view leaves the ring's room empty (Jeremy, 2026-10-09),
-  so the wheel is the same size in both views.
+  an ink pin. The Circle has no ring (Jeremy, 2026-10-09), so its rings of
+  chords get that room.
 - Coloured cells show the chord as the key or mode spells it (F♯ Lydian's
   V is C♯, though the outer ring calls that spoke D♭).
 
@@ -66,11 +72,11 @@ it for one second (mouse only), or when it gets keyboard focus: each
 coloured cell (e.g. in D, Bm is vi and the tonic of B minor, D's relative
 minor; C♯° is built on the leading tone), borrowed chords, the minor
 key's major V, secondary dominants and their arrows, each key signature
-(its sharps or flats), the ring's lit notes in Mode view, the Parallel modes rows and their chords.
+(its sharps or flats), the ring's lit notes in Advanced view, the Parallel modes rows and their chords.
 No text on the page appears or disappears as the selection changes; that
 kind of explanation goes in a tip. Touch screens get no tips yet.
 
-## Key view
+## Circle view
 
 - Tap an outer cell for that major key, a middle cell for that minor key.
 - **Chords**: the seven diatonic chords as degree-coloured chips, spelled
@@ -83,7 +89,7 @@ kind of explanation goes in a tip. Touch screens get no tips yet.
   vii° with an ink dashed ring, draws an arrow from it to the chord it
   resolves to, and lists them as chips (V/ii A7…).
 
-## Mode view
+## Advanced view
 
 Reworked 2026-10-08 after a review
 (/mnt/project-files/circle-of-fifths/review/evaluation.md); Jeremy picked

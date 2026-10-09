@@ -8,9 +8,9 @@ import {
 /*
  * Draws a circle-of-fifths model: three rings of twelve cells, C at the top,
  * then any arrows, the ring of notes round the outside (its lit run, the
- * root's pin and, in Mode view, mode names along it) and key signatures
- * outside that. It knows no music theory; `circle.ts` says what each part
- * shows. The wheel is the same size in both views.
+ * root's pin and mode names along it), in the Advanced view only, and key
+ * signatures outside that. It knows no music theory; `circle.ts` says
+ * what each part shows.
  */
 
 /** Inner and outer radius of each ring, in viewBox units. */
@@ -23,10 +23,12 @@ const PIN_RADIUS = 10.5;
 /** Mode names curve along the ring, just outside it. */
 const LABEL_SIZE = 10;
 const LABEL_RADIUS = NOTE_RING[1] + 3;
-/** What the wheel needs round the rings, mode names included, in both views. */
-const BARE_HALF = LABEL_RADIUS + LABEL_SIZE + 4;
-/** On-screen width of 2 × BARE_HALF units: the rings keep this size as staves add room. */
-const BARE_WIDTH = 640;
+/** What the three rings of chords need, with a margin. */
+const RINGS_HALF = 172;
+/** What the wheel needs with the ring of notes and its mode names. */
+const RING_HALF = LABEL_RADIUS + LABEL_SIZE + 4;
+/** Largest on-screen width of 2 × RINGS_HALF units: the rings keep this size as more is drawn round them. */
+const RINGS_WIDTH = 600;
 
 /** Angle of a spoke (or a point between spokes), clockwise from the top. */
 const angle = (spoke: number) => ((spoke * 30 - 90) * Math.PI) / 180;
@@ -72,12 +74,13 @@ const staffWidth = (accidentals: number) => 14 + accidentals * ACCIDENTAL_GAP;
  * Where each spoke's staff sits, and the viewBox's half-width and
  * half-height: just enough for the wheel and the staves shown.
  */
-function layout(staves: boolean) {
-  let halfX = BARE_HALF;
-  let halfY = BARE_HALF;
+function layout(ring: boolean, staves: boolean) {
+  const bare = ring ? RING_HALF : RINGS_HALF;
+  let halfX = bare;
+  let halfY = bare;
   const staffAt = Array.from({ length: 12 }, (_, spoke) => {
     const w = staffWidth(keySignature(spoke).notes.length);
-    const at = point(spoke, BARE_HALF + reach(spoke, w, STAFF_HEIGHT));
+    const at = point(spoke, bare + reach(spoke, w, STAFF_HEIGHT));
     if (staves) {
       halfX = Math.max(halfX, Math.abs(at[0]) + w / 2 + 2);
       halfY = Math.max(halfY, Math.abs(at[1]) + STAFF_HEIGHT / 2 + 2);
@@ -124,14 +127,14 @@ interface CircleWheelProps {
 export function CircleWheel({ model, signatures, pickable, onPick, onNote, preview = null }: CircleWheelProps) {
   const id = useId();
   const arrowId = `${id}-arrow`;
-  const { staffAt, halfX, halfY } = layout(signatures);
+  const { staffAt, halfX, halfY } = layout(model.notes.length > 0, signatures);
   const tonic = model.tonic && cellId(model.tonic);
 
   return (
     <svg
       className="cof-wheel"
       viewBox={`${-halfX} ${-halfY} ${2 * halfX} ${2 * halfY}`}
-      style={{ maxWidth: Math.round((BARE_WIDTH * halfX) / BARE_HALF), aspectRatio: `${halfX} / ${halfY}` }}
+      style={{ maxWidth: Math.round((RINGS_WIDTH * halfX) / RINGS_HALF), aspectRatio: `${halfX} / ${halfY}` }}
       role="group"
       aria-label="Circle of fifths"
     >

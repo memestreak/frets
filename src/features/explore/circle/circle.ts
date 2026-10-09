@@ -9,7 +9,7 @@ import {
  * twelve spokes, C at the top and clockwise in fifths; each spoke holds a
  * major key (outer ring), its relative minor (middle ring) and its vii°
  * (inner ring). `keyWheel` and `modeWheel` say what every cell shows for
- * the Key and Mode views; `CircleWheel` only draws what they return.
+ * the Circle (keys) and Advanced (modes) views; `CircleWheel` only draws what they return.
  * Spelling comes from the Scale lab's theory, the section's tonal import.
  */
 
@@ -152,9 +152,9 @@ export interface RingNote {
   lit: boolean;
   /** The key's tonic or the mode's root. */
   root: boolean;
-  /** Mode view: the mode that starts on this note, written outside it. */
+  /** Advanced view: the mode that starts on this note, written outside it. */
   label?: string;
-  /** Mode view: picking the note makes it the root, keeping the notes. */
+  /** Advanced view: picking the note makes it the root, keeping the notes. */
   pick?: { root: string; mode: ModeId };
   tip?: string;
 }
@@ -174,7 +174,7 @@ export interface ChordChip {
 export interface WheelModel {
   cells: Map<string, CellLook>;
   arrows: WheelArrow[];
-  /** The ring of notes, spoke 0 first; empty in Key view. */
+  /** The ring of notes, spoke 0 first; empty in Circle view. */
   notes: RingNote[];
   /**
    * The spoke of the major key whose notes are in use: its key signature
@@ -182,7 +182,7 @@ export interface WheelModel {
    * after it, plus the one before.
    */
   homeSpoke: number;
-  /** The selected key's tonic cell (the Key view's pressed cell), if any. */
+  /** The selected key's tonic cell (the Circle view's pressed cell), if any. */
   tonic: Cell | null;
   /** Two lines in the middle of the wheel. */
   centre: [string, string];
@@ -241,7 +241,7 @@ function ringNotes(home: number, scale: Scale, rootPcValue: number): RingNote[] 
   });
 }
 
-// ------------------------------------------------------------------ Key view
+// ------------------------------------------------------------------ Circle view
 
 /** A key: a spoke, and whether it is the spoke's minor key. */
 export interface Key {
@@ -304,7 +304,7 @@ export interface KeyWheel extends WheelModel {
   dominants: ChordChip[];
 }
 
-/** Everything the Key view shows for a key. */
+/** Everything the Circle view shows for a key. */
 export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   const scale = keyScale(k);
   const tonicPc = scale.degrees[0].pc;
@@ -362,14 +362,14 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   if (opts.allNumerals) numberTheRest(cells, tonicPc, name);
 
   return {
-    // No ring of notes in Key view: the chords show the key, and the wheel keeps the ring's room.
+    // No ring of notes in Circle view: the chords show the key, and the wheel keeps the ring's room.
     title: name, cells, arrows, notes: [], homeSpoke: k.spoke, tonic: keyCell(k),
     centre: [prettyNote(keyTonic(k)), k.minor ? 'minor' : 'major'],
     chords, parallelName, borrowed, dominants,
   };
 }
 
-// ----------------------------------------------------------------- Mode view
+// ----------------------------------------------------------------- Advanced view
 
 export type ModeId = 'lydian' | 'ionian' | 'mixolydian' | 'dorian' | 'aeolian' | 'phrygian' | 'locrian';
 
@@ -475,7 +475,7 @@ export interface ModeWheel extends WheelModel {
   parallel: ParallelRow[];
 }
 
-/** Everything the Mode view shows for a mode on a root (tonal ASCII). */
+/** Everything the Advanced view shows for a mode on a root (tonal ASCII). */
 export function modeWheel(rootNote: string, id: ModeId, opts: { allNumerals: boolean }): ModeWheel {
   const mode = modeDef(id);
   const parent = modeScaleParts(rootNote, id);
@@ -568,11 +568,11 @@ function modeScaleParts(rootNote: string, id: ModeId) {
 
 // ------------------------------------------------------------ view switching
 
-/** The Mode view's start for a key: its tonic, Aeolian if minor, else Ionian. */
+/** The Advanced view's start for a key: its tonic, Aeolian if minor, else Ionian. */
 export const modeForKey = (k: Key): { root: string; mode: ModeId } =>
   ({ root: keyTonic(k), mode: k.minor ? 'aeolian' : 'ionian' });
 
-/** The Key view's key for a mode: minor for Aeolian, else major, on its root. */
+/** The Circle view's key for a mode: minor for Aeolian, else major, on its root. */
 export function keyForMode(root: string, mode: ModeId): Key {
   const pc = chromaOf(root);
   return mode === 'aeolian'

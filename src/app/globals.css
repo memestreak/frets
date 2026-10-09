@@ -359,10 +359,10 @@ button {
   .cof-staff-home .cof-staff-line { stroke: var(--ink); stroke-width: 1.1; }
   .cof-accidental { fill: var(--ink); font-family: var(--font-sans); pointer-events: none; }
   .cof-centre { fill: var(--ink); font-family: var(--font-display); font-weight: 600; }
-  /* Wheel and panel side by side once both fit; stacked below that. */
+  /* The wheel, then the panel; in the Advanced view side by side once both fit. */
   .cof-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
   @media (min-width: 1000px) {
-    .cof-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 32px; }
+    .cof-body-side { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 32px; }
   }
   .cof-centre-sub { fill: var(--ink-muted); font-family: var(--font-sans); }
   @media (prefers-reduced-motion: reduce) { .cof-cell path { transition: none; } }
