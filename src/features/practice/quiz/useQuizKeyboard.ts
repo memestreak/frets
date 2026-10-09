@@ -23,23 +23,19 @@ function isTextEntry(target: EventTarget | null): boolean {
 }
 
 /**
- * Window-level keys: `H` toggles the hint; Enter/Space goes to the next
- * question once answered (with Pause b/w on, any non-modifier key does);
- * left/right arrows go to `onArrow` unless a control (the board) already
- * used them; other keys go to `onAnswerKey`. Ignored while typing in a field.
- * Enter/Space on an open question is left to the focused button.
- * With `enabled` false, key presses are ignored.
+ * Window-level keys: Space toggles the hint, whatever has focus; Enter goes
+ * to the next question once answered (with Pause b/w on, any other
+ * non-modifier key does too); left/right arrows go to `onArrow` unless a
+ * control (the board) already used them; other keys go to `onAnswerKey`.
+ * Ignored while typing in a field. Enter on an open question is left to the
+ * focused button. With `enabled` false, key presses are ignored.
  */
 export function useQuizKeyboard(opts: QuizKeyboardOptions) {
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (opts.enabled === false) return;
     if (isTextEntry(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
     const { answered, pause } = opts;
-    if (e.key === 'h' || e.key === 'H') {
-      if (!e.repeat) opts.onToggleHint();
-      return;
-    }
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === 'Enter') {
       if (answered) {
         e.preventDefault();
         opts.onNext();
@@ -63,9 +59,31 @@ export function useQuizKeyboard(opts: QuizKeyboardOptions) {
     opts.onAnswerKey?.(e.key);
   });
 
+  /**
+   * Space is taken before it reaches the focused element, so it neither
+   * presses a focused button (an answer, the hint button itself) nor taps a
+   * focused board cell, and the page does not scroll.
+   */
+  const onSpace = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key !== ' ' || opts.enabled === false) return;
+    if (isTextEntry(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'keydown' && !e.repeat) opts.onToggleHint();
+  });
+
   useEffect(() => {
     const down = (e: KeyboardEvent) => onKeyDown(e);
+    const space = (e: KeyboardEvent) => onSpace(e);
     window.addEventListener('keydown', down);
-    return () => window.removeEventListener('keydown', down);
+    // Capture phase: runs before the focused element's own handlers. Keyup
+    // too, because some browsers press a focused button on Space's keyup.
+    window.addEventListener('keydown', space, { capture: true });
+    window.addEventListener('keyup', space, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keydown', space, { capture: true });
+      window.removeEventListener('keyup', space, { capture: true });
+    };
   }, []);
 }
