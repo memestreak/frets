@@ -17,7 +17,11 @@ export function PanelSection({ title, children }: { title: string; children: Rea
  * filled for the key's or mode's own chords, a dashed border for chords
  * from outside, an ink ring where the wheel rings the cell too.
  */
-export function ChordChips({ chips }: { chips: readonly ChordChip[] }) {
+export function ChordChips({ chips, onArrow }: {
+  chips: readonly ChordChip[];
+  /** A chip with an arrow is hovered (its key) or left (null): the wheel draws the arrow. */
+  onArrow?: (arrow: string | null) => void;
+}) {
   return (
     <ul className="cof-chips">
       {chips.map(c => {
@@ -28,8 +32,11 @@ export function ChordChips({ chips }: { chips: readonly ChordChip[] }) {
         const classes = ['cof-chip'];
         if (c.outside) classes.push('cof-chip-outside');
         if (c.ringed) classes.push('cof-chip-ringed');
+        const arrow = c.arrow && onArrow
+          ? { onPointerEnter: () => onArrow(c.arrow!), onPointerLeave: () => onArrow(null) }
+          : {};
         return (
-          <li key={`${c.numeral} ${c.name}`} className={classes.join(' ')} style={style} data-tip={c.tip}>
+          <li key={`${c.numeral} ${c.name}`} className={classes.join(' ')} style={style} data-tip={c.tip} {...arrow}>
             <small>{c.numeral}</small>
             {c.name}
           </li>

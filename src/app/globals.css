@@ -337,9 +337,10 @@ button {
   .cof-ring-solid path { stroke: var(--ink); stroke-width: 3; }
   .cof-ring-dashed path { stroke: var(--ink); stroke-width: 2.2; stroke-dasharray: 4 2; }
   .cof-pickable:focus-visible path { stroke: var(--ink); stroke-width: 3; stroke-dasharray: none; }
+  /* A secondary dominant whose arrow is drawn: its dashed ring turns solid. */
+  .cof-hot path { stroke: var(--ink); stroke-width: 3; stroke-dasharray: none; }
   .cof-arrow { fill: none; stroke: var(--degree-fifth); stroke-width: 2; pointer-events: none; }
   .cof-arrow-head { fill: var(--degree-fifth); }
-  .cof-arrow-hit { fill: none; stroke: transparent; stroke-width: 12; }
   /* The ring of notes: the lit run on a sunken band, the root as an ink pin. */
   .cof-note path { fill: transparent; stroke: none; }
   .cof-note text { fill: var(--ink-muted); font-weight: 500; }

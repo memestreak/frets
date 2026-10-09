@@ -45,6 +45,8 @@ export default function CircleOfFifths() {
   const [modal, setModal] = useState<Modal>(C_DORIAN);
   /** The parent spoke of a hovered or focused Parallel modes row. */
   const [preview, setPreview] = useState<number | null>(null);
+  /** The arrow of a hovered secondary-dominant chip. */
+  const [arrow, setArrow] = useState<string | null>(null);
   const [toggles, setToggles] = useState<Toggles>(ALL_OFF);
   const toggle = (name: keyof Toggles) => setToggles(t => ({ ...t, [name]: !t[name] }));
 
@@ -112,10 +114,11 @@ export default function CircleOfFifths() {
             onPick={pickCell}
             onNote={pickNote}
             preview={view === 'advanced' ? preview : null}
+            arrow={arrow}
           />
           <div className="grid min-w-0 content-start gap-5">
             {view === 'key'
-              ? <KeyPanel wheel={keyModel} options={toggles} />
+              ? <KeyPanel wheel={keyModel} options={toggles} onArrow={setArrow} />
               : <ModePanel wheel={modeModel} onPick={(root, mode) => setModal({ root, mode })} onPreview={setPreview} />}
           </div>
         </div>

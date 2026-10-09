@@ -82,6 +82,8 @@ describe('keyWheel', () => {
     // C7 is the tonic itself, which stays unmarked.
     expect(w.cells.get('major:0')!.ring).toBeUndefined();
     expect(w.arrows).toHaveLength(5);
+    expect(w.dominants[0].arrow).toBe('major:3>minor:11');
+    expect(w.arrows.map(a => a.key)).toContain('major:3>minor:11');
   });
 
   it('numbers every other chord with All numerals', () => {

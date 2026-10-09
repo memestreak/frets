@@ -134,11 +134,15 @@ export interface CellLook {
   tip?: string;
 }
 
-/** An arrow from one cell to another: a secondary dominant resolving. */
+/**
+ * An arrow from one cell to another: a secondary dominant resolving. The
+ * wheel draws it only while either cell, or its chip, is hovered or focused.
+ */
 export interface WheelArrow {
+  /** Names the arrow, so a chip can show it: "major:3>minor:11". */
+  key: string;
   from: Cell;
   to: Cell;
-  tip: string;
 }
 
 /**
@@ -168,6 +172,8 @@ export interface ChordChip {
   outside?: boolean;
   /** Ringed like its cell: a mode's root or signature chord. */
   ringed?: boolean;
+  /** The key of the arrow the wheel draws while this chip is hovered. */
+  arrow?: string;
   tip?: string;
 }
 
@@ -350,8 +356,9 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
       const vCell = cellOf(chromaOf(v), 'major')!;
       const symbol = `${prettyNote(v)}7`;
       const tip = `${symbol} is V/${p.chord.numeral}, a secondary dominant: it resolves to ${p.chord.symbol}, a fifth below, as V resolves to I.`;
-      arrows.push({ from: vCell, to: p.cell, tip });
-      dominants.push({ name: symbol, numeral: `V/${p.chord.numeral}`, degree: 5, outside: true, tip });
+      const arrow = `${cellId(vCell)}>${p.id}`;
+      arrows.push({ key: arrow, from: vCell, to: p.cell });
+      dominants.push({ name: symbol, numeral: `V/${p.chord.numeral}`, degree: 5, outside: true, arrow, tip });
       const id = cellId(vCell);
       if (id === cellId(keyCell(k))) continue;
       const look = cells.get(id) ?? {};

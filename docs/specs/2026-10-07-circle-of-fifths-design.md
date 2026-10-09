@@ -86,8 +86,11 @@ kind of explanation goes in a tip. Touch screens get no tips yet.
   as dashed cells, numbered against the tonic (♭VI, iv…), and lists them
   under "Borrowed from C minor".
 - **Secondary dominants** marks the V of each chord except the tonic and
-  vii° with an ink dashed ring, draws an arrow from it to the chord it
-  resolves to, and lists them as chips (V/ii A7…).
+  vii° with an ink dashed ring and lists them as chips (V/ii A7…). Arrows
+  are drawn only on hover or focus (Jeremy, 2026-10-09: five permanent
+  arrows were too busy): hovering a secondary dominant, the chord it
+  resolves to, or its chip draws that arrow and turns the dominant's ring
+  solid.
 
 ## Advanced view
 
