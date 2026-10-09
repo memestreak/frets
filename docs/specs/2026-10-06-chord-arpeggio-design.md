@@ -44,7 +44,7 @@ note-name labels, the Chord lab (added 2026-10-09:
 - `positionsOnNeck(rootPc, semis, maxFret)` in `src/lib/music.ts`: every
   string and fret whose note is one of those intervals above the root. The
   Scale lab's `neckNotes` now uses it too.
-- `arpeggioDots(chord, voicing, maxFret)` in `features/chords/chordDots.ts`
+- `arpeggioDots(chord, maxFret)` in `components/chords/chordDots.ts`
   turns those positions into `Fretboard` dots; it shares `toneDot` with
   `voicingDots`.
 - `useSpaceKey(onPress)` in `features/chords/useSpaceKey.ts`:

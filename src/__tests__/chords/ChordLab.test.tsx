@@ -8,6 +8,9 @@ const boardDots = () =>
   screen.queryAllByTestId(/^dot-/).map(d => `${d.dataset.s}:${d.dataset.f}`).sort();
 const names = () => within(screen.getByRole('region', { name: 'Name it' })).queryAllByRole('button');
 const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
+/** The board's dot at a string and fret. */
+const dotAt = (s: number, f: number) =>
+  screen.queryAllByTestId(/^dot-/).find(d => d.dataset.s === `${s}` && d.dataset.f === `${f}`)!;
 const OPEN_C = ['1:3', '2:2', '3:0', '4:1', '5:0'];
 
 describe('ChordLab', () => {
@@ -81,16 +84,35 @@ describe('ChordLab', () => {
     expect(screen.getByTestId('neck-caption')).toHaveTextContent('every A, C, E and G');
   });
 
-  it('turns the arpeggio off when a note is played or a shape chosen', () => {
+  it('keeps the arpeggio on when a note is played, labelling only the notes played', () => {
     render(<ChordLab />);
     fireEvent.click(arpeggio());
     fireEvent.click(cell(4, 3)); // B string, fret 3: Cadd9
-    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     expect(heading()).toHaveTextContent(/^Cadd9/);
+    expect(dotAt(4, 3)).toHaveTextContent('9');
+    expect(dotAt(0, 0).textContent).toBe(''); // the open low E isn't played
+  });
+
+  it('toggles the arpeggio with space on a focused fret, without tapping it', () => {
+    render(<ChordLab />);
+    cell(4, 3).focus();
+    fireEvent.keyDown(cell(4, 3), { key: ' ' });
+    fireEvent.keyUp(cell(4, 3), { key: ' ' });
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    expect(heading()).toHaveTextContent(/^C /);
+    expect(cell(4, 3)).not.toHaveFocus(); // no focus ring left on it
+  });
+
+  it('turns the arpeggio off when a shape is chosen or the neck cleared', () => {
+    render(<ChordLab />);
     fireEvent.click(arpeggio());
     const moveable = within(screen.getByRole('region', { name: 'Moveable shapes' })).getAllByRole('button');
     fireEvent.click(moveable[0]);
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
     expect(moveable[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(arpeggio());
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
   });
 });

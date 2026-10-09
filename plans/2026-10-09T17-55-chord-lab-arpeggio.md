@@ -17,3 +17,10 @@ Jeremy, 2026-10-09. Spec: `docs/specs/2026-10-09-chord-lab-arpeggio-design.md`.
    keeping it on, a tap or shape turning it off, disabled when cleared.
 6. Update the lab spec, the arpeggio spec's paths, the `sections.ts`
    summary and CLAUDE.md.
+
+Follow-up (Jeremy, 2026-10-09, after trying the preview): space sometimes
+tapped the focused fret (the cell's own keydown handler stops propagation,
+so the window bubble listener never ran): `useSpaceKey` now listens in the
+capture phase and stops propagation, as `useQuizKeyboard` does. Tapping
+the neck no longer turns the arpeggio off; the arpeggio labels only the
+notes played (`arpeggioDots`'s optional voicing).

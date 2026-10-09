@@ -32,13 +32,20 @@ empty, that column reads "Tap a note to see its shapes."
   Space behaves as in the library (`useSpaceKey`): anywhere on the page
   but a field, the nav or the footer, without clicking a focused button or
   scrolling, once per press, and it takes focus off the button it
-  overrides so no focus ring appears.
+  overrides so no focus ring appears It is taken in the
+  capture phase, so a focused fretboard cell (the one just tapped) isn't
+  tapped by it (Jeremy, 2026-10-09, found space sometimes toggled a note).
 - Picking another name keeps the arpeggio on and relabels it against the
   new root (C6 → Am7/C).
-- Playing a note on the neck, choosing a shape (tap, ← →) or Clear turns
-  it off and shows the new shape: those change the frets, and the neck
-  should show what was just played. With the arpeggio on no shape diagram
-  is selected, so → chooses the first, as in the library.
+- Tapping the neck with the arpeggio on keeps it on (Jeremy, 2026-10-09):
+  the tap still plays or mutes a note, and the arpeggio follows the new
+  chord. With the arpeggio on, only the notes played keep their interval
+  labels; every other chord tone is an unlabelled dot in its colour, as in
+  the Scale lab's arpeggio. Muted strings stay faint. Muting the last
+  string leaves no chord and turns it off.
+- Choosing a shape (tap, ← →) or Clear turns it off and shows the new
+  shape. With the arpeggio on no shape diagram is selected, so → chooses
+  the first, as in the library.
 - With nothing on the neck the button is disabled and space does nothing.
 - Not saved; the lab keeps no state.
 
@@ -49,3 +56,5 @@ empty, that column reads "Tap a note to see its shapes."
 - `arpeggioCaption(chord, maxFret)` (`src/features/chords/arpeggioCaption.ts`)
   writes the caption for both pages.
 - `VoicingGroups` loses its `showKey` prop: both pages show the key.
+- `arpeggioDots(chord, maxFret, voicing?)`: given a voicing, only its dots
+  keep their labels. The library passes none.
