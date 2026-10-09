@@ -1,14 +1,16 @@
 import {
   ALL_CELLS, cellId, cellName, cellOf, keyForMode, keySignature, keyWheel, modeForKey,
-  modeWheel, numeralOf, parallelKey, rootPc, signatureTip, type Cell, type CellLook,
+  modeWheel, numeralOf, parallelKey, parentKey, rootPc, signatureTip, type Cell, type CellLook,
 } from '@/features/explore/circle/circle';
 
 const OFF = { parallel: false, dominants: false, allNumerals: false };
 
-/** The cells a model fills, as "name numeral" in wheel order. */
+/** The cells a model fills, as "name numeral" in wheel order, named as drawn. */
 const filled = (cells: Map<string, CellLook>) =>
-  ALL_CELLS.filter(c => cells.get(cellId(c))?.fill)
-    .map(c => `${cellName(c)} ${cells.get(cellId(c))!.numeral}`);
+  ALL_CELLS.filter(c => cells.get(cellId(c))?.fill).map(c => {
+    const look = cells.get(cellId(c))!;
+    return `${look.name ?? cellName(c)} ${look.numeral}`;
+  });
 
 const cell = (ring: Cell['ring'], spoke: number): Cell => ({ ring, spoke });
 
@@ -45,6 +47,8 @@ describe('keyWheel', () => {
   it('fills D major’s seven chords with their numerals', () => {
     expect(filled(keyWheel({ spoke: 2, minor: false }, OFF).cells))
       .toEqual(['G IV', 'D I', 'A V', 'Em ii', 'Bm vi', 'F♯m iii', 'C♯° vii°']);
+    // The ring of notes is the Mode view's only.
+    expect(keyWheel({ spoke: 2, minor: false }, OFF).notes).toEqual([]);
   });
 
   it('numbers a minor key against the major scale and adds its major V', () => {
@@ -70,14 +74,17 @@ describe('keyWheel', () => {
     expect(w.cells.get('minor:8')).toMatchObject({ edge: 4, numeral: 'iv' });
   });
 
-  it('marks secondary dominants and draws them resolving', () => {
+  it('marks secondary dominants and what each resolves to', () => {
     const w = keyWheel({ spoke: 0, minor: false }, { ...OFF, dominants: true });
     expect(w.dominants.map(c => `${c.numeral} ${c.name}`))
       .toEqual(['V/ii A7', 'V/iii B7', 'V/IV C7', 'V/V D7', 'V/vi E7']);
     expect(w.cells.get('major:3')!.ring).toBe('dashed');
     // C7 is the tonic itself, which stays unmarked.
     expect(w.cells.get('major:0')!.ring).toBeUndefined();
-    expect(w.arrows).toHaveLength(5);
+    // Dm (on F's spoke) resolves from A7.
+    expect(w.dominantOf.size).toBe(5);
+    expect(w.dominantOf.get('minor:11')).toBe('major:3');
+    expect(w.dominants[0].cell).toBe('major:3');
   });
 
   it('numbers every other chord with All numerals', () => {
@@ -89,41 +96,64 @@ describe('keyWheel', () => {
 });
 
 describe('modeWheel', () => {
+  const off = { allNumerals: false };
+  const ring = (w: ReturnType<typeof modeWheel>) =>
+    w.notes.filter(n => n.lit).map(n => `${n.root ? '*' : ''}${n.name} ${n.label}`);
+
   it('lights B♭ major’s chords for C Dorian, numbered from C', () => {
-    const w = modeWheel('C', 'dorian', { allNumerals: false });
+    const w = modeWheel('C', 'dorian', off);
     expect(w.title).toBe('C Dorian');
     expect(w.formula.join(' ')).toBe('1 2 ♭3 4 5 6 ♭7');
     expect(w.homeSpoke).toBe(10);
     expect(filled(w.cells)).toEqual(['E♭ ♭III', 'B♭ ♭VII', 'F IV', 'Cm i', 'Gm v', 'Dm ii', 'A° vi°']);
-    expect(w.chords.filter(c => c.ringed).map(c => c.numeral)).toEqual(['i', 'IV']);
+    expect(['minor:9', 'major:11'].map(id => w.cells.get(id)!.ring)).toEqual(['solid', 'solid']);
   });
 
-  it('spells sharp modes properly: F♯ Lydian', () => {
-    const w = modeWheel('F#', 'lydian', { allNumerals: false });
-    expect(w.chords.map(c => c.name)).toEqual(['F♯', 'G♯', 'A♯m', 'B♯°', 'C♯', 'D♯m', 'E♯m']);
-    expect(w.chords.map(c => c.numeral)).toEqual(['I', 'II', 'iii', '♯iv°', 'V', 'vi', 'vii']);
+  it('lights the parent key’s seven notes on the ring, each named for its mode', () => {
+    const w = modeWheel('C', 'dorian', off);
+    expect(ring(w)).toEqual([
+      '*C Dorian', 'G Aeolian', 'D Phrygian', 'A Locrian', 'E♭ Lydian', 'B♭ Ionian', 'F Mixolydian',
+    ]);
+    expect(w.notes[0]).toMatchObject({ name: 'C', pick: { root: 'C', mode: 'dorian' } });
+    expect(w.notes[2]).toMatchObject({ pick: { root: 'D', mode: 'phrygian' } });
+    expect(w.notes[2].tip).toBe('D Phrygian: the same notes as C Dorian, starting on D.');
+    expect(w.notes[4]).toMatchObject({ lit: false, name: 'E' });
   });
 
-  it('puts each mode name on the spoke whose notes it uses', () => {
-    const w = modeWheel('C', 'dorian', { allNumerals: false });
-    expect(w.rim.map(r => `${r.text}:${r.spoke}`))
-      .toEqual(['Lydian:1', 'Ionian:0', 'Mixolydian:11', 'Dorian:10', 'Aeolian:9', 'Phrygian:8', 'Locrian:7']);
-    expect(w.rim.find(r => r.text === 'Mixolydian')!.tip)
-      .toBe('C Mixolydian: the notes of F major. Against C major: ♭7.');
+  it('spells a mode from its parent key: D♭ Locrian is C♯ Locrian', () => {
+    expect(parentKey('Db', 'locrian')).toEqual({ spoke: 2, key: 'D', root: 'C#' });
+    const w = modeWheel('Db', 'locrian', off);
+    expect(w.title).toBe('C♯ Locrian');
+    expect(filled(w.cells)).toEqual(['G ♭V', 'D ♭II', 'A ♭VI', 'Em ♭iii', 'Bm ♭vii', 'F♯m iv', 'C♯° i°']);
   });
 
-  it('lists the relative modes from the mode’s own root', () => {
-    expect(modeWheel('C', 'dorian', { allNumerals: false }).relative.map(r => r.label))
-      .toEqual(['C Dorian', 'D Phrygian', 'E♭ Lydian', 'F Mixolydian', 'G Aeolian', 'A Locrian', 'B♭ Ionian']);
+  it('keeps the root’s name where the key’s other spelling allows it', () => {
+    expect(parentKey('F#', 'lydian')).toEqual({ spoke: 7, key: 'C#', root: 'F#' });
+    expect(parentKey('F', 'locrian')).toEqual({ spoke: 6, key: 'Gb', root: 'F' });
+    const w = modeWheel('F#', 'lydian', off);
+    expect(w.title).toBe('F♯ Lydian');
+    // The wheel's cells take the mode's spelling: C♯, not D♭.
+    expect(filled(w.cells)).toEqual(['F♯ I', 'C♯ V', 'G♯ II', 'D♯m vi', 'A♯m iii', 'E♯m vii', 'B♯° ♯iv°']);
+    expect(ring(w)).toContain('B♯ Locrian');
   });
 
-  it('marks the one note each parallel mode flattens', () => {
-    const rows = modeWheel('C', 'ionian', { allNumerals: false }).parallel;
-    expect(rows.map(r => r.name)).toEqual(['Lydian', 'Ionian', 'Mixolydian', 'Dorian', 'Aeolian', 'Phrygian', 'Locrian']);
-    expect(rows.map(r => r.degrees.filter((_, j) => r.changed[j]).join('')))
-      .toEqual(['', '4', '♭7', '♭3', '♭6', '♭2', '♭5']);
-    expect(rows.map(r => r.parent)).toEqual(['G', 'C', 'F', 'B♭', 'E♭', 'A♭', 'D♭']);
-    expect(rows[1].current).toBe(true);
+  it('lists every mode on the root as its chords, marking what each lends', () => {
+    const rows = modeWheel('C', 'dorian', off).parallel;
+    expect(rows.map(r => r.title)).toEqual([
+      'C Lydian', 'C Ionian', 'C Mixolydian', 'C Dorian', 'C Aeolian', 'C Phrygian', 'C Locrian',
+    ]);
+    const aeolian = rows[4];
+    expect(aeolian.chords.map(c => `${c.same ? '' : '+'}${c.name}`))
+      .toEqual(['Cm', '+D°', 'E♭', '+Fm', 'Gm', '+A♭', 'B♭']);
+    expect(aeolian.chords[5].tip).toBe('A♭: ♭VI in C Aeolian. C Dorian has A° here: borrow A♭ for Aeolian colour.');
+    expect(rows.map(r => r.swap)).toEqual([null, 'F♯ → F', 'B → B♭', 'E → E♭', 'A → A♭', 'D → D♭', 'G → G♭']);
+    expect(rows.map(r => r.spoke)).toEqual([1, 0, 11, 10, 9, 8, 7]);
+    expect(rows[3].current).toBe(true);
+    expect(rows[2].tip).toBe('C Mixolydian: the notes of F major. Against C major: ♭7.');
+  });
+
+  it('respells a row only when its key needs it', () => {
+    expect(modeWheel('C#', 'locrian', off).parallel.map(r => r.title)[0]).toBe('D♭ Lydian');
   });
 });
 

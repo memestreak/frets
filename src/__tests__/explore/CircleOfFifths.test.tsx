@@ -59,6 +59,28 @@ describe('CircleOfFifths', () => {
     expect(chips('Secondary dominants')).toEqual(['V/iiA7', 'V/iiiB7', 'V/IVC7', 'V/VD7', 'V/viE7']);
   });
 
+  it('highlights a chord’s secondary dominant while the chord or the chip is hovered', () => {
+    renderAt();
+    fireEvent.click(screen.getByLabelText('Secondary dominants'));
+    const hot = () => [...document.querySelectorAll('.cof-hot')].map(g => g.getAttribute('data-cell'));
+    expect(hot()).toEqual([]);
+    // Dm (ii, on F's spoke) resolves from A7.
+    fireEvent.pointerEnter(cell('minor:11'));
+    expect(hot()).toEqual(['major:3']);
+    fireEvent.pointerLeave(cell('minor:11'));
+    expect(hot()).toEqual([]);
+    // G resolves from D7.
+    fireEvent.pointerEnter(cell('major:1'));
+    expect(hot()).toEqual(['major:2']);
+    fireEvent.pointerLeave(cell('major:1'));
+    const e7 = within(screen.getByRole('region', { name: 'Secondary dominants' })).getByText('E7').closest('li')!;
+    fireEvent.pointerEnter(e7);
+    expect(hot()).toEqual(['major:4']);
+    fireEvent.pointerLeave(e7);
+    expect(hot()).toEqual([]);
+    expect(document.querySelector('marker, .cof-arrow')).toBeNull();
+  });
+
   it('draws key signatures and numbers every chord on request', () => {
     renderAt();
     expect(screen.queryByTestId('staff-2')).toBeNull();
@@ -69,42 +91,55 @@ describe('CircleOfFifths', () => {
     expect(cell('major:4')).toHaveAccessibleName('E, III');
   });
 
-  it('shows Mode view from the URL, on C Dorian', () => {
-    renderAt('?view=mode');
+  it('shows the Advanced view from the URL, on C Dorian', () => {
+    renderAt('?view=advanced');
     expect(heading()).toHaveTextContent('C Dorian');
     expect(screen.getByTestId('mode-formula')).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    expect(screen.getByRole('button', { name: 'Dorian' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'C Dorian' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('row', { selected: true })).toHaveTextContent(/^C Dorian/);
     // The Key view's own checkboxes keep their room but are out of reach.
     expect(screen.getByLabelText('Parallel key')).toBeDisabled();
   });
 
-  it('picks a mode from the rim, the parallel table or the relative cells', () => {
-    renderAt('?view=mode');
-    fireEvent.click(screen.getByRole('button', { name: 'Lydian' }));
-    expect(heading()).toHaveTextContent('C Lydian');
+  it('picks a mode from the parallel table or a lit note on the ring', () => {
+    renderAt('?view=advanced');
     fireEvent.click(screen.getByRole('rowheader', { name: 'C Phrygian' }));
     expect(heading()).toHaveTextContent('C Phrygian');
-    // C Phrygian's notes from D♭ instead.
+    // C Phrygian's notes from D♭ instead: only the root moves.
     fireEvent.click(screen.getByRole('button', { name: 'D♭ Lydian' }));
     expect(heading()).toHaveTextContent('D♭ Lydian');
+    expect(screen.getByRole('button', { name: 'D♭ Lydian' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('moves the root from the outer ring, keeping the mode', () => {
-    renderAt('?view=mode');
+  it('previews a parallel mode’s notes on the ring while its row is hovered', () => {
+    renderAt('?view=advanced');
+    expect(screen.queryByTestId('run-preview')).toBeNull();
+    fireEvent.pointerEnter(screen.getByRole('rowheader', { name: 'C Lydian' }).closest('tr')!);
+    expect(screen.getByTestId('run-preview')).toBeInTheDocument();
+    fireEvent.pointerLeave(screen.getByRole('rowheader', { name: 'C Lydian' }).closest('tbody')!);
+    expect(screen.queryByTestId('run-preview')).toBeNull();
+  });
+
+  it('moves the root from the outer ring, keeping the mode, and spells it from its key', () => {
+    renderAt('?view=advanced');
     fireEvent.click(cell('major:1'));
     expect(heading()).toHaveTextContent('G Dorian');
-    expect(chips('Chords')[0]).toBe('iGm');
+    fireEvent.click(screen.getByRole('rowheader', { name: 'G Locrian' }));
+    fireEvent.click(cell('major:7'));
+    // D♭ Locrian uses D major's notes, so it is spelled C♯ Locrian.
+    expect(heading()).toHaveTextContent('C♯ Locrian');
+    expect(cell('dim:2')).toHaveAccessibleName('C♯°, i°');
   });
 
   it('keeps the root when switching views', () => {
     const page = renderAt();
     fireEvent.click(cell('minor:0'));
-    fireEvent.click(screen.getByRole('button', { name: 'Mode' }));
-    expect(nav.push).toHaveBeenLastCalledWith('/explore/circle?view=mode', { scroll: false });
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+    expect(nav.push).toHaveBeenLastCalledWith('/explore/circle?view=advanced', { scroll: false });
     page.follow();
     expect(heading()).toHaveTextContent('A Aeolian');
-    fireEvent.click(screen.getByRole('button', { name: 'Dorian' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Key' }));
+    fireEvent.click(screen.getByRole('rowheader', { name: 'A Dorian' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Circle' }));
     expect(nav.push).toHaveBeenLastCalledWith('/explore/circle', { scroll: false });
     page.follow();
     expect(heading()).toHaveTextContent('A major');
@@ -113,7 +148,7 @@ describe('CircleOfFifths', () => {
   it('explains a cell after the mouse rests on it for a second', () => {
     vi.useFakeTimers();
     try {
-      renderAt('?view=mode');
+      renderAt('?view=advanced');
       fireEvent.pointerMove(cell('major:11'), { pointerType: 'mouse' });
       expect(screen.queryByRole('tooltip')).toBeNull();
       act(() => vi.advanceTimersByTime(TIP_DELAY_MS));

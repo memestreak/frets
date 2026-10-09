@@ -1,36 +1,56 @@
-import { useId, type KeyboardEvent } from 'react';
+import { useId, useState, type KeyboardEvent } from 'react';
 import { DEGREES } from '@/components/fretboard/theme';
 import {
   ALL_CELLS, cellId, cellName, keySignature, signatureTip,
-  type Cell, type Ring, type WheelModel,
+  type Cell, type Ring, type RingNote, type WheelModel,
 } from './circle';
 
 /*
  * Draws a circle-of-fifths model: three rings of twelve cells, C at the top,
- * then any arrows, mode names round the rim and key signatures outside it.
- * It knows no music theory; `circle.ts` says what each cell shows.
+ * then the ring of notes round the outside (its lit run, the
+ * root's pin and mode names along it), in the Advanced view only, and key
+ * signatures outside that. It knows no music theory; `circle.ts` says
+ * what each part shows.
  */
 
 /** Inner and outer radius of each ring, in viewBox units. */
 const RADII: Record<Ring, [number, number]> = { major: [120, 163], minor: [82, 120], dim: [52, 82] };
 const NAME_SIZE: Record<Ring, number> = { major: 15, minor: 12, dim: 9.5 };
-/** What the wheel alone needs round the rings. */
-const BARE_HALF = 172;
-/** On-screen width of 2 × BARE_HALF units: the rings keep this size as staves add room. */
-const BARE_WIDTH = 560;
+/** The ring of notes, outside the chords. */
+const NOTE_RING: [number, number] = [167, 193];
+const NOTE_SIZE = 11.5;
+const PIN_RADIUS = 10.5;
+/** Mode names curve along the ring, just outside it. */
+const LABEL_SIZE = 10;
+const LABEL_RADIUS = NOTE_RING[1] + 3;
+/** What the three rings of chords need, with a margin. */
+const RINGS_HALF = 172;
+/** What the wheel needs with the ring of notes and its mode names. */
+const RING_HALF = LABEL_RADIUS + LABEL_SIZE + 4;
+/** Largest on-screen width of 2 × RINGS_HALF units: the rings keep this size as more is drawn round them. */
+const RINGS_WIDTH = 600;
 
 /** Angle of a spoke (or a point between spokes), clockwise from the top. */
 const angle = (spoke: number) => ((spoke * 30 - 90) * Math.PI) / 180;
 const point = (spoke: number, r: number): [number, number] =>
   [r * Math.cos(angle(spoke)), r * Math.sin(angle(spoke))];
 
-function sector(spoke: number, [r0, r1]: [number, number]): string {
-  const [x0, y0] = point(spoke - 0.5, r1);
-  const [x1, y1] = point(spoke + 0.5, r1);
-  const [x2, y2] = point(spoke + 0.5, r0);
-  const [x3, y3] = point(spoke - 0.5, r0);
-  return `M${x0} ${y0}A${r1} ${r1} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 0 0 ${x3} ${y3}Z`;
+/** A band between two radii, clockwise from one angle to another, in spokes. */
+function band(from: number, to: number, [r0, r1]: [number, number]): string {
+  const [x0, y0] = point(from, r1);
+  const [x1, y1] = point(to, r1);
+  const [x2, y2] = point(to, r0);
+  const [x3, y3] = point(from, r0);
+  const large = to - from > 6 ? 1 : 0;
+  return `M${x0} ${y0}A${r1} ${r1} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 ${large} 0 ${x3} ${y3}Z`;
 }
+
+/** One spoke's cell of a ring. */
+const sector = (spoke: number, radii: [number, number]) => band(spoke - 0.5, spoke + 0.5, radii);
+
+/** The ring of notes' lit run for a key on `home`: the spoke before it and the five after. */
+const run = (home: number, grow = 0) =>
+  band(home - 1.5, home + 5.5, [NOTE_RING[0] - grow, NOTE_RING[1] + grow]);
 
 const middleOf = ({ ring, spoke }: Cell) => point(spoke, (RADII[ring][0] + RADII[ring][1]) / 2);
 
@@ -40,13 +60,6 @@ const middleOf = ({ ring, spoke }: Cell) => point(spoke, (RADII[ring][0] + RADII
  */
 const reach = (spoke: number, width: number, height: number) =>
   Math.abs(Math.cos(angle(spoke))) * (width / 2) + Math.abs(Math.sin(angle(spoke))) * (height / 2);
-
-// Mode names round the rim. Their room is sized for the longest name on
-// every spoke, so the staves outside them never move as the names do.
-const RIM_FONT = 11.5;
-const RIM_HEIGHT = 14;
-const RIM_WIDEST = 'Mixolydian'.length * RIM_FONT * 0.6;
-const rimWidth = (text: string) => text.length * RIM_FONT * 0.6;
 
 // Key signatures: a small treble staff per spoke. Steps count up from the
 // bottom line (E4 = 0), so the top line, F5, is 8.
@@ -59,24 +72,35 @@ const staffWidth = (accidentals: number) => 14 + accidentals * ACCIDENTAL_GAP;
 
 /**
  * Where each spoke's staff sits, and the viewBox's half-width and
- * half-height: just enough for the rings, rim labels and staves shown.
+ * half-height: just enough for the wheel and the staves shown.
  */
-function layout(rim: boolean, staves: boolean) {
-  const rimOut = (spoke: number) => BARE_HALF + (rim ? 2 * reach(spoke, RIM_WIDEST, RIM_HEIGHT) : 0);
-  let halfX = BARE_HALF;
-  let halfY = BARE_HALF;
-  const grow = ([x, y]: [number, number], width: number, height: number) => {
-    halfX = Math.max(halfX, Math.abs(x) + width / 2 + 2);
-    halfY = Math.max(halfY, Math.abs(y) + height / 2 + 2);
-  };
+function layout(ring: boolean, staves: boolean) {
+  const bare = ring ? RING_HALF : RINGS_HALF;
+  let halfX = bare;
+  let halfY = bare;
   const staffAt = Array.from({ length: 12 }, (_, spoke) => {
     const w = staffWidth(keySignature(spoke).notes.length);
-    const at = point(spoke, rimOut(spoke) + 2 + reach(spoke, w, STAFF_HEIGHT));
-    if (rim) grow(point(spoke, BARE_HALF + reach(spoke, RIM_WIDEST, RIM_HEIGHT)), RIM_WIDEST, RIM_HEIGHT);
-    if (staves) grow(at, w, STAFF_HEIGHT);
+    const at = point(spoke, bare + reach(spoke, w, STAFF_HEIGHT));
+    if (staves) {
+      halfX = Math.max(halfX, Math.abs(at[0]) + w / 2 + 2);
+      halfY = Math.max(halfY, Math.abs(at[1]) + STAFF_HEIGHT / 2 + 2);
+    }
     return at;
   });
   return { staffAt, halfX: Math.ceil(halfX), halfY: Math.ceil(halfY) };
+}
+
+/**
+ * The arc a mode name is written along, one spoke wide. On the lower half
+ * it runs the other way, a line further out, so the name reads upright.
+ */
+function labelArc(spoke: number): string {
+  const lower = spoke > 3 && spoke < 9;
+  const r = lower ? LABEL_RADIUS + LABEL_SIZE * 0.75 : LABEL_RADIUS;
+  const [a, b] = lower ? [spoke + 0.5, spoke - 0.5] : [spoke - 0.5, spoke + 0.5];
+  const [x0, y0] = point(a, r);
+  const [x1, y1] = point(b, r);
+  return `M${x0} ${y0}A${r} ${r} 0 0 ${lower ? 0 : 1} ${x1} ${y1}`;
 }
 
 /** Enter or Space acts like a click on a focusable SVG part. */
@@ -94,32 +118,30 @@ interface CircleWheelProps {
   /** The rings whose cells can be picked. */
   pickable: readonly Ring[];
   onPick: (cell: Cell) => void;
-  /** A rim label was picked, by its index in `model.rim`. */
-  onRim?: (index: number) => void;
+  /** A ring note with a `pick` was picked. */
+  onNote?: (note: RingNote) => void;
+  /** Outline, dashed, the run a key on this spoke would light: a preview. */
+  preview?: number | null;
+  /** A cell to highlight because something off the wheel (its chip) is hovered. */
+  highlight?: string | null;
 }
 
-export function CircleWheel({ model, signatures, pickable, onPick, onRim }: CircleWheelProps) {
-  const arrowId = `${useId()}-arrow`;
-  const { staffAt, halfX, halfY } = layout(model.rim.length > 0, signatures);
+export function CircleWheel({ model, signatures, pickable, onPick, onNote, preview = null, highlight = null }: CircleWheelProps) {
+  const id = useId();
+  /** The hovered or focused cell: its secondary dominant, if any, is highlighted. */
+  const [hover, setHover] = useState<string | null>(null);
+  const hot = highlight ?? (hover && model.dominantOf.get(hover));
+  const { staffAt, halfX, halfY } = layout(model.notes.length > 0, signatures);
   const tonic = model.tonic && cellId(model.tonic);
 
   return (
     <svg
       className="cof-wheel"
       viewBox={`${-halfX} ${-halfY} ${2 * halfX} ${2 * halfY}`}
-      style={{ maxWidth: Math.round((BARE_WIDTH * halfX) / BARE_HALF), aspectRatio: `${halfX} / ${halfY}` }}
+      style={{ maxWidth: Math.round((RINGS_WIDTH * halfX) / RINGS_HALF), aspectRatio: `${halfX} / ${halfY}` }}
       role="group"
       aria-label="Circle of fifths"
     >
-      <defs>
-        <marker
-          id={arrowId} viewBox="0 0 10 10" refX={8} refY={5}
-          markerWidth={6} markerHeight={6} orient="auto-start-reverse"
-        >
-          <path d="M0 0L10 5L0 10z" className="cof-arrow-head" />
-        </marker>
-      </defs>
-
       {ALL_CELLS.map(cell => {
         const id = cellId(cell);
         const look = model.cells.get(id) ?? {};
@@ -129,17 +151,22 @@ export function CircleWheel({ model, signatures, pickable, onPick, onRim }: Circ
         const size = NAME_SIZE[cell.ring];
         const dim = cell.ring === 'dim';
         const ink = fill ? { fill: `var(--on-degree-${fill})` } : undefined;
-        const name = cellName(cell);
+        const name = look.name ?? cellName(cell);
         const classes = ['cof-cell', `cof-${cell.ring}`];
         if (look.edge) classes.push('cof-edge');
         if (look.ring) classes.push(`cof-ring-${look.ring}`);
         if (canPick) classes.push('cof-pickable');
+        if (id === hot) classes.push('cof-hot');
         return (
           <g
             key={id}
             className={classes.join(' ')}
             data-cell={id}
             data-tip={look.tip}
+            onPointerEnter={() => setHover(id)}
+            onPointerLeave={() => setHover(h => (h === id ? null : h))}
+            onFocus={() => setHover(id)}
+            onBlur={() => setHover(h => (h === id ? null : h))}
             {...(canPick ? {
               role: 'button',
               tabIndex: 0,
@@ -175,46 +202,48 @@ export function CircleWheel({ model, signatures, pickable, onPick, onRim }: Circ
         );
       })}
 
-      {model.arrows.map(a => {
-        const [x0, y0] = middleOf(a.from);
-        const [x1, y1] = middleOf(a.to);
-        // Bend each arrow to one side of the straight line between the cells.
-        const cx = (x0 + x1) / 2 - (y1 - y0) * 0.25;
-        const cy = (y0 + y1) / 2 + (x1 - x0) * 0.25;
-        // Start and end short of the cells' middles, clear of their names.
-        const toward = (x: number, y: number, by: number): [number, number] => {
-          const len = Math.hypot(cx - x, cy - y) || 1;
-          return [x + ((cx - x) / len) * by, y + ((cy - y) / len) * by];
-        };
-        const [sx, sy] = toward(x0, y0, 14);
-        const [ex, ey] = toward(x1, y1, 15);
-        const d = `M${sx} ${sy}Q${cx} ${cy} ${ex} ${ey}`;
+      {model.notes.map(note => {
+        const [x, y] = point(note.spoke, (NOTE_RING[0] + NOTE_RING[1]) / 2);
+        const pick = note.pick && onNote ? () => onNote(note) : null;
+        const classes = ['cof-note'];
+        if (note.lit) classes.push('cof-note-lit');
+        if (note.root) classes.push('cof-note-root');
+        if (pick) classes.push('cof-pickable');
         return (
-          <g key={`${cellId(a.from)}>${cellId(a.to)}`} data-tip={a.tip}>
-            <path className="cof-arrow" d={d} markerEnd={`url(#${arrowId})`} />
-            <path className="cof-arrow-hit" d={d} />
+          <g
+            key={note.spoke}
+            className={classes.join(' ')}
+            data-note={note.spoke}
+            data-tip={note.tip}
+            {...(pick ? {
+              role: 'button',
+              tabIndex: 0,
+              'aria-pressed': note.root,
+              'aria-label': `${note.name} ${note.label}`,
+              onClick: pick,
+              onKeyDown: onActivate(pick),
+            } : { 'aria-hidden': true })}
+          >
+            <path d={sector(note.spoke, NOTE_RING)} />
+            {note.root && <circle className="cof-pin" cx={x} cy={y} r={PIN_RADIUS} />}
+            <text x={x} y={y + NOTE_SIZE * 0.35} textAnchor="middle" fontSize={NOTE_SIZE}>{note.name}</text>
+            {note.label && (
+              <>
+                <path id={`${id}-label-${note.spoke}`} className="cof-label-arc" d={labelArc(note.spoke)} />
+                <text className="cof-mode-label" fontSize={LABEL_SIZE}>
+                  <textPath href={`#${id}-label-${note.spoke}`} startOffset="50%" textAnchor="middle">
+                    {note.label}
+                  </textPath>
+                </text>
+              </>
+            )}
           </g>
         );
       })}
-
-      {model.rim.map((label, i) => {
-        const r = BARE_HALF + reach(label.spoke, rimWidth(label.text), RIM_HEIGHT);
-        const [x, y] = point(label.spoke, r);
-        const pick = () => onRim?.(i);
-        return (
-          <text
-            key={label.text}
-            className="cof-rim"
-            x={x} y={y + 4} textAnchor="middle" fontSize={RIM_FONT}
-            role="button" tabIndex={0} aria-pressed={label.current}
-            data-tip={label.tip}
-            onClick={pick}
-            onKeyDown={onActivate(pick)}
-          >
-            {label.text}
-          </text>
-        );
-      })}
+      {model.notes.length > 0 && <path className="cof-run" d={run(model.homeSpoke)} />}
+      {preview !== null && preview !== model.homeSpoke && (
+        <path className="cof-run-preview" d={run(preview, 2)} data-testid="run-preview" />
+      )}
 
       {signatures && staffAt.map(([cx, cy], spoke) => {
         const { sharps, notes } = keySignature(spoke);

@@ -1,8 +1,13 @@
 import { ChordChips, PanelSection } from './ChordChips';
 import type { KeyOptions, KeyWheel } from './circle';
 
-/** The Key view's sections under the wheel: its chords, and what the checkboxes add. */
-export function KeyPanel({ wheel, options }: { wheel: KeyWheel; options: KeyOptions }) {
+/** The Circle view's sections under the wheel: its chords, and what the checkboxes add. */
+export function KeyPanel({ wheel, options, onHighlight }: {
+  wheel: KeyWheel;
+  options: KeyOptions;
+  /** A secondary dominant's chip is hovered (its cell's id) or left (null). */
+  onHighlight: (cell: string | null) => void;
+}) {
   return (
     <>
       <PanelSection title="Chords">
@@ -15,7 +20,7 @@ export function KeyPanel({ wheel, options }: { wheel: KeyWheel; options: KeyOpti
       )}
       {options.dominants && (
         <PanelSection title="Secondary dominants">
-          <ChordChips chips={wheel.dominants} />
+          <ChordChips chips={wheel.dominants} onHighlight={onHighlight} />
         </PanelSection>
       )}
     </>

@@ -71,8 +71,8 @@ binds a local port).
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
   `/practice`, `/explore` and `/chords` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=mode`
-  for its Mode view), the Chord library `/chords/library` and the Chord lab
+  `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=advanced`
+  for its Advanced view, the modes), the Chord library `/chords/library` and the Chord lab
   `/chords/lab`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
@@ -140,12 +140,15 @@ binds a local port).
   to cycle a chord's shapes, an Arpeggio toggle and a link to the chord in
   the Chord library. With a chord selected, a click on anything but a
   control, or Esc, goes back to the scale.
-  `circle/` is the Circle of fifths, Key and Mode views on one wheel:
+  `circle/` is the Circle of fifths, its Circle (keys) and Advanced (modes)
+  views on one wheel:
   `circle.ts` (pure: spokes, cells, key signatures, numerals, and the
-  `keyWheel` / `modeWheel` models saying what every cell, chip and tip
-  shows; spelling from `theory.ts`), `CircleWheel.tsx` (draws a model,
-  knows no theory), `HoverTips.tsx` (the one-second tip for any
-  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` and the page,
+  `keyWheel` / `modeWheel` models saying what every cell, ring note, chip
+  and tip shows; a mode is spelled from its parent key, `parentKey`;
+  spelling from `theory.ts`), `CircleWheel.tsx` (draws a model, with the
+  ring of notes round it; knows no theory), `HoverTips.tsx` (the one-second tip for any
+  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
+  table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
 - `src/features/chords/` — the Chord library (`library/`, with its
   client-only loader) and the Chord lab (`lab/`), built on `src/lib/chords/`

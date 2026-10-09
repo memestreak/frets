@@ -337,17 +337,33 @@ button {
   .cof-ring-solid path { stroke: var(--ink); stroke-width: 3; }
   .cof-ring-dashed path { stroke: var(--ink); stroke-width: 2.2; stroke-dasharray: 4 2; }
   .cof-pickable:focus-visible path { stroke: var(--ink); stroke-width: 3; stroke-dasharray: none; }
-  .cof-arrow { fill: none; stroke: var(--degree-fifth); stroke-width: 2; pointer-events: none; }
-  .cof-arrow-head { fill: var(--degree-fifth); }
-  .cof-arrow-hit { fill: none; stroke: transparent; stroke-width: 12; }
-  .cof-rim { font-family: var(--font-sans); font-weight: 600; fill: var(--ink-muted); cursor: pointer; }
-  .cof-rim:hover, .cof-rim:focus-visible { fill: var(--ink); text-decoration: underline; }
-  .cof-rim[aria-pressed='true'] { fill: var(--ink); font-weight: 800; text-decoration: underline; }
+  /* The secondary dominant of the hovered chord: its dashed ring turns solid, on a sunken fill. */
+  .cof-hot path { stroke: var(--ink); stroke-width: 3; stroke-dasharray: none; }
+  .cof-hot path:not([style*='fill']) { fill: var(--surface-sunken); }
+  /* The ring of notes: the lit run on a sunken band, the root as an ink pin. */
+  .cof-note path { fill: transparent; stroke: none; }
+  .cof-note text { fill: var(--ink-muted); font-weight: 500; }
+  .cof-note-lit > path:first-child { fill: var(--surface-sunken); }
+  .cof-note-lit text { fill: var(--ink); font-weight: 700; }
+  .cof-pickable.cof-note-lit:hover > path:first-child { fill: var(--line); }
+  .cof-note:focus-visible > path:first-child { stroke: var(--ink); stroke-width: 2; }
+  .cof-pin { fill: var(--ink); }
+  .cof-note-root > text:not(.cof-mode-label) { fill: var(--surface); font-weight: 800; }
+  .cof-label-arc { fill: none !important; }
+  .cof-mode-label { fill: var(--ink-muted); font-weight: 600; }
+  .cof-note-root .cof-mode-label { fill: var(--ink); font-weight: 800; }
+  .cof-run { fill: none; stroke: var(--ink); stroke-width: 1.5; pointer-events: none; }
+  .cof-run-preview { fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-dasharray: 5 4; pointer-events: none; }
   .cof-staff-hit { fill: transparent; }
   .cof-staff-line { stroke: var(--line-strong); stroke-width: 0.8; }
   .cof-staff-home .cof-staff-line { stroke: var(--ink); stroke-width: 1.1; }
   .cof-accidental { fill: var(--ink); font-family: var(--font-sans); pointer-events: none; }
   .cof-centre { fill: var(--ink); font-family: var(--font-display); font-weight: 600; }
+  /* The wheel, then the panel; in the Advanced view side by side once both fit. */
+  .cof-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  @media (min-width: 1000px) {
+    .cof-body-side { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 32px; }
+  }
   .cof-centre-sub { fill: var(--ink-muted); font-family: var(--font-sans); }
   @media (prefers-reduced-motion: reduce) { .cof-cell path { transition: none; } }
 
@@ -376,36 +392,43 @@ button {
   .cof-chip small { font-size: 11px; font-weight: 600; opacity: 0.85; }
   .cof-chip-outside { border-style: dashed; background: transparent; }
   .cof-chip-ringed { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
-  .cof-relative { display: grid; grid-template-columns: repeat(auto-fill, 104px); gap: 6px; }
-  .cof-relative-cell {
-    display: grid; justify-items: center; width: 104px; padding: 4px 0;
-    border: 2px solid var(--line); border-radius: var(--radius-sm);
-    background: var(--surface-raised); font: inherit; font-weight: 600; line-height: 1.2;
-    cursor: pointer; -webkit-tap-highlight-color: transparent;
-  }
-  .cof-relative-cell small { font-size: 11px; color: var(--ink-muted); }
-  .cof-relative-cell:hover { background: var(--surface-sunken); }
-  .cof-relative-cell[aria-pressed='true'] { border-color: var(--ink); }
-  .cof-relative-cell:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .cof-parallel-scroll { overflow-x: auto; padding: 2px; }
-  .cof-parallel { border-collapse: separate; border-spacing: 0 3px; table-layout: fixed; width: 560px; font-size: 15px; }
-  .cof-col-name { width: 140px; }
-  .cof-col-degree { width: 40px; }
-  .cof-col-parent { width: 140px; }
-  .cof-parallel tr { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .cof-parallel tr:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
-  .cof-parallel tr > * { background: var(--surface-raised); }
-  .cof-parallel tr:hover > * { background: var(--surface-sunken); }
-  .cof-parallel tr > :first-child { border-radius: 8px 0 0 8px; }
-  .cof-parallel tr > :last-child { border-radius: 0 8px 8px 0; }
-  .cof-parallel th { text-align: left; font-weight: 600; padding: 6px 10px; white-space: nowrap; }
-  .cof-parallel td { text-align: center; padding: 6px 0; font-family: var(--font-mono); font-size: 13px; }
-  .cof-parallel td span { display: inline-block; min-width: 28px; padding: 1px 0; border-radius: 6px; }
-  .cof-parallel td.cof-changed { font-weight: 800; }
-  .cof-parallel td.cof-changed span { background: var(--ink); color: var(--surface); }
-  .cof-parallel td.cof-parent { text-align: left; font-family: var(--font-sans); color: var(--ink-muted); padding-left: 10px; white-space: nowrap; }
+  .cof-parallel { border-collapse: separate; border-spacing: 0 3px; table-layout: fixed; width: 100%; min-width: 340px; font-size: 15px; }
+  .cof-col-name { width: 132px; }
+  .cof-col-swap { width: 72px; }
+  .cof-parallel thead th { font-size: 12px; font-weight: 600; color: var(--ink-muted); text-align: center; }
+  .cof-parallel thead th.cof-swap { text-align: left; padding-left: 8px; }
+  .cof-parallel tbody tr { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .cof-parallel tbody tr:focus { outline: none; }
+  .cof-parallel tbody tr:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cof-parallel tbody tr > * { background: var(--surface-raised); }
+  .cof-parallel tbody tr:hover > * { background: var(--surface-sunken); }
+  .cof-parallel tbody tr > :first-child { border-radius: 8px 0 0 8px; }
+  .cof-parallel tbody tr > :last-child { border-radius: 0 8px 8px 0; }
+  .cof-parallel tbody th { text-align: left; font-weight: 600; padding: 6px 8px 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cof-parallel tbody td { text-align: center; padding: 4px 1px; }
+  .cof-table-chord {
+    display: grid; justify-items: center; padding: 1px 0;
+    border: 2px solid transparent; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600; line-height: 1.15; white-space: nowrap;
+  }
+  .cof-table-chord small { font-size: 10px; opacity: 0.85; }
+  .cof-table-same { color: var(--ink-muted); }
+  .cof-table-borrow { border-style: dashed; color: var(--ink); }
+  .cof-parallel td.cof-swap { text-align: left; padding-left: 8px; font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
   /* The current row's outline is an inset shadow: no border, so no size change. */
   .cof-row-current > * { box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
   .cof-row-current > :first-child { box-shadow: inset 2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
   .cof-row-current > :last-child { box-shadow: inset -2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  /* Phones: no root before each mode (it is the same in every row) and no Swap column. */
+  @media (max-width: 700px) {
+    .cof-col-name { width: 86px; }
+    .cof-parallel tbody th { font-size: 13px; padding: 6px 4px 6px 8px; }
+    .cof-col-swap { width: 0; }
+    .cof-row-root, .cof-parallel .cof-swap { display: none; }
+    .cof-parallel { font-size: 14px; }
+    .cof-table-chord { font-size: 12px; }
+    .cof-parallel tbody tr > :nth-last-child(2) { border-radius: 0 8px 8px 0; }
+    .cof-row-current > :nth-last-child(2) { box-shadow: inset -2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  }
 }
