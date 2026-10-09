@@ -16,6 +16,14 @@ describe('AppFooter', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
+  it('credits the chord shapes\' source and licence', () => {
+    render(<AppFooter />);
+    expect(screen.getByRole('link', { name: 'Haus of Chords' }))
+      .toHaveAttribute('href', 'https://github.com/dersergioni/haus-of-chords');
+    expect(screen.getByRole('link', { name: 'CC BY 4.0' }))
+      .toHaveAttribute('href', 'https://creativecommons.org/licenses/by/4.0/');
+  });
+
   it('links the build hash to its commit', () => {
     vi.stubEnv('NEXT_PUBLIC_COMMIT_HASH', 'abcd123');
     render(<AppFooter />);
@@ -32,7 +40,7 @@ describe('AppFooter', () => {
       vi.stubEnv('NEXT_PUBLIC_COMMIT_HASH', hash);
       render(<AppFooter />);
       expect(screen.getByText('Built at commit dev')).toBeInTheDocument();
-      expect(screen.getAllByRole('link')).toHaveLength(1);
+      expect(screen.queryByRole('link', { name: 'dev' })).toBeNull();
     },
   );
 });

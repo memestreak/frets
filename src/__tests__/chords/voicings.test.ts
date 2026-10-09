@@ -55,6 +55,11 @@ describe('findVoicings', () => {
     expect(frets).toEqual([...frets].sort((a, b) => a - b));
   });
 
+  it('keeps drop 3 grips, which leave out a middle string', () => {
+    // C7♯11 has no published shapes, so these come from the search.
+    expect(keys(findVoicings(chordOf('C', '7#11')).allMoveable)).toContain('8-x-8-9-7-x');
+  });
+
   it('allows a stretch across five frets', () => {
     expect(keys(findVoicings(chordOf('A', 'm7')).allMoveable)).toContain('x-x-7-5-x-3');
   });
@@ -67,6 +72,18 @@ describe('findVoicings', () => {
     const start = performance.now();
     for (const t of CHORD_TYPES) findVoicings(chordOf(CHORD_ROOTS[3], t.id));
     expect(performance.now() - start).toBeLessThan(5000);
+  });
+});
+
+describe('fingersNeeded', () => {
+  it('counts a barre as one finger, on any fret', () => {
+    expect(fingersNeeded([null, 3, 5, 5, 5, 3])).toBe(2); // index barre at 3, ring barre at 5
+    expect(fingersNeeded([null, 3, 2, 3, 3, 3])).toBe(3); // C9: the D string's fret 2 splits fret 3
+  });
+
+  it('rejects a barre across an open string at the lowest fret', () => {
+    expect(fingersNeeded([1, 0, 3, 2, 1, 1])).toBe(Infinity);
+    expect(fingersNeeded([null, 1, 0, 3, 3, 1])).toBe(Infinity);
   });
 });
 
@@ -98,7 +115,16 @@ describe('shapesInPosition', () => {
   const am7 = findVoicings(chordOf('A', 'm7'));
 
   it('offers the core shapes that fit in five frets, easiest first', () => {
-    expect(keys(shapesInPosition(am7, 5))).toEqual(['5-7-5-5-5-5', 'x-x-7-5-8-5', '5-x-5-5-8-5']);
+    expect(keys(shapesInPosition(am7, 5))).toEqual([
+      '5-7-5-5-5-5', '5-x-5-5-5-x', '5-7-5-5-8-5', '5-7-5-5-5-8', 'x-x-7-9-8-8',
+    ]);
+  });
+
+  it('finds a core moveable shape an octave up too', () => {
+    // The library lists the F barre at fret 1; the last position finds it at fret 13.
+    const f = findVoicings(chordOf('F', 'M'));
+    expect(keys(f.moveable)).toContain('1-3-3-2-1-1');
+    expect(keys(shapesInPosition(f, LAST_POSITION))).toContain('13-15-15-14-13-13');
   });
 
   it('takes in the open strings only in the first position', () => {

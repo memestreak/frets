@@ -1,11 +1,15 @@
 import { STRING_NAMES, TUNING } from '@/lib/music';
 import type { ChordInfo } from './chordTypes';
+import { publishedShapes } from './publishedShapes';
 
 /*
- * Guitar voicings, found by search rather than from a table: every way to
- * play the chord within a few frets, filtered by the rules below. Each rule
- * is one named constant or function, so changing a rule is a one-line edit.
- * The spec (docs/specs/2026-10-05-chord-library-design.md) gives the why.
+ * Guitar voicings. For the chord types Haus of Chords covers, the shapes
+ * shown first are the published ones (`publishedShapes`). Every other
+ * shape is found by search: every way to play the chord within a few
+ * frets, filtered by the rules below. Each rule is one named constant or
+ * function, so changing a rule is a one-line edit. The specs
+ * (docs/specs/2026-10-05-chord-library-design.md and
+ * docs/specs/2026-10-09-published-chord-shapes-design.md) give the why.
  */
 
 /** One entry per string, low E first: a fret number, or null for a muted string. */
@@ -16,6 +20,8 @@ const HIGHEST_FRET = 15;
 /** Highest fretted note minus lowest, in frets. */
 const MAX_SPAN = 4;
 const MAX_FINGERS = 4;
+/** Searched shapes harder than this stay out of the best few (they remain under Show all). */
+const BEST_FEW_MAX_DIFFICULTY = 6;
 const MIN_STRINGS = 3;
 /** Muted strings allowed between the lowest and highest sounding strings. */
 const MAX_INNER_MUTES = 1;
@@ -29,11 +35,11 @@ export const POSITION_FRETS = MAX_SPAN + 1;
 export const LAST_POSITION = HIGHEST_FRET - MAX_SPAN;
 
 export interface Voicings {
-  /** Shapes that ring open strings, most strings first. */
+  /** Shapes that ring open strings: the published ones in their order, else searched ones, easiest first. */
   open: Voicing[];
-  /** The best few moveable shapes, from the nut up. */
+  /** The best few moveable shapes, from the nut up: the published ones, else the easiest searched ones. */
   moveable: Voicing[];
-  /** Every moveable shape except pure doublings, from the nut up. */
+  /** Every moveable shape, published or searched, except pure doublings, from the nut up. */
   allMoveable: Voicing[];
 }
 
@@ -54,12 +60,36 @@ const toneOn = (rootPc: number, s: number, f: number) => mod12(TUNING[s] + f - r
 export const voicingKey = (v: Voicing): string =>
   v.map(f => (isSounding(f) ? f : 'x')).join('-');
 
-/** One finger per fretted note, except that the notes on the lowest fret share one (a barre). */
+/**
+ * Barres a fret needs: its notes share one finger lying flat unless an open
+ * string or a lower fretted note lies between them. A muted string or a
+ * higher note under the finger doesn't break it. x-3-2-3-3-3 has two at
+ * fret 3: the A string, and a barre over the top three.
+ */
+function barresAt(v: Voicing, fret: number): number {
+  let barres = 0;
+  let onBarre = false;
+  for (const f of v) {
+    if (f === fret) {
+      if (!onBarre) barres++;
+      onBarre = true;
+    } else if (f !== null && f < fret) {
+      onBarre = false;
+    }
+  }
+  return barres;
+}
+
+/**
+ * Fingers a shape needs: one per barre on each fret (see `barresAt`). The
+ * index finger takes the lowest fret alone, so a shape whose lowest fret
+ * needs two fingers is unplayable (Infinity): F as 1-0-3-2-1-1, where the
+ * open A string splits the barre.
+ */
 export function fingersNeeded(v: Voicing): number {
-  const fretted = frettedNotes(v);
-  if (!fretted.length) return 0;
-  const lowest = Math.min(...fretted);
-  return fretted.filter(f => f !== lowest).length + 1;
+  const frets = [...new Set(frettedNotes(v))].sort((a, b) => a - b);
+  if (frets.length && barresAt(v, frets[0]) > 1) return Infinity;
+  return frets.reduce((sum, fret) => sum + barresAt(v, fret), 0);
 }
 
 /**
@@ -93,7 +123,11 @@ const isOpenShape = (v: Voicing) =>
 /** Moveable shapes have no open strings, so they slide to any root. */
 const isMoveable = (v: Voicing) => !v.includes(0);
 
-/** Drops shapes that only leave strings out of a fuller shape with the same tones. */
+/**
+ * Drops shapes that only leave strings out of a fuller shape with the same
+ * tones. A shape with a muted string in the middle stays: leaving the top
+ * string out of 8-x-9-9-8-8 gives 8-x-9-9-8-x, the drop 3 grip players use.
+ */
 function dropDoublings(voicings: Voicing[], rootPc: number): Voicing[] {
   // Worked out once per shape: the lists can run to hundreds of shapes.
   const facts = voicings.map(v => {
@@ -105,14 +139,16 @@ function dropDoublings(voicings: Voicing[], rootPc: number): Voicing[] {
     fuller.strings[0] === v.strings[0] &&
     fuller.strings.length > v.strings.length &&
     fuller.tones === v.tones &&
-    v.strings.every(s => v.v[s] === fuller.v[s]);
+    v.strings.every(s => v.v[s] === fuller.v[s]) &&
+    innerMutes(v.v) === 0;
   return facts.filter(v => !facts.some(w => doubles(w, v))).map(f => f.v);
 }
 
-/** The easiest shape for each bass note (string and fret) and number of strings. */
+/** The easiest shape for each bass note (string and fret) and number of strings, if it is easy enough. */
 function easiestPerBass(voicings: Voicing[]): Voicing[] {
   const best = new Map<string, Voicing>();
   for (const v of voicings) {
+    if (difficulty(v) > BEST_FEW_MAX_DIFFICULTY) continue;
     const bass = soundingStrings(v)[0];
     const key = `${bass}:${v[bass]}:${soundingStrings(v).length}`;
     const current = best.get(key);
@@ -124,8 +160,6 @@ function easiestPerBass(voicings: Voicing[]): Voicing[] {
 const lowestFret = (v: Voicing) => Math.min(...frettedNotes(v));
 const byPosition = (a: Voicing, b: Voicing) =>
   lowestFret(a) - lowestFret(b) || soundingStrings(b).length - soundingStrings(a).length;
-const byFullness = (a: Voicing, b: Voicing) =>
-  soundingStrings(b).length - soundingStrings(a).length || difficulty(a) - difficulty(b);
 
 /**
  * Every combination of one choice per string with the root in the bass,
@@ -150,13 +184,35 @@ function* combinations(window: number[], chord: ChordInfo): Generator<Voicing> {
 
 const cache = new Map<string, Voicings>();
 
-/** Every playable voicing of the chord, sorted into open and moveable. Cached by root and tones. */
+/**
+ * The chord's voicings, sorted into open and moveable: the published
+ * shapes first where there are any, searched ones otherwise. Cached by
+ * root, type and tones.
+ */
 export function findVoicings(chord: ChordInfo): Voicings {
   const tones = chord.tones.map(t => `${t.semis}${t.required ? '' : '?'}`);
-  const cacheKey = `${chord.rootPc}:${tones.join(',')}`;
+  const cacheKey = `${chord.rootPc}:${chord.type?.id ?? ''}:${tones.join(',')}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
+  const searched = searchVoicings(chord);
+  const published = publishedShapes(chord);
+  const result = published ? {
+    open: published.open,
+    moveable: published.moveable.filter(fitsNeck).sort(byPosition),
+    allMoveable: uniqueShapes([...published.allMoveable.filter(fitsNeck), ...searched.allMoveable])
+      .sort(byPosition),
+  } : searched;
+  cache.set(cacheKey, result);
+  return result;
+}
+
+const fitsNeck = (v: Voicing) => Math.max(...frettedNotes(v)) <= HIGHEST_FRET;
+const uniqueShapes = (voicings: Voicing[]) =>
+  [...new Map(voicings.map(v => [voicingKey(v), v])).values()];
+
+/** Every playable voicing of the chord found by search. */
+function searchVoicings(chord: ChordInfo): Voicings {
   // One window per lowest fret, so each shape is found once: the open
   // string and the frets from `low` to `low + MAX_SPAN`.
   const found: Voicing[] = [];
@@ -171,13 +227,11 @@ export function findVoicings(chord: ChordInfo): Voicings {
   }
   const candidates = found;
   const allMoveable = dropDoublings(candidates.filter(isMoveable), chord.rootPc);
-  const result = {
-    open: dropDoublings(candidates.filter(isOpenShape), chord.rootPc).sort(byFullness),
+  return {
+    open: dropDoublings(candidates.filter(isOpenShape), chord.rootPc).sort(byEase),
     moveable: easiestPerBass(allMoveable).sort(byPosition),
     allMoveable: allMoveable.sort(byPosition),
   };
-  cache.set(cacheKey, result);
-  return result;
 }
 
 /**
@@ -190,14 +244,21 @@ const inPosition = (v: Voicing, first: number) =>
 const byEase = (a: Voicing, b: Voicing) =>
   difficulty(a) - difficulty(b) || soundingStrings(b).length - soundingStrings(a).length;
 
+/** A moveable shape and, when it fits under the highest fret, the same shape an octave up. */
+const withOctaveUp = (v: Voicing): Voicing[] => {
+  const up = v.map(f => (f === null ? null : f + 12));
+  return fitsNeck(up) ? [v, up] : [v];
+};
+
 /**
  * The shapes to offer in the position starting at fret `first`, easiest
- * first: the open shapes and the best few moveable ones that fit in it.
- * When none of those fits, the easiest of all the shapes that do, so a
- * chord with any shape in the position has one to show.
+ * first: the open shapes and the best few moveable ones (in either octave)
+ * that fit in it. When none of those fits, the easiest of all the shapes
+ * that do, so a chord with any shape in the position has one to show.
  */
 export function shapesInPosition(voicings: Voicings, first: number): Voicing[] {
-  const core = [...voicings.open, ...voicings.moveable].filter(v => inPosition(v, first));
+  const core = [...voicings.open, ...voicings.moveable.flatMap(withOctaveUp)]
+    .filter(v => inPosition(v, first));
   if (core.length) return core.sort(byEase);
   const fallback = voicings.allMoveable.filter(v => inPosition(v, first)).sort(byEase);
   return fallback.slice(0, 1);

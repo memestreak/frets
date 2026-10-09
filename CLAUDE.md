@@ -12,8 +12,9 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-05-chord-lab-design.md`,
 `docs/specs/2026-10-06-simpler-chord-diagrams-design.md`,
 `docs/specs/2026-10-06-chord-arpeggio-design.md`,
-`docs/specs/2026-10-07-scale-lab-position-shapes-design.md` and
-`docs/specs/2026-10-07-circle-of-fifths-design.md`). The app has no users
+`docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
+`docs/specs/2026-10-07-circle-of-fifths-design.md` and
+`docs/specs/2026-10-09-published-chord-shapes-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -95,10 +96,14 @@ binds a local port).
   chord types with our groups and symbols, roots, `chordOf` (spelled
   notes, tone labels, which tones a voicing may leave out) and
   `chordFromTones` (a type, or an unnamed chord, from a set of tones);
-  `voicings.ts`, which searches the neck for playable shapes (each rule a
-  named constant), splits them into open, the best few moveable and all
-  moveable, and picks the shapes in a five-fret position
-  (`shapesInPosition`); `chordUrls.ts`, the Chord library's URLs),
+  `publishedShapes.ts`, the shapes guitarists play, from Haus of Chords
+  (`data/haus-of-chords.json`, CC BY 4.0, credited in the footer;
+  re-import with `scripts/import-haus-of-chords.py`, see `data/README.md`);
+  `voicings.ts`, which shows those first and otherwise searches the neck
+  for playable shapes (each rule a named constant), splits them into open,
+  the best few moveable and all moveable, and picks the shapes in a
+  five-fret position (`shapesInPosition`); `chordUrls.ts`, the Chord
+  library's URLs),
   `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
   fill, roving-focus tap cells and arrow keys, and an optional `box`
   outlining a fret range; `theme.ts` holds the board

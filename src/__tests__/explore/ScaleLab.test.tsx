@@ -56,8 +56,8 @@ describe('ScaleLab', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
     expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
     expect(formula()).toHaveTextContent('1 2 ♭3 4 5 6 ♭7');
-    // D7's easiest shape in frets 5–9, x-x-x-7-7-8, and nothing else.
-    expect(dotsAt()).toEqual(['3:7 R', '4:7 3', '5:8 ♭7']);
+    // D7's easiest shape in frets 5–9, the A-form barre x-5-7-5-7-5, and nothing else.
+    expect(dotsAt()).toEqual(['1:5 R', '2:7 5', '3:5 ♭7', '4:7 3', '5:5 5']);
 
     fireEvent.click(chordCard('D7'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^A Dorian$/);
@@ -86,23 +86,23 @@ describe('ScaleLab', () => {
     const card = within(screen.getByRole('region', { name: 'In one position' }));
     fireEvent.click(card.getByRole('button', { name: /^Am7 \(i7\)/ }));
     expect(chordCard('Am7')).toHaveAttribute('aria-pressed', 'true');
-    expect(card.getByText('1 of 3')).toBeInTheDocument();
+    expect(card.getByText('1 of 5')).toBeInTheDocument();
     const link = () => card.getByRole('link', { name: 'Am7 in the Chord library →' });
     expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-7-5-5-5-5');
     expect(dotsAt()).toEqual(['0:5 R', '1:7 5', '2:5 ♭7', '3:5 ♭3', '4:5 5', '5:5 R']);
 
     fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
-    expect(card.getByText('2 of 3')).toBeInTheDocument();
-    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=x-x-7-5-8-5');
+    expect(card.getByText('2 of 5')).toBeInTheDocument();
+    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-x-5-5-5-x');
     fireEvent.keyDown(window, { key: 'ArrowDown' });
-    expect(card.getByText('3 of 3')).toBeInTheDocument();
+    expect(card.getByText('3 of 5')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowUp' });
-    expect(card.getByText('2 of 3')).toBeInTheDocument();
+    expect(card.getByText('2 of 5')).toBeInTheDocument();
 
     // Each chord keeps its shape while the position stays.
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    expect(card.getByText('2 of 3')).toBeInTheDocument();
+    expect(card.getByText('2 of 5')).toBeInTheDocument();
   });
 
   it('keeps the picked shape on the tile once the chord is cleared', () => {
@@ -132,10 +132,11 @@ describe('ScaleLab', () => {
     fireEvent.click(chordCard('D7'));
     fireEvent.click(arpeggio());
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
-    // Every D7 tone up to fret 15; only the shape's three carry labels.
+    // Every D7 tone up to fret 15; only the shape's five carry labels.
     const dots = screen.getAllByTestId(/^dot-/);
     expect(dots.length).toBeGreaterThan(20);
-    expect(dotsAt().filter(d => !d.endsWith(' '))).toEqual(['3:7 R', '4:7 3', '5:8 ♭7']);
+    expect(dotsAt().filter(d => !d.endsWith(' ')))
+      .toEqual(['1:5 R', '2:7 5', '3:5 ♭7', '4:7 3', '5:5 5']);
     expect(screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f))
       .toEqual(['10']);
     // It stays on for the next chord, and goes off with the selection.
