@@ -83,16 +83,16 @@ describe('IntervalTrainer', () => {
     expect(screen.queryByRole('button', { name: /Next/ })).not.toBeInTheDocument();
   });
 
-  it('H toggles the hint overlay on the whole board', () => {
+  it('Space toggles the hint overlay on the whole board', () => {
     // A narrow range must not shrink the hint.
     const { set } = renderFindIt(3, { mode: 'name', vRange: 2, hRange: 2 });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
-    fireEvent.keyDown(window, { key: 'h' });
-    fireEvent.keyUp(window, { key: 'h' });
+    fireEvent.keyDown(window, { key: ' ' });
+    fireEvent.keyUp(window, { key: ' ' });
     // Every cell in the fret window except the root's.
     expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
     expect(screen.getByRole('button', { name: /Hint/ })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.keyDown(window, { key: ' ' });
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
   });
 
@@ -155,7 +155,7 @@ describe('IntervalTrainer', () => {
     'Find it: direction %s still hints the whole board',
     dir => {
       const { set } = renderFindIt(13, { dir, vRange: 2, hRange: 3 });
-      fireEvent.keyDown(window, { key: 'h' });
+      fireEvent.keyDown(window, { key: ' ' });
       expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
     },
   );
@@ -163,7 +163,7 @@ describe('IntervalTrainer', () => {
   it('Find it: the hint replaces the reveal markers while on', () => {
     const { q } = renderFindIt(8, { pause: true });
     fireEvent.click(cellEl(q.tgt));
-    fireEvent.keyDown(window, { key: 'h' });
+    fireEvent.keyDown(window, { key: ' ' });
     expect(screen.queryAllByTestId('dot-also')).toHaveLength(0);
     expect(screen.getAllByTestId('dot-hint').length).toBeGreaterThan(0);
   });

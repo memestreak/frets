@@ -26,7 +26,8 @@ interface TrainerOptions<S, Q> {
  * Everything the trainers share around their reducer: saving settings and
  * stats, drawing questions, auto-advance, the keyboard, the hint (on for
  * one question at a time) and the settings-dialog flag. Left/right arrows move focus across the answer
- * buttons in `answerGridRef`; Enter or Space then presses the focused one.
+ * buttons in `answerGridRef`; Enter then presses the focused one.
+ * Space toggles the hint, wherever focus is.
  */
 export function useTrainer<S extends { pause: boolean }, Q>({
   reducer, init, storageKey, generate, rng, answerFor,

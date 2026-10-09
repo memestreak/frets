@@ -47,7 +47,7 @@ export function BoardFrame({
         >
           <EyeIcon />
           Hint
-          <Keycap>H</Keycap>
+          <Keycap>Space</Keycap>
         </button>
       </div>
     </section>

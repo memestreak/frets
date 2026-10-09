@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** Small bordered key hint, e.g. "↵" or "H". */
+/** Small bordered key hint, e.g. "↵" or "Space". */
 export function Keycap({ children }: { children: ReactNode }) {
   return <span className="keycap" aria-hidden="true">{children}</span>;
 }
