@@ -1,0 +1,480 @@
+{
+  "source": "https://github.com/dersergioni/haus-of-chords",
+  "commit": "8345d0d36caf33f905c04c42b494a7302b9589ba",
+  "licence": "CC BY 4.0",
+  "types": {
+    "M": {
+      "name": "major",
+      "formula": "1 3 5",
+      "open": [
+        { "shape": "x-3-2-0-1-0", "sources": 5 },
+        { "shape": "x-x-0-2-3-2", "sources": 5 },
+        { "shape": "0-2-2-1-0-0", "sources": 5 },
+        { "shape": "3-2-0-0-0-3", "sources": 5 },
+        { "shape": "3-2-0-0-3-3", "sources": 5 },
+        { "shape": "x-0-2-2-2-0", "sources": 5 },
+        { "shape": "x-0-2-2-2-x", "sources": 3 },
+        { "shape": "3-x-0-0-0-3", "sources": 2 },
+        { "shape": "x-3-2-0-1-3", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-10-9-8-8", "sources": 5 },
+        { "shape": "x-3-5-5-5-3", "sources": 5 },
+        { "shape": "x-x-10-9-8-8", "sources": 4 },
+        { "shape": "x-3-5-5-5-x", "sources": 4 },
+        { "shape": "x-x-10-12-13-12", "sources": 3 },
+        { "shape": "8-10-10-9-x-x", "sources": 2 },
+        { "shape": "8-7-5-5-5-x", "sources": 2 },
+        { "shape": "x-15-14-12-13-12", "sources": 2 },
+        { "shape": "x-x-10-9-8-x", "sources": 2 }
+      ]
+    },
+    "m": {
+      "name": "minor",
+      "formula": "1 ♭3 5",
+      "open": [
+        { "shape": "x-3-1-0-1-x", "sources": 2 },
+        { "shape": "x-x-0-2-3-1", "sources": 5 },
+        { "shape": "0-2-2-0-0-0", "sources": 5 },
+        { "shape": "x-0-2-2-1-0", "sources": 5 },
+        { "shape": "x-x-2-0-0-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-10-8-8-8", "sources": 5 },
+        { "shape": "x-3-5-5-4-3", "sources": 5 },
+        { "shape": "x-x-10-8-8-8", "sources": 3 },
+        { "shape": "x-x-10-12-13-11", "sources": 3 },
+        { "shape": "x-15-13-12-13-x", "sources": 2 },
+        { "shape": "x-3-5-5-4-x", "sources": 2 }
+      ]
+    },
+    "5": {
+      "name": "power chord",
+      "formula": "1 5",
+      "open": [
+        { "shape": "x-x-0-2-3-x", "sources": 4 },
+        { "shape": "0-2-2-x-x-x", "sources": 4 },
+        { "shape": "x-0-2-2-x-x", "sources": 4 },
+        { "shape": "0-2-x-x-x-x", "sources": 3 },
+        { "shape": "x-x-0-2-x-x", "sources": 3 },
+        { "shape": "0-2-2-x-0-0", "sources": 2 },
+        { "shape": "x-0-2-x-x-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-10-x-x-x", "sources": 5 },
+        { "shape": "x-3-5-5-x-x", "sources": 5 },
+        { "shape": "x-x-10-12-13-x", "sources": 3 },
+        { "shape": "x-3-5-x-x-x", "sources": 5 },
+        { "shape": "8-10-x-x-x-x", "sources": 4 },
+        { "shape": "x-x-10-12-x-x", "sources": 2 }
+      ]
+    },
+    "sus2": {
+      "name": "suspended 2nd",
+      "formula": "1 2 5",
+      "open": [
+        { "shape": "x-3-0-0-1-x", "sources": 4 },
+        { "shape": "x-x-0-2-3-0", "sources": 6 },
+        { "shape": "0-2-4-4-0-0", "sources": 4 },
+        { "shape": "1-3-3-0-x-x", "sources": 3 },
+        { "shape": "3-x-0-2-3-3", "sources": 4 },
+        { "shape": "x-0-2-2-0-0", "sources": 7 },
+        { "shape": "x-3-0-0-3-3", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-5-5-3-3", "sources": 11 },
+        { "shape": "x-x-10-12-13-10", "sources": 5 },
+        { "shape": "8-5-5-5-x-x", "sources": 2 },
+        { "shape": "x-15-12-12-13-x", "sources": 2 }
+      ]
+    },
+    "sus4": {
+      "name": "suspended 4th",
+      "formula": "1 4 5",
+      "open": [
+        { "shape": "x-3-3-0-1-x", "sources": 4 },
+        { "shape": "x-x-0-2-3-3", "sources": 6 },
+        { "shape": "0-2-2-2-0-0", "sources": 4 },
+        { "shape": "3-x-0-0-1-3", "sources": 4 },
+        { "shape": "x-0-2-2-3-0", "sources": 5 },
+        { "shape": "x-2-4-4-0-0", "sources": 4 },
+        { "shape": "x-3-3-0-1-1", "sources": 3 },
+        { "shape": "3-x-0-0-1-x", "sources": 2 },
+        { "shape": "x-x-2-2-0-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-5-5-6-x", "sources": 4 },
+        { "shape": "x-x-10-10-8-8", "sources": 4 },
+        { "shape": "8-10-10-10-8-8", "sources": 4 },
+        { "shape": "x-3-5-5-6-3", "sources": 4 },
+        { "shape": "x-15-15-12-13-x", "sources": 3 },
+        { "shape": "x-x-10-12-13-13", "sources": 3 },
+        { "shape": "8-8-10-10-8-8", "sources": 2 }
+      ]
+    },
+    "dim": {
+      "name": "diminished",
+      "formula": "1 ♭3 ♭5",
+      "open": [],
+      "moveableOnC": [
+        { "shape": "8-x-x-8-7-x", "sources": 2 },
+        { "shape": "x-x-10-8-7-x", "sources": 2 },
+        { "shape": "x-3-4-5-4-x", "sources": 2 },
+        { "shape": "8-9-10-8-x-x", "sources": 2 },
+        { "shape": "x-3-4-x-4-x", "sources": 2 },
+        { "shape": "x-x-10-11-x-11", "sources": 2 }
+      ]
+    },
+    "aug": {
+      "name": "augmented",
+      "formula": "1 3 ♯5",
+      "open": [
+        { "shape": "x-x-0-3-3-2", "sources": 5 },
+        { "shape": "3-2-1-0-0-3", "sources": 2 },
+        { "shape": "x-0-3-2-2-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-2-1-1-x", "sources": 7 },
+        { "shape": "x-x-10-9-9-8", "sources": 3 },
+        { "shape": "8-7-6-5-x-x", "sources": 2 },
+        { "shape": "8-7-6-5-5-x", "sources": 2 }
+      ]
+    },
+    "7": {
+      "name": "dominant 7th",
+      "formula": "1 3 5 ♭7",
+      "open": [
+        { "shape": "x-3-2-3-1-0", "sources": 6 },
+        { "shape": "x-x-0-2-1-2", "sources": 8 },
+        { "shape": "0-2-0-1-0-0", "sources": 6 },
+        { "shape": "0-2-2-1-3-0", "sources": 6 },
+        { "shape": "3-2-0-0-0-1", "sources": 6 },
+        { "shape": "x-0-2-0-2-0", "sources": 6 },
+        { "shape": "x-0-2-2-2-3", "sources": 5 },
+        { "shape": "x-1-0-1-x-x", "sources": 2 },
+        { "shape": "x-2-1-2-0-2", "sources": 6 },
+        { "shape": "0-2-0-1-3-0", "sources": 2 },
+        { "shape": "3-2-0-0-3-1", "sources": 2 },
+        { "shape": "3-2-3-0-0-3", "sources": 2 },
+        { "shape": "3-x-3-0-0-x", "sources": 2 },
+        { "shape": "x-0-2-0-2-3", "sources": 2 },
+        { "shape": "x-2-1-2-0-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-8-9-8-8", "sources": 9 },
+        { "shape": "x-3-5-3-5-3", "sources": 8 },
+        { "shape": "x-x-10-12-11-12", "sources": 5 },
+        { "shape": "x-3-2-3-1-x", "sources": 5 },
+        { "shape": "8-10-8-9-11-8", "sources": 4 },
+        { "shape": "8-x-8-9-8-x", "sources": 4 },
+        { "shape": "8-x-8-9-x-x", "sources": 4 },
+        { "shape": "x-3-2-3-x-x", "sources": 3 },
+        { "shape": "x-3-5-3-5-x", "sources": 3 },
+        { "shape": "x-3-5-5-5-6", "sources": 2 },
+        { "shape": "x-3-x-3-5-3", "sources": 2 },
+        { "shape": "x-x-10-9-11-8", "sources": 2 }
+      ]
+    },
+    "m7": {
+      "name": "minor 7th",
+      "formula": "1 ♭3 5 ♭7",
+      "open": [
+        { "shape": "x-x-0-2-1-1", "sources": 8 },
+        { "shape": "0-2-0-0-0-0", "sources": 5 },
+        { "shape": "0-2-2-0-3-3", "sources": 4 },
+        { "shape": "x-x-2-0-3-3", "sources": 2 },
+        { "shape": "x-0-2-0-1-0", "sources": 6 },
+        { "shape": "x-0-2-2-1-3", "sources": 3 },
+        { "shape": "x-2-0-2-0-2", "sources": 4 },
+        { "shape": "x-2-0-2-3-x", "sources": 3 },
+        { "shape": "0-2-2-0-3-0", "sources": 6 },
+        { "shape": "0-2-0-0-3-0", "sources": 4 },
+        { "shape": "x-0-2-0-1-3", "sources": 3 },
+        { "shape": "0-2-0-0-3-3", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-8-8-8-8", "sources": 9 },
+        { "shape": "x-3-5-3-4-3", "sources": 8 },
+        { "shape": "8-x-8-8-8-x", "sources": 5 },
+        { "shape": "x-x-10-12-11-11", "sources": 5 },
+        { "shape": "8-10-8-8-11-8", "sources": 4 },
+        { "shape": "8-x-8-8-x-x", "sources": 3 },
+        { "shape": "x-3-1-3-4-x", "sources": 3 },
+        { "shape": "x-3-1-3-x-x", "sources": 3 },
+        { "shape": "x-3-5-3-4-x", "sources": 3 },
+        { "shape": "8-10-8-8-8-11", "sources": 2 },
+        { "shape": "8-x-8-8-8-8", "sources": 2 },
+        { "shape": "x-3-1-3-1-x", "sources": 2 },
+        { "shape": "x-3-5-3-4-6", "sources": 2 },
+        { "shape": "x-3-x-3-4-3", "sources": 2 }
+      ]
+    },
+    "maj7": {
+      "name": "major 7th",
+      "formula": "1 3 5 7",
+      "open": [
+        { "shape": "x-3-2-0-0-0", "sources": 6 },
+        { "shape": "x-x-0-2-2-2", "sources": 8 },
+        { "shape": "0-2-1-1-0-0", "sources": 3 },
+        { "shape": "x-x-3-2-1-0", "sources": 5 },
+        { "shape": "3-x-0-0-0-2", "sources": 4 },
+        { "shape": "x-0-2-1-2-0", "sources": 6 },
+        { "shape": "x-0-2-2-2-4", "sources": 3 },
+        { "shape": "3-2-0-0-0-2", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-5-4-5-3", "sources": 8 },
+        { "shape": "8-x-9-9-8-x", "sources": 6 },
+        { "shape": "x-x-10-12-12-12", "sources": 5 },
+        { "shape": "8-10-9-9-8-8", "sources": 5 },
+        { "shape": "x-3-2-4-x-x", "sources": 3 },
+        { "shape": "x-3-5-4-5-x", "sources": 3 },
+        { "shape": "x-x-10-9-8-7", "sources": 3 },
+        { "shape": "8-x-9-9-x-x", "sources": 2 },
+        { "shape": "x-15-14-12-12-12", "sources": 2 },
+        { "shape": "x-15-14-12-12-x", "sources": 2 }
+      ]
+    },
+    "m7b5": {
+      "name": "half-diminished",
+      "formula": "1 ♭3 ♭5 ♭7",
+      "open": [
+        { "shape": "x-x-0-1-1-1", "sources": 2 },
+        { "shape": "1-x-1-1-0-x", "sources": 2 },
+        { "shape": "x-0-1-0-1-x", "sources": 3 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-8-8-7-x", "sources": 6 },
+        { "shape": "x-3-4-3-4-x", "sources": 6 },
+        { "shape": "x-x-10-11-11-11", "sources": 5 },
+        { "shape": "x-3-x-3-4-2", "sources": 4 }
+      ]
+    },
+    "dim7": {
+      "name": "diminished 7th",
+      "formula": "1 ♭3 ♭5 °7",
+      "open": [
+        { "shape": "x-x-0-1-0-1", "sources": 2 },
+        { "shape": "x-1-2-0-2-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-7-8-7-x", "sources": 8 },
+        { "shape": "x-3-4-2-4-x", "sources": 7 },
+        { "shape": "x-x-10-11-10-11", "sources": 6 },
+        { "shape": "8-9-10-8-10-8", "sources": 3 },
+        { "shape": "8-9-7-8-x-x", "sources": 2 }
+      ]
+    },
+    "m/ma7": {
+      "name": "minor-major 7th",
+      "formula": "1 ♭3 5 7",
+      "open": [
+        { "shape": "x-0-2-1-1-0", "sources": 5 },
+        { "shape": "x-x-0-2-2-1", "sources": 3 },
+        { "shape": "0-2-1-0-0-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-5-4-4-x", "sources": 5 },
+        { "shape": "8-x-9-8-8-x", "sources": 4 },
+        { "shape": "x-x-10-12-12-11", "sources": 3 },
+        { "shape": "x-3-x-4-4-3", "sources": 3 }
+      ]
+    },
+    "7sus4": {
+      "name": "7th suspended 4th",
+      "formula": "1 4 5 ♭7",
+      "open": [
+        { "shape": "x-x-0-2-1-3", "sources": 2 },
+        { "shape": "0-2-0-2-0-0", "sources": 3 },
+        { "shape": "x-0-2-0-3-0", "sources": 4 },
+        { "shape": "x-0-2-0-3-3", "sources": 1 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-10-8-10-8-8", "sources": 5 },
+        { "shape": "x-3-5-3-6-3", "sources": 4 },
+        { "shape": "x-x-10-12-11-13", "sources": 3 }
+      ]
+    },
+    "7#5": {
+      "name": "augmented 7th",
+      "formula": "1 3 ♯5 ♭7",
+      "open": [
+        { "shape": "0-x-0-1-1-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-8-9-9-x", "sources": 6 },
+        { "shape": "x-3-6-3-5-x", "sources": 3 },
+        { "shape": "x-x-10-13-11-12", "sources": 3 }
+      ]
+    },
+    "6": {
+      "name": "major 6th",
+      "formula": "1 3 5 6",
+      "open": [
+        { "shape": "x-3-2-2-1-0", "sources": 3 },
+        { "shape": "x-x-0-2-0-2", "sources": 2 },
+        { "shape": "0-2-2-1-2-0", "sources": 4 },
+        { "shape": "x-0-2-2-2-2", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-7-9-8-x", "sources": 4 },
+        { "shape": "x-x-10-9-10-8", "sources": 3 },
+        { "shape": "x-3-2-2-1-x", "sources": 3 },
+        { "shape": "x-3-5-5-5-5", "sources": 2 }
+      ]
+    },
+    "m6": {
+      "name": "minor 6th",
+      "formula": "1 ♭3 5 6",
+      "open": [
+        { "shape": "0-2-2-0-2-0", "sources": 2 },
+        { "shape": "x-0-2-2-1-2", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-7-8-8-x", "sources": 3 },
+        { "shape": "x-3-5-2-4-x", "sources": 3 },
+        { "shape": "x-x-10-12-10-11", "sources": 2 },
+        { "shape": "x-3-1-2-1-x", "sources": 3 }
+      ]
+    },
+    "6add9": {
+      "name": "six-nine",
+      "formula": "1 3 5 6 9",
+      "open": [],
+      "moveableOnC": [
+        { "shape": "x-3-2-2-3-3", "sources": 4 },
+        { "shape": "x-x-10-9-10-10", "sources": 3 },
+        { "shape": "8-7-7-7-8-8", "sources": 3 },
+        { "shape": "x-3-2-2-3-x", "sources": 2 }
+      ]
+    },
+    "Madd9": {
+      "name": "added 9th",
+      "formula": "1 3 5 9",
+      "open": [
+        { "shape": "x-3-2-0-3-3", "sources": 5 },
+        { "shape": "x-3-2-0-3-0", "sources": 3 },
+        { "shape": "0-2-4-1-0-0", "sources": 3 },
+        { "shape": "3-x-0-2-0-3", "sources": 2 },
+        { "shape": "x-0-2-4-2-0", "sources": 3 },
+        { "shape": "x-3-0-0-1-0", "sources": 3 },
+        { "shape": "3-x-0-2-0-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-x-10-9-8-10", "sources": 7 },
+        { "shape": "8-7-x-7-8-x", "sources": 3 },
+        { "shape": "x-3-2-x-3-3", "sources": 3 }
+      ]
+    },
+    "9": {
+      "name": "dominant 9th",
+      "formula": "1 3 5 ♭7 9",
+      "open": [
+        { "shape": "x-3-2-3-3-0", "sources": 2 },
+        { "shape": "x-0-2-4-2-3", "sources": 2 },
+        { "shape": "x-1-0-1-1-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-2-3-3-3", "sources": 6 },
+        { "shape": "x-x-10-9-11-10", "sources": 4 },
+        { "shape": "8-10-8-9-8-10", "sources": 3 },
+        { "shape": "x-3-2-3-3-x", "sources": 4 },
+        { "shape": "8-7-8-7-8-x", "sources": 2 }
+      ]
+    },
+    "maj9": {
+      "name": "major 9th",
+      "formula": "1 3 5 7 9",
+      "open": [],
+      "moveableOnC": [
+        { "shape": "x-3-2-4-3-x", "sources": 4 },
+        { "shape": "x-15-12-12-12-12", "sources": 2 },
+        { "shape": "x-x-10-9-12-10", "sources": 2 },
+        { "shape": "8-7-9-7-x-x", "sources": 2 }
+      ]
+    },
+    "m9": {
+      "name": "minor 9th",
+      "formula": "1 ♭3 5 ♭7 9",
+      "open": [
+        { "shape": "x-2-0-2-2-x", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-1-3-3-x", "sources": 4 },
+        { "shape": "8-10-8-8-8-10", "sources": 3 },
+        { "shape": "8-6-8-7-x-x", "sources": 3 },
+        { "shape": "x-x-10-8-11-10", "sources": 2 }
+      ]
+    },
+    "9sus4": {
+      "name": "9th suspended 4th",
+      "formula": "1 4 5 ♭7 9",
+      "open": [
+        { "shape": "x-0-0-0-0-0", "sources": 5 },
+        { "shape": "2-x-2-1-0-0", "sources": 4 },
+        { "shape": "0-2-2-2-3-2", "sources": 2 },
+        { "shape": "x-x-0-0-1-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-3-3-3-3", "sources": 6 },
+        { "shape": "8-x-8-7-6-x", "sources": 5 },
+        { "shape": "x-x-10-10-11-10", "sources": 4 },
+        { "shape": "x-3-x-3-3-1", "sources": 4 }
+      ]
+    },
+    "m11": {
+      "name": "minor 11th",
+      "formula": "1 ♭3 5 ♭7 9 11",
+      "open": [
+        { "shape": "x-2-0-2-2-0", "sources": 3 },
+        { "shape": "2-x-2-2-0-0", "sources": 2 },
+        { "shape": "3-x-0-3-1-1", "sources": 2 },
+        { "shape": "x-2-0-2-3-0", "sources": 2 },
+        { "shape": "2-4-4-2-0-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "8-x-8-8-6-x", "sources": 6 },
+        { "shape": "x-3-x-3-4-1", "sources": 5 },
+        { "shape": "x-3-3-3-4-3", "sources": 4 },
+        { "shape": "x-3-1-3-3-1", "sources": 3 },
+        { "shape": "x-x-10-10-11-11", "sources": 2 }
+      ]
+    },
+    "13": {
+      "name": "dominant 13th",
+      "formula": "1 3 5 ♭7 9 13",
+      "open": [
+        { "shape": "3-x-3-2-0-0", "sources": 2 }
+      ],
+      "moveableOnC": [
+        { "shape": "x-3-2-3-3-5", "sources": 5 },
+        { "shape": "8-x-8-9-10-x", "sources": 5 },
+        { "shape": "8-x-8-7-5-5", "sources": 3 },
+        { "shape": "8-x-8-9-10-10", "sources": 4 },
+        { "shape": "8-10-8-9-10-8", "sources": 3 },
+        { "shape": "x-3-2-3-5-5", "sources": 2 }
+      ]
+    },
+    "7b9": {
+      "name": "dominant 7♭9",
+      "formula": "1 3 5 ♭7 ♭9",
+      "open": [],
+      "moveableOnC": [
+        { "shape": "x-3-2-3-2-x", "sources": 6 },
+        { "shape": "x-x-10-9-11-9", "sources": 5 },
+        { "shape": "8-7-8-6-x-x", "sources": 2 }
+      ]
+    },
+    "7#9": {
+      "name": "dominant 7♯9",
+      "formula": "1 3 5 ♭7 ♯9",
+      "open": [],
+      "moveableOnC": [
+        { "shape": "x-3-2-3-4-x", "sources": 6 },
+        { "shape": "8-10-8-9-11-11", "sources": 2 },
+        { "shape": "x-x-10-9-11-11", "sources": 2 },
+        { "shape": "8-7-8-8-x-x", "sources": 2 }
+      ]
+    }
+  }
+}

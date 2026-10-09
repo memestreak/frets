@@ -78,6 +78,11 @@ Roots: twelve, one spelling each: C D♭ D E♭ E F F♯ G A♭ A B♭ B.
 
 ## Voicings
 
+Superseded for most chords on 2026-10-09: the shapes guitarists publish
+come first (`2026-10-09-published-chord-shapes-design.md`). The rules
+below still drive the search, which fills Show all and the chord types
+the published data doesn't cover.
+
 Generated, not hand-entered. A voicing is one fret or a mute per string.
 
 **Playable** means all of:
