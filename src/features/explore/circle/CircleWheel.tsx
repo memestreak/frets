@@ -7,7 +7,7 @@ import {
 
 /*
  * Draws a circle-of-fifths model: three rings of twelve cells, C at the top,
- * then the arrows of whatever is hovered, the ring of notes round the outside (its lit run, the
+ * then the ring of notes round the outside (its lit run, the
  * root's pin and mode names along it), in the Advanced view only, and key
  * signatures outside that. It knows no music theory; `circle.ts` says
  * what each part shows.
@@ -122,18 +122,15 @@ interface CircleWheelProps {
   onNote?: (note: RingNote) => void;
   /** Outline, dashed, the run a key on this spoke would light: a preview. */
   preview?: number | null;
-  /** The key of an arrow to draw because something off the wheel (a chip) is hovered. */
-  arrow?: string | null;
+  /** A cell to highlight because something off the wheel (its chip) is hovered. */
+  highlight?: string | null;
 }
 
-export function CircleWheel({ model, signatures, pickable, onPick, onNote, preview = null, arrow = null }: CircleWheelProps) {
+export function CircleWheel({ model, signatures, pickable, onPick, onNote, preview = null, highlight = null }: CircleWheelProps) {
   const id = useId();
-  const arrowId = `${id}-arrow`;
-  /** The hovered or focused cell: arrows from or to it are drawn. */
+  /** The hovered or focused cell: its secondary dominant, if any, is highlighted. */
   const [hover, setHover] = useState<string | null>(null);
-  const arrows = model.arrows.filter(a => a.key === arrow || cellId(a.from) === hover || cellId(a.to) === hover);
-  /** Where the drawn arrows start: the secondary dominants, ringed in solid ink. */
-  const hot = new Set(arrows.map(a => cellId(a.from)));
+  const hot = highlight ?? (hover && model.dominantOf.get(hover));
   const { staffAt, halfX, halfY } = layout(model.notes.length > 0, signatures);
   const tonic = model.tonic && cellId(model.tonic);
 
@@ -145,15 +142,6 @@ export function CircleWheel({ model, signatures, pickable, onPick, onNote, previ
       role="group"
       aria-label="Circle of fifths"
     >
-      <defs>
-        <marker
-          id={arrowId} viewBox="0 0 10 10" refX={8} refY={5}
-          markerWidth={6} markerHeight={6} orient="auto-start-reverse"
-        >
-          <path d="M0 0L10 5L0 10z" className="cof-arrow-head" />
-        </marker>
-      </defs>
-
       {ALL_CELLS.map(cell => {
         const id = cellId(cell);
         const look = model.cells.get(id) ?? {};
@@ -168,7 +156,7 @@ export function CircleWheel({ model, signatures, pickable, onPick, onNote, previ
         if (look.edge) classes.push('cof-edge');
         if (look.ring) classes.push(`cof-ring-${look.ring}`);
         if (canPick) classes.push('cof-pickable');
-        if (hot.has(id)) classes.push('cof-hot');
+        if (id === hot) classes.push('cof-hot');
         return (
           <g
             key={id}
@@ -212,23 +200,6 @@ export function CircleWheel({ model, signatures, pickable, onPick, onNote, previ
             )}
           </g>
         );
-      })}
-
-      {arrows.map(a => {
-        const [x0, y0] = middleOf(a.from);
-        const [x1, y1] = middleOf(a.to);
-        // Bend each arrow to one side of the straight line between the cells.
-        const cx = (x0 + x1) / 2 - (y1 - y0) * 0.25;
-        const cy = (y0 + y1) / 2 + (x1 - x0) * 0.25;
-        // Start and end short of the cells' middles, clear of their names.
-        const toward = (x: number, y: number, by: number): [number, number] => {
-          const len = Math.hypot(cx - x, cy - y) || 1;
-          return [x + ((cx - x) / len) * by, y + ((cy - y) / len) * by];
-        };
-        const [sx, sy] = toward(x0, y0, 14);
-        const [ex, ey] = toward(x1, y1, 15);
-        const d = `M${sx} ${sy}Q${cx} ${cy} ${ex} ${ey}`;
-        return <path key={a.key} className="cof-arrow" d={d} markerEnd={`url(#${arrowId})`} data-testid="arrow" />;
       })}
 
       {model.notes.map(note => {

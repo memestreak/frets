@@ -74,16 +74,17 @@ describe('keyWheel', () => {
     expect(w.cells.get('minor:8')).toMatchObject({ edge: 4, numeral: 'iv' });
   });
 
-  it('marks secondary dominants and draws them resolving', () => {
+  it('marks secondary dominants and what each resolves to', () => {
     const w = keyWheel({ spoke: 0, minor: false }, { ...OFF, dominants: true });
     expect(w.dominants.map(c => `${c.numeral} ${c.name}`))
       .toEqual(['V/ii A7', 'V/iii B7', 'V/IV C7', 'V/V D7', 'V/vi E7']);
     expect(w.cells.get('major:3')!.ring).toBe('dashed');
     // C7 is the tonic itself, which stays unmarked.
     expect(w.cells.get('major:0')!.ring).toBeUndefined();
-    expect(w.arrows).toHaveLength(5);
-    expect(w.dominants[0].arrow).toBe('major:3>minor:11');
-    expect(w.arrows.map(a => a.key)).toContain('major:3>minor:11');
+    // Dm (on F's spoke) resolves from A7.
+    expect(w.dominantOf.size).toBe(5);
+    expect(w.dominantOf.get('minor:11')).toBe('major:3');
+    expect(w.dominants[0].cell).toBe('major:3');
   });
 
   it('numbers every other chord with All numerals', () => {

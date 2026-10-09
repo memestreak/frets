@@ -59,29 +59,26 @@ describe('CircleOfFifths', () => {
     expect(chips('Secondary dominants')).toEqual(['V/iiA7', 'V/iiiB7', 'V/IVC7', 'V/VD7', 'V/viE7']);
   });
 
-  it('draws a secondary dominant’s arrow only while it, its target or its chip is hovered', () => {
+  it('highlights a chord’s secondary dominant while the chord or the chip is hovered', () => {
     renderAt();
     fireEvent.click(screen.getByLabelText('Secondary dominants'));
-    const arrows = () => screen.queryAllByTestId('arrow').length;
-    expect(arrows()).toBe(0);
-    // Dm (ii, on F's spoke) is where A7 resolves.
+    const hot = () => [...document.querySelectorAll('.cof-hot')].map(g => g.getAttribute('data-cell'));
+    expect(hot()).toEqual([]);
+    // Dm (ii, on F's spoke) resolves from A7.
     fireEvent.pointerEnter(cell('minor:11'));
-    expect(arrows()).toBe(1);
-    expect(cell('major:3')).toHaveClass('cof-hot');
+    expect(hot()).toEqual(['major:3']);
     fireEvent.pointerLeave(cell('minor:11'));
-    expect(arrows()).toBe(0);
-    expect(cell('major:3')).not.toHaveClass('cof-hot');
-    // G is where D7 resolves.
+    expect(hot()).toEqual([]);
+    // G resolves from D7.
     fireEvent.pointerEnter(cell('major:1'));
-    expect(arrows()).toBe(1);
-    expect(cell('major:2')).toHaveClass('cof-hot');
+    expect(hot()).toEqual(['major:2']);
     fireEvent.pointerLeave(cell('major:1'));
-    const e7 = within(screen.getByRole('region', { name: 'Secondary dominants' })).getByText('E7');
-    fireEvent.pointerEnter(e7.closest('li')!);
-    expect(arrows()).toBe(1);
-    expect(cell('major:4')).toHaveClass('cof-hot');
-    fireEvent.pointerLeave(e7.closest('li')!);
-    expect(arrows()).toBe(0);
+    const e7 = within(screen.getByRole('region', { name: 'Secondary dominants' })).getByText('E7').closest('li')!;
+    fireEvent.pointerEnter(e7);
+    expect(hot()).toEqual(['major:4']);
+    fireEvent.pointerLeave(e7);
+    expect(hot()).toEqual([]);
+    expect(document.querySelector('marker, .cof-arrow')).toBeNull();
   });
 
   it('draws key signatures and numbers every chord on request', () => {

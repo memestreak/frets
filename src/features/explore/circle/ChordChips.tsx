@@ -17,10 +17,10 @@ export function PanelSection({ title, children }: { title: string; children: Rea
  * filled for the key's or mode's own chords, a dashed border for chords
  * from outside, an ink ring where the wheel rings the cell too.
  */
-export function ChordChips({ chips, onArrow }: {
+export function ChordChips({ chips, onHighlight }: {
   chips: readonly ChordChip[];
-  /** A chip with an arrow is hovered (its key) or left (null): the wheel draws the arrow. */
-  onArrow?: (arrow: string | null) => void;
+  /** A chip with a cell is hovered (the cell's id) or left (null): the wheel highlights the cell. */
+  onHighlight?: (cell: string | null) => void;
 }) {
   return (
     <ul className="cof-chips">
@@ -32,11 +32,12 @@ export function ChordChips({ chips, onArrow }: {
         const classes = ['cof-chip'];
         if (c.outside) classes.push('cof-chip-outside');
         if (c.ringed) classes.push('cof-chip-ringed');
-        const arrow = c.arrow && onArrow
-          ? { onPointerEnter: () => onArrow(c.arrow!), onPointerLeave: () => onArrow(null) }
+        const cell = c.cell;
+        const hover = cell && onHighlight
+          ? { onPointerEnter: () => onHighlight(cell), onPointerLeave: () => onHighlight(null) }
           : {};
         return (
-          <li key={`${c.numeral} ${c.name}`} className={classes.join(' ')} style={style} data-tip={c.tip} {...arrow}>
+          <li key={`${c.numeral} ${c.name}`} className={classes.join(' ')} style={style} data-tip={c.tip} {...hover}>
             <small>{c.numeral}</small>
             {c.name}
           </li>

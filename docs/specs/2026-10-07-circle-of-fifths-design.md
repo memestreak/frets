@@ -71,7 +71,7 @@ Anything not obvious explains itself in a tip after the pointer rests on
 it for one second (mouse only), or when it gets keyboard focus: each
 coloured cell (e.g. in D, Bm is vi and the tonic of B minor, D's relative
 minor; C♯° is built on the leading tone), borrowed chords, the minor
-key's major V, secondary dominants and their arrows, each key signature
+key's major V, secondary dominants, each key signature
 (its sharps or flats), the ring's lit notes in Advanced view, the Parallel modes rows and their chords.
 No text on the page appears or disappears as the selection changes; that
 kind of explanation goes in a tip. Touch screens get no tips yet.
@@ -86,11 +86,10 @@ kind of explanation goes in a tip. Touch screens get no tips yet.
   as dashed cells, numbered against the tonic (♭VI, iv…), and lists them
   under "Borrowed from C minor".
 - **Secondary dominants** marks the V of each chord except the tonic and
-  vii° with an ink dashed ring and lists them as chips (V/ii A7…). Arrows
-  are drawn only on hover or focus (Jeremy, 2026-10-09: five permanent
-  arrows were too busy): hovering a secondary dominant, the chord it
-  resolves to, or its chip draws that arrow and turns the dominant's ring
-  solid.
+  vii° with an ink dashed ring and lists them as chips (V/ii A7…). No
+  arrows (Jeremy, 2026-10-09: too busy): hovering or focusing a chord, or
+  a secondary dominant's chip, highlights that dominant's cell (solid ink
+  ring, sunken fill).
 
 ## Advanced view
 
@@ -132,10 +131,10 @@ https://claude.ai/artifact/77Fh6v7USv19keJL7Xemsq.
 
 - `features/explore/circle/circle.ts`: pure. Spokes, cells and their
   roots, key signatures, numerals against a tonic, and the two views'
-  models (`keyWheel`, `modeWheel`): what each cell shows, arrows, chips,
+  models (`keyWheel`, `modeWheel`): what each cell shows, secondary dominants, chips,
   tips. Spelling comes from `scales/theory.ts`, still the section's only
   tonal import.
-- `CircleWheel.tsx`: draws a model (cells, arrows, the ring of notes
+- `CircleWheel.tsx`: draws a model (cells, the ring of notes
   with its run, pin and mode names, staves); knows no theory.
 - `HoverTips.tsx`: the one-second tip for anything with `data-tip`.
 - `KeyPanel.tsx`, `ModePanel.tsx`: the sections beside or under the wheel.

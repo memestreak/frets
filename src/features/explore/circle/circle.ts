@@ -135,17 +135,6 @@ export interface CellLook {
 }
 
 /**
- * An arrow from one cell to another: a secondary dominant resolving. The
- * wheel draws it only while either cell, or its chip, is hovered or focused.
- */
-export interface WheelArrow {
-  /** Names the arrow, so a chip can show it: "major:3>minor:11". */
-  key: string;
-  from: Cell;
-  to: Cell;
-}
-
-/**
  * One note of the ring outside the wheel, on its spoke. A major scale is
  * seven neighbouring spokes: those are lit, and the root is the pin.
  */
@@ -172,14 +161,18 @@ export interface ChordChip {
   outside?: boolean;
   /** Ringed like its cell: a mode's root or signature chord. */
   ringed?: boolean;
-  /** The key of the arrow the wheel draws while this chip is hovered. */
-  arrow?: string;
+  /** A secondary dominant's chip: its cell's id, highlighted while the chip is hovered. */
+  cell?: string;
   tip?: string;
 }
 
 export interface WheelModel {
   cells: Map<string, CellLook>;
-  arrows: WheelArrow[];
+  /**
+   * Secondary dominants, by the id of the chord each resolves to: the id
+   * of the dominant's cell, highlighted while that chord is hovered.
+   */
+  dominantOf: Map<string, string>;
   /** The ring of notes, spoke 0 first; empty in Circle view. */
   notes: RingNote[];
   /**
@@ -347,7 +340,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
     }
   }
 
-  const arrows: WheelArrow[] = [];
+  const dominantOf = new Map<string, string>();
   const dominants: ChordChip[] = [];
   if (opts.dominants) {
     for (const p of home) {
@@ -356,10 +349,9 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
       const vCell = cellOf(chromaOf(v), 'major')!;
       const symbol = `${prettyNote(v)}7`;
       const tip = `${symbol} is V/${p.chord.numeral}, a secondary dominant: it resolves to ${p.chord.symbol}, a fifth below, as V resolves to I.`;
-      const arrow = `${cellId(vCell)}>${p.id}`;
-      arrows.push({ key: arrow, from: vCell, to: p.cell });
-      dominants.push({ name: symbol, numeral: `V/${p.chord.numeral}`, degree: 5, outside: true, arrow, tip });
       const id = cellId(vCell);
+      dominantOf.set(p.id, id);
+      dominants.push({ name: symbol, numeral: `V/${p.chord.numeral}`, degree: 5, outside: true, cell: id, tip });
       if (id === cellId(keyCell(k))) continue;
       const look = cells.get(id) ?? {};
       cells.set(id, { ...look, ring: 'dashed', tip: look.tip ? `${look.tip} ${tip}` : tip });
@@ -370,7 +362,7 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
 
   return {
     // No ring of notes in Circle view: the chords show the key, and the wheel keeps the ring's room.
-    title: name, cells, arrows, notes: [], homeSpoke: k.spoke, tonic: keyCell(k),
+    title: name, cells, dominantOf, notes: [], homeSpoke: k.spoke, tonic: keyCell(k),
     centre: [prettyNote(keyTonic(k)), k.minor ? 'minor' : 'major'],
     chords, parallelName, borrowed, dominants,
   };
@@ -562,7 +554,7 @@ export function modeWheel(rootNote: string, id: ModeId, opts: { allNumerals: boo
   if (opts.allNumerals) numberTheRest(cells, rootPcValue, title);
 
   return {
-    title, formula: scale.degrees.map(d => d.label), cells, arrows: [], notes,
+    title, formula: scale.degrees.map(d => d.label), cells, dominantOf: new Map(), notes,
     homeSpoke: parent.spoke, tonic: null, centre: [rootName, mode.name], parallel,
   };
 }
