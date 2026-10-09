@@ -36,7 +36,8 @@ were one more shape.
   and not in the URL (the library keeps no state).
 
 Not in this slice: a position box (option D), a playing order (option C),
-note-name labels, the Chord lab.
+note-name labels, the Chord lab (added 2026-10-09:
+`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`).
 
 ## Parts
 
@@ -46,7 +47,7 @@ note-name labels, the Chord lab.
 - `arpeggioDots(chord, voicing, maxFret)` in `features/chords/chordDots.ts`
   turns those positions into `Fretboard` dots; it shares `toneDot` with
   `voicingDots`.
-- `useSpaceKey(onPress)` in `features/chords/library/useSpaceKey.ts`:
+- `useSpaceKey(onPress)` in `features/chords/useSpaceKey.ts`:
   space anywhere but a field, the nav or the footer calls `onPress`, with
   the key's default (scroll, button click on keyup) prevented.
 - `ChordLibraryPage` holds the switch (above the per-chord key, so it
