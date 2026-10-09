@@ -12,7 +12,9 @@ arpeggio. Spec: `docs/specs/2026-10-06-chord-arpeggio-design.md`.
    space, skipped in `input, select, textarea, nav, footer`. It prevents the
    default (page scroll; a focused button's click), ignores `repeat`, and
    also prevents the keyup default, since some browsers click a focused
-   button on keyup.
+   button on keyup. It blurs the focused element: Jeremy saw the browser's
+   blue focus ring appear on the clicked shape once space (a key press)
+   had deselected it.
 3. Tests in `ChordLibrary.test.tsx`: button and space swap shape and
    arpeggio and back; space on a focused shape doesn't click it; a held key
    toggles once; space in a chord menu is left alone. The old "pressing it

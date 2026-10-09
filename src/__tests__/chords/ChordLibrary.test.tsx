@@ -162,8 +162,11 @@ describe('ChordLibrary', () => {
     expect(boardDots()).toEqual(shape);
 
     // Space on the shape just clicked toggles the arpeggio, without clicking the shape again.
+    shapes('Open')[1].focus();
     const press = fireEvent.keyDown(shapes('Open')[1], { key: ' ' });
     expect(press).toBe(false); // default prevented
+    // ...and takes focus off it, so the browser draws no focus ring there.
+    expect(document.activeElement).toBe(document.body);
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(window, { key: ' ', repeat: true }); // held down
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');

@@ -7,6 +7,10 @@ import { useEffect } from 'react';
  * alone in a field, where it types or opens a menu, and in the site's nav
  * and footer, where it presses their buttons as usual. Holding the key
  * down calls `onPress` once.
+ *
+ * Space also takes focus off the button it overrides: after a key press
+ * the browser would otherwise draw its focus ring around that button
+ * (say, the shape that just stopped being selected).
  */
 export function useSpaceKey(onPress: () => void) {
   useEffect(() => {
@@ -16,7 +20,9 @@ export function useSpaceKey(onPress: () => void) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || !isOurs(e)) return;
       e.preventDefault();
-      if (!e.repeat) onPress();
+      if (e.repeat) return;
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      onPress();
     };
     // Some browsers click a focused button when space comes up, not when it goes down.
     const onKeyUp = (e: KeyboardEvent) => {
