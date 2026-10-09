@@ -36,10 +36,13 @@ The Interval trainer also departs from the prototype's String pairs setting,
 fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
 a box around the root (`inBox` in `features/practice/intervals/intervals.ts`) that drives question
 generation and Find-it judging. Neither the board nor the hint shows the box;
-tapping the right interval outside it is explained, not scored. The generator
+tapping the right interval outside it is explained, not scored. A
+question's root never sits above fret 10 (`rootMaxFret`), though its
+target may. The generator
 enumerates every valid question, so each possible interval is asked equally
 often and the same question never comes up twice running. See
-`docs/specs/2026-10-01-interval-ranges-design.md`.
+`docs/specs/2026-10-01-interval-ranges-design.md` and
+`docs/specs/2026-10-09-interval-root-cap-design.md`.
 
 The Note trainer departs from the prototype's three modes: it has Name it
 and Find it, and both settings (Strings in scope, Fret range) apply to both.

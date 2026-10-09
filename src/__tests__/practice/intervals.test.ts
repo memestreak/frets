@@ -1,7 +1,7 @@
 import {
   clampHRange, correctFrets, defaultIntervalSettings,
   generateIntervalQuestion, inBox, isCorrectFret, isOutOfRange,
-  parseIntervalSettings, resetIntervalSettings, withHRange, withVRange,
+  parseIntervalSettings, resetIntervalSettings, rootMaxFret, withHRange, withVRange,
   type IntervalQuestion, type IntervalSettings,
 } from '@/features/practice/intervals/intervals';
 import { intervalClass, midi, samePos } from '@/lib/music';
@@ -17,6 +17,14 @@ function sample(set: IntervalSettings, n = 400) {
 
 const span = (q: IntervalQuestion) =>
   midi(q.tgt.s, q.tgt.f) - midi(q.root.s, q.root.f);
+
+describe('rootMaxFret', () => {
+  it('caps the root at fret 10 inside the fret window', () => {
+    expect(rootMaxFret({ minFret: 0, maxFret: 15 })).toBe(10);
+    expect(rootMaxFret({ minFret: 0, maxFret: 7 })).toBe(7);
+    expect(rootMaxFret({ minFret: 12, maxFret: 17 })).toBe(12);
+  });
+});
 
 describe('defaults', () => {
   it('uses both directions, every string, a four-fret span and compound spans', () => {
@@ -248,6 +256,18 @@ describe('generateIntervalQuestion', () => {
       }
       prev = q;
     }
+  });
+
+  it('never puts the root above fret 10, though the target may be', () => {
+    const qs = sample(settings({ maxFret: 15 }), 2000);
+    expect(qs.every(q => q && q.root.f <= 10)).toBe(true);
+    expect(qs.some(q => q && q.root.f === 10)).toBe(true);
+    expect(qs.some(q => q && q.tgt.f > 10)).toBe(true);
+  });
+
+  it('puts the root on the lowest fret when the window starts above fret 10', () => {
+    const qs = sample(settings({ minFret: 12, maxFret: 17 }), 200);
+    expect(qs.every(q => q && q.root.f === 12)).toBe(true);
   });
 
   it('returns null when nothing fits', () => {

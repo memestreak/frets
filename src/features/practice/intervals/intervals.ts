@@ -39,6 +39,20 @@ export const INTERVAL_STORAGE_KEY = 'frets.practice.intervals';
 export const V_RANGE_MAX = 6;
 export const H_RANGE_MAX = 12;
 
+/**
+ * Highest fret a question's root may sit on. The target may still land
+ * above it, up to the fret window's highest fret.
+ */
+export const ROOT_MAX_FRET = 10;
+
+/**
+ * Highest fret for the root in this fret window: ROOT_MAX_FRET, or the
+ * window's lowest fret when the window starts above it, so there is still
+ * a question to ask.
+ */
+export const rootMaxFret = (set: Pick<IntervalSettings, 'minFret' | 'maxFret'>): number =>
+  Math.min(set.maxFret, Math.max(set.minFret, ROOT_MAX_FRET));
+
 export const clampHRange = (n: number): number =>
   Math.min(H_RANGE_MAX, Math.max(1, Math.round(n)));
 
@@ -124,13 +138,14 @@ export function correctFrets(q: IntervalQuestion, set: IntervalSettings): Positi
   return out;
 }
 
-/** Every question the settings allow: any target in the box, the root's own
- * string included. */
+/** Every question the settings allow: a root no higher than `rootMaxFret`
+ * and any target in the box, the root's own string included. */
 function candidates(set: IntervalSettings, pool: number[]): IntervalQuestion[] {
   const ups = set.dir === 'rand' ? [true, false] : [set.dir === 'asc'];
   const out: IntervalQuestion[] = [];
+  const rootMax = rootMaxFret(set);
   for (const s of STRINGS) {
-    for (let f = set.minFret; f <= set.maxFret; f++) {
+    for (let f = set.minFret; f <= rootMax; f++) {
       const root = { s, f };
       const lo = Math.max(set.minFret, f - set.hRange + 1);
       const hi = Math.min(set.maxFret, f + set.hRange - 1);
