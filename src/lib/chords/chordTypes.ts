@@ -151,9 +151,6 @@ export function chordOf(root: ChordRoot, typeId: string): ChordInfo {
 /** How a tone with no chord type to name it is written: ♭ for the black-key tones. */
 const PLAIN_INTERVALS = ['1P', '2m', '2M', '3m', '3M', '4P', '5d', '5P', '6m', '6M', '7m', '7M'];
 
-/** "♭3" for 3 semitones: a tone's label when no chord type names it. */
-export const plainToneLabel = (semis: number): string => toneLabel(PLAIN_INTERVALS[semis]);
-
 /**
  * The chord with exactly these tones above a root (semitones 0–11, the
  * root included): the first chord type with them, or an unnamed chord whose

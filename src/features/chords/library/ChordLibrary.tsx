@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ToggleButton } from '@/components/controls';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
+import { arpeggioCaption } from '../arpeggioCaption';
 import { ChordHeader } from '../ChordHeader';
 import { chordOf, formulaOf } from '@/lib/chords/chordTypes';
 import { VoicingGroups } from '../VoicingGroups';
@@ -13,7 +14,7 @@ import { ChordPickers } from './ChordPickers';
 import {
   CHORD_PARAM, chordFromSlug, chordHref, chordSlug, SHAPE_PARAM, type ChordChoice,
 } from '@/lib/chords/chordUrls';
-import { useSpaceKey } from './useSpaceKey';
+import { useSpaceKey } from '../useSpaceKey';
 import { VoicingStepper } from './VoicingStepper';
 
 /** The neck shows the open strings through this fret. */
@@ -26,11 +27,6 @@ function stepperCaption(voicing: Voicing | undefined, open: Voicing[], moveable:
   const list = inOpen ? open : moveable;
   return `${inOpen ? 'Open' : 'Moveable'} ${list.indexOf(voicing) + 1} of ${list.length}`
     + ` · ${voicingCaption(voicing)}`;
-}
-
-/** "A, C, E and G" */
-function listNotes(notes: string[]): string {
-  return notes.length < 2 ? notes.join('') : `${notes.slice(0, -1).join(', ')} and ${notes.at(-1)}`;
 }
 
 /**
@@ -107,7 +103,7 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
     ? arpeggioDots(chord, MAX_FRET)
     : voicing ? voicingDots(chord, voicing) : [];
   const caption = arpeggio
-    ? `Arpeggio · every ${listNotes(chord.notes)} up to fret ${MAX_FRET}`
+    ? arpeggioCaption(chord, MAX_FRET)
     : stepperCaption(voicing, voicings.open, moveable);
 
   return (
@@ -141,7 +137,7 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
       </section>
 
       <VoicingGroups
-        chord={chord} voicings={voicings} showKey
+        chord={chord} voicings={voicings}
         showAll={showAll} onShowAll={setShowAll}
         selectedKey={voicing ? voicingKey(voicing) : null}
         onSelect={select}

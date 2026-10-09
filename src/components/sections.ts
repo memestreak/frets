@@ -66,7 +66,7 @@ export const CHORDS: Section = {
     {
       href: '/chords/lab',
       title: 'Chord lab',
-      summary: 'Tap notes on the neck to name a chord, or build one tone by tone.',
+      summary: 'Tap notes on the neck to name a chord, then see its shapes and arpeggio.',
     },
   ],
 };
