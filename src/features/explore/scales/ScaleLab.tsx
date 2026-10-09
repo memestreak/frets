@@ -217,7 +217,7 @@ export default function ScaleLab() {
           onPosition={first => update({ position: clampPosition(first) })}
           selected={chord}
           onSelect={selectChord}
-          shapeIndex={shapeIndex}
+          shapeIndexOf={shapeIndexOf}
           onShapeIndex={pickShape}
           arpeggio={arpeggio}
           onArpeggio={setArpeggio}

@@ -18,8 +18,9 @@ interface PositionShapesProps {
   onPosition: (first: number) => void;
   selected: DiatonicChord | null;
   onSelect: (chord: DiatonicChord | null) => void;
-  /** Which of the selected chord's shapes is on the neck. */
-  shapeIndex: number;
+  /** Which of a chord's shapes its tile shows, by chord index; the selected one's is on the neck. */
+  shapeIndexOf: (chordIndex: number) => number;
+  /** Picks a shape for the selected chord. */
   onShapeIndex: (index: number) => void;
   /** The neck shows every chord tone around the shape. */
   arpeggio: boolean;
@@ -31,15 +32,17 @@ interface PositionShapesProps {
  * all in the same five frets, so they read as one hand position. ‹ › step
  * the position; tapping a shape selects its chord, like the chord cards.
  * The selected chord's shapes in the position cycle with ‹ › under it, or
- * ↑ and ↓, and it links to the chord in the Chord library.
+ * ↑ and ↓, and it links to the chord in the Chord library. A tile keeps
+ * showing the shape picked for it after its chord is deselected.
  */
 export function PositionShapes({
   inPosition, mode, position, onPosition, selected, onSelect,
-  shapeIndex, onShapeIndex, arpeggio, onArpeggio,
+  shapeIndexOf, onShapeIndex, arpeggio, onArpeggio,
 }: PositionShapesProps) {
   // In the picked scale's order: tile j holds the chord on its jth note.
   const tiles = inPosition.map((_, j) => inPosition[(j - mode + 7) % 7]);
   const current = selected ? inPosition[selected.index] : null;
+  const shapeIndex = selected ? shapeIndexOf(selected.index) : 0;
   const shape = current?.shapes[shapeIndex];
   const href = current ? libraryHref(current.info, shape) : null;
   useShapeKeys(current?.shapes.length ?? 0, shapeIndex, onShapeIndex);
@@ -76,7 +79,8 @@ export function PositionShapes({
       <div className="position-grid">
         {tiles.map(({ chord, info, shapes }) => {
           const isSelected = chord.index === selected?.index;
-          const shown = shapes[isSelected ? shapeIndex : 0];
+          // Every tile keeps its chord's pick, selected or not.
+          const shown = shapes[shapeIndexOf(chord.index)];
           return (
             <div key={chord.index} className="position-tile">
               <button
