@@ -17,7 +17,16 @@ were one more shape.
 - Pressing it clears the chosen shape: no diagram is selected, and the
   neck shows every chord tone from the nut to fret 15 at full strength,
   with the shape's look (degree colour, interval label, square root).
-  Pressing it again changes nothing, like tapping the chosen shape.
+- Jeremy, 2026-10-09: pressing it again, or pressing **space**, turns it
+  off and brings back the shape that was chosen before, so space flips
+  between the shape and its arpeggio. The chosen shape is remembered while
+  the arpeggio is on. With no shape chosen (the arpeggio was on when the
+  chord changed), turning it off shows the first shape.
+- Space works wherever focus is on the page, including on a shape diagram
+  just clicked (which is not clicked again) and on the Arpeggio button
+  (which toggles once). It doesn't scroll the page, and holding it toggles
+  once. Space keeps its usual job in the Root and Type menus and in the
+  site's nav and footer.
 - The stepper caption reads "Arpeggio · every A, C, E and G up to fret 15";
   ‹ is disabled, and › or → choose the first shape.
 - Choosing a shape (tapping a diagram, ‹ ›, ← →) turns the arpeggio off.
@@ -37,5 +46,8 @@ note-name labels, the Chord lab.
 - `arpeggioDots(chord, voicing, maxFret)` in `features/chords/chordDots.ts`
   turns those positions into `Fretboard` dots; it shares `toneDot` with
   `voicingDots`.
+- `useSpaceKey(onPress)` in `features/chords/library/useSpaceKey.ts`:
+  space anywhere but a field, the nav or the footer calls `onPress`, with
+  the key's default (scroll, button click on keyup) prevented.
 - `ChordLibraryPage` holds the switch (above the per-chord key, so it
   survives a chord change) and passes it to `ChordLibrary`.

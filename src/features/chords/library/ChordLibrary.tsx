@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ToggleButton } from '@/components/controls';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
@@ -13,6 +13,7 @@ import { ChordPickers } from './ChordPickers';
 import {
   CHORD_PARAM, chordFromSlug, chordHref, chordSlug, SHAPE_PARAM, type ChordChoice,
 } from '@/lib/chords/chordUrls';
+import { useSpaceKey } from './useSpaceKey';
 import { VoicingStepper } from './VoicingStepper';
 
 /** The neck shows the open strings through this fret. */
@@ -64,10 +65,10 @@ interface ChordLibraryProps {
 
 /**
  * One chord: one voicing or the whole arpeggio on the neck, and every
- * shape below it. The Arpeggio button is picked like one more shape:
- * pressing it clears the chosen shape, and choosing a shape (tap, ‹ ›,
- * arrow keys) clears it. Its own state: the last shape chosen and
- * whether Moveable shows all.
+ * shape below it. The Arpeggio button (or space) swaps the chosen shape
+ * for the arpeggio and back again: the shape is remembered while the
+ * arpeggio is on. Choosing a shape (tap, ‹ ›, arrow keys) turns it off.
+ * Its own state: the last shape chosen and whether Moveable shows all.
  */
 function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibraryProps) {
   const router = useRouter();
@@ -95,6 +96,9 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
     setSelectedKey(voicingKey(v));
     onArpeggio(false);
   };
+  // Turning the arpeggio off shows `selectedKey` again, which it never cleared.
+  const toggleArpeggio = useCallback(() => onArpeggio(!arpeggio), [arpeggio, onArpeggio]);
+  useSpaceKey(toggleArpeggio);
 
   const onBoard = arpeggio ? `${chord.symbol} arpeggio`
     : voicing ? `${chord.symbol}, ${voicingCaption(voicing)}`
@@ -130,7 +134,7 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
             caption={caption}
             onStep={by => select(sequence[index + by])}
           />
-          <ToggleButton pressed={arpeggio} onClick={() => onArpeggio(true)}>
+          <ToggleButton pressed={arpeggio} onClick={toggleArpeggio}>
             Arpeggio
           </ToggleButton>
         </div>

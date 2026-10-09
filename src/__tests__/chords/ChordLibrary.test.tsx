@@ -136,10 +136,6 @@ describe('ChordLibrary', () => {
       .some(b => b.getAttribute('aria-pressed') === 'true')).toBe(false);
     expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
     expect(screen.getByRole('button', { name: 'Previous shape' })).toBeDisabled();
-    // Pressing it again keeps it, like tapping the chosen shape.
-    fireEvent.click(arpeggio());
-    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
-
     // It stays picked for the next chord.
     nav.search = '?chord=c';
     rerender(<ChordLibrary />);
@@ -150,6 +146,37 @@ describe('ChordLibrary', () => {
     fireEvent.click(shapes('Open')[0]);
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
     expect(boardDots()).toEqual(['1:3', '2:2', '3:0', '4:1', '5:0']);
+  });
+
+  it('swaps the chosen shape for the arpeggio and back, with the button or space', () => {
+    renderAt();
+    const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
+    fireEvent.click(shapes('Open')[1]);
+    const shape = boardDots();
+
+    fireEvent.click(arpeggio());
+    expect(boardDots()).toHaveLength(34);
+    fireEvent.click(arpeggio());
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    expect(shapes('Open')[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(boardDots()).toEqual(shape);
+
+    // Space on the shape just clicked toggles the arpeggio, without clicking the shape again.
+    const press = fireEvent.keyDown(shapes('Open')[1], { key: ' ' });
+    expect(press).toBe(false); // default prevented
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: ' ', repeat: true }); // held down
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
+    expect(boardDots()).toEqual(shape);
+  });
+
+  it('leaves space alone in the chord menus', () => {
+    renderAt();
+    const menu = screen.getAllByRole('combobox')[0];
+    expect(fireEvent.keyDown(menu, { key: ' ' })).toBe(true);
+    expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('steps from the arpeggio to the first shape', () => {
