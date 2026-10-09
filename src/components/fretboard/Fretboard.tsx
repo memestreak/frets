@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  useEffect, useMemo, useRef, useState, type CSSProperties,
+  useEffect, useId, useMemo, useRef, useState, type CSSProperties,
   type KeyboardEvent,
 } from 'react';
 import {
@@ -41,6 +41,11 @@ interface FretboardProps {
   label?: string;
   /** Frets to outline, both ends included (the Scale lab's position); 0 takes in the open strings. */
   box?: { from: number; to: number } | null;
+  /**
+   * Frets in play, both ends included. Frets outside it stay drawn, so the
+   * board keeps its size, but are shaded and take no taps.
+   */
+  inPlay?: { from: number; to: number } | null;
 }
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
@@ -52,8 +57,12 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret, label = 'Fretboard', box,
+  scrollToFret, label = 'Fretboard', box, inPlay,
 }: FretboardProps) {
+  const clipId = useId();
+  const playFrom = inPlay?.from ?? minFret;
+  const playTo = inPlay?.to ?? maxFret;
+  const isInPlay = (f: number) => f >= playFrom && f <= playTo;
   const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
   const cellRefs = useRef(new Map<string, SVGRectElement>());
@@ -70,7 +79,7 @@ export function Fretboard({
   }, [scrollToFret, g]);
   const focusCell = {
     s: Math.min(Math.max(focus.s, 0), 5),
-    f: Math.min(Math.max(focus.f, minFret), maxFret),
+    f: Math.min(Math.max(focus.f, playFrom), playTo),
   };
 
   const moveFocus = (e: KeyboardEvent, pos: Position) => {
@@ -89,7 +98,7 @@ export function Fretboard({
     e.preventDefault();
     const next = {
       s: Math.min(5, Math.max(0, pos.s + step[0])),
-      f: Math.min(maxFret, Math.max(minFret, pos.f + step[1])),
+      f: Math.min(playTo, Math.max(playFrom, pos.f + step[1])),
     };
     setFocus(next);
     cellRefs.current.get(`${next.s}:${next.f}`)?.focus();
@@ -97,6 +106,15 @@ export function Fretboard({
 
   const svgStyle = { '--board-w': `${g.width}px` } as CSSProperties;
   const fillBottom = g.fillY + g.fillH;
+  const fillRight = g.fillX + g.fillW;
+  // Shaded spans left and right of the frets in play, clipped to the fill.
+  const shaded = [
+    playFrom > minFret && { x: g.fillX, w: g.cellX(playFrom) - g.fillX },
+    playTo < maxFret && {
+      x: g.cellX(playTo) + g.cellW(playTo),
+      w: fillRight - g.cellX(playTo) - g.cellW(playTo),
+    },
+  ].filter(span => span !== false);
 
   return (
     <svg
@@ -139,6 +157,22 @@ export function Fretboard({
           />
         );
       })}
+      {shaded.length > 0 && (
+        <g data-testid="board-shade">
+          <clipPath id={clipId}>
+            <rect
+              x={g.fillX} y={g.fillY} width={g.fillW} height={g.fillH} rx={BOARD_RADIUS}
+            />
+          </clipPath>
+          {shaded.map(span => (
+            <rect
+              key={span.x} x={span.x} y={g.fillY} width={span.w} height={g.fillH}
+              clipPath={`url(#${clipId})`}
+              style={{ fill: BOARD.shade, fillOpacity: 0.6 }}
+            />
+          ))}
+        </g>
+      )}
       {box && (
         <rect
           data-testid="board-box"
@@ -162,7 +196,10 @@ export function Fretboard({
           </text>
         ))}
         {g.fretNumbers.map(f => (
-          <text key={f.label} x={f.x} y={g.fretNumberY} textAnchor="middle">
+          <text
+            key={f.label} x={f.x} y={g.fretNumberY} textAnchor="middle"
+            opacity={isInPlay(f.f) ? 1 : 0.4}
+          >
             {f.label}
           </text>
         ))}
@@ -199,7 +236,7 @@ export function Fretboard({
       </g>
       {onCellClick && STRINGS.map(s => {
         const cells = [];
-        for (let f = minFret; f <= maxFret; f++) {
+        for (let f = playFrom; f <= playTo; f++) {
           const pos = { s, f };
           const disabled = isCellDisabled?.(pos) ?? false;
           const isFocus = focusCell.s === s && focusCell.f === f;

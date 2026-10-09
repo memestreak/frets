@@ -33,4 +33,25 @@ describe('Fretboard', () => {
     render(<Fretboard minFret={0} maxFret={5} dots={[]} label="A Dorian on the fretboard" />);
     expect(screen.getByRole('img', { name: 'A Dorian on the fretboard' })).toBeInTheDocument();
   });
+
+  it('keeps every fret drawn but shades and disables the frets out of play', () => {
+    const { container } = render(
+      <Fretboard
+        minFret={0} maxFret={15} dots={[]} onCellClick={() => {}}
+        inPlay={{ from: 3, to: 8 }}
+      />,
+    );
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('viewBox', `0 0 ${fretboardGeometry(0, 15).width} ${fretboardGeometry(0, 15).height}`);
+    expect(screen.getByTestId('board-shade').querySelectorAll('rect[clip-path]')).toHaveLength(2);
+    expect(screen.getByTestId('cell-0-3')).toBeInTheDocument();
+    expect(screen.getByTestId('cell-5-8')).toBeInTheDocument();
+    expect(screen.queryByTestId('cell-0-2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cell-0-9')).not.toBeInTheDocument();
+  });
+
+  it('shades nothing when every fret is in play', () => {
+    render(<Fretboard minFret={0} maxFret={15} dots={[]} inPlay={{ from: 0, to: 15 }} />);
+    expect(screen.queryByTestId('board-shade')).not.toBeInTheDocument();
+  });
 });
