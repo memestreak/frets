@@ -47,6 +47,8 @@ describe('keyWheel', () => {
   it('fills D major’s seven chords with their numerals', () => {
     expect(filled(keyWheel({ spoke: 2, minor: false }, OFF).cells))
       .toEqual(['G IV', 'D I', 'A V', 'Em ii', 'Bm vi', 'F♯m iii', 'C♯° vii°']);
+    // The ring of notes is the Mode view's only.
+    expect(keyWheel({ spoke: 2, minor: false }, OFF).notes).toEqual([]);
   });
 
   it('numbers a minor key against the major scale and adds its major V', () => {

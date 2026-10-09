@@ -259,7 +259,7 @@ export function CircleWheel({ model, signatures, pickable, onPick, onNote, previ
           </g>
         );
       })}
-      <path className="cof-run" d={run(model.homeSpoke)} />
+      {model.notes.length > 0 && <path className="cof-run" d={run(model.homeSpoke)} />}
       {preview !== null && preview !== model.homeSpoke && (
         <path className="cof-run-preview" d={run(preview, 2)} data-testid="run-preview" />
       )}

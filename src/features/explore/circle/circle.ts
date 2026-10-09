@@ -174,7 +174,7 @@ export interface ChordChip {
 export interface WheelModel {
   cells: Map<string, CellLook>;
   arrows: WheelArrow[];
-  /** The ring of notes, spoke 0 first. */
+  /** The ring of notes, spoke 0 first; empty in Key view. */
   notes: RingNote[];
   /**
    * The spoke of the major key whose notes are in use: its key signature
@@ -362,7 +362,8 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   if (opts.allNumerals) numberTheRest(cells, tonicPc, name);
 
   return {
-    title: name, cells, arrows, notes: ringNotes(k.spoke, scale, tonicPc), homeSpoke: k.spoke, tonic: keyCell(k),
+    // No ring of notes in Key view: the chords show the key, and the wheel keeps the ring's room.
+    title: name, cells, arrows, notes: [], homeSpoke: k.spoke, tonic: keyCell(k),
     centre: [prettyNote(keyTonic(k)), k.minor ? 'minor' : 'major'],
     chords, parallelName, borrowed, dominants,
   };

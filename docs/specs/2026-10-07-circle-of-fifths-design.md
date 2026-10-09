@@ -50,11 +50,12 @@ C major, and on C Dorian in Mode view.
 - Clicking or tapping shows no blue: no tap flash, no focus outline after
   a click, no text selection. Keyboard focus shows an ink ring.
 
-- **Ring of notes** (2026-10-08) round the outside: each spoke's note. A
+- **Ring of notes** (2026-10-08), Mode view only, round the outside: each spoke's note. A
   major scale is seven neighbouring spokes, from the one before its key
   to five after it; the key's or mode's seven notes are lit on a sunken
-  band, outlined as one run, and spelled as it spells them. The tonic or
-  root is an ink pin.
+  band, outlined as one run, and spelled as it spells them. The root is
+  an ink pin. Key view leaves the ring's room empty (Jeremy, 2026-10-09),
+  so the wheel is the same size in both views.
 - Coloured cells show the chord as the key or mode spells it (F♯ Lydian's
   V is C♯, though the outer ring calls that spoke D♭).
 
