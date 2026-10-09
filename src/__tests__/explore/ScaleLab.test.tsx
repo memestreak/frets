@@ -105,6 +105,26 @@ describe('ScaleLab', () => {
     expect(card.getByText('2 of 3')).toBeInTheDocument();
   });
 
+  it('keeps the picked shape on the tile once the chord is cleared', () => {
+    render(<ScaleLab />);
+    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    const tile = () => card.getByRole('button', { name: /^Am7 \(i7\)/ });
+    const diagram = () => tile().querySelector('svg')!.innerHTML;
+    fireEvent.click(tile());
+    const first = diagram();
+    fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
+    const second = diagram();
+    expect(second).not.toEqual(first);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(tile()).toHaveAttribute('aria-pressed', 'false');
+    expect(diagram()).toEqual(second);
+    fireEvent.click(tile());
+    fireEvent.click(document.body);
+    expect(tile()).toHaveAttribute('aria-pressed', 'false');
+    expect(diagram()).toEqual(second);
+  });
+
   it('shows the arpeggio around the shape, labelling only the shape', () => {
     render(<ScaleLab />);
     const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });

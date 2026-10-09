@@ -37,6 +37,10 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
   shape shows "‹ 2 of 3 ›" under its tile; other tiles say "3 shapes".
   ↑ and ↓ do the same. Each chord keeps its pick while the scale, chord
   size and position stay; changing any of them starts again at shape 1.
+  A tile draws its chord's pick whether or not the chord is selected, so
+  clearing the selection (click away, Esc, or tapping the tile again)
+  leaves the picked shape on the tile (fix, 2026-10-09: tiles used to
+  fall back to shape 1 when deselected).
 - **Arpeggio:** a toggle button in the card header, disabled with no
   chord. On, the neck shows every chord tone up to fret 15 in its degree
   colour; only the shape's notes carry labels (Jeremy's correction in
