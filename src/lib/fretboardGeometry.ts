@@ -46,7 +46,7 @@ export interface FretboardGeometry {
   cy: (s: number) => number;
   /** Fret lines inside the fill; lines on its rounded ends are omitted. */
   fretLines: { x: number; nut: boolean }[];
-  fretNumbers: { x: number; label: string }[];
+  fretNumbers: { f: number; x: number; label: string }[];
   inlays: { x: number; y: number }[];
 }
 
@@ -84,7 +84,7 @@ export function fretboardGeometry(
   })).filter((l, c) => c < n && (l.nut || c > 0));
   const fretNumbers = [];
   for (let f = firstFret; f <= maxFret; f++) {
-    fretNumbers.push({ x: cx(f), label: String(f) });
+    fretNumbers.push({ f, x: cx(f), label: String(f) });
   }
   const mid = boardY + boardH / 2;
   const inlays = [];

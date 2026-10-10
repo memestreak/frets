@@ -1,5 +1,6 @@
 export const MIN_WINDOW_SPAN = 3;
-export const MAX_FRET = 24;
+/** The highest fret the board draws; the window always lies inside 0–15. */
+export const MAX_FRET = 15;
 
 export interface FretWindow {
   minFret: number;
@@ -10,7 +11,7 @@ const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
 
 /**
- * Set the lowest fret of the board window (0–23), pushing the highest fret
+ * Set the lowest fret of the fret window (0–12), pushing the highest fret
  * up so the two stay at least MIN_WINDOW_SPAN apart.
  */
 export function setWindowMin(w: FretWindow, value: number): FretWindow {
@@ -20,7 +21,7 @@ export function setWindowMin(w: FretWindow, value: number): FretWindow {
 }
 
 /**
- * Set the highest fret of the board window (1–24), pulling the lowest fret
+ * Set the highest fret of the fret window (3–15), pulling the lowest fret
  * down so the two stay at least MIN_WINDOW_SPAN apart.
  */
 export function setWindowMax(w: FretWindow, value: number): FretWindow {
@@ -29,6 +30,6 @@ export function setWindowMax(w: FretWindow, value: number): FretWindow {
   return { minFret, maxFret };
 }
 
-/** Clamp an arbitrary fret number to 0–24. */
+/** Clamp an arbitrary fret number to 0–15. */
 export const clampFret = (value: number): number =>
   clamp(Math.round(value), 0, MAX_FRET);

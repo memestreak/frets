@@ -115,14 +115,16 @@ Consequences:
   direction.
 
 The worst case is about 19,000 pairs (window 0–24, widest box), measured at
-a few milliseconds per question.
+a few milliseconds per question. The window now stops at fret 15; see
+`2026-10-09-interval-fixed-board-design.md`.
 
 ### Find-it board
 
 The board does not show the box, and every cell in the window is tappable.
 An earlier version dimmed every cell outside the box and made those cells
 untappable; it was built, tried in the browser and rejected. `Fretboard` is
-unchanged by this work.
+unchanged by this work. (Frets outside the fret window, not the box, are
+now shaded and untappable; see `2026-10-09-interval-fixed-board-design.md`.)
 
 A tap is handled as:
 

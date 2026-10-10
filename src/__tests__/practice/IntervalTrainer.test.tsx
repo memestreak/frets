@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import IntervalTrainer from '@/features/practice/intervals/IntervalTrainer';
 import {
   correctFrets, defaultIntervalSettings, generateIntervalQuestion, inBox,
@@ -129,6 +129,18 @@ describe('IntervalTrainer', () => {
   it('Find it: the board shows no box and every cell takes taps', () => {
     const { set } = renderFindIt(8, { vRange: 2, hRange: 3 });
     for (const p of cells(set)) expect(cellEl(p)).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('a narrower fret range keeps the board the same size', () => {
+    const viewBox = () => document.querySelector('svg.fretboard')?.getAttribute('viewBox');
+    renderFindIt(8);
+    const full = viewBox();
+    cleanup();
+    renderFindIt(8, { minFret: 3, maxFret: 8 });
+    expect(viewBox()).toBe(full);
+    expect(screen.queryByTestId('cell-0-2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cell-0-9')).not.toBeInTheDocument();
+    expect(screen.getByTestId('board-shade')).toBeInTheDocument();
   });
 
   it('Find it: the right interval outside the range is explained, not scored', () => {

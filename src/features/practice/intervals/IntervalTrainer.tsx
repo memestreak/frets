@@ -14,7 +14,7 @@ import { Field, FretInput, FretPair } from '@/features/practice/quiz/SettingsPar
 import { TrainerHeader } from '@/features/practice/quiz/TrainerHeader';
 import { wasTapped } from '@/features/practice/quiz/trainerState';
 import { useTrainer } from '@/features/practice/quiz/useTrainer';
-import { setWindowMax, setWindowMin } from '@/lib/fretWindow';
+import { MAX_FRET, MIN_WINDOW_SPAN, setWindowMax, setWindowMin } from '@/lib/fretWindow';
 import {
   activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
   INTERVAL_STORAGE_KEY, resetIntervalSettings, V_RANGE_MAX, withHRange, withVRange,
@@ -176,12 +176,12 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           <Field label="Fret range">
             <FretPair>
               <FretInput
-                label="Lowest fret" min={0} max={23} value={set.minFret}
+                label="Lowest fret" min={0} max={MAX_FRET - MIN_WINDOW_SPAN} value={set.minFret}
                 onCommit={v => update(setWindowMin(set, v))}
               />
               <span className="text-muted">to</span>
               <FretInput
-                label="Highest fret" min={1} max={24} value={set.maxFret}
+                label="Highest fret" min={MIN_WINDOW_SPAN} max={MAX_FRET} value={set.maxFret}
                 onCommit={v => update(setWindowMax(set, v))}
               />
             </FretPair>
@@ -234,8 +234,9 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           onToggleHint={toggleHint}
         >
           <Fretboard
-            minFret={set.minFret}
-            maxFret={set.maxFret}
+            minFret={0}
+            maxFret={MAX_FRET}
+            inPlay={{ from: set.minFret, to: set.maxFret }}
             dots={dots}
             scrollToFret={q?.root.f}
             onCellClick={mode === 'fret' && !answered && q

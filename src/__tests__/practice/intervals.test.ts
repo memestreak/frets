@@ -29,7 +29,7 @@ describe('defaults', () => {
   it('resets every dialog field but keeps mode and pause', () => {
     const changed = settings({
       mode: 'fret', pause: true, dir: 'rand', vRange: 2, hRange: 9, minFret: 3,
-      maxFret: 20, pool: [7], compound: false, noteNames: true,
+      maxFret: 12, pool: [7], compound: false, noteNames: true,
     });
     expect(resetIntervalSettings(changed)).toEqual(
       settings({ mode: 'fret', pause: true }),
