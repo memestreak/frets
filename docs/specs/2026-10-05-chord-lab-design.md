@@ -2,23 +2,21 @@
 
 Date: 2026-10-05
 Status: approved in the project thread "Chords" (the lab mock in
-https://claude.ai/artifact/RwDFXnXusztR7FnoRveULR). The second page of the
+https://claude.ai/artifact/RwDFXnXusztR7FnoRveULR). Build it (tone chips)
+was removed on 2026-10-09 and an Arpeggio toggle added: see
+`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`. The second page of the
 Chords section, after the Chord library
 (`docs/specs/2026-10-05-chord-library-design.md`), whose parts it reuses.
 
 ## Problem
 
 The library answers "how do I play this chord?". Guitarists also ask the
-opposite: "what is this shape I'm playing?", and "what happens if I add a
-9th to it?".
+opposite: "what is this shape I'm playing?".
 
 ## Goal
 
-`/chords/lab` does both on one page:
-
-- **Name it**: tap notes on the neck, see every name for them.
-- **Build it**: toggle tones above the root, and the lab puts a shape for
-  the new chord on the neck.
+`/chords/lab`: tap notes on the neck, see every name for them (**Name
+it**), and the library's shapes for the name picked.
 
 Progressions and voice leading come later.
 
@@ -33,19 +31,18 @@ Progressions and voice leading come later.
    Fret 0 is the open string. Dots are labelled against the chosen name's
    root and take degree colours (the root square), as in the library.
    Muted strings are drawn faint. It opens on an open C (x-3-2-0-1-0).
+   Under the neck, the tapping hint and an **Arpeggio** toggle
+   (`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`).
 3. Two columns (one on phones):
    - **Name it** (right): every name for the notes, best first, each a
      button with a line saying why ("root in the bass", "♭3 in the bass",
-     "no 5"). Picking one relabels the dots, chips and title against its
+     "no 5"). Picking one relabels the dots, shapes and title against its
      root. With fewer than two different notes it says "Tap two or more
      notes to name them."; when nothing fits, "No chord name fits these
      notes."
-   - **Build it** (left): twelve tone chips, R to 7, the root fixed on.
-     Toggling a chip changes the set of tones; the lab finds shapes for
-     the new chord (the library's search) and puts the first one on the
-     neck. If no shape plays that set, the neck stays and a line says so.
-     Under the chips, the library's **Open** and **Moveable** groups for
-     the chosen chord; tapping one puts it on the neck.
+   - **Shapes** (left): the library's colour key and its **Open** and
+     **Moveable** groups for the chosen chord; tapping one puts it on the
+     neck.
 
 ## Naming
 
@@ -69,7 +66,7 @@ chord type's place in the Type list. Some types already leave a tone out
 Two notes a fifth apart are a power chord ("C5", tonal's `5` type); other
 two-note sets have no name.
 
-Notes that no type fits get no name; the chips and dots are then labelled
+Notes that no type fits get no name; the dots are then labelled
 against the lowest note with plain interval names (♭2, ♭5, ♭6 for the
 black-key tones).
 
@@ -83,7 +80,7 @@ black-key tones).
 - Shared with the library, moved up to `src/features/chords/`:
   `ChordHeader.tsx` (the title line, with a slot on the right).
 - `lab/`: `ChordLab.tsx` (the page, the only stateful component: frets,
-  chosen name, Show all, a notice), `NameList.tsx`, `ToneChips.tsx`.
+  chosen name, Show all, the arpeggio), `NameList.tsx`.
 - Route `src/app/chords/lab/` (prerendered: the lab reads no storage or URL);
   `sections.ts` lists it.
 
@@ -98,5 +95,4 @@ isn't linkable (Jeremy, 2026-10-05).
   two names for `11`/`9sus4`, C G as C5, a cluster with no name.
 - chordFromTones: a known type, an unnamed set.
 - ChordLab: opens on C; tapping a fret names the new chord; tapping again
-  mutes; picking a name relabels; toggling a chip puts a shape for the new
-  chord on the neck; Clear.
+  mutes; picking a name relabels; Clear.

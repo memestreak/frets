@@ -1,16 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { ToggleButton } from '@/components/controls';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { TUNING, type Position } from '@/lib/music';
-import { voicingDots } from '@/components/chords/chordDots';
+import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
+import { arpeggioCaption } from '../arpeggioCaption';
 import { ChordHeader } from '../ChordHeader';
 import { chordFromTones, formulaOf, type ChordInfo } from '@/lib/chords/chordTypes';
 import { nameNotes } from '../naming';
 import { VoicingGroups } from '../VoicingGroups';
 import { findVoicings, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
+import { useSpaceKey } from '../useSpaceKey';
 import { NameList } from './NameList';
-import { ToneChips } from './ToneChips';
 
 /** The neck shows the open strings through this fret. */
 const MAX_FRET = 15;
@@ -27,22 +29,31 @@ const pitchClasses = (frets: Voicing) =>
 
 /**
  * The Chord lab page. The frets on the neck are the source of truth: the
- * names, the chips and the shapes all come from them. The only component
- * here with state: the frets, the chosen name, Show all and a notice.
+ * names and the shapes all come from them. The Arpeggio button (or space)
+ * swaps the shape on the neck for every tone of the chord named, and back
+ * again: the frets are kept while the arpeggio is on. Tapping the neck
+ * still plays or mutes a note: the arpeggio labels only the notes played
+ * and follows the new chord;
+ * choosing a shape or Clear turns it off.
+ * The only component here with state: the frets, the chosen name, Show all
+ * and the arpeggio.
  */
 export default function ChordLab() {
   const [frets, setFrets] = useState<Voicing>(START);
   const [nameIndex, setNameIndex] = useState(0);
   const [showAll, setShowAll] = useState(false);
-  /** Says why a chip did nothing. */
-  const [notice, setNotice] = useState<string | null>(null);
+  const [arpeggio, setArpeggio] = useState(false);
 
   // A new shape starts from its best name and the best few shapes.
   const play = (next: Voicing) => {
     setFrets(next);
     setNameIndex(0);
     setShowAll(false);
-    setNotice(null);
+  };
+  // A shape chosen from the diagrams, or Clear, goes back to showing the shape.
+  const choose = (next: Voicing) => {
+    play(next);
+    setArpeggio(false);
   };
 
   const pcs = useMemo(() => pitchClasses(frets), [frets]);
@@ -55,25 +66,24 @@ export default function ChordLab() {
   );
   const voicings = useMemo(() => (chord ? findVoicings(chord) : NO_VOICINGS), [chord]);
 
-  const tap = ({ s, f }: Position) =>
-    play(frets.map((fret, string) => (string !== s ? fret : fret === f ? null : f)));
-
-  /** Adds or removes a tone, then puts the new chord's first shape on the neck. */
-  const toggleTone = (current: ChordInfo, semis: number) => {
-    const tones = current.tones.map(t => t.semis);
-    const nextTones = tones.includes(semis) ? tones.filter(t => t !== semis) : [...tones, semis];
-    if (nextTones.length < 2) {
-      setNotice('A chord needs two or more tones.');
-      return;
-    }
-    const next = chordFromTones(current.rootPc, nextTones);
-    const found = findVoicings(next);
-    const first = found.open[0] ?? found.moveable[0];
-    if (first) play(first);
-    else setNotice(`No shape plays ${formulaOf(next)} within four frets.`);
+  const tap = ({ s, f }: Position) => {
+    const next = frets.map((fret, string) => (string !== s ? fret : fret === f ? null : f));
+    // Muting the last string leaves no chord, so no arpeggio.
+    if (next.every(fret => fret === null)) choose(next);
+    else play(next);
   };
 
+  // With nothing on the neck there is no arpeggio to show.
+  const hasChord = chord !== null;
+  const toggleArpeggio = useCallback(() => {
+    if (hasChord) setArpeggio(on => !on);
+  }, [hasChord]);
+  useSpaceKey(toggleArpeggio);
+
   const title = name?.symbol ?? (chord ? 'No name' : 'Tap the neck');
+  const dots = !chord ? []
+    : arpeggio ? arpeggioDots(chord, MAX_FRET, frets)
+    : voicingDots(chord, frets);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
@@ -82,22 +92,29 @@ export default function ChordLab() {
         formula={chord ? formulaOf(chord) : ''}
         notes={chord ? chord.notes.join(' ') : ''}
       >
-        <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
+        <button type="button" className="btn btn-secondary" onClick={() => choose(MUTED)}>
           Clear
         </button>
       </ChordHeader>
 
-      <section className="card gap-3" aria-label="On the neck">
-        <p className="m-0 text-(--ink-muted)">
-          Tap a fret to play it on that string; tap it again to mute the string.
-        </p>
+      <section className="card gap-4" aria-label="On the neck">
         <div className="board-scroll">
           <Fretboard
             minFret={0} maxFret={MAX_FRET}
-            dots={chord ? voicingDots(chord, frets) : []}
+            dots={dots}
             onCellClick={tap}
             stringStyle={s => (frets[s] === null ? { opacity: 0.35 } : {})}
           />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <p className="m-0 text-(--ink-muted)" aria-live="polite" data-testid="neck-caption">
+            {arpeggio && chord
+              ? arpeggioCaption(chord, MAX_FRET)
+              : 'Tap a fret to play it on that string; tap it again to mute the string.'}
+          </p>
+          <ToggleButton pressed={arpeggio} disabled={!hasChord} onClick={toggleArpeggio}>
+            Arpeggio
+          </ToggleButton>
         </div>
       </section>
 
@@ -112,25 +129,18 @@ export default function ChordLab() {
           />
         </section>
 
-        <section className="grid content-start gap-5 md:col-start-1 md:row-start-1" aria-label="Build it">
-          <div className="grid gap-2">
-            <h2 className="m-0 text-[17px] leading-6">Build it</h2>
-            {chord ? (
-              <ToneChips chord={chord} onToggle={semis => toggleTone(chord, semis)} />
-            ) : (
-              <p className="m-0 text-(--ink-muted)">Tap a note to start a chord.</p>
-            )}
-            {notice && <p className="m-0 text-(--danger)" role="status">{notice}</p>}
-          </div>
-          {chord && (
+        <div className="md:col-start-1 md:row-start-1">
+          {chord ? (
             <VoicingGroups
-              chord={chord} voicings={voicings} showKey={false}
+              chord={chord} voicings={voicings}
               showAll={showAll} onShowAll={setShowAll}
-              selectedKey={voicingKey(frets)}
-              onSelect={play}
+              selectedKey={arpeggio ? null : voicingKey(frets)}
+              onSelect={choose}
             />
+          ) : (
+            <p className="m-0 text-(--ink-muted)">Tap a note to see its shapes.</p>
           )}
-        </section>
+        </div>
       </div>
     </div>
   );

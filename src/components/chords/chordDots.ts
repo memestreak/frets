@@ -31,8 +31,15 @@ export function voicingDots(chord: ChordInfo, voicing: Voicing): FretDot[] {
   return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret)]));
 }
 
-/** The arpeggio: every chord tone from the nut to `maxFret`. */
-export function arpeggioDots(chord: ChordInfo, maxFret: number): FretDot[] {
+/**
+ * The arpeggio: every chord tone from the nut to `maxFret`. Given a
+ * `voicing`, only that shape's dots keep their labels, so the shape still
+ * shows inside the arpeggio.
+ */
+export function arpeggioDots(chord: ChordInfo, maxFret: number, voicing?: Voicing): FretDot[] {
   return positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
-    .map(p => toneDot(chord, p.s, p.f));
+    .map(p => {
+      const dot = toneDot(chord, p.s, p.f);
+      return voicing && voicing[p.s] !== p.f ? { ...dot, label: '' } : dot;
+    });
 }

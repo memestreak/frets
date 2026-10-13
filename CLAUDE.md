@@ -12,6 +12,7 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-05-chord-lab-design.md`,
 `docs/specs/2026-10-06-simpler-chord-diagrams-design.md`,
 `docs/specs/2026-10-06-chord-arpeggio-design.md`,
+`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`,
 `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
 `docs/specs/2026-10-07-circle-of-fifths-design.md` and
 `docs/specs/2026-10-09-published-chord-shapes-design.md`). The app has no users
@@ -158,8 +159,8 @@ binds a local port).
 - `src/features/chords/` — the Chord library (`library/`, with its
   client-only loader) and the Chord lab (`lab/`), built on `src/lib/chords/`
   and `src/components/chords/`. `naming.ts` gives every name for a set of
-  notes. `ChordHeader.tsx` and `VoicingGroups.tsx` are shared by both
-  pages; `library/ChordLibrary.tsx` and `lab/ChordLab.tsx` are the pages
+  notes. `ChordHeader.tsx`, `VoicingGroups.tsx`, `useSpaceKey.ts` (space
+  toggles the Arpeggio) and `arpeggioCaption.ts` are shared by both pages; `library/ChordLibrary.tsx` and `lab/ChordLab.tsx` are the pages
   and their only stateful components. The chord is in the URL, not storage:
   `/chords/library?chord=am7b5`, optionally `&shape=x-0-2-0-1-0` to open on
   a shape; slugs in `src/lib/chords/chordUrls.ts`.

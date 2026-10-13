@@ -240,18 +240,7 @@ button {
   .tone-swatch { width: 14px; height: 14px; border-radius: 50%; }
   .tone-swatch-root { border-radius: 3px; }
 
-  /* The Chord lab's tone chips and chord names. */
-  .tone-chip {
-    min-width: 44px;
-    padding: 6px 8px;
-    border-radius: var(--radius-md);
-    background: var(--surface-sunken);
-    color: var(--ink-muted);
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .tone-chip[aria-pressed='true'] { font-weight: 700; }
-  .tone-chip:disabled { cursor: default; }
+  /* The Chord lab's chord names. */
   .name-btn {
     display: flex;
     flex-wrap: wrap;
