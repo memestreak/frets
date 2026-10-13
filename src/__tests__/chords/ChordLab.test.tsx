@@ -59,6 +59,64 @@ describe('ChordLab', () => {
     expect(heading()).toHaveTextContent(/^C /);
   });
 
+  describe('with Gm7add11 on the neck', () => {
+    const shape = (key: string) => document.querySelector<HTMLElement>(`[data-voicing="${key}"]`)!;
+    /** Clears the neck and barres fret 3: G C F B♭ D G. */
+    const barreGm7add11 = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      for (let s = 0; s < 6; s++) fireEvent.click(cell(s, 3));
+    };
+
+    it('keeps the chord when a shape that leaves out its 5th is chosen', () => {
+      render(<ChordLab />);
+      barreGm7add11();
+      expect(heading()).toHaveTextContent(/^Gm7add11 /);
+      fireEvent.click(shape('3-x-3-3-1-x')); // G F B♭ C: also every tone of C7sus4
+      expect(heading()).toHaveTextContent(/^Gm7add11 \(no 5\) /);
+      expect(screen.getByTestId('chord-notes')).toHaveTextContent('G B♭ D F C');
+      expect(shape('3-x-3-3-1-x')).toHaveAttribute('aria-pressed', 'true');
+      expect(shape('3-3-3-3-3-3')).toBeInTheDocument(); // still Gm7add11's shapes
+      expect(names().map(n => n.querySelector('b')!.textContent)).toEqual(
+        ['Gm7add11 (no 5)', 'C7sus4/G', 'G4', 'Fsus24/G'],
+      );
+    });
+
+    it('keeps the chord through every shape stepped to with the arrow keys', () => {
+      render(<ChordLab />);
+      barreGm7add11();
+      const count = document.querySelectorAll('[data-voicing]').length;
+      for (let i = 0; i < count; i++) {
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(heading()).toHaveTextContent(/^Gm7add11 /);
+      }
+    });
+
+    it('keeps every shape showing when one of them is chosen', () => {
+      render(<ChordLab />);
+      barreGm7add11();
+      fireEvent.click(screen.getByRole('button', { name: /^Show all/ }));
+      const all = document.querySelectorAll('[data-voicing]').length;
+      fireEvent.click(shape('3-x-3-3-1-x'));
+      expect(document.querySelectorAll('[data-voicing]')).toHaveLength(all);
+    });
+
+    it('still reads the shape as another chord when that name is picked', () => {
+      render(<ChordLab />);
+      barreGm7add11();
+      fireEvent.click(shape('3-x-3-3-1-x'));
+      fireEvent.click(names()[1]);
+      expect(heading()).toHaveTextContent(/^C7sus4\/G /);
+    });
+
+    it('names the notes afresh once the neck is tapped', () => {
+      render(<ChordLab />);
+      barreGm7add11();
+      fireEvent.click(shape('3-x-3-3-1-x'));
+      fireEvent.click(cell(5, 3)); // another G: the same four notes, now tapped in
+      expect(heading()).toHaveTextContent(/^C7sus4\/G /);
+    });
+  });
+
   it('swaps the shape for the arpeggio and back, with the button or space', () => {
     render(<ChordLab />);
     fireEvent.click(arpeggio());

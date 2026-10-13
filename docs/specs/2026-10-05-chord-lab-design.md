@@ -4,7 +4,8 @@ Date: 2026-10-05
 Status: approved in the project thread "Chords" (the lab mock in
 https://claude.ai/artifact/RwDFXnXusztR7FnoRveULR). Build it (tone chips)
 was removed on 2026-10-09 and an Arpeggio toggle added: see
-`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`. The second page of the
+`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`. Choosing a shape has
+kept the chord since 2026-10-13 (see "Choosing a shape"). The second page of the
 Chords section, after the Chord library
 (`docs/specs/2026-10-05-chord-library-design.md`), whose parts it reuses.
 
@@ -42,7 +43,7 @@ Progressions and voice leading come later.
      notes."
    - **Shapes** (left): the library's colour key and its **Open** and
      **Moveable** groups for the chosen chord; tapping one puts it on the
-     neck.
+     neck and keeps the chord (see "Choosing a shape").
 
 ## Naming
 
@@ -70,17 +71,35 @@ Notes that no type fits get no name; the dots are then labelled
 against the lowest note with plain interval names (♭2, ♭5, ♭6 for the
 black-key tones).
 
+## Choosing a shape
+
+Jeremy, 2026-10-13: with Gm7add11 on the neck, choosing its shape
+3-x-3-3-1-x turned the page into C7sus4/G. The shape leaves out the 5th,
+and G F B♭ C alone are exactly C7sus4, so naming the notes afresh lost the
+chord, and with it the list of shapes being browsed.
+
+- A shape chosen from the diagrams (tap, ← →) is a shape of the chord the
+  page is showing, and stays one: the title, dots and shapes keep that
+  chord, and Show all stays as it was.
+- Name it lists that chord first, named for the notes played ("Gm7add11
+  (no 5)", or with a slash when the root isn't lowest), then every other
+  name for the notes in the usual order. Picking another name works as
+  before, and a shape chosen after that keeps the newly picked chord.
+- Tapping the neck or Clear lets go of the chord: the notes are named
+  afresh, best name first.
+
 ## Code
 
 - `chordTypes.ts` gains `ChordTypeDef.semis` (sorted semitones, used for
   matching) and `chordFromTones(rootPc, semis)`: the type with exactly
   those tones, or an unnamed chord labelled with plain interval names.
 - `naming.ts` (new, no tonal): `nameNotes(pcs, bassPc)` returns
-  `ChordName[]` (`symbol`, `why`, `chord`). No React.
+  `ChordName[]` (`symbol`, `why`, `chord`). No React. Given a chord to
+  keep, its name for the notes (`nameAs`) comes first.
 - Shared with the library, moved up to `src/features/chords/`:
   `ChordHeader.tsx` (the title line, with a slot on the right).
 - `lab/`: `ChordLab.tsx` (the page, the only stateful component: frets,
-  chosen name, Show all, the arpeggio), `NameList.tsx`.
+  the kept chord, chosen name, Show all, the arpeggio), `NameList.tsx`.
 - Route `src/app/chords/lab/` (prerendered: the lab reads no storage or URL);
   `sections.ts` lists it.
 
@@ -95,4 +114,5 @@ isn't linkable (Jeremy, 2026-10-05).
   two names for `11`/`9sus4`, C G as C5, a cluster with no name.
 - chordFromTones: a known type, an unnamed set.
 - ChordLab: opens on C; tapping a fret names the new chord; tapping again
-  mutes; picking a name relabels; Clear.
+  mutes; picking a name relabels; Clear; a shape of Gm7add11 without its
+  5th keeps the chord, tapping the neck afterwards names the notes afresh.

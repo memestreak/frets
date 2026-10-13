@@ -1,5 +1,5 @@
-import { chordFromTones } from '@/lib/chords/chordTypes';
-import { nameNotes } from '@/features/chords/naming';
+import { chordFromTones, chordOf } from '@/lib/chords/chordTypes';
+import { nameAs, nameNotes } from '@/features/chords/naming';
 
 const PC: Record<string, number> = {
   C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, 'F#': 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11,
@@ -42,6 +42,40 @@ describe('nameNotes', () => {
     expect(names('C', 'G')).toEqual(['C5']);
     expect(names('C', 'C')).toEqual([]);
     expect(names('C', 'Db', 'D')).toEqual([]);
+  });
+});
+
+describe('a shape of a kept chord', () => {
+  const gm7add11 = chordOf('G', 'm7add11');
+  /** 3-x-3-3-1-x: Gm7add11 without its 5th, which is every tone of C7sus4. */
+  const NO_FIFTH = ['G', 'F', 'Bb', 'C'].map(n => PC[n]);
+
+  it('reads as another chord from its notes alone', () => {
+    expect(names('G', 'F', 'Bb', 'C')).toEqual(['C7sus4/G', 'G4', 'Fsus24/G']);
+  });
+
+  it('names the kept chord first, then what else the notes spell', () => {
+    const kept = nameNotes(NO_FIFTH, PC.G, gm7add11);
+    expect(kept.map(n => n.symbol)).toEqual(['Gm7add11 (no 5)', 'C7sus4/G', 'G4', 'Fsus24/G']);
+    expect(kept[0].chord).toBe(gm7add11);
+  });
+
+  it('lists the kept chord once when the notes already name it', () => {
+    const all = ['G', 'D', 'F', 'Bb', 'C'].map(n => PC[n]);
+    const kept = nameNotes(all, PC.G, gm7add11).map(n => n.symbol);
+    expect(kept[0]).toBe('Gm7add11');
+    expect(kept.filter(n => n === 'Gm7add11')).toHaveLength(1);
+  });
+
+  it('names a kept chord over another bass note', () => {
+    expect(nameAs(chordOf('C', 'M'), [PC.E, PC.G, PC.C], PC.E)?.symbol).toBe('C/E');
+  });
+
+  it('does not keep a chord the notes are not a shape of', () => {
+    expect(nameAs(gm7add11, [PC.G, PC.B, PC.D], PC.G)).toBeNull(); // B isn't in it
+    expect(nameAs(gm7add11, [PC.G, PC.D, PC.F], PC.G)).toBeNull(); // no ♭3 or 11
+    expect(nameAs(chordFromTones(0, [0, 1, 2]), [0, 1, 2], 0)).toBeNull(); // no name
+    expect(names('G', 'B', 'D')).toEqual(nameNotes([PC.G, PC.B, PC.D], PC.G, gm7add11).map(n => n.symbol));
   });
 });
 

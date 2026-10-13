@@ -29,35 +29,27 @@ const pitchClasses = (frets: Voicing) =>
 
 /**
  * The Chord lab page. The frets on the neck are the source of truth: the
- * names and the shapes all come from them. The Arpeggio button (or space)
+ * names and the shapes come from them. Choosing one of the shapes keeps the
+ * chord it is a shape of (`kept`), even when the shape leaves out a tone and
+ * its notes alone would spell another chord; tapping the neck names the
+ * notes afresh. The Arpeggio button (or space)
  * swaps the shape on the neck for every tone of the chord named, and back
  * again: the frets are kept while the arpeggio is on. Tapping the neck
  * still plays or mutes a note: the arpeggio labels only the notes played
  * and follows the new chord;
  * choosing a shape or Clear turns it off.
- * The only component here with state: the frets, the chosen name, Show all
- * and the arpeggio.
+ * The only component here with state: the frets, the kept chord, the chosen
+ * name, Show all and the arpeggio.
  */
 export default function ChordLab() {
   const [frets, setFrets] = useState<Voicing>(START);
+  const [kept, setKept] = useState<ChordInfo | null>(null);
   const [nameIndex, setNameIndex] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [arpeggio, setArpeggio] = useState(false);
 
-  // A new shape starts from its best name and the best few shapes.
-  const play = (next: Voicing) => {
-    setFrets(next);
-    setNameIndex(0);
-    setShowAll(false);
-  };
-  // A shape chosen from the diagrams, or Clear, goes back to showing the shape.
-  const choose = (next: Voicing) => {
-    play(next);
-    setArpeggio(false);
-  };
-
   const pcs = useMemo(() => pitchClasses(frets), [frets]);
-  const names = useMemo(() => nameNotes(pcs, pcs[0]), [pcs]);
+  const names = useMemo(() => nameNotes(pcs, pcs[0], kept), [pcs, kept]);
   const name = names[nameIndex];
   // With no name, the notes are read upward from the lowest one.
   const chord = useMemo<ChordInfo | null>(
@@ -66,12 +58,25 @@ export default function ChordLab() {
   );
   const voicings = useMemo(() => (chord ? findVoicings(chord) : NO_VOICINGS), [chord]);
 
-  const tap = ({ s, f }: Position) => {
-    const next = frets.map((fret, string) => (string !== s ? fret : fret === f ? null : f));
-    // Muting the last string leaves no chord, so no arpeggio.
-    if (next.every(fret => fret === null)) choose(next);
-    else play(next);
+  // New notes start from their best name and the best few shapes.
+  const play = (next: Voicing) => {
+    setFrets(next);
+    setKept(null);
+    setNameIndex(0);
+    setShowAll(false);
+    // With every string muted there is no chord, so no arpeggio.
+    if (next.every(fret => fret === null)) setArpeggio(false);
   };
+  // One of the chord's shapes: the chord and its list of shapes stay.
+  const chooseShape = (next: Voicing) => {
+    setFrets(next);
+    setKept(chord);
+    setNameIndex(0);
+    setArpeggio(false);
+  };
+
+  const tap = ({ s, f }: Position) =>
+    play(frets.map((fret, string) => (string !== s ? fret : fret === f ? null : f)));
 
   // With nothing on the neck there is no arpeggio to show.
   const hasChord = chord !== null;
@@ -92,7 +97,7 @@ export default function ChordLab() {
         formula={chord ? formulaOf(chord) : ''}
         notes={chord ? chord.notes.join(' ') : ''}
       >
-        <button type="button" className="btn btn-secondary" onClick={() => choose(MUTED)}>
+        <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
           Clear
         </button>
       </ChordHeader>
@@ -135,7 +140,7 @@ export default function ChordLab() {
               chord={chord} voicings={voicings}
               showAll={showAll} onShowAll={setShowAll}
               selectedKey={arpeggio ? null : voicingKey(frets)}
-              onSelect={choose}
+              onSelect={chooseShape}
             />
           ) : (
             <p className="m-0 text-(--ink-muted)">Tap a note to see its shapes.</p>
