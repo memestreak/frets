@@ -71,16 +71,19 @@ One column, as in the prototype:
    Dot labels Interval / Note / None. The root is a square ("R"); every dot
    takes its degree colour. On phones the board scrolls sideways, as in the
    trainers.
-4. **Chords in this scale.** A seven-card strip (canvas "Diatonic chords"
-   option B) with a Triads / Sevenths switch. A card shows
-   the numeral, the symbol and the quality. Tapping a card selects it and
-   tapping it again clears it. While a chord is selected the neck shows
+4. **Diatonic chords.** One card listing the scale's seven chords once
+   (two cards, "Diatonic chords" and "Chords in this scale", until
+   2026-10-13: `2026-10-13-one-diatonic-chords-card-design.md`). Its header
+   has the Triads / Sevenths switch; each chord is a guitar shape in one
+   position (`2026-10-07-scale-lab-position-shapes-design.md`) with its
+   numeral and symbol. Tapping a shape selects its chord and tapping it
+   again clears it. While a chord is selected the neck shows
    only its tones, labelled and coloured by their interval to the chord root
    (R 3 5 ♭7); the scale's other notes are hidden. (The prototype keeps them
    as small grey dots; on review they read as clutter.) Changing the root
    or scale from the dropdowns clears the chord; a rotation and changing
-   size keeps it. A selected chord is also drawn
-   against the scale as a ladder or a clock
+   size keeps it. Under the shapes, in the same card, a selected chord is
+   drawn against the scale as a ladder or a clock
    (`2026-10-04-chord-diagrams-design.md`).
 
 Defaults on first visit: A Dorian, Sevenths, Interval labels.
@@ -127,9 +130,9 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
   (C♯ major's third mode is F Phrygian, not E♯ Phrygian): 47 of the 357
   steps across the three families need it. Picking a root or scale starts
   again from what the dropdowns then show. The chords section stays on
-  the picked scale too: the cards keep its order (in D Dorian from C
+  the picked scale too: the tiles keep its order (in D Dorian from C
   major, Cmaj7 is still first) with their numerals counted from the new
-  root, whose card's numeral takes the root colour, and the ladder and
+  root, and the ladder and
   clock start on the picked root. A selected chord stays selected. ← and
   → stay with the chords.
 - **Degree colours** (canvas "Scale-view colours" option A): degree 1 root,
