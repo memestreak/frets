@@ -12,8 +12,10 @@ const TILE = 26;
 const TILE_H = 34;
 const SQUARE = 18;
 const PAD = 8;
-/** Height of one bracket level above the tiles. */
+/** Height of one bracket level under the tiles. */
 const LEVEL = 22;
+/** From the tiles' foot to where the brackets start: the degrees and chord roles sit between. */
+const LABELS = 38;
 
 interface ChordLadderProps {
   scale: Scale;
@@ -48,16 +50,18 @@ export function ChordLadder({
 }: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
-  // The two-octave ladder is where chords are drawn: it always keeps room
-  // for the tallest stack of brackets above the tiles and the chord roles
-  // under them, so picking a chord, its size or its intervals moves nothing.
+  // The two-octave ladder is where chords are drawn. Its brackets hang
+  // under the notes, and it always keeps room there for the tallest stack,
+  // so picking a chord, its size or its intervals moves nothing and the
+  // spare room is at the foot of the card (Jeremy, 2026-10-13).
   const forChords = octaves === 2;
-  const top = forChords ? LEVEL * MAX_SPAN_LEVELS + 36 : 12;
+  // Room above the tiles for the octave mark.
+  const top = forChords ? 26 : 12;
   const width = PAD * 2 + CELL * cells - (CELL - TILE);
-  const height = top + TILE_H + (forChords ? 58 : 22);
+  const bracketTop = top + TILE_H + LABELS;
+  const height = forChords ? bracketTop + LEVEL * MAX_SPAN_LEVELS + 14 : top + TILE_H + 22;
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
-  const octaveY = top + TILE_H + 52;
   const between = intervals === 'between';
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
@@ -87,11 +91,11 @@ export function ChordLadder({
       {octaves === 2 && (
         <>
           <line
-            x1={octaveX} x2={octaveX} y1={top - 6} y2={octaveY - 12}
+            x1={octaveX} x2={octaveX} y1={top - 8} y2={bracketTop - 4}
             stroke="var(--line-strong)" strokeDasharray="3 3"
           />
           <text
-            x={octaveX} y={octaveY} textAnchor="middle"
+            x={octaveX} y={top - 14} textAnchor="middle"
             className="diagram-note" fill="var(--ink-muted)"
           >
             octave
@@ -163,11 +167,11 @@ export function ChordLadder({
         const inset = between ? 3 : 0;
         const a = cx(at[s.from]) + inset;
         const b = cx(at[s.to]) - inset;
-        const y = top - 4 - LEVEL * s.level;
+        const y = bracketTop + LEVEL * s.level;
         return (
           <g key={s.to}>
             <path
-              d={`M${a} ${top - 4} V${y} H${b} V${top - 4}`}
+              d={`M${a} ${bracketTop} V${y} H${b} V${bracketTop}`}
               fill="none" stroke={s.colour} strokeWidth={2} strokeLinejoin="round"
             />
             <IntervalTag x={(a + b) / 2} y={y} name={s.name} colour={s.colour} />

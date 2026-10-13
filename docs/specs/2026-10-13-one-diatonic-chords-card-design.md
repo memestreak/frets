@@ -50,11 +50,14 @@ on a phone the heading has a line to itself.
 The diagrams keep one size too (Jeremy, 2026-10-13: "page elements jump
 around when I click on a chord"; the ladder grew from 143px to 309px on a
 laptop as its brackets appeared, pushing its notes and the page's end
-down). The two-octave ladder always has room above its notes for a
-seventh's three brackets and under them for the chord roles, and the clock
+down). The two-octave ladder always has room for a seventh's three
+brackets and the chord roles, and the clock
 always has room for three arcs (`MAX_SPAN_LEVELS`), so neither picking a
 chord nor changing its size or intervals resizes them. The one-octave strip
-under the title never draws a chord and stays compact. On a phone the neck
+under the title never draws a chord and stays compact. The brackets hang
+under the ladder's notes, not above them, so the room kept for them is at
+the foot of the card and not a gap between the heading and the notes
+(Jeremy, 2026-10-13); the octave's name moved above the notes to make way. On a phone the neck
 rests scrolled to the position whether or not a chord is selected. Two
 things still move on a phone, on purpose: the ladder slides sideways to
 bring the chord's root into view, and the neck slides when the position

@@ -37,9 +37,13 @@ wrapping round at the ends, unless focus is in a field that uses the arrows
 - The chord's tones are filled in role colours (root, third, fifth,
   seventh; the root's tile is squarer), with their label against the chord
   root (R 3 5 ♭7) under the degree. The other tiles are muted.
-- A dashed line marks the octave.
+- A dashed line marks the octave, named above the notes.
+- The brackets hang under the notes and their labels (above them until
+  2026-10-13). The ladder always keeps room for three levels, so it is one
+  size whatever it shows and the spare room is at its foot
+  (`2026-10-13-one-diatonic-chords-card-design.md`).
 - **From the root:** a square bracket from the chord root to each tone,
-  stacked so the farther the tone, the higher its bracket, each in its
+  stacked so the farther the tone, the lower its bracket, each in its
   tone's colour and labelled M3, P5, m7.
 - **Between tones:** a bracket per stacked third on one level, in
   `--primary`, inset so neighbours don't join, labelled M3 or m3.
