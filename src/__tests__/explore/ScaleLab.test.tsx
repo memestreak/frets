@@ -66,7 +66,7 @@ describe('ScaleLab', () => {
 
   it('draws the chords\' shapes in one position, steps it and saves it', () => {
     render(<ScaleLab />);
-    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
     expect(card.getAllByRole('button', { name: /: shape in Frets 5–9$/ })).toHaveLength(7);
     // The neck outlines the position only while a chord is selected.
     expect(screen.queryByTestId('board-box')).toBeNull();
@@ -83,7 +83,7 @@ describe('ScaleLab', () => {
 
   it('selects a chord from its shape, cycles its shapes and links to the library', () => {
     render(<ScaleLab />);
-    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
     fireEvent.click(card.getByRole('button', { name: /^Am7 \(i7\)/ }));
     expect(chordCard('Am7')).toHaveAttribute('aria-pressed', 'true');
     expect(card.getByText('1 of 5')).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('ScaleLab', () => {
 
   it('keeps the picked shape on the tile once the chord is cleared', () => {
     render(<ScaleLab />);
-    const card = within(screen.getByRole('region', { name: 'In one position' }));
+    const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
     const tile = () => card.getByRole('button', { name: /^Am7 \(i7\)/ });
     const diagram = () => tile().querySelector('svg')!.innerHTML;
     fireEvent.click(tile());

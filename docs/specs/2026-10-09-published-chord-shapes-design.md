@@ -68,7 +68,7 @@ unnamed chords) keeps the searched shapes, with these fixes:
   out of the best few (still under Show all).
 - **Open order**: easiest first, not most strings first.
 
-The Scale lab's "In one position" card takes its core shapes from the same
+The Scale lab's "Diatonic chords" card takes its core shapes from the same
 lists, trying each moveable shape an octave up as well, so high positions
 find the published shapes too.
 
