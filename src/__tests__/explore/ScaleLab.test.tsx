@@ -390,6 +390,41 @@ describe('ScaleLab', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^G Mixolydian$/);
   });
 
+  it('keeps the ladder and the clock one size whatever they show', () => {
+    render(<ScaleLab />);
+    const viewBox = (cls: string) => document.querySelector(`.${cls}`)!.getAttribute('viewBox');
+    // Where the first scale note sits in the drawing.
+    const firstNote = () => {
+      const rect = screen.getAllByTestId(/^ladder-/)
+        .find(g => g.closest('.chord-ladder'))!.querySelector('rect')!;
+      return `${rect.getAttribute('x')},${rect.getAttribute('y')}`;
+    };
+    const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+    const ladder = viewBox('chord-ladder');
+    const note = firstNote();
+    const same = () => {
+      expect(viewBox('chord-ladder')).toBe(ladder);
+      expect(firstNote()).toBe(note);
+    };
+    fireEvent.click(chordCard('D7'));
+    same();
+    press('Between tones');
+    same();
+    press('Triads');
+    same();
+
+    press('Clock');
+    const clock = viewBox('chord-clock');
+    press('Sevenths');
+    press('From the root');
+    expect(viewBox('chord-clock')).toBe(clock);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(viewBox('chord-clock')).toBe(clock);
+    // The strip under the title never draws a chord, so it stays compact.
+    expect(Number(viewBox('scale-strip')!.split(' ')[3]))
+      .toBeLessThan(Number(ladder!.split(' ')[3]) / 2);
+  });
+
   it('lists the chords once, in one card', () => {
     render(<ScaleLab />);
     expect(screen.getAllByRole('region').map(r => r.getAttribute('aria-labelledby')))

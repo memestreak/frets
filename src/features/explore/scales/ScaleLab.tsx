@@ -202,7 +202,9 @@ export default function ScaleLab() {
             box={chord
               ? { from: set.position === 1 ? 0 : set.position, to: positionEnd(set.position) }
               : null}
-            scrollToFret={chord ? set.position + 2 : null}
+            // On a phone the neck rests on the position, so picking a chord there
+            // does not slide it.
+            scrollToFret={set.position + 2}
             label={`${boardLabel} on the fretboard`}
           />
         </div>

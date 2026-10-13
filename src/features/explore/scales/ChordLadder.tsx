@@ -2,7 +2,7 @@ import { useEffect, useRef, type KeyboardEvent } from 'react';
 import type { ChordIntervals } from './settings';
 import {
   chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
-  IntervalTag, toneFill, toneInk, toneLabel,
+  IntervalTag, MAX_SPAN_LEVELS, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
 import { prettyNote } from '@/lib/notation';
 import type { DiatonicChord, Scale } from './theory';
@@ -48,14 +48,16 @@ export function ChordLadder({
 }: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
-  const levels = Math.max(0, ...spans.map(s => s.level));
-  const top = levels ? LEVEL * levels + 36 : 12;
+  // The two-octave ladder is where chords are drawn: it always keeps room
+  // for the tallest stack of brackets above the tiles and the chord roles
+  // under them, so picking a chord, its size or its intervals moves nothing.
+  const forChords = octaves === 2;
+  const top = forChords ? LEVEL * MAX_SPAN_LEVELS + 36 : 12;
   const width = PAD * 2 + CELL * cells - (CELL - TILE);
-  // Room under the tiles for degrees, chord roles and the octave mark.
-  const height = top + TILE_H + (chord ? 58 : octaves === 2 ? 44 : 22);
+  const height = top + TILE_H + (forChords ? 58 : 22);
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
-  const octaveY = top + TILE_H + (chord ? 52 : 38);
+  const octaveY = top + TILE_H + 52;
   const between = intervals === 'between';
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.

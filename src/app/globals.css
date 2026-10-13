@@ -136,7 +136,8 @@ button {
   .strip-tip-note { opacity: 0.75; }
   .strip-touch-hint { display: none; }
   @media (hover: none) { .strip-touch-hint { display: block; } }
-  .chord-clock { width: 100%; max-width: 380px; margin: 0 auto; }
+  /* Drawn with room for a seventh's three arcs whatever it shows. */
+  .chord-clock { width: 100%; max-width: 420px; margin: 0 auto; }
 
   /* The Chords pages' shapes: five per line, wrapping. */
   .shape-grid {

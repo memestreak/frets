@@ -1,7 +1,7 @@
 import type { ChordIntervals } from './settings';
 import {
   chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
-  IntervalTag, toneFill, toneInk, toneLabel,
+  IntervalTag, MAX_SPAN_LEVELS, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
 import { prettyNote } from '@/lib/notation';
 import type { DiatonicChord, Scale } from './theory';
@@ -13,6 +13,8 @@ const ARC = 106;
 /** Gap between concentric arcs. */
 const RING = 20;
 const DOT = 13;
+/** Half the drawing: room for the most arcs a chord has, so its size never changes. */
+const HALF = ARC + RING * (MAX_SPAN_LEVELS - 1) + 30;
 
 /** Angle of a semitone above the note at the top. */
 const angle = (semi: number) => ((semi * 30 - 90) * Math.PI) / 180;
@@ -41,8 +43,6 @@ export function ChordClock({ scale, chord, intervals, from = 0 }: ChordClockProp
   const at = (semi: number) => angle(semi - from);
   const spans = chord ? chordSpans(chord, intervals) : [];
   const fromRoot = intervals === 'root';
-  const outer = ARC + RING * (Math.max(1, ...spans.map(s => s.level)) - 1);
-  const half = Math.max(158, outer + 30);
   // Outside the circle unless concentric arcs need the room.
   const nameR = chord && fromRoot ? 60 : 134;
   const scaleSemis = new Set(scale.degrees.map(d => d.semis));
@@ -50,7 +50,7 @@ export function ChordClock({ scale, chord, intervals, from = 0 }: ChordClockProp
   return (
     <svg
       className="chord-diagram chord-clock"
-      viewBox={`${-half} ${-half} ${2 * half} ${2 * half}`}
+      viewBox={`${-HALF} ${-HALF} ${2 * HALF} ${2 * HALF}`}
       role="img"
       aria-label={chord ? describeChord(chord, intervals) : describeScale(scale)}
     >
