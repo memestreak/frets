@@ -106,11 +106,13 @@ binds a local port).
   five-fret position (`shapesInPosition`); `chordUrls.ts`, the Chord
   library's URLs),
   `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
-  fill, roving-focus tap cells and arrow keys, and an optional `box`
-  outlining a fret range; `theme.ts` holds the board
+  fill, roving-focus tap cells and arrow keys, an optional `box`
+  outlining a fret range, and `mutedStrings`, faded and marked × beside
+  the nut; `theme.ts` holds the board
   and dot colours as tokens, and `DEGREES`, the colour per degree number),
   `src/components/chords/` (`ChordDiagram`, the small shape diagram;
-  `ToneKey`; `chordDots.ts`, shape and arpeggio dots for the neck),
+  `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
+  for the neck),
   `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:

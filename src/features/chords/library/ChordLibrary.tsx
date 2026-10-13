@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { ToggleButton } from '@/components/controls';
 import { Fretboard } from '@/components/fretboard/Fretboard';
-import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
+import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/chordDots';
 import { arpeggioCaption } from '../arpeggioCaption';
 import { ChordHeader } from '../ChordHeader';
 import { chordOf, formulaOf } from '@/lib/chords/chordTypes';
@@ -120,6 +120,7 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
           <Fretboard
             minFret={0} maxFret={MAX_FRET}
             dots={dots}
+            mutedStrings={!arpeggio && voicing ? mutedStrings(voicing) : []}
             scrollToFret={voicing ? Math.min(...voicing.filter(f => f !== null)) : null}
             label={`${onBoard} on the fretboard`}
           />
