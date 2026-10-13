@@ -238,7 +238,8 @@ a { color: var(--primary); text-underline-offset: 3px; }
   background: transparent; border: 0; border-radius: 8px;
 }
 .seg-opt[aria-pressed='true'] { background: var(--surface-raised); color: var(--ink); }
-.seg-opt:not([aria-pressed='true']):hover { color: var(--ink); }
+.seg-opt:not([aria-pressed='true']):hover:not(:disabled) { color: var(--ink); }
+.seg-opt:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* — cards: flat, set off from the page by a hairline border — */
 .card {

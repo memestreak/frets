@@ -10,11 +10,13 @@ interface SegmentedProps<T extends string | number> {
   options: readonly (readonly [T, string])[];
   value: T;
   onChange: (value: T) => void;
+  /** Every option, when there is nothing yet to choose for. */
+  disabled?: boolean;
 }
 
 /** `.seg` segmented control; the active option is filled with the accent. */
 export function Segmented<T extends string | number>(
-  { label, options, value, onChange }: SegmentedProps<T>,
+  { label, options, value, onChange, disabled }: SegmentedProps<T>,
 ) {
   return (
     <div className="seg" role="group" aria-label={label}>
@@ -24,6 +26,7 @@ export function Segmented<T extends string | number>(
           type="button"
           className="seg-opt"
           aria-pressed={v === value}
+          disabled={disabled}
           onClick={() => onChange(v)}
         >
           {text}

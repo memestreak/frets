@@ -84,8 +84,12 @@ describe('ScaleLab', () => {
   it('selects a chord from its shape, cycles its shapes and links to the library', () => {
     render(<ScaleLab />);
     const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
-    fireEvent.click(card.getByRole('button', { name: /^Am7 \(i7\)/ }));
+    // Nothing links to the library until a chord is picked; a hint holds its line.
+    expect(card.queryByRole('link')).toBeNull();
+    expect(card.getByText('Tap a chord to see it on the neck.')).toBeInTheDocument();
+    fireEvent.click(chordCard('Am7'));
     expect(chordCard('Am7')).toHaveAttribute('aria-pressed', 'true');
+    expect(card.getByRole('heading', { level: 3 })).toHaveTextContent(/^Am7 over the scale\s*minor 7$/);
     expect(card.getByText('1 of 5')).toBeInTheDocument();
     const link = () => card.getByRole('link', { name: 'Am7 in the Chord library →' });
     expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-7-5-5-5-5');
@@ -107,12 +111,11 @@ describe('ScaleLab', () => {
 
   it('keeps the picked shape on the tile once the chord is cleared', () => {
     render(<ScaleLab />);
-    const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
-    const tile = () => card.getByRole('button', { name: /^Am7 \(i7\)/ });
+    const tile = () => chordCard('Am7');
     const diagram = () => tile().querySelector('svg')!.innerHTML;
     fireEvent.click(tile());
     const first = diagram();
-    fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
     const second = diagram();
     expect(second).not.toEqual(first);
 
@@ -212,8 +215,10 @@ describe('ScaleLab', () => {
     render(<ScaleLab />);
     expect(scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')
       .some(el => el.classList.contains('chord-ladder'))).toBe(true);
-    // Nothing to annotate yet.
-    expect(screen.queryByRole('group', { name: 'Intervals' })).toBeNull();
+    // Nothing to annotate yet: the switch holds its place, switched off.
+    const intervals = within(screen.getByRole('group', { name: 'Intervals' }));
+    intervals.getAllByRole('button').forEach(b => expect(b).toBeDisabled());
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(/^Over the scale$/);
     fireEvent.click(screen.getByRole('button', { name: 'Clock' }));
     expect(screen.getAllByTestId('clock-tone')).toHaveLength(7);
   });
@@ -349,10 +354,10 @@ describe('ScaleLab', () => {
   it('keeps the chords in the picked scale\'s order through a rotation', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ root: 'C', scale: 'ionian' }));
     render(<ScaleLab />);
-    const symbols = () => Array.from(document.querySelectorAll('.chord-card'))
+    const symbols = () => Array.from(document.querySelectorAll('.position-shape'))
       .map(c => c.querySelector('.font-bold')!.textContent).join(' ');
     // The tonic is the card numbered I or i (not II, III or IV).
-    const tonic = () => Array.from(document.querySelectorAll('.chord-card'))
+    const tonic = () => Array.from(document.querySelectorAll('.position-shape'))
       .find(c => /^[iI](?![iIvV])/.test(c.querySelector('.chord-numeral')!.textContent!))!
       .querySelector('.font-bold')!.textContent;
     const order = 'Cmaj7 Dm7 Em7 Fmaj7 G7 Am7 Bm7♭5';
@@ -385,10 +390,24 @@ describe('ScaleLab', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^G Mixolydian$/);
   });
 
+  it('lists the chords once, in one card', () => {
+    render(<ScaleLab />);
+    expect(screen.getAllByRole('region').map(r => r.getAttribute('aria-labelledby')))
+      .toEqual(['neck-h', 'chords-h']);
+    const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
+    // The size, the shapes and the ladder or clock all sit in it.
+    expect(card.getByRole('group', { name: 'Chord size' })).toBeInTheDocument();
+    expect(card.getByRole('group', { name: 'Chord diagram' })).toBeInTheDocument();
+    expect(screen.getAllByText('Am7')).toHaveLength(1);
+  });
+
   it('explains why a pentatonic has no chords', () => {
     localStorage.setItem(SCALE_LAB_STORAGE_KEY, JSON.stringify({ scale: 'minor-pentatonic' }));
     render(<ScaleLab />);
     expect(screen.getByText(/only seven-note scales have them/)).toBeInTheDocument();
+    // Nothing to size, play or place.
+    expect(screen.queryByRole('group', { name: 'Chord size' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Arpeggio' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Make / })).toBeNull();
   });
 });

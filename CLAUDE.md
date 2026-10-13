@@ -14,6 +14,7 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-06-chord-arpeggio-design.md`,
 `docs/specs/2026-10-09-chord-lab-arpeggio-design.md`,
 `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
+`docs/specs/2026-10-13-one-diatonic-chords-card-design.md`,
 `docs/specs/2026-10-07-circle-of-fifths-design.md` and
 `docs/specs/2026-10-09-published-chord-shapes-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
@@ -139,14 +140,17 @@ binds a local port).
   fifths (`circle/`) and their client-only loaders. `theory.ts` is the only file that imports tonal: root and scale
   tables, spelled scales, mode rotation, diatonic chords (symbols and
   numerals from its own table) and the notes on the neck. `settings.ts` holds the saved
-  settings and their parser; `ScaleLab.tsx`, `ScalePanel.tsx` and
-  `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
-  (shared parts in `chordDiagram.tsx`) draw a selected chord against the
-  scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
-  `PositionShapes.tsx` (logic in `positions.ts`) is the "Diatonic chords"
-  card: every diatonic chord's shape in the same five frets, with ‹ n of m ›
-  to cycle a chord's shapes, an Arpeggio toggle and a link to the chord in
-  the Chord library. With a chord selected, a click on anything but a
+  settings and their parser; `ScaleLab.tsx` and `ScalePanel.tsx` draw the
+  page. `DiatonicChords.tsx` is the one "Diatonic chords" card
+  (`docs/specs/2026-10-13-one-diatonic-chords-card-design.md`): Triads /
+  Sevenths, the Arpeggio toggle, the position's ‹ › and its two halves.
+  `PositionShapes.tsx` (logic in `positions.ts`) draws every diatonic
+  chord's shape in the same five frets, the only chord row, with ‹ n of m ›
+  to cycle a chord's shapes and a link to the chord in the Chord library.
+  `ChordOverScale.tsx` places `ChordLadder.tsx` / `ChordClock.tsx`
+  (shared parts in `chordDiagram.tsx`), which draw a selected chord against
+  the scale (`docs/specs/2026-10-04-chord-diagrams-design.md`). Selecting a
+  chord must move nothing. With a chord selected, a click on anything but a
   control, or Esc, goes back to the scale.
   `circle/` is the Circle of fifths, its Circle (keys) and Advanced (modes)
   views on one wheel:

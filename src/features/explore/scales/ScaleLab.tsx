@@ -7,9 +7,8 @@ import { degreeColor, DEGREES } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
 import { prettyNote } from '@/lib/notation';
 import { loadJson } from '@/lib/storage';
-import { ChordStrip } from './ChordStrip';
 import { ChordLadder } from './ChordLadder';
-import { PositionShapes } from './PositionShapes';
+import { DiatonicChords } from './DiatonicChords';
 import { chordsInPosition, clampPosition, positionEnd } from './positions';
 import { ScalePickers } from './ScalePanel';
 import { StripTip } from './StripTip';
@@ -209,28 +208,20 @@ export default function ScaleLab() {
         </div>
       </section>
 
-      {chords.length > 0 && (
-        <PositionShapes
-          inPosition={inPosition}
-          mode={set.mode}
-          position={set.position}
-          onPosition={first => update({ position: clampPosition(first) })}
-          selected={chord}
-          onSelect={selectChord}
-          shapeIndexOf={shapeIndexOf}
-          onShapeIndex={pickShape}
-          arpeggio={arpeggio}
-          onArpeggio={setArpeggio}
-        />
-      )}
-
-      <ChordStrip
+      <DiatonicChords
         scale={scale}
         chords={chords}
+        inPosition={inPosition}
         selected={chord}
         onSelect={selectChord}
         size={set.chordSize}
         onSize={chordSize => update({ chordSize })}
+        position={set.position}
+        onPosition={first => update({ position: clampPosition(first) })}
+        shapeIndexOf={shapeIndexOf}
+        onShapeIndex={pickShape}
+        arpeggio={arpeggio}
+        onArpeggio={setArpeggio}
         view={set.chordView}
         onView={chordView => update({ chordView })}
         intervals={set.chordIntervals}

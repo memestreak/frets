@@ -11,7 +11,9 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
 
 - **Layout (option B):** a new "Diatonic chords" card (first titled "In
   one position"; renamed 2026-10-13) between the neck and "Chords in this
-  scale". The chord cards and Ladder | Clock stay.
+  scale". The chord cards and Ladder | Clock stay. (2026-10-13: the two
+  cards became one and the chord cards went; the shapes are the only
+  chord row. See `2026-10-13-one-diatonic-chords-card-design.md`.)
 - **Position:** five frets, the generator's widest stretch (`MAX_SPAN`
   + 1). With five frets every diatonic chord of the major, melodic minor
   and harmonic minor families had a shape in every position checked; four

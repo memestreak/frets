@@ -16,13 +16,15 @@ it takes and how far apart they are.
 The chords section draws the scale as a **ladder** or a **clock**. With no
 chord selected every scale note takes its degree colour (as on the neck),
 labelled R 2 ♭3 …; a selected chord is drawn against the scale, naming its
-intervals either **from the root** or **between tones**. Two switches under
-the chord cards pick each (the second only while a chord is selected); both
-are saved. Defaults: Ladder, From the root.
+intervals either **from the root** or **between tones**. Two switches beside
+the "Over the scale" heading pick each (the second is switched off until a
+chord is selected); both are saved. Defaults: Ladder, From the root.
+(Since 2026-10-13 this is the lower half of the one "Diatonic chords" card:
+`2026-10-13-one-diatonic-chords-card-design.md`.)
 
 While a chord is selected, ← and → select the previous or next chord,
 wrapping round at the ends, unless focus is in a field that uses the arrows
-(the scale list). Focus and the card strip's scroll follow the selection.
+(the scale list). Focus follows the selection.
 
 ## Ladder
 
@@ -74,6 +76,6 @@ wrapping round at the ends, unless focus is in a field that uses the arrows
 - `chordDiagram.tsx` holds what both diagrams share: tone colours and
   labels, the intervals to annotate, the screen-reader description and the
   interval tag. `ChordLadder.tsx` and `ChordClock.tsx` draw the diagrams;
-  `ChordStrip.tsx` places them and the switches.
+  `ChordOverScale.tsx` places them and the switches.
 - `frets.explore.scales` gains `chordView` (`ladder` | `clock`) and
   `chordIntervals` (`root` | `between`).
