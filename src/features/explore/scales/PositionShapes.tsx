@@ -28,7 +28,7 @@ interface PositionShapesProps {
 }
 
 /**
- * The "In one position" card: a shape diagram for every diatonic chord,
+ * The "Diatonic chords" card: a shape diagram for every diatonic chord,
  * all in the same five frets, so they read as one hand position. ‹ › step
  * the position; tapping a shape selects its chord, like the chord cards.
  * The selected chord's shapes in the position cycle with ‹ › under it, or
@@ -50,7 +50,7 @@ export function PositionShapes({
   return (
     <section className="card gap-4" aria-labelledby="position-h">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-        <h2 id="position-h" className="m-0 mr-auto text-[17px] leading-6">In one position</h2>
+        <h2 id="position-h" className="m-0 mr-auto text-[17px] leading-6">Diatonic chords</h2>
         <ToggleButton
           pressed={arpeggio} disabled={!selected} onClick={() => onArpeggio(!arpeggio)}
           title={selected ? undefined : 'Pick a chord first'}

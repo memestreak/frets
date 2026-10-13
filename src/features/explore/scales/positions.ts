@@ -6,7 +6,7 @@ import {
 import type { DiatonicChord, Scale } from './theory';
 
 /*
- * The "In one position" card's logic: each diatonic chord as the Chord
+ * The "Diatonic chords" card's logic: each diatonic chord as the Chord
  * library knows it, and its shapes in a five-fret position. The shapes
  * come from the library's generator (`findVoicings`), so both pages agree.
  */

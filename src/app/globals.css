@@ -197,7 +197,7 @@ button {
      no focus outline on top of it; an unselected shape keeps its outline. */
   .shape-btn[aria-pressed='true']:focus-visible { outline: none; }
   .shape-diagram { display: block; width: 100%; height: auto; }
-  /* The Scale lab's "In one position" card: seven shapes in a row, three
+  /* The Scale lab's "Diatonic chords" card: seven shapes in a row, three
      per line on phones, each with its numeral and name under it. */
   .position-grid {
     display: grid;

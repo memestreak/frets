@@ -143,7 +143,7 @@ binds a local port).
   `ChordStrip.tsx` draw the page, and `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`) draw a selected chord against the
   scale (`docs/specs/2026-10-04-chord-diagrams-design.md`).
-  `PositionShapes.tsx` (logic in `positions.ts`) is the "In one position"
+  `PositionShapes.tsx` (logic in `positions.ts`) is the "Diatonic chords"
   card: every diatonic chord's shape in the same five frets, with ‹ n of m ›
   to cycle a chord's shapes, an Arpeggio toggle and a link to the chord in
   the Chord library. With a chord selected, a click on anything but a
