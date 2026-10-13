@@ -29,7 +29,10 @@ One column, like the Scale lab:
    below.
 2. **On the neck.** The full neck, frets 0–15, showing only the chosen
    voicing (no other chord tones). Dots are labelled by interval and take
-   their degree colours; the root is a square. Under it, ‹ › step through
+   their degree colours; the root is a square. A string the voicing
+   leaves out is faded, with its name, and has a grey × beside the nut,
+   where an open string's dot would be (Jeremy's pick, 2026-10-13); the
+   arpeggio marks none. Under it, ‹ › step through
    the voicings, with a caption such as "Moveable 2 of 9 · root on E ·
    frets 5–7". The open groups come first, then the moveable ones.
 3. **Open** and **Moveable**: two groups of small diagrams, five per line,
@@ -160,5 +163,5 @@ prebuilt pages or a host rewrite rule.)
 - URLs: slugs as above; every root and type has its own slug of letters
   and digits that reads back; unknown slugs fall back to Am7.
 - ChordLibrary: opens on the default chord; shows the chord the URL
-  names; changing root and type pushes its URL; tapping a diagram puts it on the neck; ‹ › step;
+  names; changing root and type pushes its URL; tapping a diagram puts it on the neck; muted strings are marked for a shape and not for the arpeggio; ‹ › step;
   Show all adds shapes.

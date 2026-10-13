@@ -31,6 +31,11 @@ export function voicingDots(chord: ChordInfo, voicing: Voicing): FretDot[] {
   return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret)]));
 }
 
+/** The strings a voicing leaves out, for the big `Fretboard` to mark. */
+export function mutedStrings(voicing: Voicing): number[] {
+  return voicing.flatMap((fret, s) => (fret === null ? [s] : []));
+}
+
 /**
  * The arpeggio: every chord tone from the nut to `maxFret`. Given a
  * `voicing`, only that shape's dots keep their labels, so the shape still

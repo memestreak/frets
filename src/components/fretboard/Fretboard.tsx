@@ -46,7 +46,15 @@ interface FretboardProps {
    * board keeps its size, but are shaded and take no taps.
    */
   inPlay?: { from: number; to: number } | null;
+  /**
+   * Strings a chord shape leaves out. Each fades, with its name, and gets a
+   * × where its open-string dot would be when the board starts at the nut.
+   */
+  mutedStrings?: readonly number[];
 }
+
+/** How far a muted string and its name fade. */
+const MUTED_OPACITY = 0.3;
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
 
@@ -57,9 +65,11 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret, label = 'Fretboard', box, inPlay,
+  scrollToFret, label = 'Fretboard', box, inPlay, mutedStrings = [],
 }: FretboardProps) {
   const clipId = useId();
+  const stringOpacity = (s: number) =>
+    (mutedStrings.includes(s) ? MUTED_OPACITY : stringStyle?.(s).opacity ?? 1);
   const playFrom = inPlay?.from ?? minFret;
   const playTo = inPlay?.to ?? maxFret;
   const isInPlay = (f: number) => f >= playFrom && f <= playTo;
@@ -152,7 +162,7 @@ export function Fretboard({
             key={s} x1={g.boardX} x2={g.boardRight} y1={g.cy(s)} y2={g.cy(s)}
             style={{ stroke: st.color ?? BOARD.string }}
             strokeWidth={st.width ?? 2.5 - s * 0.3}
-            opacity={st.opacity ?? 1}
+            opacity={stringOpacity(s)}
             data-testid={`string-${s}`}
           />
         );
@@ -190,9 +200,17 @@ export function Fretboard({
           <text
             key={s} x={PAD - 4}
             y={g.cy(s)} textAnchor="end" dominantBaseline="middle"
-            opacity={stringStyle?.(s).opacity ?? 1}
+            opacity={stringOpacity(s)}
           >
             {STRING_NAMES[s]}
+          </text>
+        ))}
+        {g.open && mutedStrings.map(s => (
+          <text
+            key={s} x={g.cx(0)} y={g.cy(s)} textAnchor="middle" dominantBaseline="central"
+            fontSize={18} fontWeight={600} data-testid={`muted-${s}`}
+          >
+            ×
           </text>
         ))}
         {g.fretNumbers.map(f => (

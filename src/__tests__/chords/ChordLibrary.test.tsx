@@ -21,6 +21,8 @@ const caption = () => screen.getByTestId('shape-caption');
 /** The board's dots as "string:fret" pairs, low E first. */
 const boardDots = () =>
   screen.getAllByTestId(/^dot-/).map(d => `${d.dataset.s}:${d.dataset.f}`).sort();
+/** The board's × marks, by test id, low E first. */
+const mutedMarks = () => screen.queryAllByTestId(/^muted-/).map(m => m.dataset.testid);
 
 describe('ChordLibrary', () => {
   beforeEach(() => nav.push.mockClear());
@@ -34,6 +36,19 @@ describe('ChordLibrary', () => {
     // x-0-2-0-1-0: only the chosen shape is on the neck.
     expect(boardDots()).toEqual(['1:0', '2:2', '3:0', '4:1', '5:0']);
     expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('marks the muted strings of the shape on the neck, but not of the arpeggio', () => {
+    // A shape that plays every string has none.
+    const barre = renderAt('?chord=am7&shape=5-7-5-5-5-5');
+    expect(boardDots()).toHaveLength(6);
+    expect(mutedMarks()).toEqual([]);
+    barre.unmount();
+
+    renderAt('?chord=d&shape=x-x-0-2-3-2');
+    expect(mutedMarks()).toEqual(['muted-0', 'muted-1']);
+    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
+    expect(mutedMarks()).toEqual([]);
   });
 
   it('names the dot colours of the shape diagrams', () => {

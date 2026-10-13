@@ -34,6 +34,25 @@ describe('Fretboard', () => {
     expect(screen.getByRole('img', { name: 'A Dorian on the fretboard' })).toBeInTheDocument();
   });
 
+  it('fades a muted string and marks it with a × beside the nut', () => {
+    render(<Fretboard minFret={0} maxFret={5} dots={[]} mutedStrings={[0, 1]} />);
+    const g = fretboardGeometry(0, 5);
+    const mark = screen.getByTestId('muted-1');
+    expect(mark).toHaveTextContent('×');
+    expect(mark).toHaveAttribute('x', String(g.cx(0)));
+    expect(mark).toHaveAttribute('y', String(g.cy(1)));
+    expect(screen.getByTestId('muted-0')).toBeInTheDocument();
+    expect(screen.queryByTestId('muted-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('string-1')).toHaveAttribute('opacity', '0.3');
+    expect(screen.getByTestId('string-2')).toHaveAttribute('opacity', '1');
+  });
+
+  it('only fades a muted string when the board does not start at the nut', () => {
+    render(<Fretboard minFret={3} maxFret={8} dots={[]} mutedStrings={[0]} />);
+    expect(screen.queryByTestId('muted-0')).not.toBeInTheDocument();
+    expect(screen.getByTestId('string-0')).toHaveAttribute('opacity', '0.3');
+  });
+
   it('keeps every fret drawn but shades and disables the frets out of play', () => {
     const { container } = render(
       <Fretboard
