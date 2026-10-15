@@ -107,6 +107,78 @@ export async function copySvg(shape: ExportShape, style: ExportStyle): Promise<s
   return 'Copied the SVG code';
 }
 
+/** A shape's PNG, drawn before it is dragged. */
+interface DragImage {
+  file: File;
+  /** For pages that take an `<img>`, such as a document. */
+  dataUrl: string;
+  /** For Chrome and Edge's drop onto the desktop. */
+  url: string;
+}
+
+/** Shapes drawn lately; the oldest go once there are more. */
+const DRAG_CACHE_SIZE = 12;
+const dragImages = new Map<string, DragImage>();
+const drawing = new Set<string>();
+
+const dragKey = (shape: ExportShape, style: ExportStyle) =>
+  `${shape.chord.symbol}|${exportFileName(shape)}|${JSON.stringify(style)}`;
+
+const dataUrlOf = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result));
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+/**
+ * Draws the shape's PNG ahead of a drag. A drag must carry its data the
+ * moment it starts, and the PNG takes a moment, so the page calls this
+ * when the pointer comes over a diagram.
+ */
+export async function prepareDrag(shape: ExportShape, style: ExportStyle): Promise<void> {
+  const key = dragKey(shape, style);
+  if (dragImages.has(key) || drawing.has(key)) return;
+  drawing.add(key);
+  try {
+    const png = await svgToPng(diagramSvg(shape, style));
+    const file = new File([png], `${exportFileName(shape)}.png`, { type: 'image/png' });
+    dragImages.set(key, { file, dataUrl: await dataUrlOf(png), url: URL.createObjectURL(png) });
+    for (const [old, image] of dragImages) {
+      if (dragImages.size <= DRAG_CACHE_SIZE) break;
+      URL.revokeObjectURL(image.url);
+      dragImages.delete(old);
+    }
+  } catch {
+    // The drag then carries the SVG.
+  } finally {
+    drawing.delete(key);
+  }
+}
+
+/**
+ * Fills a drag with the shape: the PNG drawn by `prepareDrag` (or, if it
+ * isn't ready, the SVG) as an image for pages and apps, as a file for web
+ * pages that take files, and, in Chrome and Edge, as a file for the
+ * desktop. A text field gets the file name.
+ */
+export function fillDragData(data: DataTransfer, shape: ExportShape, style: ExportStyle): void {
+  const name = exportFileName(shape);
+  const image = dragImages.get(dragKey(shape, style));
+  const alt = (shape.name.trim() || 'Chord').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+  data.effectAllowed = 'copy';
+  data.setData('text/plain', name);
+  if (image) {
+    data.setData('text/html', `<img src="${image.dataUrl}" alt="${alt}">`);
+    data.setData('DownloadURL', `image/png:${image.file.name}:${image.url}`);
+    data.items.add(image.file);
+  } else {
+    const svg = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(diagramSvg(shape, style))}`;
+    data.setData('text/html', `<img src="${svg}" alt="${alt}">`);
+    data.setData('DownloadURL', `image/svg+xml:${name}.svg:${svg}`);
+  }
+}
+
 /** Saves the shape as a PNG or SVG file. */
 export async function download(
   format: 'png' | 'svg', shape: ExportShape, style: ExportStyle,

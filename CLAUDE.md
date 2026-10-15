@@ -178,7 +178,8 @@ binds a local port).
   right-click, a long press or Shift+F10 on a shape diagram (or the
   neck; `useShapeExport`, once per page) opens a menu
   (Copy as PNG, Export options…) and the Export dialog, whose Name
-  starts on the deduced name; the image is
+  starts on the deduced name; with a mouse a shape diagram (not the neck)
+  also drags out as that PNG, drawn on hover; the image is
   `ChordDiagram` drawn with a concrete `look` (`exportStyle.ts`, whose
   palettes a test checks against `fretwood.css`), serialized and rasterized
   in `exportImage.ts`. The chord and the frets are in the URL, not storage:

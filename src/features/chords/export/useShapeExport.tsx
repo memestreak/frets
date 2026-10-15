@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { ExportDialog } from './ExportDialog';
-import { copyPng, type ExportShape } from './exportImage';
+import { copyPng, fillDragData, prepareDrag, type ExportShape } from './exportImage';
 import { EXPORT_STORAGE_KEY, parseExportStyle } from './exportStyle';
 import { ShapeMenu } from './ShapeMenu';
 
@@ -14,6 +14,11 @@ const LONG_PRESS_MS = 500;
 const LONG_PRESS_SLOP = 10;
 /** How long "Copied as PNG" stays up. */
 const NOTICE_MS = 2500;
+/**
+ * A mouse or trackpad drives the page, so a diagram can be dragged out. On
+ * a touchscreen a long press is the menu's, and a drag there would steal it.
+ */
+const DRAG_QUERY = '(hover: hover) and (pointer: fine)';
 
 interface MenuState {
   shape: ExportShape;
@@ -31,18 +36,23 @@ export interface ShapeExportTriggerProps {
   onPointerUp: () => void;
   onPointerCancel: () => void;
   onClickCapture: (e: React.MouseEvent<HTMLElement>) => void;
+  draggable?: boolean;
+  onPointerEnter?: (e: React.PointerEvent<HTMLElement>) => void;
+  onDragStart?: (e: React.DragEvent<HTMLElement>) => void;
 }
 
 /**
  * Exporting shapes: right-click, a long press or Shift+F10 on anything
  * given `triggerProps` (a shape diagram, the Chord lab's neck) opens a menu
  * with Copy as PNG (the saved choices, the deduced name) and Export
- * options… (the dialog). Opening it selects nothing and taps nothing. One
- * per page, so the shapes and the neck share the saved choices. Returns
- * those props and the menu, dialog and notice to render.
+ * options… (the dialog). Opening it selects nothing and taps nothing.
+ * With `drag`, and a mouse or trackpad, the diagram can also be dragged
+ * into another app or page, or onto the desktop, as a PNG with the saved
+ * choices. One per page, so the shapes and the neck share the saved
+ * choices. Returns those props and the menu, dialog and notice to render.
  */
 export function useShapeExport(): {
-  triggerProps: (shape: ExportShape) => ShapeExportTriggerProps;
+  triggerProps: (shape: ExportShape, opts?: { drag?: boolean }) => ShapeExportTriggerProps;
   ui: ReactNode;
 } {
   const [style, setStyle] = useState(() => parseExportStyle(loadJson(EXPORT_STORAGE_KEY)));
@@ -53,6 +63,17 @@ export function useShapeExport(): {
   const press = useRef<{ timer: number; x: number; y: number } | null>(null);
   /** A long press just opened the menu, so the click that ends it is swallowed. */
   const swallowClick = useRef(false);
+  const [canDrag, setCanDrag] = useState(false);
+
+  useEffect(() => {
+    // jsdom has no matchMedia.
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia(DRAG_QUERY);
+    const update = () => setCanDrag(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -75,7 +96,21 @@ export function useShapeExport(): {
     setMenu(inside ? { shape, returnTo, x, y } : { shape, returnTo, x: r.left, y: r.bottom + 4 });
   };
 
-  const triggerProps = (shape: ExportShape): ShapeExportTriggerProps => ({
+  const dragProps = (shape: ExportShape): Partial<ShapeExportTriggerProps> => ({
+    draggable: true,
+    onPointerEnter: e => {
+      if (e.pointerType === 'mouse') void prepareDrag(shape, style);
+    },
+    onDragStart: e => {
+      cancelPress();
+      fillDragData(e.dataTransfer, shape, style);
+    },
+  });
+
+  const triggerProps = (
+    shape: ExportShape, { drag = false }: { drag?: boolean } = {},
+  ): ShapeExportTriggerProps => ({
+    ...(drag && canDrag ? dragProps(shape) : {}),
     onContextMenu: e => {
       e.preventDefault();
       cancelPress();
