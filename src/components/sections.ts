@@ -61,7 +61,7 @@ export const CHORDS: Section = {
   pages: [],
 };
 
-export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE, CHORDS];
+export const SECTIONS: readonly Section[] = [EXPLORE, CHORDS, PRACTICE];
 
 /** The section and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {
