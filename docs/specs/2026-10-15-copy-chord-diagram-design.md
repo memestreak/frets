@@ -109,6 +109,33 @@ while drawing, so it looks the same everywhere.
   Inkscape paste as vectors, and says so.
 - Downloads work everywhere; iPhone Safari offers to save the file.
 
+## Dragging a shape out
+
+Jeremy, 2026-10-15, of three options (drag out as an image; that plus the
+neck; dragging within the app) picked the first.
+
+With a mouse or trackpad (`(hover: hover) and (pointer: fine)`), every
+small shape diagram can be dragged into another app or page, or onto the
+desktop. The neck can't: a drag there would get in the way of tapping
+frets. On a touchscreen nothing is draggable, so a long press stays the
+menu's.
+
+The image is the PNG Copy as PNG makes: the saved choices and the chord's
+name. A drag has to carry its data the moment it starts and the PNG takes
+a moment, so it is drawn when the pointer comes over the diagram
+(`prepareDrag`; the last dozen are kept). If it isn't ready, the drag
+carries the SVG instead. The drag carries:
+
+- `text/html`, an `<img>` with the PNG as a data URL, for documents and
+  chats;
+- the PNG as a file, for web pages that take dropped files;
+- `DownloadURL`, which Chrome and Edge use to save `Am7 x-0-2-0-1-0.png`
+  where it is dropped on the desktop;
+- `text/plain`, the file name, for a text field.
+
+Firefox and Safari ignore `DownloadURL`, so a drop on the desktop there
+may save nothing, or a file with a generic name.
+
 ## Out of scope
 
 Exporting the neck or the arpeggio, a share sheet, PNG sizes, exporting

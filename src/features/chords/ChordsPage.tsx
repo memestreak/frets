@@ -264,7 +264,9 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
               showAll={showAll} onShowAll={setShowAll}
               selectedKey={arpeggio ? null : voicingKey(frets)}
               onSelect={chooseShape}
-              exportProps={v => shapeExport.triggerProps({ chord, voicing: v, name: chord.symbol })}
+              exportProps={v => shapeExport.triggerProps(
+                { chord, voicing: v, name: chord.symbol }, { drag: true },
+              )}
             />
           ) : (
             <p className="m-0 text-(--ink-muted)">Tap a note to see its shapes.</p>

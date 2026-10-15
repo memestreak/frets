@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import ChordsPage from '@/features/chords/ChordsPage';
-import { diagramSvg, exportFileName } from '@/features/chords/export/exportImage';
+import { diagramSvg, exportFileName, fillDragData } from '@/features/chords/export/exportImage';
 import {
   DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, parseExportStyle, THEME_PALETTES,
   type ExportStyle,
@@ -298,5 +298,73 @@ describe('the neck export', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     fireEvent.contextMenu(neck());
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+});
+
+/** Just what a drag fills in; jsdom has no DataTransfer. */
+function fakeDataTransfer() {
+  const data: Record<string, string> = {};
+  return {
+    data,
+    files: [] as File[],
+    effectAllowed: 'uninitialized',
+    setData(type: string, value: string) { data[type] = value; },
+    items: { add(file: File) { this.owner.files.push(file); }, owner: null as unknown as { files: File[] } },
+  };
+}
+
+describe('dragging a shape out', () => {
+  /** A mouse drives the page, or a touchscreen. */
+  const pointer = (fine: boolean) => vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: fine, media: query, addEventListener: () => {}, removeEventListener: () => {},
+  }));
+
+  beforeEach(() => localStorage.clear());
+  afterEach(() => vi.unstubAllGlobals());
+
+  const shapes = () =>
+    within(screen.getByRole('region', { name: 'Open shapes' })).getAllByRole('button');
+  const neck = () => screen.getByRole('region', { name: 'On the neck' }).querySelector('.board-scroll')!;
+
+  it('lets a shape be dragged with a mouse, but not the neck', () => {
+    pointer(true);
+    renderAt('?chord=am7');
+    expect(shapes()[0]).toHaveAttribute('draggable', 'true');
+    expect(neck()).not.toHaveAttribute('draggable');
+  });
+
+  it('leaves dragging to the long press on a touchscreen', () => {
+    pointer(false);
+    renderAt('?chord=am7');
+    expect(shapes()[0]).not.toHaveAttribute('draggable');
+  });
+
+  it('carries the shape with the saved choices, and selects nothing', () => {
+    pointer(true);
+    localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify({ intervals: true }));
+    renderAt('?chord=am7');
+    const dt = fakeDataTransfer();
+    dt.items.owner = dt;
+    const moveable = within(screen.getByRole('region', { name: 'Moveable shapes' })).getAllByRole('button');
+    fireEvent.dragStart(moveable[0], { dataTransfer: dt });
+    expect(dt.effectAllowed).toBe('copy');
+    expect(dt.data['text/plain']).toBe('Am7 5-7-5-5-5-5');
+    // jsdom draws no PNG, so it falls back to the SVG, with the intervals.
+    const html = dt.data['text/html'];
+    expect(html).toMatch(/^<img src="data:image\/svg\+xml;charset=utf-8,.+" alt="Am7">$/);
+    expect(decodeURIComponent(html)).toContain('>♭3<');
+    expect(dt.data.DownloadURL).toMatch(/^image\/svg\+xml:Am7 5-7-5-5-5-5\.svg:data:image\/svg\+xml/);
+    expect(moveable[0]).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('names the image and escapes the name it is given', () => {
+    const dt = fakeDataTransfer();
+    dt.items.owner = dt;
+    fillDragData(
+      dt as unknown as DataTransfer,
+      { chord: am7, voicing: OPEN_AM7, name: 'A<"m7">' }, DEFAULT_EXPORT_STYLE,
+    );
+    expect(dt.data['text/html']).toContain('alt="A&#60;&#34;m7&#34;&#62;"');
+    expect(dt.data['text/plain']).toBe('A__m7__ x-0-2-0-1-0');
   });
 });

@@ -23,7 +23,8 @@ interface VoicingGroupsProps {
  * phones), under a key to the dot colours. Under Moveable, a
  * link switches between the best few and every shape. ← and → select the
  * previous or next shape, in the order shown. Right-click, a long press or
- * Shift+F10 on a shape opens its export menu.
+ * Shift+F10 on a shape opens its export menu; with a mouse, a shape can be
+ * dragged out as an image.
  */
 export function VoicingGroups({
   chord, voicings, showAll, onShowAll, selectedKey, onSelect, exportProps,
