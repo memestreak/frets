@@ -168,6 +168,66 @@ button {
      no focus outline on top of it; an unselected shape keeps its outline. */
   .shape-btn[aria-pressed='true']:focus-visible { outline: none; }
   .shape-diagram { display: block; width: 100%; height: auto; }
+  /* A long press opens the export menu: no iPhone callout or text selection. */
+  .shape-btn { -webkit-touch-callout: none; user-select: none; }
+
+  /* The shapes' export menu (right-click, long press, Shift+F10). The
+     focused item is filled, not outlined. */
+  .shape-menu {
+    position: fixed;
+    z-index: 40;
+    display: grid;
+    min-width: 176px;
+    padding: 4px;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgb(30 25 21 / 0.18);
+  }
+  .shape-menu:focus { outline: none; }
+  .shape-menu-item {
+    padding: 8px 10px;
+    font: 500 14px/20px var(--font-sans);
+    color: var(--ink);
+    text-align: left;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .shape-menu-item:hover, .shape-menu-item:focus { background: var(--surface-sunken); outline: none; }
+
+  /* The Export dialog: the image on the background it's chosen for. */
+  .export-dialog { width: min(480px, calc(100vw - 32px)); }
+  .export-preview { padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+  .export-preview-light { background: #ffffff; }
+  .export-preview-dark { background: #1b1b1b; }
+  .export-preview .shape-diagram { max-width: 240px; margin: 0 auto; }
+  .export-choices {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px 16px;
+    font-size: 14px;
+  }
+  .export-choices .seg { justify-self: end; }
+  /* "Copied as PNG", after Copy as PNG from the menu. Fixed, so nothing moves. */
+  .export-notice {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 40;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--surface);
+    background: var(--ink);
+    border-radius: var(--radius-pill);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms;
+  }
+  .export-notice[data-shown] { opacity: 1; }
   /* The Scale lab's "Diatonic chords" card: seven shapes in a row, three
      per line on phones, each with its numeral and name under it. */
   .position-grid {

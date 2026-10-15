@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
 import type { ChordInfo } from '@/lib/chords/chordTypes';
+import { useShapeExport, type ShapeExportTriggerProps } from './export/useShapeExport';
 import { voicingCaption, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 
 interface VoicingGroupsProps {
@@ -19,7 +20,8 @@ interface VoicingGroupsProps {
  * The Open and Moveable groups of diagrams, five per line (three on
  * phones), under a key to the dot colours. Under Moveable, a
  * link switches between the best few and every shape. ← and → select the
- * previous or next shape, in the order shown.
+ * previous or next shape, in the order shown. Right-click, a long press or
+ * Shift+F10 on a shape opens its export menu (`useShapeExport`).
  */
 export function VoicingGroups({
   chord, voicings, showAll, onShowAll, selectedKey, onSelect,
@@ -29,18 +31,19 @@ export function VoicingGroups({
   const name = chord.symbol || 'these notes';
   const shown = [...open, ...(showAll ? allMoveable : moveable)];
   useArrowSteps(shown, selectedKey, onSelect);
+  const { triggerProps, ui: exportUi } = useShapeExport(chord);
   return (
     <div className="grid gap-5">
       <ToneKey chord={chord} />
       <VoicingGroup
         title="Open" chord={chord} voicings={open}
         emptyText={`No open shape for ${name}.`}
-        selectedKey={selectedKey} onSelect={onSelect}
+        selectedKey={selectedKey} onSelect={onSelect} triggerProps={triggerProps}
       />
       <VoicingGroup
         title="Moveable" chord={chord} voicings={showAll ? allMoveable : moveable}
         emptyText={`No moveable shape for ${name}.`}
-        selectedKey={selectedKey} onSelect={onSelect}
+        selectedKey={selectedKey} onSelect={onSelect} triggerProps={triggerProps}
       />
       {hasMore && (
         <button
@@ -50,6 +53,7 @@ export function VoicingGroups({
           {showAll ? 'Show the best few' : `Show all ${allMoveable.length} shapes`}
         </button>
       )}
+      {exportUi}
     </div>
   );
 }
@@ -61,11 +65,12 @@ interface VoicingGroupProps {
   emptyText: string;
   selectedKey: string | null;
   onSelect: (voicing: Voicing) => void;
+  triggerProps: (voicing: Voicing) => ShapeExportTriggerProps;
 }
 
 /** A titled group of diagram buttons, or a line saying there are none. */
 function VoicingGroup({
-  title, chord, voicings, emptyText, selectedKey, onSelect,
+  title, chord, voicings, emptyText, selectedKey, onSelect, triggerProps,
 }: VoicingGroupProps) {
   return (
     <section className="grid gap-2" aria-label={`${title} shapes`}>
@@ -79,6 +84,7 @@ function VoicingGroup({
               aria-label={`${title} shape ${i + 1}: ${voicingCaption(v)}`}
               data-voicing={voicingKey(v)}
               onClick={() => onSelect(v)}
+              {...triggerProps(v)}
             >
               <ChordDiagram chord={chord} voicing={v} />
             </button>
@@ -103,7 +109,7 @@ function useArrowSteps(
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-      if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
+      if ((e.target as Element | null)?.closest?.('input, select, textarea, dialog, [role="menu"]')) return;
       const index = shapes.findIndex(v => voicingKey(v) === selectedKey);
       const next = shapes[e.key === 'ArrowRight' ? index + 1 : index - 1];
       if (!next) return;

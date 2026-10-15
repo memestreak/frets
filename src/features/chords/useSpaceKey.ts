@@ -6,8 +6,9 @@ import { useEffect } from 'react';
  * a shape diagram just clicked) isn't clicked again, and a focused
  * fretboard cell isn't tapped. The key is taken in the capture phase,
  * before the focused element's own handlers see it. Space is left
- * alone in a field, where it types or opens a menu, and in the site's nav
- * and footer, where it presses their buttons as usual. Holding the key
+ * alone in a field, where it types or opens a menu, in the site's nav
+ * and footer, and in a dialog or menu, where it presses their buttons as
+ * usual. Holding the key
  * down calls `onPress` once.
  *
  * Space also takes focus off the button it overrides: after a key press
@@ -18,7 +19,7 @@ export function useSpaceKey(onPress: () => void) {
   useEffect(() => {
     const isOurs = (e: KeyboardEvent) =>
       e.key === ' ' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey
-      && !(e.target as Element | null)?.closest?.('input, select, textarea, nav, footer');
+      && !(e.target as Element | null)?.closest?.('input, select, textarea, nav, footer, dialog, [role="menu"]');
     const onKeyDown = (e: KeyboardEvent) => {
       if (!isOurs(e)) return;
       e.preventDefault();
