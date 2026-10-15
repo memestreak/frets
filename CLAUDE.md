@@ -84,7 +84,10 @@ binds a local port).
   `docs/specs/2026-10-06-installable-app-design.md`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
-  (`PageList`) are drawn from it, so a new page is an entry here plus a route.
+  (`PageList`) are drawn from it, in its order (Explore, Chords, Practice),
+  so a new page is an entry here, a route and its icon in `PageIcon.tsx`
+  (a pictogram on a rosewood tile beside the card's title; a test checks
+  every card has one, see `docs/specs/2026-10-15-page-icons-design.md`).
   A section with no pages (Chords) is a page itself: the home page shows its
   summary as its card, the menu its summary under its name.
 - `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:

@@ -1,0 +1,114 @@
+import type { ReactNode } from 'react';
+import type { Degree } from './fretboard/theme';
+
+/** Horizontal strings and frets across the tile. */
+function Strings({ frets = [30, 52, 74] }: { frets?: number[] }) {
+  return (
+    <>
+      <g stroke="var(--fret-wire)" strokeWidth="2">
+        {frets.map(x => <line key={x} x1={x} y1="16" x2={x} y2="80" />)}
+      </g>
+      <g stroke="var(--string)" strokeWidth="1.5">
+        {[20, 31, 42, 53, 64, 75].map(y => <line key={y} x1="10" y1={y} x2="86" y2={y} />)}
+      </g>
+    </>
+  );
+}
+
+const ring = { stroke: 'var(--dot-ring)', strokeWidth: 2 };
+
+/** A minor pentatonic in two frets per string, low E at the bottom: [x, y, degree]. */
+const PENTATONIC: readonly [number, number, Degree][] = [
+  [38, 75, 'root'], [78, 75, 'third'], [38, 64, 'other'], [58, 64, 'fifth'],
+  [38, 53, 'seventh'], [58, 53, 'root'], [38, 42, 'third'], [58, 42, 'other'],
+  [38, 31, 'fifth'], [78, 31, 'seventh'], [38, 20, 'root'], [78, 20, 'third'],
+];
+
+/** The i-th of twelve points round the circle, clockwise from the top, rounded so server and client agree. */
+function onCircle(i: number) {
+  const a = (i * 30 - 90) * (Math.PI / 180);
+  const round = (n: number) => Math.round(n * 100) / 100;
+  return { x: round(48 + 30 * Math.cos(a)), y: round(48 + 30 * Math.sin(a)) };
+}
+
+/** Each page's pictogram, by href, in the tile's 96-unit viewBox. */
+export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
+  '/practice/intervals': (
+    <>
+      <Strings />
+      <rect x="34" y="57" width="14" height="14" rx="3" fill="var(--degree-root)" {...ring} />
+      <line x1="47" y1="57" x2="58" y2="40" stroke="var(--nut)" strokeWidth="2" strokeDasharray="3 3" />
+      <circle cx="63" cy="31" r="8" fill="var(--dot-quiz)" {...ring} />
+    </>
+  ),
+  '/practice/notes': (
+    <>
+      <Strings />
+      <circle cx="63" cy="42" r="12" fill="var(--dot-quiz)" {...ring} />
+      <text
+        x="63" y="43" textAnchor="middle" dominantBaseline="central" fontSize="16" fontWeight="700"
+        fill="var(--on-dot-quiz)" fontFamily="var(--font-sans)"
+      >
+        ?
+      </text>
+    </>
+  ),
+  '/explore/scales': (
+    <>
+      <Strings frets={[28, 48, 68]} />
+      {PENTATONIC.map(([x, y, d]) => (
+        <circle key={`${x}:${y}`} cx={x} cy={y} r="5" fill={`var(--degree-${d})`} />
+      ))}
+    </>
+  ),
+  '/explore/circle': (
+    <>
+      <circle cx="48" cy="48" r="30" fill="none" stroke="var(--string)" strokeWidth="2" />
+      {Array.from({ length: 12 }, (_, i) => {
+        const { x, y } = onCircle(i);
+        return i === 0
+          ? <circle key={i} cx={x} cy={y} r="8" fill="var(--degree-root)" {...ring} />
+          : <circle key={i} cx={x} cy={y} r="4" fill={i === 1 || i === 11 ? 'var(--degree-fifth)' : 'var(--inlay)'} />;
+      })}
+    </>
+  ),
+  '/chords': (
+    <>
+      <g stroke="var(--fret-wire)" strokeWidth="2">
+        {[49, 66, 83].map(y => <line key={y} x1="12" y1={y} x2="84" y2={y} />)}
+      </g>
+      <rect x="12" y="28" width="72" height="4" rx="1.5" fill="var(--nut)" />
+      <g stroke="var(--string)" strokeWidth="1.5">
+        {[16, 28.8, 41.6, 54.4, 67.2, 80].map(x => <line key={x} x1={x} y1="32" x2={x} y2="87" />)}
+      </g>
+      {/* Am7: x 0 2 0 1 0 */}
+      <circle cx="41.6" cy="57.5" r="6" fill="var(--degree-fifth)" {...ring} />
+      <circle cx="67.2" cy="40.5" r="6" fill="var(--degree-third)" {...ring} />
+      <g fill="none" stroke="var(--dot-ring)" strokeWidth="2">
+        <rect x="24.3" y="13.5" width="9" height="9" rx="1.5" />
+        <circle cx="54.4" cy="18" r="4.5" />
+        <circle cx="80" cy="18" r="4.5" />
+      </g>
+      <text x="16" y="19" textAnchor="middle" dominantBaseline="central" fontSize="11" fill="var(--string)">×</text>
+    </>
+  ),
+};
+
+/**
+ * A page's icon on the home and section index cards: its pictogram on a
+ * rosewood tile like the brand mark, drawn from the board and degree tokens
+ * so it follows the theme. Nothing for a page with no pictogram.
+ */
+export function PageIcon({ href }: { href: string }) {
+  const glyph = PAGE_GLYPHS[href];
+  if (!glyph) return null;
+  return (
+    <svg
+      viewBox="0 0 96 96" width={56} height={56} aria-hidden="true"
+      className="shrink-0" data-testid="page-icon"
+    >
+      <rect width="96" height="96" rx="22" fill="var(--fretboard)" />
+      {glyph}
+    </svg>
+  );
+}
