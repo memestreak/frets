@@ -2,8 +2,8 @@ import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from './chordTypes';
 import { voicingKey, type Voicing } from './voicings';
 
 /*
- * Each chord has its own Chord library URL: /chords/library?chord=am7b5.
- * One page reads the chord from the URL. A slug is the root and the type,
+ * The Chords page's URL names the chord and the shape on the neck:
+ * /chords?chord=am7b5&shape=x-0-1-0-1-x. One page reads them from the URL. A slug is the root and the type,
  * lower case, so the URL is easy to type. Four
  * types differ from another only by a capital M (M7b5 and m7b5), so a
  * capital M is written "maj"; a # can't go in a URL path, so it is written
@@ -16,7 +16,7 @@ export interface ChordChoice {
   type: string;
 }
 
-/** What /chords/library shows with no chord, or one it doesn't know. */
+/** What /chords shows with no chord or shape, or a chord it doesn't know. */
 export const DEFAULT_CHORD: ChordChoice = { root: 'A', type: 'm7' };
 
 /** Types the rule below would spell badly. */
@@ -39,10 +39,25 @@ export const CHORD_PARAM = 'chord';
 /** The query parameter that names a shape to open on: its `voicingKey`, "x-0-2-0-1-0". */
 export const SHAPE_PARAM = 'shape';
 
-/** The chord's page; with a shape, the page opens on that shape. */
-export const chordHref = (choice: ChordChoice, shape?: Voicing): string =>
-  `/chords/library?${CHORD_PARAM}=${chordSlug(choice)}`
-  + (shape ? `&${SHAPE_PARAM}=${voicingKey(shape)}` : '');
+/**
+ * The Chords page on a chord, a shape or both: a shape alone (notes with
+ * no name) is named afresh, a chord alone opens on its first shape.
+ */
+export function chordHref(choice: ChordChoice | null, shape?: Voicing): string {
+  const params = [
+    ...(choice ? [`${CHORD_PARAM}=${chordSlug(choice)}`] : []),
+    ...(shape ? [`${SHAPE_PARAM}=${voicingKey(shape)}`] : []),
+  ];
+  return params.length ? `/chords?${params.join('&')}` : '/chords';
+}
+
+/** The frets a `shape` value names, "x-0-2-0-1-0"; null unless six frets from 0 to `maxFret`. */
+export function shapeFromKey(key: string | null, maxFret: number): Voicing | null {
+  const parts = key?.split('-') ?? [];
+  if (parts.length !== 6) return null;
+  const frets = parts.map(p => (p === 'x' ? null : /^\d+$/.test(p) ? Number(p) : NaN));
+  return frets.every(f => f === null || f <= maxFret) ? frets : null;
+}
 
 /** Every root and type by slug. Throws at load if two chords share a slug. */
 const BY_SLUG = new Map<string, ChordChoice>();
@@ -54,6 +69,6 @@ for (const root of CHORD_ROOTS) {
   }
 }
 
-/** The chord a slug names; the default for a missing or unknown one. */
-export const chordFromSlug = (slug: string | null): ChordChoice =>
-  (slug && BY_SLUG.get(slug)) || DEFAULT_CHORD;
+/** The chord a slug names; null for a missing or unknown one. */
+export const chordFromSlug = (slug: string | null): ChordChoice | null =>
+  (slug && BY_SLUG.get(slug)) || null;

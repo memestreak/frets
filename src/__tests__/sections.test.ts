@@ -13,10 +13,10 @@ describe('locate', () => {
       section: EXPLORE,
       page: EXPLORE.pages[0],
     });
-    expect(locate('/chords/library')).toEqual({
-      section: CHORDS,
-      page: CHORDS.pages[0],
-    });
+  });
+
+  it('finds a section with no pages, which is a page itself', () => {
+    expect(locate('/chords')).toEqual({ section: CHORDS, page: undefined });
   });
 
   it('finds the section but no page on a section index', () => {

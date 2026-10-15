@@ -4,8 +4,8 @@
 
 Guitar fretboard app with three sections: Practice, holding two quiz
 trainers (Intervals, Notes), Explore, holding the Scale lab and the Circle
-of fifths, and Chords,
-holding the Chord library and the Chord lab (see
+of fifths, and Chords, one page that looks a chord up by name and names
+the notes tapped on the neck (see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
@@ -16,8 +16,10 @@ holding the Chord library and the Chord lab (see
 `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
 `docs/specs/2026-10-13-one-diatonic-chords-card-design.md`,
 `docs/specs/2026-10-07-circle-of-fifths-design.md`,
-`docs/specs/2026-10-09-published-chord-shapes-design.md` and
-`docs/specs/2026-10-15-copy-chord-diagram-design.md`). The app has no users
+`docs/specs/2026-10-09-published-chord-shapes-design.md`,
+`docs/specs/2026-10-15-copy-chord-diagram-design.md` and
+`docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
+library and the Chord lab into it). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -73,17 +75,18 @@ binds a local port).
 ## Layout
 
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
-  `/practice`, `/explore` and `/chords` are index pages; the trainers are
+  `/practice` and `/explore` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=advanced`
-  for its Advanced view, the modes), the Chord library `/chords/library` and the Chord lab
-  `/chords/lab`.
+  for its Advanced view, the modes), and the Chords page `/chords`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
   (`PageList`) are drawn from it, so a new page is an entry here plus a route.
+  A section with no pages (Chords) is a page itself: the home page shows its
+  summary as its card, the menu its summary under its name.
 - `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
   `BrandMark` and wordmark home, then the section and the page as one
   button opening a panel of every page with the current one marked; then
@@ -147,7 +150,7 @@ binds a local port).
   Sevenths, the Arpeggio toggle, the position's ‹ › and its two halves.
   `PositionShapes.tsx` (logic in `positions.ts`) draws every diatonic
   chord's shape in the same five frets, the only chord row, with ‹ n of m ›
-  to cycle a chord's shapes and a link to the chord in the Chord library.
+  to cycle a chord's shapes and a link to the chord on the Chords page.
   `ChordOverScale.tsx` places `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`), which draw a selected chord against
   the scale (`docs/specs/2026-10-04-chord-diagrams-design.md`). Selecting a
@@ -163,21 +166,25 @@ binds a local port).
   `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
   table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
-- `src/features/chords/` — the Chord library (`library/`, with its
-  client-only loader) and the Chord lab (`lab/`), built on `src/lib/chords/`
-  and `src/components/chords/`. `naming.ts` gives every name for a set of
-  notes. `ChordHeader.tsx`, `VoicingGroups.tsx`, `useSpaceKey.ts` (space
-  toggles the Arpeggio) and `arpeggioCaption.ts` are shared by both pages, and so is `export/`:
-  right-click, a long press or Shift+F10 on a shape diagram (or the Chord
-  lab's neck; `useShapeExport`, once per page) opens a menu
+- `src/features/chords/` — the Chords page (`ChordsPage.tsx`, the only
+  stateful component, with its client-only loader), built on
+  `src/lib/chords/` and `src/components/chords/`. The frets on the neck are
+  the source of truth: picking a chord in `ChordPickers` puts its first
+  shape there and keeps that chord, tapping names the notes afresh
+  (`naming.ts`, every name for a set of notes, listed by `NameList`).
+  `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`,
+  `useSpaceKey.ts` (space toggles the Arpeggio) and `arpeggioCaption.ts`
+  are its parts, and so is `export/`:
+  right-click, a long press or Shift+F10 on a shape diagram (or the
+  neck; `useShapeExport`, once per page) opens a menu
   (Copy as PNG, Export options…) and the Export dialog, whose Name
   starts on the deduced name; the image is
   `ChordDiagram` drawn with a concrete `look` (`exportStyle.ts`, whose
   palettes a test checks against `fretwood.css`), serialized and rasterized
-  in `exportImage.ts`; `library/ChordLibrary.tsx` and `lab/ChordLab.tsx` are the pages
-  and their only stateful components. The chord is in the URL, not storage:
-  `/chords/library?chord=am7b5`, optionally `&shape=x-0-2-0-1-0` to open on
-  a shape; slugs in `src/lib/chords/chordUrls.ts`.
+  in `exportImage.ts`. The chord and the frets are in the URL, not storage:
+  `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
+  in the menus adds a history entry, everything else replaces it; slugs in
+  `src/lib/chords/chordUrls.ts`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

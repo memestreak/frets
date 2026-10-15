@@ -123,24 +123,28 @@ export function AppNav() {
                   {here && !page && <YouAreHere />}
                 </Link>
               </h2>
-              <ul aria-labelledby={`menu-${s.label}`} className="m-0 grid list-none gap-0.5 p-0">
-                {s.pages.map(p => (
-                  <li key={p.href}>
-                    <Link
-                      href={p.href}
-                      aria-current={p === page ? 'page' : undefined}
-                      onClick={close}
-                      className="grid gap-0.5 rounded-(--radius-sm) px-2 py-1.5 text-(--ink) no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft)"
-                    >
-                      <span className="flex justify-between gap-3 text-[14px] font-semibold">
-                        {p.title}
-                        {p === page && <YouAreHere />}
-                      </span>
-                      <span className="text-[13px] leading-5 text-(--ink-muted)">{p.summary}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {s.pages.length > 0 ? (
+                <ul aria-labelledby={`menu-${s.label}`} className="m-0 grid list-none gap-0.5 p-0">
+                  {s.pages.map(p => (
+                    <li key={p.href}>
+                      <Link
+                        href={p.href}
+                        aria-current={p === page ? 'page' : undefined}
+                        onClick={close}
+                        className="grid gap-0.5 rounded-(--radius-sm) px-2 py-1.5 text-(--ink) no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft)"
+                      >
+                        <span className="flex justify-between gap-3 text-[14px] font-semibold">
+                          {p.title}
+                          {p === page && <YouAreHere />}
+                        </span>
+                        <span className="text-[13px] leading-5 text-(--ink-muted)">{p.summary}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="m-0 px-2 text-[13px] leading-5 text-(--ink-muted)">{s.summary}</p>
+              )}
             </div>
           );
         })}

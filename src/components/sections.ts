@@ -53,22 +53,12 @@ export const EXPLORE: Section = {
   ],
 };
 
+/** A section with no pages is a page itself. */
 export const CHORDS: Section = {
   href: '/chords',
   label: 'Chords',
-  summary: 'Look up a chord and every way to play it, or name the one you play.',
-  pages: [
-    {
-      href: '/chords/library',
-      title: 'Chord library',
-      summary: 'Pick a root and a chord type, see its open and moveable shapes.',
-    },
-    {
-      href: '/chords/lab',
-      title: 'Chord lab',
-      summary: 'Tap notes on the neck to name a chord, then see its shapes and arpeggio.',
-    },
-  ],
+  summary: 'Look up a chord and every way to play it, or tap notes on the neck to name them.',
+  pages: [],
 };
 
 export const SECTIONS: readonly Section[] = [PRACTICE, EXPLORE, CHORDS];
