@@ -168,8 +168,10 @@ binds a local port).
   and `src/components/chords/`. `naming.ts` gives every name for a set of
   notes. `ChordHeader.tsx`, `VoicingGroups.tsx`, `useSpaceKey.ts` (space
   toggles the Arpeggio) and `arpeggioCaption.ts` are shared by both pages, and so is `export/`:
-  right-click, a long press or Shift+F10 on a shape diagram opens a menu
-  (Copy as PNG, Export options…) and the Export dialog; the image is
+  right-click, a long press or Shift+F10 on a shape diagram (or the Chord
+  lab's neck; `useShapeExport`, once per page) opens a menu
+  (Copy as PNG, Export options…) and the Export dialog, whose Name
+  starts on the deduced name; the image is
   `ChordDiagram` drawn with a concrete `look` (`exportStyle.ts`, whose
   palettes a test checks against `fretwood.css`), serialized and rasterized
   in `exportImage.ts`; `library/ChordLibrary.tsx` and `lab/ChordLab.tsx` are the pages

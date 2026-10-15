@@ -2,11 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePersist } from '@/hooks/usePersist';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
-import type { Voicing } from '@/lib/chords/voicings';
 import { loadJson } from '@/lib/storage';
 import { ExportDialog } from './ExportDialog';
-import { copyPng } from './exportImage';
+import { copyPng, type ExportShape } from './exportImage';
 import { EXPORT_STORAGE_KEY, parseExportStyle } from './exportStyle';
 import { ShapeMenu } from './ShapeMenu';
 
@@ -18,14 +16,14 @@ const LONG_PRESS_SLOP = 10;
 const NOTICE_MS = 2500;
 
 interface MenuState {
-  voicing: Voicing;
+  shape: ExportShape;
   x: number;
   y: number;
-  /** The diagram it was opened on, which gets focus back. */
-  trigger: HTMLElement;
+  /** What gets focus back: the diagram, or the fret focused inside the neck. */
+  returnTo: HTMLElement;
 }
 
-/** Props for a shape's button, opening the menu on it. */
+/** Props for a shape's diagram (or the neck), opening the menu on it. */
 export interface ShapeExportTriggerProps {
   onContextMenu: (e: React.MouseEvent<HTMLElement>) => void;
   onPointerDown: (e: React.PointerEvent<HTMLElement>) => void;
@@ -36,19 +34,21 @@ export interface ShapeExportTriggerProps {
 }
 
 /**
- * Exporting the small shape diagrams: right-click, a long press or
- * Shift+F10 on a shape opens a menu with Copy as PNG (the saved choices)
- * and Export options… (the dialog). Opening it selects nothing. Returns the
- * props for each shape's button and the menu, dialog and notice to render.
+ * Exporting shapes: right-click, a long press or Shift+F10 on anything
+ * given `triggerProps` (a shape diagram, the Chord lab's neck) opens a menu
+ * with Copy as PNG (the saved choices, the deduced name) and Export
+ * options… (the dialog). Opening it selects nothing and taps nothing. One
+ * per page, so the shapes and the neck share the saved choices. Returns
+ * those props and the menu, dialog and notice to render.
  */
-export function useShapeExport(chord: ChordInfo): {
-  triggerProps: (voicing: Voicing) => ShapeExportTriggerProps;
+export function useShapeExport(): {
+  triggerProps: (shape: ExportShape) => ShapeExportTriggerProps;
   ui: ReactNode;
 } {
   const [style, setStyle] = useState(() => parseExportStyle(loadJson(EXPORT_STORAGE_KEY)));
   usePersist(EXPORT_STORAGE_KEY, style);
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [dialogFor, setDialogFor] = useState<Voicing | null>(null);
+  const [dialogFor, setDialogFor] = useState<ExportShape | null>(null);
   const [notice, setNotice] = useState('');
   const press = useRef<{ timer: number; x: number; y: number } | null>(null);
   /** A long press just opened the menu, so the click that ends it is swallowed. */
@@ -66,18 +66,20 @@ export function useShapeExport(chord: ChordInfo): {
   };
   useEffect(() => cancelPress, []);
 
-  const openMenu = (voicing: Voicing, trigger: HTMLElement, x: number, y: number) => {
+  const openMenu = (shape: ExportShape, trigger: HTMLElement, x: number, y: number) => {
+    const focused = document.activeElement;
+    const returnTo = focused instanceof HTMLElement && trigger.contains(focused) ? focused : trigger;
     const r = trigger.getBoundingClientRect();
     // From the keyboard there's no pointer, so it opens under the diagram.
     const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    setMenu(inside ? { voicing, trigger, x, y } : { voicing, trigger, x: r.left, y: r.bottom + 4 });
+    setMenu(inside ? { shape, returnTo, x, y } : { shape, returnTo, x: r.left, y: r.bottom + 4 });
   };
 
-  const triggerProps = (voicing: Voicing): ShapeExportTriggerProps => ({
+  const triggerProps = (shape: ExportShape): ShapeExportTriggerProps => ({
     onContextMenu: e => {
       e.preventDefault();
       cancelPress();
-      openMenu(voicing, e.currentTarget, e.clientX, e.clientY);
+      openMenu(shape, e.currentTarget, e.clientX, e.clientY);
     },
     onPointerDown: e => {
       if (e.pointerType !== 'touch') return;
@@ -89,7 +91,7 @@ export function useShapeExport(chord: ChordInfo): {
         timer: window.setTimeout(() => {
           press.current = null;
           swallowClick.current = true;
-          openMenu(voicing, trigger, x, y);
+          openMenu(shape, trigger, x, y);
         }, LONG_PRESS_MS),
       };
     },
@@ -108,7 +110,7 @@ export function useShapeExport(chord: ChordInfo): {
   });
 
   const closeMenu = (refocus: boolean) => {
-    if (refocus) menu?.trigger.focus();
+    if (refocus) menu?.returnTo.focus();
     setMenu(null);
   };
 
@@ -121,17 +123,17 @@ export function useShapeExport(chord: ChordInfo): {
             {
               label: 'Copy as PNG',
               onSelect: () => {
-                copyPng(chord, menu.voicing, style).then(setNotice, (e: unknown) => {
+                copyPng(menu.shape, style).then(setNotice, (e: unknown) => {
                   setNotice(`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`);
                 });
               },
             },
-            { label: 'Export options…', onSelect: () => setDialogFor(menu.voicing) },
+            { label: 'Export options…', onSelect: () => setDialogFor(menu.shape) },
           ]}
         />
       )}
       <ExportDialog
-        chord={chord} voicing={dialogFor} style={style} onStyle={setStyle}
+        shape={dialogFor} style={style} onStyle={setStyle}
         onClose={() => setDialogFor(null)}
       />
       <div className="export-notice" role="status" data-shown={notice ? 'true' : undefined}>

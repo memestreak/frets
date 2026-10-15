@@ -6,6 +6,14 @@ import type { ChordInfo } from '@/lib/chords/chordTypes';
 import { voicingKey, type Voicing } from '@/lib/chords/voicings';
 import { exportLook, type ExportStyle } from './exportStyle';
 
+/** What gets exported: a shape of a chord, and the name it goes by. */
+export interface ExportShape {
+  chord: ChordInfo;
+  voicing: Voicing;
+  /** The deduced name, or the one typed in the Export dialog; may be empty. */
+  name: string;
+}
+
 /** The PNG is this many times the diagram's size in SVG units. */
 export const PNG_SCALE = 4;
 
@@ -17,11 +25,11 @@ const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.met
  * One shape as a standalone SVG: the page's `ChordDiagram`, drawn with
  * concrete colours, sized in its own units, transparent behind.
  */
-export function diagramSvg(chord: ChordInfo, voicing: Voicing, style: ExportStyle): string {
+export function diagramSvg({ chord, voicing, name }: ExportShape, style: ExportStyle): string {
   const host = document.createElement('div');
   const root = createRoot(host);
   flushSync(() => {
-    root.render(createElement(ChordDiagram, { chord, voicing, look: exportLook(style, chord) }));
+    root.render(createElement(ChordDiagram, { chord, voicing, look: exportLook(style, name) }));
   });
   const svg = host.querySelector('svg')!;
   root.unmount();
@@ -70,14 +78,14 @@ export async function svgToPng(svg: string): Promise<Blob> {
 }
 
 /** "Am7 x-0-2-0-1-0", safe as a file name. */
-export function exportFileName(chord: ChordInfo, voicing: Voicing): string {
-  return `${chord.symbol || 'Chord'} ${voicingKey(voicing)}`.replace(/[\\/:*?"<>|]/g, '_');
+export function exportFileName({ voicing, name }: ExportShape): string {
+  return `${name.trim() || 'Chord'} ${voicingKey(voicing)}`.replace(/[\\/:*?"<>|]/g, '_');
 }
 
 /** Copies the shape as a PNG; resolves to the line the page shows. */
-export async function copyPng(chord: ChordInfo, voicing: Voicing, style: ExportStyle): Promise<string> {
+export async function copyPng(shape: ExportShape, style: ExportStyle): Promise<string> {
   // The PNG goes in as a promise, so Safari still counts the click as the gesture.
-  const png = svgToPng(diagramSvg(chord, voicing, style));
+  const png = svgToPng(diagramSvg(shape, style));
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
   return 'Copied as PNG';
 }
@@ -86,8 +94,8 @@ export async function copyPng(chord: ChordInfo, voicing: Voicing, style: ExportS
  * Copies the shape as an SVG image where the browser takes one (Chrome,
  * Edge), and otherwise as SVG code, which design tools paste as vectors.
  */
-export async function copySvg(chord: ChordInfo, voicing: Voicing, style: ExportStyle): Promise<string> {
-  const svg = diagramSvg(chord, voicing, style);
+export async function copySvg(shape: ExportShape, style: ExportStyle): Promise<string> {
+  const svg = diagramSvg(shape, style);
   if (typeof ClipboardItem !== 'undefined' && ClipboardItem.supports?.('image/svg+xml')) {
     await navigator.clipboard.write([new ClipboardItem({
       'image/svg+xml': new Blob([svg], { type: 'image/svg+xml' }),
@@ -101,13 +109,13 @@ export async function copySvg(chord: ChordInfo, voicing: Voicing, style: ExportS
 
 /** Saves the shape as a PNG or SVG file. */
 export async function download(
-  format: 'png' | 'svg', chord: ChordInfo, voicing: Voicing, style: ExportStyle,
+  format: 'png' | 'svg', shape: ExportShape, style: ExportStyle,
 ): Promise<string> {
-  const svg = diagramSvg(chord, voicing, style);
+  const svg = diagramSvg(shape, style);
   const blob = format === 'png' ? await svgToPng(svg) : new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${exportFileName(chord, voicing)}.${format}`;
+  a.download = `${exportFileName(shape)}.${format}`;
   document.body.append(a);
   a.click();
   a.remove();

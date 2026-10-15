@@ -1,6 +1,5 @@
 import type { DiagramLook } from '@/components/chords/ChordDiagram';
 import { DEGREES, type Degree, type DotColor } from '@/components/fretboard/theme';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
 
 export const EXPORT_STORAGE_KEY = 'frets.chords.export';
 
@@ -11,7 +10,7 @@ export interface ExportStyle {
   background: 'light' | 'dark';
   /** The interval inside each fretted dot. */
   intervals: boolean;
-  /** The chord symbol above the board. */
+  /** The chord's name above the board. */
   name: boolean;
 }
 
@@ -80,9 +79,9 @@ const MONO = {
   dark: { ink: '#ffffff', paper: '#000000' },
 } as const;
 
-/** The `ChordDiagram` look for an exported image of `chord`. */
-export function exportLook(style: ExportStyle, chord: ChordInfo): DiagramLook {
-  const title = style.name ? chord.symbol : '';
+/** The `ChordDiagram` look for an exported image, titled `name` if the style shows it. */
+export function exportLook(style: ExportStyle, name: string): DiagramLook {
+  const title = style.name ? name.trim() : '';
   if (style.colours === 'mono') {
     const { ink, paper } = MONO[style.background];
     return {

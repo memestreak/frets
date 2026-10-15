@@ -13,9 +13,7 @@ const TITLE = 26; // band above the board for the chord name, when drawn
 const BOTTOM = 28; // room for the starting fret number, clear of the last string
 const DOT_R = 8.5;
 const OPEN_R = 6; // an open string's ring
-const BOARD_WIDTH = DIAGRAM_FRETS * CELL;
 const BOARD_HEIGHT = 5 * STRING_GAP;
-const WIDTH = LEFT + BOARD_WIDTH + 6;
 
 /** How a diagram is coloured and what text it carries. */
 export interface DiagramLook {
@@ -53,13 +51,17 @@ interface ChordDiagramProps {
 
 /**
  * One voicing as a small horizontal chord chart: `DIAGRAM_FRETS` frets from
- * `diagramStartFret`, the nut when that is fret 1 and the fret number
+ * `diagramStartFret` (more for a shape that reaches further, as one tapped
+ * on the Chord lab's neck may), the nut when that is fret 1 and the fret number
  * otherwise, × on muted strings, a ring on open strings. On the pages, dots
  * carry the degree colour and no text (`ToneKey` names the colours); the
  * root is square.
  */
 export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: ChordDiagramProps) {
   const start = startFret ?? diagramStartFret(voicing);
+  const frets = Math.max(DIAGRAM_FRETS, ...voicing.map(f => (f ? f - start + 1 : 0)));
+  const boardWidth = frets * CELL;
+  const width = LEFT + boardWidth + 6;
   const top = TOP + (look.title ? TITLE : 0);
   const height = top + BOARD_HEIGHT + BOTTOM;
   // Centre of a fretted note's column; open strings sit left of the nut.
@@ -69,19 +71,19 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: Ch
 
   return (
     <svg
-      className="shape-diagram" viewBox={`0 0 ${WIDTH} ${height}`}
+      className="shape-diagram" viewBox={`0 0 ${width} ${height}`}
       aria-hidden="true" focusable="false"
     >
       {look.title && (
         <text
-          x={LEFT + BOARD_WIDTH / 2} y={TOP + 13} textAnchor="middle"
+          x={LEFT + boardWidth / 2} y={TOP + 13} textAnchor="middle"
           fontSize={17} fontWeight={700} style={{ fill: look.ink }}
         >
           {look.title}
         </text>
       )}
       {/* Fret lines; the left edge is the nut at fret 1, a plain line elsewhere. */}
-      {Array.from({ length: DIAGRAM_FRETS + 1 }, (_, i) => (
+      {Array.from({ length: frets + 1 }, (_, i) => (
         <line
           key={i} x1={LEFT + i * CELL} x2={LEFT + i * CELL}
           y1={top} y2={top + BOARD_HEIGHT}
@@ -96,7 +98,7 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: Ch
       )}
       {STRINGS.map(s => (
         <line
-          key={s} x1={LEFT} x2={LEFT + BOARD_WIDTH} y1={stringY(s)} y2={stringY(s)}
+          key={s} x1={LEFT} x2={LEFT + boardWidth} y1={stringY(s)} y2={stringY(s)}
           style={{ stroke: look.line }} strokeWidth={1}
         />
       ))}

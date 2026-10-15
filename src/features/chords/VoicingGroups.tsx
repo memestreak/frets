@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
 import type { ChordInfo } from '@/lib/chords/chordTypes';
-import { useShapeExport, type ShapeExportTriggerProps } from './export/useShapeExport';
+import type { ShapeExportTriggerProps } from './export/useShapeExport';
 import { voicingCaption, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 
 interface VoicingGroupsProps {
@@ -14,6 +14,8 @@ interface VoicingGroupsProps {
   /** `voicingKey` of the voicing on the neck. */
   selectedKey: string | null;
   onSelect: (voicing: Voicing) => void;
+  /** Opens the export menu on a shape (`useShapeExport`, owned by the page). */
+  exportProps: (voicing: Voicing) => ShapeExportTriggerProps;
 }
 
 /**
@@ -21,29 +23,28 @@ interface VoicingGroupsProps {
  * phones), under a key to the dot colours. Under Moveable, a
  * link switches between the best few and every shape. ← and → select the
  * previous or next shape, in the order shown. Right-click, a long press or
- * Shift+F10 on a shape opens its export menu (`useShapeExport`).
+ * Shift+F10 on a shape opens its export menu.
  */
 export function VoicingGroups({
-  chord, voicings, showAll, onShowAll, selectedKey, onSelect,
+  chord, voicings, showAll, onShowAll, selectedKey, onSelect, exportProps,
 }: VoicingGroupsProps) {
   const { open, moveable, allMoveable } = voicings;
   const hasMore = allMoveable.length > moveable.length;
   const name = chord.symbol || 'these notes';
   const shown = [...open, ...(showAll ? allMoveable : moveable)];
   useArrowSteps(shown, selectedKey, onSelect);
-  const { triggerProps, ui: exportUi } = useShapeExport(chord);
   return (
     <div className="grid gap-5">
       <ToneKey chord={chord} />
       <VoicingGroup
         title="Open" chord={chord} voicings={open}
         emptyText={`No open shape for ${name}.`}
-        selectedKey={selectedKey} onSelect={onSelect} triggerProps={triggerProps}
+        selectedKey={selectedKey} onSelect={onSelect} triggerProps={exportProps}
       />
       <VoicingGroup
         title="Moveable" chord={chord} voicings={showAll ? allMoveable : moveable}
         emptyText={`No moveable shape for ${name}.`}
-        selectedKey={selectedKey} onSelect={onSelect} triggerProps={triggerProps}
+        selectedKey={selectedKey} onSelect={onSelect} triggerProps={exportProps}
       />
       {hasMore && (
         <button
@@ -53,7 +54,6 @@ export function VoicingGroups({
           {showAll ? 'Show the best few' : `Show all ${allMoveable.length} shapes`}
         </button>
       )}
-      {exportUi}
     </div>
   );
 }
