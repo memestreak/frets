@@ -4,13 +4,23 @@ Jeremy, 2026-10-15: copy a chord diagram from the Chord library as a PNG
 with a transparent background, or as an SVG. Of three mocked placements
 (a Copy button beside Arpeggio, a copy icon on each diagram, an Export
 dialog) he picked the dialog, opened from a right-click menu on the small
-diagrams. Nothing is copied from the neck.
+diagrams. Nothing is copied from the Chord library's neck.
+
+Follow-up the same day: the Chord lab's neck exports too, since the shape
+tapped there may be none of the listed ones, and the dialog lets the name
+be edited, starting from the deduced one.
 
 ## Where
 
 Every small shape diagram in the Open and Moveable groups
-(`VoicingGroups`), so the Chord library and the Chord lab both have it.
-The neck, the Scale lab's diagrams and the arpeggio have no export.
+(`VoicingGroups`), so the Chord library and the Chord lab both have it,
+and the Chord lab's neck, which exports the shape played (whether or not
+the arpeggio is showing) under the name chosen in Name it. With every
+string muted the neck offers nothing. The Chord library's neck, the Scale
+lab's diagrams and the arpeggio have no export.
+
+A shape tapped on the lab's neck can reach further than five frets; its
+diagram then draws as many frets as it needs.
 
 Opening the menu on a diagram:
 
@@ -24,7 +34,9 @@ The menu has two items:
 - **Copy as PNG**: copies that shape with the saved export choices.
 - **Export options…**: opens the Export dialog for that shape.
 
-Opening the menu does not select the shape, so the neck stays as it is.
+Opening the menu does not select the shape, or tap the fret under the
+pointer, so the neck stays as it is. One menu, dialog and set of saved
+choices per page (`useShapeExport`), shared by the shapes and the neck.
 Esc, a click elsewhere, a scroll or choosing an item closes it. ↑ ↓ move
 between the items; ← → do nothing while it is open (they would otherwise
 step the selected shape).
@@ -32,8 +44,8 @@ step the selected shape).
 ## The Export dialog
 
 A native modal `<dialog>`, titled with the chord and the shape ("Export
-Am7, root on A · frets 1–2"), with a live preview of the image and four
-choices, each a segmented control:
+Am7, root on A · frets 1–2"), with a live preview of the image, four
+choices, each a segmented control, and a Name field:
 
 | Choice | Options | Default |
 |---|---|---|
@@ -41,6 +53,13 @@ choices, each a segmented control:
 | Background | Light, Dark | Light |
 | Intervals | Hide, Show | Hide |
 | Chord name | Show, Hide | Show |
+
+**Name** starts on the deduced name: the chord's symbol for a listed
+shape, the name chosen in Name it for the lab's neck ("C6", "C/E"), empty
+for notes with no name. Whatever is typed is printed, for this export only:
+the next time the dialog opens it starts on the deduced name again. With
+Chord name on Hide the field is disabled; an empty field prints no name.
+File names use it too.
 
 Background sets the ink: dark ink for a light page, light ink for a dark
 slide; the image itself is always transparent. The preview sits on a white
@@ -52,8 +71,8 @@ Below the choices: **Copy PNG** (primary), **Copy SVG**, **Download PNG**,
 action; Done or Esc closes it.
 
 The choices are saved in `localStorage["frets.chords.export"]` and are what
-the menu's Copy as PNG uses. A chord with no name (the Chord lab before a
-name fits) is exported without one, whatever the choice.
+the menu's Copy as PNG uses, with the deduced name. Notes with no name are
+exported without one unless a name is typed.
 
 ## The image
 
@@ -67,7 +86,7 @@ colours instead of the page's CSS variables, so the two can't drift apart:
   dark theme to match Background, with the theme's line and ink colours.
 - **Intervals**: the label inside each fretted dot, as the neck shows it.
   Open-string rings stay unlabelled.
-- **Chord name**: the symbol above the board, bold.
+- **Chord name**: the name above the board, bold.
 
 Text uses Figtree, falling back to the system sans-serif. The SVG names the
 font but doesn't embed it (it would triple the file); the PNG embeds it

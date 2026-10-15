@@ -9,6 +9,7 @@ import { arpeggioCaption } from '../arpeggioCaption';
 import { ChordHeader } from '../ChordHeader';
 import { chordFromTones, formulaOf, type ChordInfo } from '@/lib/chords/chordTypes';
 import { nameNotes } from '../naming';
+import { useShapeExport } from '../export/useShapeExport';
 import { VoicingGroups } from '../VoicingGroups';
 import { findVoicings, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 import { useSpaceKey } from '../useSpaceKey';
@@ -38,8 +39,10 @@ const pitchClasses = (frets: Voicing) =>
  * still plays or mutes a note: the arpeggio labels only the notes played
  * and follows the new chord;
  * choosing a shape or Clear turns it off.
- * The only component here with state: the frets, the kept chord, the chosen
- * name, Show all and the arpeggio.
+ * Right-click (a long press, Shift+F10) on the neck exports the shape
+ * played, under the chosen name, even one that isn't among the shapes; on
+ * a shape, that shape. The only component here with state: the frets, the
+ * kept chord, the chosen name, Show all and the arpeggio.
  */
 export default function ChordLab() {
   const [frets, setFrets] = useState<Voicing>(START);
@@ -84,6 +87,11 @@ export default function ChordLab() {
     if (hasChord) setArpeggio(on => !on);
   }, [hasChord]);
   useSpaceKey(toggleArpeggio);
+  const shapeExport = useShapeExport();
+  // The neck exports what is played, whether or not the arpeggio is showing.
+  const neckExport = chord && frets.some(f => f !== null)
+    ? shapeExport.triggerProps({ chord, voicing: frets, name: name?.symbol ?? '' })
+    : {};
 
   const title = name?.symbol ?? (chord ? 'No name' : 'Tap the neck');
   const dots = !chord ? []
@@ -103,7 +111,7 @@ export default function ChordLab() {
       </ChordHeader>
 
       <section className="card gap-4" aria-label="On the neck">
-        <div className="board-scroll">
+        <div className="board-scroll export-trigger" {...neckExport}>
           <Fretboard
             minFret={0} maxFret={MAX_FRET}
             dots={dots}
@@ -141,12 +149,14 @@ export default function ChordLab() {
               showAll={showAll} onShowAll={setShowAll}
               selectedKey={arpeggio ? null : voicingKey(frets)}
               onSelect={chooseShape}
+              exportProps={v => shapeExport.triggerProps({ chord, voicing: v, name: chord.symbol })}
             />
           ) : (
             <p className="m-0 text-(--ink-muted)">Tap a note to see its shapes.</p>
           )}
         </div>
       </div>
+      {shapeExport.ui}
     </div>
   );
 }

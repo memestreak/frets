@@ -169,7 +169,7 @@ button {
   .shape-btn[aria-pressed='true']:focus-visible { outline: none; }
   .shape-diagram { display: block; width: 100%; height: auto; }
   /* A long press opens the export menu: no iPhone callout or text selection. */
-  .shape-btn { -webkit-touch-callout: none; user-select: none; }
+  .shape-btn, .export-trigger { -webkit-touch-callout: none; user-select: none; }
 
   /* The shapes' export menu (right-click, long press, Shift+F10). The
      focused item is filled, not outlined. */
@@ -211,6 +211,10 @@ button {
     font-size: 14px;
   }
   .export-choices .seg { justify-self: end; }
+  .export-name { justify-self: stretch; min-width: 0; }
+  .export-name:disabled { opacity: 0.45; }
+  /* A text field shows its focus even after a click: ink, not the blue ring. */
+  .export-name:focus-visible { outline-color: var(--ink); }
   /* "Copied as PNG", after Copy as PNG from the menu. Fixed, so nothing moves. */
   .export-notice {
     position: fixed;

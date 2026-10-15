@@ -8,6 +8,7 @@ import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/cho
 import { arpeggioCaption } from '../arpeggioCaption';
 import { ChordHeader } from '../ChordHeader';
 import { chordOf, formulaOf } from '@/lib/chords/chordTypes';
+import { useShapeExport } from '../export/useShapeExport';
 import { VoicingGroups } from '../VoicingGroups';
 import { findVoicings, voicingCaption, voicingKey, type Voicing } from '@/lib/chords/voicings';
 import { ChordPickers } from './ChordPickers';
@@ -95,6 +96,7 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
   // Turning the arpeggio off shows `selectedKey` again, which it never cleared.
   const toggleArpeggio = useCallback(() => onArpeggio(!arpeggio), [arpeggio, onArpeggio]);
   useSpaceKey(toggleArpeggio);
+  const shapeExport = useShapeExport();
 
   const onBoard = arpeggio ? `${chord.symbol} arpeggio`
     : voicing ? `${chord.symbol}, ${voicingCaption(voicing)}`
@@ -142,7 +144,9 @@ function ChordLibrary({ choice, initialShape, arpeggio, onArpeggio }: ChordLibra
         showAll={showAll} onShowAll={setShowAll}
         selectedKey={voicing ? voicingKey(voicing) : null}
         onSelect={select}
+        exportProps={v => shapeExport.triggerProps({ chord, voicing: v, name: chord.symbol })}
       />
+      {shapeExport.ui}
     </div>
   );
 }

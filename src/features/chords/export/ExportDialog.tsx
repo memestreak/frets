@@ -4,15 +4,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { Segmented } from '@/components/controls';
 import { CloseIcon } from '@/components/icons';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
-import { voicingCaption, type Voicing } from '@/lib/chords/voicings';
-import { copyPng, copySvg, download } from './exportImage';
+import { voicingCaption } from '@/lib/chords/voicings';
+import { copyPng, copySvg, download, type ExportShape } from './exportImage';
 import { exportLook, type ExportStyle } from './exportStyle';
 
 interface ExportDialogProps {
-  chord: ChordInfo;
-  /** The shape to export; the dialog is open while there is one. */
-  voicing: Voicing | null;
+  /** The shape to export, with its deduced name; the dialog is open while there is one. */
+  shape: ExportShape | null;
   style: ExportStyle;
   onStyle: (style: ExportStyle) => void;
   onClose: () => void;
@@ -24,33 +22,41 @@ const showHide = (on: boolean) => (on ? 'show' : 'hide');
 
 /**
  * The Export dialog, on the native modal `<dialog>`: a preview of the image
- * as it will be, the four choices, and Copy PNG, Copy SVG, Download PNG and
- * Download SVG, with a line saying what happened. It stays open after an
- * action; Done, × or Esc close it.
+ * as it will be, the four choices, the name to print (the deduced name,
+ * which can be edited for this export), and Copy PNG, Copy SVG, Download
+ * PNG and Download SVG, with a line saying what happened. It stays open
+ * after an action; Done, × or Esc close it.
  */
-export function ExportDialog({ chord, voicing, style, onStyle, onClose }: ExportDialogProps) {
+export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
+  const nameId = useId();
   const [status, setStatus] = useState('');
-  // The last shape shown, so the content doesn't vanish while the dialog closes.
-  const [shown, setShown] = useState(voicing);
-  if (voicing && voicing !== shown) setShown(voicing);
+  // The last shape shown, so the content doesn't vanish while the dialog
+  // closes; a new one brings its own name back.
+  const [shown, setShown] = useState(shape);
+  const [name, setName] = useState(shape?.name ?? '');
+  if (shape && shape !== shown) {
+    setShown(shape);
+    setName(shape.name);
+  }
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (voicing && !el.open) {
+    if (shape && !el.open) {
       setStatus('');
       el.showModal();
-    } else if (!voicing && el.open) el.close();
-  }, [voicing]);
+    } else if (!shape && el.open) el.close();
+  }, [shape]);
 
   const set = (patch: Partial<ExportStyle>) => {
     onStyle({ ...style, ...patch });
     setStatus('');
   };
-  const run = (action: () => Promise<string>) => {
-    action().then(setStatus, (e: unknown) => {
+  const run = (action: (named: ExportShape) => Promise<string>) => {
+    if (!shown) return;
+    action({ ...shown, name }).then(setStatus, (e: unknown) => {
       setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
     });
   };
@@ -63,14 +69,14 @@ export function ExportDialog({ chord, voicing, style, onStyle, onClose }: Export
         onClose();
       }}
       onClose={() => {
-        if (voicing) onClose();
+        if (shape) onClose();
       }}
     >
       {shown && (
         <div className="settings-dialog-inner">
           <div className="flex items-center justify-between gap-3">
             <h3 id={headingId} className="dialog-title m-0">
-              Export {chord.symbol || 'shape'}, {voicingCaption(shown)}
+              Export {shown.name || 'shape'}, {voicingCaption(shown.voicing)}
             </h3>
             <button
               type="button" className="btn btn-ghost btn-icon" aria-label="Close export"
@@ -84,7 +90,9 @@ export function ExportDialog({ chord, voicing, style, onStyle, onClose }: Export
               className={`export-preview export-preview-${style.background}`}
               data-testid="export-preview"
             >
-              <ChordDiagram chord={chord} voicing={shown} look={exportLook(style, chord)} />
+              <ChordDiagram
+                chord={shown.chord} voicing={shown.voicing} look={exportLook(style, name)}
+              />
             </div>
             <div className="export-choices">
               <span>Colours</span>
@@ -107,32 +115,35 @@ export function ExportDialog({ chord, voicing, style, onStyle, onClose }: Export
               <Segmented
                 label="Chord name" value={showHide(style.name)}
                 onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
-                disabled={!chord.symbol}
+              />
+              <label htmlFor={nameId}>Name</label>
+              <input
+                id={nameId} type="text" className="input export-name" aria-label="Name"
+                value={name} placeholder="No name" disabled={!style.name}
+                autoComplete="off" spellCheck={false}
+                onChange={e => {
+                  setName(e.target.value);
+                  setStatus('');
+                }}
               />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button" className="btn btn-primary"
-              onClick={() => run(() => copyPng(chord, shown, style))}
-            >
+            <button type="button" className="btn btn-primary" onClick={() => run(s => copyPng(s, style))}>
               Copy PNG
             </button>
-            <button
-              type="button" className="btn btn-secondary"
-              onClick={() => run(() => copySvg(chord, shown, style))}
-            >
+            <button type="button" className="btn btn-secondary" onClick={() => run(s => copySvg(s, style))}>
               Copy SVG
             </button>
             <button
               type="button" className="btn btn-ghost"
-              onClick={() => run(() => download('png', chord, shown, style))}
+              onClick={() => run(s => download('png', s, style))}
             >
               Download PNG
             </button>
             <button
               type="button" className="btn btn-ghost"
-              onClick={() => run(() => download('svg', chord, shown, style))}
+              onClick={() => run(s => download('svg', s, style))}
             >
               Download SVG
             </button>
