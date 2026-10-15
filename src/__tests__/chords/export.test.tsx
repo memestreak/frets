@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import ChordLab from '@/features/chords/lab/ChordLab';
-import ChordLibrary from '@/features/chords/library/ChordLibrary';
+import ChordsPage from '@/features/chords/ChordsPage';
 import { diagramSvg, exportFileName } from '@/features/chords/export/exportImage';
 import {
   DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, parseExportStyle, THEME_PALETTES,
@@ -11,11 +10,11 @@ import {
 import { chordOf } from '@/lib/chords/chordTypes';
 import type { Voicing } from '@/lib/chords/voicings';
 
-const nav = vi.hoisted(() => ({ search: '', push: vi.fn() }));
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(nav.search),
-  useRouter: () => ({ push: nav.push }),
-}));
+/** Renders the page at /chords plus `search`. */
+function renderAt(search = '') {
+  window.history.replaceState(null, '', `/chords${search}`);
+  return render(<ChordsPage />);
+}
 
 /** jsdom draws no images, so the clipboard copy is stubbed; the SVG is real. */
 const copied = vi.hoisted(() => ({ png: vi.fn() }));
@@ -135,7 +134,6 @@ describe('diagramSvg', () => {
 
 describe('the shapes export menu', () => {
   beforeEach(() => {
-    nav.search = '';
     localStorage.clear();
     copied.png.mockReset().mockResolvedValue('Copied as PNG');
   });
@@ -146,7 +144,7 @@ describe('the shapes export menu', () => {
     within(screen.getByRole('region', { name: 'Open shapes' })).getAllByRole('button')[0];
 
   it('opens on right-click with two items, and selects nothing', () => {
-    render(<ChordLibrary />);
+    renderAt();
     const shape = moveable()[0];
     fireEvent.contextMenu(shape);
     const menu = screen.getByRole('menu', { name: 'Export shape' });
@@ -157,7 +155,7 @@ describe('the shapes export menu', () => {
   });
 
   it('copies with the saved choices and says so', async () => {
-    render(<ChordLibrary />);
+    renderAt();
     fireEvent.contextMenu(moveable()[0]);
     await act(async () => {
       fireEvent.click(screen.getByRole('menuitem', { name: 'Copy as PNG' }));
@@ -170,7 +168,7 @@ describe('the shapes export menu', () => {
   });
 
   it('closes on Esc, and ← → inside it step no shape', () => {
-    render(<ChordLibrary />);
+    renderAt();
     fireEvent.contextMenu(moveable()[1]);
     const item = screen.getByRole('menuitem', { name: 'Copy as PNG' });
     fireEvent.keyDown(item, { key: 'ArrowRight' });
@@ -183,7 +181,7 @@ describe('the shapes export menu', () => {
   it('opens on a long press, and the press selects nothing', () => {
     vi.useFakeTimers();
     try {
-      render(<ChordLibrary />);
+      renderAt();
       const shape = moveable()[2];
       fireEvent.pointerDown(shape, { pointerType: 'touch', clientX: 5, clientY: 5 });
       act(() => vi.advanceTimersByTime(500));
@@ -199,7 +197,7 @@ describe('the shapes export menu', () => {
   it('a short tap still selects the shape', () => {
     vi.useFakeTimers();
     try {
-      render(<ChordLibrary />);
+      renderAt();
       const shape = moveable()[2];
       fireEvent.pointerDown(shape, { pointerType: 'touch' });
       act(() => vi.advanceTimersByTime(200));
@@ -214,7 +212,7 @@ describe('the shapes export menu', () => {
   });
 
   it('opens the Export dialog on the defaults, and saves a change', () => {
-    render(<ChordLibrary />);
+    renderAt();
     fireEvent.contextMenu(moveable()[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Export options…' }));
     const dialog = screen.getByRole('dialog');
@@ -238,7 +236,7 @@ describe('the shapes export menu', () => {
   });
 
   it('starts the name field on the chord name, prints what is typed, and resets on reopening', () => {
-    render(<ChordLibrary />);
+    renderAt();
     fireEvent.contextMenu(moveable()[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Export options…' }));
     const dialog = screen.getByRole('dialog');
@@ -262,7 +260,7 @@ describe('the shapes export menu', () => {
   });
 });
 
-describe('the Chord lab neck export', () => {
+describe('the neck export', () => {
   beforeEach(() => {
     localStorage.clear();
     copied.png.mockReset().mockResolvedValue('Copied as PNG');
@@ -272,7 +270,7 @@ describe('the Chord lab neck export', () => {
   const heading = () => screen.getByRole('heading', { level: 1 });
 
   it('copies the shape played, under the name chosen, without tapping a note', async () => {
-    render(<ChordLab />);
+    renderAt('?chord=c');
     // x-3-2-0-1-0, the open C it opens on, isn't tapped by the right-click.
     fireEvent.contextMenu(screen.getByTestId('cell-1-5'));
     expect(heading()).toHaveTextContent(/^C /);
@@ -285,7 +283,7 @@ describe('the Chord lab neck export', () => {
   });
 
   it('exports a shape that is not among the shapes, named as the list names it', () => {
-    render(<ChordLab />);
+    renderAt('?chord=c');
     fireEvent.click(screen.getByTestId('cell-5-0')); // mute the high E
     fireEvent.click(screen.getByTestId('cell-5-5')); // x-3-2-0-1-5
     fireEvent.contextMenu(neck());
@@ -296,7 +294,7 @@ describe('the Chord lab neck export', () => {
   });
 
   it('offers nothing with every string muted', () => {
-    render(<ChordLab />);
+    renderAt('?chord=c');
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     fireEvent.contextMenu(neck());
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();

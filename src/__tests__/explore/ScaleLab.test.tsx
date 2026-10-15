@@ -92,12 +92,12 @@ describe('ScaleLab', () => {
     expect(card.getByRole('heading', { level: 3 })).toHaveTextContent(/^Am7 over the scale\s*minor 7$/);
     expect(card.getByText('1 of 5')).toBeInTheDocument();
     const link = () => card.getByRole('link', { name: 'Am7 in the Chord library →' });
-    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-7-5-5-5-5');
+    expect(link()).toHaveAttribute('href', '/chords?chord=am7&shape=5-7-5-5-5-5');
     expect(dotsAt()).toEqual(['0:5 R', '1:7 5', '2:5 ♭7', '3:5 ♭3', '4:5 5', '5:5 R']);
 
     fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
     expect(card.getByText('2 of 5')).toBeInTheDocument();
-    expect(link()).toHaveAttribute('href', '/chords/library?chord=am7&shape=5-x-5-5-5-x');
+    expect(link()).toHaveAttribute('href', '/chords?chord=am7&shape=5-x-5-5-5-x');
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     expect(card.getByText('3 of 5')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowUp' });

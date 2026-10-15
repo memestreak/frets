@@ -5,6 +5,7 @@ import {
 
 interface ChordPickersProps {
   root: ChordRoot;
+  /** '' for notes no type names: the menu shows "—". */
   typeId: string;
   onRoot: (root: ChordRoot) => void;
   onType: (typeId: string) => void;
@@ -29,6 +30,7 @@ export function ChordPickers({ root, typeId, onRoot, onType }: ChordPickersProps
           className="input w-auto min-w-0 max-w-[16rem]" value={typeId}
           onChange={e => onType(e.target.value)}
         >
+          {!typeId && <option value="" disabled>—</option>}
           {CHORD_GROUPS.map(g => (
             <optgroup key={g} label={g}>
               {CHORD_TYPES.filter(t => t.group === g).map(t => (
