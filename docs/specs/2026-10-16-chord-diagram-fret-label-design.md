@@ -6,7 +6,7 @@ card, and the PNG an export copies or a drag carries, all drawn by
 
 | | Before | After |
 |---|---|---|
-| Starting fret number | only when the shape starts above fret 1; the nut stood for fret 1 | always, under the first column, `1` included; the nut is still drawn |
+| Starting fret number | only when the shape starts above fret 1; the nut stood for fret 1 | always, under the first column, `1` included, at 9 units (was 11); the nut is still drawn |
 | × on a muted string | 12 units | 15 units, same muted colour |
 
 The band under the board that holds the number was already reserved on
