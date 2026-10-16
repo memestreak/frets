@@ -457,3 +457,66 @@ describe('ChordsPage, looking a chord up and changing it', () => {
     expect(dotAt(4, 1)).toBeDefined();
   });
 });
+
+describe('ChordsPage, finding a chord by name', () => {
+  const magnifier = () => screen.getByRole('button', { name: 'Find a chord by name' });
+  const box = () => screen.getByRole('textbox', { name: 'Chord name' });
+  const search = (text: string) => {
+    fireEvent.change(box(), { target: { value: text } });
+    fireEvent.keyDown(box(), { key: 'Enter' });
+  };
+
+  it('swaps the Type dropdown for a search box and finds a chord on Enter', () => {
+    renderAt();
+    const entries = window.history.length;
+    fireEvent.click(magnifier());
+    expect(screen.queryByRole('combobox', { name: 'Type' })).toBeNull();
+    expect(box()).toHaveFocus();
+    expect(magnifier()).toHaveAttribute('aria-pressed', 'true');
+    search('f#m7b5');
+    expect(heading()).toHaveTextContent('F♯m7♭5');
+    expect(pickedRoot()).toBe('F♯');
+    expect(typePicker()).toHaveValue('m7b5');
+    expect(magnifier()).toHaveFocus();
+    expect(here()).toMatch(/^\/chords\?chord=fsharpm7b5&shape=/);
+    expect(window.history.length).toBe(entries + 1);
+  });
+
+  it('keeps the box open with a hint when nothing matches', () => {
+    renderAt();
+    fireEvent.click(magnifier());
+    search('Hm7');
+    expect(screen.getByText(/^No chord "Hm7"\./)).toBeInTheDocument();
+    expect(box()).toHaveValue('Hm7');
+    expect(heading()).toHaveTextContent('Am7');
+    fireEvent.change(box(), { target: { value: 'Hm' } });
+    expect(screen.queryByText(/^No chord/)).toBeNull();
+  });
+
+  it('closes on Esc, the magnifier or a click away, dropping the text', () => {
+    renderAt();
+    fireEvent.click(magnifier());
+    fireEvent.change(box(), { target: { value: 'C7' } });
+    fireEvent.keyDown(box(), { key: 'Escape' });
+    expect(typePicker()).toHaveValue('m7');
+    expect(magnifier()).toHaveFocus();
+
+    fireEvent.click(magnifier());
+    expect(box()).toHaveValue('');
+    fireEvent.click(magnifier());
+    expect(screen.queryByRole('textbox')).toBeNull();
+
+    fireEvent.click(magnifier());
+    fireEvent.blur(box());
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(heading()).toHaveTextContent('Am7');
+  });
+
+  it('opens on / but not while typing in a field', () => {
+    renderAt();
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect(box()).toHaveFocus();
+    fireEvent.keyDown(box(), { key: '/' });
+    expect(box()).toBeInTheDocument();
+  });
+});

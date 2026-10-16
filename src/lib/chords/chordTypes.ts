@@ -25,6 +25,10 @@ export interface ChordTypeDef {
   symbol: string;
   /** For the Type dropdown: "m7 · minor seventh". */
   label: string;
+  /** tonal's name, "minor seventh", or "" where it has none. */
+  name: string;
+  /** Every way tonal writes the type: "m7", "min7", "mi7", "-7". */
+  aliases: readonly string[];
   group: ChordGroup;
   /** tonal interval names, root first: "1P", "3m", "5P", "7m". */
   intervals: readonly string[];
@@ -59,16 +63,21 @@ function groupOf(id: string, intervals: readonly string[]): ChordGroup {
 
 const semisOf = (interval: string) => Interval.get(interval).semitones % 12;
 
-function typeDef(id: string, name: string, intervals: readonly string[]): ChordTypeDef {
+function typeDef(
+  aliases: readonly string[], name: string, intervals: readonly string[],
+): ChordTypeDef {
+  const id = aliases[0];
   const symbol = prettySymbol(id);
   const label = !symbol ? name : name ? `${symbol} · ${name}` : symbol;
   const semis = intervals.map(semisOf).sort((a, b) => a - b);
-  return { id, symbol, label, group: groupOf(id, intervals), intervals, semis };
+  return {
+    id, symbol, label, name, aliases, group: groupOf(id, intervals), intervals, semis,
+  };
 }
 
 /** Every chord type tonal knows: the common ones first, then the rest in tonal's order. */
 export const CHORD_TYPES: readonly ChordTypeDef[] = (() => {
-  const all = ChordType.all().map(t => typeDef(t.aliases[0], t.name, t.intervals));
+  const all = ChordType.all().map(t => typeDef(t.aliases, t.name, t.intervals));
   const common = COMMON_IDS.map(id => all.find(t => t.id === id)!);
   return [...common, ...all.filter(t => t.group !== 'Common')];
 })();
