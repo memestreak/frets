@@ -10,7 +10,7 @@ const STRING_GAP = 18;
 const LEFT = 22; // room for × and open-string rings left of the nut
 const TOP = 10;
 const TITLE = 26; // band above the board for the chord name, when drawn
-const BOTTOM = 28; // room for the starting fret number, clear of the last string
+const BOTTOM = 28; // room for the starting fret number, always drawn, clear of the last string
 const DOT_R = 8.5;
 const OPEN_R = 6; // an open string's ring
 const BOARD_HEIGHT = 5 * STRING_GAP;
@@ -52,8 +52,8 @@ interface ChordDiagramProps {
 /**
  * One voicing as a small horizontal chord chart: `DIAGRAM_FRETS` frets from
  * `diagramStartFret` (more for a shape that reaches further, as one tapped
- * on the Chord lab's neck may), the nut when that is fret 1 and the fret number
- * otherwise, × on muted strings, a ring on open strings. On the pages, dots
+ * on the Chords page's neck may), the nut when that is fret 1, the starting
+ * fret number under its column (1 too), × on muted strings, a ring on open strings. On the pages, dots
  * carry the degree colour and no text (`ToneKey` names the colours); the
  * root is square.
  */
@@ -102,21 +102,19 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: Ch
           style={{ stroke: look.line }} strokeWidth={1}
         />
       ))}
-      {start !== 1 && (
-        <text
-          x={x(start)} y={height - 6} textAnchor="middle" fontSize={11}
-          style={{ fill: look.muted }}
-        >
-          {start}
-        </text>
-      )}
+      <text
+        x={x(start)} y={height - 6} textAnchor="middle" fontSize={11}
+        style={{ fill: look.muted }}
+      >
+        {start}
+      </text>
       {voicing.map((fret, s) => {
         const cy = stringY(s);
         if (fret === null) {
           return (
             <text
               key={s} x={LEFT / 2} y={cy} textAnchor="middle"
-              dominantBaseline="central" fontSize={12} style={{ fill: look.muted }}
+              dominantBaseline="central" fontSize={15} style={{ fill: look.muted }}
             >
               ×
             </text>
