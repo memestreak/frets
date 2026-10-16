@@ -21,7 +21,9 @@ the notes tapped on the neck (see
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
 library and the Chord lab into it). Both the Scale lab and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
-(`docs/specs/2026-10-16-key-picker-design.md`). The app has no users
+(`docs/specs/2026-10-16-key-picker-design.md`); on the Chords page a
+magnifier beside Type also finds a chord by its typed or pasted name
+(`docs/specs/2026-10-16-chord-search-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -179,6 +181,8 @@ binds a local port).
   the source of truth: picking a chord in `ChordPickers` puts its first
   shape there and keeps that chord, tapping names the notes afresh
   (`naming.ts`, every name for a set of notes, listed by `NameList`).
+  `ChordPickers` also swaps the Type dropdown for a search box (the
+  magnifier, or `/`); `chordSearch.ts` reads the name typed there.
   `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`,
   `useSpaceKey.ts` (space toggles the Arpeggio) and `arpeggioCaption.ts`
   are its parts, and so is `export/`:

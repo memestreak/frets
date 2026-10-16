@@ -218,6 +218,7 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
             root={chord?.root ?? DEFAULT_CHORD.root} typeId={chord?.type?.id ?? ''}
             onRoot={root => pickChord(root, chord?.type?.id ?? 'M')}
             onType={type => pickChord(chord?.root ?? DEFAULT_CHORD.root, type)}
+            onChord={pickChord}
           />
           <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
             Clear

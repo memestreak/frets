@@ -476,4 +476,22 @@ button {
     background: var(--primary); color: var(--on-primary); border-color: var(--primary);
   }
   .key-tile:focus-visible { outline: 2px solid var(--ink-muted); outline-offset: 1px; }
+
+  /* The Chords page's Type dropdown and the search box that takes its
+     place (ChordPickers.tsx): one fixed width, so the swap moves nothing. */
+  .chord-type, .chord-search { width: 15rem; max-width: 100%; }
+  @media (max-width: 480px) {
+    .chord-type, .chord-search { width: 12rem; }
+  }
+  .chord-search:focus-visible { outline-color: var(--ink); }
+  .chord-search-toggle[aria-pressed='true'] { background: var(--primary-soft); }
+  .chord-search-toggle:focus-visible { outline-color: var(--ink); }
+  /* A miss floats under the box, over the page, so nothing moves. */
+  .chord-search-miss {
+    position: absolute; left: 0; top: calc(100% + 4px); z-index: 10;
+    width: max-content; max-width: 15rem; padding: 4px 8px;
+    font: 400 13px/18px var(--font-sans); color: var(--danger);
+    background: var(--surface-raised); border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+  }
 }
