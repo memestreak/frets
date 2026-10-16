@@ -455,4 +455,25 @@ button {
     .cof-parallel tbody tr > :nth-last-child(2) { border-radius: 0 8px 8px 0; }
     .cof-row-current > :nth-last-child(2) { box-shadow: inset -2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
   }
+
+  /* The root picker, laid out like a piano's keys (KeyPicker.tsx). The
+     picked tile shows by colour alone; every tile keeps its size. */
+  .key-picker {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px;
+    width: 336px; max-width: 100%;
+  }
+  .key-col { display: grid; grid-template-rows: 1fr 1fr; gap: 3px; }
+  .key-tile {
+    grid-row: 1 / -1; display: flex; align-items: center; justify-content: center;
+    height: 52px; min-width: 0; padding: 0; cursor: pointer;
+    font: 500 15px/1 var(--font-sans); color: var(--ink);
+    background: var(--surface-raised); border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+  .key-tile-half { grid-row: auto; height: auto; font-size: 11px; }
+  .key-tile:hover:not([aria-checked='true']) { background: var(--surface-sunken); }
+  .key-tile[aria-checked='true'] {
+    background: var(--primary); color: var(--on-primary); border-color: var(--primary);
+  }
+  .key-tile:focus-visible { outline: 2px solid var(--ink-muted); outline-offset: 1px; }
 }
