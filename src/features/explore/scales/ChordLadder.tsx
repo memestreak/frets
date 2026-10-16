@@ -13,7 +13,9 @@ const TILE_H = 34;
 const SQUARE = 18;
 const PAD = 8;
 /** Height of one bracket level above the tiles. */
-const LEVEL = 22;
+const LEVEL = 14;
+/** The most brackets a chord stacks: a seventh's three from the root. */
+const MAX_LEVELS = 3;
 
 interface ChordLadderProps {
   scale: Scale;
@@ -48,14 +50,15 @@ export function ChordLadder({
 }: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
-  const levels = Math.max(0, ...spans.map(s => s.level));
-  const top = levels ? LEVEL * levels + 36 : 12;
   const width = PAD * 2 + CELL * cells - (CELL - TILE);
-  // Room under the tiles for degrees, chord roles and the octave mark.
-  const height = top + TILE_H + (chord ? 58 : octaves === 2 ? 44 : 22);
+  // The two-octave ladder keeps room for the tallest stack of brackets above
+  // the tiles and for chord roles under them, so selecting a chord moves
+  // nothing. The one-octave strip never shows a chord.
+  const top = octaves === 2 ? LEVEL * MAX_LEVELS + 22 : 12;
+  const height = top + TILE_H + (octaves === 2 ? 58 : 22);
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
-  const octaveY = top + TILE_H + (chord ? 52 : 38);
+  const octaveY = top + TILE_H + 52;
   const between = intervals === 'between';
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
@@ -166,9 +169,9 @@ export function ChordLadder({
           <g key={s.to}>
             <path
               d={`M${a} ${top - 4} V${y} H${b} V${top - 4}`}
-              fill="none" stroke={s.colour} strokeWidth={2} strokeLinejoin="round"
+              fill="none" stroke={s.colour} strokeWidth={1.5} strokeLinejoin="round"
             />
-            <IntervalTag x={(a + b) / 2} y={y} name={s.name} colour={s.colour} />
+            <IntervalTag x={(a + b) / 2} y={y} name={s.name} colour={s.colour} small />
           </g>
         );
       })}

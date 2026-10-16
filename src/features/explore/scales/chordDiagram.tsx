@@ -68,17 +68,22 @@ export function describeChord(chord: DiatonicChord, intervals: ChordIntervals): 
 const TAG_W = 34;
 const TAG_H = 18;
 
-/** The interval's name in a small box, centred on (x, y). */
-export function IntervalTag({ x, y, name, colour }: {
-  x: number; y: number; name: string; colour: string;
+/** The interval's name in a small box, centred on (x, y); smaller on the ladder. */
+export function IntervalTag({ x, y, name, colour, small = false }: {
+  x: number; y: number; name: string; colour: string; small?: boolean;
 }) {
+  const w = small ? 24 : TAG_W;
+  const h = small ? 13 : TAG_H;
   return (
     <g>
       <rect
-        x={x - TAG_W / 2} y={y - TAG_H / 2} width={TAG_W} height={TAG_H} rx={4}
+        x={x - w / 2} y={y - h / 2} width={w} height={h} rx={small ? 3 : 4}
         fill="var(--surface-raised)" stroke={colour}
       />
-      <text x={x} y={y + 4} textAnchor="middle" className="interval-tag" fill={colour}>
+      <text
+        x={x} y={y + (small ? 3.5 : 4)} textAnchor="middle"
+        className={small ? 'interval-tag interval-tag-small' : 'interval-tag'} fill={colour}
+      >
         {name}
       </text>
     </g>
