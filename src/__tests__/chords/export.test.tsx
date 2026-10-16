@@ -125,10 +125,11 @@ describe('diagramSvg', () => {
   });
 
   it('names the file after the name and the shape', () => {
-    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: 'Am7' })).toBe('Am7 x-0-2-0-1-0');
-    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: '' })).toBe('Chord x-0-2-0-1-0');
+    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: 'Am7' })).toBe('Am7_x-0-2-0-1-0');
+    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: '' })).toBe('Chord_x-0-2-0-1-0');
     expect(exportFileName({ chord: chordOf('C', 'M'), voicing: [null, null, 2, 0, 1, 0], name: 'C/E' }))
-      .toBe('C_E x-x-2-0-1-0');
+      .toBe('C_E_x-x-2-0-1-0');
+    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: ' A minor 7 ' })).toBe('A_minor_7_x-0-2-0-1-0');
   });
 });
 
@@ -348,12 +349,12 @@ describe('dragging a shape out', () => {
     const moveable = within(screen.getByRole('region', { name: 'Moveable shapes' })).getAllByRole('button');
     fireEvent.dragStart(moveable[0], { dataTransfer: dt });
     expect(dt.effectAllowed).toBe('copy');
-    expect(dt.data['text/plain']).toBe('Am7 5-7-5-5-5-5');
+    expect(dt.data['text/plain']).toBe('Am7_5-7-5-5-5-5');
     // jsdom draws no PNG, so it falls back to the SVG, with the intervals.
     const html = dt.data['text/html'];
     expect(html).toMatch(/^<img src="data:image\/svg\+xml;charset=utf-8,.+" alt="Am7">$/);
     expect(decodeURIComponent(html)).toContain('>♭3<');
-    expect(dt.data.DownloadURL).toMatch(/^image\/svg\+xml:Am7 5-7-5-5-5-5\.svg:data:image\/svg\+xml/);
+    expect(dt.data.DownloadURL).toMatch(/^image\/svg\+xml:Am7_5-7-5-5-5-5\.svg:data:image\/svg\+xml/);
     expect(moveable[0]).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -365,6 +366,6 @@ describe('dragging a shape out', () => {
       { chord: am7, voicing: OPEN_AM7, name: 'A<"m7">' }, DEFAULT_EXPORT_STYLE,
     );
     expect(dt.data['text/html']).toContain('alt="A&#60;&#34;m7&#34;&#62;"');
-    expect(dt.data['text/plain']).toBe('A__m7__ x-0-2-0-1-0');
+    expect(dt.data['text/plain']).toBe('A__m7___x-0-2-0-1-0');
   });
 });

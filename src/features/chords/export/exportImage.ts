@@ -77,9 +77,9 @@ export async function svgToPng(svg: string): Promise<Blob> {
   ));
 }
 
-/** "Am7 x-0-2-0-1-0", safe as a file name. */
+/** "Am7_x-0-2-0-1-0", safe as a file name, with no spaces. */
 export function exportFileName({ voicing, name }: ExportShape): string {
-  return `${name.trim() || 'Chord'} ${voicingKey(voicing)}`.replace(/[\\/:*?"<>|]/g, '_');
+  return `${name.trim() || 'Chord'}_${voicingKey(voicing)}`.replace(/[\\/:*?"<>|\s]/g, '_');
 }
 
 /** Copies the shape as a PNG; resolves to the line the page shows. */
