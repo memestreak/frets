@@ -34,6 +34,9 @@ export interface Span {
   colour: string;
 }
 
+/** The most bracket levels a chord has: a seventh's three intervals from its root. */
+export const MAX_SPAN_LEVELS = 3;
+
 /**
  * The intervals a diagram names. From the root: one per tone, stacked so the
  * farther the tone, the higher it sits, each in its tone's colour. Between
