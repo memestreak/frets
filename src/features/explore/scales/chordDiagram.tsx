@@ -68,7 +68,7 @@ export function describeChord(chord: DiatonicChord, intervals: ChordIntervals): 
 const TAG_W = 34;
 const TAG_H = 18;
 
-/** The interval's name in a small box, centred on (x, y). */
+/** The interval's name in a small box, centred on (x, y); smaller on the ladder. */
 export function IntervalTag({ x, y, name, colour, small = false }: {
   x: number; y: number; name: string; colour: string; small?: boolean;
 }) {

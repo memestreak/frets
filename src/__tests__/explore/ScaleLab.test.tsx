@@ -215,6 +215,21 @@ describe('ScaleLab', () => {
     expect(screen.queryByRole('img', { name: /D7/ })).toBeNull();
   });
 
+  it('keeps the ladder the same size, its notes in place, with or without a chord', () => {
+    render(<ScaleLab />);
+    const ladder = () => document.querySelector('svg.chord-ladder')!;
+    /** The viewBox and every note tile's top. */
+    const layout = () => [
+      ladder().getAttribute('viewBox'),
+      ...[...ladder().querySelectorAll('[data-testid^="ladder-"] rect')].map(r => r.getAttribute('y')),
+    ];
+    const before = layout();
+    fireEvent.click(chordCard('Am7'));
+    expect(layout()).toEqual(before);
+    fireEvent.click(screen.getByRole('button', { name: 'Between tones' }));
+    expect(layout()).toEqual(before);
+  });
+
   it('draws the scale alone before a chord is picked', () => {
     render(<ScaleLab />);
     expect(scaleImgs('A Dorian: 1 A, 2 B, ♭3 C, 4 D, 5 E, 6 F♯, ♭7 G')

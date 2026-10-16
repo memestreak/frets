@@ -1,7 +1,6 @@
 import { Segmented } from '@/components/controls';
 import { ChordClock } from './ChordClock';
 import { ChordLadder } from './ChordLadder';
-import { LadderMockBar } from './ladderMock';
 import type { ChordIntervals, ChordView } from './settings';
 import type { DiatonicChord, Scale } from './theory';
 
@@ -47,7 +46,6 @@ export function ChordOverScale({
           onChange={onIntervals} disabled={!chord}
         />
       </div>
-      <LadderMockBar />
       <div className={view === 'ladder' ? 'ladder-scroll' : undefined}>
         <Diagram scale={scale} chord={chord} intervals={intervals} from={from} />
       </div>

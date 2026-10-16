@@ -5,7 +5,6 @@ import {
   IntervalTag, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
 import { prettyNote } from '@/lib/notation';
-import { useLadderMock } from './ladderMock';
 import type { DiatonicChord, Scale } from './theory';
 
 const CELL = 30;
@@ -14,11 +13,9 @@ const TILE_H = 34;
 const SQUARE = 18;
 const PAD = 8;
 /** Height of one bracket level above the tiles. */
-const LEVEL = 22;
+const LEVEL = 14;
 /** The most brackets a chord stacks: a seventh's three from the root. */
 const MAX_LEVELS = 3;
-/** Mock B: one bracket level, smaller. */
-const SMALL_LEVEL = 14;
 
 interface ChordLadderProps {
   scale: Scale;
@@ -53,25 +50,15 @@ export function ChordLadder({
 }: ChordLadderProps) {
   const cells = octaves === 2 ? 24 : 13;
   const spans = chord ? chordSpans(chord, intervals) : [];
-  const levels = Math.max(0, ...spans.map(s => s.level));
-  const urlMock = useLadderMock();
-  const mock = octaves === 2 ? urlMock : null;
-  const below = mock === 'a';
-  const level = mock === 'b' ? SMALL_LEVEL : LEVEL;
-  // Mock A and B reserve the brackets' room whether or not a chord is shown.
-  const top = mock === 'a' ? 12
-    : mock === 'b' ? SMALL_LEVEL * MAX_LEVELS + 22
-      : levels ? LEVEL * levels + 36 : 12;
   const width = PAD * 2 + CELL * cells - (CELL - TILE);
-  // Under the tiles: degrees and chord roles, then (A) the brackets.
-  const bandY = top + TILE_H + 38;
-  const under = mock === 'a' ? 38 + LEVEL * MAX_LEVELS + 22
-    : mock === 'b' ? 58
-      : chord ? 58 : octaves === 2 ? 44 : 22;
-  const height = top + TILE_H + under;
+  // The two-octave ladder keeps room for the tallest stack of brackets above
+  // the tiles and for chord roles under them, so selecting a chord moves
+  // nothing. The one-octave strip never shows a chord.
+  const top = octaves === 2 ? LEVEL * MAX_LEVELS + 22 : 12;
+  const height = top + TILE_H + (octaves === 2 ? 58 : 22);
   const cx = (semi: number) => PAD + semi * CELL + TILE / 2;
   const octaveX = PAD + CELL * 12 - (CELL - TILE) / 2;
-  const octaveY = top + TILE_H + (mock ? under - 6 : chord ? 52 : 38);
+  const octaveY = top + TILE_H + 52;
   const between = intervals === 'between';
 
   // On a phone the ladder scrolls sideways; bring the chord's root into view.
@@ -177,18 +164,14 @@ export function ChordLadder({
         const inset = between ? 3 : 0;
         const a = cx(at[s.from]) + inset;
         const b = cx(at[s.to]) - inset;
-        const foot = below ? bandY : top - 4;
-        const y = below ? bandY + LEVEL * s.level - 4 : top - 4 - level * s.level;
+        const y = top - 4 - LEVEL * s.level;
         return (
           <g key={s.to}>
             <path
-              d={`M${a} ${foot} V${y} H${b} V${foot}`}
-              fill="none" stroke={s.colour} strokeWidth={mock === 'b' ? 1.5 : 2}
-              strokeLinejoin="round"
+              d={`M${a} ${top - 4} V${y} H${b} V${top - 4}`}
+              fill="none" stroke={s.colour} strokeWidth={1.5} strokeLinejoin="round"
             />
-            <IntervalTag
-              x={(a + b) / 2} y={y} name={s.name} colour={s.colour} small={mock === 'b'}
-            />
+            <IntervalTag x={(a + b) / 2} y={y} name={s.name} colour={s.colour} small />
           </g>
         );
       })}
