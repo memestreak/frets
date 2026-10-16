@@ -1,7 +1,7 @@
 import { ResetIcon } from '@/components/icons';
-import { prettyNote } from '@/lib/notation';
+import { KeyPicker } from '@/components/KeyPicker';
 import {
-  ROOTS, SCALE_GROUPS, SCALES, type Root, type Scale,
+  SCALE_GROUPS, SCALES, type Root, type Scale,
 } from './theory';
 
 interface ScalePickersProps {
@@ -14,7 +14,7 @@ interface ScalePickersProps {
 }
 
 /**
- * The root and scale dropdowns beside the page title, and Reset while a
+ * The root picker and the scale dropdown beside the page title, and Reset while a
  * tapped strip note has rotated the scale.
  */
 export function ScalePickers({
@@ -22,16 +22,7 @@ export function ScalePickers({
 }: ScalePickersProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <label className="flex items-center gap-2">
-        <span className="field-label m-0 max-[480px]:sr-only">Root</span>
-        <select
-          className="input w-auto"
-          value={scale.root}
-          onChange={e => onRoot(e.target.value as Root)}
-        >
-          {ROOTS.map(r => <option key={r} value={r}>{prettyNote(r)}</option>)}
-        </select>
-      </label>
+      <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
       <label className="flex min-w-0 items-center gap-2">
         <span className="field-label m-0 max-[480px]:sr-only">Scale</span>
         <select

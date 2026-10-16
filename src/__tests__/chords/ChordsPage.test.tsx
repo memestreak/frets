@@ -19,7 +19,11 @@ const boardDots = () =>
 const mutedMarks = () => screen.queryAllByTestId(/^muted-/).map(m => m.dataset.testid);
 const names = () => within(screen.getByRole('region', { name: 'Name it' })).queryAllByRole('button');
 const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
-const picker = (name: 'Root' | 'Type') => screen.getByRole('combobox', { name });
+const typePicker = () => screen.getByRole('combobox', { name: 'Type' });
+const rootPicker = () => screen.getByRole('radiogroup', { name: 'Root' });
+/** The picked root's tile text, "E♭". */
+const pickedRoot = () => within(rootPicker()).getByRole('radio', { checked: true }).textContent;
+const pickRoot = (note: string) => fireEvent.click(within(rootPicker()).getByRole('radio', { name: note }));
 /** The board's dot at a string and fret. */
 const dotAt = (s: number, f: number) =>
   screen.queryAllByTestId(/^dot-/).find(d => d.dataset.s === `${s}` && d.dataset.f === `${f}`)!;
@@ -90,18 +94,27 @@ describe('ChordsPage, looking a chord up', () => {
   it('puts the first shape of the chord picked in the menus on the neck, and in the URL', () => {
     renderAt('?chord=fsharpm7');
     const entries = window.history.length;
-    fireEvent.change(picker('Root'), { target: { value: 'C' } });
+    pickRoot('C');
     expect(heading()).toHaveTextContent(/^Cm7 /);
     expect(here()).toBe(`/chords?chord=cm7&shape=${shapes('Open').length ? shapes('Open')[0].dataset.voicing : shapes('Moveable')[0].dataset.voicing}`);
-    fireEvent.change(picker('Type'), { target: { value: '7#9' } });
+    fireEvent.change(typePicker(), { target: { value: '7#9' } });
     expect(heading()).toHaveTextContent(/^C7♯9 /);
     expect(here()).toMatch(/^\/chords\?chord=c7sharp9&shape=/);
     expect(window.history.length).toBe(entries + 2);
   });
 
+  it('picks a root the chords spell the other way as its enharmonic', () => {
+    renderAt('?chord=am7');
+    pickRoot('C♯');
+    expect(heading()).toHaveTextContent(/^D♭m7 /);
+    expect(pickedRoot()).toBe('D♭');
+    pickRoot('G♭');
+    expect(heading()).toHaveTextContent(/^F♯m7 /);
+  });
+
   it('goes back to the chord before a pick', async () => {
     renderAt('?chord=am7');
-    fireEvent.change(picker('Root'), { target: { value: 'C' } });
+    pickRoot('C');
     expect(heading()).toHaveTextContent(/^Cm7 /);
     window.history.back();
     await waitFor(() => expect(heading()).toHaveTextContent(/^Am7 /));
@@ -166,8 +179,8 @@ describe('ChordsPage, looking a chord up', () => {
     expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
     expect(screen.getByRole('button', { name: 'Previous shape' })).toBeDisabled();
     // It stays picked for the next chord.
-    fireEvent.change(picker('Root'), { target: { value: 'C' } });
-    fireEvent.change(picker('Type'), { target: { value: 'M' } });
+    pickRoot('C');
+    fireEvent.change(typePicker(), { target: { value: 'M' } });
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     expect(heading()).toHaveTextContent(/^C \(/);
     expect(caption()).toHaveTextContent('Arpeggio · every C, E and G up to fret 15');
@@ -265,7 +278,7 @@ describe('ChordsPage, naming what is played', () => {
     expect(heading()).toHaveTextContent('Tap the neck');
     expect(screen.getByText('Tap two or more notes to name them.')).toBeInTheDocument();
     expect(arpeggio()).toBeDisabled();
-    expect(picker('Type')).toHaveValue('');
+    expect(typePicker()).toHaveValue('');
     expect(here()).toBe('/chords');
   });
 
@@ -398,8 +411,8 @@ describe('ChordsPage, looking a chord up and changing it', () => {
     renderAt('?chord=am7');
     fireEvent.click(cell(3, 2)); // x-0-2-2-1-0: the open Am
     expect(heading()).toHaveTextContent(/^Am \(/);
-    expect(picker('Root')).toHaveValue('A');
-    expect(picker('Type')).toHaveValue('m');
+    expect(pickedRoot()).toBe('A');
+    expect(typePicker()).toHaveValue('m');
     expect(here()).toBe('/chords?chord=am&shape=x-0-2-2-1-0');
     expect(caption()).toHaveTextContent(/^Open 1 of \d+ · /);
   });
@@ -430,9 +443,9 @@ describe('ChordsPage, looking a chord up and changing it', () => {
   it('shows no type in the menu for notes with no name, and picks from their lowest note', () => {
     renderAt('?shape=x-3-4-x-x-x'); // C and F♯: no chord
     expect(heading()).toHaveTextContent('No name');
-    expect(picker('Type')).toHaveValue('');
+    expect(typePicker()).toHaveValue('');
     expect(here()).toBe('/chords?shape=x-3-4-x-x-x');
-    fireEvent.change(picker('Type'), { target: { value: 'M' } });
+    fireEvent.change(typePicker(), { target: { value: 'M' } });
     expect(heading()).toHaveTextContent(/^C \(/);
   });
 

@@ -1,7 +1,12 @@
-import { prettyNote } from '@/lib/notation';
+import { KeyPicker } from '@/components/KeyPicker';
 import {
-  CHORD_GROUPS, CHORD_ROOTS, CHORD_TYPES, type ChordRoot,
+  CHORD_GROUPS, CHORD_TYPES, type ChordRoot,
 } from '@/lib/chords/chordTypes';
+
+/** Chord roots have one spelling each: the picker's others map onto it. */
+const ENHARMONIC: Partial<Record<string, ChordRoot>> = {
+  'C#': 'Db', 'D#': 'Eb', Gb: 'F#', 'G#': 'Ab', 'A#': 'Bb',
+};
 
 interface ChordPickersProps {
   root: ChordRoot;
@@ -11,19 +16,14 @@ interface ChordPickersProps {
   onType: (typeId: string) => void;
 }
 
-/** The Root and Type dropdowns beside the page title. Types are grouped. */
+/** The root picker and the Type dropdown beside the page title. Types are grouped. */
 export function ChordPickers({ root, typeId, onRoot, onType }: ChordPickersProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <label className="flex items-center gap-2">
-        <span className="field-label m-0 max-[480px]:sr-only">Root</span>
-        <select
-          className="input w-auto" value={root}
-          onChange={e => onRoot(e.target.value as ChordRoot)}
-        >
-          {CHORD_ROOTS.map(r => <option key={r} value={r}>{prettyNote(r)}</option>)}
-        </select>
-      </label>
+      <KeyPicker
+        value={root} resolve={n => ENHARMONIC[n] ?? n}
+        onPick={n => onRoot(n as ChordRoot)}
+      />
       <label className="flex min-w-0 items-center gap-2">
         <span className="field-label m-0 max-[480px]:sr-only">Type</span>
         <select

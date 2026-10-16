@@ -3,6 +3,10 @@ import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 import { TIP_DELAY_MS } from '@/features/explore/scales/StripTip';
 
+const rootPicker = () => screen.getByRole('radiogroup', { name: 'Root' });
+/** The picked root's tile text, "E♭". */
+const pickedRoot = () => within(rootPicker()).getByRole('radio', { checked: true }).textContent;
+const pickRoot = (note: string) => fireEvent.click(within(rootPicker()).getByRole('radio', { name: note }));
 const formula = () => screen.getByTestId('scale-formula');
 const scaleImgs = (name: string) => screen.getAllByRole('img', { name });
 const saved = () => JSON.parse(localStorage.getItem(SCALE_LAB_STORAGE_KEY) ?? '{}');
@@ -21,7 +25,7 @@ describe('ScaleLab', () => {
   it('opens on A Dorian with its formula, strip and sevenths', () => {
     render(<ScaleLab />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A Dorian');
-    expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('A');
+    expect(pickedRoot()).toBe('A');
     // The formula sits under the title, outside the heading.
     expect(formula()).toHaveTextContent(/^1 2 ♭3 4 5 6 ♭7$/);
     expect(screen.getByRole('heading', { level: 1 })).not.toContainElement(formula());
@@ -34,7 +38,7 @@ describe('ScaleLab', () => {
 
   it('changes root and scale, and saves them', () => {
     render(<ScaleLab />);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'Eb' } });
+    pickRoot('E♭');
     fireEvent.change(screen.getByRole('combobox', { name: 'Scale' }), {
       target: { value: 'harmonic-minor' },
     });
@@ -168,7 +172,7 @@ describe('ScaleLab', () => {
   it('clears the chord when the scale changes', () => {
     render(<ScaleLab />);
     fireEvent.click(chordCard('D7'));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Root' }), { target: { value: 'C' } });
+    pickRoot('C');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^C Dorian$/);
   });
 
@@ -262,7 +266,7 @@ describe('ScaleLab', () => {
     expect(screen.queryByRole('button', { name: /mode/ })).toBeNull();
     makeRoot('D');
     expect(title()).toHaveTextContent(/^D Dorian$/);
-    expect(screen.getByRole('combobox', { name: 'Root' })).toHaveValue('D');
+    expect(pickedRoot()).toBe('D');
     expect(screen.getByRole('combobox', { name: 'Scale' })).toHaveValue('dorian');
     // The strip stays on C major; the root square moves to D.
     expect(stripNames()).toBe('C D E F G A B C');

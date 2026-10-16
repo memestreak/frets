@@ -19,7 +19,9 @@ the notes tapped on the neck (see
 `docs/specs/2026-10-09-published-chord-shapes-design.md`,
 `docs/specs/2026-10-15-copy-chord-diagram-design.md` and
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
-library and the Chord lab into it). The app has no users
+library and the Chord lab into it). Both the Scale lab and the Chords page
+pick their root from `KeyPicker`, tiles laid out like a piano's keys
+(`docs/specs/2026-10-16-key-picker-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -121,7 +123,9 @@ binds a local port).
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
   for the neck),
-  `src/components/controls.tsx` and `icons.tsx`, and `src/hooks/usePersist.ts`.
+  `src/components/controls.tsx` and `icons.tsx`, `src/components/KeyPicker.tsx`
+  (the root picker: a radio group of seventeen tiles, each sharp over its
+  flat), and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:
   - `intervals/` and `notes/` — each trainer's pure logic (`intervals.ts` /
