@@ -96,7 +96,8 @@ while drawing, so it looks the same everywhere.
   transparent wherever nothing is drawn.
 - **SVG**: standalone, with `width`, `height` and `viewBox`, no CSS
   variables or classes.
-- File names are the chord and the shape: `Am7 x-0-2-0-1-0.png`.
+- File names are the chord and the shape: `Am7_x-0-2-0-1-0.png`, with an underscore
+  for any space or character a file name can't hold (Jeremy, 2026-10-16).
 
 ## What browsers allow
 
@@ -129,7 +130,7 @@ carries the SVG instead. The drag carries:
 - `text/html`, an `<img>` with the PNG as a data URL, for documents and
   chats;
 - the PNG as a file, for web pages that take dropped files;
-- `DownloadURL`, which Chrome and Edge use to save `Am7 x-0-2-0-1-0.png`
+- `DownloadURL`, which Chrome and Edge use to save `Am7_x-0-2-0-1-0.png`
   where it is dropped on the desktop;
 - `text/plain`, the file name, for a text field.
 
