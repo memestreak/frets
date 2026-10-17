@@ -1,7 +1,7 @@
 import {
   detectPitch, freqToMidi, levelOf, pitchLabel, rms,
-} from '@/features/practice/mic/pitch';
-import { seededRng } from '../../helpers/rng';
+} from '@/components/tuner/pitch';
+import { seededRng } from '../helpers/rng';
 
 const WINDOW = 4096;
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);

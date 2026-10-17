@@ -61,7 +61,14 @@ export const CHORDS: Section = {
   pages: [],
 };
 
-export const SECTIONS: readonly Section[] = [EXPLORE, CHORDS, PRACTICE];
+export const TUNER: Section = {
+  href: '/tuner',
+  label: 'Tuner',
+  summary: 'Tune your guitar through the mic, on a dial or a strobe, and hear each string.',
+  pages: [],
+};
+
+export const SECTIONS: readonly Section[] = [EXPLORE, CHORDS, PRACTICE, TUNER];
 
 /** The section and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {

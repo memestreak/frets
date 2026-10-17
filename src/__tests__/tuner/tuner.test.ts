@@ -1,8 +1,8 @@
-import { detectPitch, freqToMidi } from '@/features/practice/mic/pitch';
-import { renderPluck } from '@/features/practice/mic/pluck';
+import { detectPitch, freqToMidi } from '@/components/tuner/pitch';
+import { renderPluck } from '@/components/tuner/pluck';
 import {
   centsFrom, centsText, median, nearestString, strobeStep,
-} from '@/features/practice/mic/tuner';
+} from '@/components/tuner/tuner';
 import { TUNING } from '@/lib/music';
 
 describe('nearestString', () => {

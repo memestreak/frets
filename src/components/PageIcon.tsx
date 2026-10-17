@@ -92,6 +92,15 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       <text x="16" y="19" textAnchor="middle" dominantBaseline="central" fontSize="11" fill="var(--string)">×</text>
     </>
   ),
+  '/tuner': (
+    <>
+      {/* A dial: its scale, the in-tune zone at the top, the needle just flat. */}
+      <path d="M16.2 55.1 A36 36 0 0 1 79.8 55.1" fill="none" stroke="var(--fret-wire)" strokeWidth="8" strokeLinecap="round" />
+      <path d="M43.6 36.3 A36 36 0 0 1 52.4 36.3" fill="none" stroke="var(--degree-fifth)" strokeWidth="8" />
+      <line x1="48" y1="72" x2="40.5" y2="41.9" stroke="var(--degree-root)" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="48" cy="72" r="6" fill="var(--nut)" />
+    </>
+  ),
 };
 
 /**

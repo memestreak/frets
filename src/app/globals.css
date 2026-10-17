@@ -136,49 +136,75 @@ button {
 
   .settings-dialog:focus-visible { outline: none; }
 
-  /* The tuner: every part keeps its size whatever it reads. */
+  /* The tuner (TunerPanel): every part keeps its size whatever it reads. */
+  .tuner-card { max-width: 560px; margin-inline: auto; padding: clamp(14px, 4vw, 20px); }
   .tuner-dialog { width: min(520px, 100%); }
-  .tuner-body {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 20px;
+  .tuner { display: grid; }
+  .tuner-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
   }
-  /* Fills the strings' height, readout and strobe centred in it. */
-  .tuner-main {
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 28px;
+  .tuner-switch { display: flex; justify-content: center; margin-top: 16px; }
+  .tuner-meter {
+    width: 100%; max-width: 420px; aspect-ratio: 320 / 190; margin: 14px auto 0;
   }
-  .tuner-readout {
-    display: grid;
-    justify-items: center;
-    gap: 6px;
+  .tuner-meter > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .dial-track { fill: none; stroke: var(--surface-sunken); stroke-width: 22; stroke-linecap: round; }
+  .dial-zone {
+    fill: none; stroke: var(--success); stroke-width: 22; opacity: 0.35;
+    transition: opacity 150ms;
   }
+  .dial[data-in-tune='true'] .dial-zone { opacity: 1; }
+  .dial-tick { stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+  .dial-tick[data-major='true'] { stroke: var(--ink-muted); stroke-width: 2.5; }
+  .dial-label { font: 600 11px var(--font-sans); fill: var(--ink-muted); text-anchor: middle; }
+  .dial-sign { font: 600 20px var(--font-sans); fill: var(--ink-muted); text-anchor: middle; }
+  .dial-needle {
+    transform-box: view-box; transform-origin: 160px 172px;
+    transition: transform 140ms ease-out;
+  }
+  .dial-needle line { stroke: var(--primary); stroke-width: 4; stroke-linecap: round; }
+  .dial-needle[data-idle='true'] line { stroke: var(--line-strong); }
+  .dial[data-in-tune='true'] .dial-needle line { stroke: var(--success); }
+  .dial-hub { fill: var(--fretboard); stroke: var(--surface-raised); stroke-width: 3; }
+  /* The strobe: nut-coloured stripes on rosewood, gold in tune. */
+  .strobe-face { fill: var(--fretboard); }
+  .strobe-stripe { fill: var(--nut); transition: fill 150ms; }
+  .strobe[data-state='idle'] .strobe-stripe { fill: var(--inlay); }
+  .strobe[data-state='in-tune'] .strobe-stripe { fill: var(--accent); }
+  .strobe-mark { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+  .tuner-readout { display: grid; justify-items: center; gap: 2px; margin-top: 6px; }
   .tuner-note {
-    font: 600 76px/1 var(--font-display);
-    color: var(--ink);
+    display: inline-flex; align-items: baseline; height: 112px;
+    font: 600 112px/1 var(--font-display); color: var(--ink);
+    transition: color 150ms ease-out;
   }
+  .tuner-note sub {
+    display: inline-block; width: 18px; margin-left: 4px; vertical-align: baseline;
+    font: 600 28px/1 var(--font-sans); color: var(--ink-muted);
+  }
+  .tuner-note[data-idle='true'] { color: var(--line-strong); }
   .tuner-cents {
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--ink-muted);
+    height: 24px; font: 500 18px/24px var(--font-sans); color: var(--ink-muted);
+    font-variant-numeric: tabular-nums; text-align: center;
   }
-  .tuner-readout[data-in-tune='true'] .tuner-note,
-  .tuner-readout[data-in-tune='true'] .tuner-cents { color: var(--success); }
-  .strobe { display: block; width: 100%; }
-  .strobe-track { fill: var(--surface-sunken); }
-  .strobe-stripe { fill: var(--ink); }
-  .strobe[data-state='idle'] .strobe-stripe { fill: var(--line-strong); }
-  .strobe[data-state='in-tune'] .strobe-stripe { fill: var(--success); }
-  .tuner-strings { display: grid; gap: 6px; }
-  .tuner-string { width: 56px; justify-content: center; padding-inline: 0; }
-  /* The string heard is lit, as the hint button is when on. */
-  .tuner-string[data-heard='true'] {
-    background: var(--primary-soft);
-    color: var(--primary);
-    box-shadow: inset 0 0 0 1.5px var(--primary);
+  .tuner-readout[data-in-tune='true'] :is(.tuner-note, .tuner-cents) { color: var(--success); }
+  .tuner-strings {
+    display: flex; justify-content: center; gap: clamp(4px, 1.8vw, 14px);
+    margin: 22px 0 8px; padding-top: 18px; border-top: 1px solid var(--line);
   }
+  /* The strings: round buttons, the one heard filled. */
+  .tuner-string {
+    display: grid; place-items: center; width: clamp(40px, 11vw, 54px); aspect-ratio: 1;
+    padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+    font: 600 17px/1 var(--font-display); color: var(--ink);
+    background: var(--surface-sunken); box-shadow: inset 0 0 0 1.5px var(--line);
+    transition: background-color 150ms, box-shadow 150ms, color 150ms;
+  }
+  .tuner-string sub { font: 600 10px/1 var(--font-sans); color: var(--ink-muted); }
+  .tuner-string:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+  .tuner-string[data-heard='true'] { background: var(--primary); color: var(--on-primary); box-shadow: none; }
+  .tuner-string[data-in-tune='true'] { background: var(--success); }
+  .tuner-string[data-heard='true'] sub { color: var(--on-primary); }
 
   .chord-numeral { font: 600 22px/28px var(--font-display); }
 
@@ -575,3 +601,4 @@ button {
     border-radius: var(--radius-sm);
   }
 }
+

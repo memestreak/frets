@@ -4,6 +4,17 @@ import { trackHold, type Hold } from './hold';
 /** Why the mic would not start. */
 export type MicError = 'insecure' | 'denied' | 'missing' | 'failed';
 
+/** Whether a mic is listening, starting, off, or why it won't start. */
+export type MicStatus = 'off' | 'starting' | 'on' | MicError;
+
+/** What a trainer or the tuner says when the mic won't start. */
+export const MIC_ERROR_TEXT: Partial<Record<MicStatus, string>> = {
+  insecure: 'The mic needs https',
+  denied: 'Mic blocked — allow it in the site settings',
+  missing: 'No microphone found',
+  failed: 'The mic didn’t start',
+};
+
 /** What the mic hears now. */
 export interface MicReading {
   /** Meter level, 0–1. */

@@ -24,9 +24,10 @@ import {
   type NoteMode, type NoteSettings,
 } from '@/features/practice/notes/notes';
 import { itemPercent } from '@/features/practice/quiz/stats';
-import { heldEnough } from '@/features/practice/mic/hold';
-import { MIC_ERROR_TEXT, MicButton } from '@/features/practice/mic/MicButton';
-import { referenceSounding } from '@/features/practice/mic/reference';
+import { heldEnough } from '@/components/tuner/hold';
+import { MIC_ERROR_TEXT } from '@/components/tuner/listener';
+import { MicButton } from '@/features/practice/mic/MicButton';
+import { referenceSounding } from '@/components/tuner/reference';
 import { TunerDialog } from '@/features/practice/mic/TunerDialog';
 import { useMic } from '@/features/practice/mic/useMic';
 import { initNoteState, noteReducer } from './noteState';
@@ -161,8 +162,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         onClose={() => setTunerOpen(false)}
         listener={mic.listener}
         status={mic.status}
-        sound={set.refSound}
-        onSoundChange={refSound => update({ refSound }, false)}
       />
 
       <SettingsDialog

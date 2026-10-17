@@ -1,7 +1,6 @@
 import {
   pick, pitchClass, STRINGS, TUNING, type Position, type Rng,
 } from '@/lib/music';
-import { isRefSound, type RefSound } from '@/features/practice/mic/sounds';
 
 export type NoteMode = 'name' | 'find';
 
@@ -17,8 +16,6 @@ export interface NoteSettings {
   mic: boolean;
   /** A wrong note played into the mic is scored as a miss. */
   micMisses: boolean;
-  /** What the tuner's strings play. */
-  refSound: RefSound;
 }
 
 export type NoteQuestion =
@@ -38,17 +35,16 @@ export const clampNoteFret = (value: number): number =>
 export const defaultNoteSettings = (): NoteSettings => ({
   mode: 'name', strings: [true, true, true, true, true, true],
   rFrom: 1, rTo: 12, pause: false, mic: false, micMisses: true,
-  refSound: 'acoustic',
 });
 
 /**
  * The settings dialog's Defaults: every field it shows goes back to its
- * default. Mode and Pause b/w sit in the header, the mic in the answer
- * card and the reference sound in the tuner, so they are kept.
+ * default. Mode and Pause b/w sit in the header and the mic in the answer
+ * card, so they are kept.
  */
 export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
   ...defaultNoteSettings(),
-  mode: set.mode, pause: set.pause, mic: set.mic, refSound: set.refSound,
+  mode: set.mode, pause: set.pause, mic: set.mic,
 });
 
 export const stringsInScope = (set: NoteSettings): number[] =>
@@ -157,6 +153,5 @@ export function parseNoteSettings(raw: unknown): NoteSettings {
     pause: typeof r.pause === 'boolean' ? r.pause : d.pause,
     mic: typeof r.mic === 'boolean' ? r.mic : d.mic,
     micMisses: typeof r.micMisses === 'boolean' ? r.micMisses : d.micMisses,
-    refSound: isRefSound(r.refSound) ? r.refSound : d.refSound,
   };
 }
