@@ -16,23 +16,27 @@ Picked from three mocks: A, the dial, with a strobe to switch to.
 - **Dial:** a half-circle gauge from −50 to +50 cents, ticks every 5 and
   labels at ±25 and ±50, ♭ and ♯ at the ends. A needle points at the
   cents heard (pinned at the ends past 50), resting upright and faded when
-  nothing is heard. A zone ±5 cents round the top is faint green, solid
+  nothing is heard. A zone ±5 cents round the top is faint green, lit
   when in tune, when the needle turns green too.
 - **Strobe:** three bands of stripes on a rosewood face, in the dial's box.
   They drift right when sharp and left when flat, the finer bands faster
   (1×, 2×, 4× the strobe speed in the first tuner's spec), and stand still
-  in tune, when they turn gold. Still and faded when nothing is heard.
+  in tune, when they light up green. Still and faded when nothing is heard.
 - **Reading:** the string's note large (its letter, the octave small
   beside it) and the words under it, as before: "Play a string", "20¢
   flat", "In tune" (green, as is the note). A dash when nothing is heard.
 - **Strings:** six round buttons, low E on the left to high e on the
   right, each its note with the octave. The string heard is filled with
-  the primary colour, green in tune. Pressing one plays its reference note.
+  the primary colour, lit green in tune. Pressing one plays its reference note.
 - **Remembered:** the meter and the reference sound, for both the page
   and the trainer's tuner (one choice for the two).
 - **The mic** listens for as long as the page is open, from the moment it
   opens (the browser asks the first time). If it won't start, the words
   under the note say why.
+- **In tune lights up:** a bright green (`--lit`, an app token beside
+  Fretwood's, lighter in dark mode) with a soft glow (`--lit-glow`) on
+  the zone, the needle, the stripes, the note and the string, fading in
+  over 200 ms. Fretwood's `--success` read as too muted here.
 - Nothing moves as the readings change or the meter switches: the meter,
   the note and the words each keep a fixed size. Fits a phone at 360 px.
 
