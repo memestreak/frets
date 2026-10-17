@@ -18,11 +18,14 @@ import {
   NOTE_LABELS, pitchClass, SHARP_NAMES, STRING_NAMES, STRINGS, type Rng,
 } from '@/lib/music';
 import {
-  clampNoteFret, generateNoteQuestion, NOTE_MAX_FRET, NOTE_STORAGE_KEY,
-  resetNoteSettings, targetRange,
+  clampNoteFret, generateNoteQuestion, isCorrectNoteFret, NOTE_MAX_FRET,
+  NOTE_STORAGE_KEY, placeNotePitch, resetNoteSettings, targetRange,
   type NoteMode, type NoteSettings,
 } from '@/features/practice/notes/notes';
 import { itemPercent } from '@/features/practice/quiz/stats';
+import { heldEnough } from '@/features/practice/mic/hold';
+import { MIC_ERROR_TEXT, MicButton } from '@/features/practice/mic/MicButton';
+import { useMic } from '@/features/practice/mic/useMic';
 import { initNoteState, noteReducer } from './noteState';
 
 /** Find it's string, in the design system's highlight colour. */
@@ -53,6 +56,23 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
   // The board does not draw the range, so the out-of-range message names it.
   const rangeHint = rA === rB ? `look at fret ${rA}` : `look in frets ${rA}–${rB}`;
   const inScope = (s: number) => set.strings[s];
+
+  const mic = useMic({
+    enabled: mode === 'find',
+    on: set.mic,
+    setOn: on => update({ mic: on }, false),
+    // A note that sounds while the quiz waits is used up, not judged later.
+    onNote: (played, heldMs) => {
+      if (settingsOpen || answered || q?.mode !== 'find') return true;
+      const pos = placeNotePitch(q, played);
+      if (!heldEnough(heldMs, pos != null && isCorrectNoteFret(q, pos, set))) return false;
+      dispatch({
+        type: 'answerPitch', midi: played, heard: NOTE_LABELS[played % 12],
+        misses: set.micMisses,
+      });
+      return true;
+    },
+  });
 
   const dots: FretDot[] = [];
   if (q) {
@@ -94,6 +114,9 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
     none: 'No question fits these settings — put a string in scope.',
     correct: noteName,
     far: `Right note, but outside your range — ${rangeHint}`,
+    octave: q?.mode === 'find'
+      ? `Right note, wrong octave — ${rangeHint} on the ${STRING_NAMES[q.s]} string`
+      : undefined,
     names: NOTE_LABELS,
   });
 
@@ -159,6 +182,17 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
               />
             </FretPair>
           </Field>
+          <Field label="Microphone">
+            <div className="flex flex-wrap gap-1.5">
+              <ToggleButton
+                className="chip"
+                pressed={set.micMisses}
+                onClick={() => update({ micMisses: !set.micMisses }, false)}
+              >
+                Wrong notes count as misses
+              </ToggleButton>
+            </div>
+          </Field>
         </div>
       </SettingsDialog>
 
@@ -185,13 +219,18 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         </BoardFrame>
         <AnswerCard
           kicker={mode === 'name' ? 'Your answer' : 'Target'}
-          hint={mode === 'name' ? undefined : 'Tap a fret on the board'}
+          hint={mode === 'name'
+            ? undefined
+            : MIC_ERROR_TEXT[mic.status] ?? 'Tap a fret on the board'}
           feedback={feedback}
           tone={tone}
           answered={answered}
           pause={set.pause}
           onSkip={next}
           onNext={next}
+          tools={mode === 'find' && (
+            <MicButton listener={mic.listener} status={mic.status} onToggle={mic.toggle} />
+          )}
         >
           {mode === 'name' && <AnswerGrid ref={answerGridRef} buttons={answerButtons} variant="note" />}
           {mode !== 'name' && q && <FindPrompt label={noteName}>{findSub}</FindPrompt>}

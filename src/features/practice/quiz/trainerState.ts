@@ -5,7 +5,10 @@ import {
 import { emptyStats, parseStats } from '@/features/practice/quiz/stats';
 import { loadJson } from '@/lib/storage';
 
-/** A wrong try: an answer (Name it) or a board position (Find it). */
+/**
+ * A wrong try: an answer (Name it), a board position (Find it), or a
+ * played MIDI note with no place on the board (Find it by mic).
+ */
 export type Wrong = number | Position;
 
 /** State of either trainer: `S` is its settings, `Q` its question. */
@@ -18,11 +21,20 @@ export interface TrainerState<S, Q> extends QuizCore<Wrong> {
   far: Position[];
   /** True while the latest tap was one of those. */
   farLast: boolean;
+  /** True while the latest note played was right in an octave out of reach. */
+  octaveLast: boolean;
+  /** The note the mic heard, when the latest answer was played, not tapped. */
+  heard: string | null;
 }
 
 export type TrainerAction<S, Q> =
   | { type: 'answerName'; key: number }
   | { type: 'answerFret'; pos: Position }
+  /**
+   * A note played into the mic: `midi` as heard, `heard` its name, and
+   * `misses` whether a wrong note is scored as a miss.
+   */
+  | { type: 'answerPitch'; midi: number; heard: string; misses: boolean }
   | { type: 'next'; q: Q | null }
   /** New settings; `q` replaces the question when the change regenerates. */
   | { type: 'settings'; set: S; q?: Q | null }
@@ -38,6 +50,13 @@ export interface TrainerRules<S, Q> {
   isCorrect: (q: Q, pos: Position, set: S) => boolean;
   /** The right answer beyond the user's own range: explained, not scored. */
   isOutOfRange: (q: Q, pos: Position, set: S) => boolean;
+  /**
+   * Where a played MIDI note sits on the board for this question, or null
+   * when it has no place there. A trainer without it ignores the mic.
+   */
+  placePitch?: (q: Q, midi: number, set: S) => Position | null;
+  /** Is a played MIDI note the right answer, in whatever octave? */
+  rightPitch?: (q: Q, midi: number) => boolean;
 }
 
 type Taps = Pick<TrainerState<unknown, unknown>, 'wrong' | 'far'>;
@@ -47,9 +66,30 @@ export const wasTapped = (state: Taps, pos: Position): boolean =>
   state.far.some(p => samePos(p, pos))
   || state.wrong.some(w => typeof w !== 'number' && samePos(w, pos));
 
-const newQuestion = <S, Q>(state: TrainerState<S, Q>, q: Q | null): TrainerState<S, Q> => ({
-  ...state, ...freshAttempt(), q, picked: null, far: [], farLast: false,
+const freshTries = () => ({
+  picked: null, far: [], farLast: false, octaveLast: false, heard: null,
 });
+
+const newQuestion = <S, Q>(state: TrainerState<S, Q>, q: Q | null): TrainerState<S, Q> => ({
+  ...state, ...freshAttempt(), q, ...freshTries(),
+});
+
+/** A Find-it answer at `pos`: right, beyond the range, or a miss. */
+function answerAt<S extends { pause: boolean }, Q>(
+  rules: TrainerRules<S, Q>, state: TrainerState<S, Q>, q: Q, pos: Position,
+): TrainerState<S, Q> {
+  const { set } = state;
+  if (wasTapped(state, pos)) return state;
+  const key = rules.key(q);
+  const tries = { farLast: false, octaveLast: false, heard: null };
+  if (rules.isCorrect(q, pos, set)) {
+    return { ...applySolve(state, key, set.pause), ...tries, picked: pos };
+  }
+  if (rules.isOutOfRange(q, pos, set)) {
+    return { ...state, ...tries, far: [...state.far, pos], farLast: true };
+  }
+  return { ...applyMiss(state, pos, key), ...tries };
+}
 
 /** Saved settings and stats from `storageKey`, with a first question. */
 export function initTrainerState<S, Q>(
@@ -63,9 +103,7 @@ export function initTrainerState<S, Q>(
     set,
     stats: parseStats(saved.stats),
     q: generate(set),
-    picked: null,
-    far: [],
-    farLast: false,
+    ...freshTries(),
     ...freshAttempt(),
   };
 }
@@ -85,18 +123,30 @@ export function trainerReducer<S extends { pause: boolean }, Q>(
         ? applySolve(state, key, set.pause)
         : applyMiss(state, action.key, key);
     }
-    case 'answerFret': {
+    case 'answerFret':
       if (!q || state.answered || rules.named(q, set)) return state;
-      const { pos } = action;
-      if (wasTapped(state, pos)) return state;
-      const key = rules.key(q);
-      if (rules.isCorrect(q, pos, set)) {
-        return { ...applySolve(state, key, set.pause), picked: pos, farLast: false };
+      return answerAt(rules, state, q, action.pos);
+    case 'answerPitch': {
+      const { placePitch, rightPitch } = rules;
+      if (!q || state.answered || rules.named(q, set) || !placePitch || !rightPitch) {
+        return state;
       }
-      if (rules.isOutOfRange(q, pos, set)) {
-        return { ...state, far: [...state.far, pos], farLast: true };
+      const { midi, heard, misses } = action;
+      const pos = placePitch(q, midi, set);
+      const played = (next: TrainerState<S, Q>) =>
+        next === state ? state : { ...next, heard };
+      if (pos && (rules.isCorrect(q, pos, set) || rules.isOutOfRange(q, pos, set))) {
+        return played(answerAt(rules, state, q, pos));
       }
-      return { ...applyMiss(state, pos, key), farLast: false };
+      if (rightPitch(q, midi)) {
+        return { ...state, farLast: false, octaveLast: true, heard };
+      }
+      if (!misses) return state;
+      if (pos) return played(answerAt(rules, state, q, pos));
+      if (state.wrong.includes(midi)) return state;
+      return {
+        ...applyMiss(state, midi, rules.key(q)), farLast: false, octaveLast: false, heard,
+      };
     }
     case 'next':
       return newQuestion(state, action.q);

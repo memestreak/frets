@@ -4,8 +4,9 @@ import {
 } from '@/features/practice/quiz/trainerState';
 import type { Rng } from '@/lib/music';
 import {
-  generateNoteQuestion, isCorrectNoteFret, isNoteOutOfRange, NOTE_STORAGE_KEY,
-  parseNoteSettings, type NoteQuestion, type NoteSettings,
+  generateNoteQuestion, isCorrectNoteFret, isNotePitch, isNoteOutOfRange,
+  NOTE_STORAGE_KEY, parseNoteSettings, placeNotePitch,
+  type NoteQuestion, type NoteSettings,
 } from '@/features/practice/notes/notes';
 
 export type NoteState = TrainerState<NoteSettings, NoteQuestion>;
@@ -17,6 +18,8 @@ const RULES: TrainerRules<NoteSettings, NoteQuestion> = {
   named: q => q.mode === 'name',
   isCorrect: (q, pos, set) => q.mode === 'find' && isCorrectNoteFret(q, pos, set),
   isOutOfRange: (q, pos, set) => q.mode === 'find' && isNoteOutOfRange(q, pos, set),
+  placePitch: (q, midi) => (q.mode === 'find' ? placeNotePitch(q, midi) : null),
+  rightPitch: isNotePitch,
 };
 
 export const initNoteState = (rng: Rng = Math.random): NoteState =>

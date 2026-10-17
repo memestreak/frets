@@ -13,6 +13,8 @@ interface AnswerCardProps {
   pause: boolean;
   onSkip: () => void;
   onNext: () => void;
+  /** Controls before Skip, e.g. the mic toggle. */
+  tools?: ReactNode;
   children: ReactNode;
 }
 
@@ -23,7 +25,7 @@ const TONE_CLASS: Record<FeedbackTone, string> = {
 };
 
 export function AnswerCard({
-  kicker, hint, feedback, tone, answered, pause, onSkip, onNext, children,
+  kicker, hint, feedback, tone, answered, pause, onSkip, onNext, tools, children,
 }: AnswerCardProps) {
   return (
     <section className="card mt-3.5 gap-2 px-[18px] pt-2.5 pb-3">
@@ -41,6 +43,7 @@ export function AnswerCard({
           </span>
         </div>
         <div className="flex gap-2">
+          {tools}
           <button type="button" className="btn btn-ghost" onClick={onSkip}>
             Skip
           </button>

@@ -24,6 +24,8 @@ const base = (patch: Partial<Settings> = {}): State => ({
   picked: null,
   far: [],
   farLast: false,
+  octaveLast: false,
+  heard: null,
   answered: false,
   wrong: [],
   advanceMs: null,

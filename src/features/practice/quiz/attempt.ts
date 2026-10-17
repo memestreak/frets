@@ -4,7 +4,8 @@ import type { AnswerButton, FeedbackTone } from './AnswerCard';
 import type { TrainerState } from './trainerState';
 
 type Attempt = Pick<
-  TrainerState<unknown, unknown>, 'q' | 'answered' | 'wrong' | 'far' | 'farLast'
+  TrainerState<unknown, unknown>,
+  'q' | 'answered' | 'wrong' | 'far' | 'farLast' | 'octaveLast' | 'heard'
 >;
 
 export const missSuffix = (n: number): string =>
@@ -47,13 +48,15 @@ interface FeedbackText {
   correct: string;
   /** Shown after a right answer beyond the range. */
   far: string;
+  /** Shown after the right note played in an octave out of reach. */
+  octave?: string;
   /** Name-it answer names, indexed by answer. */
   names: readonly string[];
 }
 
 /** The answer card's message for the attempt so far. */
 export function attemptFeedback(
-  { q, answered, wrong, farLast }: Attempt, text: FeedbackText,
+  { q, answered, wrong, farLast, octaveLast, heard }: Attempt, text: FeedbackText,
 ): { feedback: string; tone: FeedbackTone } {
   if (!q) return { feedback: text.none, tone: 'neutral' };
   if (answered) {
@@ -63,6 +66,10 @@ export function attemptFeedback(
     };
   }
   if (farLast) return { feedback: text.far, tone: 'neutral' };
+  if (octaveLast && text.octave) return { feedback: text.octave, tone: 'neutral' };
+  if (wrong.length && heard) {
+    return { feedback: `That’s ${heard} — try again`, tone: 'danger' };
+  }
   if (wrong.length) {
     const last = wrong[wrong.length - 1];
     return {

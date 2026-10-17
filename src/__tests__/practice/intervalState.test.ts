@@ -13,6 +13,8 @@ const base = (patch: Partial<IntervalState['set']> = {}): IntervalState => ({
   picked: null,
   far: [],
   farLast: false,
+  octaveLast: false,
+  heard: null,
   answered: false,
   wrong: [],
   advanceMs: null,

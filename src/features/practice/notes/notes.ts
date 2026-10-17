@@ -1,5 +1,5 @@
 import {
-  pick, pitchClass, STRINGS, type Position, type Rng,
+  pick, pitchClass, STRINGS, TUNING, type Position, type Rng,
 } from '@/lib/music';
 
 export type NoteMode = 'name' | 'find';
@@ -12,6 +12,10 @@ export interface NoteSettings {
   rFrom: number;
   rTo: number;
   pause: boolean;
+  /** Find it listens to the microphone too. */
+  mic: boolean;
+  /** A wrong note played into the mic is scored as a miss. */
+  micMisses: boolean;
 }
 
 export type NoteQuestion =
@@ -30,15 +34,16 @@ export const clampNoteFret = (value: number): number =>
 
 export const defaultNoteSettings = (): NoteSettings => ({
   mode: 'name', strings: [true, true, true, true, true, true],
-  rFrom: 1, rTo: 12, pause: false,
+  rFrom: 1, rTo: 12, pause: false, mic: false, micMisses: true,
 });
 
 /**
  * The settings dialog's Defaults: every field it shows goes back to its
- * default. Mode and Pause b/w sit in the header, so they are kept.
+ * default. Mode and Pause b/w sit in the header and the mic in the answer
+ * card, so they are kept.
  */
 export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
-  ...defaultNoteSettings(), mode: set.mode, pause: set.pause,
+  ...defaultNoteSettings(), mode: set.mode, pause: set.pause, mic: set.mic,
 });
 
 export const stringsInScope = (set: NoteSettings): number[] =>
@@ -68,6 +73,19 @@ export const isCorrectNoteFret = (q: FindQuestion, pos: Position, set: Range): b
  */
 export const isNoteOutOfRange = (q: FindQuestion, pos: Position, set: Range): boolean =>
   onTarget(q, pos) && !inRange(set, pos.f);
+
+/**
+ * Where a played MIDI note sits on the asked string: the fret that sounds
+ * it, or null when the string can't play it on the board.
+ */
+export function placeNotePitch(q: FindQuestion, midi: number): Position | null {
+  const f = midi - TUNING[q.s];
+  return f >= 0 && f <= NOTE_MAX_FRET ? { s: q.s, f } : null;
+}
+
+/** Is a played MIDI note the asked note, in any octave? */
+export const isNotePitch = (q: NoteQuestion, midi: number): boolean =>
+  ((midi % 12) + 12) % 12 === q.pc;
 
 /**
  * Every question the settings allow. Find it lists a note once per string,
@@ -132,5 +150,7 @@ export function parseNoteSettings(raw: unknown): NoteSettings {
     rFrom: num(r.rFrom, d.rFrom),
     rTo: num(r.rTo, d.rTo),
     pause: typeof r.pause === 'boolean' ? r.pause : d.pause,
+    mic: typeof r.mic === 'boolean' ? r.mic : d.mic,
+    micMisses: typeof r.micMisses === 'boolean' ? r.micMisses : d.micMisses,
   };
 }

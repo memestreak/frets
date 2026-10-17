@@ -55,12 +55,15 @@ and Find it, and both settings (Strings in scope, Fret range) apply to both.
 Find it names one string; the right note on that string outside the range is
 explained, not scored, and the board never draws the range. Its generator
 also enumerates every valid question. See
-`docs/specs/2026-10-01-notes-modes-design.md`.
+`docs/specs/2026-10-01-notes-modes-design.md`. Find it can also be answered
+by playing the note into the microphone, beside tapping (the Mic button;
+`docs/specs/2026-10-17-note-trainer-mic-design.md`).
 
 ## Commands
 
 ```bash
 npm run dev      # Dev server at localhost:3000
+npm run dev:https  # Same over https (self-signed), for the mic from another device
 npm run build    # Static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
@@ -146,6 +149,15 @@ binds a local port).
     to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
     and settings-dialog flags, and suspends the first two while the dialog
     is open.
+  - `mic/` — answering by playing: `pitch.ts` (pure YIN detector, note
+    names), `hold.ts` (pure: a note held since its onset, and how long
+    counts), `listener.ts` (`MicListener`: getUserMedia, an analyser and a
+    loop publishing readings outside React), `useMic.ts` (status, toggle,
+    remembered choice, each held note judged once) and `MicButton.tsx`
+    (fixed-size toggle with the live note and level). The shared reducer's
+    `answerPitch` places a played pitch with the trainer's optional
+    `placePitch` / `rightPitch` rules; only the Note trainer has them yet.
+    The mic needs a secure context: https or localhost.
   - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
     because their initial state reads localStorage and draws a random
     question.
