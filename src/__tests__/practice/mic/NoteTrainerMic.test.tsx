@@ -151,6 +151,16 @@ describe('NoteTrainer mic', () => {
     expect(saved().mic).toBe(false);
   });
 
+  it('offers the reference sounds in Settings, with a preview', () => {
+    renderFindIt();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const select = screen.getByRole('combobox', { name: 'Tuner reference notes' });
+    fireEvent.change(select, { target: { value: 'piano' } });
+    expect(saved().refSound).toBe('piano');
+    expect(screen.getByRole('button', { name: /^Preview the reference notes/ }))
+      .toBeInTheDocument();
+  });
+
   describe('tuner', () => {
     const pitch = (p: number | null) => act(() => {
       mic.listener!.emit({ level: 0.5, pitch: p, midi: p == null ? null : Math.round(p), hold: null });

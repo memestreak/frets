@@ -5,14 +5,16 @@ import { sampleFor, sampleUrls, type RefSound } from './sounds';
 const ECHO_MS = 150;
 
 let output: AudioContext | null = null;
-let playing: AudioBufferSourceNode | null = null;
 let soundingUntil = 0;
-/** Counts presses, so a recording that loads after a later press stays quiet. */
-let presses = 0;
 const decoded = new Map<string, Promise<AudioBuffer>>();
 
 /** Is a reference note (or its echo) sounding, for a mic to ignore? */
 export const referenceSounding = (): boolean => performance.now() < soundingUntil;
+
+/** Keeps the mic deaf until `until` at least; overlapping notes extend it. */
+const deafUntil = (until: number) => {
+  soundingUntil = Math.max(soundingUntil, until);
+};
 
 const context = (): AudioContext => (output ??= new AudioContext());
 
@@ -36,17 +38,14 @@ export function preloadReference(sound: RefSound) {
 }
 
 /**
- * Plays open string `midi` in `sound` through the speakers, cutting off
- * any note before it. The mic is deaf to it from the press, while the
- * recording is still loading too.
+ * Plays open string `midi` in `sound` through the speakers. Notes ring on
+ * together, as strings do, rather than cutting each other off. The mic is
+ * deaf from the press, while a recording is still loading too.
  */
 export async function playReference(midi: number, sound: RefSound) {
-  const press = ++presses;
   const ctx = context();
   void ctx.resume();
-  playing?.stop();
-  playing = null;
-  soundingUntil = performance.now() + PLUCK_SECONDS * 1000 + ECHO_MS;
+  deafUntil(performance.now() + PLUCK_SECONDS * 1000 + ECHO_MS);
   let buffer: AudioBuffer;
   let rate = 1;
   if (sound === 'synth') {
@@ -59,16 +58,13 @@ export async function playReference(midi: number, sound: RefSound) {
     try {
       buffer = await load(sample.url);
     } catch {
-      if (press === presses) soundingUntil = 0;
       return;
     }
-    if (press !== presses) return;
   }
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.playbackRate.value = rate;
   source.connect(ctx.destination);
   source.start();
-  playing = source;
-  soundingUntil = performance.now() + (buffer.duration / rate) * 1000 + ECHO_MS;
+  deafUntil(performance.now() + (buffer.duration / rate) * 1000 + ECHO_MS);
 }

@@ -75,6 +75,14 @@ export function TunerIcon() {
   );
 }
 
+export function PlayIcon() {
+  return (
+    <Icon size={12}>
+      <path d="M6 4v16l14-8Z" fill="currentColor" />
+    </Icon>
+  );
+}
+
 export function EyeIcon() {
   return (
     <Icon>

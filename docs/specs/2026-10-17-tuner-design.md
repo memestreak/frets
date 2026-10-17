@@ -27,7 +27,9 @@ in the page can reuse.
 - **Reference notes:** pressing a string plays it, in the sound chosen in
   the Note trainer's Settings under "Tuner reference notes": Acoustic
   guitar (the default), Nylon-string guitar, Electric guitar, Piano, or
-  Simulated string. The footnote names it. The recordings come from
+  Simulated string, with a Preview button beside it that plays the A
+  string. The footnote names it. Notes ring on together, as strings do:
+  a second press never cuts off the first. The recordings come from
   tonejs-instruments (CC BY 3.0), credited in `NOTICE.md` and the footer;
   each recording's own tuning was measured and is corrected in playback,
   so every reference note is in tune. A set's recordings are fetched when
