@@ -30,7 +30,7 @@ const STRINGS_DOWN = [...STRINGS].reverse();
 /**
  * The tuner, for standard tuning at A440: the strings down the left, the
  * one heard lit, each playing its note when pressed; beside them the note,
- * the cents off and a strobe, against the nearest open string; under them
+ * the cents off and a strobe, against the nearest open string; above them
  * the sound the strings play. T or Esc closes it.
  */
 export function TunerDialog({
@@ -64,6 +64,12 @@ export function TunerDialog({
 
   return (
     <Modal open={open} onClose={onClose} title="Tuner" className="tuner-dialog">
+      <select
+        className="input w-auto self-start" aria-label="Reference sound" value={sound}
+        onChange={e => onSoundChange(e.target.value as RefSound)}
+      >
+        {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+      </select>
       <div className="tuner-body">
         <div className="tuner-strings" role="group" aria-label="Strings">
           {STRINGS_DOWN.map(string => (
@@ -91,17 +97,9 @@ export function TunerDialog({
           <Strobe cents={cents} height={72} />
         </div>
       </div>
-      <div className="tuner-foot">
-        <p className="text-muted m-0 text-[12px]">
-          Standard tuning, A440 · press a string to hear it
-        </p>
-        <select
-          className="input w-auto" aria-label="Reference sound" value={sound}
-          onChange={e => onSoundChange(e.target.value as RefSound)}
-        >
-          {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
-        </select>
-      </div>
+      <p className="text-muted m-0 text-[12px]">
+        Standard tuning, A440 · press a string to hear it
+      </p>
     </Modal>
   );
 }
