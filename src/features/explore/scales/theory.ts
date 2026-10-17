@@ -37,6 +37,7 @@ const MAJOR = 'Major modes';
 const MELODIC = 'Melodic minor modes';
 const HARMONIC = 'Harmonic minor modes';
 const PENTATONIC = 'Pentatonic and blues';
+const OTHER = 'Other scales';
 
 export const SCALES: readonly ScaleDef[] = [
   fromTonal('ionian', 'Ionian (major)', MAJOR, 'major', 'major'),
@@ -68,9 +69,10 @@ export const SCALES: readonly ScaleDef[] = [
   fromTonal('major-pentatonic', 'Major pentatonic', PENTATONIC, 'major pentatonic', 'major pentatonic'),
   fromTonal('minor-pentatonic', 'Minor pentatonic', PENTATONIC, 'minor pentatonic', 'minor pentatonic'),
   fromTonal('minor-blues', 'Minor blues', PENTATONIC, 'minor blues', 'minor blues'),
+  fromTonal('hungarian-major', 'Hungarian major', OTHER, 'hungarian major', 'Hungarian major'),
 ];
 
-export const SCALE_GROUPS = [MAJOR, MELODIC, HARMONIC, PENTATONIC] as const;
+export const SCALE_GROUPS = [MAJOR, MELODIC, HARMONIC, PENTATONIC, OTHER] as const;
 
 export const scaleDef = (id: string): ScaleDef | undefined =>
   SCALES.find(t => t.id === id);
@@ -210,6 +212,9 @@ const CHORD_KINDS: Record<string, ChordKind> = {
   '3m 5P': { symbol: 'm', suffix: '', quality: 'minor' },
   '3m 5d': { symbol: '°', suffix: '°', quality: 'diminished' },
   '3M 5A': { symbol: '+', suffix: '+', quality: 'augmented' },
+  // Hungarian major's: its ♯2 makes a ♯3 over ♭7, which sounds as a 4th.
+  '3m 5A': { symbol: 'm♯5', suffix: '♯5', quality: 'minor ♯5' },
+  '3A 5A': { symbol: 'sus4♯5', suffix: 'sus4♯5', quality: 'suspended 4th ♯5' },
   '3M 5P 7M': { symbol: 'maj7', suffix: 'maj7', quality: 'major 7' },
   '3M 5P 7m': { symbol: '7', suffix: '7', quality: 'dominant 7' },
   '3m 5P 7m': { symbol: 'm7', suffix: '7', quality: 'minor 7' },
@@ -218,6 +223,9 @@ const CHORD_KINDS: Record<string, ChordKind> = {
   '3m 5d 7d': { symbol: '°7', suffix: '°7', quality: 'diminished 7' },
   '3M 5A 7M': { symbol: '+maj7', suffix: '+maj7', quality: 'augmented major 7' },
   '3M 5A 7m': { symbol: '+7', suffix: '+7', quality: 'augmented 7' },
+  '3m 5d 7M': { symbol: '°(maj7)', suffix: '°(maj7)', quality: 'diminished major 7' },
+  '3m 5A 7M': { symbol: 'm(maj7)♯5', suffix: '(maj7)♯5', quality: 'minor-major 7 ♯5' },
+  '3A 5A 7M': { symbol: 'maj7♯5sus4', suffix: 'maj7♯5sus4', quality: 'major 7 ♯5 suspended 4th' },
 };
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];

@@ -96,6 +96,7 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
 | Melodic minor modes | Melodic minor, Dorian ♭2, Lydian augmented, Lydian dominant, Mixolydian ♭6, Locrian ♮2, Altered |
 | Harmonic minor modes | Harmonic minor, Locrian ♮6, Ionian ♯5, Dorian ♯4, Phrygian dominant, Lydian ♯9, Ultralocrian |
 | Pentatonic and blues | Major pentatonic, Minor pentatonic, Minor blues |
+| Other scales | Hungarian major |
 
 ## Rules
 
@@ -111,7 +112,10 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
   none. (The prototype stacks any scale of five or more notes.)
 - **Chord symbols** come from our own table keyed by the third, fifth and
   seventh, not tonal's chord detection: C, Cm, C°, C+; Cmaj7, C7, Cm7,
-  Cm(maj7), Cm7♭5, C°7, C+maj7, C+7. Every chord of every listed scale on
+  Cm(maj7), Cm7♭5, C°7, C+maj7, C+7. Hungarian major (1 ♯2 3 ♯4 5 6 ♭7)
+  adds Cm♯5, Csus4♯5, C°(maj7), Cm(maj7)♯5 and Cmaj7♯5sus4: on its ♭7
+  the ♯2 is a ♯3, which sounds as a 4th, so that chord is a sus4 spelled
+  1 ♯3 ♯5. Every chord of every listed scale on
   every root is in the table (a test checks this). A stack outside it would
   show its notes.
 - **Numerals.** A chord is numbered by its root's degree against the major
@@ -125,7 +129,8 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
   … B gives B Locrian. The notes never change, so these are relative
   modes (parallel modes share the root instead: C Dorian beside C major).
   It works for the three seven-note families, whose modes the table lists
-  in order; pentatonic and blues scales have no notes to tap (only two of
+  in order; pentatonic and blues scales, and Hungarian major (whose modes
+  are not listed), have no notes to tap (only two of
   major pentatonic's five modes have an entry). A root the dropdown lacks is respelled to the one it has
   (C♯ major's third mode is F Phrygian, not E♯ Phrygian): 47 of the 357
   steps across the three families need it. Picking a root or scale starts
