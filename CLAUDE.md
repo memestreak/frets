@@ -206,9 +206,8 @@ binds a local port).
   (`naming.ts`, every name for a set of notes, listed by `NameList`).
   `ChordPickers` also swaps the Type dropdown for a search box (the
   magnifier, or `/`); `chordSearch.ts` reads the name typed there.
-  `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`,
-  `useSpaceKey.ts` (space toggles the Arpeggio) and `arpeggioCaption.ts`
-  are its parts, and so is `export/`:
+  `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
+  and `useSpaceKey.ts` (space toggles the Arpeggio) are its parts, and so is `export/`:
   right-click, a long press or Shift+F10 on a shape diagram (or the
   neck; `useShapeExport`, once per page) opens a menu
   (Copy as PNG, Export options…) and the Export dialog, whose Name

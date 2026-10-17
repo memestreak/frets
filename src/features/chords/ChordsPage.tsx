@@ -14,7 +14,6 @@ import {
 import {
   findVoicings, moveShape, voicingKey, type Voicing, type Voicings,
 } from '@/lib/chords/voicings';
-import { arpeggioCaption } from './arpeggioCaption';
 import { ChordHeader } from './ChordHeader';
 import { ChordPickers } from './ChordPickers';
 import { nameNotes } from './naming';
@@ -199,10 +198,9 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
   const dots = !chord ? []
     : arpeggio ? arpeggioDots(chord, MAX_FRET, frets)
     : voicingDots(chord, frets);
-  // A shape needs no caption: the shapes below mark the one on the neck.
-  const caption = !chord ? 'Tap a fret to play it on that string; tap it again to mute the string.'
-    : arpeggio ? arpeggioCaption(chord, MAX_FRET)
-    : '';
+  // Only the tapping hint: the shapes below mark the one on the neck,
+  // and the Arpeggio button says when the arpeggio is showing.
+  const caption = chord ? '' : 'Tap a fret to play it on that string; tap it again to mute the string.';
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">

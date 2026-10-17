@@ -4,7 +4,7 @@ interface VoicingStepperProps {
   /** Whether the shape can slide a fret toward the nut, and away from it. */
   canMoveDown: boolean;
   canMoveUp: boolean;
-  /** The tapping hint or the arpeggio's line; empty under a shape. */
+  /** The tapping hint with nothing played; otherwise empty. */
   caption: string;
   onMove: (by: 1 | -1) => void;
 }
