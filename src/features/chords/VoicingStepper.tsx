@@ -4,12 +4,12 @@ interface VoicingStepperProps {
   /** Whether the shape can slide a fret toward the nut, and away from it. */
   canMoveDown: boolean;
   canMoveUp: boolean;
-  /** "Moveable 2 of 9 · root on E · frets 5–7" */
+  /** The tapping hint or the arpeggio's line; empty under a shape. */
   caption: string;
   onMove: (by: 1 | -1) => void;
 }
 
-/** ‹ › slide the shape on the neck a fret down or up, and where it sits. */
+/** ‹ › slide the shape on the neck a fret down or up, and a caption. */
 export function VoicingStepper({ canMoveDown, canMoveUp, caption, onMove }: VoicingStepperProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">

@@ -12,7 +12,7 @@ import {
   CHORD_PARAM, chordFromSlug, chordHref, DEFAULT_CHORD, SHAPE_PARAM, shapeFromKey,
 } from '@/lib/chords/chordUrls';
 import {
-  findVoicings, moveShape, voicingCaption, voicingKey, type Voicing, type Voicings,
+  findVoicings, moveShape, voicingKey, type Voicing, type Voicings,
 } from '@/lib/chords/voicings';
 import { arpeggioCaption } from './arpeggioCaption';
 import { ChordHeader } from './ChordHeader';
@@ -71,18 +71,6 @@ function startFromUrl(): Start {
   return { frets: shape, kept, showAll };
 }
 
-/** "Open 1 of 3 · root on A · frets 1–2", or "Your shape · …" for one not listed. */
-function stepperCaption(frets: Voicing, open: Voicing[], moveable: Voicing[]): string {
-  const key = voicingKey(frets);
-  const at = (list: Voicing[]) => list.findIndex(v => voicingKey(v) === key);
-  const inOpen = at(open);
-  const inMoveable = at(moveable);
-  const place = inOpen >= 0 ? `Open ${inOpen + 1} of ${open.length}`
-    : inMoveable >= 0 ? `Moveable ${inMoveable + 1} of ${moveable.length}`
-    : 'Your shape';
-  return `${place} · ${voicingCaption(frets)}`;
-}
-
 /**
  * The Chords page. Back and Forward start the page again from the URL;
  * the Arpeggio switch lives here, so it stays on through them.
@@ -134,7 +122,6 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
     [name, pcs],
   );
   const voicings = useMemo(() => (chord ? findVoicings(chord) : NO_VOICINGS), [chord]);
-  const moveable = showAll ? voicings.allMoveable : voicings.moveable;
 
   const href = (named: ChordInfo | null, on: Voicing) => chordHref(
     named?.type ? { root: named.root, type: named.type.id } : null,
@@ -212,9 +199,10 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
   const dots = !chord ? []
     : arpeggio ? arpeggioDots(chord, MAX_FRET, frets)
     : voicingDots(chord, frets);
+  // A shape needs no caption: the shapes below mark the one on the neck.
   const caption = !chord ? 'Tap a fret to play it on that string; tap it again to mute the string.'
     : arpeggio ? arpeggioCaption(chord, MAX_FRET)
-    : stepperCaption(frets, voicings.open, moveable);
+    : '';
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">

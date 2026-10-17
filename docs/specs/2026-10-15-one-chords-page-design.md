@@ -40,7 +40,8 @@ ways to set the same chord. `/chords/library` and `/chords/lab` go away
    1–2"); when the frets are not one of the listed shapes it reads "Your
    shape · root on A · frets 1–2", and → goes to the first shape. With no
    chord the caption is the tapping hint. Since 2026-10-17 ‹ › slide the
-   shape along the neck instead (`2026-10-17-move-shape-design.md`).
+   shape along the neck instead, with no caption for a shape
+   (`2026-10-17-move-shape-design.md`).
 3. Two columns (one on phones), as in the lab: the shapes (colour key,
    **Open**, **Moveable**, Show all) on the left, **Name it** on the
    right.

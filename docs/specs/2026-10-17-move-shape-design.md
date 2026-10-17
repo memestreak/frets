@@ -21,8 +21,9 @@ details below are the defaults picked, since the ask left them open.
 - The neck scrolls to the moved shape, as for a chosen shape.
 - The Arpeggio stays as it is: with it on, ‹ › walk the chord's arpeggio
   through the keys.
-- The caption is unchanged: the shape's place among the new chord's
-  shapes ("Moveable 2 of 9 · …"), or "Your shape · …".
+- No caption beside ‹ › for a shape (Jeremy, 2026-10-17): the shapes
+  below mark the one on the neck. The tapping hint (nothing played) and
+  the Arpeggio's line stay.
 - The buttons keep their size and place; their names are "Move shape down
   a fret" and "Move shape up a fret".
 - ← → step through the shapes as before; one pressed after a click on ‹
