@@ -12,10 +12,23 @@ export interface ExportStyle {
   intervals: boolean;
   /** The chord's name above the board. */
   name: boolean;
+  /** How wide, in pixels, a diagram of the usual five frets comes out; a wider shape scales with it. */
+  size: ExportSize;
+  /** Nothing behind the diagram; otherwise the background's colour, as the preview shows it. */
+  transparent: boolean;
 }
 
+/** The sizes offered, in pixels wide; all but the largest are smaller than the 600 there once was. */
+export const EXPORT_SIZES = [150, 225, 300, 450, 600] as const;
+export type ExportSize = (typeof EXPORT_SIZES)[number];
+
+/** What an image that isn't transparent is filled with; the preview shows the same. */
+export const BACKDROPS: Record<ExportStyle['background'], string> = {
+  light: '#ffffff', dark: '#1b1b1b',
+};
+
 export const DEFAULT_EXPORT_STYLE: ExportStyle = {
-  colours: 'mono', background: 'light', intervals: false, name: true,
+  colours: 'mono', background: 'light', intervals: false, name: true, size: 300, transparent: true,
 };
 
 /** Saved choices, with a default for any field missing or invalid. */
@@ -27,6 +40,8 @@ export function parseExportStyle(raw: unknown): ExportStyle {
     background: o.background === 'light' || o.background === 'dark' ? o.background : d.background,
     intervals: typeof o.intervals === 'boolean' ? o.intervals : d.intervals,
     name: typeof o.name === 'boolean' ? o.name : d.name,
+    size: EXPORT_SIZES.find(size => size === o.size) ?? d.size,
+    transparent: typeof o.transparent === 'boolean' ? o.transparent : d.transparent,
   };
 }
 

@@ -23,7 +23,9 @@ library and the Chord lab into it). Both the Scale lab and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
 (`docs/specs/2026-10-16-key-picker-design.md`); on the Chords page a
 magnifier beside Type also finds a chord by its typed or pasted name
-(`docs/specs/2026-10-16-chord-search-design.md`). The app has no users
+(`docs/specs/2026-10-16-chord-search-design.md`), and its Export options
+choose the image's size and whether it is transparent
+(`docs/specs/2026-10-17-export-size-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,

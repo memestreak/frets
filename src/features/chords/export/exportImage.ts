@@ -1,10 +1,10 @@
 import { createElement } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { ChordDiagram } from '@/components/chords/ChordDiagram';
+import { ChordDiagram, DIAGRAM_WIDTH, diagramSize } from '@/components/chords/ChordDiagram';
 import type { ChordInfo } from '@/lib/chords/chordTypes';
 import { voicingKey, type Voicing } from '@/lib/chords/voicings';
-import { exportLook, type ExportStyle } from './exportStyle';
+import { BACKDROPS, exportLook, type ExportStyle } from './exportStyle';
 
 /** What gets exported: a shape of a chord, and the name it goes by. */
 export interface ExportShape {
@@ -14,8 +14,12 @@ export interface ExportShape {
   name: string;
 }
 
-/** The PNG is this many times the diagram's size in SVG units. */
-export const PNG_SCALE = 4;
+/** The image's size in pixels: the diagram's own, scaled so five frets are `style.size` wide. */
+export function exportPixels({ voicing, name }: ExportShape, style: ExportStyle) {
+  const { width, height } = diagramSize(voicing, Boolean(exportLook(style, name).title));
+  const scale = style.size / DIAGRAM_WIDTH;
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
+}
 
 const FONT_FAMILY = 'Figtree, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
 /** The app's own Figtree, embedded in the PNG so its text looks the same everywhere. */
@@ -23,9 +27,11 @@ const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.met
 
 /**
  * One shape as a standalone SVG: the page's `ChordDiagram`, drawn with
- * concrete colours, sized in its own units, transparent behind.
+ * concrete colours, at the chosen size, transparent behind unless it is
+ * filled with the background's colour.
  */
-export function diagramSvg({ chord, voicing, name }: ExportShape, style: ExportStyle): string {
+export function diagramSvg(shape: ExportShape, style: ExportStyle): string {
+  const { chord, voicing, name } = shape;
   const host = document.createElement('div');
   const root = createRoot(host);
   flushSync(() => {
@@ -35,8 +41,16 @@ export function diagramSvg({ chord, voicing, name }: ExportShape, style: ExportS
   root.unmount();
   const [, , width, height] = svg.getAttribute('viewBox')!.split(' ');
   for (const attr of ['class', 'aria-hidden', 'focusable']) svg.removeAttribute(attr);
-  svg.setAttribute('width', width);
-  svg.setAttribute('height', height);
+  const pixels = exportPixels(shape, style);
+  svg.setAttribute('width', String(pixels.width));
+  svg.setAttribute('height', String(pixels.height));
+  if (!style.transparent) {
+    const backdrop = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    backdrop.setAttribute('width', width);
+    backdrop.setAttribute('height', height);
+    backdrop.setAttribute('fill', BACKDROPS[style.background]);
+    svg.prepend(backdrop);
+  }
   svg.setAttribute('font-family', FONT_FAMILY);
   // The serializer adds the SVG namespace itself.
   return new XMLSerializer().serializeToString(svg);
@@ -60,7 +74,7 @@ function embeddedFont(): Promise<string> {
   return fontCss;
 }
 
-/** The SVG drawn at `PNG_SCALE`×, transparent wherever nothing is drawn. */
+/** The SVG drawn at its own width and height, transparent wherever nothing is drawn. */
 export async function svgToPng(svg: string): Promise<Blob> {
   const css = await embeddedFont();
   const withFont = css ? svg.replace(/^<svg[^>]*>/, open => `${open}<style>${css}</style>`) : svg;
@@ -68,8 +82,8 @@ export async function svgToPng(svg: string): Promise<Blob> {
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(withFont)}`;
   await img.decode();
   const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth * PNG_SCALE;
-  canvas.height = img.naturalHeight * PNG_SCALE;
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
   canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => canvas.toBlob(
     blob => (blob ? resolve(blob) : reject(new Error('the image could not be drawn'))),
