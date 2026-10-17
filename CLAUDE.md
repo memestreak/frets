@@ -2,10 +2,11 @@
 
 # Frets
 
-Guitar fretboard app with three sections: Practice, holding two quiz
+Guitar fretboard app with four sections: Practice, holding two quiz
 trainers (Intervals, Notes), Explore, holding the Scale lab and the Circle
-of fifths, and Chords, one page that looks a chord up by name and names
-the notes tapped on the neck (see
+of fifths, Chords, one page that looks a chord up by name and names
+the notes tapped on the neck, and Tuner, one page with a dial or a strobe
+(`docs/specs/2026-10-17-tuner-page-design.md`; see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
@@ -62,7 +63,8 @@ also enumerates every valid question. See
 `docs/specs/2026-10-01-notes-modes-design.md`. Find it can also be answered
 by playing the note into the microphone, beside tapping (the Mic button;
 `docs/specs/2026-10-17-note-trainer-mic-design.md`). T or its Tuner button
-opens a strobe tuner over the page (`docs/specs/2026-10-17-tuner-design.md`).
+opens the tuner over the page (`docs/specs/2026-10-17-tuner-design.md`), the
+Tuner page's panel in a dialog.
 
 ## Commands
 
@@ -90,17 +92,19 @@ binds a local port).
   `/practice` and `/explore` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=advanced`
-  for its Advanced view, the modes), and the Chords page `/chords`.
+  for its Advanced view, the modes), the Chords page `/chords` and the Tuner
+  `/tuner`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
 - `src/components/sections.ts` — the app's map: each section with its pages
   (href, title or label, summary). `AppNav`, the home page and section index pages
-  (`PageList`) are drawn from it, in its order (Explore, Chords, Practice),
+  (`PageList`) are drawn from it, in its order (Explore, Chords, Practice,
+  Tuner),
   so a new page is an entry here, a route and its icon in `PageIcon.tsx`
   (a pictogram on a rosewood tile beside the card's title; a test checks
   every card has one, see `docs/specs/2026-10-15-page-icons-design.md`).
-  A section with no pages (Chords) is a page itself: the home page shows its
+  A section with no pages (Chords, Tuner) is a page itself: the home page shows its
   summary as its card, the menu its summary under its name.
 - `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
   `BrandMark` and wordmark home, then the section and the page as one
@@ -138,6 +142,18 @@ binds a local port).
   `src/components/controls.tsx` and `icons.tsx`, `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), and `src/hooks/usePersist.ts`.
+- `src/components/tuner/` — the mic and the tuner, shared by the Note
+  trainer and the Tuner page: `pitch.ts` (pure YIN detector, note names),
+  `hold.ts` (pure: a note held since its onset, and how long counts),
+  `listener.ts` (`MicListener`: getUserMedia, an analyser and a loop
+  publishing readings outside React; `MicStatus` and the error words),
+  `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts` (the
+  simulated string), `sounds.ts` (the recorded sets in `public/sounds/`
+  and each one's measured tuning), `reference.ts` (plays a reference
+  note; `referenceSounding` so the mic ignores it), `useTunerPitch.ts`,
+  `settings.ts` (meter and sound, saved), `Dial.tsx`, `Strobe.tsx` and
+  `TunerPanel.tsx` (switch, meter, reading, strings). The page itself is
+  `src/features/tuner/TunerPage.tsx`, with its own mic.
 - `src/features/<section>/` — everything only one section uses. For
   `practice/`:
   - `intervals/` and `notes/` — each trainer's pure logic (`intervals.ts` /
@@ -156,18 +172,11 @@ binds a local port).
     to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
     and settings-dialog flags, and suspends the first two while the dialog
     is open.
-  - `mic/` — answering by playing: `pitch.ts` (pure YIN detector, note
-    names), `hold.ts` (pure: a note held since its onset, and how long
-    counts), `listener.ts` (`MicListener`: getUserMedia, an analyser and a
-    loop publishing readings outside React), `useMic.ts` (status, toggle,
-    remembered choice, each held note judged once) and `MicButton.tsx`
-    (fixed-size toggle with the live note and level). The tuner:
-    `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts`
-    (the simulated string), `sounds.ts` (the recorded sets in
-    `public/sounds/` and each one's measured tuning), `reference.ts`
-    (plays a reference note; `referenceSounding` so the mic ignores it),
-    `useTunerPitch.ts`, `Strobe.tsx` and `TunerDialog.tsx`; it borrows the
-    trainer's mic (`useMic`'s `borrowed`). The shared reducer's
+  - `mic/` — answering by playing, on the mic in `src/components/tuner/`:
+    `useMic.ts` (status, toggle, remembered choice, each held note judged
+    once), `MicButton.tsx` (fixed-size toggle with the live note and level)
+    and `TunerDialog.tsx` (`TunerPanel` in a `Modal`; it borrows the
+    trainer's mic, `useMic`'s `borrowed`). The shared reducer's
     `answerPitch` places a played pitch with the trainer's optional
     `placePitch` / `rightPitch` rules; only the Note trainer has them yet.
     The mic needs a secure context: https or localhost.
@@ -253,8 +262,9 @@ anything new.
 ## Storage
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }` (the Note trainer's set includes the mic choice and
-the tuner's reference sound); `["frets.explore.scales"]` holds the Scale lab's
+hold `{ set, stats }` (the Note trainer's set includes the mic choice);
+`["frets.tuner.settings"]` holds the tuner's meter and reference sound,
+for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 

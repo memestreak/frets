@@ -11,14 +11,13 @@ const settings = (patch: Partial<NoteSettings> = {}) =>
   ({ ...defaultNoteSettings(), ...patch });
 
 describe('resetNoteSettings', () => {
-  it('resets every dialog field but keeps mode, pause, the mic and the tuner\'s sound', () => {
+  it('resets every dialog field but keeps mode, pause and the mic', () => {
     const changed = settings({
       mode: 'find', pause: true, rFrom: 9, rTo: 14,
       strings: [false, true, false, true, false, true], mic: true, micMisses: false,
-      refSound: 'piano',
     });
     expect(resetNoteSettings(changed))
-      .toEqual(settings({ mode: 'find', pause: true, mic: true, refSound: 'piano' }));
+      .toEqual(settings({ mode: 'find', pause: true, mic: true }));
   });
 });
 
@@ -159,12 +158,6 @@ describe('parseNoteSettings', () => {
   it('falls back to defaults for invalid fields', () => {
     expect(parseNoteSettings({ mode: 'bogus', strings: [true], rFrom: 40, pause: true }))
       .toEqual({ ...defaultNoteSettings(), rFrom: 15, pause: true });
-  });
-
-  it('reads the reference sound, defaulting to the acoustic guitar', () => {
-    expect(parseNoteSettings({}).refSound).toBe('acoustic');
-    expect(parseNoteSettings({ refSound: 'piano' }).refSound).toBe('piano');
-    expect(parseNoteSettings({ refSound: 'kazoo' }).refSound).toBe('acoustic');
   });
 
   it('reads the mic fields, defaulting to off and misses counted', () => {

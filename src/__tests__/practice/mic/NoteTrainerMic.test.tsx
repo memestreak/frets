@@ -4,7 +4,8 @@ import {
   defaultNoteSettings, generateNoteQuestion, NOTE_STORAGE_KEY,
   type FindQuestion, type NoteSettings,
 } from '@/features/practice/notes/notes';
-import type { MicError, MicReading } from '@/features/practice/mic/listener';
+import type { MicError, MicReading } from '@/components/tuner/listener';
+import { TUNER_STORAGE_KEY } from '@/components/tuner/settings';
 import { TUNING } from '@/lib/music';
 import { seededRng } from '../../helpers/rng';
 
@@ -15,8 +16,8 @@ const mic = vi.hoisted(() => ({
   listener: null as null | { emit: (r: MicReading) => void },
 }));
 
-vi.mock('@/features/practice/mic/listener', async importOriginal => {
-  const real = await importOriginal<typeof import('@/features/practice/mic/listener')>();
+vi.mock('@/components/tuner/listener', async importOriginal => {
+  const real = await importOriginal<typeof import('@/components/tuner/listener')>();
   class FakeListener {
     private reading: MicReading = real.SILENT;
     private readonly subscribers = new Set<() => void>();
@@ -161,7 +162,7 @@ describe('NoteTrainer mic', () => {
     const pitch = (p: number | null) => act(() => {
       mic.listener!.emit({ level: 0.5, pitch: p, midi: p == null ? null : Math.round(p), hold: null });
     });
-    const dialog = () => screen.getByTestId('tuner-note').closest('dialog')!;
+    const dialog = () => screen.getByRole('heading', { name: 'Tuner', hidden: true }).closest('dialog')!;
     const openTuner = async () => {
       await act(async () => fireEvent.keyDown(window, { key: 't' }));
     };
@@ -182,32 +183,32 @@ describe('NoteTrainer mic', () => {
       await openTuner();
       expect(screen.getByTestId('tuner-cents')).toHaveTextContent('Play a string');
       pitch(44.8);
-      expect(screen.getByTestId('tuner-note')).toHaveTextContent('A₂');
+      expect(screen.getByTestId('tuner-note')).toHaveTextContent('A2');
       expect(screen.getByTestId('tuner-cents')).toHaveTextContent('20¢ flat');
       for (let i = 0; i < 5; i++) pitch(64.03);
-      expect(screen.getByTestId('tuner-note')).toHaveTextContent('E₄');
+      expect(screen.getByTestId('tuner-note')).toHaveTextContent('E4');
       expect(screen.getByTestId('tuner-cents')).toHaveTextContent('In tune');
     });
 
-    it('picks the reference sound in the tuner, and remembers it', async () => {
+    it('picks the reference sound in the tuner, and remembers it for the Tuner page', async () => {
       renderFindIt();
       await openTuner();
       const select = screen.getByRole('combobox', { name: 'Reference sound', hidden: true });
       expect(select).toHaveValue('acoustic');
       fireEvent.change(select, { target: { value: 'piano' } });
-      expect(saved().refSound).toBe('piano');
+      expect(JSON.parse(localStorage.getItem(TUNER_STORAGE_KEY)!).sound).toBe('piano');
       expect(select).toHaveValue('piano');
     });
 
-    it('lists the strings high e first and lights the one heard', async () => {
+    it('lists the strings low E first and lights the one heard', async () => {
       renderFindIt();
       await openTuner();
       const strings = screen.getAllByRole('button', { name: /^Play /, hidden: true });
-      expect(strings.map(b => b.textContent)).toEqual(['E₄', 'B₃', 'G₃', 'D₃', 'A₂', 'E₂']);
+      expect(strings.map(b => b.textContent)).toEqual(['E2', 'A2', 'D3', 'G3', 'B3', 'E4']);
       expect(strings.filter(b => b.dataset.heard === 'true')).toHaveLength(0);
       pitch(50.1);
       expect(strings.filter(b => b.dataset.heard === 'true').map(b => b.textContent))
-        .toEqual(['D₃']);
+        .toEqual(['D3']);
     });
 
     it('keeps the quiz from judging, and leaves the mic as it was', async () => {

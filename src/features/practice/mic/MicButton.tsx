@@ -2,17 +2,8 @@
 
 import { useSyncExternalStore } from 'react';
 import { MicIcon } from '@/components/icons';
-import { SILENT, type MicListener } from './listener';
-import { pitchLabel } from './pitch';
-import type { MicStatus } from './useMic';
-
-/** What the trainer says, beside its instruction, when the mic won't start. */
-export const MIC_ERROR_TEXT: Partial<Record<MicStatus, string>> = {
-  insecure: 'The mic needs https',
-  denied: 'Mic blocked — allow it in the site settings',
-  missing: 'No microphone found',
-  failed: 'The mic didn’t start',
-};
+import { SILENT, type MicListener, type MicStatus } from '@/components/tuner/listener';
+import { pitchLabel } from '@/components/tuner/pitch';
 
 interface MicButtonProps {
   listener: MicListener;

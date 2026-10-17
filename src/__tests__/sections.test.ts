@@ -1,4 +1,4 @@
-import { CHORDS, EXPLORE, locate, PRACTICE } from '@/components/sections';
+import { CHORDS, EXPLORE, locate, PRACTICE, TUNER } from '@/components/sections';
 
 describe('locate', () => {
   it('finds the section and page of a page URL', () => {
@@ -17,6 +17,7 @@ describe('locate', () => {
 
   it('finds a section with no pages, which is a page itself', () => {
     expect(locate('/chords')).toEqual({ section: CHORDS, page: undefined });
+    expect(locate('/tuner')).toEqual({ section: TUNER, page: undefined });
   });
 
   it('finds the section but no page on a section index', () => {

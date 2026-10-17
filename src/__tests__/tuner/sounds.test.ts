@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   isRefSound, REF_SOUNDS, sampleFor, sampleUrls, type RefSound,
-} from '@/features/practice/mic/sounds';
+} from '@/components/tuner/sounds';
 import { TUNING } from '@/lib/music';
 
 const RECORDED = REF_SOUNDS.map(([v]) => v)

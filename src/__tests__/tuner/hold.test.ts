@@ -1,6 +1,6 @@
 import {
   DROPOUT_MS, heldEnough, heldFor, trackHold, type Hold, type Reading,
-} from '@/features/practice/mic/hold';
+} from '@/components/tuner/hold';
 
 /** Feeds readings 30 ms apart, from t = 0, and returns each hold. */
 function run(readings: [number | null, number][]): (Hold | null)[] {

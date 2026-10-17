@@ -1,10 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { heldFor } from './hold';
-import { MicListener, micGranted, type MicError } from './listener';
-
-export type MicStatus = 'off' | 'starting' | 'on' | MicError;
+import { heldFor } from '@/components/tuner/hold';
+import { MicListener, micGranted, type MicStatus } from '@/components/tuner/listener';
 
 interface MicOptions {
   /** False while the trainer has nothing to play, e.g. in Name it. */
