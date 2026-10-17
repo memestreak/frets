@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { PauseIcon, SlidersIcon } from '@/components/icons';
-import { ToggleButton } from '@/components/controls';
+import { PauseIcon, SlidersIcon, TunerIcon } from '@/components/icons';
+import { Keycap, ToggleButton } from '@/components/controls';
 
 interface TrainerHeaderProps {
   title: string;
@@ -9,10 +9,12 @@ interface TrainerHeaderProps {
   pause: boolean;
   onTogglePause: () => void;
   onOpenSettings: () => void;
+  /** Opens the tuner; without it the header has no Tuner button. */
+  onOpenTuner?: () => void;
 }
 
 export function TrainerHeader({
-  title, controls, pause, onTogglePause, onOpenSettings,
+  title, controls, pause, onTogglePause, onOpenSettings, onOpenTuner,
 }: TrainerHeaderProps) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3.5">
@@ -27,6 +29,18 @@ export function TrainerHeader({
           <PauseIcon />
           Pause b/w
         </ToggleButton>
+        {onOpenTuner && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-haspopup="dialog"
+            onClick={onOpenTuner}
+          >
+            <TunerIcon />
+            Tuner
+            <Keycap>T</Keycap>
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-secondary"

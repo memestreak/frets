@@ -59,7 +59,8 @@ explained, not scored, and the board never draws the range. Its generator
 also enumerates every valid question. See
 `docs/specs/2026-10-01-notes-modes-design.md`. Find it can also be answered
 by playing the note into the microphone, beside tapping (the Mic button;
-`docs/specs/2026-10-17-note-trainer-mic-design.md`).
+`docs/specs/2026-10-17-note-trainer-mic-design.md`). T or its Tuner button
+opens a strobe tuner over the page (`docs/specs/2026-10-17-tuner-design.md`).
 
 ## Commands
 
@@ -146,8 +147,8 @@ binds a local port).
     reducer, init from storage), `quizFlow.ts` (miss/solve/pause scoring),
     `stats.ts`, `attempt.ts` (miss and out-of-range dots, answer-button
     state, feedback text), the header, answer card/grid, board frame with
-    hint toggle, `SettingsDialog` (native modal `<dialog>`) and its field
-    parts, `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
+    hint toggle, `SettingsDialog` and its field parts,
+    `Modal` (the native modal `<dialog>` shell it and the tuner share), `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
     to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
     and settings-dialog flags, and suspends the first two while the dialog
     is open.
@@ -156,7 +157,13 @@ binds a local port).
     counts), `listener.ts` (`MicListener`: getUserMedia, an analyser and a
     loop publishing readings outside React), `useMic.ts` (status, toggle,
     remembered choice, each held note judged once) and `MicButton.tsx`
-    (fixed-size toggle with the live note and level). The shared reducer's
+    (fixed-size toggle with the live note and level). The tuner:
+    `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts`
+    (the simulated string), `sounds.ts` (the recorded sets in
+    `public/sounds/` and each one's measured tuning), `reference.ts`
+    (plays a reference note; `referenceSounding` so the mic ignores it),
+    `useTunerPitch.ts`, `Strobe.tsx` and `TunerDialog.tsx`; it borrows the
+    trainer's mic (`useMic`'s `borrowed`). The shared reducer's
     `answerPitch` places a played pitch with the trainer's optional
     `placePitch` / `rightPitch` rules; only the Note trainer has them yet.
     The mic needs a secure context: https or localhost.
@@ -214,6 +221,10 @@ binds a local port).
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
+Third-party material (the chord shapes, the tuner's recordings) is listed
+with its licence in `NOTICE.md` and credited in `AppFooter`; add both for
+anything new.
+
 ## Styling
 
 - `src/styles/fretwood.css` is the Fretwood design system: its tokens (names
@@ -239,7 +250,8 @@ binds a local port).
 ## Storage
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }`; `["frets.explore.scales"]` holds the Scale lab's
+hold `{ set, stats }` (the Note trainer's set includes the mic choice and
+the tuner's reference sound); `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 

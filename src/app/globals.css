@@ -134,6 +134,52 @@ button {
     transform-origin: left;
   }
 
+  .settings-dialog:focus-visible { outline: none; }
+
+  /* The tuner: every part keeps its size whatever it reads. */
+  .tuner-dialog { width: min(520px, 100%); }
+  .tuner-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 20px;
+  }
+  /* Fills the strings' height, readout and strobe centred in it. */
+  .tuner-main {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 28px;
+  }
+  .tuner-readout {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+  .tuner-note {
+    font: 600 76px/1 var(--font-display);
+    color: var(--ink);
+  }
+  .tuner-cents {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink-muted);
+  }
+  .tuner-readout[data-in-tune='true'] .tuner-note,
+  .tuner-readout[data-in-tune='true'] .tuner-cents { color: var(--success); }
+  .strobe { display: block; width: 100%; }
+  .strobe-track { fill: var(--surface-sunken); }
+  .strobe-stripe { fill: var(--ink); }
+  .strobe[data-state='idle'] .strobe-stripe { fill: var(--line-strong); }
+  .strobe[data-state='in-tune'] .strobe-stripe { fill: var(--success); }
+  .tuner-strings { display: grid; gap: 6px; }
+  .tuner-string { width: 56px; justify-content: center; padding-inline: 0; }
+  /* The string heard is lit, as the hint button is when on. */
+  .tuner-string[data-heard='true'] {
+    background: var(--primary-soft);
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+  }
+
   .chord-numeral { font: 600 22px/28px var(--font-display); }
 
   /* The selected chord's ladder and clock (ChordLadder, ChordClock). */

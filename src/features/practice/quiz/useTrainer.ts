@@ -20,6 +20,10 @@ interface TrainerOptions<S, Q> {
    * when that key answers nothing.
    */
   answerFor: (index: number, set: S) => number | null;
+  /** True while another dialog (the tuner) covers the quiz. */
+  covered?: boolean;
+  /** Opens the tuner, on T; a trainer without one leaves it out. */
+  onTuner?: () => void;
 }
 
 /**
@@ -30,7 +34,7 @@ interface TrainerOptions<S, Q> {
  * Space toggles the hint, wherever focus is.
  */
 export function useTrainer<S extends { pause: boolean }, Q>({
-  reducer, init, storageKey, generate, rng, answerFor,
+  reducer, init, storageKey, generate, rng, answerFor, covered = false, onTuner,
 }: TrainerOptions<S, Q>) {
   const [state, dispatch] = useReducer(reducer, rng, init);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -59,10 +63,12 @@ export function useTrainer<S extends { pause: boolean }, Q>({
   };
   const answerName = (key: number) => dispatch({ type: 'answerName', key });
 
-  // The quiz waits while the settings dialog covers it.
-  useAutoAdvance(settingsOpen ? null : state.advanceMs, next);
+  // The quiz waits while a dialog covers it.
+  const waiting = settingsOpen || covered;
+  useAutoAdvance(waiting ? null : state.advanceMs, next);
   useQuizKeyboard({
-    enabled: !settingsOpen,
+    enabled: !waiting,
+    onTuner,
     answered: state.answered,
     pause: set.pause,
     onNext: next,

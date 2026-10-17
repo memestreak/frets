@@ -24,6 +24,14 @@ describe('AppFooter', () => {
       .toHaveAttribute('href', 'https://creativecommons.org/licenses/by/4.0/');
   });
 
+  it('credits the reference notes\' source and licence', () => {
+    render(<AppFooter />);
+    expect(screen.getByRole('link', { name: 'tonejs-instruments' }))
+      .toHaveAttribute('href', 'https://github.com/nbrosowsky/tonejs-instruments');
+    expect(screen.getByRole('link', { name: 'CC BY 3.0' }))
+      .toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/');
+  });
+
   it('links the build hash to its commit', () => {
     vi.stubEnv('NEXT_PUBLIC_COMMIT_HASH', 'abcd123');
     render(<AppFooter />);

@@ -9,6 +9,11 @@ export type MicStatus = 'off' | 'starting' | 'on' | MicError;
 interface MicOptions {
   /** False while the trainer has nothing to play, e.g. in Name it. */
   enabled: boolean;
+  /**
+   * True while something else needs the mic (the tuner): it listens
+   * whatever the choice, and goes back as it was after, saving nothing.
+   */
+  borrowed?: boolean;
   /** The saved choice: true when the user left the mic on. */
   on: boolean;
   /** Saves the choice. */
@@ -27,7 +32,7 @@ interface MicOptions {
  * enabled again, if the browser still grants the mic; otherwise it saves
  * itself off.
  */
-export function useMic({ enabled, on, setOn, onNote }: MicOptions) {
+export function useMic({ enabled, borrowed = false, on, setOn, onNote }: MicOptions) {
   const [listener] = useState(() => new MicListener());
   const [status, setStatus] = useState<MicStatus>('off');
   const latest = useRef({ on, setOn, onNote });
@@ -35,6 +40,7 @@ export function useMic({ enabled, on, setOn, onNote }: MicOptions) {
     latest.current = { on, setOn, onNote };
   });
 
+  /** Starts listening, and saves the outcome as the user's choice. */
   const start = useCallback(async () => {
     setStatus('starting');
     const error = await listener.start();
@@ -72,6 +78,23 @@ export function useMic({ enabled, on, setOn, onNote }: MicOptions) {
       setStatus('off');
     };
   }, [enabled, listener, start]);
+
+  useEffect(() => {
+    if (!borrowed) return;
+    let live = true;
+    const wasListening = listener.listening;
+    if (!wasListening) {
+      void listener.start().then(error => {
+        if (live) setStatus(error ?? (listener.listening ? 'on' : 'off'));
+      });
+    }
+    return () => {
+      live = false;
+      if (wasListening) return;
+      listener.stop();
+      setStatus('off');
+    };
+  }, [borrowed, listener]);
 
   useEffect(() => {
     let judged = -1;

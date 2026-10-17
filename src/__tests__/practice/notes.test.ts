@@ -160,6 +160,12 @@ describe('parseNoteSettings', () => {
       .toEqual({ ...defaultNoteSettings(), rFrom: 15, pause: true });
   });
 
+  it('reads the reference sound, defaulting to the acoustic guitar', () => {
+    expect(parseNoteSettings({}).refSound).toBe('acoustic');
+    expect(parseNoteSettings({ refSound: 'piano' }).refSound).toBe('piano');
+    expect(parseNoteSettings({ refSound: 'kazoo' }).refSound).toBe('acoustic');
+  });
+
   it('reads the mic fields, defaulting to off and misses counted', () => {
     expect(parseNoteSettings({})).toMatchObject({ mic: false, micMisses: true });
     expect(parseNoteSettings({ mic: true, micMisses: false }))
