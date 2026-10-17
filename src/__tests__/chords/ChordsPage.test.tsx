@@ -171,7 +171,8 @@ describe('ChordsPage, looking a chord up', () => {
     fireEvent.click(arpeggio());
     fireEvent.click(screen.getByRole('button', { name: 'Move shape up a fret' }));
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
-    expect(caption()).toHaveTextContent('Arpeggio · every B♭, D♭, F and A♭ up to fret 15');
+    expect(heading()).toHaveTextContent(/^B♭m7 /);
+    expect(caption()).toBeEmptyDOMElement();
   });
 
   it('names notes not in a chord afresh when moved', () => {
@@ -214,13 +215,12 @@ describe('ChordsPage, looking a chord up', () => {
     expect(screen.getAllByTestId(/^dot-/).every(d => d.getAttribute('opacity') === '1')).toBe(true);
     expect([...shapes('Open'), ...shapes('Moveable')]
       .some(b => b.getAttribute('aria-pressed') === 'true')).toBe(false);
-    expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
+    expect(caption()).toBeEmptyDOMElement();
     // It stays picked for the next chord.
     pickRoot('C');
     fireEvent.change(typePicker(), { target: { value: 'M' } });
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     expect(heading()).toHaveTextContent(/^C \(/);
-    expect(caption()).toHaveTextContent('Arpeggio · every C, E and G up to fret 15');
 
     // Choosing a shape puts it back on the neck alone.
     fireEvent.click(shapes('Open')[0]);
@@ -388,7 +388,6 @@ describe('ChordsPage, naming what is played', () => {
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     // Every C, E and G up to fret 15, such as the open low E and its 3rd fret G.
     expect(boardDots()).toEqual(expect.arrayContaining(['0:0', '0:3', '5:15']));
-    expect(caption()).toHaveTextContent('Arpeggio · every C, E and G up to fret 15');
     fireEvent.keyDown(window, { key: ' ' });
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
     expect(boardDots()).toEqual(OPEN_C);
@@ -404,7 +403,7 @@ describe('ChordsPage, naming what is played', () => {
     fireEvent.click(arpeggio());
     fireEvent.click(names().find(n => n.textContent?.startsWith('Am7/C'))!);
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
-    expect(caption()).toHaveTextContent('every A, C, E and G');
+    expect(heading()).toHaveTextContent(/^Am7\/C /);
   });
 
   it('keeps the arpeggio on when a note is played, labelling only the notes played', () => {
