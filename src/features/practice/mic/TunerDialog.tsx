@@ -78,7 +78,7 @@ export function TunerDialog({ open, onClose, listener, status }: TunerDialogProp
               {message}
             </span>
           </div>
-          <Strobe cents={cents} />
+          <Strobe cents={cents} height={72} />
         </div>
       </div>
       <p className="text-muted m-0 text-[12px]">

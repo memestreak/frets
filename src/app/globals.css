@@ -142,31 +142,31 @@ button {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     gap: 20px;
-    align-items: center;
   }
-  .tuner-main { display: grid; gap: 16px; }
+  /* Fills the strings' height, readout and strobe centred in it. */
+  .tuner-main {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 28px;
+  }
   .tuner-readout {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 16px;
-    min-height: 64px;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
   }
   .tuner-note {
-    font: 600 48px/1 var(--font-display);
-    min-width: 2.2em;
-    text-align: right;
+    font: 600 76px/1 var(--font-display);
     color: var(--ink);
   }
   .tuner-cents {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 500;
-    min-width: 7em;
     color: var(--ink-muted);
   }
   .tuner-readout[data-in-tune='true'] .tuner-note,
   .tuner-readout[data-in-tune='true'] .tuner-cents { color: var(--success); }
-  .strobe { display: block; }
+  .strobe { display: block; width: 100%; }
   .strobe-track { fill: var(--surface-sunken); }
   .strobe-stripe { fill: var(--ink); }
   .strobe[data-state='idle'] .strobe-stripe { fill: var(--line-strong); }
