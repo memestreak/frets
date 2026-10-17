@@ -38,6 +38,11 @@ describe('nameNotes', () => {
     expect(names('C', 'E', 'G', 'F')[0]).toBe('Cadd11');
   });
 
+  it('puts a chord missing only its 5th, root in the bass, before an inversion', () => {
+    // x 10 9 0 8 0: G B G G E.
+    expect(names('G', 'B', 'G', 'G', 'E')).toEqual(['G6 (no 5)', 'Em/G']);
+  });
+
   it('says why: the tone in the bass', () => {
     const [first] = nameNotes([PC.E, PC.G, PC.C], PC.E);
     expect(first.why).toBe('3 in the bass');

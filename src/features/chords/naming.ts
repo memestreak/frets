@@ -79,9 +79,11 @@ export function nameAs(chord: ChordInfo, pcs: readonly number[], bassPc: number)
 
 /**
  * Every chord name for the notes (pitch classes 0–11), best first: exact
- * names before ones missing a tone, then common types (so C/E comes before
- * Em♯5), then root in the bass, then the Type list's order. Fewer than two
- * different notes have no name.
+ * names before ones missing a tone other than the 5th (leaving out the
+ * 5th is how guitarists play most chords, so G B E over G is G6 before
+ * Em/G), then common types (so C/E comes before Em♯5), then root in the
+ * bass, then the Type list's order. Fewer than two different notes have
+ * no name.
  *
  * `keep` is the chord whose shape the notes are, when they came from one:
  * its name comes first, whatever else the notes spell (`nameAs`).
@@ -105,7 +107,7 @@ function namesFromNotes(pcs: readonly number[], bassPc: number): ChordName[] {
     return matches.map(({ type, missing }) => {
       const name = nameOf(chordOf(CHORD_ROOTS[rootPc], type.id), bassPc, missing);
       const rank = [
-        missing.length ? 1 : 0,
+        missing.some(label => label !== '5') ? 1 : 0,
         type.group === 'Common' ? 0 : 1,
         bassPc === rootPc ? 0 : 1,
         CHORD_TYPES.indexOf(type),
