@@ -6,13 +6,13 @@ import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/chordDots';
 import { TUNING, type Position } from '@/lib/music';
 import {
-  chordFromTones, chordOf, formulaOf, type ChordInfo, type ChordRoot,
+  CHORD_ROOTS, chordFromTones, chordOf, formulaOf, type ChordInfo, type ChordRoot,
 } from '@/lib/chords/chordTypes';
 import {
   CHORD_PARAM, chordFromSlug, chordHref, DEFAULT_CHORD, SHAPE_PARAM, shapeFromKey,
 } from '@/lib/chords/chordUrls';
 import {
-  findVoicings, voicingCaption, voicingKey, type Voicing, type Voicings,
+  findVoicings, moveShape, voicingKey, type Voicing, type Voicings,
 } from '@/lib/chords/voicings';
 import { arpeggioCaption } from './arpeggioCaption';
 import { ChordHeader } from './ChordHeader';
@@ -71,18 +71,6 @@ function startFromUrl(): Start {
   return { frets: shape, kept, showAll };
 }
 
-/** "Open 1 of 3 · root on A · frets 1–2", or "Your shape · …" for one not listed. */
-function stepperCaption(frets: Voicing, open: Voicing[], moveable: Voicing[]): string {
-  const key = voicingKey(frets);
-  const at = (list: Voicing[]) => list.findIndex(v => voicingKey(v) === key);
-  const inOpen = at(open);
-  const inMoveable = at(moveable);
-  const place = inOpen >= 0 ? `Open ${inOpen + 1} of ${open.length}`
-    : inMoveable >= 0 ? `Moveable ${inMoveable + 1} of ${moveable.length}`
-    : 'Your shape';
-  return `${place} · ${voicingCaption(frets)}`;
-}
-
 /**
  * The Chords page. Back and Forward start the page again from the URL;
  * the Arpeggio switch lives here, so it stays on through them.
@@ -134,11 +122,6 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
     [name, pcs],
   );
   const voicings = useMemo(() => (chord ? findVoicings(chord) : NO_VOICINGS), [chord]);
-  const moveable = showAll ? voicings.allMoveable : voicings.moveable;
-  // ‹ › walk the open shapes, then the moveable ones, as listed below.
-  const sequence = [...voicings.open, ...moveable];
-  // With the arpeggio on, or frets not among the shapes, › goes to the first.
-  const index = arpeggio ? -1 : sequence.findIndex(v => voicingKey(v) === voicingKey(frets));
 
   const href = (named: ChordInfo | null, on: Voicing) => chordHref(
     named?.type ? { root: named.root, type: named.type.id } : null,
@@ -183,6 +166,20 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
     keepShape(shape, picked);
   };
 
+  // ‹ › slide the frets along the neck, and the chord with them: Am7 a
+  // fret up is B♭m7. Unnamed notes are named afresh. The arpeggio stays as
+  // it is, so with it on ‹ › walk the chord through the keys.
+  const moveDown = moveShape(frets, -1, MAX_FRET);
+  const moveUp = moveShape(frets, 1, MAX_FRET);
+  const move = (by: 1 | -1) => {
+    const next = by < 0 ? moveDown : moveUp;
+    if (!next) return;
+    const moved = chord?.type
+      ? chordOf(CHORD_ROOTS[mod12(chord.rootPc + by)], chord.type.id)
+      : null;
+    keepShape(next, moved);
+  };
+
   const tap = ({ s, f }: Position) =>
     play(frets.map((fret, string) => (string !== s ? fret : fret === f ? null : f)));
 
@@ -202,9 +199,10 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
   const dots = !chord ? []
     : arpeggio ? arpeggioDots(chord, MAX_FRET, frets)
     : voicingDots(chord, frets);
+  // A shape needs no caption: the shapes below mark the one on the neck.
   const caption = !chord ? 'Tap a fret to play it on that string; tap it again to mute the string.'
     : arpeggio ? arpeggioCaption(chord, MAX_FRET)
-    : stepperCaption(frets, voicings.open, moveable);
+    : '';
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
@@ -238,8 +236,8 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <VoicingStepper
-            index={index} total={sequence.length} caption={caption}
-            onStep={by => chooseShape(sequence[Math.max(0, index + by)])}
+            canMoveDown={moveDown !== null} canMoveUp={moveUp !== null}
+            caption={caption} onMove={move}
           />
           <ToggleButton pressed={arpeggio} disabled={!hasChord} onClick={toggleArpeggio}>
             Arpeggio

@@ -264,6 +264,18 @@ export function shapesInPosition(voicings: Voicings, first: number): Voicing[] {
   return fallback.slice(0, 1);
 }
 
+/**
+ * The shape slid `by` frets along the neck, every sounding string with it
+ * (open strings become fretted, as under a barre); null when it would
+ * leave the nut or pass `maxFret`, or nothing is played.
+ */
+export function moveShape(v: Voicing, by: number, maxFret: number): Voicing | null {
+  const sounding = v.filter(isSounding);
+  if (!sounding.length) return null;
+  if (Math.min(...sounding) + by < 0 || Math.max(...sounding) + by > maxFret) return null;
+  return v.map(f => (f === null ? null : f + by));
+}
+
 /** "root on A · frets 5–7", or "root on A · open" for a shape with no fretted notes. */
 export function voicingCaption(v: Voicing): string {
   const fretted = frettedNotes(v);

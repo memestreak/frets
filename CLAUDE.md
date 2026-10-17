@@ -17,7 +17,9 @@ the notes tapped on the neck (see
 `docs/specs/2026-10-13-one-diatonic-chords-card-design.md`,
 `docs/specs/2026-10-07-circle-of-fifths-design.md`,
 `docs/specs/2026-10-09-published-chord-shapes-design.md`,
-`docs/specs/2026-10-15-copy-chord-diagram-design.md` and
+`docs/specs/2026-10-15-copy-chord-diagram-design.md`,
+`docs/specs/2026-10-17-move-shape-design.md` (‹ › slide the shape and
+its chord along the neck; ← → step through the shapes) and
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
 library and the Chord lab into it). Both the Scale lab and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
