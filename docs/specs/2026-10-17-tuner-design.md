@@ -20,11 +20,11 @@ in the page can reuse.
 - **Strobe:** a band of stripes that drift right when sharp and left when
   flat, faster the further off (2 px a second per cent, no faster past
   50), and stand still in tune. Faded and still when nothing is heard.
-- **Strings:** E₂ A₂ D₃ G₃ B₃ E₄, low E first. The tuner follows the open
-  string nearest the note heard, outlined; tapping a string locks it
-  (pressed) and measures against it, however far off; tapping it again
-  goes back to following. A line under them says which.
-- **Reference notes:** ▶ under each string plays it: a synthesized pluck,
+- **Strings:** a column down the left, high e at the top and low E at the
+  bottom, as on the board, each labelled with its note (E₄ … E₂). The
+  tuner measures against the open string nearest the note heard, and
+  lights that string's button. There is no locking a string.
+- **Reference notes:** pressing a string plays it: a synthesized pluck,
   about two seconds, dying away like a string. The mic would hear it
   through the speakers, so the tuner ignores the mic until it and its
   echo have died away.

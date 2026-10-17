@@ -183,17 +183,15 @@ describe('NoteTrainer mic', () => {
       expect(screen.getByTestId('tuner-cents')).toHaveTextContent('In tune');
     });
 
-    it('measures against a locked string until it is tapped again', async () => {
+    it('lists the strings high e first and lights the one heard', async () => {
       renderFindIt();
       await openTuner();
-      const low = screen.getByRole('button', { name: 'Tune the E₂ string', hidden: true });
-      fireEvent.click(low);
-      expect(low).toHaveAttribute('aria-pressed', 'true');
-      pitch(41);
-      expect(screen.getByTestId('tuner-note')).toHaveTextContent('E₂');
-      expect(screen.getByTestId('tuner-cents')).toHaveTextContent('100¢ sharp');
-      fireEvent.click(low);
-      expect(low).toHaveAttribute('aria-pressed', 'false');
+      const strings = screen.getAllByRole('button', { name: /^Play /, hidden: true });
+      expect(strings.map(b => b.textContent)).toEqual(['E₄', 'B₃', 'G₃', 'D₃', 'A₂', 'E₂']);
+      expect(strings.filter(b => b.dataset.heard === 'true')).toHaveLength(0);
+      pitch(50.1);
+      expect(strings.filter(b => b.dataset.heard === 'true').map(b => b.textContent))
+        .toEqual(['D₃']);
     });
 
     it('keeps the quiz from judging, and leaves the mic as it was', async () => {
