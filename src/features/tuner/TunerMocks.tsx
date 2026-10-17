@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useId, useRef, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { TUNING } from '@/lib/music';
 import { pitchLabel } from '@/features/practice/mic/pitch';
 import { REF_SOUNDS, type RefSound } from '@/features/practice/mic/sounds';
+import { Segmented } from '@/components/controls';
 import { strobeStep } from '@/features/practice/mic/tuner';
 import { noteParts, STRINGS_DOWN, useTuner, type Tuner } from './useTuner';
 
@@ -21,6 +22,10 @@ const MOCKS = [
 ] as const;
 type MockId = (typeof MOCKS)[number][0];
 
+/** How A and C show the cents: a needle or marker, or a strobe. */
+type Meter = 'dial' | 'strobe';
+const METERS = [['dial', 'Dial'], ['strobe', 'Strobe']] as const;
+
 export default function TunerMocks() {
   const router = useRouter();
   const params = useSearchParams();
@@ -28,6 +33,7 @@ export default function TunerMocks() {
   const mock: MockId = raw === 'b' || raw === 'c' ? raw : 'a';
   const demo = params.get('demo') === '1';
   const tuner = useTuner(demo);
+  const [meter, setMeter] = useState<Meter>('dial');
   const href = (m: MockId, d: boolean) => `/tuner?mock=${m}${d ? '&demo=1' : ''}`;
 
   return (
@@ -50,9 +56,9 @@ export default function TunerMocks() {
           Simulate a guitar
         </button>
       </nav>
-      {mock === 'a' && <DialMock t={tuner} />}
+      {mock === 'a' && <DialMock t={tuner} meter={meter} onMeter={setMeter} />}
       {mock === 'b' && <NeckMock t={tuner} />}
-      {mock === 'c' && <MinimalMock t={tuner} />}
+      {mock === 'c' && <MinimalMock t={tuner} meter={meter} onMeter={setMeter} />}
     </div>
   );
 }
@@ -79,6 +85,96 @@ function BigNote({ t, className }: { t: Tuner; className: string }) {
   );
 }
 
+interface MeterProps {
+  t: Tuner;
+  meter: Meter;
+  onMeter: (meter: Meter) => void;
+}
+
+/** One band of a strobe: where it sits, its stripe and how fast it turns. */
+interface Band {
+  y: number;
+  h: number;
+  period: number;
+  speed: number;
+}
+
+/**
+ * A strobe of stacked bands, each drifting right when sharp and left when
+ * flat, faster the further off, and standing still in tune. The finer
+ * bands move faster, so a small error still shows.
+ */
+function StrobeBands({ cents, inTune, bands, width, height, className, stretch = false }: {
+  cents: number | null;
+  inTune: boolean;
+  bands: readonly Band[];
+  width: number;
+  height: number;
+  className: string;
+  /** Fill the box at any width, stretching the stripes. */
+  stretch?: boolean;
+}) {
+  const id = `strobe${useId().replace(/[^\w-]/g, '')}`;
+  const patterns = useRef<(SVGPatternElement | null)[]>([]);
+  const latest = useRef(cents);
+  useEffect(() => {
+    latest.current = cents;
+  });
+  useEffect(() => {
+    const offsets = bands.map(() => 0);
+    let last = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      frame = requestAnimationFrame(tick);
+      const c = latest.current;
+      bands.forEach((b, i) => {
+        if (c != null) offsets[i] = (offsets[i] + b.speed * strobeStep(c, now - last)) % b.period;
+        patterns.current[i]?.setAttribute('patternTransform', `translate(${offsets[i]} 0)`);
+      });
+      last = now;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [bands]);
+  return (
+    <svg
+      className={className} viewBox={`0 0 ${width} ${height}`} aria-hidden="true"
+      preserveAspectRatio={stretch ? 'none' : undefined}
+      data-state={cents == null ? 'idle' : inTune ? 'in-tune' : 'off'}
+    >
+      <defs>
+        {bands.map((b, i) => (
+          <pattern
+            key={i} id={`${id}-${i}`} ref={el => { patterns.current[i] = el; }}
+            width={b.period} height={height} patternUnits="userSpaceOnUse"
+          >
+            <rect className="strobe-bar" width={b.period / 2} height={height} />
+          </pattern>
+        ))}
+      </defs>
+      <rect className="strobe-face" width={width} height={height} rx="12" />
+      {bands.map((b, i) => (
+        <rect
+          key={i} className="strobe-band" x="10" y={b.y} width={width - 20} height={b.h} rx="4"
+          fill={`url(#${id}-${i})`}
+        />
+      ))}
+      <line className="strobe-mark" x1={width / 2} x2={width / 2} y1="2" y2="8" />
+      <line className="strobe-mark" x1={width / 2} x2={width / 2} y1={height - 8} y2={height - 2} />
+    </svg>
+  );
+}
+
+/** A's strobe: three bands filling the dial's box. */
+const A_BANDS: readonly Band[] = [
+  { y: 18, h: 44, period: 48, speed: 1 },
+  { y: 73, h: 44, period: 24, speed: 2 },
+  { y: 128, h: 44, period: 12, speed: 4 },
+];
+/** C's strobe: two slim bands in the scale's place. */
+const C_BANDS: readonly Band[] = [
+  { y: 6, h: 15, period: 24, speed: 1 },
+  { y: 25, h: 15, period: 12, speed: 2 },
+];
+
 /* ── A · Dial ──────────────────────────────────────────────────────────── */
 
 const DIAL = { cx: 160, cy: 172, r: 138 };
@@ -97,7 +193,7 @@ function arcPath(from: number, to: number, r: number): string {
 }
 const TICKS = Array.from({ length: 21 }, (_, i) => i * 5 - 50);
 
-function DialMock({ t }: { t: Tuner }) {
+function DialMock({ t, meter, onMeter }: MeterProps) {
   const angle = t.cents == null ? 0 : dialAngle(t.cents);
   return (
     <section className="card tuner-a" aria-label="Tuner">
@@ -109,38 +205,50 @@ function DialMock({ t }: { t: Tuner }) {
         <SoundSelect t={t} />
       </header>
 
-      <svg className="dial" viewBox="0 0 320 190" data-in-tune={t.inTune} aria-hidden="true">
-        <path className="dial-track" d={arcPath(-50, 50, DIAL.r)} />
-        <path className="dial-zone" d={arcPath(-5, 5, DIAL.r)} />
-        {TICKS.map(c => {
-          const major = c % 25 === 0;
-          const [x1, y1] = dialPoint(c, DIAL.r - 10);
-          const [x2, y2] = dialPoint(c, DIAL.r - (major ? 26 : 18));
-          return (
-            <line
-              key={c} className={major ? 'dial-tick major' : 'dial-tick'}
-              x1={x1} y1={y1} x2={x2} y2={y2}
-            />
-          );
-        })}
-        {[-50, -25, 25, 50].map(c => {
-          const [x, y] = dialPoint(c, DIAL.r - 42);
-          return (
-            <text key={c} className="dial-label" x={x} y={y + 4}>
-              {c > 0 ? `+${c}` : `−${-c}`}
-            </text>
-          );
-        })}
-        <text className="dial-flat" x={dialPoint(-50, DIAL.r)[0]} y={dialPoint(-50, DIAL.r)[1] + 36}>♭</text>
-        <text className="dial-flat" x={dialPoint(50, DIAL.r)[0]} y={dialPoint(50, DIAL.r)[1] + 36}>♯</text>
-        <g
-          className="dial-needle" data-idle={t.cents == null}
-          style={{ transform: `rotate(${angle}deg)` }}
-        >
-          <line x1={DIAL.cx} y1={DIAL.cy} x2={DIAL.cx} y2={DIAL.cy - DIAL.r + 4} />
-        </g>
-        <circle className="dial-hub" cx={DIAL.cx} cy={DIAL.cy} r="9" />
-      </svg>
+      <div className="tuner-a-switch">
+        <Segmented label="Meter" options={METERS} value={meter} onChange={onMeter} />
+      </div>
+      <div className="tuner-a-meter">
+        {meter === 'strobe' ? (
+          <StrobeBands
+            className="tuner-a-strobe" cents={t.cents} inTune={t.inTune}
+            bands={A_BANDS} width={320} height={190}
+          />
+        ) : (
+          <svg className="dial" viewBox="0 0 320 190" data-in-tune={t.inTune} aria-hidden="true">
+            <path className="dial-track" d={arcPath(-50, 50, DIAL.r)} />
+            <path className="dial-zone" d={arcPath(-5, 5, DIAL.r)} />
+            {TICKS.map(c => {
+              const major = c % 25 === 0;
+              const [x1, y1] = dialPoint(c, DIAL.r - 10);
+              const [x2, y2] = dialPoint(c, DIAL.r - (major ? 26 : 18));
+              return (
+                <line
+                  key={c} className={major ? 'dial-tick major' : 'dial-tick'}
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                />
+              );
+            })}
+            {[-50, -25, 25, 50].map(c => {
+              const [x, y] = dialPoint(c, DIAL.r - 42);
+              return (
+                <text key={c} className="dial-label" x={x} y={y + 4}>
+                  {c > 0 ? `+${c}` : `−${-c}`}
+                </text>
+              );
+            })}
+            <text className="dial-flat" x={dialPoint(-50, DIAL.r)[0]} y={dialPoint(-50, DIAL.r)[1] + 36}>♭</text>
+            <text className="dial-flat" x={dialPoint(50, DIAL.r)[0]} y={dialPoint(50, DIAL.r)[1] + 36}>♯</text>
+            <g
+              className="dial-needle" data-idle={t.cents == null}
+              style={{ transform: `rotate(${angle}deg)` }}
+            >
+              <line x1={DIAL.cx} y1={DIAL.cy} x2={DIAL.cx} y2={DIAL.cy - DIAL.r + 4} />
+            </g>
+            <circle className="dial-hub" cx={DIAL.cx} cy={DIAL.cy} r="9" />
+          </svg>
+        )}
+      </div>
 
       <div className="tuner-a-readout">
         <BigNote t={t} className="tuner-a-note" />
@@ -280,7 +388,7 @@ function NeckMock({ t }: { t: Tuner }) {
 
 /* ── C · Minimal ───────────────────────────────────────────────────────── */
 
-function MinimalMock({ t }: { t: Tuner }) {
+function MinimalMock({ t, meter, onMeter }: MeterProps) {
   const pos = t.cents == null ? 0 : clampCents(t.cents) / MAX_CENTS;
   return (
     <section className="tuner-c" aria-label="Tuner" data-in-tune={t.inTune}>
@@ -293,22 +401,30 @@ function MinimalMock({ t }: { t: Tuner }) {
 
       <div className="tuner-c-scale" aria-hidden="true">
         <span className="tuner-c-end">♭</span>
-        <div className="tuner-c-track">
-          <span className="tuner-c-zone" />
-          {TICKS.filter(c => c % 10 === 0).map(c => (
-            <span
-              key={c} className="tuner-c-tick" data-major={c % 50 === 0}
-              style={{ left: `${50 + c}%` }}
-            />
-          ))}
-          <span
-            className="tuner-c-marker" data-idle={t.cents == null}
-            style={{ left: `${50 + pos * 50}%` }}
+        {meter === 'strobe' ? (
+          <StrobeBands
+            className="tuner-c-strobe" cents={t.cents} inTune={t.inTune}
+            bands={C_BANDS} width={400} height={46} stretch
           />
-        </div>
+        ) : (
+          <div className="tuner-c-track">
+            <span className="tuner-c-zone" />
+            {TICKS.filter(c => c % 10 === 0).map(c => (
+              <span
+                key={c} className="tuner-c-tick" data-major={c % 50 === 0}
+                style={{ left: `${50 + c}%` }}
+              />
+            ))}
+            <span
+              className="tuner-c-marker" data-idle={t.cents == null}
+              style={{ left: `${50 + pos * 50}%` }}
+            />
+          </div>
+        )}
         <span className="tuner-c-end">♯</span>
       </div>
       <span className="tuner-c-cents" role="status">{t.message}</span>
+      <Segmented label="Meter" options={METERS} value={meter} onChange={onMeter} />
 
       <div className="tuner-c-strings" role="group" aria-label="Strings">
         {[...STRINGS_DOWN].reverse().map(s => {
