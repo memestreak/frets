@@ -25,10 +25,11 @@ in the page can reuse.
   tuner measures against the open string nearest the note heard, and
   lights that string's button. There is no locking a string.
 - **Reference notes:** pressing a string plays it, in the sound chosen in
-  the Note trainer's Settings under "Tuner reference notes": Acoustic
-  guitar (the default), Nylon-string guitar, Electric guitar, Piano, or
-  Simulated string, with a Preview button beside it that plays the A
-  string. The footnote names it. Notes ring on together, as strings do:
+  the tuner itself, a "Reference sound" dropdown above the
+  strings: Acoustic guitar (the default), Nylon-string guitar,
+  Electric guitar, Piano, or Simulated string. The choice is saved with
+  the Note trainer's settings, but is not in its Settings dialog, whose
+  Defaults leave it alone; pressing a string is its preview. Notes ring on together, as strings do:
   a second press never cuts off the first. The recordings come from
   tonejs-instruments (CC BY 3.0), credited in `NOTICE.md` and the footer;
   each recording's own tuning was measured and is corrected in playback,
