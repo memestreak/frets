@@ -66,7 +66,7 @@ export function Strobe({ cents }: { cents: number | null }) {
       <rect className="strobe-face" width={W} height={H} rx="12" />
       {BANDS.map((band, i) => (
         <rect
-          key={band.y} x="10" y={band.y} width={W - 20} height={BAND_H} rx="4"
+          key={band.y} className="strobe-band" x="10" y={band.y} width={W - 20} height={BAND_H} rx="4"
           fill={`url(#${id}-${i})`}
         />
       ))}
