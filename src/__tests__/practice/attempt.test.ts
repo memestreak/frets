@@ -6,7 +6,8 @@ const TEXT = {
   none: 'Nothing fits', correct: 'm3', far: 'Too far', names: ['P1', 'm2', 'M2'],
 };
 const attempt = (patch = {}) => ({
-  q: {}, answered: false, wrong: [], far: [], farLast: false, ...patch,
+  q: {}, answered: false, wrong: [], far: [], farLast: false,
+  octaveLast: false, heard: null, ...patch,
 });
 
 describe('missSuffix', () => {
@@ -59,6 +60,17 @@ describe('attemptFeedback', () => {
   it('prefers the out-of-range note while it is the latest tap', () => {
     expect(attemptFeedback(attempt({ wrong: [{ s: 0, f: 1 }], farLast: true }), TEXT))
       .toEqual({ feedback: 'Too far', tone: 'neutral' });
+  });
+
+  it('names the note the mic heard for a played miss', () => {
+    expect(attemptFeedback(attempt({ wrong: [{ s: 0, f: 1 }], heard: 'G' }), TEXT))
+      .toEqual({ feedback: 'That’s G — try again', tone: 'danger' });
+  });
+
+  it('explains the right note in the wrong octave, when the trainer says how', () => {
+    const wrongOctave = attempt({ octaveLast: true, heard: 'A' });
+    expect(attemptFeedback(wrongOctave, { ...TEXT, octave: 'Wrong octave' }))
+      .toEqual({ feedback: 'Wrong octave', tone: 'neutral' });
   });
 
   it('confirms the answer with the miss count', () => {

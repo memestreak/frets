@@ -1,7 +1,8 @@
 import { pitchClass } from '@/lib/music';
 import {
   defaultNoteSettings, generateNoteQuestion, isCorrectNoteFret,
-  isNoteOutOfRange, parseNoteSettings, resetNoteSettings, targetRange,
+  isNoteOutOfRange, isNotePitch, parseNoteSettings, placeNotePitch,
+  resetNoteSettings, targetRange,
   type NoteQuestion, type NoteSettings,
 } from '@/features/practice/notes/notes';
 import { seededRng } from '../helpers/rng';
@@ -10,12 +11,13 @@ const settings = (patch: Partial<NoteSettings> = {}) =>
   ({ ...defaultNoteSettings(), ...patch });
 
 describe('resetNoteSettings', () => {
-  it('resets every dialog field but keeps mode and pause', () => {
+  it('resets every dialog field but keeps mode, pause and the mic', () => {
     const changed = settings({
       mode: 'find', pause: true, rFrom: 9, rTo: 14,
-      strings: [false, true, false, true, false, true],
+      strings: [false, true, false, true, false, true], mic: true, micMisses: false,
     });
-    expect(resetNoteSettings(changed)).toEqual(settings({ mode: 'find', pause: true }));
+    expect(resetNoteSettings(changed))
+      .toEqual(settings({ mode: 'find', pause: true, mic: true }));
   });
 });
 
@@ -158,6 +160,14 @@ describe('parseNoteSettings', () => {
       .toEqual({ ...defaultNoteSettings(), rFrom: 15, pause: true });
   });
 
+  it('reads the mic fields, defaulting to off and misses counted', () => {
+    expect(parseNoteSettings({})).toMatchObject({ mic: false, micMisses: true });
+    expect(parseNoteSettings({ mic: true, micMisses: false }))
+      .toMatchObject({ mic: true, micMisses: false });
+    expect(parseNoteSettings({ mic: 'yes', micMisses: 0 }))
+      .toMatchObject({ mic: false, micMisses: true });
+  });
+
   it('drops a stored board window', () => {
     expect(parseNoteSettings({ minFret: 5, maxFret: 20 })).toEqual(defaultNoteSettings());
   });
@@ -167,5 +177,25 @@ describe('parseNoteSettings', () => {
       expect(parseNoteSettings({ mode }).mode).toBe('find');
     }
     expect(parseNoteSettings({ mode: 'name' }).mode).toBe('name');
+  });
+});
+
+describe('placeNotePitch', () => {
+  const q = { mode: 'find', pc: 9, s: 0 } as const; // A on the low E
+
+  it('places a pitch at the fret of the asked string that sounds it', () => {
+    expect(placeNotePitch(q, 45)).toEqual({ s: 0, f: 5 });
+    expect(placeNotePitch(q, 40)).toEqual({ s: 0, f: 0 });
+    expect(placeNotePitch(q, 55)).toEqual({ s: 0, f: 15 });
+  });
+
+  it('has no place for a pitch below the open string or past fret 15', () => {
+    expect(placeNotePitch(q, 33)).toBeNull();
+    expect(placeNotePitch(q, 56)).toBeNull();
+  });
+
+  it('isNotePitch matches the note in any octave', () => {
+    expect([33, 45, 57, 69].every(m => isNotePitch(q, m))).toBe(true);
+    expect(isNotePitch(q, 46)).toBe(false);
   });
 });

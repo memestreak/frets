@@ -9,6 +9,8 @@ const base = (q: NoteQuestion, patch: Partial<NoteState['set']> = {}): NoteState
   picked: null,
   far: [],
   farLast: false,
+  octaveLast: false,
+  heard: null,
   answered: false,
   wrong: [],
   advanceMs: null,
@@ -72,5 +74,63 @@ describe('noteReducer', () => {
     s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 12 } });
     s = noteReducer(s, { type: 'next', q: { mode: 'find', pc: 0, s: 2 } });
     expect(s).toMatchObject({ picked: null, far: [], farLast: false, answered: false });
+  });
+
+  describe('Find it by mic', () => {
+    const play = (st: NoteState, midi: number, misses = true) =>
+      noteReducer(st, { type: 'answerPitch', midi, heard: `#${midi}`, misses });
+
+    it('solves with the asked pitch, marking its fret', () => {
+      const s = play(base(findA), 57);
+      expect(s).toMatchObject({ answered: true, picked: { s: 1, f: 12 }, heard: '#57' });
+      expect(s.stats).toMatchObject({ correct: 1, total: 1 });
+    });
+
+    it('explains the note on the asked string outside the range', () => {
+      const s = play(base(findA), 45);
+      expect(s).toMatchObject({ answered: false, farLast: true, far: [{ s: 1, f: 0 }] });
+      expect(s.stats.total).toBe(0);
+    });
+
+    it('explains the note in an octave the string cannot play, unscored', () => {
+      for (const midi of [33, 69]) {
+        const s = play(base(findA), midi);
+        expect(s).toMatchObject({ answered: false, octaveLast: true, wrong: [] });
+        expect(s.stats.total).toBe(0);
+      }
+    });
+
+    it('scores a wrong note as a miss at its fret, once', () => {
+      let s = play(base(findA), 47);
+      expect(s).toMatchObject({ wrong: [{ s: 1, f: 2 }], heard: '#47', octaveLast: false });
+      s = play(s, 47);
+      expect(s.wrong).toHaveLength(1);
+      expect(s.stats).toMatchObject({ correct: 0, total: 1 });
+    });
+
+    it('keeps a wrong note with no place on the string as its pitch', () => {
+      let s = play(base(findA), 40);
+      expect(s.wrong).toEqual([40]);
+      s = play(s, 40);
+      expect(s.wrong).toEqual([40]);
+    });
+
+    it('ignores wrong notes when misses are off, but still solves', () => {
+      let s = play(base(findA), 47, false);
+      expect(s).toEqual(base(findA));
+      s = play(s, 57, false);
+      expect(s.answered).toBe(true);
+    });
+
+    it('a tap afterwards clears what the mic heard', () => {
+      let s = play(base(findA), 47);
+      s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 3 } });
+      expect(s.heard).toBeNull();
+    });
+
+    it('is ignored in Name it', () => {
+      const name = base({ mode: 'name', pc: 9, s: 1, f: 12 });
+      expect(play(name, 57)).toBe(name);
+    });
   });
 });
