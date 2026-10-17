@@ -32,6 +32,12 @@ describe('nameNotes', () => {
     expect(names('C', 'E', 'B')[0]).toBe('Cmaj7 (no 5)');
   });
 
+  it('names a major chord with an added 9th and 11th', () => {
+    // x 5 4 0 3 0: D F♯ G D E, a common Em9 (no 5) over its ♭7 first.
+    expect(names('D', 'F#', 'G', 'D', 'E')).toEqual(['Em9/D (no 5)', 'Dadd9(add11) (no 5)']);
+    expect(names('C', 'E', 'G', 'F')[0]).toBe('Cadd11');
+  });
+
   it('says why: the tone in the bass', () => {
     const [first] = nameNotes([PC.E, PC.G, PC.C], PC.E);
     expect(first.why).toBe('3 in the bass');

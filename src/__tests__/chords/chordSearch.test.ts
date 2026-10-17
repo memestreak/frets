@@ -21,6 +21,8 @@ describe('findChord', () => {
     expect(found('CMAJ7')).toBe('C maj7');
     expect(found('CMadd9')).toBe('C Madd9');
     expect(found('Cmadd9')).toBe('C madd9');
+    expect(found('Cadd11')).toBe('C Madd11');
+    expect(found('C add9(add11)')).toBe('C Madd9add11');
     expect(found('C7SUS4')).toBe('C 7sus4');
   });
 

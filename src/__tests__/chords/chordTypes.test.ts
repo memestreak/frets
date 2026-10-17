@@ -60,6 +60,9 @@ describe('chordOf', () => {
     expect(optional('C', 'm11')).toEqual(['5', '9']);
     expect(optional('C', '13')).toEqual(['5', '9']);
     expect(optional('C', '7b9')).toEqual(['5']);
+    // With no 7th, a 9th is added, not a tone under the 11th.
+    expect(optional('C', 'Madd9add11')).toEqual(['5']);
+    expect(optional('C', '69#11')).toEqual(['5']);
   });
 
   it('names tones with real glyphs', () => {
