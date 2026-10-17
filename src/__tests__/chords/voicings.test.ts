@@ -1,8 +1,8 @@
 import { TUNING } from '@/lib/music';
 import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/lib/chords/chordTypes';
 import {
-  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, LAST_POSITION, POSITION_FRETS,
-  shapesInPosition, voicingCaption, voicingKey, type Voicing,
+  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, LAST_POSITION, moveShape,
+  POSITION_FRETS, shapesInPosition, voicingCaption, voicingKey, type Voicing,
 } from '@/lib/chords/voicings';
 
 const keys = (vs: Voicing[]) => vs.map(voicingKey);
@@ -146,5 +146,18 @@ describe('shapesInPosition', () => {
       .filter(list => !core.has(voicingKey(list[0])));
     for (const list of fallbacks) expect(list).toHaveLength(1);
     expect(fallbacks.length).toBeGreaterThan(0);
+  });
+});
+
+describe('moveShape', () => {
+  it('slides every sounding string, open strings included', () => {
+    expect(moveShape([null, 0, 2, 0, 1, 0], 1, 15)).toEqual([null, 1, 3, 1, 2, 1]);
+    expect(moveShape([5, 7, 5, 5, 5, 5], -2, 15)).toEqual([3, 5, 3, 3, 3, 3]);
+  });
+
+  it('stops at the nut and at the last fret', () => {
+    expect(moveShape([null, 0, 2, 0, 1, 0], -1, 15)).toBeNull();
+    expect(moveShape([null, 13, 15, 13, 14, 13], 1, 15)).toBeNull();
+    expect(moveShape([null, null, null, null, null, null], 1, 15)).toBeNull();
   });
 });

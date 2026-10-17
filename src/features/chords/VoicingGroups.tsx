@@ -118,7 +118,10 @@ function useArrowSteps(
       onSelect(next);
       // Keep focus and scroll with the selection.
       const btn = document.querySelector<HTMLElement>(`[data-voicing="${voicingKey(next)}"]`);
-      if (document.activeElement?.classList.contains('shape-btn')) btn?.focus();
+      const focused = document.activeElement as HTMLElement | null;
+      if (focused?.classList.contains('shape-btn')) btn?.focus();
+      // Off the ‹ › just clicked, so the browser draws no focus ring there.
+      else if (focused?.closest('.mode-steps')) focused.blur();
       btn?.scrollIntoView?.({ block: 'nearest' });
     };
     window.addEventListener('keydown', onKey);

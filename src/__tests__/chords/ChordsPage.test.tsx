@@ -130,17 +130,53 @@ describe('ChordsPage, looking a chord up', () => {
     expect(caption()).toHaveTextContent(/^Moveable \d+ of \d+ · root on E · frets 5–7$/);
   });
 
-  it('steps through the open shapes, then the moveable ones', () => {
+  it('slides the shape along the neck with ‹ ›, and the chord with it', () => {
     renderAt();
-    const prev = screen.getByRole('button', { name: 'Previous shape' });
-    const next = screen.getByRole('button', { name: 'Next shape' });
-    expect(prev).toBeDisabled();
-    fireEvent.click(next);
-    expect(caption()).toHaveTextContent(/^Open 2 of 3/);
-    fireEvent.click(next);
-    fireEvent.click(next);
-    expect(caption()).toHaveTextContent(/^Moveable 1 of /);
-    expect(shapes('Moveable')[0]).toHaveAttribute('aria-pressed', 'true');
+    const down = screen.getByRole('button', { name: 'Move shape down a fret' });
+    const up = screen.getByRole('button', { name: 'Move shape up a fret' });
+    expect(down).toBeDisabled(); // open strings are at the nut
+    fireEvent.click(up);
+    // x-0-2-0-1-0 a fret up: the open strings are fretted, as under a barre.
+    expect(boardDots()).toEqual(['1:1', '2:3', '3:1', '4:2', '5:1']);
+    expect(heading()).toHaveTextContent(/^B♭m7 /);
+    expect(pickedRoot()).toBe('B♭');
+    expect(typePicker()).toHaveValue('m7');
+    expect(here()).toBe('/chords?chord=bbm7&shape=x-1-3-1-2-1');
+    expect(caption()).toHaveTextContent(/ · root on A · frets 1–3$/);
+    expect(down).toBeEnabled();
+    // → still steps through the shapes, and takes focus off ›.
+    up.focus();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(document.body);
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(boardDots()).toEqual(['1:1', '2:3', '3:1', '4:2', '5:1']);
+    fireEvent.click(down);
+    expect(heading()).toHaveTextContent(/^Am7 /);
+    expect(caption()).toHaveTextContent(/^Open 1 of 3 · /);
+  });
+
+  it('stops ‹ › at the last fret, and with nothing played', () => {
+    renderAt('?chord=am7&shape=x-12-14-12-13-15');
+    expect(screen.getByRole('button', { name: 'Move shape up a fret' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.getByRole('button', { name: 'Move shape down a fret' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move shape up a fret' })).toBeDisabled();
+  });
+
+  it('keeps the arpeggio on as ‹ › move the chord', () => {
+    renderAt();
+    fireEvent.click(arpeggio());
+    fireEvent.click(screen.getByRole('button', { name: 'Move shape up a fret' }));
+    expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
+    expect(caption()).toHaveTextContent('Arpeggio · every B♭, D♭, F and A♭ up to fret 15');
+  });
+
+  it('names notes not in a chord afresh when moved', () => {
+    renderAt('?shape=x-x-10-6-3-x'); // C, D♭ and D: no chord
+    expect(heading()).toHaveTextContent('No name');
+    fireEvent.click(screen.getByRole('button', { name: 'Move shape up a fret' }));
+    expect(boardDots()).toEqual(['2:11', '3:7', '4:4']);
+    expect(heading()).toHaveTextContent('No name');
   });
 
   it('steps through the shapes with the arrow keys', () => {
@@ -177,7 +213,6 @@ describe('ChordsPage, looking a chord up', () => {
     expect([...shapes('Open'), ...shapes('Moveable')]
       .some(b => b.getAttribute('aria-pressed') === 'true')).toBe(false);
     expect(caption()).toHaveTextContent('Arpeggio · every A, C, E and G up to fret 15');
-    expect(screen.getByRole('button', { name: 'Previous shape' })).toBeDisabled();
     // It stays picked for the next chord.
     pickRoot('C');
     fireEvent.change(typePicker(), { target: { value: 'M' } });
@@ -224,11 +259,8 @@ describe('ChordsPage, looking a chord up', () => {
     expect(screen.getByRole('button', { name: 'Arpeggio' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('steps from the arpeggio to the first shape', () => {
+  it('steps from the arpeggio to the first shape with →', () => {
     renderAt();
-    fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
-    expect(caption()).toHaveTextContent(/^Open 1 of 3/);
     fireEvent.click(screen.getByRole('button', { name: 'Arpeggio' }));
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(shapes('Open')[0]).toHaveAttribute('aria-pressed', 'true');
@@ -417,12 +449,12 @@ describe('ChordsPage, looking a chord up and changing it', () => {
     expect(caption()).toHaveTextContent(/^Open 1 of \d+ · /);
   });
 
-  it('says when the frets are not one of the shapes, and › goes to the first', () => {
+  it('says when the frets are not one of the shapes, and → goes to the first', () => {
     renderAt('?chord=c');
     fireEvent.click(cell(5, 0));
     fireEvent.click(cell(5, 5)); // x-3-2-0-1-5
     expect(caption()).toHaveTextContent(/^Your shape · /);
-    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(caption()).toHaveTextContent(/^Open 1 of /);
   });
 

@@ -38,8 +38,9 @@ ways to set the same chord. `/chords/library` and `/chords/lab` go away
    Under it, the library's ‹ › stepper and the **Arpeggio** toggle. The
    stepper's caption is the library's ("Open 1 of 3 · root on A · frets
    1–2"); when the frets are not one of the listed shapes it reads "Your
-   shape · root on A · frets 1–2", and › goes to the first shape. With no
-   chord the caption is the tapping hint.
+   shape · root on A · frets 1–2", and → goes to the first shape. With no
+   chord the caption is the tapping hint. Since 2026-10-17 ‹ › slide the
+   shape along the neck instead (`2026-10-17-move-shape-design.md`).
 3. Two columns (one on phones), as in the lab: the shapes (colour key,
    **Open**, **Moveable**, Show all) on the left, **Name it** on the
    right.
@@ -48,7 +49,7 @@ ways to set the same chord. `/chords/library` and `/chords/lab` go away
 
 - **Pickers**: the chord picked is kept (the lab's `kept`), its first
   shape (open, else moveable) goes on the neck, Show all resets.
-- **A shape** (tap, ‹ ›, ← →): goes on the neck and keeps the chord, as
+- **A shape** (tap, ← →): goes on the neck and keeps the chord, as
   in the lab.
 - **A tap on the neck**: names the notes afresh, best name first, Show
   all resets.
