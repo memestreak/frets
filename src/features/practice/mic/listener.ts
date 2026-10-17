@@ -8,13 +8,15 @@ export type MicError = 'insecure' | 'denied' | 'missing' | 'failed';
 export interface MicReading {
   /** Meter level, 0–1. */
   level: number;
-  /** The nearest note to the pitch heard, or null. */
+  /** The pitch heard as a fractional MIDI note, or null. */
+  pitch: number | null;
+  /** The nearest note to it, or null. */
   midi: number | null;
   /** The note held, steadied over the last few readings. */
   hold: Hold | null;
 }
 
-export const SILENT: MicReading = { level: 0, midi: null, hold: null };
+export const SILENT: MicReading = { level: 0, pitch: null, midi: null, hold: null };
 
 /** Samples per analysis: over two periods of the low E at 48 kHz. */
 const WINDOW = 4096;
@@ -97,7 +99,9 @@ export class MicListener {
       const pitch = detectPitch(buf, ctx.sampleRate);
       const midi = pitch ? freqToMidi(pitch.hz) : null;
       const hold = trackHold(this.reading.hold, { midi, rms: loud, at: now });
-      this.publish({ level: levelOf(loud), midi: midi == null ? null : Math.round(midi), hold });
+      this.publish({
+        level: levelOf(loud), pitch: midi, midi: midi == null ? null : Math.round(midi), hold,
+      });
     };
     this.frame = requestAnimationFrame(tick);
     return null;

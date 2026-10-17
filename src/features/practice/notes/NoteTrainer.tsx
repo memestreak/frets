@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Segmented, ToggleButton } from '@/components/controls';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { DOT } from '@/components/fretboard/theme';
@@ -25,6 +26,7 @@ import {
 import { itemPercent } from '@/features/practice/quiz/stats';
 import { heldEnough } from '@/features/practice/mic/hold';
 import { MIC_ERROR_TEXT, MicButton } from '@/features/practice/mic/MicButton';
+import { TunerDialog } from '@/features/practice/mic/TunerDialog';
 import { useMic } from '@/features/practice/mic/useMic';
 import { initNoteState, noteReducer } from './noteState';
 
@@ -42,13 +44,14 @@ const answerFor = (index: number, set: NoteSettings) =>
   set.mode === 'name' && index >= 0 ? index : null;
 
 export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
+  const [tunerOpen, setTunerOpen] = useState(false);
   const {
     state, dispatch, hint, toggleHint, settingsOpen, setSettingsOpen,
     next, update, applyDefaults, answerName, answerGridRef,
   } = useTrainer({
     reducer: noteReducer, init: initNoteState,
     storageKey: NOTE_STORAGE_KEY, generate: generateNoteQuestion,
-    rng, answerFor,
+    rng, answerFor, covered: tunerOpen, onTuner: () => setTunerOpen(true),
   });
   const { set, stats, q, answered, picked } = state;
   const { mode } = set;
@@ -59,11 +62,12 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
 
   const mic = useMic({
     enabled: mode === 'find',
+    borrowed: tunerOpen,
     on: set.mic,
     setOn: on => update({ mic: on }, false),
     // A note that sounds while the quiz waits is used up, not judged later.
     onNote: (played, heldMs) => {
-      if (settingsOpen || answered || q?.mode !== 'find') return true;
+      if (settingsOpen || tunerOpen || answered || q?.mode !== 'find') return true;
       const pos = placeNotePitch(q, played);
       if (!heldEnough(heldMs, pos != null && isCorrectNoteFret(q, pos, set))) return false;
       dispatch({
@@ -145,6 +149,14 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         pause={set.pause}
         onTogglePause={() => dispatch({ type: 'togglePause' })}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenTuner={() => setTunerOpen(true)}
+      />
+
+      <TunerDialog
+        open={tunerOpen}
+        onClose={() => setTunerOpen(false)}
+        listener={mic.listener}
+        status={mic.status}
       />
 
       <SettingsDialog

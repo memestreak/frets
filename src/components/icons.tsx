@@ -66,6 +66,23 @@ export function MicIcon() {
   );
 }
 
+export function TunerIcon() {
+  return (
+    <Icon>
+      <path d="m12 14 4-4" />
+      <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+    </Icon>
+  );
+}
+
+export function PlayIcon() {
+  return (
+    <Icon size={12}>
+      <path d="M6 4v16l14-8Z" fill="currentColor" />
+    </Icon>
+  );
+}
+
 export function EyeIcon() {
   return (
     <Icon>

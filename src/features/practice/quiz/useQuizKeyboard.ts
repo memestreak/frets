@@ -11,6 +11,8 @@ interface QuizKeyboardOptions {
   onToggleHint: () => void;
   /** Any other key while the question is open (answer shortcuts). */
   onAnswerKey?: (key: string) => void;
+  /** T, at any time: opens the tuner, if the trainer has one. */
+  onTuner?: () => void;
   /** Left (−1) or right (+1) arrow while the question is open. */
   onArrow?: (delta: -1 | 1) => void;
   /** False suspends key handling, e.g. while a dialog is open. Default true. */
@@ -23,7 +25,8 @@ function isTextEntry(target: EventTarget | null): boolean {
 }
 
 /**
- * Window-level keys: Space toggles the hint, whatever has focus; Enter goes
+ * Window-level keys: Space toggles the hint, whatever has focus; T opens
+ * the tuner, if there is one; Enter goes
  * to the next question once answered (with Pause b/w on, any other
  * non-modifier key does too); left/right arrows go to `onArrow` unless a
  * control (the board) already used them; other keys go to `onAnswerKey`.
@@ -35,6 +38,11 @@ export function useQuizKeyboard(opts: QuizKeyboardOptions) {
     if (opts.enabled === false) return;
     if (isTextEntry(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
     const { answered, pause } = opts;
+    if ((e.key === 't' || e.key === 'T') && opts.onTuner) {
+      e.preventDefault();
+      opts.onTuner();
+      return;
+    }
     if (e.key === 'Enter') {
       if (answered) {
         e.preventDefault();

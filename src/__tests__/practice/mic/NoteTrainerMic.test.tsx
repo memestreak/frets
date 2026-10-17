@@ -46,7 +46,7 @@ vi.mock('@/features/practice/mic/listener', async importOriginal => {
 
 /** The mic hears `midi`, plucked at `since` and still sounding at `seen`. */
 const hear = (midi: number, since: number, seen: number) => act(() => {
-  mic.listener!.emit({ level: 0.5, midi, hold: { midi, since, seen, rms: 0.2 } });
+  mic.listener!.emit({ level: 0.5, pitch: midi, midi, hold: { midi, since, seen, rms: 0.2 } });
 });
 
 function renderFindIt(patch: Partial<NoteSettings> = {}) {
@@ -86,7 +86,7 @@ describe('NoteTrainer mic', () => {
     expect(micButton()).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('mic-note')).toHaveTextContent('–');
     expect(saved().mic).toBe(true);
-    act(() => mic.listener!.emit({ level: 0.4, midi: 45, hold: null }));
+    act(() => mic.listener!.emit({ level: 0.4, pitch: 45, midi: 45, hold: null }));
     expect(screen.getByTestId('mic-note')).toHaveTextContent('A₂');
   });
 
@@ -133,7 +133,7 @@ describe('NoteTrainer mic', () => {
     renderFindIt();
     await turnOn();
     expect(micButton()).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByText(/Mic blocked/)).toBeInTheDocument();
+    expect(screen.getByText(/Mic blocked/, { selector: '.text-muted' })).toBeInTheDocument();
     expect(saved().mic).toBe(false);
   });
 
@@ -149,5 +149,63 @@ describe('NoteTrainer mic', () => {
     await act(async () => {});
     expect(micButton()).toHaveAttribute('aria-pressed', 'false');
     expect(saved().mic).toBe(false);
+  });
+
+  describe('tuner', () => {
+    const pitch = (p: number | null) => act(() => {
+      mic.listener!.emit({ level: 0.5, pitch: p, midi: p == null ? null : Math.round(p), hold: null });
+    });
+    const dialog = () => screen.getByTestId('tuner-note').closest('dialog')!;
+    const openTuner = async () => {
+      await act(async () => fireEvent.keyDown(window, { key: 't' }));
+    };
+
+    it('opens on T or its button, listening, and closes on T', async () => {
+      renderFindIt();
+      await openTuner();
+      expect(dialog()).toHaveAttribute('open');
+      expect(mic.listener!).toMatchObject({ listening: true });
+      await act(async () => fireEvent.keyDown(window, { key: 't' }));
+      expect(dialog()).not.toHaveAttribute('open');
+      fireEvent.click(screen.getByRole('button', { name: /^Tuner/ }));
+      expect(dialog()).toHaveAttribute('open');
+    });
+
+    it('reads the nearest string and how far off it is', async () => {
+      renderFindIt();
+      await openTuner();
+      expect(screen.getByTestId('tuner-cents')).toHaveTextContent('Play a string');
+      pitch(44.8);
+      expect(screen.getByTestId('tuner-note')).toHaveTextContent('A₂');
+      expect(screen.getByTestId('tuner-cents')).toHaveTextContent('20¢ flat');
+      for (let i = 0; i < 5; i++) pitch(64.03);
+      expect(screen.getByTestId('tuner-note')).toHaveTextContent('E₄');
+      expect(screen.getByTestId('tuner-cents')).toHaveTextContent('In tune');
+    });
+
+    it('measures against a locked string until it is tapped again', async () => {
+      renderFindIt();
+      await openTuner();
+      const low = screen.getByRole('button', { name: 'Tune the E₂ string', hidden: true });
+      fireEvent.click(low);
+      expect(low).toHaveAttribute('aria-pressed', 'true');
+      pitch(41);
+      expect(screen.getByTestId('tuner-note')).toHaveTextContent('E₂');
+      expect(screen.getByTestId('tuner-cents')).toHaveTextContent('100¢ sharp');
+      fireEvent.click(low);
+      expect(low).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('keeps the quiz from judging, and leaves the mic as it was', async () => {
+      const { midi } = renderFindIt();
+      await openTuner();
+      hear(midi, 1000, 1300);
+      expect(feedback()).toHaveTextContent('');
+      await act(async () => fireEvent.keyDown(window, { key: 'Escape' }));
+      fireEvent(dialog(), new Event('cancel'));
+      expect(mic.listener!).toMatchObject({ listening: false });
+      expect(micButton()).toHaveAttribute('aria-pressed', 'false');
+      expect(saved().mic).toBe(false);
+    });
   });
 });

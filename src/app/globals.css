@@ -134,6 +134,47 @@ button {
     transform-origin: left;
   }
 
+  .settings-dialog:focus-visible { outline: none; }
+
+  /* The tuner: every part keeps its size whatever it reads. */
+  .tuner-dialog { width: min(520px, 100%); }
+  .tuner-readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 16px;
+    min-height: 64px;
+  }
+  .tuner-note {
+    font: 600 48px/1 var(--font-display);
+    min-width: 2.2em;
+    text-align: right;
+    color: var(--ink);
+  }
+  .tuner-cents {
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 10em;
+    color: var(--ink-muted);
+  }
+  .tuner-readout[data-in-tune='true'] .tuner-note,
+  .tuner-readout[data-in-tune='true'] .tuner-cents { color: var(--success); }
+  .strobe { display: block; }
+  .strobe-track { fill: var(--surface-sunken); }
+  .strobe-stripe { fill: var(--ink); }
+  .strobe[data-state='idle'] .strobe-stripe { fill: var(--line-strong); }
+  .strobe[data-state='in-tune'] .strobe-stripe { fill: var(--success); }
+  .tuner-strings {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .tuner-string { display: grid; gap: 2px; }
+  .tuner-string .btn { padding-inline: 0; justify-content: center; }
+  .tuner-string .btn[data-current='true'] { box-shadow: inset 0 0 0 1.5px var(--primary); }
+  .tuner-play { height: 30px; }
+  .tuner-dialog > p { min-height: 3em; }
+
   .chord-numeral { font: 600 22px/28px var(--font-display); }
 
   /* The selected chord's ladder and clock (ChordLadder, ChordClock). */
