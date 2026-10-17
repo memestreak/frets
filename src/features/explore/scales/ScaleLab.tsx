@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Segmented } from '@/components/controls';
+import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
@@ -14,7 +14,7 @@ import { ScalePickers } from './ScalePanel';
 import { StripTip } from './StripTip';
 import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
-  type DotLabels, type ScaleLabSettings,
+  type ScaleLabSettings,
 } from './settings';
 import {
   diatonicChords, modeFamily, neckNotes, rotateMode, scaleDef, scaleOf,
@@ -23,8 +23,6 @@ import {
 
 /** What a click may land on without clearing the selected chord. */
 const CONTROLS = 'a, button, input, select, textarea, label, summary, dialog, [role="button"]';
-
-const LABEL_OPTS = [['interval', 'Interval'], ['note', 'Note'], ['none', 'None']] as const;
 
 function dotLabel(n: NeckNote, labels: DotLabels): string {
   if (labels === 'note') return prettyNote(n.note);
@@ -188,10 +186,7 @@ export default function ScaleLab() {
       <section className="card gap-4" aria-labelledby="neck-h">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
           <h2 id="neck-h" className="m-0 mr-auto text-[17px] leading-6">On the neck</h2>
-          <Segmented<DotLabels>
-            label="Dot labels" options={LABEL_OPTS} value={set.labels}
-            onChange={labels => update({ labels })}
-          />
+          <DotLabelsPicker value={set.labels} onChange={labels => update({ labels })} />
         </div>
         <div className="board-scroll">
           <Fretboard

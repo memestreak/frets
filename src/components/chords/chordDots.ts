@@ -1,3 +1,4 @@
+import type { DotLabels } from '@/components/DotLabels';
 import type { FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES, type DotColor } from '@/components/fretboard/theme';
 import { positionsOnNeck, TUNING } from '@/lib/music';
@@ -13,22 +14,31 @@ export function toneAt(chord: ChordInfo, string: number, fret: number): ChordTon
 /** A tone's dot colour: its degree, so a 9 looks like a 2 and a 13 like a 6. */
 export const toneColor = (tone: ChordTone): DotColor => degreeColor(DEGREES[tone.degree - 1]);
 
-/** One chord tone as a dot for the big `Fretboard`, labelled by interval; the root is square. */
-function toneDot(chord: ChordInfo, s: number, f: number): FretDot {
+/** What a tone's dot says: its interval, its spelled note, or nothing. */
+function toneLabel(chord: ChordInfo, tone: ChordTone, labels: DotLabels): string {
+  if (labels === 'note') return chord.notes[chord.tones.indexOf(tone)];
+  return labels === 'interval' ? tone.label : '';
+}
+
+/** One chord tone as a dot for the big `Fretboard`; the root is square. */
+function toneDot(chord: ChordInfo, s: number, f: number, labels: DotLabels): FretDot {
   const tone = toneAt(chord, s, f);
+  const label = toneLabel(chord, tone, labels);
   return {
     s, f,
     kind: tone.label === 'R' ? 'root' : 'note',
     shape: tone.label === 'R' ? 'square' : 'circle',
     ...toneColor(tone),
-    label: tone.label,
-    fontSize: tone.label.length > 2 ? 9 : 11,
+    label,
+    fontSize: label.length > 2 ? 9 : 11,
   };
 }
 
-/** A voicing as dots for the big `Fretboard`. */
-export function voicingDots(chord: ChordInfo, voicing: Voicing): FretDot[] {
-  return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret)]));
+/** A voicing as dots for the big `Fretboard`, labelled by interval unless `labels` says otherwise. */
+export function voicingDots(
+  chord: ChordInfo, voicing: Voicing, labels: DotLabels = 'interval',
+): FretDot[] {
+  return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret, labels)]));
 }
 
 /** The strings a voicing leaves out, for the big `Fretboard` to mark. */
@@ -41,10 +51,12 @@ export function mutedStrings(voicing: Voicing): number[] {
  * `voicing`, only that shape's dots keep their labels, so the shape still
  * shows inside the arpeggio.
  */
-export function arpeggioDots(chord: ChordInfo, maxFret: number, voicing?: Voicing): FretDot[] {
+export function arpeggioDots(
+  chord: ChordInfo, maxFret: number, voicing?: Voicing, labels: DotLabels = 'interval',
+): FretDot[] {
   return positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
     .map(p => {
-      const dot = toneDot(chord, p.s, p.f);
+      const dot = toneDot(chord, p.s, p.f, labels);
       return voicing && voicing[p.s] !== p.f ? { ...dot, label: '' } : dot;
     });
 }

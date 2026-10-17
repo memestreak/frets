@@ -553,3 +553,46 @@ describe('ChordsPage, finding a chord by name', () => {
     expect(box()).toBeInTheDocument();
   });
 });
+
+describe('ChordsPage, dot labels', () => {
+  afterEach(() => localStorage.clear());
+  const labelsPicker = () => screen.getByRole('group', { name: 'Dot labels' });
+  const showLabels = (text: 'Interval' | 'Note' | 'None') =>
+    fireEvent.click(within(labelsPicker()).getByRole('button', { name: text }));
+  /** The labels of the dots on the shape x-0-2-0-1-0, low string first. */
+  const shapeLabels = () =>
+    [[1, 0], [2, 2], [3, 0], [4, 1], [5, 0]].map(([s, f]) => dotAt(s, f).textContent);
+
+  it('labels the dots by interval, note or nothing, and saves the choice', () => {
+    renderAt('?chord=am7');
+    expect(within(labelsPicker()).getByRole('button', { name: 'Interval' }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(shapeLabels()).toEqual(['R', '5', '♭7', '♭3', '5']);
+    showLabels('Note');
+    expect(shapeLabels()).toEqual(['A', 'E', 'G', 'C', 'E']);
+    expect(JSON.parse(localStorage.getItem('frets.chords.neck')!)).toEqual({ labels: 'note' });
+    showLabels('None');
+    expect(shapeLabels()).toEqual(['', '', '', '', '']);
+    expect(boardDots()).toHaveLength(5); // the dots stay, unlabelled
+  });
+
+  it('opens on the saved choice', () => {
+    localStorage.setItem('frets.chords.neck', JSON.stringify({ labels: 'note' }));
+    renderAt('?chord=fsharpm7b5');
+    expect(within(labelsPicker()).getByRole('button', { name: 'Note' }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(heading()).toHaveTextContent(/^F♯m7♭5/);
+    const labels = new Set(screen.queryAllByTestId(/^dot-/).map(d => d.textContent));
+    expect([...labels].sort()).toEqual(['A', 'C', 'E', 'F♯']);
+  });
+
+  it('names only the shape inside the arpeggio, with notes as with intervals', () => {
+    renderAt('?chord=am7');
+    showLabels('Note');
+    fireEvent.click(arpeggio());
+    expect(shapeLabels()).toEqual(['A', 'E', 'G', 'C', 'E']);
+    expect(dotAt(0, 0).textContent).toBe(''); // the open low E isn't played
+    showLabels('None');
+    expect(screen.queryAllByTestId(/^dot-/).every(d => d.textContent === '')).toBe(true);
+  });
+});
