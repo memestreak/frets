@@ -45,7 +45,26 @@ const COMMON_IDS = [
 /** Where tonal's first alias isn't how the rest of Frets writes the chord. */
 const SYMBOL_OVERRIDES: Record<string, string> = {
   M: '', 'm/ma7': 'm(maj7)', Madd9: 'add9', dim: '°', dim7: '°7', aug: '+',
+  Madd11: 'add11', Madd9add11: 'add9(add11)',
 };
+
+/**
+ * Types guitarists name that tonal lacks: a major triad with an added 11th,
+ * with and without an added 9th (D E F♯ G is Dadd9(add11)). Added to tonal
+ * so it spells them like the rest.
+ */
+const EXTRA_TYPES: readonly { intervals: string[]; aliases: string[]; name: string }[] = [
+  { intervals: ['1P', '3M', '5P', '11P'], aliases: ['Madd11', 'add11', 'Madd4', 'add4'], name: 'added eleventh' },
+  {
+    intervals: ['1P', '3M', '5P', '9M', '11P'],
+    aliases: ['Madd9add11', 'add9add11', 'add2add4'],
+    name: 'added ninth and eleventh',
+  },
+];
+for (const { intervals, aliases, name } of EXTRA_TYPES) {
+  // Once only: a reloaded module would add them again.
+  if (ChordType.get(aliases[0]).empty) ChordType.add(intervals, aliases, name);
+}
 
 /** "7b9#11" → "7♭9♯11": ♭ only where a b comes before a number. */
 const prettySymbol = (id: string) =>
@@ -123,14 +142,16 @@ export function toneLabel(interval: string): string {
 
 /**
  * A tone a voicing may leave out, as guitarists do: the perfect 5th in a
- * chord of four or more notes, and in an 11th or 13th chord the plain
- * tones below the top one (the 9th; and the 11th under a 13th).
+ * chord of four or more notes, and in an 11th or 13th chord (one with a
+ * 7th) the plain tones below the top one (the 9th; and the 11th under a
+ * 13th). An added tone, as in add9(add11), is never left out.
  */
 function isOptional(interval: string, intervals: readonly string[]): boolean {
   const top = Math.max(...intervals.map(iv => Interval.get(iv).num));
+  const extended = intervals.some(iv => Interval.get(iv).num === 7);
   if (interval === '5P') return intervals.length >= 4;
-  if (interval === '9M') return top >= 11;
-  if (interval === '11P') return top >= 13;
+  if (interval === '9M') return extended && top >= 11;
+  if (interval === '11P') return extended && top >= 13;
   return false;
 }
 

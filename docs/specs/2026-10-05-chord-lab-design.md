@@ -59,7 +59,9 @@ semitones) are compared with every chord type tonal knows:
   types missing the fewest tones are kept.
 - A root that isn't the lowest note gives a slash chord: "C/E".
 
-Order: exact names before ones missing a tone; then common types before
+Order: exact names before ones missing a tone other than the 5th (a
+chord without its 5th is how guitarists play most chords, so G B E over G
+reads G6 (no 5) before Em/G); then common types before
 the rest (so E G C reads C/E before Em♯5); then root in the bass; then the
 chord type's place in the Type list. Some types already leave a tone out
 (tonal's `7no5`, `9no5`, `13no5`); those are exact matches.
