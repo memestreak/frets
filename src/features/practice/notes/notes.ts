@@ -43,11 +43,12 @@ export const defaultNoteSettings = (): NoteSettings => ({
 
 /**
  * The settings dialog's Defaults: every field it shows goes back to its
- * default. Mode and Pause b/w sit in the header and the mic in the answer
- * card, so they are kept.
+ * default. Mode and Pause b/w sit in the header, the mic in the answer
+ * card and the reference sound in the tuner, so they are kept.
  */
 export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
-  ...defaultNoteSettings(), mode: set.mode, pause: set.pause, mic: set.mic,
+  ...defaultNoteSettings(),
+  mode: set.mode, pause: set.pause, mic: set.mic, refSound: set.refSound,
 });
 
 export const stringsInScope = (set: NoteSettings): number[] =>

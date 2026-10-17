@@ -19,8 +19,9 @@ interface TunerDialogProps {
   /** The trainer's mic, which listens while the tuner is open. */
   listener: MicListener;
   status: MicStatus;
-  /** What the strings play when pressed. */
+  /** What the strings play when pressed, chosen in the dialog. */
   sound: RefSound;
+  onSoundChange: (sound: RefSound) => void;
 }
 
 /** High e at the top and low E at the bottom, as on the board. */
@@ -29,10 +30,12 @@ const STRINGS_DOWN = [...STRINGS].reverse();
 /**
  * The tuner, for standard tuning at A440: the strings down the left, the
  * one heard lit, each playing its note when pressed; beside them the note,
- * the cents off and a strobe, against the nearest open string. T or Esc
- * closes it.
+ * the cents off and a strobe, against the nearest open string; under them
+ * the sound the strings play. T or Esc closes it.
  */
-export function TunerDialog({ open, onClose, listener, status, sound }: TunerDialogProps) {
+export function TunerDialog({
+  open, onClose, listener, status, sound, onSoundChange,
+}: TunerDialogProps) {
   // The mic would hear the reference note through the speakers.
   const pitch = useTunerPitch(listener, referenceSounding);
 
@@ -88,10 +91,17 @@ export function TunerDialog({ open, onClose, listener, status, sound }: TunerDia
           <Strobe cents={cents} height={72} />
         </div>
       </div>
-      <p className="text-muted m-0 text-[12px]">
-        Standard tuning, A440 · press a string to hear it
-        ({REF_SOUNDS.find(([v]) => v === sound)?.[1].toLowerCase()})
-      </p>
+      <div className="tuner-foot">
+        <p className="text-muted m-0 text-[12px]">
+          Standard tuning, A440 · press a string to hear it
+        </p>
+        <select
+          className="input w-auto" aria-label="Reference sound" value={sound}
+          onChange={e => onSoundChange(e.target.value as RefSound)}
+        >
+          {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+        </select>
+      </div>
     </Modal>
   );
 }

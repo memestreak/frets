@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Segmented, ToggleButton } from '@/components/controls';
-import { PlayIcon } from '@/components/icons';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { DOT } from '@/components/fretboard/theme';
 import {
@@ -17,7 +16,7 @@ import { TrainerHeader } from '@/features/practice/quiz/TrainerHeader';
 import { wasTapped } from '@/features/practice/quiz/trainerState';
 import { useTrainer } from '@/features/practice/quiz/useTrainer';
 import {
-  NOTE_LABELS, pitchClass, TUNING, SHARP_NAMES, STRING_NAMES, STRINGS, type Rng,
+  NOTE_LABELS, pitchClass, SHARP_NAMES, STRING_NAMES, STRINGS, type Rng,
 } from '@/lib/music';
 import {
   clampNoteFret, generateNoteQuestion, isCorrectNoteFret, NOTE_MAX_FRET,
@@ -27,8 +26,7 @@ import {
 import { itemPercent } from '@/features/practice/quiz/stats';
 import { heldEnough } from '@/features/practice/mic/hold';
 import { MIC_ERROR_TEXT, MicButton } from '@/features/practice/mic/MicButton';
-import { playReference, referenceSounding } from '@/features/practice/mic/reference';
-import { REF_SOUNDS, type RefSound } from '@/features/practice/mic/sounds';
+import { referenceSounding } from '@/features/practice/mic/reference';
 import { TunerDialog } from '@/features/practice/mic/TunerDialog';
 import { useMic } from '@/features/practice/mic/useMic';
 import { initNoteState, noteReducer } from './noteState';
@@ -70,7 +68,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
     setOn: on => update({ mic: on }, false),
     // A note that sounds while the quiz waits is used up, not judged later.
     onNote: (played, heldMs) => {
-      // So is one heard over a reference note (a Settings preview).
+      // So is one heard over a reference note still ringing from the tuner.
       if (settingsOpen || tunerOpen || referenceSounding() || answered || q?.mode !== 'find') {
         return true;
       }
@@ -164,6 +162,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         listener={mic.listener}
         status={mic.status}
         sound={set.refSound}
+        onSoundChange={refSound => update({ refSound }, false)}
       />
 
       <SettingsDialog
@@ -210,25 +209,6 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
               >
                 Wrong notes count as misses
               </ToggleButton>
-            </div>
-          </Field>
-          <Field label="Tuner reference notes">
-            <div className="flex flex-wrap gap-1.5">
-              <select
-                className="input w-auto" aria-label="Tuner reference notes" value={set.refSound}
-                onChange={e => update({ refSound: e.target.value as RefSound }, false)}
-              >
-                {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
-              </select>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                aria-label="Preview the reference notes: the A string"
-                onClick={() => void playReference(TUNING[1], set.refSound)}
-              >
-                <PlayIcon />
-                Preview
-              </button>
             </div>
           </Field>
         </div>

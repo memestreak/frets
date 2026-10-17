@@ -171,6 +171,14 @@ button {
   .strobe-stripe { fill: var(--ink); }
   .strobe[data-state='idle'] .strobe-stripe { fill: var(--line-strong); }
   .strobe[data-state='in-tune'] .strobe-stripe { fill: var(--success); }
+  /* Footnote left, the sound picker right; wraps under it when narrow. */
+  .tuner-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
   .tuner-strings { display: grid; gap: 6px; }
   .tuner-string { width: 56px; justify-content: center; padding-inline: 0; }
   /* The string heard is lit, as the hint button is when on. */

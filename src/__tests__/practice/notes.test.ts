@@ -11,13 +11,14 @@ const settings = (patch: Partial<NoteSettings> = {}) =>
   ({ ...defaultNoteSettings(), ...patch });
 
 describe('resetNoteSettings', () => {
-  it('resets every dialog field but keeps mode, pause and the mic', () => {
+  it('resets every dialog field but keeps mode, pause, the mic and the tuner\'s sound', () => {
     const changed = settings({
       mode: 'find', pause: true, rFrom: 9, rTo: 14,
       strings: [false, true, false, true, false, true], mic: true, micMisses: false,
+      refSound: 'piano',
     });
     expect(resetNoteSettings(changed))
-      .toEqual(settings({ mode: 'find', pause: true, mic: true }));
+      .toEqual(settings({ mode: 'find', pause: true, mic: true, refSound: 'piano' }));
   });
 });
 

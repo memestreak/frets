@@ -151,14 +151,10 @@ describe('NoteTrainer mic', () => {
     expect(saved().mic).toBe(false);
   });
 
-  it('offers the reference sounds in Settings, with a preview', () => {
+  it('leaves the reference sound out of Settings', () => {
     renderFindIt();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    const select = screen.getByRole('combobox', { name: 'Tuner reference notes' });
-    fireEvent.change(select, { target: { value: 'piano' } });
-    expect(saved().refSound).toBe('piano');
-    expect(screen.getByRole('button', { name: /^Preview the reference notes/ }))
-      .toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /reference/i })).toBeNull();
   });
 
   describe('tuner', () => {
@@ -191,6 +187,16 @@ describe('NoteTrainer mic', () => {
       for (let i = 0; i < 5; i++) pitch(64.03);
       expect(screen.getByTestId('tuner-note')).toHaveTextContent('E₄');
       expect(screen.getByTestId('tuner-cents')).toHaveTextContent('In tune');
+    });
+
+    it('picks the reference sound in the tuner, and remembers it', async () => {
+      renderFindIt();
+      await openTuner();
+      const select = screen.getByRole('combobox', { name: 'Reference sound', hidden: true });
+      expect(select).toHaveValue('acoustic');
+      fireEvent.change(select, { target: { value: 'piano' } });
+      expect(saved().refSound).toBe('piano');
+      expect(select).toHaveValue('piano');
     });
 
     it('lists the strings high e first and lights the one heard', async () => {
