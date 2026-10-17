@@ -4,12 +4,19 @@ export const PLUCK_SECONDS = 2;
 const PEAK = 0.4;
 /** The pick's attack, in seconds: short, but not a click. */
 const ATTACK_SECONDS = 0.002;
-/** Where the pick strikes, as a fraction of the string from the bridge. */
-const PICK_POSITION = 0.13;
+/**
+ * Where the pick strikes, as a fraction of the string from the bridge:
+ * further from the bridge is warmer.
+ */
+const PICK_POSITION = 0.22;
+/** How much the pick softens the noise, 0–1: lower is a softer, darker pluck. */
+const PICK_BRIGHTNESS = 0.3;
+/** Above this the body and air take the edge off, in Hz. */
+const TOP_HZ = 2800;
 /** Seconds for the low E to die away by 60 dB; higher strings die sooner. */
 const LOW_E_DECAY = 4;
 /** The guitar body's resonances: [Hz, gain in dB, Q]. */
-const BODY: [number, number, number][] = [[100, 6, 1.2], [210, 4, 1.5], [420, 2, 2]];
+const BODY: [number, number, number][] = [[100, 8, 1.2], [210, 5, 1.5], [420, 2, 2]];
 
 /**
  * A plucked string, by Karplus-Strong (as extended by Jaffe and Smith): a
@@ -52,6 +59,7 @@ export function renderPluck(
   }
 
   for (const [f, gain, q] of BODY) peak(out, sampleRate, f, gain, q);
+  lowpass(out, sampleRate, TOP_HZ);
   let max = 0;
   for (let i = 0; i < n; i++) max = Math.max(max, Math.abs(out[i]));
   const attack = ATTACK_SECONDS * sampleRate;
@@ -95,7 +103,7 @@ function pickedNoise(length: number, seed: number): Float32Array {
   const noise = new Float32Array(length);
   let soft = 0;
   for (let i = 0; i < length; i++) {
-    soft += 0.5 * (random() - soft);
+    soft += PICK_BRIGHTNESS * (random() - soft);
     noise[i] = soft;
   }
   const notch = Math.max(1, Math.round(PICK_POSITION * length));
@@ -110,11 +118,23 @@ function peak(x: Float32Array, sampleRate: number, f: number, gainDb: number, q:
   const w = (2 * Math.PI * f) / sampleRate;
   const alpha = Math.sin(w) / (2 * q);
   const a0 = 1 + alpha / a;
-  const b0 = (1 + alpha * a) / a0;
-  const b1 = (-2 * Math.cos(w)) / a0;
-  const b2 = (1 - alpha * a) / a0;
-  const a1 = b1;
-  const a2 = (1 - alpha / a) / a0;
+  biquad(x, [(1 + alpha * a) / a0, (-2 * Math.cos(w)) / a0, (1 - alpha * a) / a0],
+    [(-2 * Math.cos(w)) / a0, (1 - alpha / a) / a0]);
+}
+
+/** A Butterworth low-pass (RBJ's cookbook), in place. */
+function lowpass(x: Float32Array, sampleRate: number, f: number) {
+  const w = (2 * Math.PI * f) / sampleRate;
+  const alpha = Math.sin(w) / Math.SQRT2;
+  const a0 = 1 + alpha;
+  const b = (1 - Math.cos(w)) / 2 / a0;
+  biquad(x, [b, 2 * b, b], [(-2 * Math.cos(w)) / a0, (1 - alpha) / a0]);
+}
+
+/** Runs a normalized biquad over `x` in place. */
+function biquad(
+  x: Float32Array, [b0, b1, b2]: number[], [a1, a2]: number[],
+) {
   let x1 = 0;
   let x2 = 0;
   let y1 = 0;
