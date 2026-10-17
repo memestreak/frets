@@ -26,6 +26,7 @@ import {
 import { itemPercent } from '@/features/practice/quiz/stats';
 import { heldEnough } from '@/features/practice/mic/hold';
 import { MIC_ERROR_TEXT, MicButton } from '@/features/practice/mic/MicButton';
+import { REF_SOUNDS, type RefSound } from '@/features/practice/mic/sounds';
 import { TunerDialog } from '@/features/practice/mic/TunerDialog';
 import { useMic } from '@/features/practice/mic/useMic';
 import { initNoteState, noteReducer } from './noteState';
@@ -157,6 +158,7 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
         onClose={() => setTunerOpen(false)}
         listener={mic.listener}
         status={mic.status}
+        sound={set.refSound}
       />
 
       <SettingsDialog
@@ -204,6 +206,14 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
                 Wrong notes count as misses
               </ToggleButton>
             </div>
+          </Field>
+          <Field label="Tuner reference notes">
+            <select
+              className="input w-auto" aria-label="Tuner reference notes" value={set.refSound}
+              onChange={e => update({ refSound: e.target.value as RefSound }, false)}
+            >
+              {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+            </select>
           </Field>
         </div>
       </SettingsDialog>

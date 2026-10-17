@@ -148,30 +148,3 @@ function biquad(
     x[i] = y;
   }
 }
-
-/** After a pluck, the room's echo dies away for this long. */
-const ECHO_MS = 150;
-
-let output: AudioContext | null = null;
-let playing: AudioBufferSourceNode | null = null;
-let soundingUntil = 0;
-
-/** Is a reference pluck (or its echo) sounding, for a mic to ignore? */
-export const pluckSounding = (): boolean => performance.now() < soundingUntil;
-
-/** Plays open string `midi` through the speakers, cutting off any before it. */
-export function playPluck(midi: number) {
-  output ??= new AudioContext();
-  const ctx = output;
-  void ctx.resume();
-  const samples = renderPluck(midi, ctx.sampleRate);
-  const buffer = ctx.createBuffer(1, samples.length, ctx.sampleRate);
-  buffer.copyToChannel(samples, 0);
-  playing?.stop();
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
-  source.start();
-  playing = source;
-  soundingUntil = performance.now() + PLUCK_SECONDS * 1000 + ECHO_MS;
-}

@@ -6,7 +6,8 @@ import { STRINGS, TUNING } from '@/lib/music';
 import type { MicListener } from './listener';
 import { MIC_ERROR_TEXT } from './MicButton';
 import { pitchLabel } from './pitch';
-import { playPluck, pluckSounding } from './pluck';
+import { playReference, preloadReference, referenceSounding } from './reference';
+import { REF_SOUNDS, type RefSound } from './sounds';
 import { Strobe } from './Strobe';
 import { centsFrom, centsText, IN_TUNE_CENTS, nearestString } from './tuner';
 import { useTunerPitch } from './useTunerPitch';
@@ -18,6 +19,8 @@ interface TunerDialogProps {
   /** The trainer's mic, which listens while the tuner is open. */
   listener: MicListener;
   status: MicStatus;
+  /** What the strings play when pressed. */
+  sound: RefSound;
 }
 
 /** High e at the top and low E at the bottom, as on the board. */
@@ -29,9 +32,13 @@ const STRINGS_DOWN = [...STRINGS].reverse();
  * the cents off and a strobe, against the nearest open string. T or Esc
  * closes it.
  */
-export function TunerDialog({ open, onClose, listener, status }: TunerDialogProps) {
+export function TunerDialog({ open, onClose, listener, status, sound }: TunerDialogProps) {
   // The mic would hear the reference note through the speakers.
-  const pitch = useTunerPitch(listener, pluckSounding);
+  const pitch = useTunerPitch(listener, referenceSounding);
+
+  useEffect(() => {
+    if (open) preloadReference(sound);
+  }, [open, sound]);
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +70,7 @@ export function TunerDialog({ open, onClose, listener, status }: TunerDialogProp
               className="btn btn-secondary tuner-string"
               data-heard={s === string}
               aria-label={`Play ${pitchLabel(TUNING[string])}`}
-              onClick={() => playPluck(TUNING[string])}
+              onClick={() => void playReference(TUNING[string], sound)}
             >
               {pitchLabel(TUNING[string])}
             </button>
@@ -83,6 +90,7 @@ export function TunerDialog({ open, onClose, listener, status }: TunerDialogProp
       </div>
       <p className="text-muted m-0 text-[12px]">
         Standard tuning, A440 · press a string to hear it
+        ({REF_SOUNDS.find(([v]) => v === sound)?.[1].toLowerCase()})
       </p>
     </Modal>
   );

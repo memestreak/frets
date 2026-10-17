@@ -159,7 +159,9 @@ binds a local port).
     remembered choice, each held note judged once) and `MicButton.tsx`
     (fixed-size toggle with the live note and level). The tuner:
     `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts`
-    (reference notes, and `pluckSounding` so the mic ignores them),
+    (the simulated string), `sounds.ts` (the recorded sets in
+    `public/sounds/` and each one's measured tuning), `reference.ts`
+    (plays a reference note; `referenceSounding` so the mic ignores it),
     `useTunerPitch.ts`, `Strobe.tsx` and `TunerDialog.tsx`; it borrows the
     trainer's mic (`useMic`'s `borrowed`). The shared reducer's
     `answerPitch` places a played pitch with the trainer's optional
@@ -219,6 +221,10 @@ binds a local port).
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
+Third-party material (the chord shapes, the tuner's recordings) is listed
+with its licence in `NOTICE.md` and credited in `AppFooter`; add both for
+anything new.
+
 ## Styling
 
 - `src/styles/fretwood.css` is the Fretwood design system: its tokens (names
@@ -244,7 +250,8 @@ binds a local port).
 ## Storage
 
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }`; `["frets.explore.scales"]` holds the Scale lab's
+hold `{ set, stats }` (the Note trainer's set includes the mic choice and
+the tuner's reference sound); `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
