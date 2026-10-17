@@ -45,6 +45,8 @@ describe('spelling', () => {
     expect(formula('C', 'lydian-dominant')).toBe('1 2 3 ♯4 5 6 ♭7');
     expect(formula('C', 'ultralocrian')).toBe('1 ♭2 ♭3 ♭4 ♭5 ♭6 𝄫7');
     expect(formula('A', 'minor-blues')).toBe('1 ♭3 4 ♭5 5 ♭7');
+    expect(formula('C', 'hungarian-major')).toBe('1 ♯2 3 ♯4 5 6 ♭7');
+    expect(notes('C', 'hungarian-major')).toBe('C D♯ E F♯ G A B♭');
   });
 
 });
@@ -70,6 +72,17 @@ describe('diatonicChords', () => {
     expect(chords[6].thirds).toEqual(['m3', 'm3', 'm3']);
     expect(chords[6].fromRoot).toEqual(['m3', 'd5', 'd7']);
     expect(chords[2].thirds).toEqual(['M3', 'M3', 'm3']);
+  });
+
+  it('stacks the chords of C Hungarian major', () => {
+    expect(row('C', 'hungarian-major', 3).map(c => c.symbol))
+      .toEqual(['C', 'D♯°', 'E°', 'F♯°', 'Gm♯5', 'Am', 'B♭sus4♯5']);
+    expect(row('C', 'hungarian-major', 3).map(c => c.numeral))
+      .toEqual(['I', '♯ii°', 'iii°', '♯iv°', 'v♯5', 'vi', '♭VIIsus4♯5']);
+    expect(row('C', 'hungarian-major', 4).map(c => c.symbol)).toEqual([
+      'C7', 'D♯°7', 'E°(maj7)', 'F♯m7♭5', 'Gm(maj7)♯5', 'Am7', 'B♭maj7♯5sus4',
+    ]);
+    expect(row('C', 'hungarian-major', 4)[6].labels).toEqual(['1', '♯3', '♯5', '7']);
   });
 
   it('numbers chords against the major scale on the same root', () => {
@@ -190,8 +203,8 @@ describe('rotateMode', () => {
     }
   });
 
-  it('leaves pentatonic and blues scales alone', () => {
-    for (const id of ['major-pentatonic', 'minor-pentatonic', 'minor-blues']) {
+  it('leaves scales outside a family alone', () => {
+    for (const id of ['major-pentatonic', 'minor-pentatonic', 'minor-blues', 'hungarian-major']) {
       expect(modeFamily(scaleDef(id)!)).toBeNull();
       expect(rotated('C', id, 3)).toBe(`C ${id} +0`);
     }
