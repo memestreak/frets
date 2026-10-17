@@ -46,19 +46,40 @@ describe('strobeStep', () => {
 });
 
 describe('renderPluck', () => {
-  it('sounds each open string exactly in tune', () => {
-    for (const midi of TUNING) {
-      const samples = renderPluck(midi, 48000, 0.5);
-      const window = samples.slice(2400, 2400 + 4096);
-      const pitch = detectPitch(window, 48000);
-      expect(Math.abs(freqToMidi(pitch!.hz) - midi) * 100).toBeLessThan(2);
+  it('sounds each open string in tune to half a cent, at either rate', () => {
+    for (const sampleRate of [44100, 48000]) {
+      for (const midi of TUNING) {
+        const samples = renderPluck(midi, sampleRate, 0.5);
+        const window = samples.slice(sampleRate * 0.2, sampleRate * 0.2 + 4096);
+        const pitch = detectPitch(window, sampleRate);
+        expect(Math.abs(freqToMidi(pitch!.hz) - midi) * 100).toBeLessThan(0.5);
+      }
     }
+  });
+
+  it('is the same pluck for the same seed, and a different one otherwise', () => {
+    expect(renderPluck(45, 48000, 0.1)).toEqual(renderPluck(45, 48000, 0.1));
+    expect(renderPluck(45, 48000, 0.1, 2)).not.toEqual(renderPluck(45, 48000, 0.1));
+  });
+
+  it('loses its highs before its fundamental, like a string', () => {
+    const samples = renderPluck(45, 48000, 2);
+    const harshness = (from: number) => {
+      let diff = 0;
+      let level = 0;
+      for (let i = from; i < from + 4800; i++) {
+        diff += (samples[i] - samples[i - 1]) ** 2;
+        level += samples[i] ** 2;
+      }
+      return diff / level;
+    };
+    expect(harshness(4800)).toBeGreaterThan(harshness(48000) * 1.5);
   });
 
   it('starts and ends silent, so it never clicks', () => {
     const samples = renderPluck(45, 48000, 1);
-    expect(samples[0]).toBe(0);
+    expect(Math.abs(samples[0])).toBe(0);
     expect(Math.abs(samples[samples.length - 1])).toBeLessThan(1e-4);
-    expect(Math.max(...samples.map(Math.abs))).toBeLessThanOrEqual(0.4);
+    expect(Math.max(...samples.map(Math.abs))).toBeLessThanOrEqual(0.4 + 1e-6);
   });
 });

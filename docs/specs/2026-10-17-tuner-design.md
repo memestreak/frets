@@ -38,8 +38,11 @@ in the page can reuse.
   the last one up for 400 ms after the note stops.
 - `useMic` takes `borrowed`: true listens whatever the choice, false goes
   back to it, saving nothing.
-- The reference pluck adds up seven overtones from exact sines, each dying
-  away, the higher ones faster, so it is exactly in tune.
+- The reference pluck is a simulated string (Karplus-Strong, as extended
+  by Jaffe and Smith): a noise burst notched where the pick strikes
+  circulates in a loop one period long, losing its highs on each pass,
+  then sounds through three body resonances. An allpass tunes the loop's
+  fractional length, so each string is within a tenth of a cent.
 - `Modal`: the native-`<dialog>` shell the Settings dialog used, now
   shared by both. It focuses the dialog itself on opening, not its close
   button, so no focus ring shows until the user tabs.
