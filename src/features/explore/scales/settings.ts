@@ -1,9 +1,9 @@
+import { isDotLabels, type DotLabels } from '@/components/DotLabels';
 import { LAST_POSITION } from '@/lib/chords/voicings';
 import {
   modeFamily, ROOTS, scaleDef, type ChordSize, type Root,
 } from './theory';
 
-export type DotLabels = 'interval' | 'note' | 'none';
 /** How a selected chord is drawn against the scale. */
 export type ChordView = 'ladder' | 'clock';
 /** Which intervals the chord diagram names: each tone from the chord root, or each third. */
@@ -35,7 +35,6 @@ export const defaultScaleLabSettings = (): ScaleLabSettings => ({
 });
 
 const CHORD_SIZES: unknown[] = [3, 4];
-const LABELS: unknown[] = ['interval', 'note', 'none'];
 const CHORD_VIEWS: unknown[] = ['ladder', 'clock'];
 const CHORD_INTERVALS: unknown[] = ['root', 'between'];
 
@@ -52,7 +51,7 @@ export function parseScaleLabSettings(raw: unknown): ScaleLabSettings {
     mode: rotates && Number.isInteger(r.mode) && (r.mode as number) >= 0 && (r.mode as number) < 7
       ? (r.mode as number) : d.mode,
     chordSize: CHORD_SIZES.includes(r.chordSize) ? (r.chordSize as ChordSize) : d.chordSize,
-    labels: LABELS.includes(r.labels) ? (r.labels as DotLabels) : d.labels,
+    labels: isDotLabels(r.labels) ? r.labels : d.labels,
     chordView: CHORD_VIEWS.includes(r.chordView) ? (r.chordView as ChordView) : d.chordView,
     chordIntervals: CHORD_INTERVALS.includes(r.chordIntervals)
       ? (r.chordIntervals as ChordIntervals) : d.chordIntervals,

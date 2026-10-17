@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ToggleButton } from '@/components/controls';
+import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/chordDots';
+import { usePersist } from '@/hooks/usePersist';
 import { TUNING, type Position } from '@/lib/music';
+import { loadJson } from '@/lib/storage';
 import {
   CHORD_ROOTS, chordFromTones, chordOf, formulaOf, type ChordInfo, type ChordRoot,
 } from '@/lib/chords/chordTypes';
@@ -17,6 +20,7 @@ import {
 import { ChordHeader } from './ChordHeader';
 import { ChordPickers } from './ChordPickers';
 import { nameNotes } from './naming';
+import { NECK_STORAGE_KEY, parseNeckSettings } from './neckSettings';
 import { NameList } from './NameList';
 import { useShapeExport } from './export/useShapeExport';
 import { useSpaceKey } from './useSpaceKey';
@@ -72,23 +76,34 @@ function startFromUrl(): Start {
 
 /**
  * The Chords page. Back and Forward start the page again from the URL;
- * the Arpeggio switch lives here, so it stays on through them.
+ * the Arpeggio switch and the saved neck settings live here, so they stay
+ * through them.
  */
 export default function ChordsPage() {
   const [entry, setEntry] = useState(0);
   const [arpeggio, setArpeggio] = useState(false);
+  const [neck, setNeck] = useState(() => parseNeckSettings(loadJson(NECK_STORAGE_KEY)));
+  usePersist(NECK_STORAGE_KEY, neck);
   useEffect(() => {
     const onPop = () => setEntry(n => n + 1);
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  return <Chords key={entry} arpeggio={arpeggio} onArpeggio={setArpeggio} />;
+  return (
+    <Chords
+      key={entry} arpeggio={arpeggio} onArpeggio={setArpeggio}
+      labels={neck.labels} onLabels={labels => setNeck(n => ({ ...n, labels }))}
+    />
+  );
 }
 
 interface ChordsProps {
   /** Whether the neck shows every chord tone instead of the frets played. */
   arpeggio: boolean;
   onArpeggio: (on: boolean) => void;
+  /** What the dots on the neck say. */
+  labels: DotLabels;
+  onLabels: (labels: DotLabels) => void;
 }
 
 /**
@@ -103,7 +118,7 @@ interface ChordsProps {
  * on a shape, that shape. Its own state: the frets, the kept chord, the
  * chosen name and Show all.
  */
-function Chords({ arpeggio, onArpeggio }: ChordsProps) {
+function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
   const [start] = useState(startFromUrl);
   const [frets, setFrets] = useState<Voicing>(start.frets);
   const [kept, setKept] = useState<ChordInfo | null>(start.kept);
@@ -196,8 +211,8 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
 
   const title = name?.symbol ?? (chord ? 'No name' : 'Tap the neck');
   const dots = !chord ? []
-    : arpeggio ? arpeggioDots(chord, MAX_FRET, frets)
-    : voicingDots(chord, frets);
+    : arpeggio ? arpeggioDots(chord, MAX_FRET, frets, labels)
+    : voicingDots(chord, frets, labels);
   // Only the tapping hint: the shapes below mark the one on the neck,
   // and the Arpeggio button says when the arpeggio is showing.
   const caption = chord ? '' : 'Tap a fret to play it on that string; tap it again to mute the string.';
@@ -237,9 +252,12 @@ function Chords({ arpeggio, onArpeggio }: ChordsProps) {
             canMoveDown={moveDown !== null} canMoveUp={moveUp !== null}
             caption={caption} onMove={move}
           />
-          <ToggleButton pressed={arpeggio} disabled={!hasChord} onClick={toggleArpeggio}>
-            Arpeggio
-          </ToggleButton>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <DotLabelsPicker value={labels} onChange={onLabels} />
+            <ToggleButton pressed={arpeggio} disabled={!hasChord} onClick={toggleArpeggio}>
+              Arpeggio
+            </ToggleButton>
+          </div>
         </div>
       </section>
 

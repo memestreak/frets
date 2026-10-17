@@ -23,7 +23,9 @@ its chord along the neck; ← → step through the shapes) and
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
 library and the Chord lab into it). Both the Scale lab and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
-(`docs/specs/2026-10-16-key-picker-design.md`); on the Chords page a
+(`docs/specs/2026-10-16-key-picker-design.md`), and label their neck's dots
+with `DotLabelsPicker`, Interval, Note or None
+(`docs/specs/2026-10-17-chord-neck-labels-design.md`); on the Chords page a
 magnifier beside Type also finds a chord by its typed or pasted name
 (`docs/specs/2026-10-16-chord-search-design.md`), and its Export options
 choose the image's size and whether it is transparent
@@ -135,7 +137,8 @@ binds a local port).
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
   for the neck),
-  `src/components/controls.tsx` and `icons.tsx`, `src/components/KeyPicker.tsx`
+  `src/components/controls.tsx` and `icons.tsx`, `src/components/DotLabels.tsx`
+  (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), and `src/hooks/usePersist.ts`.
 - `src/features/<section>/` — everything only one section uses. For
@@ -255,7 +258,7 @@ anything new.
 `localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
 hold `{ set, stats }` (the Note trainer's set includes the mic choice and
 the tuner's reference sound); `["frets.explore.scales"]` holds the Scale lab's
-settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing
