@@ -31,6 +31,20 @@ export interface DiagramLook {
   title?: string;
 }
 
+/** A diagram's width of `DIAGRAM_FRETS` frets, the usual one, in SVG units. */
+export const DIAGRAM_WIDTH = LEFT + DIAGRAM_FRETS * CELL + 6;
+
+/** A diagram's size in SVG units, and how many frets it draws. */
+export function diagramSize(voicing: Voicing, titled: boolean, startFret?: number) {
+  const start = startFret ?? diagramStartFret(voicing);
+  const frets = Math.max(DIAGRAM_FRETS, ...voicing.map(f => (f ? f - start + 1 : 0)));
+  return {
+    width: LEFT + frets * CELL + 6,
+    height: TOP + (titled ? TITLE : 0) + BOARD_HEIGHT + BOTTOM,
+    frets,
+  };
+}
+
 /** The pages' look: plain lines in ink, like a printed chord chart, following the theme. */
 export const PAGE_LOOK: DiagramLook = {
   line: 'var(--line-strong)',
@@ -59,11 +73,9 @@ interface ChordDiagramProps {
  */
 export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: ChordDiagramProps) {
   const start = startFret ?? diagramStartFret(voicing);
-  const frets = Math.max(DIAGRAM_FRETS, ...voicing.map(f => (f ? f - start + 1 : 0)));
+  const { width, height, frets } = diagramSize(voicing, Boolean(look.title), start);
   const boardWidth = frets * CELL;
-  const width = LEFT + boardWidth + 6;
   const top = TOP + (look.title ? TITLE : 0);
-  const height = top + BOARD_HEIGHT + BOTTOM;
   // Centre of a fretted note's column; open strings sit left of the nut.
   const x = (fret: number) => (fret === 0 ? LEFT / 2 : LEFT + (fret - start + 0.5) * CELL);
   /** Low E (string 0) at the bottom. */

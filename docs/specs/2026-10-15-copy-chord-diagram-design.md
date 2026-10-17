@@ -92,8 +92,9 @@ Text uses Figtree, falling back to the system sans-serif. The SVG names the
 font but doesn't embed it (it would triple the file); the PNG embeds it
 while drawing, so it looks the same everywhere.
 
-- **PNG**: 4× the diagram's size (about 680 × 580 pixels with the name),
-  transparent wherever nothing is drawn.
+- **PNG**: 150 to 600 pixels wide, as chosen, transparent wherever nothing
+  is drawn unless Transparent is off (see
+  `docs/specs/2026-10-17-export-size-design.md`; it was 4× the diagram).
 - **SVG**: standalone, with `width`, `height` and `viewBox`, no CSS
   variables or classes.
 - File names are the chord and the shape: `Am7_x-0-2-0-1-0.png`, with an underscore

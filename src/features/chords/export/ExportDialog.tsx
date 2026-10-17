@@ -5,8 +5,8 @@ import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { Segmented } from '@/components/controls';
 import { CloseIcon } from '@/components/icons';
 import { voicingCaption } from '@/lib/chords/voicings';
-import { copyPng, copySvg, download, type ExportShape } from './exportImage';
-import { exportLook, type ExportStyle } from './exportStyle';
+import { copyPng, copySvg, download, exportPixels, type ExportShape } from './exportImage';
+import { EXPORT_SIZES, exportLook, type ExportStyle } from './exportStyle';
 
 interface ExportDialogProps {
   /** The shape to export, with its deduced name; the dialog is open while there is one. */
@@ -18,11 +18,20 @@ interface ExportDialogProps {
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
 const HIDE_SHOW = [['hide', 'Hide'], ['show', 'Show']] as const;
+const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
 const showHide = (on: boolean) => (on ? 'show' : 'hide');
+const SIZES = EXPORT_SIZES.map(size => [size, String(size)] as const);
+const BEHIND = { light: 'on white', dark: 'on dark grey' } as const;
+
+/** "300 × 312 px, transparent": the image as it will come out. */
+function sizeCaption(shape: ExportShape, style: ExportStyle): string {
+  const { width, height } = exportPixels(shape, style);
+  return `${width} × ${height} px, ${style.transparent ? 'transparent' : BEHIND[style.background]}`;
+}
 
 /**
  * The Export dialog, on the native modal `<dialog>`: a preview of the image
- * as it will be, the four choices, the name to print (the deduced name,
+ * as it will be with its size in pixels, the six choices, the name to print (the deduced name,
  * which can be edited for this export), and Copy PNG, Copy SVG, Download
  * PNG and Download SVG, with a line saying what happened. It stays open
  * after an action; Done, × or Esc close it.
@@ -94,6 +103,9 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
                 chord={shown.chord} voicing={shown.voicing} look={exportLook(style, name)}
               />
             </div>
+            <p className="export-size" data-testid="export-size">
+              {sizeCaption({ ...shown, name }, style)}
+            </p>
             <div className="export-choices">
               <span>Colours</span>
               <Segmented
@@ -105,6 +117,15 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
                 label="Background" value={style.background}
                 onChange={background => set({ background })}
                 options={[['light', 'Light'], ['dark', 'Dark']]}
+              />
+              <span>Size<span className="export-unit"> (px wide)</span></span>
+              <Segmented
+                label="Size" value={style.size} onChange={size => set({ size })} options={SIZES}
+              />
+              <span>Transparent</span>
+              <Segmented
+                label="Transparent" value={style.transparent ? 'on' : 'off'}
+                onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
               />
               <span>Intervals</span>
               <Segmented
