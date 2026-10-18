@@ -13,7 +13,8 @@ guitar" thread from mocks; details he left open are marked as defaults.
   a phone:** the root, with
   `KeyPicker` (Jeremy: use the standard key picker); the triad, a
   segmented Major / Minor / Dim / Aug; and the string set, a segmented
-  E A D / A D G / D G B / G B e. Both are columns of buttons, side by
+  e B G / B G D / G D A / D A E: high strings
+  first and named high to low, in the caption too (Jeremy). Both are columns of buttons, side by
   side (Jeremy). Roots are spelled one way per pitch, as on the Chords page
   (D♭, E♭, F♯, A♭, B♭; default).
 - **One string set across the whole neck** (frets 0–15, as in the Scale
@@ -27,7 +28,7 @@ guitar" thread from mocks; details he left open are marked as defaults.
   2nd.
 - **Dots** are coloured by degree, the root square, as on the Chords
   page, and labelled by the Interval / Note / None switch.
-- **A caption above the neck:** "C major on the G-B-e strings. Tap a grip
+- **A caption above the neck:** "C major on the e-B-G strings. Tap a grip
   to name it." Augmented's grips repeat every four frets, which the neck
   shows without comment.
 

@@ -8,7 +8,6 @@ import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
 import { usePersist } from '@/hooks/usePersist';
 import { chordOf, chordRootOf } from '@/lib/chords/chordTypes';
-import { STRING_NAMES } from '@/lib/music';
 import { loadJson } from '@/lib/storage';
 import {
   parseTriadsSettings, TRIADS_STORAGE_KEY, type TriadsSettings,
@@ -55,7 +54,7 @@ export default function Triads() {
   }));
   // "D♭ augmented"
   const name = `${chord.notes[0]} ${chord.type!.name}`;
-  const setName = strings.map(s => STRING_NAMES[s]).join('-');
+  const setName = setLabel(set.strings, '-');
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
@@ -85,7 +84,7 @@ export default function Triads() {
             <div>
               <span className="field-label">Strings</span>
               <Segmented
-                label="Strings" options={STRING_SETS.map(n => [n, setLabel(n)] as const)}
+                label="Strings" options={[...STRING_SETS].reverse().map(n => [n, setLabel(n)] as const)}
                 value={set.strings} onChange={strings => update({ strings })} vertical
               />
             </div>

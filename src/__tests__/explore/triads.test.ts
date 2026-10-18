@@ -78,7 +78,8 @@ describe('gripCaption', () => {
 });
 
 describe('setLabel', () => {
-  it('names the strings, low to high', () => {
-    expect(STRING_SETS.map(setLabel)).toEqual(['E A D', 'A D G', 'D G B', 'G B e']);
+  it('names the strings, high to low', () => {
+    expect(STRING_SETS.map(set => setLabel(set))).toEqual(['D A E', 'G D A', 'B G D', 'e B G']);
+    expect(setLabel(3, '-')).toBe('e-B-G');
   });
 });
