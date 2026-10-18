@@ -13,6 +13,15 @@ export const CHORD_ROOTS = [
 ] as const;
 export type ChordRoot = (typeof CHORD_ROOTS)[number];
 
+/** Chord roots have one spelling each: the root picker's others map onto it. */
+const ENHARMONIC: Partial<Record<string, ChordRoot>> = {
+  'C#': 'Db', 'D#': 'Eb', Gb: 'F#', 'G#': 'Ab', 'A#': 'Bb',
+};
+
+/** The chord root a root picker's note picks: "C#" → "Db", "C" → "C". */
+export const chordRootOf = (note: string): ChordRoot =>
+  ENHARMONIC[note] ?? (note as ChordRoot);
+
 export type ChordGroup = 'Common' | 'Triads' | 'Sixths and sevenths' | 'Extended' | 'Altered';
 export const CHORD_GROUPS: readonly ChordGroup[] = [
   'Common', 'Triads', 'Sixths and sevenths', 'Extended', 'Altered',

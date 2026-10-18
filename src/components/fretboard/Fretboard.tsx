@@ -20,6 +20,13 @@ export interface FretDot extends Position, DotColor {
   kind: string;
 }
 
+/** A band joining a shape's dots, drawn behind them, with an optional name above the board. */
+export interface FretLink {
+  points: Position[];
+  label?: string;
+  opacity?: number;
+}
+
 export interface StringStyle {
   color?: string;
   width?: number;
@@ -51,10 +58,17 @@ interface FretboardProps {
    * × where its open-string dot would be when the board starts at the nut.
    */
   mutedStrings?: readonly number[];
+  /** Bands joining the dots of each shape (the Triads page's grips). */
+  links?: readonly FretLink[];
 }
 
 /** How far a muted string and its name fade. */
 const MUTED_OPACITY = 0.3;
+/** A link's band: faint, and as wide as a dot, so it reads as one shape. */
+const LINK_OPACITY = 0.3;
+const LINK_WIDTH = 24;
+/** Room above the board for the links' names. */
+const LINK_LABEL_ROOM = 20;
 
 const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f}`;
 
@@ -65,7 +79,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
  */
 export function Fretboard({
   minFret, maxFret, dots, onCellClick, isCellDisabled, stringStyle,
-  scrollToFret, label = 'Fretboard', box, inPlay, mutedStrings = [],
+  scrollToFret, label = 'Fretboard', box, inPlay, mutedStrings = [], links = [],
 }: FretboardProps) {
   const clipId = useId();
   const stringOpacity = (s: number) =>
@@ -73,7 +87,10 @@ export function Fretboard({
   const playFrom = inPlay?.from ?? minFret;
   const playTo = inPlay?.to ?? maxFret;
   const isInPlay = (f: number) => f >= playFrom && f <= playTo;
-  const g = useMemo(() => fretboardGeometry(minFret, maxFret), [minFret, maxFret]);
+  const headroom = links.some(l => l.label) ? LINK_LABEL_ROOM : 0;
+  const g = useMemo(
+    () => fretboardGeometry(minFret, maxFret, headroom), [minFret, maxFret, headroom],
+  );
   const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
   const cellRefs = useRef(new Map<string, SVGRectElement>());
   const svgRef = useRef<SVGSVGElement>(null);
@@ -192,6 +209,28 @@ export function Fretboard({
           style={{ fill: 'none', stroke: BOARD.box }} strokeWidth={3}
         />
       )}
+      {links.map((l, i) => {
+        const xs = l.points.map(p => g.cx(p.f));
+        return (
+          <g key={i} opacity={l.opacity ?? 1} data-testid="link" aria-hidden="true">
+            <polyline
+              points={l.points.map(p => `${g.cx(p.f)},${g.cy(p.s)}`).join(' ')}
+              style={{ fill: 'none', stroke: BOARD.link }}
+              strokeOpacity={LINK_OPACITY} strokeWidth={LINK_WIDTH}
+              strokeLinecap="round" strokeLinejoin="round"
+            />
+            {l.label && (
+              <text
+                x={(Math.min(...xs) + Math.max(...xs)) / 2} y={g.fillY - 7}
+                textAnchor="middle" fontSize={12} fontWeight={600}
+                style={{ fill: BOARD.label, fontFamily: 'var(--font-sans)' }}
+              >
+                {l.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
       <g
         style={{ fill: BOARD.label, fontFamily: 'var(--font-sans)' }}
         fontSize={12} fontWeight={500} aria-hidden="true"

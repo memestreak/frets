@@ -14,6 +14,8 @@ export const BOARD = {
   dotRing: 'var(--dot-ring)',
   /** Outline of a fret range (`Fretboard`'s `box`). */
   box: 'var(--primary)',
+  /** Band joining a shape's dots (`Fretboard`'s `links`), at reduced opacity. */
+  link: 'var(--string)',
   /** Wash over frets out of play (`Fretboard`'s `inPlay`), at reduced opacity. */
   shade: 'var(--surface)',
 } as const;

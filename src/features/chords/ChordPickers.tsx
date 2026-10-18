@@ -2,14 +2,9 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { KeyPicker } from '@/components/KeyPicker';
 import { SearchIcon } from '@/components/icons';
 import {
-  CHORD_GROUPS, CHORD_TYPES, type ChordRoot,
+  chordRootOf, CHORD_GROUPS, CHORD_TYPES, type ChordRoot,
 } from '@/lib/chords/chordTypes';
 import { findChord } from './chordSearch';
-
-/** Chord roots have one spelling each: the picker's others map onto it. */
-const ENHARMONIC: Partial<Record<string, ChordRoot>> = {
-  'C#': 'Db', 'D#': 'Eb', Gb: 'F#', 'G#': 'Ab', 'A#': 'Bb',
-};
 
 interface ChordPickersProps {
   root: ChordRoot;
@@ -80,7 +75,7 @@ export function ChordPickers({ root, typeId, onRoot, onType, onChord }: ChordPic
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <KeyPicker
-        value={root} resolve={n => ENHARMONIC[n] ?? n}
+        value={root} resolve={chordRootOf}
         onPick={n => onRoot(n as ChordRoot)}
       />
       <div className="flex min-w-0 items-center gap-2">

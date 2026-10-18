@@ -73,4 +73,22 @@ describe('Fretboard', () => {
     render(<Fretboard minFret={0} maxFret={15} dots={[]} inPlay={{ from: 0, to: 15 }} />);
     expect(screen.queryByTestId('board-shade')).not.toBeInTheDocument();
   });
+
+  it('joins each link\'s dots with a band, named above a board made taller for it', () => {
+    const points = [{ s: 3, f: 9 }, { s: 4, f: 8 }, { s: 5, f: 8 }];
+    render(<Fretboard minFret={0} maxFret={15} dots={[]} links={[{ points, label: '1st', opacity: 0.25 }]} />);
+    const g = fretboardGeometry(0, 15, 20);
+    const link = screen.getByTestId('link');
+    expect(link).toHaveAttribute('opacity', '0.25');
+    expect(link.querySelector('polyline')).toHaveAttribute(
+      'points', points.map(p => `${g.cx(p.f)},${g.cy(p.s)}`).join(' '),
+    );
+    expect(link).toHaveTextContent('1st');
+    expect(screen.getByTestId('board-fill')).toHaveAttribute('y', String(g.fillY));
+  });
+
+  it('keeps its height when no link is named', () => {
+    render(<Fretboard minFret={0} maxFret={5} dots={[]} links={[{ points: [{ s: 0, f: 1 }, { s: 1, f: 2 }] }]} />);
+    expect(screen.getByTestId('board-fill')).toHaveAttribute('y', String(fretboardGeometry(0, 5).fillY));
+  });
 });

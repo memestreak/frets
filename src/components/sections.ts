@@ -46,6 +46,11 @@ export const EXPLORE: Section = {
       summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
     },
     {
+      href: '/explore/triads',
+      title: 'Triads',
+      summary: 'Every inversion of a triad on three neighbouring strings, all the way up the neck.',
+    },
+    {
       href: '/explore/circle',
       title: 'Circle of fifths',
       summary: 'See how keys and modes relate: their chords, signatures and neighbours.',

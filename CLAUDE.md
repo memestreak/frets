@@ -3,8 +3,8 @@
 # Frets
 
 Guitar fretboard app with four sections: Practice, holding two quiz
-trainers (Intervals, Notes), Explore, holding the Scale lab and the Circle
-of fifths, Chords, one page that looks a chord up by name and names
+trainers (Intervals, Notes), Explore, holding the Scale lab, Triads and the
+Circle of fifths, Chords, one page that looks a chord up by name and names
 the notes tapped on the neck, and Tuner, one page with a dial or a strobe
 (`docs/specs/2026-10-17-tuner-page-design.md`; see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
@@ -20,9 +20,11 @@ the notes tapped on the neck, and Tuner, one page with a dial or a strobe
 `docs/specs/2026-10-09-published-chord-shapes-design.md`,
 `docs/specs/2026-10-15-copy-chord-diagram-design.md`,
 `docs/specs/2026-10-17-move-shape-design.md` (‹ › slide the shape and
-its chord along the neck; ← → step through the shapes) and
+its chord along the neck; ← → step through the shapes),
+`docs/specs/2026-10-18-triads-design.md` (every inversion of a triad on
+one string set, each grip joined by a faint band; tap one to name it) and
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
-library and the Chord lab into it). Both the Scale lab and the Chords page
+library and the Chord lab into it). The Scale lab, Triads and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
 (`docs/specs/2026-10-16-key-picker-design.md`), and label their neck's dots
 with `DotLabelsPicker`, Interval, Note or None
@@ -93,7 +95,7 @@ binds a local port).
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
   `/practice` and `/explore` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`, the Circle of fifths `/explore/circle` (`?view=advanced`
+  `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords` and the Tuner
   `/tuner`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
@@ -187,7 +189,9 @@ binds a local port).
   - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
     because their initial state reads localStorage and draws a random
     question.
-- `src/features/explore/` — the Scale lab (`scales/`), the Circle of
+- `src/features/explore/` — the Scale lab (`scales/`), Triads
+  (`triads/`: `triads.ts` finds every grip of a triad on a string set,
+  `Triads.tsx` draws them with `Fretboard`'s `links`), the Circle of
   fifths (`circle/`) and their client-only loaders. `theory.ts` is the only file that imports tonal: root and scale
   tables, spelled scales, mode rotation, diatonic chords (symbols and
   numerals from its own table) and the notes on the neck. `settings.ts` holds the saved
@@ -269,7 +273,8 @@ both for anything new.
 hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
-settings; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing
