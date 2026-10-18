@@ -9,6 +9,8 @@ const tap = (s: number, f: number) => fireEvent.click(screen.getByTestId(`cell-$
 const dotOpacity = (s: number, f: number) => screen.getAllByTestId(/^dot-/)
   .find(d => d.dataset.s === String(s) && d.dataset.f === String(f))!
   .getAttribute('opacity');
+const stringSet = (name: string) =>
+  within(screen.getByRole('group', { name: 'Strings' })).getByRole('button', { name });
 const linkNames = () => screen.getAllByTestId('link').map(l => l.textContent);
 
 describe('Triads', () => {
@@ -18,7 +20,7 @@ describe('Triads', () => {
     render(<Triads />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Triads');
     expect(caption()).toHaveTextContent('C major on the G-B-e strings. Tap a grip to name it.');
-    expect(screen.getByTestId('string-set')).toHaveTextContent('G B e');
+    expect(stringSet('G B e')).toHaveAttribute('aria-pressed', 'true');
     expect(linkNames()).toEqual(['2nd', 'Root', '1st', '2nd']);
     expect(screen.getAllByTestId(/^dot-/)).toHaveLength(12);
   });
@@ -44,14 +46,12 @@ describe('Triads', () => {
     expect(caption()).toHaveTextContent(/Tap a grip/);
   });
 
-  it('steps through the string sets, stopping at each end', () => {
+  it('picks a string set from the row of sets, and clears the pick', () => {
     render(<Triads />);
-    const higher = screen.getByRole('button', { name: 'Higher strings' });
-    const lower = screen.getByRole('button', { name: 'Lower strings' });
-    expect(higher).toBeDisabled();
-    for (let i = 0; i < 3; i++) fireEvent.click(lower);
-    expect(screen.getByTestId('string-set')).toHaveTextContent('E A D');
-    expect(lower).toBeDisabled();
+    tap(3, 9);
+    fireEvent.click(stringSet('E A D'));
+    expect(stringSet('E A D')).toHaveAttribute('aria-pressed', 'true');
+    expect(stringSet('G B e')).toHaveAttribute('aria-pressed', 'false');
     expect(caption()).toHaveTextContent('C major on the E-A-D strings.');
     expect(saved()).toMatchObject({ strings: 0 });
   });

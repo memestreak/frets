@@ -5,7 +5,6 @@ import { voicingDots } from '@/components/chords/chordDots';
 import { Segmented } from '@/components/controls';
 import { DotLabelsPicker } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
-import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { KeyPicker } from '@/components/KeyPicker';
 import { usePersist } from '@/hooks/usePersist';
 import { chordOf, chordRootOf } from '@/lib/chords/chordTypes';
@@ -15,8 +14,8 @@ import {
   parseTriadsSettings, TRIADS_STORAGE_KEY, type TriadsSettings,
 } from './settings';
 import {
-  gripAt, gripCaption, INVERSION_NAMES, setLabel, setStrings, TRIAD_TYPES,
-  TRIADS_MAX_FRET, triadGrips, type StringSet,
+  gripAt, gripCaption, INVERSION_NAMES, setLabel, setStrings, STRING_SETS,
+  TRIAD_TYPES, TRIADS_MAX_FRET, triadGrips,
 } from './triads';
 
 /** How far the grips other than the picked one, and the strings off the set, fade. */
@@ -76,31 +75,16 @@ export default function Triads() {
             label="Triad" options={TRIAD_TYPES} value={set.triad}
             onChange={triad => update({ triad })}
           />
+          <Segmented
+            label="Strings" options={STRING_SETS.map(n => [n, setLabel(n)] as const)}
+            value={set.strings} onChange={strings => update({ strings })}
+          />
         </div>
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-          <h2 id="neck-h" className="m-0 text-[17px] leading-6">On the neck</h2>
-          <div className="mr-auto flex items-center gap-2" role="group" aria-label="Strings">
-            <button
-              type="button" className="btn btn-secondary btn-icon" aria-label="Lower strings"
-              disabled={set.strings === 0}
-              onClick={() => update({ strings: (set.strings - 1) as StringSet })}
-            >
-              <ChevronLeftIcon />
-            </button>
-            <span className="min-w-[4.5em] text-center font-semibold" data-testid="string-set">
-              {setLabel(set.strings)}
-            </span>
-            <button
-              type="button" className="btn btn-secondary btn-icon" aria-label="Higher strings"
-              disabled={set.strings === 3}
-              onClick={() => update({ strings: (set.strings + 1) as StringSet })}
-            >
-              <ChevronRightIcon />
-            </button>
-          </div>
+          <h2 id="neck-h" className="m-0 mr-auto text-[17px] leading-6">On the neck</h2>
           <DotLabelsPicker value={set.labels} onChange={labels => update({ labels })} />
         </div>
         <p className="m-0 min-h-6" aria-live="polite" data-testid="triad-caption">

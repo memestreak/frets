@@ -8,14 +8,14 @@ guitar" thread from mocks; details he left open are marked as defaults.
 
 ## What the page shows
 
-- **Pickers beside the title "Triads":** the root, with `KeyPicker`
-  (Jeremy: use the standard key picker), and the triad, a segmented
-  Major / Minor / Dim / Aug. Roots are spelled one way per pitch, as on the
-  Chords page (D♭, E♭, F♯, A♭, B♭; default).
+- **Pickers beside the title "Triads",** each one row: the root, with
+  `KeyPicker` (Jeremy: use the standard key picker); the triad, a
+  segmented Major / Minor / Dim / Aug; and the string set, a segmented
+  E A D / A D G / D G B / G B e (Jeremy: a row of buttons like the
+  triad's). Roots are spelled one way per pitch, as on the Chords page
+  (D♭, E♭, F♯, A♭, B♭; default).
 - **One string set across the whole neck** (frets 0–15, as in the Scale
-  lab). The set is chosen with ‹ › and a label between them: E A D, A D G,
-  D G B, G B e. ‹ is disabled on E A D, › on G B e (no wrap; default).
-  The three other strings fade.
+  lab); the three other strings fade.
 - **Every grip** of the triad on that set: each inversion, wherever it fits
   on the neck, the open-string grips included. A grip is the three tones
   in close position, one per string, the bass on the lowest string, within
