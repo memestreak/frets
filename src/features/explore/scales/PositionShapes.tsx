@@ -1,4 +1,3 @@
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
@@ -35,7 +34,6 @@ interface PositionShapesProps {
 export function PositionShapes({
   inPosition, mode, position, selected, onSelect, shapeIndexOf, onShapeIndex,
 }: PositionShapesProps) {
-  const router = useRouter();
   const shapeExport = useShapeExport();
   // In the picked scale's order: tile j holds the chord on its jth note.
   const tiles = inPosition.map((_, j) => inPosition[(j - mode + 7) % 7]);
@@ -56,7 +54,7 @@ export function PositionShapes({
           const index = shapeIndexOf(chord.index);
           const shown = shapes[index];
           const href = libraryHref(info, shown);
-          const menuItems = href ? [{ label: 'Open in Chords', onSelect: () => router.push(href) }] : [];
+          const menuItems = href ? [{ label: 'Open in Chords', onSelect: () => openInNewTab(href) }] : [];
           return (
             <div key={chord.index} className="position-tile">
               <button
@@ -100,6 +98,11 @@ export function PositionShapes({
   );
 }
 
+/** Opens a page of the app in a new tab, leaving the Scale lab as it is. */
+function openInNewTab(href: string) {
+  window.open(href, '_blank', 'noopener');
+}
+
 interface PositionStepperProps {
   position: number;
   onPosition: (first: number) => void;
@@ -136,13 +139,13 @@ interface ShapeStepperProps {
   onStep: (index: number) => void;
 }
 
-/** ‹ 2 of 3 › under a tile. */
+/** ‹ 2 of 3 › under a tile, wrapping round at the ends. */
 function ShapeStepper({ chord, index, total, onStep }: ShapeStepperProps) {
   return (
     <div className="flex items-center gap-1">
       <button
         type="button" className="btn btn-secondary shape-step" aria-label={`Previous ${chord} shape`}
-        disabled={index <= 0} onClick={() => onStep(index - 1)}
+        onClick={() => onStep((index - 1 + total) % total)}
       >
         ‹
       </button>
@@ -151,7 +154,7 @@ function ShapeStepper({ chord, index, total, onStep }: ShapeStepperProps) {
       </span>
       <button
         type="button" className="btn btn-secondary shape-step" aria-label={`Next ${chord} shape`}
-        disabled={index >= total - 1} onClick={() => onStep(index + 1)}
+        onClick={() => onStep((index + 1) % total)}
       >
         ›
       </button>
@@ -161,7 +164,7 @@ function ShapeStepper({ chord, index, total, onStep }: ShapeStepperProps) {
 
 /**
  * ↑ and ↓ anywhere on the page choose the selected chord's previous or
- * next shape, stopping at the ends. Keys a field already used are left alone.
+ * next shape, wrapping round at the ends. Keys a field already used are left alone.
  */
 function useShapeKeys(total: number, index: number, onStep: (index: number) => void) {
   useEffect(() => {
@@ -170,10 +173,8 @@ function useShapeKeys(total: number, index: number, onStep: (index: number) => v
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
-      const next = index + (e.key === 'ArrowDown' ? 1 : -1);
-      if (next < 0 || next >= total) return;
       e.preventDefault();
-      onStep(next);
+      onStep((index + (e.key === 'ArrowDown' ? 1 : -1) + total) % total);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

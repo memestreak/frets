@@ -12,7 +12,9 @@ Jeremy, 2026-10-18. Spec: `docs/specs/2026-10-18-every-tile-shapes-design.md`.
 5. `PositionShapes`: the stepper on every tile, named for its chord; the
    menu on each shape with Open in Chords; the library line becomes the
    hint.
-6. `ScaleLab.test.tsx`: mock `next/navigation`; stepping an unselected
-   tile; the menu's items and the URL it pushes.
-7. Update the two older specs' lines and CLAUDE.md; check in the browser
+6. `ScaleLab.test.tsx`: stepping an unselected tile; the menu's items and
+   the URL it opens.
+7. Jeremy's follow-ups: Open in Chords opens a new tab (`window.open`, so
+   no router; the test spies on it), and ‹ › and ↑ ↓ wrap at the ends.
+8. Update the two older specs' lines and CLAUDE.md; check in the browser
    that nothing shifts.

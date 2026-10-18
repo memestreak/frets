@@ -3,10 +3,6 @@ import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 import { TIP_DELAY_MS } from '@/features/explore/scales/StripTip';
 
-/** The URLs the page pushed. */
-const nav = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: nav.push }) }));
-
 const rootPicker = () => screen.getByRole('radiogroup', { name: 'Root' });
 /** The picked root's tile text, "E♭". */
 const pickedRoot = () => within(rootPicker()).getByRole('radio', { checked: true }).textContent;
@@ -110,6 +106,12 @@ describe('ScaleLab', () => {
     expect(tileOf('Am7').getByText('3 of 5')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowUp' });
     expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    expect(tileOf('Am7').getByText('5 of 5')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
 
     // Each chord keeps its shape while the position stays.
     fireEvent.keyDown(window, { key: 'ArrowRight' });
@@ -131,6 +133,11 @@ describe('ScaleLab', () => {
     fireEvent.click(chordCard('D7'));
     const neck = dotsAt();
     fireEvent.click(screen.getByRole('button', { name: 'Previous Bm7 shape' }));
+    expect(tileOf('Bm7').getByText('1 of 2')).toBeInTheDocument();
+    // The arrows wrap round at the ends.
+    fireEvent.click(screen.getByRole('button', { name: 'Previous Bm7 shape' }));
+    expect(tileOf('Bm7').getByText('2 of 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next Bm7 shape' }));
     expect(tileOf('Bm7').getByText('1 of 2')).toBeInTheDocument();
     expect(chordCard('D7')).toHaveAttribute('aria-pressed', 'true');
     expect(dotsAt()).toEqual(neck);
@@ -155,7 +162,8 @@ describe('ScaleLab', () => {
     expect(diagram()).toEqual(second);
   });
 
-  it('opens a shape in Chords from its menu, on the tile\'s shape', () => {
+  it('opens a shape in Chords in a new tab from its menu, on the tile\'s shape', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
     render(<ScaleLab />);
     fireEvent.click(chordCard('D7'));
     fireEvent.contextMenu(chordCard('Am7'));
@@ -165,12 +173,13 @@ describe('ScaleLab', () => {
     // Opening the menu selects nothing.
     expect(chordCard('D7')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(menu.getByRole('menuitem', { name: 'Open in Chords' }));
-    expect(nav.push).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-7-5-5-5-5');
+    expect(open).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-7-5-5-5-5', '_blank', 'noopener');
 
     fireEvent.click(screen.getByRole('button', { name: 'Next Am7 shape' }));
     fireEvent.contextMenu(chordCard('Am7'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Open in Chords' }));
-    expect(nav.push).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-x-5-5-5-x');
+    expect(open).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-x-5-5-5-x', '_blank', 'noopener');
+    open.mockRestore();
   });
 
   it('shows the arpeggio around the shape, labelling only the shape', () => {
