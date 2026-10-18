@@ -8,9 +8,9 @@ guitar" thread from mocks; details he left open are marked as defaults.
 
 ## What the page shows
 
-- **Pickers at the right of the title "Triads", top-aligned, each
-  labelled (Root, Triad, Strings; Jeremy), wrapping under the title on
-  a phone:** the root, with
+- **Pickers, each labelled (Jeremy):** Root under the title "Triads",
+  and the Triad and Strings columns just right of that block,
+  top-aligned; on a phone they wrap under it. the root, with
   `KeyPicker` (Jeremy: use the standard key picker); the triad, a
   segmented Major / Minor / Dim / Aug; and the string set, a segmented
   e B G / B G D / G D A / D A E: high strings
