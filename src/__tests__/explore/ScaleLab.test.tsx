@@ -3,6 +3,10 @@ import ScaleLab from '@/features/explore/scales/ScaleLab';
 import { SCALE_LAB_STORAGE_KEY } from '@/features/explore/scales/settings';
 import { TIP_DELAY_MS } from '@/features/explore/scales/StripTip';
 
+/** The URLs the page pushed. */
+const nav = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: nav.push }) }));
+
 const rootPicker = () => screen.getByRole('radiogroup', { name: 'Root' });
 /** The picked root's tile text, "E♭". */
 const pickedRoot = () => within(rootPicker()).getByRole('radio', { checked: true }).textContent;

@@ -1,7 +1,10 @@
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
+// MOCK: moves to src/components once built, as a second section uses it.
+import { useShapeExport } from '@/features/chords/export/useShapeExport';
 import { ArrowUpRightIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { LAST_POSITION } from '@/lib/chords/voicings';
 import { libraryHref, positionLabel, type PositionChord } from './positions';
@@ -22,20 +25,20 @@ interface PositionShapesProps {
   onShapeIndex: (chordIndex: number, index: number) => void;
 }
 
-type Mock = 'a' | 'b' | 'c';
+type Mock = 'a' | 'b' | 'c' | 'd';
 
 /** MOCK: which layout ?mock= asks for; A unless it names another. */
 function useMock(): Mock {
   const [mock] = useState<Mock>(() => {
     const m = new URLSearchParams(window.location.search).get('mock');
-    return m === 'b' || m === 'c' ? m : 'a';
+    return m === 'b' || m === 'c' || m === 'd' ? m : 'a';
   });
   return mock;
 }
 
 /** MOCK: the switcher bar pinned to the foot of the page. */
 function MockBar({ mock }: { mock: Mock }) {
-  const opts: [Mock, string][] = [['a', 'A · Link under'], ['b', 'B · Icon beside'], ['c', 'C · Name links']];
+  const opts: [Mock, string][] = [['a', 'A · Link under'], ['b', 'B · Icon beside'], ['c', 'C · Name links'], ['d', 'D · Menu only']];
   return (
     <nav aria-label="Mocks" className="mock-bar">
       {opts.map(([m, label]) => (
@@ -56,6 +59,8 @@ export function PositionShapes({
   inPosition, mode, position, selected, onSelect, shapeIndexOf, onShapeIndex,
 }: PositionShapesProps) {
   const mock = useMock();
+  const router = useRouter();
+  const shapeExport = useShapeExport();
   // In the picked scale's order: tile j holds the chord on its jth note.
   const tiles = inPosition.map((_, j) => inPosition[(j - mode + 7) % 7]);
   const current = selected ? inPosition[selected.index] : null;
@@ -86,6 +91,10 @@ export function PositionShapes({
           return (
             <div key={chord.index} className="position-tile">
               <button
+                {...(shown ? shapeExport.triggerProps(
+                  { chord: info, voicing: shown, name: chord.symbol },
+                  { drag: true, items: href ? [{ label: 'Open in Chords', onSelect: () => router.push(href) }] : [] },
+                ) : {})}
                 type="button" className="shape-btn position-shape"
                 data-chord-index={chord.index}
                 aria-pressed={isSelected}
@@ -137,7 +146,9 @@ export function PositionShapes({
       </div>
       <p className="m-0 text-[14px] leading-5 text-(--ink-muted)">
         Tap a chord to see it on the neck.
+        {mock === 'd' && ' Right-click or long-press one to open it in Chords or copy it.'}
       </p>
+      {shapeExport.ui}
       <MockBar mock={mock} />
     </>
   );

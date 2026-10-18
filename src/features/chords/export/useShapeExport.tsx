@@ -6,7 +6,7 @@ import { loadJson } from '@/lib/storage';
 import { ExportDialog } from './ExportDialog';
 import { copyPng, fillDragData, prepareDrag, type ExportShape } from './exportImage';
 import { EXPORT_STORAGE_KEY, parseExportStyle } from './exportStyle';
-import { ShapeMenu } from './ShapeMenu';
+import { ShapeMenu, type MenuItem } from './ShapeMenu';
 
 /** A touch held this long opens the menu (iPhone Safari sends no contextmenu). */
 const LONG_PRESS_MS = 500;
@@ -22,6 +22,8 @@ const DRAG_QUERY = '(hover: hover) and (pointer: fine)';
 
 interface MenuState {
   shape: ExportShape;
+  /** Items the page adds above the export ones. */
+  items: MenuItem[];
   x: number;
   y: number;
   /** What gets focus back: the diagram, or the fret focused inside the neck. */
@@ -52,7 +54,9 @@ export interface ShapeExportTriggerProps {
  * choices. Returns those props and the menu, dialog and notice to render.
  */
 export function useShapeExport(): {
-  triggerProps: (shape: ExportShape, opts?: { drag?: boolean }) => ShapeExportTriggerProps;
+  triggerProps: (
+    shape: ExportShape, opts?: { drag?: boolean; items?: MenuItem[] },
+  ) => ShapeExportTriggerProps;
   ui: ReactNode;
 } {
   const [style, setStyle] = useState(() => parseExportStyle(loadJson(EXPORT_STORAGE_KEY)));
@@ -87,13 +91,17 @@ export function useShapeExport(): {
   };
   useEffect(() => cancelPress, []);
 
-  const openMenu = (shape: ExportShape, trigger: HTMLElement, x: number, y: number) => {
+  const openMenu = (
+    shape: ExportShape, items: MenuItem[], trigger: HTMLElement, x: number, y: number,
+  ) => {
     const focused = document.activeElement;
     const returnTo = focused instanceof HTMLElement && trigger.contains(focused) ? focused : trigger;
     const r = trigger.getBoundingClientRect();
     // From the keyboard there's no pointer, so it opens under the diagram.
     const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    setMenu(inside ? { shape, returnTo, x, y } : { shape, returnTo, x: r.left, y: r.bottom + 4 });
+    setMenu(inside
+      ? { shape, items, returnTo, x, y }
+      : { shape, items, returnTo, x: r.left, y: r.bottom + 4 });
   };
 
   const dragProps = (shape: ExportShape): Partial<ShapeExportTriggerProps> => ({
@@ -108,13 +116,14 @@ export function useShapeExport(): {
   });
 
   const triggerProps = (
-    shape: ExportShape, { drag = false }: { drag?: boolean } = {},
+    shape: ExportShape,
+    { drag = false, items = [] }: { drag?: boolean; items?: MenuItem[] } = {},
   ): ShapeExportTriggerProps => ({
     ...(drag && canDrag ? dragProps(shape) : {}),
     onContextMenu: e => {
       e.preventDefault();
       cancelPress();
-      openMenu(shape, e.currentTarget, e.clientX, e.clientY);
+      openMenu(shape, items, e.currentTarget, e.clientX, e.clientY);
     },
     onPointerDown: e => {
       if (e.pointerType !== 'touch') return;
@@ -126,7 +135,7 @@ export function useShapeExport(): {
         timer: window.setTimeout(() => {
           press.current = null;
           swallowClick.current = true;
-          openMenu(shape, trigger, x, y);
+          openMenu(shape, items, trigger, x, y);
         }, LONG_PRESS_MS),
       };
     },
@@ -155,6 +164,7 @@ export function useShapeExport(): {
         <ShapeMenu
           key={`${menu.x},${menu.y}`} x={menu.x} y={menu.y} label="Export shape" onClose={closeMenu}
           items={[
+            ...menu.items,
             {
               label: 'Copy as PNG',
               onSelect: () => {
