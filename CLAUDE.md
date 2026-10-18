@@ -124,7 +124,7 @@ binds a local port).
   notes, tone labels, which tones a voicing may leave out) and
   `chordFromTones` (a type, or an unnamed chord, from a set of tones);
   `publishedShapes.ts`, the shapes guitarists play, from Haus of Chords
-  (`data/haus-of-chords.json`, CC BY 4.0, credited in the footer;
+  (`data/haus-of-chords.json`, CC BY 4.0, credited in `NOTICE.md`;
   re-import with `scripts/import-haus-of-chords.py`, see `data/README.md`);
   `voicings.ts`, which shows those first and otherwise searches the neck
   for playable shapes (each rule a named constant), splits them into open,
@@ -234,8 +234,8 @@ binds a local port).
   needs it.
 
 Third-party material (the chord shapes, the tuner's recordings) is listed
-with its licence in `NOTICE.md` and credited in `AppFooter`; add both for
-anything new.
+with its licence in `NOTICE.md` and credited in the README's Credits; add
+both for anything new.
 
 ## Styling
 
