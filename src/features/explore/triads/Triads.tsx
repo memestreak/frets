@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { voicingDots } from '@/components/chords/chordDots';
-import { Segmented } from '@/components/controls';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
+import { Segmented, ToggleButton } from '@/components/controls';
 import { DotLabelsPicker } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
 import { usePersist } from '@/hooks/usePersist';
+import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { chordOf, chordRootOf } from '@/lib/chords/chordTypes';
 import { loadJson } from '@/lib/storage';
 import {
@@ -25,6 +26,10 @@ export default function Triads() {
   const [set, setSet] = useState(() => parseTriadsSettings(loadJson(TRIADS_STORAGE_KEY)));
   // The picked grip, by index into `grips`; not saved.
   const [picked, setPicked] = useState<number | null>(null);
+  // Every tone of the triad over the whole neck, as on the Chords page; not saved.
+  const [arpeggio, setArpeggio] = useState(false);
+  const toggleArpeggio = useCallback(() => setArpeggio(on => !on), []);
+  useSpaceKey(toggleArpeggio);
   usePersist(TRIADS_STORAGE_KEY, set);
 
   // Anything that changes the grips clears the pick.
@@ -47,8 +52,11 @@ export default function Triads() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const dots = grips.flatMap((g, i) =>
-    voicingDots(chord, g.voicing, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
+  // With the arpeggio on, only a picked grip's dots keep their labels.
+  const dots = arpeggio
+    ? arpeggioDots(chord, TRIADS_MAX_FRET, grip?.voicing, set.labels)
+    : grips.flatMap((g, i) =>
+      voicingDots(chord, g.voicing, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
   const links = grips.map((g, i) => ({
     points: g.points, label: INVERSION_NAMES[g.inversion], opacity: opacityOf(i),
   }));
@@ -87,31 +95,36 @@ export default function Triads() {
         </div>
       </header>
 
-      <section className="card gap-4" aria-labelledby="neck-h">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-          <h2 id="neck-h" className="m-0 mr-auto text-[17px] leading-6">On the neck</h2>
-          <DotLabelsPicker value={set.labels} onChange={labels => update({ labels })} />
-        </div>
-        <p className="m-0 min-h-6" aria-live="polite" data-testid="triad-caption">
-          {grip
-            ? <span className="font-semibold">{gripCaption(chord, grip)}</span>
-            : (
-              <span className="text-(--ink-muted)">
-                {name} on the {setName} strings. Tap a grip to name it.
-              </span>
-            )}
-        </p>
+      <section className="card gap-4" aria-label="On the neck">
         <div className="board-scroll">
           <Fretboard
             minFret={0}
             maxFret={TRIADS_MAX_FRET}
             dots={dots}
             links={links}
-            stringStyle={s => ({ opacity: strings.includes(s) ? 1 : OFF_SET_STRING })}
+            stringStyle={s => ({ opacity: arpeggio || strings.includes(s) ? 1 : OFF_SET_STRING })}
             onCellClick={pos => setPicked(gripAt(grips, pos, picked))}
             scrollToFret={grip ? grip.points[1].f : null}
             label={`${name} triads on the ${setName} strings`}
           />
+        </div>
+        {/* Under the neck, as on the Chords page: the caption, then the labels and Arpeggio. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <p className="m-0" aria-live="polite" data-testid="triad-caption">
+            {grip
+              ? <span className="font-semibold">{gripCaption(chord, grip)}</span>
+              : (
+                <span className="text-(--ink-muted)">
+                  {name} on the {setName} strings. Tap a grip to name it.
+                </span>
+              )}
+          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <DotLabelsPicker value={set.labels} onChange={labels => update({ labels })} />
+            <ToggleButton pressed={arpeggio} onClick={toggleArpeggio}>
+              Arpeggio
+            </ToggleButton>
+          </div>
         </div>
       </section>
     </div>

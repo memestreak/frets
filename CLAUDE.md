@@ -149,7 +149,8 @@ binds a local port).
   `src/components/controls.tsx` and `icons.tsx`, `src/components/DotLabels.tsx`
   (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
-  flat), and `src/hooks/usePersist.ts`.
+  flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
+  Arpeggio, on the Chords and Triads pages).
 - `src/components/tuner/` — the mic and the tuner, shared by the Note
   trainer and the Tuner page: `pitch.ts` (pure YIN detector, note names),
   `hold.ts` (pure: a note held since its onset, and how long counts),
@@ -229,7 +230,7 @@ binds a local port).
   `ChordPickers` also swaps the Type dropdown for a search box (the
   magnifier, or `/`); `chordSearch.ts` reads the name typed there.
   `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
-  and `useSpaceKey.ts` (space toggles the Arpeggio) are its parts; it also
+  are its parts (space toggles the Arpeggio, `src/hooks/useSpaceKey.ts`); it also
   uses `src/components/chords/export/`, shared with the Scale lab:
   right-click, a long press or Shift+F10 on a shape diagram (or the
   neck; `useShapeExport`, once per page) opens a menu

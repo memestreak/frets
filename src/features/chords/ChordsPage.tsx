@@ -6,6 +6,7 @@ import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/chordDots';
 import { usePersist } from '@/hooks/usePersist';
+import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { TUNING, type Position } from '@/lib/music';
 import { loadJson } from '@/lib/storage';
 import {
@@ -23,7 +24,6 @@ import { nameNotes } from './naming';
 import { NECK_STORAGE_KEY, parseNeckSettings } from './neckSettings';
 import { NameList } from './NameList';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';
-import { useSpaceKey } from './useSpaceKey';
 import { VoicingGroups } from './VoicingGroups';
 import { VoicingStepper } from './VoicingStepper';
 

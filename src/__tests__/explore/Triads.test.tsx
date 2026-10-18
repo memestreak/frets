@@ -80,4 +80,22 @@ describe('Triads', () => {
     expect(caption()).toHaveTextContent('1st inversion');
     expect(new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent))).toEqual(new Set(['C', 'E', 'G']));
   });
+
+  it('shows every tone of the triad with the Arpeggio, under the neck beside the labels', () => {
+    render(<Triads />);
+    const arpeggio = screen.getByRole('button', { name: 'Arpeggio' });
+    // The labels and the Arpeggio sit together, under the neck.
+    expect(arpeggio.parentElement).toContainElement(screen.getByRole('group', { name: 'Dot labels' }));
+    fireEvent.click(arpeggio);
+    expect(arpeggio).toHaveAttribute('aria-pressed', 'true');
+    // C, E and G on every string from the nut to fret 15, the low E included.
+    expect(screen.getAllByTestId(/^dot-/)).toHaveLength(26);
+    expect(screen.getAllByTestId(/^dot-/).some(d => d.dataset.s === '0')).toBe(true);
+    tap(3, 9);
+    expect(caption()).toHaveTextContent('1st inversion');
+    const labelled = screen.getAllByTestId(/^dot-/).filter(d => d.textContent);
+    expect(labelled.map(d => `${d.dataset.s}:${d.dataset.f}`).sort()).toEqual(['3:9', '4:8', '5:8']);
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(arpeggio).toHaveAttribute('aria-pressed', 'false');
+  });
 });

@@ -28,7 +28,12 @@ guitar" thread from mocks; details he left open are marked as defaults.
   2nd.
 - **Dots** are coloured by degree, the root square, as on the Chords
   page, and labelled by the Interval / Note / None switch.
-- **A caption above the neck:** "C major on the e-B-G strings. Tap a grip
+- **Under the neck, as on the Chords page (Jeremy):** the caption on the
+  left; the Interval / Note / None switch and an **Arpeggio** button on
+  the right. The Arpeggio (or space) shows every tone of the triad from
+  the nut to fret 15 on all six strings; with a grip picked, only its
+  dots keep their labels. Not saved.
+- **The caption:** "C major on the e-B-G strings. Tap a grip
   to name it." Augmented's grips repeat every four frets, which the neck
   shows without comment.
 
