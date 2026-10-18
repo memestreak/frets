@@ -1,6 +1,6 @@
 import { ChordType } from 'tonal';
 import {
-  CHORD_GROUPS, CHORD_TYPES, chordOf, chordTypeDef, formulaOf, toneLabel,
+  CHORD_GROUPS, CHORD_TYPES, chordOf, chordTypeDef, formulaOf, toneLabel, withBass,
 } from '@/lib/chords/chordTypes';
 
 describe('CHORD_TYPES', () => {
@@ -28,6 +28,21 @@ describe('CHORD_TYPES', () => {
     expect(chordTypeDef('7b9#11')!.symbol).toBe('7♭9♯11');
     expect(chordTypeDef('m/ma7')!.symbol).toBe('m(maj7)');
     expect(chordTypeDef('Madd9')!.symbol).toBe('add9');
+  });
+});
+
+describe('withBass', () => {
+  it('adds a bass outside the chord as a tone, spelled over the root', () => {
+    const over = withBass(chordOf('F', 'mMaj7#11'), 6);
+    expect(over.symbol).toBe('Fm(maj7)♯11');
+    expect(over.notes).toEqual(['F', 'A♭', 'C', 'E', 'B', 'G♭']);
+    expect(formulaOf(over)).toBe('1 ♭3 5 7 ♯11 ♭9');
+    expect(withBass(chordOf('C', 'M'), 8).notes.at(-1)).toBe('A♭');
+  });
+
+  it('leaves a chord alone over one of its own tones', () => {
+    const c = chordOf('C', 'M');
+    expect(withBass(c, 4)).toBe(c);
   });
 });
 

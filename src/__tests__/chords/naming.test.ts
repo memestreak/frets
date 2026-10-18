@@ -49,6 +49,27 @@ describe('nameNotes', () => {
     expect(nameNotes([PC.C, PC.E, PC.G], PC.C)[0].why).toBe('root in the bass');
   });
 
+  it('names the notes over a bass outside the chord when nothing else names them', () => {
+    // 2 2 2 1 1 1: F♯ B E G♯ C F, Fm(maj7)♯11 over a G♭ bass.
+    const [first] = nameNotes(['F#', 'B', 'E', 'Ab', 'C', 'F'].map(n => PC[n]), PC['F#']);
+    expect(first.symbol).toBe('Fm(maj7)♯11/G♭');
+    expect(first.why).toBe('♭9 in the bass, outside the chord');
+    expect(first.chord.notes).toEqual(['F', 'A♭', 'C', 'E', 'B', 'G♭']);
+    expect(first.chord.tones.at(-1)?.label).toBe('♭9');
+  });
+
+  it('keeps a bass outside the chord out of names that have one inside it', () => {
+    expect(names('G', 'F', 'Bb', 'C')).not.toContain('Fsus4/G');
+    // Two notes above the bass are too few to name a chord over it.
+    expect(names('C', 'Db', 'D')).toEqual([]);
+  });
+
+  it('keeps a chord named over a bass outside it', () => {
+    const notes = ['F#', 'B', 'E', 'Ab', 'C', 'F'].map(n => PC[n]);
+    const [first] = nameNotes(notes, PC['F#']);
+    expect(nameAs(first.chord, notes, PC['F#'])?.symbol).toBe('Fm(maj7)♯11/G♭');
+  });
+
   it('names a fifth as a power chord, and nothing for one note or a cluster', () => {
     expect(names('C', 'G')).toEqual(['C5']);
     expect(names('C', 'C')).toEqual([]);
