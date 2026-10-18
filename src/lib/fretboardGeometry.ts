@@ -50,15 +50,20 @@ export interface FretboardGeometry {
   inlays: { x: number; y: number }[];
 }
 
+/**
+ * `headroom` is extra space above the board, for names drawn over it
+ * (`Fretboard`'s `links`).
+ */
 export function fretboardGeometry(
   minFret: number,
   maxFret: number,
+  headroom = 0,
 ): FretboardGeometry {
   const open = minFret === 0;
   const firstFret = open ? 1 : minFret;
   const n = maxFret - firstFret + 1;
   const boardX = PAD + (open ? OPENW : 0);
-  const boardY = TOP;
+  const boardY = TOP + headroom;
   const boardW = n * FW;
   const boardH = 5 * SG;
   const boardRight = boardX + boardW;

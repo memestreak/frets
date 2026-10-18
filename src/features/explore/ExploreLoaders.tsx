@@ -19,3 +19,9 @@ export const CircleOfFifthsClient = dynamic(
   () => import('./circle/CircleOfFifths'),
   { ssr: false, loading: Loading },
 );
+
+/** The Triads page reads its saved settings from localStorage. */
+export const TriadsClient = dynamic(
+  () => import('./triads/Triads'),
+  { ssr: false, loading: Loading },
+);

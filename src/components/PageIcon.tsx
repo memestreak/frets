@@ -61,6 +61,19 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       ))}
     </>
   ),
+  '/explore/triads': (
+    <>
+      <Strings />
+      {/* A 1st-inversion grip on the top three strings, joined by its band. */}
+      <polyline
+        points="63,42 41,31 41,20" fill="none" stroke="var(--string)" strokeOpacity="0.3"
+        strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <circle cx="63" cy="42" r="6" fill="var(--degree-third)" {...ring} />
+      <circle cx="41" cy="31" r="6" fill="var(--degree-fifth)" {...ring} />
+      <rect x="35" y="14" width="12" height="12" rx="2.5" fill="var(--degree-root)" {...ring} />
+    </>
+  ),
   '/explore/circle': (
     <>
       <circle cx="48" cy="48" r="30" fill="none" stroke="var(--string)" strokeWidth="2" />

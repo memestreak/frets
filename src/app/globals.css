@@ -354,6 +354,8 @@ button {
     .export-choices { column-gap: 12px; }
     .export-choices .seg-opt { padding-inline: 8px; }
   }
+  /* `Segmented`'s `vertical`: the options stacked in one column. */
+  .seg-vertical { flex-direction: column; flex-wrap: nowrap; }
   .export-name { justify-self: stretch; min-width: 0; }
   .export-name:disabled { opacity: 0.45; }
   /* A text field shows its focus even after a click: ink, not the blue ring. */
