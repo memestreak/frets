@@ -115,7 +115,7 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: Ch
         />
       ))}
       <text
-        x={x(start)} y={height - 6} textAnchor="middle" fontSize={11}
+        x={x(start)} y={height - 6} textAnchor="middle" fontSize={9}
         style={{ fill: look.muted }}
       >
         {start}
