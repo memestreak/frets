@@ -19,8 +19,11 @@ describe('Triads', () => {
   it('opens on C major on G-B-e, every grip joined and named', () => {
     render(<Triads />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Triads');
-    expect(caption()).toHaveTextContent('C major on the G-B-e strings. Tap a grip to name it.');
-    expect(stringSet('G B e')).toHaveAttribute('aria-pressed', 'true');
+    expect(caption()).toHaveTextContent('C major on the e-B-G strings. Tap a grip to name it.');
+    expect(stringSet('e B G')).toHaveAttribute('aria-pressed', 'true');
+    // High strings first.
+    expect(within(screen.getByRole('group', { name: 'Strings' })).getAllByRole('button').map(b => b.textContent))
+      .toEqual(['e B G', 'B G D', 'G D A', 'D A E']);
     // The triad and the string set are columns of buttons.
     expect(screen.getByRole('group', { name: 'Triad' })).toHaveClass('seg-vertical');
     expect(screen.getByRole('group', { name: 'Strings' })).toHaveClass('seg-vertical');
@@ -52,10 +55,10 @@ describe('Triads', () => {
   it('picks a string set from the row of sets, and clears the pick', () => {
     render(<Triads />);
     tap(3, 9);
-    fireEvent.click(stringSet('E A D'));
-    expect(stringSet('E A D')).toHaveAttribute('aria-pressed', 'true');
-    expect(stringSet('G B e')).toHaveAttribute('aria-pressed', 'false');
-    expect(caption()).toHaveTextContent('C major on the E-A-D strings.');
+    fireEvent.click(stringSet('D A E'));
+    expect(stringSet('D A E')).toHaveAttribute('aria-pressed', 'true');
+    expect(stringSet('e B G')).toHaveAttribute('aria-pressed', 'false');
+    expect(caption()).toHaveTextContent('C major on the D-A-E strings.');
     expect(saved()).toMatchObject({ strings: 0 });
   });
 
@@ -64,9 +67,9 @@ describe('Triads', () => {
     tap(3, 9);
     const picker = screen.getByRole('radiogroup', { name: 'Root' });
     fireEvent.click(within(picker).getByRole('radio', { name: 'C♯' }));
-    expect(caption()).toHaveTextContent('D♭ major on the G-B-e strings.');
+    expect(caption()).toHaveTextContent('D♭ major on the e-B-G strings.');
     fireEvent.click(screen.getByRole('button', { name: 'Aug' }));
-    expect(caption()).toHaveTextContent('D♭ augmented on the G-B-e strings.');
+    expect(caption()).toHaveTextContent('D♭ augmented on the e-B-G strings.');
     expect(saved()).toMatchObject({ root: 'Db', triad: 'aug' });
   });
 
@@ -76,5 +79,23 @@ describe('Triads', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Note' }));
     expect(caption()).toHaveTextContent('1st inversion');
     expect(new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent))).toEqual(new Set(['C', 'E', 'G']));
+  });
+
+  it('shows every tone of the triad with the Arpeggio, under the neck beside the labels', () => {
+    render(<Triads />);
+    const arpeggio = screen.getByRole('button', { name: 'Arpeggio' });
+    // The labels and the Arpeggio sit together, under the neck.
+    expect(arpeggio.parentElement).toContainElement(screen.getByRole('group', { name: 'Dot labels' }));
+    fireEvent.click(arpeggio);
+    expect(arpeggio).toHaveAttribute('aria-pressed', 'true');
+    // C, E and G on every string from the nut to fret 15, the low E included.
+    expect(screen.getAllByTestId(/^dot-/)).toHaveLength(26);
+    expect(screen.getAllByTestId(/^dot-/).some(d => d.dataset.s === '0')).toBe(true);
+    tap(3, 9);
+    expect(caption()).toHaveTextContent('1st inversion');
+    const labelled = screen.getAllByTestId(/^dot-/).filter(d => d.textContent);
+    expect(labelled.map(d => `${d.dataset.s}:${d.dataset.f}`).sort()).toEqual(['3:9', '4:8', '5:8']);
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(arpeggio).toHaveAttribute('aria-pressed', 'false');
   });
 });

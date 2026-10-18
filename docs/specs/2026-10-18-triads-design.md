@@ -8,14 +8,15 @@ guitar" thread from mocks; details he left open are marked as defaults.
 
 ## What the page shows
 
-- **Pickers at the right of the title "Triads", top-aligned, each
-  labelled (Root, Triad, Strings; Jeremy), wrapping under the title on
-  a phone:** the root, with
-  `KeyPicker` (Jeremy: use the standard key picker); the triad, a
-  segmented Major / Minor / Dim / Aug; and the string set, a segmented
-  E A D / A D G / D G B / G B e. Both are columns of buttons, side by
-  side (Jeremy). Roots are spelled one way per pitch, as on the Chords page
-  (D♭, E♭, F♯, A♭, B♭; default).
+- **Pickers, each labelled (Jeremy):**
+  - **Root**, under the title "Triads": `KeyPicker`, the standard key
+    picker (Jeremy). Roots are spelled one way per pitch, as on the
+    Chords page (D♭, E♭, F♯, A♭, B♭; default).
+  - **Triad** and **Strings**, two columns of buttons just right of the
+    title block, top-aligned (Jeremy): Major / Minor / Dim / Aug, and
+    e B G / B G D / G D A / D A E, high strings first and named high to
+    low, in the caption too (Jeremy).
+  - On a phone the columns wrap under the title block.
 - **One string set across the whole neck** (frets 0–15, as in the Scale
   lab); the three other strings fade.
 - **Every grip** of the triad on that set: each inversion, wherever it fits
@@ -27,7 +28,12 @@ guitar" thread from mocks; details he left open are marked as defaults.
   2nd.
 - **Dots** are coloured by degree, the root square, as on the Chords
   page, and labelled by the Interval / Note / None switch.
-- **A caption above the neck:** "C major on the G-B-e strings. Tap a grip
+- **Under the neck, as on the Chords page (Jeremy):** the caption on the
+  left; the Interval / Note / None switch and an **Arpeggio** button on
+  the right. The Arpeggio (or space) shows every tone of the triad from
+  the nut to fret 15 on all six strings; with a grip picked, only its
+  dots keep their labels. Not saved.
+- **The caption:** "C major on the e-B-G strings. Tap a grip
   to name it." Augmented's grips repeat every four frets, which the neck
   shows without comment.
 

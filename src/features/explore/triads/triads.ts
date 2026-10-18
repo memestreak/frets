@@ -13,16 +13,16 @@ export const TRIAD_TYPES = [
 ] as const;
 export type TriadType = (typeof TRIAD_TYPES)[number][0];
 
-/** A string set by its lowest string: 0 is E A D, 3 is G B e. */
+/** A string set by its lowest string: 0 is D A E, 3 is e B G. */
 export const STRING_SETS = [0, 1, 2, 3] as const;
 export type StringSet = (typeof STRING_SETS)[number];
 
 /** The set's strings, low to high. */
 export const setStrings = (set: StringSet): number[] => [set, set + 1, set + 2];
 
-/** "G B e", for the stepper. */
-export const setLabel = (set: StringSet): string =>
-  setStrings(set).map(s => STRING_NAMES[s]).join(' ');
+/** "e B G": the set's strings named high to low, as guitarists say them. */
+export const setLabel = (set: StringSet, between = ' '): string =>
+  setStrings(set).reverse().map(s => STRING_NAMES[s]).join(between);
 
 /** The board shows the open strings through this fret. */
 export const TRIADS_MAX_FRET = 15;
