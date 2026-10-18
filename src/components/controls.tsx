@@ -12,14 +12,16 @@ interface SegmentedProps<T extends string | number> {
   onChange: (value: T) => void;
   /** Every option, when there is nothing yet to choose for. */
   disabled?: boolean;
+  /** The options stacked in one column instead of one row. */
+  vertical?: boolean;
 }
 
 /** `.seg` segmented control; the active option is filled with the accent. */
 export function Segmented<T extends string | number>(
-  { label, options, value, onChange, disabled }: SegmentedProps<T>,
+  { label, options, value, onChange, disabled, vertical }: SegmentedProps<T>,
 ) {
   return (
-    <div className="seg" role="group" aria-label={label}>
+    <div className={vertical ? 'seg seg-vertical' : 'seg'} role="group" aria-label={label}>
       {options.map(([v, text]) => (
         <button
           key={v}

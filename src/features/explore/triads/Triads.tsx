@@ -59,26 +59,28 @@ export default function Triads() {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div>
           <h1 className="m-0">Triads</h1>
           <p className="m-0 mt-1 text-(--ink-muted)">
             Every inversion of a triad on three neighbouring strings.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
           <KeyPicker
             value={set.root} resolve={chordRootOf}
             onPick={n => update({ root: chordRootOf(n) })}
           />
-          <Segmented
-            label="Triad" options={TRIAD_TYPES} value={set.triad}
-            onChange={triad => update({ triad })}
-          />
-          <Segmented
-            label="Strings" options={STRING_SETS.map(n => [n, setLabel(n)] as const)}
-            value={set.strings} onChange={strings => update({ strings })}
-          />
+          <div className="flex items-start gap-3">
+            <Segmented
+              label="Triad" options={TRIAD_TYPES} value={set.triad} vertical
+              onChange={triad => update({ triad })}
+            />
+            <Segmented
+              label="Strings" options={STRING_SETS.map(n => [n, setLabel(n)] as const)}
+              value={set.strings} onChange={strings => update({ strings })} vertical
+            />
+          </div>
         </div>
       </header>
 

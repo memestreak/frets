@@ -21,6 +21,9 @@ describe('Triads', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Triads');
     expect(caption()).toHaveTextContent('C major on the G-B-e strings. Tap a grip to name it.');
     expect(stringSet('G B e')).toHaveAttribute('aria-pressed', 'true');
+    // The triad and the string set are columns of buttons.
+    expect(screen.getByRole('group', { name: 'Triad' })).toHaveClass('seg-vertical');
+    expect(screen.getByRole('group', { name: 'Strings' })).toHaveClass('seg-vertical');
     expect(linkNames()).toEqual(['2nd', 'Root', '1st', '2nd']);
     expect(screen.getAllByTestId(/^dot-/)).toHaveLength(12);
   });

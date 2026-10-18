@@ -8,11 +8,11 @@ guitar" thread from mocks; details he left open are marked as defaults.
 
 ## What the page shows
 
-- **Pickers beside the title "Triads",** each one row: the root, with
+- **Pickers beside the title "Triads":** the root, with
   `KeyPicker` (Jeremy: use the standard key picker); the triad, a
   segmented Major / Minor / Dim / Aug; and the string set, a segmented
-  E A D / A D G / D G B / G B e (Jeremy: a row of buttons like the
-  triad's). Roots are spelled one way per pitch, as on the Chords page
+  E A D / A D G / D G B / G B e. Both are columns of buttons, side by
+  side (Jeremy). Roots are spelled one way per pitch, as on the Chords page
   (D♭, E♭, F♯, A♭, B♭; default).
 - **One string set across the whole neck** (frets 0–15, as in the Scale
   lab); the three other strings fade.
