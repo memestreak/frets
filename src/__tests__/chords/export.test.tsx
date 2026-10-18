@@ -6,7 +6,7 @@ import {
   diagramSvg, exportFileName, exportPixels, fillDragData,
 } from '@/components/chords/export/exportImage';
 import {
-  BACKDROPS, DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, parseExportStyle, THEME_PALETTES,
+  BACKDROP, DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, LIGHT_PALETTE, parseExportStyle,
   type ExportStyle,
 } from '@/components/chords/export/exportStyle';
 import { chordOf } from '@/lib/chords/chordTypes';
@@ -45,28 +45,27 @@ const svgOf = (style: Partial<ExportStyle> = {}, voicing = BARRE_AM7, name = 'Am
 describe('export style', () => {
   it('defaults to black and white with the name and no intervals, 300 px wide and transparent', () => {
     expect(DEFAULT_EXPORT_STYLE).toEqual({
-      colours: 'mono', background: 'light', intervals: false, name: true,
+      colours: 'mono', intervals: false, name: true,
       size: 300, transparent: true,
     });
   });
 
   it('keeps valid saved fields and defaults the rest', () => {
     expect(parseExportStyle(null)).toEqual(DEFAULT_EXPORT_STYLE);
-    expect(parseExportStyle({ colours: 'degrees', background: 'blue', intervals: 'yes', name: false }))
+    expect(parseExportStyle({ colours: 'degrees', intervals: 'yes', name: false }))
       .toEqual({ ...DEFAULT_EXPORT_STYLE, colours: 'degrees', name: false });
     expect(parseExportStyle({ size: 150, transparent: false }))
       .toEqual({ ...DEFAULT_EXPORT_STYLE, size: 150, transparent: false });
     expect(parseExportStyle({ size: 1000, transparent: 'no' })).toEqual(DEFAULT_EXPORT_STYLE);
   });
 
-  it('fills an image with the colours the preview shows', () => {
+  it('fills an image with the colour the preview shows', () => {
     const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
-    for (const [background, colour] of Object.entries(BACKDROPS)) {
-      expect(css).toContain(`.export-preview-${background} { background: ${colour}; }`);
-    }
+    const preview = css.slice(css.indexOf('.export-preview {'));
+    expect(preview.slice(0, preview.indexOf('}'))).toContain(`background: ${BACKDROP};`);
   });
 
-  it('copies its palettes from fretwood.css', () => {
+  it('copies its palette from the light theme in fretwood.css', () => {
     const css = readFileSync(join(process.cwd(), 'src/styles/fretwood.css'), 'utf8');
     const block = (selector: string) => {
       const start = css.indexOf(selector);
@@ -74,15 +73,14 @@ describe('export style', () => {
     };
     const token = (text: string, name: string) =>
       new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`).exec(text)?.[1];
-    for (const [theme, text] of [['light', block(':root {')], ['dark', block(":root[data-theme='dark']")]] as const) {
-      const p = THEME_PALETTES[theme];
-      expect(p.line).toBe(token(text, 'line-strong'));
-      expect(p.ink).toBe(token(text, 'ink'));
-      expect(p.muted).toBe(token(text, 'ink-muted'));
-      for (const [degree, { fill, fg }] of Object.entries(p.degree)) {
-        expect(fill, `${theme} ${degree}`).toBe(token(text, `degree-${degree}`));
-        expect(fg, `${theme} on ${degree}`).toBe(token(text, `on-degree-${degree}`));
-      }
+    const text = block(':root {');
+    const p = LIGHT_PALETTE;
+    expect(p.line).toBe(token(text, 'line-strong'));
+    expect(p.ink).toBe(token(text, 'ink'));
+    expect(p.muted).toBe(token(text, 'ink-muted'));
+    for (const [degree, { fill, fg }] of Object.entries(p.degree)) {
+      expect(fill, degree).toBe(token(text, `degree-${degree}`));
+      expect(fg, `on ${degree}`).toBe(token(text, `on-degree-${degree}`));
     }
   });
 });
@@ -109,9 +107,6 @@ describe('diagramSvg', () => {
     const light = svgOf({ colours: 'degrees', intervals: true });
     expect(light).toContain(fill('#a8462a')); // the root
     expect(light).toContain('>♭3</text>');
-    const dark = svgOf({ colours: 'degrees', background: 'dark' });
-    expect(dark).toContain(fill('#e0805c'));
-    expect(svgOf({ background: 'dark' })).toContain(fill('#ffffff'));
   });
 
   it('leaves the name out when asked or empty, and the band it sits in', () => {
@@ -147,10 +142,9 @@ describe('diagramSvg', () => {
     expect(svgOf({ size: 150 })).toMatch(/width="150" height="156"/);
   });
 
-  it('is transparent unless asked, then filled with the background', () => {
+  it('is transparent unless asked, then filled with white', () => {
     expect(svgOf()).not.toContain('<rect width="148"');
     expect(svgOf({ transparent: false })).toMatch(/^<svg[^>]*><rect width="148" height="154" fill="#ffffff"/);
-    expect(svgOf({ transparent: false, background: 'dark' })).toContain('fill="#1b1b1b"');
   });
 
   it('names the file after the name and the shape', () => {
@@ -252,7 +246,7 @@ describe('the shapes export menu', () => {
       within(within(dialog).getByRole('group', { name: group }))
         .getByRole('button', { pressed: true }).textContent;
     expect(pressed('Colours')).toBe('Black & white');
-    expect(pressed('Background')).toBe('Light');
+    expect(within(dialog).queryByRole('group', { name: 'Background' })).toBeNull();
     expect(pressed('Intervals')).toBe('Hide');
     expect(pressed('Chord name')).toBe('Show');
     expect(pressed('Size')).toBe('300');
@@ -279,10 +273,8 @@ describe('the shapes export menu', () => {
     choose('Size', '150');
     choose('Transparent', 'Off');
     expect(screen.getByTestId('export-size')).toHaveTextContent('150 × 156 px, on white');
-    choose('Background', 'Dark');
-    expect(screen.getByTestId('export-size')).toHaveTextContent('150 × 156 px, on dark grey');
     expect(JSON.parse(localStorage.getItem(EXPORT_STORAGE_KEY)!)).toEqual(
-      { ...DEFAULT_EXPORT_STYLE, size: 150, transparent: false, background: 'dark' },
+      { ...DEFAULT_EXPORT_STYLE, size: 150, transparent: false },
     );
   });
 

@@ -44,13 +44,13 @@ step the selected shape).
 ## The Export dialog
 
 A native modal `<dialog>`, titled with the chord and the shape ("Export
-Am7, root on A · frets 1–2"), with a live preview of the image, four
-choices, each a segmented control, and a Name field:
+Am7, root on A · frets 1–2"), with a live preview of the image, three
+choices, each a segmented control, and a Name field (Size and Transparent
+followed in `docs/specs/2026-10-17-export-size-design.md`):
 
 | Choice | Options | Default |
 |---|---|---|
 | Colours | Black & white, Degree colours | Black & white |
-| Background | Light, Dark | Light |
 | Intervals | Hide, Show | Hide |
 | Chord name | Show, Hide | Show |
 
@@ -61,9 +61,10 @@ the next time the dialog opens it starts on the deduced name again. With
 Chord name on Hide the field is disabled; an empty field prints no name.
 File names use it too.
 
-Background sets the ink: dark ink for a light page, light ink for a dark
-slide; the image itself is always transparent. The preview sits on a white
-or near-black tile to match.
+The image is always drawn for a light page: dark ink, the light theme's
+colours. A Background choice (Light, Dark: light ink for a dark slide) was
+removed on 2026-10-18; Jeremy wanted exports light, or transparent. The
+preview sits on a white tile.
 
 Below the choices: **Copy PNG** (primary), **Copy SVG**, **Download PNG**,
 **Download SVG**, and a line saying what happened ("Copied as PNG",
@@ -80,10 +81,10 @@ The export is the same `ChordDiagram` the page draws, given concrete
 colours instead of the page's CSS variables, so the two can't drift apart:
 
 - **Black & white**: every line, dot, ring, ×, number and the name in black
-  (white on Dark). Interval labels, when shown, are white on the black dots.
+  Interval labels, when shown, are white on the black dots.
   The root stays square, so it still reads without colour.
-- **Degree colours**: the Fretwood degree colours, from the light or the
-  dark theme to match Background, with the theme's line and ink colours.
+- **Degree colours**: the Fretwood degree colours from the light theme,
+  with its line and ink colours.
 - **Intervals**: the label inside each fretted dot, as the neck shows it.
   Open-string rings stay unlabelled.
 - **Chord name**: the name above the board, bold.

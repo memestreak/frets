@@ -21,17 +21,16 @@ const HIDE_SHOW = [['hide', 'Hide'], ['show', 'Show']] as const;
 const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
 const showHide = (on: boolean) => (on ? 'show' : 'hide');
 const SIZES = EXPORT_SIZES.map(size => [size, String(size)] as const);
-const BEHIND = { light: 'on white', dark: 'on dark grey' } as const;
 
 /** "300 × 312 px, transparent": the image as it will come out. */
 function sizeCaption(shape: ExportShape, style: ExportStyle): string {
   const { width, height } = exportPixels(shape, style);
-  return `${width} × ${height} px, ${style.transparent ? 'transparent' : BEHIND[style.background]}`;
+  return `${width} × ${height} px, ${style.transparent ? 'transparent' : 'on white'}`;
 }
 
 /**
  * The Export dialog, on the native modal `<dialog>`: a preview of the image
- * as it will be with its size in pixels, the six choices, the name to print (the deduced name,
+ * as it will be with its size in pixels, the five choices, the name to print (the deduced name,
  * which can be edited for this export), and Copy PNG, Copy SVG, Download
  * PNG and Download SVG, with a line saying what happened. It stays open
  * after an action; Done, × or Esc close it.
@@ -96,7 +95,7 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
           </div>
           <div className="settings-dialog-body">
             <div
-              className={`export-preview export-preview-${style.background}`}
+              className="export-preview"
               data-testid="export-preview"
             >
               <ChordDiagram
@@ -111,12 +110,6 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
               <Segmented
                 label="Colours" value={style.colours} onChange={colours => set({ colours })}
                 options={[['mono', 'Black & white'], ['degrees', 'Degree colours']]}
-              />
-              <span>Background</span>
-              <Segmented
-                label="Background" value={style.background}
-                onChange={background => set({ background })}
-                options={[['light', 'Light'], ['dark', 'Dark']]}
               />
               <span>Size<span className="export-unit"> (px wide)</span></span>
               <Segmented

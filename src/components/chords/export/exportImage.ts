@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { ChordDiagram, DIAGRAM_WIDTH, diagramSize } from '@/components/chords/ChordDiagram';
 import type { ChordInfo } from '@/lib/chords/chordTypes';
 import { voicingKey, type Voicing } from '@/lib/chords/voicings';
-import { BACKDROPS, exportLook, type ExportStyle } from './exportStyle';
+import { BACKDROP, exportLook, type ExportStyle } from './exportStyle';
 
 /** What gets exported: a shape of a chord, and the name it goes by. */
 export interface ExportShape {
@@ -28,7 +28,7 @@ const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.met
 /**
  * One shape as a standalone SVG: the page's `ChordDiagram`, drawn with
  * concrete colours, at the chosen size, transparent behind unless it is
- * filled with the background's colour.
+ * filled with white.
  */
 export function diagramSvg(shape: ExportShape, style: ExportStyle): string {
   const { chord, voicing, name } = shape;
@@ -48,7 +48,7 @@ export function diagramSvg(shape: ExportShape, style: ExportStyle): string {
     const backdrop = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     backdrop.setAttribute('width', width);
     backdrop.setAttribute('height', height);
-    backdrop.setAttribute('fill', BACKDROPS[style.background]);
+    backdrop.setAttribute('fill', BACKDROP);
     svg.prepend(backdrop);
   }
   svg.setAttribute('font-family', FONT_FAMILY);
