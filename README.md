@@ -27,3 +27,14 @@ npm run typecheck  # tsc --noEmit
 
 CI (`.github/workflows/ci.yml`) runs lint, tests, the build and the type
 check on every pull request and every push to `main`.
+
+## Credits
+
+- Chord shapes from
+  [Haus of Chords](https://github.com/dersergioni/haus-of-chords) by
+  dersergioni, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- Reference notes from
+  [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
+See `NOTICE.md` for the details and the changes made.

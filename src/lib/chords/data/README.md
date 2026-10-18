@@ -4,8 +4,8 @@
 lab and the Scale lab show first. It is converted from the chord data of
 [Haus of Chords](https://github.com/dersergioni/haus-of-chords) by
 dersergioni, licensed under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The app footer
-carries the credit.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The credit is in
+the repository's `README.md` and `NOTICE.md`.
 
 Changes made in converting: the finger letters and the citations are left
 out; each shape keeps its count of independent sources; only the shapes
