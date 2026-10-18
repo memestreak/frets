@@ -1,4 +1,6 @@
-import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo, type ChordTypeDef } from '@/lib/chords/chordTypes';
+import {
+  CHORD_ROOTS, CHORD_TYPES, chordOf, withBass, type ChordInfo, type ChordTypeDef,
+} from '@/lib/chords/chordTypes';
 
 /*
  * Every name for a set of notes, for the Chord lab's "Name it". Each note
@@ -10,7 +12,7 @@ import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo, type ChordTypeDef } 
 export interface ChordName {
   /** "C", "C/E", "C7 (no 5)". */
   symbol: string;
-  /** Why this reading: "root in the bass", "♭3 in the bass". */
+  /** Why this reading: "root in the bass", "♭3 in the bass", "♭9 in the bass, outside the chord". */
   why: string;
   /** The chord named, with all its tones: labels and shapes come from it. */
   chord: ChordInfo;
@@ -50,15 +52,21 @@ function matchesMissingOptional(rootPc: number, tones: ReadonlySet<number>): Mat
 const unplayedTones = (chord: ChordInfo, tones: ReadonlySet<number>) =>
   chord.tones.filter(t => !tones.has(t.semis));
 
-/** A chord's name over a bass note, with the labels of the tones left out. */
+/**
+ * A chord's name over a bass note, with the labels of the tones left out.
+ * The bass is a tone of `chord`: one of its type's, or one `withBass` added.
+ */
 function nameOf(chord: ChordInfo, bassPc: number, missing: string[]): ChordName {
-  const bassIndex = chord.tones.findIndex(t => t.semis === mod12(bassPc - chord.rootPc));
+  const bassSemis = mod12(bassPc - chord.rootPc);
+  const bassIndex = chord.tones.findIndex(t => t.semis === bassSemis);
   const inBass = bassPc === chord.rootPc;
+  const outside = !chord.type?.semis.includes(bassSemis);
   return {
     symbol: chord.symbol
       + (inBass ? '' : `/${chord.notes[bassIndex]}`)
       + (missing.length ? ` (no ${missing.join(', ')})` : ''),
-    why: inBass ? 'root in the bass' : `${chord.tones[bassIndex].label} in the bass`,
+    why: inBass ? 'root in the bass'
+      : `${chord.tones[bassIndex].label} in the bass${outside ? ', outside the chord' : ''}`,
     chord,
   };
 }
@@ -71,7 +79,7 @@ function nameOf(chord: ChordInfo, bassPc: number, missing: string[]): ChordName 
 export function nameAs(chord: ChordInfo, pcs: readonly number[], bassPc: number): ChordName | null {
   if (!chord.type || !pcs.length) return null;
   const tones = new Set(pcs.map(pc => mod12(pc - chord.rootPc)));
-  if (![...tones].every(s => chord.type!.semis.includes(s))) return null;
+  if (![...tones].every(s => chord.tones.some(t => t.semis === s))) return null;
   const unplayed = unplayedTones(chord, tones);
   if (unplayed.some(t => t.required)) return null;
   return nameOf(chord, mod12(bassPc), unplayed.map(t => t.label));
@@ -85,6 +93,11 @@ export function nameAs(chord: ChordInfo, pcs: readonly number[], bassPc: number)
  * bass, then the Type list's order. Fewer than two different notes have
  * no name.
  *
+ * Only when no chord of every note has a name are the notes above the
+ * bass named over it as a bass outside the chord (F♯ under F A♭ C E B is
+ * Fm(maj7)♯11/G♭), in the same order. That needs three different notes
+ * above the bass, none of them the bass's note again.
+ *
  * `keep` is the chord whose shape the notes are, when they came from one:
  * its name comes first, whatever else the notes spell (`nameAs`).
  */
@@ -97,15 +110,33 @@ export function nameNotes(
 }
 
 function namesFromNotes(pcs: readonly number[], bassPc: number): ChordName[] {
+  const bass = mod12(bassPc);
   const notes = [...new Set(pcs.map(mod12))];
   if (notes.length < 2) return [];
+  const above = notes.filter(n => n !== bass);
+  const bassOnce = pcs.filter(pc => mod12(pc) === bass).length === 1;
 
-  const ranked = notes.flatMap(rootPc => {
+  const inChord = readings(notes, bass, false);
+  const ranked = inChord.length || !bassOnce || above.length < 3
+    ? inChord
+    : readings(above, bass, true);
+  return ranked
+    .sort((a, b) => a.rank.reduce((diff, r, i) => diff || r - b.rank[i], 0))
+    .map(r => r.name);
+}
+
+/**
+ * Each note of `notes` tried as the root of a chord of them all, named over
+ * the bass, and ranked. With `outside`, the bass isn't one of `notes`.
+ */
+function readings(notes: readonly number[], bassPc: number, outside: boolean) {
+  return notes.flatMap(rootPc => {
     const tones = new Set(notes.map(n => mod12(n - rootPc)));
     const exact = exactMatches(tones);
     const matches = exact.length ? exact : matchesMissingOptional(rootPc, tones);
     return matches.map(({ type, missing }) => {
-      const name = nameOf(chordOf(CHORD_ROOTS[rootPc], type.id), bassPc, missing);
+      const chord = chordOf(CHORD_ROOTS[rootPc], type.id);
+      const name = nameOf(outside ? withBass(chord, bassPc) : chord, bassPc, missing);
       const rank = [
         missing.some(label => label !== '5') ? 1 : 0,
         type.group === 'Common' ? 0 : 1,
@@ -115,8 +146,4 @@ function namesFromNotes(pcs: readonly number[], bassPc: number): ChordName[] {
       return { name, rank };
     });
   });
-
-  return ranked
-    .sort((a, b) => a.rank.reduce((diff, r, i) => diff || r - b.rank[i], 0))
-    .map(r => r.name);
 }

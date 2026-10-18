@@ -45,13 +45,14 @@ const COMMON_IDS = [
 /** Where tonal's first alias isn't how the rest of Frets writes the chord. */
 const SYMBOL_OVERRIDES: Record<string, string> = {
   M: '', 'm/ma7': 'm(maj7)', Madd9: 'add9', dim: '°', dim7: '°7', aug: '+',
-  Madd11: 'add11', Madd9add11: 'add9(add11)',
+  Madd11: 'add11', Madd9add11: 'add9(add11)', 'mMaj7#11': 'm(maj7)♯11',
 };
 
 /**
  * Types guitarists name that tonal lacks: a major triad with an added 11th,
- * with and without an added 9th (D E F♯ G is Dadd9(add11)). Added to tonal
- * so it spells them like the rest.
+ * with and without an added 9th (D E F♯ G is Dadd9(add11)), and a minor-major
+ * seventh with a ♯11 (F A♭ C E B is Fm(maj7)♯11). Added to tonal so it
+ * spells them like the rest.
  */
 const EXTRA_TYPES: readonly { intervals: string[]; aliases: string[]; name: string }[] = [
   { intervals: ['1P', '3M', '5P', '11P'], aliases: ['Madd11', 'add11', 'Madd4', 'add4'], name: 'added eleventh' },
@@ -59,6 +60,11 @@ const EXTRA_TYPES: readonly { intervals: string[]; aliases: string[]; name: stri
     intervals: ['1P', '3M', '5P', '9M', '11P'],
     aliases: ['Madd9add11', 'add9add11', 'add2add4'],
     name: 'added ninth and eleventh',
+  },
+  {
+    intervals: ['1P', '3m', '5P', '7M', '11A'],
+    aliases: ['mMaj7#11', 'm(maj7)#11', 'mmaj7#11', 'mM7#11'],
+    name: 'minor-major seventh sharp eleventh',
   },
 ];
 for (const { intervals, aliases, name } of EXTRA_TYPES) {
@@ -199,6 +205,29 @@ export function chordFromTones(rootPc: number, semis: readonly number[]): ChordI
     symbol: '',
     notes: intervals.map(iv => prettyNote(Note.transpose(root, iv))),
     tones: intervals.map(iv => toneOf(iv, true)),
+  };
+}
+
+/**
+ * How a bass note outside the chord is written, by semitones above the
+ * root: as chord charts spell it over the root (Fm(maj7)♯11/G♭, C/F♯,
+ * C/A♭), and labelled as a tension where it is one (♭9, 9, ♯11).
+ */
+const BASS_INTERVALS = ['1P', '9m', '9M', '3m', '3M', '4P', '11A', '5P', '6m', '6M', '7m', '7M'];
+
+/**
+ * The chord over a bass note that isn't one of its tones: its type and
+ * symbol stay, and the bass joins its notes and tones as a required tone,
+ * so the neck can label it. The chord itself if the bass is already a tone.
+ */
+export function withBass(chord: ChordInfo, bassPc: number): ChordInfo {
+  const semis = (((bassPc - chord.rootPc) % 12) + 12) % 12;
+  if (chord.tones.some(t => t.semis === semis)) return chord;
+  const interval = BASS_INTERVALS[semis];
+  return {
+    ...chord,
+    notes: [...chord.notes, prettyNote(Note.transpose(chord.root, interval))],
+    tones: [...chord.tones, toneOf(interval, true)],
   };
 }
 

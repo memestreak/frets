@@ -120,9 +120,10 @@ binds a local port).
   `positionsOnNeck`; `notation.ts` with `prettyNote`;
   `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`; `chords/` with
   `chordTypes.ts`, the only tonal import outside the Scale lab: tonal's
-  chord types (plus add11 and add9(add11), which it lacks;
+  chord types (plus add11, add9(add11) and m(maj7)♯11, which it lacks;
   `docs/specs/2026-10-17-add11-chords-design.md`) with our groups and
-  symbols, roots, `chordOf` (spelled
+  symbols, roots, `withBass` (a chord over a bass outside it;
+  `docs/specs/2026-10-18-bass-outside-chord-design.md`), `chordOf` (spelled
   notes, tone labels, which tones a voicing may leave out) and
   `chordFromTones` (a type, or an unnamed chord, from a set of tones);
   `publishedShapes.ts`, the shapes guitarists play, from Haus of Chords
