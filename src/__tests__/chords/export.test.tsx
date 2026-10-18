@@ -4,11 +4,11 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import ChordsPage from '@/features/chords/ChordsPage';
 import {
   diagramSvg, exportFileName, exportPixels, fillDragData,
-} from '@/features/chords/export/exportImage';
+} from '@/components/chords/export/exportImage';
 import {
   BACKDROPS, DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, parseExportStyle, THEME_PALETTES,
   type ExportStyle,
-} from '@/features/chords/export/exportStyle';
+} from '@/components/chords/export/exportStyle';
 import { chordOf } from '@/lib/chords/chordTypes';
 import type { Voicing } from '@/lib/chords/voicings';
 
@@ -20,8 +20,8 @@ function renderAt(search = '') {
 
 /** jsdom draws no images, so the clipboard copy is stubbed; the SVG is real. */
 const copied = vi.hoisted(() => ({ png: vi.fn() }));
-vi.mock('@/features/chords/export/exportImage', async importOriginal => ({
-  ...await importOriginal<typeof import('@/features/chords/export/exportImage')>(),
+vi.mock('@/components/chords/export/exportImage', async importOriginal => ({
+  ...await importOriginal<typeof import('@/components/chords/export/exportImage')>(),
   copyPng: copied.png,
 }));
 
@@ -177,7 +177,7 @@ describe('the shapes export menu', () => {
     renderAt();
     const shape = moveable()[0];
     fireEvent.contextMenu(shape);
-    const menu = screen.getByRole('menu', { name: 'Export shape' });
+    const menu = screen.getByRole('menu', { name: 'Shape' });
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent))
       .toEqual(['Copy as PNG', 'Export options…']);
     expect(shape).toHaveAttribute('aria-pressed', 'false');

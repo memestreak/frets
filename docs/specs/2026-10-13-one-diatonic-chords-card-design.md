@@ -35,7 +35,8 @@ One card, "Diatonic chords", after "On the neck":
    (`2026-10-07-scale-lab-position-shapes-design.md`). They are now the
    only chord row: the chord cards are gone. A tile's quality (minor 7,
    dominant 7) is in its accessible name and beside the heading below.
-3. **Library line:** "Bm7 in the Chord library →" while a chord is
+3. **Library line** (now always the hint; the link moved to the shapes'
+   menu, `2026-10-18-every-tile-shapes-design.md`): "Bm7 in the Chord library →" while a chord is
    selected, otherwise "Tap a chord to see it on the neck." It replaces the
    paragraph that explained the keys under the old lower card.
 4. **Over the scale:** under a hairline, a heading ("Over the scale", or

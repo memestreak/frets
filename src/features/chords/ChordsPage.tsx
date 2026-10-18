@@ -22,7 +22,7 @@ import { ChordPickers } from './ChordPickers';
 import { nameNotes } from './naming';
 import { NECK_STORAGE_KEY, parseNeckSettings } from './neckSettings';
 import { NameList } from './NameList';
-import { useShapeExport } from './export/useShapeExport';
+import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { useSpaceKey } from './useSpaceKey';
 import { VoicingGroups } from './VoicingGroups';
 import { VoicingStepper } from './VoicingStepper';

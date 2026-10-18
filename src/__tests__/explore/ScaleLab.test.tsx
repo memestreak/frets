@@ -18,6 +18,8 @@ const dotsAt = () => screen.getAllByTestId(/^dot-/)
   .sort();
 const chordCard = (symbol: string) =>
   screen.getByRole('button', { name: new RegExp(`, ${symbol},`) });
+/** The chord's tile: its shape and the ‹ n of m › under it. */
+const tileOf = (symbol: string) => within(chordCard(symbol).parentElement!);
 
 describe('ScaleLab', () => {
   beforeEach(() => localStorage.clear());
@@ -85,32 +87,60 @@ describe('ScaleLab', () => {
     expect(card.getByRole('button', { name: 'Lower position' })).toBeDisabled();
   });
 
-  it('selects a chord from its shape, cycles its shapes and links to the library', () => {
+  it('selects a chord from its shape and cycles its shapes', () => {
     render(<ScaleLab />);
     const card = within(screen.getByRole('region', { name: 'Diatonic chords' }));
-    // Nothing links to the library until a chord is picked; a hint holds its line.
+    // No links: the shapes' menu opens a chord in Chords.
     expect(card.queryByRole('link')).toBeNull();
-    expect(card.getByText('Tap a chord to see it on the neck.')).toBeInTheDocument();
+    expect(card.getByText(/^Tap a chord to see it on the neck\. Right-click/)).toBeInTheDocument();
     fireEvent.click(chordCard('Am7'));
     expect(chordCard('Am7')).toHaveAttribute('aria-pressed', 'true');
     expect(card.getByRole('heading', { level: 3 })).toHaveTextContent(/^Am7 over the scale\s*minor 7$/);
-    expect(card.getByText('1 of 5')).toBeInTheDocument();
-    const link = () => card.getByRole('link', { name: 'Am7 in the Chord library →' });
-    expect(link()).toHaveAttribute('href', '/chords?chord=am7&shape=5-7-5-5-5-5');
+    expect(tileOf('Am7').getByText('1 of 5')).toBeInTheDocument();
     expect(dotsAt()).toEqual(['0:5 R', '1:7 5', '2:5 ♭7', '3:5 ♭3', '4:5 5', '5:5 R']);
 
-    fireEvent.click(card.getByRole('button', { name: 'Next shape' }));
-    expect(card.getByText('2 of 5')).toBeInTheDocument();
-    expect(link()).toHaveAttribute('href', '/chords?chord=am7&shape=5-x-5-5-5-x');
+    fireEvent.click(card.getByRole('button', { name: 'Next Am7 shape' }));
+    expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
+    expect(dotsAt()).not.toContain('1:7 5');
     fireEvent.keyDown(window, { key: 'ArrowDown' });
-    expect(card.getByText('3 of 5')).toBeInTheDocument();
+    expect(tileOf('Am7').getByText('3 of 5')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'ArrowUp' });
-    expect(card.getByText('2 of 5')).toBeInTheDocument();
+    expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    expect(tileOf('Am7').getByText('5 of 5')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
 
     // Each chord keeps its shape while the position stays.
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    expect(card.getByText('2 of 5')).toBeInTheDocument();
+    expect(tileOf('Am7').getByText('2 of 5')).toBeInTheDocument();
+  });
+
+  it('cycles an unselected chord\'s shapes without selecting it', () => {
+    render(<ScaleLab />);
+    const diagram = () => chordCard('Bm7').querySelector('svg')!.innerHTML;
+    const first = diagram();
+    fireEvent.click(screen.getByRole('button', { name: 'Next Bm7 shape' }));
+    expect(diagram()).not.toEqual(first);
+    expect(tileOf('Bm7').getByText('2 of 2')).toBeInTheDocument();
+    expect(chordCard('Bm7')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByTestId('board-box')).toBeNull();
+
+    // With another chord selected, the neck keeps that chord's shape.
+    fireEvent.click(chordCard('D7'));
+    const neck = dotsAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous Bm7 shape' }));
+    expect(tileOf('Bm7').getByText('1 of 2')).toBeInTheDocument();
+    // The arrows wrap round at the ends.
+    fireEvent.click(screen.getByRole('button', { name: 'Previous Bm7 shape' }));
+    expect(tileOf('Bm7').getByText('2 of 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next Bm7 shape' }));
+    expect(tileOf('Bm7').getByText('1 of 2')).toBeInTheDocument();
+    expect(chordCard('D7')).toHaveAttribute('aria-pressed', 'true');
+    expect(dotsAt()).toEqual(neck);
   });
 
   it('keeps the picked shape on the tile once the chord is cleared', () => {
@@ -119,7 +149,7 @@ describe('ScaleLab', () => {
     const diagram = () => tile().querySelector('svg')!.innerHTML;
     fireEvent.click(tile());
     const first = diagram();
-    fireEvent.click(screen.getByRole('button', { name: 'Next shape' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next Am7 shape' }));
     const second = diagram();
     expect(second).not.toEqual(first);
 
@@ -130,6 +160,26 @@ describe('ScaleLab', () => {
     fireEvent.click(document.body);
     expect(tile()).toHaveAttribute('aria-pressed', 'false');
     expect(diagram()).toEqual(second);
+  });
+
+  it('opens a shape in Chords in a new tab from its menu, on the tile\'s shape', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    render(<ScaleLab />);
+    fireEvent.click(chordCard('D7'));
+    fireEvent.contextMenu(chordCard('Am7'));
+    const menu = within(screen.getByRole('menu', { name: 'Shape' }));
+    expect(menu.getAllByRole('menuitem').map(i => i.textContent))
+      .toEqual(['Open in Chords', 'Copy as PNG', 'Export options…']);
+    // Opening the menu selects nothing.
+    expect(chordCard('D7')).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(menu.getByRole('menuitem', { name: 'Open in Chords' }));
+    expect(open).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-7-5-5-5-5', '_blank', 'noopener');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next Am7 shape' }));
+    fireEvent.contextMenu(chordCard('Am7'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open in Chords' }));
+    expect(open).toHaveBeenLastCalledWith('/chords?chord=am7&shape=5-x-5-5-5-x', '_blank', 'noopener');
+    open.mockRestore();
   });
 
   it('shows the arpeggio around the shape, labelling only the shape', () => {

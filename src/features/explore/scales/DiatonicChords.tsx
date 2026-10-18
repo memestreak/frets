@@ -23,8 +23,8 @@ interface DiatonicChordsProps {
   onPosition: (first: number) => void;
   /** Which of a chord's shapes its tile shows, by chord index. */
   shapeIndexOf: (chordIndex: number) => number;
-  /** Picks a shape for the selected chord. */
-  onShapeIndex: (index: number) => void;
+  /** Picks a shape for a chord, by chord index. */
+  onShapeIndex: (chordIndex: number, index: number) => void;
   /** The neck shows every chord tone around the shape. */
   arpeggio: boolean;
   onArpeggio: (on: boolean) => void;
