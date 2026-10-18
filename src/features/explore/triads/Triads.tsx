@@ -61,9 +61,6 @@ export default function Triads() {
       <header className="flex flex-wrap items-start gap-x-10 gap-y-5">
         <div>
           <h1 className="m-0">Triads</h1>
-          <p className="m-0 mt-1 text-(--ink-muted)">
-            Every inversion of a triad on three neighbouring strings.
-          </p>
           <div className="mt-5">
             <span className="field-label">Root</span>
             <KeyPicker
