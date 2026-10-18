@@ -36,7 +36,8 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
 - **Selection:** tapping a tile selects its chord, the same selection as
   the chord cards (← → step chords as before). The neck then shows only
   that shape's notes. Before, a selected chord showed all its tones.
-- **Cycling (round 3, option 1):** a selected chord with more than one
+- **Cycling (round 3, option 1; every tile since
+  `2026-10-18-every-tile-shapes-design.md`):** a selected chord with more than one
   shape shows "‹ 2 of 3 ›" under its tile; other tiles say "3 shapes".
   ↑ and ↓ do the same. Each chord keeps its pick while the scale, chord
   size and position stay; changing any of them starts again at shape 1.
@@ -50,7 +51,8 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
   round 3: colour on every dot, no labels on the extra ones). It stays on
   across chords and positions, goes off when the chord is cleared, and is
   not saved.
-- **Library link (option 1):** under the tiles, "Am7 in the Chord library
+- **Library link (option 1; replaced by the shapes' menu's Open in Chords,
+  `2026-10-18-every-tile-shapes-design.md`):** under the tiles, "Am7 in the Chord library
   →" for the selected chord opens `/chords/library?chord=am7&shape=…` on
   the same shape. The library reads the new `shape` parameter (a
   `voicingKey`); a shape outside the best few opens with every shape

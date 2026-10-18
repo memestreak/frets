@@ -1,11 +1,9 @@
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
-// MOCK: moves to src/components once built, as a second section uses it.
-import { useShapeExport } from '@/features/chords/export/useShapeExport';
-import { ArrowUpRightIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
+import { useShapeExport } from '@/components/chords/export/useShapeExport';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { LAST_POSITION } from '@/lib/chords/voicings';
 import { libraryHref, positionLabel, type PositionChord } from './positions';
 import type { DiatonicChord } from './theory';
@@ -25,40 +23,18 @@ interface PositionShapesProps {
   onShapeIndex: (chordIndex: number, index: number) => void;
 }
 
-type Mock = 'a' | 'b' | 'c' | 'd';
-
-/** MOCK: which layout ?mock= asks for; A unless it names another. */
-function useMock(): Mock {
-  const [mock] = useState<Mock>(() => {
-    const m = new URLSearchParams(window.location.search).get('mock');
-    return m === 'b' || m === 'c' || m === 'd' ? m : 'a';
-  });
-  return mock;
-}
-
-/** MOCK: the switcher bar pinned to the foot of the page. */
-function MockBar({ mock }: { mock: Mock }) {
-  const opts: [Mock, string][] = [['a', 'A · Link under'], ['b', 'B · Icon beside'], ['c', 'C · Name links'], ['d', 'D · Menu only']];
-  return (
-    <nav aria-label="Mocks" className="mock-bar">
-      {opts.map(([m, label]) => (
-        <a key={m} href={`?mock=${m}`} aria-current={m === mock ? 'page' : undefined}>{label}</a>
-      ))}
-    </nav>
-  );
-}
-
 /**
  * The shapes in the "Diatonic chords" card: a diagram for every diatonic
  * chord, all in the same five frets, so they read as one hand position.
  * Tapping a shape selects its chord. Every tile cycles its chord's shapes
- * with ‹ › under it and links to the chord on the Chords page; the selected
- * chord's shapes also cycle with ↑ and ↓.
+ * with ‹ › under it, selected or not; the selected chord's also cycle with
+ * ↑ and ↓, and its shape is the one on the neck. The shapes' menu
+ * (right-click, long press, Shift+F10) opens the chord on the Chords page,
+ * on the tile's shape, or copies or exports the shape.
  */
 export function PositionShapes({
   inPosition, mode, position, selected, onSelect, shapeIndexOf, onShapeIndex,
 }: PositionShapesProps) {
-  const mock = useMock();
   const router = useRouter();
   const shapeExport = useShapeExport();
   // In the picked scale's order: tile j holds the chord on its jth note.
@@ -80,21 +56,13 @@ export function PositionShapes({
           const index = shapeIndexOf(chord.index);
           const shown = shapes[index];
           const href = libraryHref(info, shown);
-          const step = (i: number) => onShapeIndex(chord.index, i);
-          const stepper = shapes.length > 1 ? (
-            <ShapeStepper index={index} total={shapes.length} onStep={step} quiet={mock === 'b'} />
-          ) : (
-            <span className="text-[12px] leading-4 text-(--ink-muted)">
-              {shapes.length ? '1 shape' : ''}
-            </span>
-          );
+          const menuItems = href ? [{ label: 'Open in Chords', onSelect: () => router.push(href) }] : [];
           return (
             <div key={chord.index} className="position-tile">
               <button
-                {...(shown ? shapeExport.triggerProps(
-                  { chord: info, voicing: shown, name: chord.symbol },
-                  { drag: true, items: href ? [{ label: 'Open in Chords', onSelect: () => router.push(href) }] : [] },
-                ) : {})}
+                {...(shown && shapeExport.triggerProps(
+                  { chord: info, voicing: shown, name: chord.symbol }, { drag: true, items: menuItems },
+                ))}
                 type="button" className="shape-btn position-shape"
                 data-chord-index={chord.index}
                 aria-pressed={isSelected}
@@ -107,49 +75,27 @@ export function PositionShapes({
                   <span className="position-none">None here</span>
                 )}
                 <span className="chord-numeral">{chord.numeral}</span>
-                {mock !== 'c' && <span className="font-bold">{chord.symbol}</span>}
+                <span className="font-bold">{chord.symbol}</span>
               </button>
-              {mock === 'c' && (
-                href ? (
-                  <Link href={href} className="tile-name-link" title={`${chord.symbol} on the Chords page`}>
-                    {chord.symbol}
-                  </Link>
-                ) : <span className="font-bold leading-[18px]">{chord.symbol}</span>
-              )}
-              {mock === 'b' ? (
-                <div className="flex min-h-7 items-center gap-0.5">
-                  {stepper}
-                  {href && (
-                    <Link
-                      href={href} className="tile-icon-link"
-                      aria-label={`${chord.symbol} on the Chords page`} title={`${chord.symbol} on the Chords page`}
-                    >
-                      <ArrowUpRightIcon />
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="grid min-h-7 place-items-center">{stepper}</div>
-              )}
-              {mock === 'a' && (
-                <div className="grid min-h-5 place-items-center">
-                  {href && (
-                    <Link href={href} className="text-[12px] leading-4 font-semibold text-(--primary)">
-                      Open in Chords →
-                    </Link>
-                  )}
-                </div>
-              )}
+              {/* As tall as the stepper either way, so a tile's shape count moves nothing. */}
+              <div className="grid min-h-7 place-items-center">
+                {shapes.length > 1 ? (
+                  <ShapeStepper
+                    chord={chord.symbol} index={index} total={shapes.length}
+                    onStep={i => onShapeIndex(chord.index, i)}
+                  />
+                ) : shapes.length === 1 && (
+                  <span className="text-[12px] leading-4 text-(--ink-muted)">1 shape</span>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
       <p className="m-0 text-[14px] leading-5 text-(--ink-muted)">
-        Tap a chord to see it on the neck.
-        {mock === 'd' && ' Right-click or long-press one to open it in Chords or copy it.'}
+        Tap a chord to see it on the neck. Right-click or long-press one to open it in Chords or copy it.
       </p>
       {shapeExport.ui}
-      <MockBar mock={mock} />
     </>
   );
 }
@@ -183,29 +129,28 @@ export function PositionStepper({ position, onPosition }: PositionStepperProps) 
 }
 
 interface ShapeStepperProps {
+  /** The chord's symbol, naming the buttons. */
+  chord: string;
   index: number;
   total: number;
   onStep: (index: number) => void;
-  /** MOCK: borderless arrows. */
-  quiet?: boolean;
 }
 
 /** ‹ 2 of 3 › under a tile. */
-function ShapeStepper({ index, total, onStep, quiet }: ShapeStepperProps) {
-  const cls = `btn ${quiet ? 'shape-step-quiet' : 'btn-secondary'} shape-step`;
+function ShapeStepper({ chord, index, total, onStep }: ShapeStepperProps) {
   return (
-    <div className={`flex items-center ${quiet ? '' : 'gap-1'}`}>
+    <div className="flex items-center gap-1">
       <button
-        type="button" className={cls} aria-label="Previous shape"
+        type="button" className="btn btn-secondary shape-step" aria-label={`Previous ${chord} shape`}
         disabled={index <= 0} onClick={() => onStep(index - 1)}
       >
         ‹
       </button>
       <span className="text-[12px] leading-4 tabular-nums" aria-live="polite">
-        {quiet ? `${index + 1}/${total}` : `${index + 1} of ${total}`}
+        {index + 1} of {total}
       </span>
       <button
-        type="button" className={cls} aria-label="Next shape"
+        type="button" className="btn btn-secondary shape-step" aria-label={`Next ${chord} shape`}
         disabled={index >= total - 1} onClick={() => onStep(index + 1)}
       >
         ›

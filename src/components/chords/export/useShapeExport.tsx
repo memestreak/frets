@@ -22,7 +22,7 @@ const DRAG_QUERY = '(hover: hover) and (pointer: fine)';
 
 interface MenuState {
   shape: ExportShape;
-  /** Items the page adds above the export ones. */
+  /** The page's own items for the shape, above the export ones. */
   items: MenuItem[];
   x: number;
   y: number;
@@ -47,7 +47,8 @@ export interface ShapeExportTriggerProps {
  * Exporting shapes: right-click, a long press or Shift+F10 on anything
  * given `triggerProps` (a shape diagram, the Chord lab's neck) opens a menu
  * with Copy as PNG (the saved choices, the deduced name) and Export
- * options… (the dialog). Opening it selects nothing and taps nothing.
+ * options… (the dialog), below any `items` the page adds for that shape
+ * (the Scale lab's Open in Chords). Opening it selects nothing and taps nothing.
  * With `drag`, and a mouse or trackpad, the diagram can also be dragged
  * into another app or page, or onto the desktop, as a PNG with the saved
  * choices. One per page, so the shapes and the neck share the saved
@@ -162,7 +163,7 @@ export function useShapeExport(): {
     <>
       {menu && (
         <ShapeMenu
-          key={`${menu.x},${menu.y}`} x={menu.x} y={menu.y} label="Export shape" onClose={closeMenu}
+          key={`${menu.x},${menu.y}`} x={menu.x} y={menu.y} label="Shape" onClose={closeMenu}
           items={[
             ...menu.items,
             {

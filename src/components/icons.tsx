@@ -108,14 +108,6 @@ export function ChevronRightIcon() {
   );
 }
 
-export function ArrowUpRightIcon() {
-  return (
-    <Icon>
-      <path d="M7 17 17 7M8 7h9v9" />
-    </Icon>
-  );
-}
-
 export function ChevronDownIcon() {
   return (
     <Icon>

@@ -32,7 +32,9 @@ with `DotLabelsPicker`, Interval, Note or None
 magnifier beside Type also finds a chord by its typed or pasted name
 (`docs/specs/2026-10-16-chord-search-design.md`), and its Export options
 choose the image's size and whether it is transparent
-(`docs/specs/2026-10-17-export-size-design.md`). The app has no users
+(`docs/specs/2026-10-17-export-size-design.md`). In the Scale lab every
+chord's tile cycles its shapes, and its menu opens the chord in Chords
+(`docs/specs/2026-10-18-every-tile-shapes-design.md`). The app has no users
 yet: don't keep old URLs, storage keys or saved state working after a change.
 Next.js 16 App Router with
 static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
@@ -143,7 +145,7 @@ binds a local port).
   and dot colours as tokens, and `DEGREES`, the colour per degree number),
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
-  for the neck),
+  for the neck; `export/`, the shapes' menu, Export dialog and PNG export),
   `src/components/controls.tsx` and `icons.tsx`, `src/components/DotLabels.tsx`
   (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
@@ -201,7 +203,8 @@ binds a local port).
   Sevenths, the Arpeggio toggle, the position's ‹ › and its two halves.
   `PositionShapes.tsx` (logic in `positions.ts`) draws every diatonic
   chord's shape in the same five frets, the only chord row, with ‹ n of m ›
-  to cycle a chord's shapes and a link to the chord on the Chords page.
+  under every tile to cycle its chord's shapes, selected or not, and the
+  shapes' export menu with Open in Chords on top.
   `ChordOverScale.tsx` places `ChordLadder.tsx` / `ChordClock.tsx`
   (shared parts in `chordDiagram.tsx`), which draw a selected chord against
   the scale (`docs/specs/2026-10-04-chord-diagrams-design.md`). Selecting a
@@ -226,10 +229,11 @@ binds a local port).
   `ChordPickers` also swaps the Type dropdown for a search box (the
   magnifier, or `/`); `chordSearch.ts` reads the name typed there.
   `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
-  and `useSpaceKey.ts` (space toggles the Arpeggio) are its parts, and so is `export/`:
+  and `useSpaceKey.ts` (space toggles the Arpeggio) are its parts; it also
+  uses `src/components/chords/export/`, shared with the Scale lab:
   right-click, a long press or Shift+F10 on a shape diagram (or the
   neck; `useShapeExport`, once per page) opens a menu
-  (Copy as PNG, Export options…) and the Export dialog, whose Name
+  (the page's own items, then Copy as PNG, Export options…) and the Export dialog, whose Name
   starts on the deduced name; with a mouse a shape diagram (not the neck)
   also drags out as that PNG, drawn on hover; the image is
   `ChordDiagram` drawn with a concrete `look` (`exportStyle.ts`, whose

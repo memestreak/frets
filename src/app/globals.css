@@ -406,38 +406,6 @@ button {
     color: var(--ink-muted);
   }
   .shape-step { min-height: 28px; width: 28px; padding: 0; font-size: 16px; }
-  /* MOCK B: borderless arrows and an icon link beside them. */
-  .shape-step-quiet { width: 22px; color: var(--ink-muted); }
-  .shape-step-quiet:hover:not(:disabled) { background: var(--primary-soft); color: var(--ink); }
-  .tile-icon-link {
-    display: grid; place-items: center;
-    width: 24px; height: 28px;
-    border-radius: var(--radius-md);
-    color: var(--primary);
-  }
-  .tile-icon-link:hover { background: var(--primary-soft); }
-  .tile-icon-link svg { width: 16px; height: 16px; }
-  /* MOCK C: the chord's name is the link. */
-  .tile-name-link {
-    font: 700 14px/18px var(--font-sans);
-    color: var(--primary);
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-underline-offset: 3px;
-  }
-  .tile-name-link:hover { text-decoration-color: currentColor; }
-  /* MOCK: the switcher. */
-  .mock-bar {
-    position: fixed; left: 50%; bottom: 12px; z-index: 50;
-    transform: translateX(-50%);
-    display: flex; gap: 4px; padding: 4px;
-    border-radius: 999px;
-    background: var(--surface-raised);
-    box-shadow: 0 2px 12px rgb(0 0 0 / .3), inset 0 0 0 1px var(--line-strong);
-    font: 600 13px/18px var(--font-sans);
-  }
-  .mock-bar a { padding: 6px 12px; border-radius: 999px; color: var(--ink-muted); white-space: nowrap; }
-  .mock-bar a[aria-current='page'] { background: var(--primary); color: var(--on-primary, var(--surface)); }
   /* Names the colours of the diagrams' unlabelled dots. */
   .tone-key {
     display: flex;
