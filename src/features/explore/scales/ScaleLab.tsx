@@ -113,11 +113,10 @@ export default function ScaleLab() {
     shapePicks.for === picksFor ? shapePicks.byChord[index] ?? 0 : 0;
   const shapeIndex = chord ? shapeIndexOf(chord.index) : 0;
   const shape = chord ? inPosition[chord.index]?.shapes[shapeIndex] ?? null : null;
-  const pickShape = (index: number) => {
-    if (!chord) return;
+  const pickShape = (chordAt: number, index: number) => {
     setShapePicks(p => ({
       for: picksFor,
-      byChord: { ...(p.for === picksFor ? p.byChord : {}), [chord.index]: index },
+      byChord: { ...(p.for === picksFor ? p.byChord : {}), [chordAt]: index },
     }));
   };
 
