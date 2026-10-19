@@ -158,28 +158,28 @@ export default function ScaleLab() {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="grid gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <div aria-live="polite">
-            <h1 className="m-0">{title}</h1>
-            <p className="m-0 mt-1 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)" data-testid="scale-formula">
-              {scale.degrees.map(d => d.label).join(' ')}
-            </p>
-          </div>
-          <ScalePickers
-            scale={scale}
-            onRoot={root => pick(root, shown.type)}
-            onScale={id => pick(shown.root, scaleDef(id)!)}
-            home={set.mode ? modeTitle(0) : null}
-            onReset={() => goToMode(0)}
-          />
+      <header className="scale-head">
+        <div className="scale-head-title" aria-live="polite">
+          <h1 className="m-0">{title}</h1>
+          <p className="m-0 mt-1 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)" data-testid="scale-formula">
+            {scale.degrees.map(d => d.label).join(' ')}
+          </p>
         </div>
-        <StripTip enabled={!!stripTap} shown={title}>
-          <ChordLadder
-            scale={scale} chord={null} intervals="root" octaves={1} from={from}
-            tap={stripTap ?? undefined}
-          />
-        </StripTip>
+        <ScalePickers
+          scale={scale}
+          onRoot={root => pick(root, shown.type)}
+          onScale={id => pick(shown.root, scaleDef(id)!)}
+          home={set.mode ? modeTitle(0) : null}
+          onReset={() => goToMode(0)}
+        />
+        <div className="scale-head-strip">
+          <StripTip enabled={!!stripTap} shown={title}>
+            <ChordLadder
+              scale={scale} chord={null} intervals="root" octaves={1} from={from}
+              tap={stripTap ?? undefined}
+            />
+          </StripTip>
+        </div>
       </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">

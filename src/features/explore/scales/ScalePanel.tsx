@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { ResetIcon } from '@/components/icons';
 import { KeyPicker } from '@/components/KeyPicker';
 import {
@@ -14,19 +15,26 @@ interface ScalePickersProps {
 }
 
 /**
- * The root picker and the scale dropdown beside the page title, and Reset while a
- * tapped strip note has rotated the scale.
+ * The root picker and the scale dropdown, each labelled from the top, and
+ * Reset while a tapped strip note has rotated the scale. Four grid cells
+ * (labels and controls apart) for the header to place: on a wide screen the
+ * labels end the title's row and the controls share the strip's.
  */
 export function ScalePickers({
   scale, onRoot, onScale, home, onReset,
 }: ScalePickersProps) {
+  const selectId = useId();
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
-      <label className="flex min-w-0 items-center gap-2">
-        <span className="field-label m-0 max-[480px]:sr-only">Scale</span>
+    <>
+      {/* The picker names itself (aria-label "Root"); this is the visible label. */}
+      <span className="field-label scale-head-root-label" aria-hidden>Root</span>
+      <div className="scale-head-root">
+        <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
+      </div>
+      <label htmlFor={selectId} className="field-label scale-head-scale-label">Scale</label>
+      <div className="scale-head-scale flex items-start gap-2">
         <select
-          className="input w-auto min-w-0"
+          id={selectId} className="input w-auto min-w-0"
           value={scale.type.id}
           onChange={e => onScale(e.target.value)}
         >
@@ -38,18 +46,17 @@ export function ScalePickers({
             </optgroup>
           ))}
         </select>
-      </label>
-      {/* Holds its place when hidden, so nothing shifts as it comes and goes;
-          on phones, where it wraps to a line of its own, it takes no room. */}
-      <button
-        type="button" className={`btn btn-ghost${home ? '' : ' invisible max-[480px]:hidden'}`}
-        aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
-        aria-hidden={!home} tabIndex={home ? undefined : -1}
-        onClick={onReset}
-      >
-        <ResetIcon />
-        Reset
-      </button>
-    </div>
+        {/* Holds its place when hidden, so nothing shifts as it comes and goes. */}
+        <button
+          type="button" className={`btn btn-ghost${home ? '' : ' invisible'}`}
+          aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
+          aria-hidden={!home} tabIndex={home ? undefined : -1}
+          onClick={onReset}
+        >
+          <ResetIcon />
+          Reset
+        </button>
+      </div>
+    </>
   );
 }

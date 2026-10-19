@@ -37,13 +37,12 @@ One column, as in the prototype:
    formula share one polite live region. Both stay the scale's while a chord is
    selected; the board's accessible name says "D7 in A Dorian on the
    fretboard".
-   Beside the name and formula, right-aligned and centred on them, a Root dropdown (17 spellings: the
-   naturals plus a ♯ and a ♭ for each black key) and a Scale dropdown with
-   one `<optgroup>` per family (list below), then a "↺ Reset" button that
-   shows only while rotated (see Rotate mode in Rules) and keeps its place
-   when hidden, so nothing shifts. On phones the controls wrap under the
-   title, the Root and Scale labels are visually hidden, and the hidden
-   Reset takes no room, since it would wrap to an empty line of its own.
+   Right of the name, formula and strip, the Root picker (the key picker,
+   `2026-10-16-key-picker-design.md`) and a Scale dropdown with one
+   `<optgroup>` per family (list below), each labelled from the top, then a
+   "↺ Reset" button that shows only while rotated (see Rotate mode in
+   Rules) and keeps its place when hidden, so nothing shifts. Where they go
+   on wide screens and phones: `2026-10-19-scale-lab-header-design.md`.
    (‹ › Rotate mode buttons stood before Reset until tapping strip notes
    made them redundant.)
 2. **Scale strip.** No card: under the title, the scale as a one-octave

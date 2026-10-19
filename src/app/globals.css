@@ -257,6 +257,35 @@ button {
   .scale-strip .tap:focus { outline: none; }
   .scale-strip .tap:hover rect:first-of-type,
   .scale-strip .tap:focus-visible rect:first-of-type { stroke: var(--ink); stroke-width: 2px; }
+
+  /* The Scale lab's header (ScaleLab, ScalePickers). Narrow: title, Root,
+     Scale and the strip in one column. Wide: the strip under the title, and
+     right of them the pickers in the strip's row, their labels ending the
+     title's row. */
+  .scale-head {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'root-label' 'root' 'scale-label' 'scale' 'strip';
+  }
+  .scale-head-title { grid-area: title; }
+  .scale-head-root-label { grid-area: root-label; margin-top: 12px; }
+  .scale-head-root { grid-area: root; }
+  .scale-head-scale-label { grid-area: scale-label; margin-top: 12px; }
+  .scale-head-scale { grid-area: scale; }
+  .scale-head-strip { grid-area: strip; margin-top: 12px; }
+  .scale-head .scale-strip { max-width: 480px; }
+  @media (min-width: 1180px) {
+    .scale-head {
+      column-gap: 16px; grid-template-columns: 480px 1fr auto auto;
+      grid-template-areas: 'title . root-label scale-label' 'strip . root scale';
+    }
+    .scale-head-root-label, .scale-head-scale-label { align-self: end; margin-top: 0; }
+    /* Centres the 52px picker on the strip's tiles, whose centre is 35px
+       down a 480px strip; the dropdown's top lines up with the picker's.
+       The labels come down as far, keeping the usual 6px above each. */
+    .scale-head-root, .scale-head-scale { margin-top: 9px; }
+    .scale-head-root-label, .scale-head-scale-label { margin-bottom: -3px; }
+    .scale-head-strip { margin-top: 0; }
+  }
   /* What tapping a strip note does: a tooltip for a mouse or the keyboard,
      a line under the strip on touch screens, which cannot hover. */
   .strip-tip {
@@ -646,4 +675,5 @@ button {
     border-radius: var(--radius-sm);
   }
 }
+
 
