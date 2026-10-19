@@ -11,8 +11,9 @@ picked, since the ask left them open.
   5, ♭7), as before. **Note** labels it with the chord's spelled note (A, C,
   E, G; F♯ in F♯m7♭5). **None** leaves the dots unlabelled. The dots keep
   their degree colours and the root its square in every mode.
-- With the Arpeggio on, only the dots of the frets played are labelled, as
-  before, in whichever mode is chosen. Muted strings keep their × beside
+- With the Arpeggio on, every dot of the arpeggio is labelled as the
+  shape's are, in whichever mode is chosen (Jeremy, 2026-10-19; until then
+  only the frets played were labelled). Muted strings keep their × beside
   the nut whatever the labels.
 - The choice is saved, as the Scale lab's is, but under its own key
   (`frets.chords.neck`, `{ labels }`): changing it on one page leaves the

@@ -406,14 +406,14 @@ describe('ChordsPage, naming what is played', () => {
     expect(heading()).toHaveTextContent(/^Am7\/C /);
   });
 
-  it('keeps the arpeggio on when a note is played, labelling only the notes played', () => {
+  it('keeps the arpeggio on when a note is played, labelling it afresh', () => {
     renderAt('?chord=c');
     fireEvent.click(arpeggio());
     fireEvent.click(cell(4, 3)); // B string, fret 3: Cadd9
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
     expect(heading()).toHaveTextContent(/^Cadd9/);
     expect(dotAt(4, 3)).toHaveTextContent('9');
-    expect(dotAt(0, 0).textContent).toBe(''); // the open low E isn't played
+    expect(dotAt(0, 0)).toHaveTextContent('3'); // the open low E isn't played, but is labelled
   });
 
   it('toggles the arpeggio with space on a focused fret, without tapping it', () => {
@@ -586,13 +586,16 @@ describe('ChordsPage, dot labels', () => {
     expect([...labels].sort()).toEqual(['A', 'C', 'E', 'F♯']);
   });
 
-  it('names only the shape inside the arpeggio, with notes as with intervals', () => {
+  it('labels every arpeggio dot as the shape is, by interval, note or nothing', () => {
     renderAt('?chord=am7');
-    showLabels('Note');
     fireEvent.click(arpeggio());
+    const labels = () => new Set(screen.getAllByTestId(/^dot-/).map(d => d.textContent));
+    expect([...labels()].sort()).toEqual(['5', 'R', '♭3', '♭7']);
+    expect(dotAt(0, 0).textContent).toBe('5'); // the open low E isn't played
+    showLabels('Note');
+    expect([...labels()].sort()).toEqual(['A', 'C', 'E', 'G']);
     expect(shapeLabels()).toEqual(['A', 'E', 'G', 'C', 'E']);
-    expect(dotAt(0, 0).textContent).toBe(''); // the open low E isn't played
     showLabels('None');
-    expect(screen.queryAllByTestId(/^dot-/).every(d => d.textContent === '')).toBe(true);
+    expect([...labels()]).toEqual(['']);
   });
 });

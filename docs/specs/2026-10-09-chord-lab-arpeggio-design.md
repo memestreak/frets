@@ -41,7 +41,8 @@ empty, that column reads "Tap a note to see its shapes."
   the tap still plays or mutes a note, and the arpeggio follows the new
   chord. With the arpeggio on, only the notes played keep their interval
   labels; every other chord tone is an unlabelled dot in its colour, as in
-  the Scale lab's arpeggio. Muted strings stay faint. Muting the last
+  the Scale lab's arpeggio. (Jeremy, 2026-10-19: every arpeggio dot is now
+  labelled as the shape's are, by the Dot labels switch.) Muted strings stay faint. Muting the last
   string leaves no chord and turns it off.
 - Choosing a shape (tap, ← →) or Clear turns it off and shows the new
   shape. With the arpeggio on no shape diagram is selected, so → chooses
@@ -57,4 +58,5 @@ empty, that column reads "Tap a note to see its shapes."
   writes the caption for both pages.
 - `VoicingGroups` loses its `showKey` prop: both pages show the key.
 - `arpeggioDots(chord, maxFret, voicing?)`: given a voicing, only its dots
-  keep their labels. The library passes none.
+  keep their labels. The library passes none. (2026-10-19: now
+  `arpeggioDots(chord, maxFret, labels?)`, every dot labelled.)

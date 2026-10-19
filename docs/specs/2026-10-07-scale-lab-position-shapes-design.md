@@ -47,8 +47,9 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
   fall back to shape 1 when deselected).
 - **Arpeggio:** a toggle button in the card header, disabled with no
   chord. On, the neck shows every chord tone up to fret 15 in its degree
-  colour; only the shape's notes carry labels (Jeremy's correction in
-  round 3: colour on every dot, no labels on the extra ones). It stays on
+  colour, labelled as the shape's notes are by the Interval / Note / None
+  switch (Jeremy, 2026-10-19, reversing round 3's "no labels on the extra
+  ones": the arpeggio's dots should look like the chord's). It stays on
   across chords and positions, goes off when the chord is cleared, and is
   not saved.
 - **Library link (option 1; replaced by the shapes' menu's Open in Chords,

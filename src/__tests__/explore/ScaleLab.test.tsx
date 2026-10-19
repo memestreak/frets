@@ -182,18 +182,18 @@ describe('ScaleLab', () => {
     open.mockRestore();
   });
 
-  it('shows the arpeggio around the shape, labelling only the shape', () => {
+  it('shows the arpeggio around the shape, every tone labelled', () => {
     render(<ScaleLab />);
     const arpeggio = () => screen.getByRole('button', { name: 'Arpeggio' });
     expect(arpeggio()).toBeDisabled();
     fireEvent.click(chordCard('D7'));
     fireEvent.click(arpeggio());
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'true');
-    // Every D7 tone up to fret 15; only the shape's five carry labels.
+    // Every D7 tone up to fret 15, each labelled as the shape's five are.
     const dots = screen.getAllByTestId(/^dot-/);
     expect(dots.length).toBeGreaterThan(20);
-    expect(dotsAt().filter(d => !d.endsWith(' ')))
-      .toEqual(['1:5 R', '2:7 5', '3:5 ♭7', '4:7 3', '5:5 5']);
+    expect(dots.every(d => d.textContent)).toBe(true);
+    expect(dotsAt()).toEqual(expect.arrayContaining(['1:5 R', '2:7 5', '3:5 ♭7', '4:7 3', '5:5 5']));
     expect(screen.getAllByTestId('dot-root').filter(d => d.dataset.s === '0').map(d => d.dataset.f))
       .toEqual(['10']);
     // It stays on for the next chord, and goes off with the selection.
