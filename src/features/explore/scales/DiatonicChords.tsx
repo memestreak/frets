@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { ToneKey } from '@/components/chords/ToneKey';
 import { Segmented, ToggleButton } from '@/components/controls';
 import { ChordOverScale } from './ChordOverScale';
 import { PositionShapes, PositionStepper } from './PositionShapes';
@@ -44,8 +43,7 @@ interface DiatonicChordsProps {
 
 /**
  * The "Diatonic chords" card, the one place the scale's chords are listed:
- * the header names the dot colours (the chord's spelling) between the title
- * and the controls, then each chord as a guitar shape in the same five frets (`PositionShapes`), and
+ * each as a guitar shape in the same five frets (`PositionShapes`), and
  * under them the selected chord drawn against the scale (`ChordOverScale`).
  * Tapping a shape selects its chord; ← and → step through the chords.
  */
@@ -58,13 +56,9 @@ export function DiatonicChords({
   return (
     <section className="card gap-4" aria-labelledby="chords-h">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-        <h2 id="chords-h" className="m-0 text-[17px] leading-6">Diatonic chords</h2>
+        <h2 id="chords-h" className="m-0 mr-auto text-[17px] leading-6">Diatonic chords</h2>
         {chords.length > 0 && (
           <>
-            {/* The selected chord's spelling (the first chord's until one is picked), centred in the gap. */}
-            <div className="mx-auto">
-              <ToneKey chord={(selected ? inPosition[selected.index] : inPosition[0]).info} />
-            </div>
             <Segmented<ChordSize> label="Chord size" options={SIZE_OPTS} value={size} onChange={onSize} />
             <ToggleButton
               pressed={arpeggio} disabled={!selected} onClick={() => onArpeggio(!arpeggio)}
