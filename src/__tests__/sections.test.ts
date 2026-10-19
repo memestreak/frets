@@ -4,7 +4,7 @@ describe('SECTIONS', () => {
   it('groups the pages as Tools, then Practice', () => {
     expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice']);
     expect(TOOLS.pages.map(p => p.href)).toEqual(
-      ['/explore/scales', '/explore/triads', '/explore/circle', '/chords', '/tuner'],
+      ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner'],
     );
     expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
   });
@@ -20,7 +20,7 @@ describe('locate', () => {
 
   it('finds a tool whatever its path', () => {
     expect(locate('/explore/scales')).toEqual({ section: TOOLS, page: TOOLS.pages[0] });
-    expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[3] });
+    expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[1] });
     expect(locate('/tuner')).toEqual({ section: TOOLS, page: TOOLS.pages[4] });
   });
 

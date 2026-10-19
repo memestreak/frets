@@ -30,6 +30,11 @@ export const TOOLS: Section = {
       summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
     },
     {
+      href: '/chords',
+      title: 'Chords',
+      summary: 'Look up a chord and every way to play it, or tap notes on the neck to name them.',
+    },
+    {
       href: '/explore/triads',
       title: 'Triads',
       summary: 'Every inversion of a triad on three neighbouring strings, all the way up the neck.',
@@ -38,11 +43,6 @@ export const TOOLS: Section = {
       href: '/explore/circle',
       title: 'Circle of fifths',
       summary: 'See how keys and modes relate: their chords, signatures and neighbours.',
-    },
-    {
-      href: '/chords',
-      title: 'Chords',
-      summary: 'Look up a chord and every way to play it, or tap notes on the neck to name them.',
     },
     {
       href: '/tuner',
