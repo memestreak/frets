@@ -13,9 +13,11 @@ interface ScalePickersProps {
   onReset: () => void;
   /**
    * MOCK: how the pickers are laid out. inline: labels beside (today);
-   * row: side by side, labels on top; stack: Root over Scale, labels on top.
+   * row: side by side, labels on top; stack: Root over Scale, labels on top;
+   * cells: the labels and the controls as separate grid cells
+   * (mock-rl, mock-rp, mock-sl, mock-sp) for the header to place.
    */
-  layout?: 'inline' | 'row' | 'stack';
+  layout?: 'inline' | 'row' | 'stack' | 'cells';
 }
 
 /**
@@ -25,6 +27,41 @@ interface ScalePickersProps {
 export function ScalePickers({
   scale, onRoot, onScale, home, onReset, layout = 'inline',
 }: ScalePickersProps) {
+  if (layout === 'cells') {
+    return (
+      <>
+        <span id="root-label" className="field-label mock-rl">Root</span>
+        <div className="mock-rp" role="group" aria-labelledby="root-label">
+          <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
+        </div>
+        <label htmlFor="scale-select" className="field-label mock-sl">Scale</label>
+        <div className="mock-sp flex items-center gap-2">
+          <select
+            id="scale-select" className="input w-auto min-w-0"
+            value={scale.type.id}
+            onChange={e => onScale(e.target.value)}
+          >
+            {SCALE_GROUPS.map(g => (
+              <optgroup key={g} label={g}>
+                {SCALES.filter(t => t.group === g).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <button
+            type="button" className={`btn btn-ghost${home ? '' : ' invisible'}`}
+            aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
+            aria-hidden={!home} tabIndex={home ? undefined : -1}
+            onClick={onReset}
+          >
+            <ResetIcon />
+            Reset
+          </button>
+        </div>
+      </>
+    );
+  }
   if (layout !== 'inline') {
     const stack = layout === 'stack';
     return (

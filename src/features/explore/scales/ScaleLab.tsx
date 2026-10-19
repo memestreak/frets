@@ -190,7 +190,7 @@ export default function ScaleLab() {
       </p>
     </div>
   );
-  const pickers = (layout: 'inline' | 'row' | 'stack') => (
+  const pickers = (layout: 'inline' | 'row' | 'stack' | 'cells') => (
     <ScalePickers
       scale={scale}
       onRoot={root => pick(root, shown.type)}
@@ -219,10 +219,16 @@ export default function ScaleLab() {
           </div>
           {strip}
         </header>
-      ) : mock === 'b' || mock === 'c' ? (
-        <header className={`mock-head mock-${mock}`}>
+      ) : mock === 'b' ? (
+        <header className="mock-head mock-b">
           <div className="mock-t">{heading}</div>
-          <div className="mock-p grid">{pickers(mock === 'b' ? 'row' : 'stack')}</div>
+          {pickers('cells')}
+          <div className="mock-s">{strip}</div>
+        </header>
+      ) : mock === 'c' ? (
+        <header className="mock-head mock-c">
+          <div className="mock-t">{heading}</div>
+          <div className="mock-p grid">{pickers('stack')}</div>
           <div className="mock-s">{strip}</div>
         </header>
       ) : mock === 'd' ? (

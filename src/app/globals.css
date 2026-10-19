@@ -654,10 +654,22 @@ button {
   .mock-t { grid-area: t; }
   .mock-p { grid-area: p; }
   .mock-s { grid-area: s; }
+  /* B: the pickers' labels end the title's row; the pickers sit in the
+     strip's row, centred on its tiles (480px strip: tile centre 35px down). */
+  .mock-b { row-gap: 0; grid-template-areas: 't' 'rl' 'rp' 'sl' 'sp' 's'; }
+  .mock-b .mock-t { margin-bottom: 0; }
+  .mock-b .mock-s { margin-top: 12px; }
+  .mock-b .mock-rl, .mock-b .mock-sl { grid-area: rl; margin-top: 12px; }
+  .mock-b .mock-sl { grid-area: sl; }
+  .mock-rp { grid-area: rp; }
+  .mock-sp { grid-area: sp; }
   .mock-b .scale-strip { max-width: 480px; }
   @media (min-width: 1180px) {
-    .mock-b { grid-template-columns: 480px auto; justify-content: space-between;
-      grid-template-areas: 't p' 's p'; align-items: start; }
+    .mock-b { column-gap: 16px; grid-template-columns: 480px 1fr auto auto;
+      grid-template-areas: 't . rl sl' 's . rp sp'; }
+    .mock-b .mock-s { margin-top: 0; }
+    .mock-b .mock-rl, .mock-b .mock-sl { align-self: end; margin-top: 0; }
+    .mock-b .mock-rp, .mock-b .mock-sp { align-self: start; margin-top: 9px; height: 52px; }
   }
   @media (min-width: 980px) {
     .mock-c { grid-template-columns: minmax(0, 560px) 336px; justify-content: space-between;
