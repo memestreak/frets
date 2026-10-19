@@ -33,7 +33,8 @@ shade darker, `docs/specs/2026-10-19-key-picker-two-tone-design.md`), and label 
 with `DotLabelsPicker`, Interval, Note or None
 (`docs/specs/2026-10-17-chord-neck-labels-design.md`); on the Chords page a
 magnifier beside Type also finds a chord by its typed or pasted name
-(`docs/specs/2026-10-16-chord-search-design.md`), and its Export options
+(`docs/specs/2026-10-16-chord-search-design.md`; its header's layout:
+`docs/specs/2026-10-19-chords-header-design.md`), and its Export options
 choose the image's size and whether it is transparent
 (`docs/specs/2026-10-17-export-size-design.md`). In the Scale lab every
 chord's tile cycles its shapes, and its menu opens the chord in Chords

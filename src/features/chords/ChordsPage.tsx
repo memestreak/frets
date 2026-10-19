@@ -224,17 +224,17 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
         formula={chord ? formulaOf(chord) : ''}
         notes={chord ? chord.notes.join(' ') : ''}
       >
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <ChordPickers
-            root={chord?.root ?? DEFAULT_CHORD.root} typeId={chord?.type?.id ?? ''}
-            onRoot={root => pickChord(root, chord?.type?.id ?? 'M')}
-            onType={type => pickChord(chord?.root ?? DEFAULT_CHORD.root, type)}
-            onChord={pickChord}
-          />
-          <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
-            Clear
-          </button>
-        </div>
+        <ChordPickers
+          root={chord?.root ?? DEFAULT_CHORD.root} typeId={chord?.type?.id ?? ''}
+          onRoot={root => pickChord(root, chord?.type?.id ?? 'M')}
+          onType={type => pickChord(chord?.root ?? DEFAULT_CHORD.root, type)}
+          onChord={pickChord}
+          after={
+            <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
+              Clear
+            </button>
+          }
+        />
       </ChordHeader>
 
       <section className="card gap-4" aria-label="On the neck">

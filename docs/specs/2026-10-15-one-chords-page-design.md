@@ -28,7 +28,8 @@ ways to set the same chord. `/chords/library` and `/chords/lab` go away
 1. **Title line.** `h1` is the chosen name and its formula, the spelled
    notes below (the lab's title: "No name" when nothing fits, "Tap the
    neck" when every string is muted). On the right, the library's **Root**
-   and **Type** pickers and the lab's **Clear**. The pickers show the
+   and **Type** pickers and the lab's **Clear**, labelled from the top
+   (`2026-10-19-chords-header-design.md`). The pickers show the
    chosen name's root and type; with no name, Root shows the lowest note
    and Type a disabled "—". Picking a root keeps the type (major when
    there was none).
