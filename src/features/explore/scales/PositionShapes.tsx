@@ -1,6 +1,5 @@
 import { useCallback, useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
-import { ToneKey } from '@/components/chords/ToneKey';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { LAST_POSITION } from '@/lib/chords/voicings';
@@ -25,6 +24,7 @@ interface PositionShapesProps {
 /**
  * The shapes in the "Diatonic chords" card: a diagram for every diatonic
  * chord, all in the same five frets, so they read as one hand position.
+ * Each tile has its numeral above the shape and its name under it.
  * Tapping a shape selects its chord. Every tile cycles its chord's shapes
  * with ‹ › under it, selected or not; the selected chord's also cycle with
  * ↑ and ↓, and its shape is the one on the neck. The shapes' menu
@@ -46,7 +46,6 @@ export function PositionShapes({
 
   return (
     <>
-      <ToneKey chord={(current ?? inPosition[0]).info} />
       <div className="position-grid">
         {tiles.map(({ chord, info, shapes }) => {
           const isSelected = chord.index === selected?.index;
@@ -67,12 +66,12 @@ export function PositionShapes({
                 aria-label={`${chord.numeral}, ${chord.symbol}, ${chord.quality}: ${shown ? 'shape' : 'no shape'} in ${positionLabel(position)}`}
                 onClick={() => onSelect(isSelected ? null : chord)}
               >
+                <span className="chord-numeral">{chord.numeral}</span>
                 {shown ? (
                   <ChordDiagram chord={info} voicing={shown} startFret={position} />
                 ) : (
                   <span className="position-none">None here</span>
                 )}
-                <span className="chord-numeral">{chord.numeral}</span>
                 <span className="font-bold">{chord.symbol}</span>
               </button>
               {/* As tall as the stepper either way, so a tile's shape count moves nothing. */}

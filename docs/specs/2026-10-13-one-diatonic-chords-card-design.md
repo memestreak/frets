@@ -28,12 +28,14 @@ Mocked up in the app (light and dark, desktop and phone):
 
 One card, "Diatonic chords", after "On the neck":
 
-1. **Header:** the title, Triads / Sevenths, Arpeggio and the position's
-   ‹ Frets 5–9 ›. A scale without seven notes shows only the title and the
-   line saying why it has no chords.
-2. **Shapes:** the tone key and the seven tiles, as before
-   (`2026-10-07-scale-lab-position-shapes-design.md`). They are now the
-   only chord row: the chord cards are gone. A tile's quality (minor 7,
+1. **Header:** the title, the tone key (the selected chord's spelling, the
+   first chord's until one is picked) centred in the space after it, then
+   Triads / Sevenths, Arpeggio and the position's ‹ Frets 5–9 ›. A scale
+   without seven notes shows only the title and the line saying why it has
+   no chords.
+2. **Shapes:** the seven tiles, each with its numeral above the shape and
+   its name under it (`2026-10-07-scale-lab-position-shapes-design.md`).
+   They are now the only chord row: the chord cards are gone. A tile's quality (minor 7,
    dominant 7) is in its accessible name and beside the heading below.
 3. **Library line** (now always the hint; the link moved to the shapes'
    menu, `2026-10-18-every-tile-shapes-design.md`): "Bm7 in the Chord library →" while a chord is
@@ -49,12 +51,17 @@ one line; the space under a tile is as tall as its ‹ n of m › stepper; and
 on a phone the heading has a line to itself. (The ladder still grows
 upward for its brackets; it is the last thing in the card.)
 
+2026-10-19, Jeremy: "put the chord type above the chords with the chord
+name below them" and "have the chord spelling horizontally aligned with the
+title … but somewhat centered": the numeral moved above each shape and the
+tone key into the header.
+
 Selection, ← → (chords), ↑ ↓ (shapes), Esc and the saved settings are
 unchanged.
 
 ## Code
 
 `DiatonicChords.tsx` is the card: the header, the ← → keys, and its two
-halves, `PositionShapes.tsx` (tone key, tiles, library line; exports
+halves, `PositionShapes.tsx` (tiles, library line; exports
 `PositionStepper`) and `ChordOverScale.tsx` (was `ChordStrip.tsx`).
 `Segmented` gains `disabled`.

@@ -408,7 +408,7 @@ button {
   }
   .export-notice[data-shown] { opacity: 1; }
   /* The Scale lab's "Diatonic chords" card: seven shapes in a row, three
-     per line on phones, each with its numeral and name under it. */
+     per line on phones, each with its numeral above and name under it. */
   .position-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
