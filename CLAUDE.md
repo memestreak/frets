@@ -26,7 +26,8 @@ one string set, each grip joined by a faint band; tap one to name it) and
 `docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
 library and the Chord lab into it). The Scale lab, Triads and the Chords page
 pick their root from `KeyPicker`, tiles laid out like a piano's keys
-(`docs/specs/2026-10-16-key-picker-design.md`), and label their neck's dots
+(`docs/specs/2026-10-16-key-picker-design.md`; the sharps and flats a
+shade darker, `docs/specs/2026-10-19-key-picker-two-tone-design.md`), and label their neck's dots
 with `DotLabelsPicker`, Interval, Note or None
 (`docs/specs/2026-10-17-chord-neck-labels-design.md`); on the Chords page a
 magnifier beside Type also finds a chord by its typed or pasted name

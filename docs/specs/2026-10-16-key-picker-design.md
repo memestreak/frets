@@ -13,6 +13,8 @@ in their order.
 
 - The picked tile shows by colour alone (`--primary` on `--on-primary`);
   every tile keeps its size, so nothing moves when the pick changes.
+- The sharps and flats are a shade darker than the naturals
+  (`docs/specs/2026-10-19-key-picker-two-tone-design.md`).
 - The row is 336px wide, narrowing with the page on a phone, where it wraps
   onto a line of its own above the dropdown.
 - There is no visible "Root" label: the tiles say what they are. The group
