@@ -8,15 +8,20 @@ guitar" thread from mocks; details he left open are marked as defaults.
 
 ## What the page shows
 
-- **Pickers, each labelled (Jeremy):**
-  - **Root**, under the title "Triads": `KeyPicker`, the standard key
-    picker (Jeremy). Roots are spelled one way per pitch, as on the
-    Chords page (D♭, E♭, F♯, A♭, B♭; default).
-  - **Triad** and **Strings**, two columns of buttons just right of the
-    title block, top-aligned (Jeremy): Major / Minor / Dim / Aug, and
-    e B G / B G D / G D A / D A E, high strings first and named high to
-    low, in the caption too (Jeremy).
-  - On a phone the columns wrap under the title block.
+- **Pickers, each labelled from the top (Jeremy):** on the right of the
+  title "Triads", as on the Chords page
+  (`2026-10-19-chords-header-design.md`): the labels level with the title,
+  the tops of the controls level, in the order Triad, Strings, Root
+  (Jeremy, 2026-10-19).
+  - **Triad**, a dropdown: Major / Minor / Diminished / Augmented.
+  - **Strings**, a dropdown: e B G / B G D / G D A / D A E, high strings
+    first and named high to low, in the caption too (Jeremy).
+  - **Root**: `KeyPicker`, the standard key picker (Jeremy). Roots are
+    spelled one way per pitch, as on the Chords page (D♭, E♭, F♯, A♭, B♭;
+    default).
+  - Triad and Strings were columns of buttons until 2026-10-19, when they
+    became dropdowns so the three pickers line up.
+  - On a phone the pickers wrap under the title.
 - **One string set across the whole neck** (frets 0–15, as in the Scale
   lab); the three other strings fade.
 - **Every grip** of the triad on that set: each inversion, wherever it fits

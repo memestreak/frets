@@ -9,8 +9,10 @@ const tap = (s: number, f: number) => fireEvent.click(screen.getByTestId(`cell-$
 const dotOpacity = (s: number, f: number) => screen.getAllByTestId(/^dot-/)
   .find(d => d.dataset.s === String(s) && d.dataset.f === String(f))!
   .getAttribute('opacity');
-const stringSet = (name: string) =>
-  within(screen.getByRole('group', { name: 'Strings' })).getByRole('button', { name });
+const strings = () => screen.getByRole('combobox', { name: 'Strings' });
+const triad = () => screen.getByRole('combobox', { name: 'Triad' });
+const shown = (select: HTMLElement) =>
+  within(select).getAllByRole<HTMLOptionElement>('option').find(o => o.selected)?.textContent;
 const linkNames = () => screen.getAllByTestId('link').map(l => l.textContent);
 
 describe('Triads', () => {
@@ -20,13 +22,13 @@ describe('Triads', () => {
     render(<Triads />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Triads');
     expect(caption()).toHaveTextContent('C major on the e-B-G strings. Tap a grip to name it.');
-    expect(stringSet('e B G')).toHaveAttribute('aria-pressed', 'true');
+    expect(shown(strings())).toBe('e B G');
     // High strings first.
-    expect(within(screen.getByRole('group', { name: 'Strings' })).getAllByRole('button').map(b => b.textContent))
+    expect(within(strings()).getAllByRole('option').map(o => o.textContent))
       .toEqual(['e B G', 'B G D', 'G D A', 'D A E']);
-    // The triad and the string set are columns of buttons.
-    expect(screen.getByRole('group', { name: 'Triad' })).toHaveClass('seg-vertical');
-    expect(screen.getByRole('group', { name: 'Strings' })).toHaveClass('seg-vertical');
+    expect(shown(triad())).toBe('Major');
+    expect(within(triad()).getAllByRole('option').map(o => o.textContent))
+      .toEqual(['Major', 'Minor', 'Diminished', 'Augmented']);
     expect(linkNames()).toEqual(['2nd', 'Root', '1st', '2nd']);
     expect(screen.getAllByTestId(/^dot-/)).toHaveLength(12);
   });
@@ -52,12 +54,18 @@ describe('Triads', () => {
     expect(caption()).toHaveTextContent(/Tap a grip/);
   });
 
-  it('picks a string set from the row of sets, and clears the pick', () => {
+  it('orders the pickers Triad, Strings, Root', () => {
+    render(<Triads />);
+    const root = screen.getByRole('radiogroup', { name: 'Root' });
+    expect(triad().compareDocumentPosition(strings()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(strings().compareDocumentPosition(root) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('picks a string set from its menu, and clears the pick', () => {
     render(<Triads />);
     tap(3, 9);
-    fireEvent.click(stringSet('D A E'));
-    expect(stringSet('D A E')).toHaveAttribute('aria-pressed', 'true');
-    expect(stringSet('e B G')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.change(strings(), { target: { value: '0' } });
+    expect(shown(strings())).toBe('D A E');
     expect(caption()).toHaveTextContent('C major on the D-A-E strings.');
     expect(saved()).toMatchObject({ strings: 0 });
   });
@@ -68,7 +76,7 @@ describe('Triads', () => {
     const picker = screen.getByRole('radiogroup', { name: 'Root' });
     fireEvent.click(within(picker).getByRole('radio', { name: 'C♯' }));
     expect(caption()).toHaveTextContent('D♭ major on the e-B-G strings.');
-    fireEvent.click(screen.getByRole('button', { name: 'Aug' }));
+    fireEvent.change(triad(), { target: { value: 'aug' } });
     expect(caption()).toHaveTextContent('D♭ augmented on the e-B-G strings.');
     expect(saved()).toMatchObject({ root: 'Db', triad: 'aug' });
   });
