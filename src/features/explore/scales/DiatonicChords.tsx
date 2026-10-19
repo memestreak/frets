@@ -79,6 +79,7 @@ export function DiatonicChords({
           />
           <ChordOverScale
             scale={scale} chord={selected} view={view} onView={onView}
+            info={selected ? inPosition[selected.index].info : null}
             intervals={intervals} onIntervals={onIntervals} from={from}
           />
         </>
