@@ -668,7 +668,8 @@ button {
     .mock-b { column-gap: 16px; grid-template-columns: 480px 1fr auto auto;
       grid-template-areas: 't . rl sl' 's . rp sp'; }
     .mock-b .mock-s { margin-top: 0; }
-    .mock-b .mock-rl, .mock-b .mock-sl { align-self: end; margin-top: 0; }
+    /* The usual 6px from label to control, across the 9px the controls drop. */
+    .mock-b .mock-rl, .mock-b .mock-sl { align-self: end; margin-top: 0; margin-bottom: -3px; }
     .mock-b .mock-rp, .mock-b .mock-sp { align-self: start; margin-top: 9px; height: 52px; }
   }
   @media (min-width: 980px) {

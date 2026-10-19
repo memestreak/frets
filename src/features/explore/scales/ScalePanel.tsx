@@ -35,7 +35,7 @@ export function ScalePickers({
           <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
         </div>
         <label htmlFor="scale-select" className="field-label mock-sl">Scale</label>
-        <div className="mock-sp flex items-center gap-2">
+        <div className="mock-sp flex items-start gap-2">
           <select
             id="scale-select" className="input w-auto min-w-0"
             value={scale.type.id}
