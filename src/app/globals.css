@@ -257,6 +257,35 @@ button {
   .scale-strip .tap:focus { outline: none; }
   .scale-strip .tap:hover rect:first-of-type,
   .scale-strip .tap:focus-visible rect:first-of-type { stroke: var(--ink); stroke-width: 2px; }
+
+  /* The Scale lab's header (ScaleLab, ScalePickers). Narrow: title, Root,
+     Scale and the strip in one column. Wide: the strip under the title, and
+     right of them the pickers in the strip's row, their labels ending the
+     title's row. */
+  .scale-head {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'root-label' 'root' 'scale-label' 'scale' 'strip';
+  }
+  .scale-head-title { grid-area: title; }
+  .scale-head-root-label { grid-area: root-label; margin-top: 12px; }
+  .scale-head-root { grid-area: root; }
+  .scale-head-scale-label { grid-area: scale-label; margin-top: 12px; }
+  .scale-head-scale { grid-area: scale; }
+  .scale-head-strip { grid-area: strip; margin-top: 12px; }
+  .scale-head .scale-strip { max-width: 480px; }
+  @media (min-width: 1180px) {
+    .scale-head {
+      column-gap: 16px; grid-template-columns: 480px 1fr auto auto;
+      grid-template-areas: 'title . root-label scale-label' 'strip . root scale';
+    }
+    .scale-head-root-label, .scale-head-scale-label { align-self: end; margin-top: 0; }
+    /* Centres the 52px picker on the strip's tiles, whose centre is 35px
+       down a 480px strip; the dropdown's top lines up with the picker's.
+       The labels come down as far, keeping the usual 6px above each. */
+    .scale-head-root, .scale-head-scale { margin-top: 9px; }
+    .scale-head-root-label, .scale-head-scale-label { margin-bottom: -3px; }
+    .scale-head-strip { margin-top: 0; }
+  }
   /* What tapping a strip note does: a tooltip for a mouse or the keyboard,
      a line under the strip on touch screens, which cannot hover. */
   .strip-tip {
@@ -648,42 +677,3 @@ button {
 }
 
 
-/* MOCK: Scale lab header layouts (?mock=b…e). Phones stack title, pickers, strip. */
-@layer components {
-  .mock-head { display: grid; gap: 12px 32px; grid-template-areas: 't' 'p' 's'; }
-  .mock-t { grid-area: t; }
-  .mock-p { grid-area: p; }
-  .mock-s { grid-area: s; }
-  /* B: the pickers' labels end the title's row; the pickers sit in the
-     strip's row, centred on its tiles (480px strip: tile centre 35px down). */
-  .mock-b { row-gap: 0; grid-template-areas: 't' 'rl' 'rp' 'sl' 'sp' 's'; }
-  .mock-b .mock-t { margin-bottom: 0; }
-  .mock-b .mock-s { margin-top: 12px; }
-  .mock-b .mock-rl, .mock-b .mock-sl { grid-area: rl; margin-top: 12px; }
-  .mock-b .mock-sl { grid-area: sl; }
-  .mock-rp { grid-area: rp; }
-  .mock-sp { grid-area: sp; }
-  .mock-b .scale-strip { max-width: 480px; }
-  @media (min-width: 1180px) {
-    .mock-b { column-gap: 16px; grid-template-columns: 480px 1fr auto auto;
-      grid-template-areas: 't . rl sl' 's . rp sp'; }
-    .mock-b .mock-s { margin-top: 0; }
-    /* The usual 6px from label to control, across the 9px the controls drop. */
-    .mock-b .mock-rl, .mock-b .mock-sl { align-self: end; margin-top: 0; margin-bottom: -3px; }
-    .mock-b .mock-rp, .mock-b .mock-sp { align-self: start; margin-top: 9px; height: 52px; }
-  }
-  @media (min-width: 980px) {
-    .mock-c { grid-template-columns: minmax(0, 560px) 336px; justify-content: space-between;
-      grid-template-areas: 't p' 's p'; }
-    .mock-c .mock-p { align-self: stretch; align-content: space-between; }
-  }
-  .mock-bar {
-    position: fixed; right: 12px; bottom: 12px; z-index: 50;
-    display: flex; gap: 4px; align-items: center; padding: 6px 8px;
-    font: 600 13px/1 var(--font-sans); color: var(--ink);
-    background: var(--surface-raised); border: 1px solid var(--line-strong);
-    border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
-  }
-  .mock-bar a { padding: 6px 9px; border-radius: 4px; color: var(--ink); text-decoration: none; }
-  .mock-bar a[aria-current] { background: var(--ink); color: var(--surface); }
-}

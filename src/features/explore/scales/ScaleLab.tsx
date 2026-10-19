@@ -40,33 +40,7 @@ function toDot(n: NeckNote, labels: DotLabels): FretDot {
   };
 }
 
-// MOCK: header layouts to choose from, picked with ?mock=a…e.
-const MOCKS = [
-  ['a', 'Today'], ['b', 'Side by side'], ['c', 'Stacked'],
-  ['d', 'Under title'], ['e', 'Above title'],
-] as const;
-type Mock = typeof MOCKS[number][0];
-
-function readMock(): Mock {
-  const m = new URLSearchParams(window.location.search).get('mock');
-  return MOCKS.some(([id]) => id === m) ? m as Mock : 'a';
-}
-
-function MockBar({ current }: { current: Mock }) {
-  return (
-    <nav className="mock-bar" aria-label="Header mocks">
-      Mock
-      {MOCKS.map(([id, name]) => (
-        <a key={id} href={`?mock=${id}`} title={name} aria-current={id === current ? 'page' : undefined}>
-          {id.toUpperCase()}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
 export default function ScaleLab() {
-  const [mock] = useState(readMock);
   const [set, setSet] = useState(
     () => parseScaleLabSettings(loadJson(SCALE_LAB_STORAGE_KEY)),
   );
@@ -182,69 +156,31 @@ export default function ScaleLab() {
   const dots = (shape && !arpeggio ? notes.filter(onShape) : notes)
     .map(n => toDot(n, shape && arpeggio && !onShape(n) ? 'none' : set.labels));
 
-  const heading = (
-    <div aria-live="polite">
-      <h1 className="m-0">{title}</h1>
-      <p className="m-0 mt-1 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)" data-testid="scale-formula">
-        {scale.degrees.map(d => d.label).join(' ')}
-      </p>
-    </div>
-  );
-  const pickers = (layout: 'inline' | 'row' | 'stack' | 'cells') => (
-    <ScalePickers
-      scale={scale}
-      onRoot={root => pick(root, shown.type)}
-      onScale={id => pick(shown.root, scaleDef(id)!)}
-      home={set.mode ? modeTitle(0) : null}
-      onReset={() => goToMode(0)}
-      layout={layout}
-    />
-  );
-  const strip = (
-    <StripTip enabled={!!stripTap} shown={title}>
-      <ChordLadder
-        scale={scale} chord={null} intervals="root" octaves={1} from={from}
-        tap={stripTap ?? undefined}
-      />
-    </StripTip>
-  );
-
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      {mock === 'a' ? (
-        <header className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            {heading}
-            {pickers('inline')}
-          </div>
-          {strip}
-        </header>
-      ) : mock === 'b' ? (
-        <header className="mock-head mock-b">
-          <div className="mock-t">{heading}</div>
-          {pickers('cells')}
-          <div className="mock-s">{strip}</div>
-        </header>
-      ) : mock === 'c' ? (
-        <header className="mock-head mock-c">
-          <div className="mock-t">{heading}</div>
-          <div className="mock-p grid">{pickers('stack')}</div>
-          <div className="mock-s">{strip}</div>
-        </header>
-      ) : mock === 'd' ? (
-        <header className="grid gap-4">
-          {heading}
-          {pickers('row')}
-          {strip}
-        </header>
-      ) : (
-        <header className="grid gap-4">
-          {pickers('row')}
-          {heading}
-          {strip}
-        </header>
-      )}
-      <MockBar current={mock} />
+      <header className="scale-head">
+        <div className="scale-head-title" aria-live="polite">
+          <h1 className="m-0">{title}</h1>
+          <p className="m-0 mt-1 text-[17px] leading-6 [word-spacing:0.25em] text-(--ink-muted)" data-testid="scale-formula">
+            {scale.degrees.map(d => d.label).join(' ')}
+          </p>
+        </div>
+        <ScalePickers
+          scale={scale}
+          onRoot={root => pick(root, shown.type)}
+          onScale={id => pick(shown.root, scaleDef(id)!)}
+          home={set.mode ? modeTitle(0) : null}
+          onReset={() => goToMode(0)}
+        />
+        <div className="scale-head-strip">
+          <StripTip enabled={!!stripTap} shown={title}>
+            <ChordLadder
+              scale={scale} chord={null} intervals="root" octaves={1} from={from}
+              tap={stripTap ?? undefined}
+            />
+          </StripTip>
+        </div>
+      </header>
 
       <section className="card gap-4" aria-labelledby="neck-h">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">

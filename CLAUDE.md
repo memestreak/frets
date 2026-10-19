@@ -15,6 +15,8 @@ the notes tapped on the neck, and Tuner, one page with a dial or a strobe
 `docs/specs/2026-10-06-chord-arpeggio-design.md`,
 `docs/specs/2026-10-09-chord-lab-arpeggio-design.md`,
 `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
+`docs/specs/2026-10-19-scale-lab-header-design.md` (its header: the pickers
+in the scale strip's row),
 `docs/specs/2026-10-13-one-diatonic-chords-card-design.md`,
 `docs/specs/2026-10-07-circle-of-fifths-design.md`,
 `docs/specs/2026-10-09-published-chord-shapes-design.md`,

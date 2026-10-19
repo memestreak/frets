@@ -17,7 +17,9 @@ in their order.
   (`docs/specs/2026-10-19-key-picker-two-tone-design.md`).
 - The row is 336px wide, narrowing with the page on a phone, where it wraps
   onto a line of its own above the dropdown.
-- There is no visible "Root" label: the tiles say what they are. The group
+- There is no visible "Root" label on the Chords page: the tiles say what
+  they are. The Scale lab shows one above them
+  (`docs/specs/2026-10-19-scale-lab-header-design.md`). The group
   is labelled Root for assistive technology.
 
 Three versions were mocked (a full-width row under the title, a button that
