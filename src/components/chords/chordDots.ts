@@ -46,17 +46,10 @@ export function mutedStrings(voicing: Voicing): number[] {
   return voicing.flatMap((fret, s) => (fret === null ? [s] : []));
 }
 
-/**
- * The arpeggio: every chord tone from the nut to `maxFret`. Given a
- * `voicing`, only that shape's dots keep their labels, so the shape still
- * shows inside the arpeggio.
- */
+/** The arpeggio: every chord tone from the nut to `maxFret`, labelled as the shape's dots are. */
 export function arpeggioDots(
-  chord: ChordInfo, maxFret: number, voicing?: Voicing, labels: DotLabels = 'interval',
+  chord: ChordInfo, maxFret: number, labels: DotLabels = 'interval',
 ): FretDot[] {
   return positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
-    .map(p => {
-      const dot = toneDot(chord, p.s, p.f, labels);
-      return voicing && voicing[p.s] !== p.f ? { ...dot, label: '' } : dot;
-    });
+    .map(p => toneDot(chord, p.s, p.f, labels));
 }

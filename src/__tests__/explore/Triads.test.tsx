@@ -101,8 +101,8 @@ describe('Triads', () => {
     expect(screen.getAllByTestId(/^dot-/).some(d => d.dataset.s === '0')).toBe(true);
     tap(3, 9);
     expect(caption()).toHaveTextContent('1st inversion');
-    const labelled = screen.getAllByTestId(/^dot-/).filter(d => d.textContent);
-    expect(labelled.map(d => `${d.dataset.s}:${d.dataset.f}`).sort()).toEqual(['3:9', '4:8', '5:8']);
+    // Every tone keeps its label, the grip's as the rest.
+    expect(screen.getAllByTestId(/^dot-/).every(d => d.textContent)).toBe(true);
     fireEvent.keyDown(window, { key: ' ' });
     expect(arpeggio).toHaveAttribute('aria-pressed', 'false');
   });

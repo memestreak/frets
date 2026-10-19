@@ -36,8 +36,9 @@ guitar" thread from mocks; details he left open are marked as defaults.
 - **Under the neck, as on the Chords page (Jeremy):** the caption on the
   left; the Interval / Note / None switch and an **Arpeggio** button on
   the right. The Arpeggio (or space) shows every tone of the triad from
-  the nut to fret 15 on all six strings; with a grip picked, only its
-  dots keep their labels. Not saved.
+  the nut to fret 15 on all six strings, every dot labelled by the switch
+  (Jeremy, 2026-10-19: the arpeggio's dots look like the grip's); a picked
+  grip still shows by its band. Not saved.
 - **The caption:** "C major on the e-B-G strings. Tap a grip
   to name it." Augmented's grips repeat every four frets, which the neck
   shows without comment.

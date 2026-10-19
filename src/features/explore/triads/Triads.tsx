@@ -52,9 +52,8 @@ export default function Triads() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // With the arpeggio on, only a picked grip's dots keep their labels.
   const dots = arpeggio
-    ? arpeggioDots(chord, TRIADS_MAX_FRET, grip?.voicing, set.labels)
+    ? arpeggioDots(chord, TRIADS_MAX_FRET, set.labels)
     : grips.flatMap((g, i) =>
       voicingDots(chord, g.voicing, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
   const links = grips.map((g, i) => ({

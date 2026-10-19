@@ -149,12 +149,12 @@ export default function ScaleLab() {
   const title = `${prettyNote(scale.root)} ${scale.type.title}`;
   const boardLabel = chord ? `${chord.symbol} in ${title}` : title;
   // A selected chord shows its shape; with the arpeggio on, every chord
-  // tone too, labelled only on the shape. A chord with no shape here shows
-  // every tone, labelled.
+  // tone too, labelled as the shape is. A chord with no shape here shows
+  // every tone.
   const onShape = (n: NeckNote) => shape?.[n.s] === n.f;
   const notes = neckNotes(scale, SCALE_LAB_MAX_FRET, chord);
   const dots = (shape && !arpeggio ? notes.filter(onShape) : notes)
-    .map(n => toDot(n, shape && arpeggio && !onShape(n) ? 'none' : set.labels));
+    .map(n => toDot(n, set.labels));
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">

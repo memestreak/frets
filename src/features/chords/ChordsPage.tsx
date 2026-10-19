@@ -211,7 +211,7 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
 
   const title = name?.symbol ?? (chord ? 'No name' : 'Tap the neck');
   const dots = !chord ? []
-    : arpeggio ? arpeggioDots(chord, MAX_FRET, frets, labels)
+    : arpeggio ? arpeggioDots(chord, MAX_FRET, labels)
     : voicingDots(chord, frets, labels);
   // Only the tapping hint: the shapes below mark the one on the neck,
   // and the Arpeggio button says when the arpeggio is showing.
