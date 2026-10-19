@@ -11,6 +11,11 @@ interface ScalePickersProps {
   /** The picked scale's title while rotated away from it, else null. */
   home: string | null;
   onReset: () => void;
+  /**
+   * MOCK: how the pickers are laid out. inline: labels beside (today);
+   * row: side by side, labels on top; stack: Root over Scale, labels on top.
+   */
+  layout?: 'inline' | 'row' | 'stack';
 }
 
 /**
@@ -18,8 +23,81 @@ interface ScalePickersProps {
  * tapped strip note has rotated the scale.
  */
 export function ScalePickers({
-  scale, onRoot, onScale, home, onReset,
+  scale, onRoot, onScale, home, onReset, layout = 'inline',
 }: ScalePickersProps) {
+  if (layout !== 'inline') {
+    const stack = layout === 'stack';
+    return (
+      <div className={stack
+        ? 'grid w-[336px] max-w-full gap-3'
+        : 'flex flex-wrap items-end gap-x-4 gap-y-3'}
+      >
+        <div role="group" aria-labelledby="root-label">
+          <span id="root-label" className="field-label">Root</span>
+          <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
+        </div>
+        {stack ? (
+          <div className="relative">
+            <label className="block">
+              <span className="field-label">Scale</span>
+              <select
+              className={`input min-w-0 ${stack ? 'w-full' : 'w-auto'}`}
+              value={scale.type.id}
+              onChange={e => onScale(e.target.value)}
+            >
+              {SCALE_GROUPS.map(g => (
+                <optgroup key={g} label={g}>
+                  {SCALES.filter(t => t.group === g).map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            </label>
+            {/* Beside the label, so the dropdown keeps its width. */}
+            <button
+              type="button"
+              className={`absolute top-0 right-0 flex items-center gap-1 text-[13px] leading-4 font-semibold text-(--ink-muted) hover:text-(--ink)${home ? '' : ' invisible'}`}
+              aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
+              aria-hidden={!home} tabIndex={home ? undefined : -1}
+              onClick={onReset}
+            >
+              <ResetIcon />
+              Reset
+            </button>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-end gap-2">
+            <label className="block min-w-0">
+              <span className="field-label">Scale</span>
+              <select
+              className={`input min-w-0 ${stack ? 'w-full' : 'w-auto'}`}
+              value={scale.type.id}
+              onChange={e => onScale(e.target.value)}
+            >
+              {SCALE_GROUPS.map(g => (
+                <optgroup key={g} label={g}>
+                  {SCALES.filter(t => t.group === g).map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            </label>
+            <button
+            type="button" className={`btn btn-ghost${home ? '' : ' invisible'}`}
+            aria-label={home ? `Reset to ${home}` : undefined} title={home ?? undefined}
+            aria-hidden={!home} tabIndex={home ? undefined : -1}
+            onClick={onReset}
+          >
+            <ResetIcon />
+            Reset
+          </button>
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <KeyPicker value={scale.root} onPick={n => onRoot(n as Root)} />
