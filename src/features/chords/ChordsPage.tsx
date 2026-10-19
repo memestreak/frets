@@ -79,6 +79,32 @@ function startFromUrl(): Start {
  * the Arpeggio switch and the saved neck settings live here, so they stay
  * through them.
  */
+// MOCK: header layouts to choose from, picked with ?mock=a…e. The page
+// rewrites its URL, so the pick is read once and kept.
+const MOCKS = [
+  ['a', 'Today'], ['b', 'Right'], ['c', 'Under title'], ['d', 'Above title'],
+  ['e', 'Level with the notes'],
+] as const;
+type Mock = typeof MOCKS[number][0];
+
+function readMock(): Mock {
+  const m = new URLSearchParams(window.location.search).get('mock');
+  return MOCKS.some(([id]) => id === m) ? m as Mock : 'a';
+}
+
+function MockBar({ current }: { current: Mock }) {
+  return (
+    <nav className="mock-bar" aria-label="Header mocks">
+      Mock
+      {MOCKS.map(([id, name]) => (
+        <a key={id} href={`?mock=${id}`} title={name} aria-current={id === current ? 'page' : undefined}>
+          {id.toUpperCase()}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export default function ChordsPage() {
   const [entry, setEntry] = useState(0);
   const [arpeggio, setArpeggio] = useState(false);
@@ -119,6 +145,7 @@ interface ChordsProps {
  * chosen name and Show all.
  */
 function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
+  const [mock] = useState(readMock);
   const [start] = useState(startFromUrl);
   const [frets, setFrets] = useState<Voicing>(start.frets);
   const [kept, setKept] = useState<ChordInfo | null>(start.kept);
@@ -217,25 +244,37 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
   // and the Arpeggio button says when the arpeggio is showing.
   const caption = chord ? '' : 'Tap a fret to play it on that string; tap it again to mute the string.';
 
+  const pickerProps = {
+    root: chord?.root ?? DEFAULT_CHORD.root, typeId: chord?.type?.id ?? '',
+    onRoot: (root: ChordRoot) => pickChord(root, chord?.type?.id ?? 'M'),
+    onType: (type: string) => pickChord(chord?.root ?? DEFAULT_CHORD.root, type),
+    onChord: pickChord,
+  };
+  const pickers = <ChordPickers {...pickerProps} />;
+  const clear = (
+    <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
+      Clear
+    </button>
+  );
+
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
       <ChordHeader
         title={title}
         formula={chord ? formulaOf(chord) : ''}
         notes={chord ? chord.notes.join(' ') : ''}
+        layout={({ a: 'inline', b: 'right', c: 'under', d: 'above', e: 'level' } as const)[mock]}
       >
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <ChordPickers
-            root={chord?.root ?? DEFAULT_CHORD.root} typeId={chord?.type?.id ?? ''}
-            onRoot={root => pickChord(root, chord?.type?.id ?? 'M')}
-            onType={type => pickChord(chord?.root ?? DEFAULT_CHORD.root, type)}
-            onChord={pickChord}
-          />
-          <button type="button" className="btn btn-secondary" onClick={() => play(MUTED)}>
-            Clear
-          </button>
-        </div>
+        {mock === 'a' ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            {pickers}
+            {clear}
+          </div>
+        ) : (
+          <ChordPickers {...pickerProps} labelsOnTop after={clear} />
+        )}
       </ChordHeader>
+      <MockBar current={mock} />
 
       <section className="card gap-4" aria-label="On the neck">
         <div className="board-scroll export-trigger" {...neckExport}>
