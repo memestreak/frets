@@ -603,8 +603,9 @@ button {
     .cof-row-current > :nth-last-child(2) { box-shadow: inset -2px 2px 0 var(--ink), inset 0 -2px 0 var(--ink); }
   }
 
-  /* The root picker, laid out like a piano's keys (KeyPicker.tsx). The
-     picked tile shows by colour alone; every tile keeps its size. */
+  /* The root picker, laid out like a piano's keys (KeyPicker.tsx), the
+     sharps and flats a shade darker like the black keys. The picked tile
+     shows by colour alone; every tile keeps its size. */
   .key-picker {
     display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px;
     width: 336px; max-width: 100%;
@@ -617,8 +618,11 @@ button {
     background: var(--surface-raised); border: 1px solid var(--line);
     border-radius: var(--radius-sm);
   }
-  .key-tile-half { grid-row: auto; height: auto; font-size: 11px; }
+  .key-tile-half {
+    grid-row: auto; height: auto; font-size: 11px; background: var(--surface-sunken);
+  }
   .key-tile:hover:not([aria-checked='true']) { background: var(--surface-sunken); }
+  .key-tile-half:hover:not([aria-checked='true']) { background: var(--line); }
   .key-tile[aria-checked='true'] {
     background: var(--primary); color: var(--on-primary); border-color: var(--primary);
   }
