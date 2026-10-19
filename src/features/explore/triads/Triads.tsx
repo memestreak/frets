@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
-import { Segmented, ToggleButton } from '@/components/controls';
+import { ToggleButton } from '@/components/controls';
 import { DotLabelsPicker } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
@@ -15,7 +15,7 @@ import {
 } from './settings';
 import {
   gripAt, gripCaption, INVERSION_NAMES, setLabel, setStrings, STRING_SETS,
-  TRIAD_TYPES, TRIADS_MAX_FRET, triadGrips,
+  TRIAD_TYPES, TRIADS_MAX_FRET, triadGrips, type StringSet, type TriadType,
 } from './triads';
 
 /** How far the grips other than the picked one, and the strings off the set, fade. */
@@ -66,30 +66,35 @@ export default function Triads() {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
-      <header className="flex flex-wrap items-start gap-x-10 gap-y-5">
-        <div>
-          <h1 className="m-0">Triads</h1>
-          <div className="mt-5">
-            <span className="field-label">Root</span>
+      {/* As on the Chords page: the pickers on the right, labelled from the
+          top, their labels level with the title and their tops level. */}
+      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
+        <h1 className="m-0">Triads</h1>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          <label className="block">
+            <span className="field-label">Triad</span>
+            <select
+              className="input w-auto" value={set.triad}
+              onChange={e => update({ triad: e.target.value as TriadType })}
+            >
+              {TRIAD_TYPES.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="field-label">Strings</span>
+            <select
+              className="input w-auto" value={set.strings}
+              onChange={e => update({ strings: Number(e.target.value) as StringSet })}
+            >
+              {[...STRING_SETS].reverse().map(n => <option key={n} value={n}>{setLabel(n)}</option>)}
+            </select>
+          </label>
+          <div>
+            {/* The picker names itself (aria-label "Root"); this is the visible label. */}
+            <span className="field-label" aria-hidden>Root</span>
             <KeyPicker
               value={set.root} resolve={chordRootOf}
               onPick={n => update({ root: chordRootOf(n) })}
-            />
-          </div>
-        </div>
-        <div className="flex gap-x-10">
-          <div>
-            <span className="field-label">Triad</span>
-            <Segmented
-              label="Triad" options={TRIAD_TYPES} value={set.triad} vertical
-              onChange={triad => update({ triad })}
-            />
-          </div>
-          <div>
-            <span className="field-label">Strings</span>
-            <Segmented
-              label="Strings" options={[...STRING_SETS].reverse().map(n => [n, setLabel(n)] as const)}
-              value={set.strings} onChange={strings => update({ strings })} vertical
             />
           </div>
         </div>

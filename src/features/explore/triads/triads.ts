@@ -7,9 +7,9 @@ import { pitchClass, samePos, STRING_NAMES, type Position } from '@/lib/music';
  * strings (docs/specs/2026-10-18-triads-design.md). No React.
  */
 
-/** The triads the page offers: a tonal chord type id and its button. */
+/** The triads the page offers: a tonal chord type id and its name in the menu. */
 export const TRIAD_TYPES = [
-  ['M', 'Major'], ['m', 'Minor'], ['dim', 'Dim'], ['aug', 'Aug'],
+  ['M', 'Major'], ['m', 'Minor'], ['dim', 'Diminished'], ['aug', 'Augmented'],
 ] as const;
 export type TriadType = (typeof TRIAD_TYPES)[number][0];
 
