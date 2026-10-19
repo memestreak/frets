@@ -677,16 +677,3 @@ button {
 }
 
 
-
-/* MOCK: the header mocks' switcher (?mock=). */
-@layer components {
-  .mock-bar {
-    position: fixed; right: 12px; bottom: 12px; z-index: 50;
-    display: flex; gap: 4px; align-items: center; padding: 6px 8px;
-    font: 600 13px/1 var(--font-sans); color: var(--ink);
-    background: var(--surface-raised); border: 1px solid var(--line-strong);
-    border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
-  }
-  .mock-bar a { padding: 6px 9px; border-radius: 4px; color: var(--ink); text-decoration: none; }
-  .mock-bar a[aria-current] { background: var(--ink); color: var(--surface); }
-}
