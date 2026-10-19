@@ -3,8 +3,8 @@ import { PAGE_GLYPHS } from '@/components/PageIcon';
 import { PageList } from '@/components/PageList';
 import { SECTIONS } from '@/components/sections';
 
-/** Every card the home page draws: each page, or the section when it has none. */
-const cardHrefs = SECTIONS.flatMap(s => (s.pages.length ? s.pages.map(p => p.href) : [s.href]));
+/** Every card the home page draws. */
+const cardHrefs = SECTIONS.flatMap(s => s.pages.map(p => p.href));
 
 describe('PageIcon', () => {
   it('has a pictogram for every card on the home page', () => {

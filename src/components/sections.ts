@@ -1,7 +1,9 @@
 /**
- * The app's map: top-level sections and the pages inside each. The nav, the
- * home page and each section's index page are all drawn from this list, so a
- * new feature is one entry here plus its route under `src/app/`.
+ * The app's map: the two groups of pages, Tools and Practice. The nav, the
+ * home page and the Practice index page are all drawn from this list, so a
+ * new feature is one entry here plus its route under `src/app/`. A page's
+ * group says nothing about its URL: the Scale lab is a tool at
+ * `/explore/scales`.
  */
 export interface Page {
   href: string;
@@ -11,16 +13,49 @@ export interface Page {
 }
 
 export interface Section {
-  href: string;
   label: string;
   summary: string;
+  /** The group's own index page, when it has one. */
+  href?: string;
   pages: readonly Page[];
 }
 
+export const TOOLS: Section = {
+  label: 'Tools',
+  summary: 'See how scales and chords lie on the neck, look up a chord, tune up.',
+  pages: [
+    {
+      href: '/explore/scales',
+      title: 'Scale lab',
+      summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
+    },
+    {
+      href: '/chords',
+      title: 'Chords',
+      summary: 'Look up a chord and every way to play it, or tap notes on the neck to name them.',
+    },
+    {
+      href: '/explore/triads',
+      title: 'Triads',
+      summary: 'Every inversion of a triad on three neighbouring strings, all the way up the neck.',
+    },
+    {
+      href: '/explore/circle',
+      title: 'Circle of fifths',
+      summary: 'See how keys and modes relate: their chords, signatures and neighbours.',
+    },
+    {
+      href: '/tuner',
+      title: 'Tuner',
+      summary: 'Tune your guitar through the mic, on a dial or a strobe, and hear each string.',
+    },
+  ],
+};
+
 export const PRACTICE: Section = {
-  href: '/practice',
   label: 'Practice',
   summary: 'Quizzes that drill the fretboard until you know it cold.',
+  href: '/practice',
   pages: [
     {
       href: '/practice/intervals',
@@ -35,51 +70,13 @@ export const PRACTICE: Section = {
   ],
 };
 
-export const EXPLORE: Section = {
-  href: '/explore',
-  label: 'Explore',
-  summary: 'Tools for seeing how scales and chords lie on the neck.',
-  pages: [
-    {
-      href: '/explore/scales',
-      title: 'Scale lab',
-      summary: 'Pick a root and a scale, see it on the neck and stack its chords.',
-    },
-    {
-      href: '/explore/triads',
-      title: 'Triads',
-      summary: 'Every inversion of a triad on three neighbouring strings, all the way up the neck.',
-    },
-    {
-      href: '/explore/circle',
-      title: 'Circle of fifths',
-      summary: 'See how keys and modes relate: their chords, signatures and neighbours.',
-    },
-  ],
-};
+export const SECTIONS: readonly Section[] = [TOOLS, PRACTICE];
 
-/** A section with no pages is a page itself. */
-export const CHORDS: Section = {
-  href: '/chords',
-  label: 'Chords',
-  summary: 'Look up a chord and every way to play it, or tap notes on the neck to name them.',
-  pages: [],
-};
-
-export const TUNER: Section = {
-  href: '/tuner',
-  label: 'Tuner',
-  summary: 'Tune your guitar through the mic, on a dial or a strobe, and hear each string.',
-  pages: [],
-};
-
-export const SECTIONS: readonly Section[] = [EXPLORE, CHORDS, PRACTICE, TUNER];
-
-/** The section and page a pathname belongs to; either may be undefined. */
+/** The group and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {
-  const section = SECTIONS.find(
-    s => pathname === s.href || pathname.startsWith(`${s.href}/`),
-  );
-  const page = section?.pages.find(p => pathname === p.href);
-  return { section, page };
+  for (const section of SECTIONS) {
+    const page = section.pages.find(p => pathname === p.href);
+    if (page || pathname === section.href) return { section, page };
+  }
+  return {};
 }

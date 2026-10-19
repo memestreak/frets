@@ -17,8 +17,8 @@ function Separator() {
 
 /**
  * The bar: the logo (home), the path to the current page as breadcrumbs
- * ("Explore › Scale lab") and the theme switch. The breadcrumbs are one
- * button that opens a panel listing every section and page, with the
+ * ("Tools › Scale lab") and the theme switch. The breadcrumbs are one
+ * button that opens a panel listing every group and page, with the
  * current ones marked. Everything is read from the URL.
  */
 export function AppNav() {
@@ -109,42 +109,44 @@ export function AppNav() {
       >
         {SECTIONS.map(s => {
           const here = s === section;
+          const id = `menu-${s.label}`;
+          const tone = here ? 'text-(--primary)' : 'text-(--ink-muted)';
           return (
-            <div key={s.href} className="grid content-start gap-1">
+            <div key={s.label} className="grid content-start gap-1">
               <h2 className="m-0 text-[11px] leading-4 font-bold tracking-[0.08em] uppercase">
-                <Link
-                  id={`menu-${s.label}`}
-                  href={s.href}
-                  aria-current={here && !page ? 'page' : undefined}
-                  onClick={close}
-                  className={`flex items-center gap-2 rounded-(--radius-sm) px-2 py-0.5 no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft) ${here ? 'text-(--primary)' : 'text-(--ink-muted)'}`}
-                >
-                  {s.label}
-                  {here && !page && <YouAreHere />}
-                </Link>
+                {s.href ? (
+                  <Link
+                    id={id}
+                    href={s.href}
+                    aria-current={here && !page ? 'page' : undefined}
+                    onClick={close}
+                    className={`flex items-center gap-2 rounded-(--radius-sm) px-2 py-0.5 no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft) ${tone}`}
+                  >
+                    {s.label}
+                    {here && !page && <YouAreHere />}
+                  </Link>
+                ) : (
+                  <span id={id} className={`block px-2 py-0.5 ${tone}`}>{s.label}</span>
+                )}
               </h2>
-              {s.pages.length > 0 ? (
-                <ul aria-labelledby={`menu-${s.label}`} className="m-0 grid list-none gap-0.5 p-0">
-                  {s.pages.map(p => (
-                    <li key={p.href}>
-                      <Link
-                        href={p.href}
-                        aria-current={p === page ? 'page' : undefined}
-                        onClick={close}
-                        className="grid gap-0.5 rounded-(--radius-sm) px-2 py-1.5 text-(--ink) no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft)"
-                      >
-                        <span className="flex justify-between gap-3 text-[14px] font-semibold">
-                          {p.title}
-                          {p === page && <YouAreHere />}
-                        </span>
-                        <span className="text-[13px] leading-5 text-(--ink-muted)">{p.summary}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="m-0 px-2 text-[13px] leading-5 text-(--ink-muted)">{s.summary}</p>
-              )}
+              <ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">
+                {s.pages.map(p => (
+                  <li key={p.href}>
+                    <Link
+                      href={p.href}
+                      aria-current={p === page ? 'page' : undefined}
+                      onClick={close}
+                      className="grid gap-0.5 rounded-(--radius-sm) px-2 py-1.5 text-(--ink) no-underline hover:bg-(--surface-sunken) aria-[current=page]:bg-(--primary-soft)"
+                    >
+                      <span className="flex justify-between gap-3 text-[14px] font-semibold">
+                        {p.title}
+                        {p === page && <YouAreHere />}
+                      </span>
+                      <span className="text-[13px] leading-5 text-(--ink-muted)">{p.summary}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           );
         })}
