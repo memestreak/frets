@@ -33,8 +33,8 @@ describe('AppNav', () => {
 
   it('shows the path to a page as breadcrumbs', () => {
     const { unmount } = renderAt('/explore/scales');
-    expect(crumbs()).toHaveTextContent('›Explore›Scale lab');
-    expect(crumbs()).toHaveAccessibleName('Explore › Scale lab: show every page');
+    expect(crumbs()).toHaveTextContent('›Tools›Scale lab');
+    expect(crumbs()).toHaveAccessibleName('Tools › Scale lab: show every page');
     unmount();
     renderAt('/practice');
     expect(crumbs()).toHaveAccessibleName('Practice: show every page');
@@ -58,25 +58,33 @@ describe('AppNav', () => {
     expect(menu()).not.toBeVisible();
   });
 
-  it('lists every section and page, marking the current page', () => {
+  it('lists every group and page, marking the current page', () => {
     renderAt('/practice/notes');
     openMenu();
-    const practice = within(menu()).getByRole('list', { name: 'Practice' });
-    expect(within(practice).getAllByRole('link').map(l => l.getAttribute('href')))
-      .toEqual(['/practice/intervals', '/practice/notes']);
-    expect(within(menu()).getByRole('link', { name: 'Explore' }))
-      .toHaveAttribute('href', '/explore');
+    const hrefs = (name: string) => within(within(menu()).getByRole('list', { name }))
+      .getAllByRole('link').map(l => l.getAttribute('href'));
+    expect(hrefs('Tools'))
+      .toEqual(['/explore/scales', '/explore/triads', '/explore/circle', '/chords', '/tuner']);
+    expect(hrefs('Practice')).toEqual(['/practice/intervals', '/practice/notes']);
+    expect(within(menu()).getByRole('link', { name: 'Practice' }))
+      .toHaveAttribute('href', '/practice');
+    expect(within(menu()).queryByRole('link', { name: 'Tools' })).toBeNull();
     const current = within(menu()).getByRole('link', { current: 'page' });
     expect(current).toHaveAttribute('href', '/practice/notes');
     expect(current).toHaveTextContent('You are here');
   });
 
-  it('marks the section itself on its section page', () => {
-    renderAt('/chords');
+  it('marks the group itself on its index page', () => {
+    renderAt('/practice');
     openMenu();
     const current = within(menu()).getByRole('link', { current: 'page' });
-    expect(current).toHaveAttribute('href', '/chords');
+    expect(current).toHaveAttribute('href', '/practice');
     expect(current).toHaveTextContent('You are here');
+  });
+
+  it('puts the Chords page under Tools', () => {
+    renderAt('/chords');
+    expect(crumbs()).toHaveAccessibleName('Tools › Chords: show every page');
   });
 
   it('focuses the current page in the menu and returns to the breadcrumbs on Esc', () => {

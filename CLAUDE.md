@@ -2,11 +2,12 @@
 
 # Frets
 
-Guitar fretboard app with four sections: Practice, holding two quiz
-trainers (Intervals, Notes), Explore, holding the Scale lab, Triads and the
-Circle of fifths, Chords, one page that looks a chord up by name and names
-the notes tapped on the neck, and Tuner, one page with a dial or a strobe
-(`docs/specs/2026-10-17-tuner-page-design.md`; see
+Guitar fretboard app whose pages fall in two groups
+(`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools, holding the
+Scale lab, Triads, the Circle of fifths, Chords, one page that looks a chord
+up by name and names the notes tapped on the neck, and the Tuner, one page
+with a dial or a strobe, and Practice, holding two quiz trainers
+(Intervals, Notes) (`docs/specs/2026-10-17-tuner-page-design.md`; see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
 `docs/specs/2026-10-05-chord-library-design.md`,
@@ -98,8 +99,8 @@ binds a local port).
 
 ## Layout
 
-- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`,
-  `/practice` and `/explore` are index pages; the trainers are
+- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`
+  and `/practice` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords` and the Tuner
@@ -107,17 +108,15 @@ binds a local port).
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
-- `src/components/sections.ts` — the app's map: each section with its pages
-  (href, title or label, summary). `AppNav`, the home page and section index pages
-  (`PageList`) are drawn from it, in its order (Explore, Chords, Practice,
-  Tuner),
+- `src/components/sections.ts` — the app's map: the two groups, Tools and
+  Practice, each with its pages (href, title, summary). A group is not a
+  path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home
+  page and the Practice page (`PageList`) are drawn from it, in its order,
   so a new page is an entry here, a route and its icon in `PageIcon.tsx`
   (a pictogram on a rosewood tile beside the card's title; a test checks
   every card has one, see `docs/specs/2026-10-15-page-icons-design.md`).
-  A section with no pages (Chords, Tuner) is a page itself: the home page shows its
-  summary as its card, the menu its summary under its name.
 - `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
-  `BrandMark` and wordmark home, then the section and the page as one
+  `BrandMark` and wordmark home, then the group and the page as one
   button opening a panel of every page with the current one marked; then
   `ThemeSwitch`, one button cycling Auto, Light, Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
   `<main>` and `AppFooter` (source link and the build's commit hash, from

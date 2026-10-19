@@ -1,31 +1,36 @@
-import { CHORDS, EXPLORE, locate, PRACTICE, TUNER } from '@/components/sections';
+import { locate, PRACTICE, SECTIONS, TOOLS } from '@/components/sections';
+
+describe('SECTIONS', () => {
+  it('groups the pages as Tools, then Practice', () => {
+    expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice']);
+    expect(TOOLS.pages.map(p => p.href)).toEqual(
+      ['/explore/scales', '/explore/triads', '/explore/circle', '/chords', '/tuner'],
+    );
+    expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
+  });
+});
 
 describe('locate', () => {
-  it('finds the section and page of a page URL', () => {
+  it('finds the group and page of a page URL', () => {
     expect(locate('/practice/notes')).toEqual({
       section: PRACTICE,
       page: PRACTICE.pages[1],
     });
   });
 
-  it('finds pages in every section', () => {
-    expect(locate('/explore/scales')).toEqual({
-      section: EXPLORE,
-      page: EXPLORE.pages[0],
-    });
+  it('finds a tool whatever its path', () => {
+    expect(locate('/explore/scales')).toEqual({ section: TOOLS, page: TOOLS.pages[0] });
+    expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[3] });
+    expect(locate('/tuner')).toEqual({ section: TOOLS, page: TOOLS.pages[4] });
   });
 
-  it('finds a section with no pages, which is a page itself', () => {
-    expect(locate('/chords')).toEqual({ section: CHORDS, page: undefined });
-    expect(locate('/tuner')).toEqual({ section: TUNER, page: undefined });
-  });
-
-  it('finds the section but no page on a section index', () => {
+  it('finds the group but no page on its index page', () => {
     expect(locate('/practice')).toEqual({ section: PRACTICE, page: undefined });
   });
 
-  it('finds nothing at home or under a lookalike prefix', () => {
-    expect(locate('/')).toEqual({ section: undefined, page: undefined });
-    expect(locate('/practiced')).toEqual({ section: undefined, page: undefined });
+  it('finds nothing at home, under a lookalike prefix or off the map', () => {
+    expect(locate('/')).toEqual({});
+    expect(locate('/practiced')).toEqual({});
+    expect(locate('/explore')).toEqual({});
   });
 });

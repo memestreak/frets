@@ -12,6 +12,10 @@ PR #26) never merged and is closed by this change.
 
 ## Design
 
+Since 2026-10-19 the crumbs and the menu name the two groups, Tools and
+Practice, not the sections ("Tools › Scale lab"); see
+`2026-10-19-tools-and-practice-design.md`. The rest still holds.
+
 Jeremy asked for breadcrumbs: in the Scale lab the bar reads "Explore ›
 Scale lab". Options shown to him: plain breadcrumbs (A), crumbs that open a
 list of sections or sibling pages (B), and crumbs plus a Menu panel (C).
