@@ -296,7 +296,6 @@ export interface KeyOptions {
 
 export interface KeyWheel extends WheelModel {
   title: string;
-  chords: ChordChip[];
   /** Name of the parallel key, and its chords that aren't in this key. */
   parallelName: string;
   borrowed: ChordChip[];
@@ -313,7 +312,6 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   for (const p of home) {
     cells.set(p.id, { name: p.chord.symbol, fill: p.degree, numeral: p.chord.numeral, tip: describeInKey(p, k, scale) });
   }
-  const chords = home.map(p => chipOf(p));
 
   // Minor keys mostly use a major V, with the 7th raised (harmonic minor).
   if (k.minor) {
@@ -324,7 +322,6 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
     const symbol = prettyNote(fifth.note);
     const tip = `${symbol}: V in ${name}. Raising ${prettyNote(seventh.note)} to ${raised} (harmonic minor) makes the v chord major, so it pulls home like a major key's V. Most minor-key music uses it.`;
     cells.set(cellId(v), { name: symbol, edge: 5, numeral: 'V', tip });
-    chords.push({ name: symbol, numeral: 'V', degree: 5, outside: true, tip });
   }
 
   const parallel = parallelKey(k);
@@ -361,10 +358,10 @@ export function keyWheel(k: Key, opts: KeyOptions): KeyWheel {
   if (opts.allNumerals) numberTheRest(cells, tonicPc, name);
 
   return {
-    // No ring of notes in Circle view: the chords show the key, and the wheel keeps the ring's room.
+    // No ring of notes in Circle view: the cells show the key, and the wheel keeps the ring's room.
     title: name, cells, dominantOf, notes: [], homeSpoke: k.spoke, tonic: keyCell(k),
     centre: [prettyNote(keyTonic(k)), k.minor ? 'minor' : 'major'],
-    chords, parallelName, borrowed, dominants,
+    parallelName, borrowed, dominants,
   };
 }
 

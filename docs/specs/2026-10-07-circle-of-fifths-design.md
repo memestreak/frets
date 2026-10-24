@@ -79,9 +79,10 @@ kind of explanation goes in a tip. Touch screens get no tips yet.
 ## Circle view
 
 - Tap an outer cell for that major key, a middle cell for that minor key.
-- **Chords**: the seven diatonic chords as degree-coloured chips, spelled
-  in the key (F♯ major's vii° is E♯°). A minor key adds its major V
-  (harmonic minor) as a dashed chip, and the cell gets a dashed border.
+- The key's seven chords are its degree-coloured cells, spelled in the key
+  (F♯ major's vii° is E♯°). A minor key adds its major V (harmonic minor)
+  as a dashed cell. No row of chord chips under the wheel (Jeremy,
+  2026-10-24: not useful); only the checkboxes below add rows there.
 - **Parallel key** shows the parallel key's chords that aren't in the key
   as dashed cells, numbered against the tonic (♭VI, iv…), and lists them
   under "Borrowed from C minor".

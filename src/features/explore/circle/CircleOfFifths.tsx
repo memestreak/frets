@@ -116,11 +116,14 @@ export default function CircleOfFifths() {
             preview={view === 'advanced' ? preview : null}
             highlight={highlight}
           />
-          <div className="grid min-w-0 content-start gap-5">
-            {view === 'key'
-              ? <KeyPanel wheel={keyModel} options={toggles} onHighlight={setHighlight} />
-              : <ModePanel wheel={modeModel} onPick={(root, mode) => setModal({ root, mode })} onPreview={setPreview} />}
-          </div>
+          {/* The Circle has nothing under the wheel until a checkbox adds chords. */}
+          {(view === 'advanced' || toggles.parallel || toggles.dominants) && (
+            <div className="grid min-w-0 content-start gap-5">
+              {view === 'key'
+                ? <KeyPanel wheel={keyModel} options={toggles} onHighlight={setHighlight} />
+                : <ModePanel wheel={modeModel} onPick={(root, mode) => setModal({ root, mode })} onPreview={setPreview} />}
+            </div>
+          )}
         </div>
       </div>
     </HoverTips>
