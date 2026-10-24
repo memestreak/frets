@@ -54,8 +54,8 @@ describe('keyWheel', () => {
   it('numbers a minor key against the major scale and adds its major V', () => {
     const w = keyWheel({ spoke: 0, minor: true }, OFF);
     expect(w.title).toBe('A minor');
-    expect(w.chords.map(c => `${c.numeral} ${c.name}`))
-      .toEqual(['i Am', 'ii° B°', '♭III C', 'iv Dm', 'v Em', '♭VI F', '♭VII G', 'V E']);
+    expect(filled(w.cells))
+      .toEqual(['C ♭III', 'G ♭VII', 'F ♭VI', 'Am i', 'Em v', 'Dm iv', 'B° ii°']);
     expect(w.cells.get('major:4')).toMatchObject({ edge: 5, numeral: 'V' });
   });
 

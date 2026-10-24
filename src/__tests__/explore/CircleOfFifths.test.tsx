@@ -34,7 +34,8 @@ describe('CircleOfFifths', () => {
   it('opens on C major in Key view, its chords in their degree colours', () => {
     renderAt();
     expect(heading()).toHaveTextContent('C major');
-    expect(chips('Chords')).toEqual(['IC', 'iiDm', 'iiiEm', 'IVF', 'VG', 'viAm', 'vii°B°']);
+    // The wheel shows the chords; nothing under it until a checkbox adds some.
+    expect(screen.queryByRole('region')).toBeNull();
     expect(cell('major:0')).toHaveAttribute('aria-pressed', 'true');
     expect(cell('major:0').querySelector('path')).toHaveStyle({ fill: 'var(--degree-root)' });
     // Not in the key: drawn plain.
@@ -47,7 +48,6 @@ describe('CircleOfFifths', () => {
     expect(heading()).toHaveTextContent('D major');
     fireEvent.keyDown(cell('minor:2'), { key: 'Enter' });
     expect(heading()).toHaveTextContent('B minor');
-    expect(chips('Chords')).toContain('VF♯');
   });
 
   it('adds borrowed chords and secondary dominants from their checkboxes', () => {

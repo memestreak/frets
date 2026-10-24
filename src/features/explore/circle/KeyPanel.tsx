@@ -1,7 +1,7 @@
 import { ChordChips, PanelSection } from './ChordChips';
 import type { KeyOptions, KeyWheel } from './circle';
 
-/** The Circle view's sections under the wheel: its chords, and what the checkboxes add. */
+/** The Circle view's sections under the wheel: what the checkboxes add. */
 export function KeyPanel({ wheel, options, onHighlight }: {
   wheel: KeyWheel;
   options: KeyOptions;
@@ -10,9 +10,6 @@ export function KeyPanel({ wheel, options, onHighlight }: {
 }) {
   return (
     <>
-      <PanelSection title="Chords">
-        <ChordChips chips={wheel.chords} />
-      </PanelSection>
       {options.parallel && (
         <PanelSection title={`Borrowed from ${wheel.parallelName}`}>
           <ChordChips chips={wheel.borrowed} />
