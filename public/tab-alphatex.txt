@@ -51,7 +51,8 @@ then "." and its duration:
   get wrong.)
 - Note effects go in braces right after the note, before the duration:
   5.3{h}.8. Beat effects go in braces after the duration: 5.3.8{sd}.
-  Several effects share one pair of braces, separated by spaces: {h v}.
+  Several effects share one pair of braces, separated by spaces, in any
+  order: {h v}, {b (0 4) v}.
 - The durations in each bar must add up to the time signature.
 
 
@@ -60,7 +61,8 @@ then "." and its duration:
 
     h          hammer-on or pull-off TO THE NEXT NOTE on this string. Put
                it on the first note: 5.3{h}.8 7.3.8 is 5 hammered to 7;
-               7.3{h}.8 5.3.8 is 7 pulled off to 5.
+               7.3{h}.8 5.3.8 is 7 pulled off to 5. There is no "p":
+               pull-offs are h too.
     sl         slide TO THE NEXT NOTE on this string, on the first note:
                5.3{sl}.8 7.3.8 slides 5 up to 7.
     sib  sia   slide into this note from below / from above (no note
@@ -71,7 +73,8 @@ then "." and its duration:
                  b (0 4 0)    full bend and release
                  b (4 4)      pre-bend (bent before picking)
                  b (4 4 0)    pre-bend and release
-               The bent amount is 1 (¼), 2 (½), 4 (full), 6 (1½) or 8 (2).
+               The bent amount is 1 (¼), 2 (½), 4 (full), 6 (1½) or 8 (2);
+               it sets every point that isn't 0, so "PB ½" is b (2 2).
     v          vibrato
     nh         natural harmonic: 12.3{nh}
     pm         palm mute; put it on every note of every muted beat
@@ -95,7 +98,9 @@ Put these at the start of a bar, before its beats:
     \rc 2      the bar ends a repeat played twice (\rc 4: four times)
     \ae 1      the bar is under the 1st-time ending (\ae 2: 2nd ending)
 
-Without \ro, a repeat goes back to the beginning.
+Without \ro, a repeat goes back to the beginning. A bar that both starts
+and ends a repeat takes both: \ro \rc 3. With 1st and 2nd endings, the
+last bar under the "1." bracket carries the \rc; the "2." bars don't.
 
 
 6. EVERYTHING ELSE IS KEPT
@@ -183,7 +188,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 
 1. Header: write \ts always; \title and \tuning only when the picture
    shows them. A tuning like "D A D G B E" (low to high) is written high
-   to low with octaves: \tuning (E4 B3 G3 D3 A2 D2).
+   to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the
+   octave nearest its standard note (E4 B3 G3 D3 A2 E2): DADGAD is
+   \tuning (D4 A3 G3 D3 A2 D2).
 2. Read the strings: the top line of tab is string 1 (high e), the bottom
    line string 6.
 3. Read each beat's length from the stems under the tab:
@@ -196,19 +203,31 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
        a dot after the stem           {d}
        a "3" over a beamed group      {tu 3} on each of the three
 
+   A stem belongs to its beat even when the frets are in parentheses (a
+   tie). Rests sit under the tab with no fret above them:
+
+       a small block or bar           1 or 2 (a whole or half rest)
+       a zigzag                       r.4
+       a dot with a slanted stroke    r.8  (two strokes: r.16)
+
    Then count each bar against the time signature; if it doesn't add up,
-   look again.
+   look again: the bar's total is the surest guide to a short stem.
 4. Translate the marks: an arc with H or P to h ON THE FIRST NOTE; a
    slanted line between notes to sl on the first note, one into a note
    to sib or sia; a curved arrow to b with points from its label (1/4,
-   1/2, full, 1 1/2, 2 as 1, 2, 4, 6, 8); a straight arrow already up
-   before picking, or a "PB" label, to a pre-bend b (4 4); an arrow back
-   down to a release (the last point 0); a wavy line to v; "P.M." to pm
-   on every note under it; down and up strum signs (arrows, or the square
-   and V signs) to sd / su; a parenthesised fret or a tie arc to "-" in
-   place of the fret; repeat signs to \ro and \rc n; ending brackets to
-   \ae n; "x" to x in place of the fret; diamond notes or <12> to nh;
-   "T" to tt. Marks from section 6 are written as shown there.
+   1/2, full, 1 1/2, 2 as 1, 2, 4, 6, 8; an unlabelled one is full); a
+   straight arrow already up before picking, or a "PB" label, to a
+   pre-bend b (4 4); an arrow back down after a bend or pre-bend adds a
+   release, a last point 0: b (0 4 0), b (4 4 0); a wavy line to v;
+   "P.M." to pm on every note from where its line starts to its end tick,
+   muted (x) notes included; strum signs to sd / su (the square or a down
+   arrow is down, the V or an up arrow is up); a parenthesised fret or a
+   tie arc to "-" in place of the fret; a repeat's thick-thin bar with
+   dots to \ro (dots after it) or \rc (dots before it), with n from an
+   "xn" over it, else 2; ending brackets to \ae n on every bar under
+   them; "x" to x in place of the fret; diamond notes or <12> to nh; "T"
+   to tt on the note under it. Marks from section 6 are written as shown
+   there.
 5. A double or thick final bar line is just the last "|".
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to
    24, each bar adds up, every bar ends with "|".
