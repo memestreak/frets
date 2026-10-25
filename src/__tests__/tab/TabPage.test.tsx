@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { STORAGE_KEY } from '@/features/tab/clipState';
@@ -100,7 +100,8 @@ describe('TabPage', () => {
     fireEvent.change(text, { target: { value: RIFF } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Import' }));
     await screen.findByRole('heading', { name: 'Riff' }, SLOW);
-    expect(dialog).not.toHaveAttribute('open');
+    // The dialog closes once the import's promise settles, which can be a render after the heading.
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
   it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
@@ -197,6 +198,20 @@ describe('TabPage', () => {
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
       expect(alphaTex()).toBe('5.1.4 |');
+    });
+
+    it('sets the time signature from the menu under the name, as one undo step', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
+      const menu = screen.getByRole('combobox', { name: 'Time signature' });
+      expect(menu).toHaveValue('4/4');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+      fireEvent.change(menu, { target: { value: '3/4' } });
+      expect(menu).toHaveValue('3/4');
+      expect(notice()).not.toHaveTextContent('add up');
+      undo();
+      expect(menu).toHaveValue('4/4');
     });
 
     it('says when a bar doesn\'t add up', () => {
