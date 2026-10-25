@@ -257,9 +257,16 @@ binds a local port).
   README), `layout.ts` (pure: where systems,
   bars and columns go at a width) and `TabClip.tsx` (draws a layout as
   SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
-  (import by dialog, paste, drop or an `#ascii=` link, read on load and
-  then cleared; Tab | ASCII, the ASCII view with its copy button; Download). Editing and images
-  are PR 2 and 3 in the spec.
+  (import by dialog, paste, drop or a `#tab=` link, read on load or
+  hashchange and then cleared; Tab | alphaTex | ASCII, the text views with
+  their copy button; Download). The clip's own format is alphaTex
+  (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
+  `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
+  parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
+  its renderer is not used) and keeps what Frets doesn't draw as written
+  (`extra` and `header` in the clip), `alphatex.ts` writes it, and
+  `readTab.ts` tells ASCII from alphaTex. Editing and images are PR 2 and 3
+  in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

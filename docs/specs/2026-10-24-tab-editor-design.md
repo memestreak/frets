@@ -9,6 +9,11 @@ choice below; details he left open are marked as defaults. Mock:
 `/mnt/project-files/tab-editor/clips-mock.png`, layout A, whose clip list
 comes later.
 
+**Since 2026-10-25 the clip's own format is alphaTex**
+(`2026-10-25-tab-alphatex-design.md`): agents write alphaTex, links are
+`#tab=`, and ASCII tab is one more import and export. What follows about
+ASCII still holds for ASCII.
+
 ## Choices Jeremy made
 
 - **The use case first (2026-10-25):** someone hands an agent a screenshot
@@ -49,7 +54,7 @@ comes later.
 `public/tab-ascii.txt`, served at `https://frets.eminor.net/tab-ascii.txt`,
 is the format's definition: the whole text and its header lines, blocks,
 string lines, columns, the rhythm line, the guess without one, every
-technique, repeats and endings, four worked examples, the `#ascii=` link
+technique, repeats and endings, four worked examples, the `#tab=` link
 and a checklist for agents reading a picture. It is written for agents and
 people, and the parser follows it: if the two differ, the file is right and
 the parser is the bug. A test parses every example in it.
@@ -126,7 +131,7 @@ As layout A of the mock, without the list: the clip takes the page width.
   Import. Errors show under the box and nothing is imported.
 - **Paste** (Ctrl+V on the page outside a text field, with tab on the
   clipboard), **drop** of a `.txt` file or text, and **the link**
-  `/tab#ascii=<percent-encoded text>` import directly; the link's hash is
+  `/tab#tab=<percent-encoded text>` (ASCII or alphaTex) import directly; the link's hash is
   cleared afterwards so a reload doesn't import again. The part after `#`
   never leaves the browser.
 - An import **replaces the clip** and is one undo step (Ctrl+Z, in PR 1

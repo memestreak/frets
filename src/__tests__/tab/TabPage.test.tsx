@@ -33,11 +33,16 @@ function renderAt(hash = '') {
 
 const heading = () => screen.getByRole('heading', { level: 1 });
 const notice = () => screen.getByTestId('tab-notice');
-const paste = (text: string) => {
+const paste = async (text: string) => {
   const event = new Event('paste', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
   event.clipboardData = { getData: () => text };
-  act(() => { document.body.dispatchEvent(event); });
+  await act(async () => { document.body.dispatchEvent(event); });
 };
+/** How long an import may take; alphaTab's first load is slow on a busy test machine. */
+const SLOW = { timeout: 5000 };
+/** Lets an import finish: reading is async, and alphaTex loads alphaTab first. */
+const settle = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
+const TEX = '\\title "Tex riff"\n:8 5.5{h} 7.5 5.4{h} 7.4 |';
 const undo = (shift = false) => fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true, shiftKey: shift });
 
 beforeEach(() => {
@@ -50,51 +55,59 @@ describe('TabPage', () => {
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
     expect(heading()).toHaveTextContent('Untitled clip');
-    expect(notice()).toHaveTextContent('Import ASCII tab, or paste it here.');
+    expect(notice()).toHaveTextContent('Import alphaTex or ASCII tab, or paste it here.');
   });
 
-  it('imports the tab in an #ascii= link, then clears the link', () => {
-    renderAt(`#ascii=${encodeURIComponent(OTHER)}`);
+  it('imports the tab in a #tab= link, then clears the link', async () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    await settle();
     expect(screen.getAllByTestId('tab-column')).toHaveLength(2);
     expect(window.location.hash).toBe('');
   });
 
-  it('imports an #ascii= link followed while the page is open', () => {
+  it('reads alphaTex as well as ASCII', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(4);
+  });
+
+  it('imports a #tab= link followed while the page is open', async () => {
     renderAt();
-    act(() => {
-      window.history.replaceState(null, '', `/tab#ascii=${encodeURIComponent(RIFF)}`);
+    await act(async () => {
+      window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(RIFF)}`);
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
+    await settle();
     expect(heading()).toHaveTextContent('Riff');
     expect(window.location.hash).toBe('');
   });
 
-  it('says why a link\'s tab could not be read and keeps the saved clip', () => {
+  it('says why a link\'s tab could not be read and keeps the saved clip', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
-    renderAt(`#ascii=${encodeURIComponent('no tab here')}`);
+    renderAt(`#tab=${encodeURIComponent('no tab here')}`);
+    await screen.findByText(/./, { selector: '[data-testid="tab-notice"].text-\\(--danger\\)' }, SLOW);
     expect(heading()).toHaveTextContent('Riff');
-    expect(notice()).not.toHaveTextContent(/^$/);
   });
 
-  it('imports from the dialog, and shows errors there without closing', () => {
+  it('imports from the dialog, and shows errors there without closing', async () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
     const dialog = screen.getByRole('dialog');
-    const text = within(dialog).getByRole('textbox', { name: 'ASCII tab' });
+    const text = within(dialog).getByRole('textbox', { name: 'Tab, as alphaTex or ASCII' });
     fireEvent.change(text, { target: { value: 'e|-5-|\nB|-5-|' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Import' }));
-    expect(within(dialog).getByTestId('import-errors')).toBeInTheDocument();
+    expect(await within(dialog).findByTestId('import-errors', {}, SLOW)).toBeInTheDocument();
     fireEvent.change(text, { target: { value: RIFF } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Import' }));
-    expect(heading()).toHaveTextContent('Riff');
+    await screen.findByRole('heading', { name: 'Riff' }, SLOW);
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('imports pasted tab, and undo and redo step between clips', () => {
+  it('imports pasted tab, and undo and redo step between clips', async () => {
     renderAt();
-    paste(RIFF);
+    await paste(RIFF);
     expect(heading()).toHaveTextContent('Riff');
-    paste(OTHER);
+    await paste(OTHER);
     expect(heading()).toHaveTextContent('Untitled clip');
     undo();
     expect(heading()).toHaveTextContent('Riff');
@@ -102,25 +115,29 @@ describe('TabPage', () => {
     expect(heading()).toHaveTextContent('Untitled clip');
   });
 
-  it('says what a paste that is not tab got wrong, and keeps the clip', () => {
+  it('says what a paste that is not tab got wrong, and keeps the clip', async () => {
     renderAt();
-    paste(RIFF);
-    paste('just some words');
+    await paste(RIFF);
+    await paste('just some words');
+    await screen.findByText(/./, { selector: '[data-testid="tab-notice"].text-\\(--danger\\)' }, SLOW);
     expect(heading()).toHaveTextContent('Riff');
-    expect(notice()).toHaveClass('text-(--danger)');
   });
 
-  it('switches to the ASCII the writer produces', () => {
-    renderAt(`#ascii=${encodeURIComponent(RIFF)}`);
+  it('shows the clip as alphaTex and as ASCII', async () => {
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+    expect(screen.getByTestId('tab-ascii').textContent).toContain('\\title "Riff"');
     fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
     expect(screen.getByTestId('tab-ascii').textContent).toContain('Title: Riff');
     expect(screen.queryByTestId('tab-column')).toBeNull();
   });
 
-  it('copies the ASCII from a button in the ASCII view', async () => {
+  it('copies the text from a button in the text views', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    renderAt(`#ascii=${encodeURIComponent(RIFF)}`);
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
     fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
     const view = screen.getByTestId('tab-ascii').parentElement!;
     await act(async () => { fireEvent.click(within(view).getByRole('button', { name: 'Copy ASCII' })); });
@@ -128,9 +145,9 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('ASCII copied.');
   });
 
-  it('saves the clip and opens on it next time', () => {
+  it('saves the clip and opens on it next time', async () => {
     renderAt();
-    paste(RIFF);
+    await paste(RIFF);
     cleanup();
     renderAt();
     expect(heading()).toHaveTextContent('Riff');

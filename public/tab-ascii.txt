@@ -5,6 +5,10 @@ How to write guitar tab that Frets (https://frets.eminor.net/tab) can open
 and edit. Written for people and for AI agents turning a picture of tab
 into text. Everything below is a rule unless it says "may".
 
+Agents writing tab from a picture: prefer alphaTex
+(https://frets.eminor.net/tab-alphatex.txt). It carries more, keeps
+everything Frets doesn't draw yet, and nothing in it has to line up.
+
 One voice only: every column has one duration. Riffs, solos, double stops
 and strummed chords fit; fingerstyle with a bass line held under moving
 notes does not (write the moving part and give held notes as ties).
@@ -92,7 +96,8 @@ directly above the column's position.
 
     w  whole      h  half      q  quarter      e  eighth      s  sixteenth
 
-- "." right after the letter makes it dotted ("q." a dotted quarter).
+- "." right after the letter makes it dotted ("q." a dotted quarter),
+  ".." double dotted ("q..").
 - "3" right after the letter makes it a triplet ("e3": three of them fill
   one quarter). Write triplets in complete groups of three.
 - A letter above a position where every string has "-" is a rest of that
@@ -290,7 +295,7 @@ one space between it and any bracket.
 Paste the text into Import on https://frets.eminor.net/tab, or make a
 link that opens it directly:
 
-    https://frets.eminor.net/tab#ascii=<the whole text, percent-encoded>
+    https://frets.eminor.net/tab#tab=<the whole text, percent-encoded>
 
 Percent-encode as JavaScript's encodeURIComponent does: a line break is
 %0A, a space %20, "|" %7C, "/" %2F, "\" %5C, "(" and ")" and "~" are left

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import {
-  beatTicks, isRest, STRING_COUNT,
+  beatTicks, isPalmMuted, isRest, slideDirections, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
@@ -45,6 +45,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title }: {
 }) {
   const layout = layoutClip(clip, width);
   const previous = previousSpots(layout.systems);
+  const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
   return (
     <svg
@@ -55,7 +56,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title }: {
       {layout.systems.map((system, si) => (
         <g key={si} transform={`translate(0 ${si * SYSTEM_HEIGHT})`} data-testid="tab-system">
           <SystemDrawing
-            system={system} index={si} clip={clip} look={look} names={layout.names}
+            system={system} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar}
           />
         </g>
@@ -83,13 +84,14 @@ function previousSpots(systems: System[]): Map<Note, Spot> {
   return out;
 }
 
-function SystemDrawing({ system, index, clip, look, names, previous, lastBar }: {
+function SystemDrawing({ system, index, clip, look, names, previous, slides, lastBar }: {
   system: System;
   index: number;
   clip: Clip;
   look: TabLook;
   names: string[] | null;
   previous: Map<Note, Spot>;
+  slides: Map<Note, 'up' | 'down'>;
   lastBar: number;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
@@ -143,9 +145,10 @@ function SystemDrawing({ system, index, clip, look, names, previous, lastBar }: 
   // Palm mute runs.
   const placedAll = system.bars.flatMap(b => b.columns);
   placedAll.forEach((placed, k) => {
-    if (!placed.column.palmMute || placedAll[k - 1]?.column.palmMute) return;
+    const muted = (p: PlacedColumn | undefined) => p !== undefined && isPalmMuted(p.column);
+    if (!muted(placed) || muted(placedAll[k - 1])) return;
     let last = k;
-    while (placedAll[last + 1]?.column.palmMute) last++;
+    while (muted(placedAll[last + 1])) last++;
     const x0 = placed.x - 8;
     const x1 = placedAll[last].x + 8;
     parts.push(
@@ -164,7 +167,7 @@ function SystemDrawing({ system, index, clip, look, names, previous, lastBar }: 
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} system={index} look={look}
-          previous={previous} staffStart={system.staffStart}
+          previous={previous} slides={slides} staffStart={system.staffStart}
         />,
       );
     }
@@ -208,11 +211,12 @@ function BarDrawing({ bar, look, final }: { bar: PlacedBar; look: TabLook; final
   );
 }
 
-function ColumnDrawing({ placed, system, look, previous, staffStart }: {
+function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
   placed: PlacedColumn;
   system: number;
   look: TabLook;
   previous: Map<Note, Spot>;
+  slides: Map<Note, 'up' | 'down'>;
   staffStart: number;
 }) {
   const { column, x } = placed;
@@ -243,8 +247,10 @@ function ColumnDrawing({ placed, system, look, previous, staffStart }: {
       );
     }
     if (note.slide) {
-      const up = note.slide === 'up';
-      const from = before ? fromX + 7 : x - 16;
+      // Shift and legato slides are drawn alike for now; a slide from below or above starts just before the note.
+      const up = slides.get(note) === 'up';
+      const fromNote = (note.slide === 'legato' || note.slide === 'shift') && before;
+      const from = fromNote ? fromX + 7 : x - 16;
       parts.push(
         <line
           key={`slide-${s}`} x1={from} x2={x - 7} y1={y + (up ? 3 : -3)} y2={y + (up ? -3 : 3)}
@@ -317,7 +323,7 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
 
   for (const placed of bar.columns) {
     const { column, x } = placed;
-    const { value, dotted } = column.duration;
+    const { value, dots } = column.duration;
     const key = `${x}`;
     if (isRest(column)) {
       parts.push(<Rest key={`rest-${key}`} x={x} value={value} look={look} />);
@@ -334,7 +340,9 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
         }
       }
     }
-    if (dotted) parts.push(<circle key={`dot-${key}`} cx={x + 5} cy={ROW.stemBottom - 3} r={1.8} fill={look.ink} />);
+    for (let d = 0; d < dots; d++) {
+      parts.push(<circle key={`dot-${key}-${d}`} cx={x + 5 + d * 5} cy={ROW.stemBottom - 3} r={1.8} fill={look.ink} />);
+    }
   }
 
   for (const g of groups) {
