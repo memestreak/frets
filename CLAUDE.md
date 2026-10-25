@@ -265,7 +265,7 @@ binds a local port).
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog, drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
-  Tab | alphaTex | ASCII, the text views with their copy button; Download). The clip's own format is alphaTex
+  Tab | ASCII | alphaTex, the text views with their copy button; Download). The clip's own format is alphaTex
   (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
   `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
   parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;

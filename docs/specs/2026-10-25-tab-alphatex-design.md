@@ -63,7 +63,7 @@ checks this for every golden ASCII fixture.
 
 ## The page
 
-- **Tab | alphaTex | ASCII.** Download saves the alphaTex
+- **Tab | ASCII | alphaTex.** Download saves the alphaTex
   (`<name>.alphatex.txt`) from Tab and alphaTex, the ASCII from ASCII. The
   copy button sits on both text views.
 - **One way in for both formats:** Import, paste, drop and the link

@@ -79,7 +79,7 @@ groups are:
 A button is pressed when the cursor's column, note or bar has its symbol,
 and a press toggles that symbol. Its one-second tip (`HoverTips`, now in
 `src/components/`) names the symbol and its key. Pressing a button keeps
-the focus on the tab. In the alphaTex and ASCII views the palette stays in
+the focus on the tab. In the ASCII and alphaTex views the palette stays in
 place but is disabled. `tools.ts` holds the table that both the palette
 and the keys use.
 
