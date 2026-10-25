@@ -5,26 +5,40 @@ How to write guitar tab that Frets (https://frets.eminor.net/tab) can open
 and edit. Written for people and for AI agents turning a picture of tab
 into text. Everything below is a rule unless it says "may".
 
+One voice only: every column has one duration. Riffs, solos, double stops
+and strummed chords fit; fingerstyle with a bass line held under moving
+notes does not (write the moving part and give held notes as ties).
+
 
 1. THE WHOLE TEXT
 -----------------
 
-    Title: <name of the clip>           optional, one line
-    Time: <beats>/<note>                optional, 4/4 if left out
-                                         (2/4, 3/4, 4/4, 6/8 or 12/8)
+    Title: <name of the clip>           optional
+    Time: <beats>/<note>                optional; 4/4 if left out
+                                        (2/4, 3/4, 4/4, 6/8 or 12/8)
+    Tuning: <six notes, low to high>    optional; E A D G B E if left out
     <blank line>
     <one or more blocks>
 
 A block is one line of tab across the page ("a system"). Blocks follow one
 another in playing order and join into one clip. Put a blank line between
-blocks. Any other line (chord names, lyrics, comments) is ignored.
+blocks (the last example in section 8 has two). Any other line (chord
+names, lyrics, comments) is ignored.
+
+Tuning is recorded and shown with the clip; frets are frets in any tuning.
+Without a Tuning line, string names that differ from standard (a "D" on
+the bottom line) are read as the tuning.
 
 
 2. A BLOCK
 ----------
 
-    PM line        optional, palm mute (section 6)
-    rhythm line    optional but strongly preferred (section 4)
+From top to bottom, the first four optional:
+
+    endings line   1st / 2nd endings and repeat counts   (section 7)
+    PM line        palm mute                              (section 6)
+    strokes line   pick or strum direction                (section 6)
+    rhythm line    durations; strongly preferred          (section 4)
     e|...          six string lines, highest string first
     B|...
     G|...
@@ -32,17 +46,17 @@ blocks. Any other line (chord names, lyrics, comments) is ignored.
     A|...
     E|...
 
-- Exactly six string lines, in this order, nothing between them. Standard
-  tuning only.
-- Each string line starts with its name and "|". The names are only labels:
-  the first line is always the high e, the last the low E.
+- Exactly six string lines, in this order, nothing between them.
+- Each string line starts with its name and "|". The names are labels:
+  the first line is always the highest string, the last the lowest.
 - All six string lines are the same length. Fill every empty position
   with "-".
 - "|" at the same position on all six lines is a bar line. End each line
-  with "|".
-- The rhythm and PM lines line up with the string lines character for
-  character, counting from the start of the line (so they begin with two
-  spaces, under "e|").
+  with a bar line.
+- The lines above the strings line up with them character for character,
+  counting from the start of the line (so they begin with two spaces,
+  under "e|"). Each is told apart by what it holds; keep them in the order
+  above.
 
 
 3. NOTES AND COLUMNS
@@ -55,6 +69,10 @@ blocks. Any other line (chord names, lyrics, comments) is ignored.
   Everything that starts at one position is one column, played at one
   time.
 - "x" in place of a fret is a muted (dead) note.
+- "(5)" is a tie: fret 5 on that string keeps sounding from its previous
+  note instead of being played again. The position is the digit; the
+  "(" sits in the gap before it. Use it for a note or chord held across
+  a bar line, or held while other notes move.
 - Two notes on one string need at least one other character between them:
   "-" or a technique mark ("5-7", "5h7"). Digits side by side are always
   one fret ("128" is fret 128 and is refused).
@@ -76,12 +94,10 @@ directly above the column's position.
   one quarter). Write triplets in complete groups of three.
 - A letter above a position where every string has "-" is a rest of that
   length.
-- With a rhythm line, every column needs a letter. Columns without one
-  are guessed as in section 5.
-- "|" in the rhythm line may be written above bar lines and is ignored.
-  Anything else in the line must be a space.
-- The durations in each bar should add up to the time signature. Frets
-  draws bars as written; it does not move notes between bars.
+- With a rhythm line, every column needs a letter.
+- "|" may be written above bar lines and is ignored. Anything else in the
+  line must be a space.
+- The durations in each bar must add up to the time signature.
 
 
 5. NO RHYTHM LINE
@@ -91,8 +107,8 @@ When a block has no rhythm line, durations are guessed from spacing: a
 column lasts until the next column (or the bar line), and a bar's width
 stands for one bar of the time signature; with no bar lines, the most
 common gap is taken as an eighth. Guesses snap to the nearest plain or
-dotted length. Leave the rhythm line out only when the rhythm is unknown;
-the guess is a starting point to fix by hand.
+dotted length, and Frets tints every guessed column until it is edited.
+Leave the rhythm line out only when the rhythm is unknown.
 
 
 6. TECHNIQUES
@@ -100,29 +116,37 @@ the guess is a starting point to fix by hand.
 
 Written on the string line, around the note:
 
-    5h7      hammer-on from 5 to 7     ("h" in the gap just before the 7)
+    5h7      hammer-on from 5 to 7
     7p5      pull-off from 7 to 5
     5/7      slide up from 5 to 7
     7\5      slide down from 7 to 5
-    /7       slide into 7 from below (no earlier note on that string)
-    7b9      bend 7 up to the pitch of fret 9: 1 fret is a 1/2 bend,
-             2 frets a full bend
-    7b9r7    bend and release
+    /7  \7   slide into 7 from below / above (no earlier note on that
+             string)
+    7b       quarter-tone bend ("curl")
+    7b8      bend 7 up to the pitch of fret 8: a half-step bend (1/2)
+    7b9      ... fret 9: a whole-step bend (full)
+    7b10     ... fret 10: 1 1/2;  7b11: 2 steps (the most there is)
+    7b9r7    bend and release back to 7
+    7pb9     pre-bend: bent to the pitch of 9 before it is picked
+    7pb9r7   pre-bend and release
     7~       vibrato ("~" right after the note, or after a bend)
     x        muted note
-    <12>     natural harmonic at fret 12 (position = the "1")
-    t12      tap at fret 12 (position = the "1")
+    (5)      tie (section 3)
+    <12>     natural harmonic at fret 12
+    t12      tap at fret 12
 
 "h", "p", "/" and "\" sit just before a note and join it to the previous
 note on the same string, however many "-" lie between them ("5--h7" is
 the same as "5h7"). The joined note's position is its first digit, so the
 mark sits in the gap before it. "/" or "\" with no earlier note on that
-string is a slide in from below or above.
+string is a slide in. Likewise "<", "(" and "t" sit in the gap before the
+note's first digit.
 
-In "7b9" and "7b9r7" the position is the "7"; the "b9" and "r7" belong to
-that note and are not columns.
+In "7b9", "7b9r7" and "7pb9r7" the position is the "7"; the rest belongs
+to that note and is not a column. "p" followed by a digit is a pull-off;
+"pb" is a pre-bend.
 
-Palm mute is a line above the rhythm line:
+Palm mute is a line above the strokes and rhythm lines:
 
     PM-------|
 
@@ -130,8 +154,36 @@ The run starts at "P" and ends at the last "-" or "|"; every column whose
 position falls inside it is palm muted. A PM line may hold several runs,
 separated by spaces.
 
+Pick or strum direction is a line of "d" (down) and "u" (up), each
+directly above a column's position, between the PM line and the rhythm
+line. Columns may be left without one.
 
-7. EXAMPLES
+
+7. REPEATS AND ENDINGS
+----------------------
+
+On all six string lines:
+
+    |:       start of a repeat (":" right after a bar line; at the very
+             start of a block, "e|:")
+    :|       end of a repeat (":" right before a bar line)
+    :|:      end of one repeat and start of the next
+
+Without a start, a repeat goes back to the beginning of the clip. It
+plays twice unless the endings line gives a count: "x4", written so that
+its last character is right above the end repeat's "|".
+
+Endings go on the endings line, the top line of the block:
+
+    1.-------| 2.-------|
+
+"1." starts the first-time bracket at that position, "-" carries it on,
+and it ends at the "|" right above the bar line that closes it (usually
+the end repeat). The second ending starts after it. "3." and so on may
+follow.
+
+
+8. EXAMPLES
 -----------
 
     Title: Legato, a bend and vibrato
@@ -145,30 +197,54 @@ separated by spaces.
     A|---------5--h7-------------------|-----------------7b9-------------|
     E|-5--h8---------------------------|-------------------------5~------|
 
-    Title: Chords, a rest and palm mutes
-    Time: 3/4
+    Title: Strummed G, ties, a rest, palm mutes, repeat 4 times
+    Time: 4/4
 
-                                 PM-------------|
-       q.          e   q       | e   e   e   e   e   e   |
-    e|-------------------------|-------------------------|
-    B|-------------------------|-------------------------|
-    G|-------------------------|-------------------------|
-    D|-2-----------2-----------|-------------------------|
-    A|-2-----------2-----------|-----------------x---5---|
-    E|-0-----------0-----------|-0---0---0---0---x---3---|
+                                                                          x4
+                                                          PM---------|
+        d       d   u   u   u   d                         d   d   u
+        q       e   e   e   e   q       | h               e   e   e   e    |
+    e|:-3-------3---3---x---3---3-------|(3)------------------------------:|
+    B|:-3-------3---3---x---3---3-------|(3)------------------------------:|
+    G|:-0-------0---0---x---0---0-------|(0)------------------------------:|
+    D|:-0-------0---0---x---0---0-------|(0)------------------------------:|
+    A|:-2-------2---2---x---2---2-------|(2)------------------------------:|
+    E|:-3-------3---3---x---3---3-------|(3)--------------0---0---0-------:|
 
-    Title: Sixteenths, a triplet, a tap and harmonics
+    Title: Sixteenths, a triplet, a tap, harmonics and a pre-bend
 
-       s  s  s  s  e3  e3 e3 q       q       |
-    e|-------5--8-t12--8-p5-<12>-------------|
-    B|-5-/7-----------------<12>-----8b10r8--|
-    G|----------------------<12>-------------|
-    D|---------------------------------------|
-    A|---------------------------------------|
-    E|---------------------------------------|
+       s  s   s  s  e3   e3 e3  q       q        |
+    e|--------5--8-t12---8-p5--<12>--------------|
+    B|-5-/7--------------------<12>-----8pb10r8--|
+    G|-------------------------<12>--------------|
+    D|-------------------------------------------|
+    A|-------------------------------------------|
+    E|-------------------------------------------|
+
+    Title: Drop D riff with first and second endings
+    Time: 4/4
+    Tuning: D A D G B E
+
+                                          1.-------------------------------|
+        e   e   e   e   q       q       | h               h                |
+    e|:---------------------------------|---------------------------------:|
+    B|:---------------------------------|---------------------------------:|
+    G|:---------------------------------|---------------------------------:|
+    D|:---------3-------5---------------|-0---------------3---------------:|
+    A|:---------3-------5---------------|-0---------------3---------------:|
+    D|:-0---0---3---0---5-------0-------|-0---------------3---------------:|
+
+       2.------------------------------|
+       w                               |
+    e|---------------------------------|
+    B|---------------------------------|
+    G|-2-------------------------------|
+    D|-0-------------------------------|
+    A|-0-------------------------------|
+    D|-0-------------------------------|
 
 
-8. OPENING IT IN FRETS
+9. OPENING IT IN FRETS
 ----------------------
 
 Paste the text into Import on https://frets.eminor.net/tab, or make a
@@ -177,27 +253,34 @@ link that opens it directly:
     https://frets.eminor.net/tab#ascii=<the whole text, percent-encoded>
 
 Percent-encode as JavaScript's encodeURIComponent does: a line break is
-%0A, a space %20, "|" %7C, "/" %2F, "\" %5C; "~" is left as is. Keep the
-link under about 8,000 characters; split longer tab into several links.
-The part after "#" is never sent to a server.
+%0A, a space %20, "|" %7C, "/" %2F, "\" %5C, "(" and ")" and "~" are left
+as is. Keep the link under about 8,000 characters; split longer tab into
+several links. The part after "#" is never sent to a server. Opening it
+replaces the clip open in Frets.
 
 
-9. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
-----------------------------------------------
+10. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
+-----------------------------------------------
 
-1. Read the title and time signature if shown; write "Title:" and "Time:".
-2. Copy each system as one block, string by string, top line = high e.
-   Tab in pictures always puts the high e on top.
+1. Read the title, time signature and tuning if shown; write "Title:",
+   "Time:" and "Tuning:".
+2. Copy each system as one block, string by string, top line = highest
+   string. Tab in pictures always puts the highest string on top.
 3. Line up notes that sound together at one position.
 4. If the picture shows rhythm (stems and beams under the tab, or a staff
    above it), write a rhythm line: a letter for every column, rests
    included. Count each bar against the time signature.
 5. Translate the marks: arcs with H or P to h/p, slanted lines to / or \,
-   curved arrows labelled "full" or "1/2" to b, wavy lines to ~, "P.M."
-   to a PM line, "x" to x, diamond or <12> notes to <..>, "T" to t.
-   Leave out marks this format has no letter for (let ring, pick strokes,
-   tremolo picking).
+   curved arrows to b with the target fret from their label (1/4, 1/2,
+   full, 1 1/2, 2), a straight-up arrow before picking to pb, wavy lines
+   to ~, "P.M." to a PM line, down and up strum signs (arrows, or the
+   square and V signs) to a strokes line, parenthesised frets and tie
+   arcs to (5), repeat signs and "x4" to |: :| and the count, ending
+   brackets to an endings line, "x" to x, diamond notes or <12> to <..>,
+   "T" to t. Leave out marks this format has no letter for (let ring,
+   tremolo picking, slurs across several notes).
 6. Check: six string lines per block, all the same length, every note
-   followed by at least one "-", bar lines aligned.
-7. Give the user the link from section 8 (and the text, in case the link
-   is too long for the chat).
+   followed by at least one non-digit, bar lines aligned, every column
+   with a rhythm letter, each bar adding up.
+7. Give the user the link from section 9 and the text, in case the link
+   is too long for the chat.
