@@ -64,7 +64,7 @@ describe('AppNav', () => {
     const hrefs = (name: string) => within(within(menu()).getByRole('list', { name }))
       .getAllByRole('link').map(l => l.getAttribute('href'));
     expect(hrefs('Tools'))
-      .toEqual(['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab']);
+      .toEqual(['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner']);
     expect(hrefs('Practice')).toEqual(['/practice/intervals', '/practice/notes']);
     expect(within(menu()).getByRole('link', { name: 'Practice' }))
       .toHaveAttribute('href', '/practice');

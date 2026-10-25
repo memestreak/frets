@@ -114,26 +114,6 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       <circle cx="48" cy="72" r="6" fill="var(--nut)" />
     </>
   ),
-  '/tab': (
-    <>
-      {/* Six lines of tab with a hammer-on, and two beamed stems under it. */}
-      <g stroke="var(--string)" strokeWidth="1.5">
-        {[18, 27, 36, 45, 54, 63].map(y => <line key={y} x1="10" y1={y} x2="86" y2={y} />)}
-      </g>
-      <g fontSize="13" fontWeight="700" fill="var(--nut)" fontFamily="var(--font-sans)" textAnchor="middle">
-        <rect x="30" y="38" width="12" height="14" fill="var(--fretboard)" />
-        <text x="36" y="49.5">5</text>
-        <rect x="56" y="38" width="12" height="14" fill="var(--fretboard)" />
-        <text x="62" y="49.5">7</text>
-      </g>
-      <path d="M38 36 Q49 27 60 36" fill="none" stroke="var(--degree-third)" strokeWidth="2" />
-      <g stroke="var(--nut)" strokeWidth="2">
-        <line x1="36" y1="70" x2="36" y2="84" />
-        <line x1="62" y1="70" x2="62" y2="84" />
-      </g>
-      <line x1="35" y1="83" x2="63" y2="83" stroke="var(--nut)" strokeWidth="4" />
-    </>
-  ),
 };
 
 /**

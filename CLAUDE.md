@@ -5,10 +5,8 @@
 Guitar fretboard app whose pages fall in two groups
 (`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools, holding the
 Scale lab, Triads, the Circle of fifths, Chords, one page that looks a chord
-up by name and names the notes tapped on the neck, the Tuner, one page
-with a dial or a strobe, and Tab, one clip of tablature brought in as ASCII
-tab and drawn with its rhythm (`docs/specs/2026-10-24-tab-editor-design.md`;
-the format, written for agents too, is `public/tab-ascii.txt`), and Practice, holding two quiz trainers
+up by name and names the notes tapped on the neck, and the Tuner, one page
+with a dial or a strobe, and Practice, holding two quiz trainers
 (Intervals, Notes) (`docs/specs/2026-10-17-tuner-page-design.md`; see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
@@ -106,7 +104,8 @@ binds a local port).
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords`, the Tuner
-  `/tuner` and Tab `/tab`.
+  `/tuner`. Tab, `/tab`, is still being built: reachable by its URL only,
+  it is in no menu and has no home page card yet.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
@@ -248,7 +247,8 @@ binds a local port).
   `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
   in the menus adds a history entry, everything else replaces it; slugs in
   `src/lib/chords/chordUrls.ts`.
-- `src/features/tab/` — the Tab page: `clip.ts` (the model: bars of
+- `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
+  not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
   columns, six notes each, durations in ticks, whole = 192; `parseClip`),
   `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
   and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the

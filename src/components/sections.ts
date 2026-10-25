@@ -49,11 +49,6 @@ export const TOOLS: Section = {
       title: 'Tuner',
       summary: 'Tune your guitar through the mic, on a dial or a strobe, and hear each string.',
     },
-    {
-      href: '/tab',
-      title: 'Tab',
-      summary: 'Bring in a riff as ASCII tab, from a paste or a link, and see it drawn with its rhythm.',
-    },
   ],
 };
 
