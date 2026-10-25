@@ -55,7 +55,7 @@ describe('TabPage', () => {
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
     expect(heading()).toHaveTextContent('Untitled clip');
-    expect(notice()).toHaveTextContent('Import alphaTex or ASCII tab, or paste it here.');
+    expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
   });
 
   it('imports the tab in a #tab= link, then clears the link', async () => {
@@ -103,16 +103,18 @@ describe('TabPage', () => {
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('imports pasted tab, and undo and redo step between clips', async () => {
+  it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
     renderAt();
     await paste(RIFF);
     expect(heading()).toHaveTextContent('Riff');
+    const columns = screen.getAllByTestId('tab-column').length;
     await paste(OTHER);
-    expect(heading()).toHaveTextContent('Untitled clip');
-    undo();
     expect(heading()).toHaveTextContent('Riff');
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
+    undo();
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns);
     undo(true);
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
   });
 
   it('says what a paste that is not tab got wrong, and keeps the clip', async () => {
@@ -151,5 +153,57 @@ describe('TabPage', () => {
     cleanup();
     renderAt();
     expect(heading()).toHaveTextContent('Riff');
+  });
+
+  describe('editing', () => {
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const keys = (...list: (string | { key: string; shiftKey?: boolean; altKey?: boolean; code?: string })[]) => {
+      for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
+    };
+    const alphaTex = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+      const text = screen.getByTestId('tab-ascii').textContent ?? '';
+      fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+      return text.split('\n').filter(l => l.endsWith('|')).join('\n');
+    };
+
+    it('types frets, two digits making one, and moves on with the arrows', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
+      expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 |');
+      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    });
+
+    it('marks notes and columns from the keys and from the palette', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7', 'h', '-');
+      fireEvent.click(screen.getByRole('button', { name: 'Vibrato' }));
+      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
+      expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
+      expect(screen.getByTestId('tab-selection').children).toHaveLength(2);
+      const data = new Map<string, string>();
+      const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+      copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
+      act(() => { editor().dispatchEvent(copy); });
+      expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
+      keys('Backspace');
+      expect(alphaTex()).toBe('5.1.4 |');
+    });
+
+    it('says when a bar doesn\'t add up', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+    });
   });
 });
