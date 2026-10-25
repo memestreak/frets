@@ -199,6 +199,20 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 |');
     });
 
+    it('sets the time signature from the menu under the name, as one undo step', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
+      const menu = screen.getByRole('combobox', { name: 'Time signature' });
+      expect(menu).toHaveValue('4/4');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+      fireEvent.change(menu, { target: { value: '3/4' } });
+      expect(menu).toHaveValue('3/4');
+      expect(notice()).not.toHaveTextContent('add up');
+      undo();
+      expect(menu).toHaveValue('4/4');
+    });
+
     it('says when a bar doesn\'t add up', () => {
       renderAt();
       act(() => editor().focus());

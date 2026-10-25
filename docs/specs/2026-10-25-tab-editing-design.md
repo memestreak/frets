@@ -117,9 +117,19 @@ and the keys use.
 - `TabPage.tsx`: the cursor, the selection and the keys. Edits go through
   the clip's undo history.
 
+## Time signature
+
+The time signature under the clip's name ("4/4") is also where it is set
+(Jeremy, 2026-10-25). It is a menu of the five time signatures Frets offers
+(2/4, 3/4, 4/4, 6/8, 12/8), drawn as the muted text it was, with a dotted
+underline and a small chevron. A choice is one undo step. Bars that no
+longer add up are named in the line under the clip. A clip has one time
+signature; a change within a clip (alphaTex allows `\ts` on any bar) is
+later, if needed.
+
 ## Later
 
-- In the ⋯ menu: renaming, the time signature and the tuning.
+- Renaming and the tuning.
 - An on-screen fret pad for phones.
 - Drawing shift slides differently from legato slides.
 - The other symbols from his screenshot (Q2).

@@ -4,11 +4,11 @@ import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon } from '@/components/icons';
+import { CheckIcon, ChevronDownIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { usePersist } from '@/hooks/usePersist';
 import { writeAscii } from './ascii';
-import { isStandardTuning, isUneven, type Clip } from './clip';
+import { isStandardTuning, isUneven, TIME_SIGNATURES, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
@@ -322,8 +322,12 @@ export default function TabPage() {
   };
 
   const name = clip.name.trim() || 'Untitled clip';
-  const facts = [`${clip.time.beats}/${clip.time.value}`];
-  if (!isStandardTuning(clip.tuning)) facts.push(`Tuning ${clip.tuning.join(' ')}`);
+  const time = `${clip.time.beats}/${clip.time.value}`;
+  /** Sets the clip's time signature, written "3/4"; one undo step. */
+  const setTime = (written: string) => {
+    const chosen = TIME_SIGNATURES.find(t => `${t.beats}/${t.value}` === written);
+    if (chosen) commit({ ...clip, time: chosen });
+  };
   const empty = isEmpty(clip);
   const uneven = clip.bars.flatMap((bar, i) => (isUneven(bar, clip.time) ? [i + 1] : []));
   const unevenLine = uneven.length === 0 ? ''
@@ -334,7 +338,19 @@ export default function TabPage() {
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
-          <p className="m-0 text-(--ink-muted)" data-testid="clip-facts">{facts.join(' · ')}</p>
+          <p className="m-0 text-(--ink-muted)" data-testid="clip-facts">
+            {/* The time signature shown here is also where it is set. */}
+            <span className="tab-time">
+              <select className="tab-time-select" aria-label="Time signature" value={time} onChange={e => setTime(e.target.value)}>
+                {TIME_SIGNATURES.map(t => {
+                  const written = `${t.beats}/${t.value}`;
+                  return <option key={written} value={written}>{written}</option>;
+                })}
+              </select>
+              <ChevronDownIcon />
+            </span>
+            {!isStandardTuning(clip.tuning) && ` · Tuning ${clip.tuning.join(' ')}`}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="seg" role="group" aria-label="View">
