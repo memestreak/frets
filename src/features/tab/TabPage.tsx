@@ -53,8 +53,6 @@ export default function TabPage() {
   const { clip } = state;
   usePersist(STORAGE_KEY, clip);
   const [view, setView] = useState<View>('tab');
-  // MOCK: ?mock=a|b|c picks a labelled palette layout to compare.
-  const [mock] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('mock') ?? ''));
   const [notice, setNotice] = useState<Notice | null>(null);
   const [importing, setImporting] = useState(false);
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
@@ -351,27 +349,10 @@ export default function TabPage() {
         </div>
       </header>
 
-      {mock && (
-        <nav className="tab-mock-bar" aria-label="Mocks">
-          <strong>Mock:</strong>
-          {[['a', 'A: captions'], ['b', 'B: boxes'], ['c', 'C: rows beside the tab']].map(([id, label]) => (
-            <a key={id} className={`btn ${mock === id ? 'btn-primary' : 'btn-secondary'}`} href={`?mock=${id}`}>{label}</a>
-          ))}
-        </nav>
-      )}
+      <HoverTips>
+        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+      </HoverTips>
 
-      {mock !== 'c' && (
-        <HoverTips>
-          <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} mock={mock || undefined} />
-        </HoverTips>
-      )}
-
-      <div className={mock === 'c' ? 'grid gap-4 md:grid-cols-[auto_1fr] items-start' : 'contents'}>
-      {mock === 'c' && (
-        <HoverTips>
-          <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} mock="c" />
-        </HoverTips>
-      )}
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="min-w-0">
           {view === 'tab'
@@ -402,7 +383,6 @@ export default function TabPage() {
             )}
         </div>
       </section>
-      </div>
 
       <p
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}

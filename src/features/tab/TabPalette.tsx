@@ -5,39 +5,38 @@ import { TOOL_GROUPS, type ToolId } from './tools';
 
 /**
  * The symbol palette over the tab, as Guitar Pro's: one button per symbol
- * Frets reads, in groups, each drawn as it looks in tab. A button shows
- * whether the cursor's column or note has its symbol and toggles it; its
+ * Frets reads, in named groups (a caption over each), each drawn as it
+ * looks in tab. A button shows whether the cursor's column or note has its
+ * symbol and toggles it; its
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
  * button keeps the keyboard on the tab.
  */
-export function TabPalette({ isOn, onTool, disabled, mock }: {
+export function TabPalette({ isOn, onTool, disabled }: {
   isOn: (id: ToolId) => boolean;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
-  /** MOCK: which labelled layout to draw (a, b, c); none draws today's. */
-  mock?: string;
 }) {
   return (
-    <div className={`tab-palette${mock ? ` tab-palette-${mock}` : ''}`} role="toolbar" aria-label="Symbols">
+    <div className="tab-palette" role="toolbar" aria-label="Symbols">
       {TOOL_GROUPS.map(group => (
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
-          {mock && <span className="tab-palette-label" aria-hidden="true">{group.label}</span>}
+          <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
-          {group.tools.map(tool => (
-            <button
-              key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
-              aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
-              data-tip={`${tool.label} (${tool.key})`}
-              // Keep the focus, and so the cursor, on the tab.
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => onTool(tool.id)}
-            >
-              <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                {ICONS[tool.id]}
-              </svg>
-            </button>
-          ))}
+            {group.tools.map(tool => (
+              <button
+                key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
+                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
+                data-tip={`${tool.label} (${tool.key})`}
+                // Keep the focus, and so the cursor, on the tab.
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onTool(tool.id)}
+              >
+                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  {ICONS[tool.id]}
+                </svg>
+              </button>
+            ))}
           </div>
         </div>
       ))}
