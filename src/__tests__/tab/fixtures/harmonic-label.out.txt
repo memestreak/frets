@@ -1,0 +1,12 @@
+! Guessed the length of 1 note from the spacing.
+! Bar 1 doesn't add up to 4/4.
+
+Time: 4/4
+
+   e   |
+e|-3---|
+B|-----|
+G|-----|
+D|-----|
+A|-----|
+E|-----|

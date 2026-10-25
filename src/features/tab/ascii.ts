@@ -23,6 +23,8 @@ export type ReadResult =
 
 const RHYTHM_LETTERS: Record<string, NoteValue> = { w: 1, h: 2, q: 4, e: 8, s: 16 };
 const NOTE_NAME = /^[A-Ga-g][#b♯♭]?$/;
+/** Some tabs number the strings 1 (high e) to 6 instead of naming them. */
+const STRING_NUMBER = /^[1-6]$/;
 
 type LineKind = 'rhythm' | 'strokes' | 'palmMute' | 'endings';
 
@@ -31,18 +33,26 @@ function annotationKind(line: string): LineKind | null {
   const tokens = line.split(/[\s|]+/).filter(Boolean);
   if (tokens.length === 0) return null;
   if (tokens.every(t => /^[whqes][.3]?$/.test(t))) return 'rhythm';
-  if (tokens.every(t => /^[du]$/.test(t))) return 'strokes';
-  if (/PM/.test(line) && /^[\sPM\-|]+$/.test(line)) return 'palmMute';
+  if (tokens.every(t => STROKE_MARKS.test(t))) return 'strokes';
+  if (/P\.?M/.test(line) && /^[\sPM.\-|]+$/.test(line)) return 'palmMute';
   if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
   return null;
 }
 
-/** Where a string line's first "|" is, and the name before it; null if the line isn't a string line. */
+/** A stroke: "d" or "n" down, "u" or "V" up (some tabs use the bowing marks' letters). */
+const STROKE_MARKS = /^[dunVv]$/;
+
+/**
+ * Where a string line's first "|" is, and the name before it; null if the
+ * line isn't a string line. A line with no name and no opening "|" (it
+ * starts with "-") opens just before its first character, at -1.
+ */
 function stringLineStart(line: string): { bar: number; name: string } | null {
-  const bar = line.indexOf('|');
-  if (bar < 0) return null;
-  const name = line.slice(0, bar).trim();
-  if (name !== '' && !NOTE_NAME.test(name)) return null;
+  const unopened = /^-/.test(line);
+  const bar = unopened ? -1 : line.indexOf('|');
+  if (bar < 0 && !unopened) return null;
+  const name = unopened ? '' : line.slice(0, bar).trim();
+  if (name !== '' && !NOTE_NAME.test(name) && !STRING_NUMBER.test(name)) return null;
   // Mostly dashes: tab, not a line of text that happens to hold a "|".
   const body = line.slice(bar + 1).replace(/\s/g, '');
   const dashes = (body.match(/-/g) ?? []).length;
@@ -64,6 +74,8 @@ interface StringParse {
   notes: Map<number, ReadNote>;
   bars: Set<number>;
   colons: Set<number>;
+  /** Notes marked palm-muted by an "M" after them ("0M"). */
+  palmMuted: Set<number>;
 }
 
 /** Reads one string line from `from` on. */
@@ -73,8 +85,14 @@ function parseStringLine(
   const notes = new Map<number, ReadNote>();
   const bars = new Set<number>();
   const colons = new Set<number>();
+  const palmMuted = new Set<number>();
   let prefix: Partial<Note> = {};
   let hasPrefix = false;
+  /** "s" and "^" say a slide or a hammer/pull without a direction; the frets give it. */
+  let joinFromLast: 'slide' | 'legato' | null = null;
+  let lastFret: number | null = null;
+  /** Dashes read since a joining mark: "5h-7" still joins, as some tabs write it. */
+  let dashesAfterJoin = 0;
   let i = from;
   const isDigit = (c: string | undefined) => c !== undefined && c >= '0' && c <= '9';
   const readNumber = (at: number) => {
@@ -91,8 +109,18 @@ function parseStringLine(
         errors.push(`Line ${lineNo}: fret ${text.slice(i, end)} is above 24. Digits next to each other are one fret, so put a "-" between notes.`);
       }
       const note: Note = { fret: fret!, ...prefix };
+      if (joinFromLast) {
+        const up = lastFret === null || fret! >= lastFret;
+        if (joinFromLast === 'slide') note.slide = up ? 'up' : 'down';
+        else note.legato = up ? 'h' : 'p';
+      }
       let k = end;
-      if (note.harmonic && text[k] === '>') k++;
+      if (note.harmonic && (text[k] === '>' || text[k] === ']')) k++;
+      // A natural harmonic written "12*".
+      if (text[k] === '*') {
+        note.harmonic = true;
+        k++;
+      }
       if (note.tie && text[k] === ')') k++;
       // A bend: "7b9", "7b", "7b9r7", or a pre-bend "7pb9r7". A "p" before a digit is the next note's pull-off.
       const pre = text[k] === 'p' && text[k + 1] === 'b';
@@ -108,19 +136,35 @@ function parseStringLine(
         const quarters = bendQuarters(note.fret!, target.value, lineNo, tally);
         if (quarters) note.bend = { quarters, pre, release };
       }
-      while (text[k] === '~') {
+      // Vibrato: "~" (any number), or "v".
+      while (text[k] === '~' || (text[k] === 'v' && !isDigit(text[k + 1]))) {
         note.vibrato = true;
         k++;
       }
+      if (text[k] === 'M') {
+        palmMuted.add(i);
+        k++;
+      }
       notes.set(i, { note, line: lineNo });
+      lastFret = fret;
       prefix = {};
       hasPrefix = false;
+      joinFromLast = null;
+      dashesAfterJoin = 0;
       i = k;
       continue;
     }
+    const joining = joinFromLast !== null || prefix.legato !== undefined || prefix.slide !== undefined;
+    if (c === '-' && hasPrefix && joining && dashesAfterJoin < 2) {
+      dashesAfterJoin++;
+      i++;
+      continue;
+    }
+    dashesAfterJoin = 0;
     if (hasPrefix) tally.unknown++; // a mark not followed by a fret
     prefix = {};
     hasPrefix = false;
+    joinFromLast = null;
     if (c === 'x' || c === 'X') {
       notes.set(i, { note: { fret: null }, line: lineNo });
     } else if (c === 'h' || c === 'p') {
@@ -132,7 +176,10 @@ function parseStringLine(
     } else if (c === '(') {
       prefix = { tie: true };
       hasPrefix = true;
-    } else if (c === '<') {
+    } else if (c === 's' || c === '^') {
+      joinFromLast = c === 's' ? 'slide' : 'legato';
+      hasPrefix = true;
+    } else if (c === '<' || c === '[') {
       prefix = { harmonic: true };
       hasPrefix = true;
     } else if (c === 't') {
@@ -147,7 +194,7 @@ function parseStringLine(
     }
     i++;
   }
-  return { notes, bars, colons };
+  return { notes, bars, colons, palmMuted };
 }
 
 function bendQuarters(fret: number, target: number | null, lineNo: number, tally: Tally): BendQuarters | null {
@@ -288,7 +335,7 @@ export function readAscii(text: string): ReadResult {
     // String names that differ from standard tuning are read as the tuning.
     const names = lines.slice(blocks[0].first, blocks[0].first + STRING_COUNT)
       .map(l => stringLineStart(l)!.name);
-    if (names.every(n => n !== '')) {
+    if (names.every(n => NOTE_NAME.test(n))) {
       const fromNames = names.map(normalNote).reverse();
       if (!isStandardTuning(fromNames)) tuning = fromNames;
     }
@@ -313,7 +360,7 @@ export function readAscii(text: string): ReadResult {
     warnings.push(`${which} add up to ${time.beats}/${time.value}.`);
   }
   if (tally.unknown > 0) {
-    warnings.push(`Ignored ${tally.unknown} ${tally.unknown === 1 ? 'character' : 'characters'} that aren't tab.`);
+    warnings.push(`Ignored ${tally.unknown} ${tally.unknown === 1 ? 'character that isn\'t' : 'characters that aren\'t'} tab.`);
   }
   if (tally.padded) warnings.push('Some string lines were shorter than others and were padded.');
 
@@ -418,17 +465,20 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   // Palm mute runs, strokes.
   const pm = block.annotations.palmMute;
   if (pm !== undefined) {
-    for (const m of pm.matchAll(/PM[-M|]*/g)) {
+    // "PM-----|", "P.M.----", or dashes spaced out: "PM - - - -|".
+    for (const m of pm.matchAll(/P\.?M\.?(?:[-M]| (?=-))*\|?/g)) {
       const from = m.index!;
       const to = from + m[0].length - 1;
       for (const p of all) if (p >= from && p <= to) columnAt.get(p)!.palmMute = true;
     }
   }
+  parsed.forEach(p => p.palmMuted.forEach(pos => { columnAt.get(pos)!.palmMute = true; }));
   const strokes = block.annotations.strokes;
   if (strokes !== undefined) {
-    for (const m of strokes.matchAll(/[du]/g)) {
-      const column = columnAt.get(m.index!);
-      if (column) column.stroke = m[0] === 'd' ? 'down' : 'up';
+    for (const m of strokes.matchAll(/[dunVv]/g)) {
+      // A stroke one character off its note still counts.
+      const at = [m.index!, m.index! - 1, m.index! + 1].find(p => columnAt.has(p));
+      if (at !== undefined) columnAt.get(at)!.stroke = m[0] === 'd' || m[0] === 'n' ? 'down' : 'up';
       else tally.messages.push(`Line ${block.first}: a stroke not above a note was ignored.`);
     }
   }

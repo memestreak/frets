@@ -142,6 +142,12 @@ As layout A of the mock, without the list: the clip takes the page width.
   a rhythm or stroke letter not above a column (ignored); a bend past 2
   steps (2); a `Time:` the app doesn't offer (4/4); an ending or count with
   no repeat to belong to (ignored).
+- **Other spellings** read as their canonical forms, listed at the end of
+  section 6 of `tab-ascii.txt`, with the ones not read as their tabs mean
+  them. `src/__tests__/tab/fixtures/` holds one golden pair per spelling
+  (the input and what the import gives), modelled on two pages Jeremy
+  pointed to (how-to-play-electric-guitar.net/tab-symbols.html,
+  total-guitar-lessons.com's beginner tablature page 4).
 
 ## Export
 

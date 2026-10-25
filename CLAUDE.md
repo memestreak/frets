@@ -252,7 +252,9 @@ binds a local port).
   columns, six notes each, durations in ticks, whole = 192; `parseClip`),
   `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
   and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
-  format, and its examples are tests), `layout.ts` (pure: where systems,
+  format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
+  golden input and output pairs for the spellings it forgives, see its
+  README), `layout.ts` (pure: where systems,
   bars and columns go at a width) and `TabClip.tsx` (draws a layout as
   SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
   (import by dialog, paste, drop or an `#ascii=` link, read on load and

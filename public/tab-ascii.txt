@@ -158,6 +158,25 @@ Pick or strum direction is a line of "d" (down) and "u" (up), each
 directly above a column's position, between the PM line and the rhythm
 line. Columns may be left without one.
 
+Other spellings. Tab on the web varies, and Frets also reads these, but
+write the forms above:
+
+    5s7      slide (up or down, from the frets); "5^7" hammer or pull
+    5h-7     a "-" or two between h, p, /, \, s or ^ and the note
+    12*      natural harmonic, as <12>; "[12]" too
+    7v       vibrato, as 7~
+    0M       palm-muted note
+    P.M.- - - -|   palm mute with dots, or with spaced dashes
+    n  V     down and up strokes; a stroke one character off still counts
+    1| ... 6|      strings numbered from the high e, or not named at
+                   all ("|--5--" or "--5--|")
+
+Frets does not read these the way their tabs mean them: a tap written
+after its fret ("12t" in "5h8h12t5"), "pb7" with no starting fret, "x5"
+for a palm-muted 5, whammy bar marks ("\1/"), trills and tremolo ("tr",
+"TP"), accents (">") and labels such as "A.H." or fingering lines
+("p i m a"). Translate them before importing.
+
 
 7. REPEATS AND ENDINGS
 ----------------------
