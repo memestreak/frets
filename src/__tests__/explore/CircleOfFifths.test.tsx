@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import CircleOfFifths from '@/features/explore/circle/CircleOfFifths';
-import { TIP_DELAY_MS } from '@/features/explore/circle/HoverTips';
+import { TIP_DELAY_MS } from '@/components/HoverTips';
 
 /** The page's URL query, and the URLs it pushed. */
 const nav = vi.hoisted(() => ({ search: '', push: vi.fn() }));

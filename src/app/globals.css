@@ -683,6 +683,12 @@ button {
     font-variant-ligatures: none;
   }
   .tab-ascii-copy { position: absolute; top: 0; right: 0; }
+  /* The cursor shows where the keys go, so the editor has no focus outline. */
+  .tab-editor:focus { outline: none; }
+  .tab-editor { cursor: text; }
+  .tab-palette { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+  .tab-palette-group { display: flex; gap: 2px; }
+  .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   .tab-import-text {
     width: 100%; min-height: 240px; resize: vertical; padding: 10px 12px;

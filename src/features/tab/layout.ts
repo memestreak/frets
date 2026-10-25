@@ -37,6 +37,8 @@ const CHAR = 7.5;
 
 export interface PlacedColumn {
   column: Column;
+  /** The column's place in the whole clip, counting from 0 (as `editing.ts` counts). */
+  index: number;
   /** The column's centre. */
   x: number;
   width: number;
@@ -99,6 +101,7 @@ export function layoutClip(clip: Clip, width: number): Layout {
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
+  let place = 0; // the next column's place in the whole clip
   let x = head(true);
   const finish = () => {
     systems.push({ bars: current, staffStart: head(systems.length === 0), first: systems.length === 0 });
@@ -115,7 +118,7 @@ export function layoutClip(clip: Clip, width: number): Layout {
     let cx = x0 + BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0);
     const columns = bar.columns.map(column => {
       const cw = Math.max(minColumnWidth(column), columnWidth(column) * squeeze);
-      const placed = { column, x: cx + cw / 2, width: cw };
+      const placed = { column, index: place++, x: cx + cw / 2, width: cw };
       cx += cw;
       return placed;
     });
@@ -130,6 +133,43 @@ export function layoutClip(clip: Clip, width: number): Layout {
 /** The y of a string's line within a system, high e (0) on top. */
 export function stringY(s: number): number {
   return ROW.staffTop + s * ROW.stringGap;
+}
+
+/* — the cursor — */
+
+/** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
+export interface Hit {
+  bar: number;
+  column: number;
+  string: number;
+}
+
+/** What a point in the drawing is over; null below the last system or left of every bar. */
+export function hitTest(layout: Layout, x: number, y: number): Hit | null {
+  const system = layout.systems[Math.floor(y / SYSTEM_HEIGHT)];
+  if (!system || y < 0) return null;
+  const bar = system.bars.find(b => x >= b.x0 && x < b.x1)
+    ?? (x >= system.bars[system.bars.length - 1].x1 ? system.bars[system.bars.length - 1] : null);
+  if (!bar) return null;
+  const localY = y - Math.floor(y / SYSTEM_HEIGHT) * SYSTEM_HEIGHT;
+  const string = Math.min(5, Math.max(0, Math.round((localY - ROW.staffTop) / ROW.stringGap)));
+  let column = 0;
+  bar.columns.forEach((c, i) => {
+    if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
+  });
+  return { bar: bar.index, column, string };
+}
+
+/** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */
+export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; width: number } | null {
+  for (let s = 0; s < layout.systems.length; s++) {
+    const placed = layout.systems[s].bars.find(b => b.index === bar);
+    if (!placed) continue;
+    const c = placed.columns[column];
+    if (c) return { system: s, x: c.x, width: c.width };
+    return { system: s, x: (placed.x0 + placed.x1) / 2, width: 28 };
+  }
+  return null;
 }
 
 /* — beams: eighths and shorter within one beat are joined — */

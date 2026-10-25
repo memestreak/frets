@@ -8,7 +8,7 @@ import {
   type Cell, type Key, type KeyOptions, type ModeId, type Ring, type RingNote,
 } from './circle';
 import { CircleWheel } from './CircleWheel';
-import { HoverTips } from './HoverTips';
+import { HoverTips } from '@/components/HoverTips';
 import { KeyPanel } from './KeyPanel';
 import { ModePanel } from './ModePanel';
 

@@ -150,7 +150,9 @@ binds a local port).
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
   for the neck; `export/`, the shapes' menu, Export dialog and PNG export),
-  `src/components/controls.tsx` and `icons.tsx`, `src/components/DotLabels.tsx`
+  `src/components/controls.tsx` and `icons.tsx`, `src/components/HoverTips.tsx`
+  (the one-second tip for any `data-tip`; the Circle of fifths and the Tab
+  palette), `src/components/DotLabels.tsx`
   (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
@@ -221,8 +223,7 @@ binds a local port).
   `keyWheel` / `modeWheel` models saying what every cell, ring note, chip
   and tip shows; a mode is spelled from its parent key, `parentKey`;
   spelling from `theory.ts`), `CircleWheel.tsx` (draws a model, with the
-  ring of notes round it; knows no theory), `HoverTips.tsx` (the one-second tip for any
-  `data-tip`), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
+  ring of notes round it; knows no theory), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
   table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
 - `src/features/chords/` — the Chords page (`ChordsPage.tsx`, the only
@@ -256,17 +257,22 @@ binds a local port).
   golden input and output pairs for the spellings it forgives, see its
   README), `layout.ts` (pure: where systems,
   bars and columns go at a width) and `TabClip.tsx` (draws a layout as
-  SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
-  (import by dialog, paste, drop or a `#tab=` link, read on load or
-  hashchange and then cleared; Tab | alphaTex | ASCII, the text views with
-  their copy button; Download). The clip's own format is alphaTex
+  SVG, with the editor's cursor and selection), `clipState.ts` (the clip
+  with undo and redo), `editing.ts` (pure: the cursor, selection and every
+  edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
+  and paste at the cursor), `tools.ts` (the symbol palette's table, shared
+  with the keys) and `TabPalette.tsx`, and `TabPage.tsx` (the editor: keys
+  on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
+  by dialog, drop or a `#tab=` link replaces the clip, read on load or
+  hashchange and then cleared, while a paste goes in at the cursor;
+  Tab | alphaTex | ASCII, the text views with their copy button; Download). The clip's own format is alphaTex
   (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
   `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
   parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
   its renderer is not used) and keeps what Frets doesn't draw as written
   (`extra` and `header` in the clip), `alphatex.ts` writes it, and
-  `readTab.ts` tells ASCII from alphaTex. Editing and images are PR 2 and 3
-  in the spec.
+  `readTab.ts` tells ASCII from alphaTex. Images and dragging are PR 3 in
+  the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

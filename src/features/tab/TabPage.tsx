@@ -3,17 +3,25 @@
 import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
+import { HoverTips } from '@/components/HoverTips';
 import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { usePersist } from '@/hooks/usePersist';
 import { writeAscii } from './ascii';
-import { isStandardTuning } from './clip';
+import { isStandardTuning, isUneven, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
+import {
+  clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertColumn,
+  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, selectedRange, setFret, START, stepDuration,
+  type Cursor, type Selection,
+} from './editing';
 import { TabClip } from './TabClip';
+import { TabPalette } from './TabPalette';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
+import { applyCyclingKey, applyTool, isOn, toolForKey, type ToolId } from './tools';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -29,10 +37,15 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'tab', label: 'Tab' }, { id: 'alphatex', label: 'alphaTex' }, { id: 'ascii', label: 'ASCII' },
 ];
 
+/** How long after one digit a second one joins it into a two-digit fret. */
+const SECOND_DIGIT_MS = 1000;
+
 /**
- * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import,
- * paste, drop or a `#tab=` link) and shown drawn, as alphaTex or as ASCII.
- * See `docs/specs/2026-10-24-tab-editor-design.md`; the formats are
+ * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
+ * drop or a `#tab=` link replace it; a paste goes in at the cursor), edited
+ * on the tab with the keys and the symbol palette, and shown drawn, as
+ * alphaTex or as ASCII. See `docs/specs/2026-10-24-tab-editor-design.md` and
+ * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
 export default function TabPage() {
@@ -47,6 +60,170 @@ export default function TabPage() {
   const [widthRef, clipWidth] = useWidth();
   // The alphaTex for Tab and Download, too: it is the clip's own format.
   const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
+
+  /* — the editor: a cursor on a column and string, and a run of selected columns — */
+  const [cursorAsSet, setCursor] = useState<Cursor>(START);
+  const [selectionAsSet, setSelection] = useState<Selection | null>(null);
+  const [editing, setEditing] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
+  const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
+  // An undo can take away the columns the cursor or the selection were on.
+  const cursor = clampCursor(clip, cursorAsSet);
+  const count = columnCount(clip);
+  const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
+  const target = { cursor, selection };
+
+  /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
+  const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
+    if (next !== clip) dispatch({ type: 'replace', clip: next });
+    setCursor(nextCursor);
+    setSelection(nextSelection);
+    setNotice(null);
+  };
+
+  const onTool = (id: ToolId) => commit(applyTool(clip, target, id));
+
+  /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
+  const copiedRange = (): [number, number] | null => {
+    if (selection) return selectedRange(selection);
+    if (!columnAt(clip, cursor)) return null;
+    const i = indexOf(clip, cursor.bar, cursor.column);
+    return [i, i];
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const { key } = e;
+    if (e.ctrlKey || e.metaKey) {
+      if (key.toLowerCase() === 'a' && count > 0) {
+        e.preventDefault();
+        const last = placeOfLast(clip);
+        commit(clip, { ...cursor, ...last }, { anchor: 0, focus: count - 1 });
+      }
+      // Copy, cut and paste arrive as clipboard events; undo is the page's.
+      return;
+    }
+    const handled = () => e.preventDefault();
+    if (/^[0-9]$/.test(key)) {
+      handled();
+      const digit = Number(key);
+      const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
+      const before = lastDigit.current;
+      const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
+      if (joined !== null && joined <= MAX_FRET) {
+        lastDigit.current = null;
+        commit(setFret(clip, cursor, joined));
+      } else {
+        lastDigit.current = { spot, digit, at: e.timeStamp };
+        commit(setFret(clip, cursor, digit));
+      }
+      return;
+    }
+    lastDigit.current = null;
+    if (key === 'ArrowUp' || key === 'ArrowDown') {
+      handled();
+      const string = Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
+      commit(clip, { ...cursor, string });
+      return;
+    }
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      handled();
+      const step = key === 'ArrowLeft' ? -1 : 1;
+      if (e.shiftKey) {
+        if (!columnAt(clip, cursor)) return;
+        const moved = moveColumn(clip, cursor, step, false).cursor;
+        const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
+        commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
+      } else {
+        const moved = moveColumn(clip, cursor, step);
+        commit(moved.clip, moved.cursor, null);
+      }
+      return;
+    }
+    if (key === 'Backspace' || key === 'Delete') {
+      handled();
+      if (selection) {
+        const cut = deleteColumns(clip, selectedRange(selection));
+        commit(cut.clip, { ...cursor, ...cut.cursor }, null);
+      } else if (noteAt(clip, cursor)) {
+        commit(clearNote(clip, cursor));
+      } else if (columnAt(clip, cursor)) {
+        const i = indexOf(clip, cursor.bar, cursor.column);
+        const cut = deleteColumns(clip, [i, i]);
+        commit(cut.clip, { ...cursor, ...cut.cursor }, null);
+      }
+      return;
+    }
+    if (key === '+' || key === '-') {
+      handled();
+      commit(stepDuration(clip, target, key === '+' ? 1 : -1));
+      return;
+    }
+    if (key === 'Insert') {
+      handled();
+      commit(insertColumn(clip, cursor), cursor, null);
+      return;
+    }
+    if (key === 'Escape') {
+      handled();
+      setSelection(null);
+      editorRef.current?.blur();
+      return;
+    }
+    const cycled = applyCyclingKey(clip, cursor, key);
+    if (cycled) {
+      handled();
+      commit(cycled);
+      return;
+    }
+    const tool = toolForKey(key, e.altKey, e.code);
+    if (tool) {
+      handled();
+      onTool(tool);
+    }
+  };
+
+  const onPick = (hit: Cursor, extend: boolean) => {
+    lastDigit.current = null;
+    const hasColumn = clip.bars[hit.bar].columns.length > 0;
+    if (extend && hasColumn && columnAt(clip, cursor)) {
+      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
+      commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+    } else {
+      commit(clip, hit, null);
+    }
+  };
+
+  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
+  const pasteText = useEffectEvent(async (text: string) => {
+    const result = await readTab(text);
+    if (!result.ok) {
+      setNotice({ tone: 'error', lines: result.errors });
+      return;
+    }
+    let into = clip;
+    let at = cursor;
+    if (selection) {
+      const cut = deleteColumns(clip, selectedRange(selection));
+      into = cut.clip;
+      at = { ...cursor, ...cut.cursor };
+    }
+    const pasted = pasteAt(into, at, result.clip);
+    commit(pasted.clip, pasted.cursor, null);
+    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
+    setView('tab');
+  });
+
+  /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also removes them. */
+  const copyOrCut = useEffectEvent((e: ClipboardEvent, cut: boolean) => {
+    const range = copiedRange();
+    if (!range || !e.clipboardData) return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', copyText(clip, range));
+    if (!cut) return;
+    const left = deleteColumns(clip, range);
+    commit(left.clip, { ...cursor, ...left.cursor }, null);
+  });
 
   /** Reads `text`; on success replaces the clip and returns null, else the errors. */
   const importText = useCallback(async (text: string): Promise<string[] | null> => {
@@ -94,8 +271,12 @@ export default function TabPage() {
       const text = e.clipboardData?.getData('text/plain');
       if (!text) return;
       e.preventDefault();
-      void importOrSay(text);
+      void pasteText(text);
     };
+    // Copy and cut belong to the editor only; elsewhere they copy the page's own selected text.
+    const inEditor = (e: Event) => editorRef.current !== null && editorRef.current.contains(e.target as Node);
+    const onCopy = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, false); };
+    const onCut = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, true); };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
       if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
@@ -105,11 +286,15 @@ export default function TabPage() {
     };
     const onDropped = (e: DragEvent) => void onDrop(e);
     document.addEventListener('paste', onPaste);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('cut', onCut);
     document.addEventListener('keydown', onKey);
     document.addEventListener('dragover', onDragOver);
     document.addEventListener('drop', onDropped);
     return () => {
       document.removeEventListener('paste', onPaste);
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('cut', onCut);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('dragover', onDragOver);
       document.removeEventListener('drop', onDropped);
@@ -139,7 +324,10 @@ export default function TabPage() {
   const name = clip.name.trim() || 'Untitled clip';
   const facts = [`${clip.time.beats}/${clip.time.value}`];
   if (!isStandardTuning(clip.tuning)) facts.push(`Tuning ${clip.tuning.join(' ')}`);
-  const empty = clip.bars.every(b => b.columns.length === 0);
+  const empty = isEmpty(clip);
+  const uneven = clip.bars.flatMap((bar, i) => (isUneven(bar, clip.time) ? [i + 1] : []));
+  const unevenLine = uneven.length === 0 ? ''
+    : `${uneven.length === 1 ? `Bar ${uneven[0]} doesn't` : `Bars ${uneven.join(', ')} don't`} add up to ${clip.time.beats}/${clip.time.value}.`;
 
   return (
     <div className="grid gap-4">
@@ -161,10 +349,26 @@ export default function TabPage() {
         </div>
       </header>
 
+      <HoverTips>
+        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+      </HoverTips>
+
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="min-w-0">
           {view === 'tab'
-            ? clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
+            ? clipWidth > 0 && (
+              <div
+                // A textbox, so screen readers pass the keys through to it as they do to a text field.
+                ref={editorRef} className="tab-editor" tabIndex={0} role="textbox" aria-multiline="true"
+                aria-label="Tab editor: type frets, arrows move, Shift+arrows select"
+                onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
+              >
+                <TabClip
+                  clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick}
+                  highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                />
+              </div>
+            )
             : (
               <div className="relative">
                 <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
@@ -184,12 +388,20 @@ export default function TabPage() {
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
         role="status" data-testid="tab-notice"
       >
-        {notice ? notice.lines.join(' ') : empty ? 'Import alphaTex or ASCII tab, or paste it here.' : ''}
+        {notice ? notice.lines.join(' ') : empty ? 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.' : unevenLine}
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
     </div>
   );
+}
+
+/** The last column of the clip, for Ctrl+A. */
+function placeOfLast(clip: Clip): { bar: number; column: number } {
+  for (let b = clip.bars.length - 1; b >= 0; b--) {
+    if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };
+  }
+  return { bar: 0, column: 0 };
 }
 
 const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';

@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import {
   beatTicks, isPalmMuted, isRest, slideDirections, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
-  beamGroups, layoutClip, noteLabel, ROW, STAFF_BOTTOM, stringY, SYSTEM_HEIGHT,
-  type PlacedBar, type PlacedColumn, type System,
+  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, ROW, STAFF_BOTTOM, stringY, SYSTEM_HEIGHT,
+  type Hit, type PlacedBar, type PlacedColumn, type System,
 } from './layout';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -31,19 +31,37 @@ interface Spot {
   x: number;
 }
 
+/** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
+export interface Highlight {
+  cursor: Hit | null;
+  /** First and last selected places in the clip, inclusive. */
+  range: [number, number] | null;
+}
+
 /**
  * A clip drawn as tab: systems of six lines with the notes, their marks
  * above the staff and rhythm stems below. Draws what `layoutClip` places
- * and knows no ASCII.
+ * and knows no ASCII. On the page it also draws the editor's `highlight`
+ * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick }: {
   clip: Clip;
   width: number;
   look?: TabLook;
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
+  highlight?: Highlight;
+  /** A press on the tab: the column and string under it, and whether Shift was held. */
+  onPick?: (hit: Hit, extend: boolean) => void;
 }) {
   const layout = layoutClip(clip, width);
+  const pick = (e: PointerEvent<SVGSVGElement>) => {
+    if (!onPick) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const hit = hitTest(layout, e.clientX - box.left, e.clientY - box.top);
+    if (hit) onPick(hit, e.shiftKey);
+  };
+  const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
   const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
@@ -51,8 +69,20 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title }: {
     <svg
       width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block"
+      className="block" onPointerDown={onPick ? pick : undefined}
     >
+      {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
+      {spot && highlight?.cursor && (
+        <g transform={`translate(0 ${spot.system * SYSTEM_HEIGHT})`} data-testid="tab-cursor">
+          {!highlight.range && (
+            <rect x={spot.x - spot.width / 2} y={ROW.staffTop - 10} width={spot.width} height={STAFF_BOTTOM - ROW.staffTop + 20} fill="var(--primary-soft)" />
+          )}
+          <rect
+            x={spot.x - 12} y={stringY(highlight.cursor.string) - 9} width={24} height={18} rx={4}
+            fill="none" stroke="var(--primary)" strokeWidth={1.5}
+          />
+        </g>
+      )}
       {layout.systems.map((system, si) => (
         <g key={si} transform={`translate(0 ${si * SYSTEM_HEIGHT})`} data-testid="tab-system">
           <SystemDrawing
@@ -62,6 +92,22 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title }: {
         </g>
       ))}
     </svg>
+  );
+}
+
+/** A soft band behind every selected column, joined across each run. */
+function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<typeof layoutClip>; range: [number, number] }) {
+  return (
+    <g data-testid="tab-selection">
+      {layout.systems.flatMap((system, si) => system.bars.flatMap(bar => bar.columns
+        .filter(c => c.index >= from && c.index <= to)
+        .map(c => (
+          <rect
+            key={c.index} x={c.x - c.width / 2} y={si * SYSTEM_HEIGHT + ROW.staffTop - 10} width={c.width}
+            height={STAFF_BOTTOM - ROW.staffTop + 20} fill="var(--primary-soft)"
+          />
+        ))))}
+    </g>
   );
 }
 
