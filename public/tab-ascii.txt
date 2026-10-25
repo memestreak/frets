@@ -1,0 +1,203 @@
+FRETS ASCII TAB
+===============
+
+How to write guitar tab that Frets (https://frets.eminor.net/tab) can open
+and edit. Written for people and for AI agents turning a picture of tab
+into text. Everything below is a rule unless it says "may".
+
+
+1. THE WHOLE TEXT
+-----------------
+
+    Title: <name of the clip>           optional, one line
+    Time: <beats>/<note>                optional, 4/4 if left out
+                                         (2/4, 3/4, 4/4, 6/8 or 12/8)
+    <blank line>
+    <one or more blocks>
+
+A block is one line of tab across the page ("a system"). Blocks follow one
+another in playing order and join into one clip. Put a blank line between
+blocks. Any other line (chord names, lyrics, comments) is ignored.
+
+
+2. A BLOCK
+----------
+
+    PM line        optional, palm mute (section 6)
+    rhythm line    optional but strongly preferred (section 4)
+    e|...          six string lines, highest string first
+    B|...
+    G|...
+    D|...
+    A|...
+    E|...
+
+- Exactly six string lines, in this order, nothing between them. Standard
+  tuning only.
+- Each string line starts with its name and "|". The names are only labels:
+  the first line is always the high e, the last the low E.
+- All six string lines are the same length. Fill every empty position
+  with "-".
+- "|" at the same position on all six lines is a bar line. End each line
+  with "|".
+- The rhythm and PM lines line up with the string lines character for
+  character, counting from the start of the line (so they begin with two
+  spaces, under "e|").
+
+
+3. NOTES AND COLUMNS
+--------------------
+
+- A note is a fret number, 0 to 24, written on its string's line. "12" is
+  one note on two characters.
+- A note's position is the character position of its first digit. Notes
+  played together (a chord) start at the same position on their strings.
+  Everything that starts at one position is one column, played at one
+  time.
+- "x" in place of a fret is a muted (dead) note.
+- Two notes on one string need at least one other character between them:
+  "-" or a technique mark ("5-7", "5h7"). Digits side by side are always
+  one fret ("128" is fret 128 and is refused).
+- Prefer two characters for each sixteenth note of duration: an eighth
+  four characters, a quarter eight. With a rhythm line this spacing is
+  only for looks; without one it is how the duration is read (section 5).
+
+
+4. THE RHYTHM LINE
+------------------
+
+The line just above the strings gives each column's duration: a letter
+directly above the column's position.
+
+    w  whole      h  half      q  quarter      e  eighth      s  sixteenth
+
+- "." right after the letter makes it dotted ("q." a dotted quarter).
+- "3" right after the letter makes it a triplet ("e3": three of them fill
+  one quarter). Write triplets in complete groups of three.
+- A letter above a position where every string has "-" is a rest of that
+  length.
+- With a rhythm line, every column needs a letter. Columns without one
+  are guessed as in section 5.
+- "|" in the rhythm line may be written above bar lines and is ignored.
+  Anything else in the line must be a space.
+- The durations in each bar should add up to the time signature. Frets
+  draws bars as written; it does not move notes between bars.
+
+
+5. NO RHYTHM LINE
+-----------------
+
+When a block has no rhythm line, durations are guessed from spacing: a
+column lasts until the next column (or the bar line), and a bar's width
+stands for one bar of the time signature; with no bar lines, the most
+common gap is taken as an eighth. Guesses snap to the nearest plain or
+dotted length. Leave the rhythm line out only when the rhythm is unknown;
+the guess is a starting point to fix by hand.
+
+
+6. TECHNIQUES
+-------------
+
+Written on the string line, around the note:
+
+    5h7      hammer-on from 5 to 7     ("h" in the gap just before the 7)
+    7p5      pull-off from 7 to 5
+    5/7      slide up from 5 to 7
+    7\5      slide down from 7 to 5
+    /7       slide into 7 from below (no earlier note on that string)
+    7b9      bend 7 up to the pitch of fret 9: 1 fret is a 1/2 bend,
+             2 frets a full bend
+    7b9r7    bend and release
+    7~       vibrato ("~" right after the note, or after a bend)
+    x        muted note
+    <12>     natural harmonic at fret 12 (position = the "1")
+    t12      tap at fret 12 (position = the "1")
+
+"h", "p", "/" and "\" sit just before a note and join it to the previous
+note on the same string, however many "-" lie between them ("5--h7" is
+the same as "5h7"). The joined note's position is its first digit, so the
+mark sits in the gap before it. "/" or "\" with no earlier note on that
+string is a slide in from below or above.
+
+In "7b9" and "7b9r7" the position is the "7"; the "b9" and "r7" belong to
+that note and are not columns.
+
+Palm mute is a line above the rhythm line:
+
+    PM-------|
+
+The run starts at "P" and ends at the last "-" or "|"; every column whose
+position falls inside it is palm muted. A PM line may hold several runs,
+separated by spaces.
+
+
+7. EXAMPLES
+-----------
+
+    Title: Legato, a bend and vibrato
+    Time: 4/4
+
+       e   e   e   e   e   e   e   e   | e   e   e   e   q       q       |
+    e|---------------------------------|---------------------------------|
+    B|---------------------------------|---------------------------------|
+    G|-------------------------5--h7---|-7--p5---------------------------|
+    D|-----------------5--h7-----------|---------7--p5-------------------|
+    A|---------5--h7-------------------|-----------------7b9-------------|
+    E|-5--h8---------------------------|-------------------------5~------|
+
+    Title: Chords, a rest and palm mutes
+    Time: 3/4
+
+                                 PM-------------|
+       q.          e   q       | e   e   e   e   e   e   |
+    e|-------------------------|-------------------------|
+    B|-------------------------|-------------------------|
+    G|-------------------------|-------------------------|
+    D|-2-----------2-----------|-------------------------|
+    A|-2-----------2-----------|-----------------x---5---|
+    E|-0-----------0-----------|-0---0---0---0---x---3---|
+
+    Title: Sixteenths, a triplet, a tap and harmonics
+
+       s  s  s  s  e3  e3 e3 q       q       |
+    e|-------5--8-t12--8-p5-<12>-------------|
+    B|-5-/7-----------------<12>-----8b10r8--|
+    G|----------------------<12>-------------|
+    D|---------------------------------------|
+    A|---------------------------------------|
+    E|---------------------------------------|
+
+
+8. OPENING IT IN FRETS
+----------------------
+
+Paste the text into Import on https://frets.eminor.net/tab, or make a
+link that opens it directly:
+
+    https://frets.eminor.net/tab#ascii=<the whole text, percent-encoded>
+
+Percent-encode as JavaScript's encodeURIComponent does: a line break is
+%0A, a space %20, "|" %7C, "/" %2F, "\" %5C; "~" is left as is. Keep the
+link under about 8,000 characters; split longer tab into several links.
+The part after "#" is never sent to a server.
+
+
+9. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
+----------------------------------------------
+
+1. Read the title and time signature if shown; write "Title:" and "Time:".
+2. Copy each system as one block, string by string, top line = high e.
+   Tab in pictures always puts the high e on top.
+3. Line up notes that sound together at one position.
+4. If the picture shows rhythm (stems and beams under the tab, or a staff
+   above it), write a rhythm line: a letter for every column, rests
+   included. Count each bar against the time signature.
+5. Translate the marks: arcs with H or P to h/p, slanted lines to / or \,
+   curved arrows labelled "full" or "1/2" to b, wavy lines to ~, "P.M."
+   to a PM line, "x" to x, diamond or <12> notes to <..>, "T" to t.
+   Leave out marks this format has no letter for (let ring, pick strokes,
+   tremolo picking).
+6. Check: six string lines per block, all the same length, every note
+   followed by at least one "-", bar lines aligned.
+7. Give the user the link from section 8 (and the text, in case the link
+   is too long for the chat).
