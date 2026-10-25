@@ -212,6 +212,7 @@ follow.
     E|:-3-------3---3---x---3---3-------|(3)--------------0---0---0-------:|
 
     Title: Sixteenths, a triplet, a tap, harmonics and a pre-bend
+    Time: 4/4
 
        s  s   s  s  e3   e3 e3  q       q        |
     e|--------5--8-t12---8-p5--<12>--------------|
