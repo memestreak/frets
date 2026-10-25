@@ -9,7 +9,7 @@
  * character for character.
  */
 import {
-  barTicks, isStandardTuning, nearestDuration, STANDARD_TUNING, STRING_COUNT,
+  barTicks, isStandardTuning, isUneven, nearestDuration, STANDARD_TUNING, STRING_COUNT,
   ticks, TIME_SIGNATURES,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
@@ -305,7 +305,12 @@ export function readAscii(text: string): ReadResult {
 
   const warnings = [...tally.messages];
   if (tally.guessed > 0) {
-    warnings.unshift(`Guessed the length of ${tally.guessed} ${tally.guessed === 1 ? 'note' : 'notes'} from the spacing (tinted).`);
+    warnings.unshift(`Guessed the length of ${tally.guessed} ${tally.guessed === 1 ? 'note' : 'notes'} from the spacing.`);
+  }
+  const uneven = bars.flatMap((bar, i) => (isUneven(bar, time) ? [i + 1] : []));
+  if (uneven.length > 0) {
+    const which = uneven.length === 1 ? `Bar ${uneven[0]} doesn't` : `Bars ${listed(uneven)} don't`;
+    warnings.push(`${which} add up to ${time.beats}/${time.value}.`);
   }
   if (tally.unknown > 0) {
     warnings.push(`Ignored ${tally.unknown} ${tally.unknown === 1 ? 'character' : 'characters'} that aren't tab.`);
@@ -317,6 +322,11 @@ export function readAscii(text: string): ReadResult {
     clip: { name: header.title ?? '', time, tuning: tuning ?? [...STANDARD_TUNING], bars },
     warnings,
   };
+}
+
+/** "2, 5 and 7". */
+function listed(numbers: number[]): string {
+  return numbers.length === 1 ? `${numbers[0]}` : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
 }
 
 function readBlock(lines: string[], block: Block, time: TimeSignature, errors: string[], tally: Tally): Bar[] {
@@ -382,7 +392,6 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const guess = (pos: number, nextPos: number, unit: number) => {
     const column = columnAt.get(pos)!;
     column.duration = nearestDuration(((nextPos - pos) / unit));
-    column.guessed = true;
     tally.guessed++;
   };
   // Tab with no bar lines inside and no rhythm line is split into bars by the time signature.

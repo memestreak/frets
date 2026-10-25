@@ -126,8 +126,21 @@ describe('readAscii forgives', () => {
     ].join('\n'));
     expect(clip.bars[0].columns.map(c => c.duration.value)).toEqual([4, 4, 4, 4]);
     expect(clip.bars[1].columns.map(c => c.duration.value)).toEqual([2, 2]);
-    expect(clip.bars[0].columns.every(c => c.guessed)).toBe(true);
     expect(warnings[0]).toMatch(/Guessed the length of 6 notes/);
+  });
+
+  it('names the bars whose durations don\'t add up', () => {
+    const { clip, warnings } = read([
+      '   q   q   q   | q   q   q   q   | q   q   |',
+      'e|-5---5---5---|-5---5---5---5---|-5---5---|',
+      'B|-------------|-----------------|---------|',
+      'G|-------------|-----------------|---------|',
+      'D|-------------|-----------------|---------|',
+      'A|-------------|-----------------|---------|',
+      'E|-------------|-----------------|---------|',
+    ].join('\n'));
+    expect(clip.bars).toHaveLength(3);
+    expect(warnings).toEqual(['Bars 1 and 3 don\'t add up to 4/4.']);
   });
 
   it('tab with no bar lines inside, taking the most common gap as an eighth', () => {

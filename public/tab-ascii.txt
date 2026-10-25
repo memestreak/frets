@@ -107,7 +107,7 @@ When a block has no rhythm line, durations are guessed from spacing: a
 column lasts until the next column (or the bar line), and a bar's width
 stands for one bar of the time signature; with no bar lines, the most
 common gap is taken as an eighth. Guesses snap to the nearest plain or
-dotted length, and Frets tints every guessed column until it is edited.
+dotted length, and Frets says how many it guessed.
 Leave the rhythm line out only when the rhythm is unknown.
 
 

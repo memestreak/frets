@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import {
-  beatTicks, isRest, isUneven, STRING_COUNT,
+  beatTicks, isRest, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
@@ -15,15 +15,12 @@ export interface TabLook {
   line: string;
   /** Behind a note's number, so the line doesn't run through it. */
   paper: string;
-  /** The paper under guessed columns and bars that don't add up: a faint tint, opaque so numbers' knockouts match it. */
-  wash: string;
 }
 
 export const PAGE_LOOK: TabLook = {
   ink: 'var(--ink)',
   line: 'var(--line-strong)',
   paper: 'var(--surface-raised)',
-  wash: 'color-mix(in srgb, var(--warning) 9%, var(--surface-raised))',
 };
 
 const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
@@ -99,32 +96,6 @@ function SystemDrawing({ system, index, clip, look, names, previous, lastBar }: 
   const parts: ReactNode[] = [];
   const beat = beatTicks(clip.time);
 
-  // Washes first, under everything.
-  for (const bar of system.bars) {
-    if (isUneven(bar.bar, clip.time)) {
-      parts.push(
-        <rect
-          key={`uneven-${bar.index}`} x={bar.x0 + 2} y={ROW.staffTop - 8} width={bar.x1 - bar.x0 - 4}
-          height={ROW.stemBottom - ROW.staffTop + 12} fill={look.wash}
-          data-testid="uneven-bar"
-        />,
-      );
-    }
-    // One wash per run of guessed columns, so neighbours join without a seam.
-    for (const run of guessedRuns(bar.columns)) {
-      const first = run[0];
-      const last = run[run.length - 1];
-      const x = first.x - first.width / 2;
-      parts.push(
-        <rect
-          key={`guess-${bar.index}-${first.x}`} x={x} y={ROW.staffTop - 8}
-          width={last.x + last.width / 2 - x} height={ROW.stemBottom - ROW.staffTop + 12}
-          fill={look.wash} data-testid="guessed-column"
-        />,
-      );
-    }
-  }
-
   // The staff: lines, names, TAB, time signature.
   for (let s = 0; s < STRING_COUNT; s++) {
     parts.push(
@@ -189,13 +160,11 @@ function SystemDrawing({ system, index, clip, look, names, previous, lastBar }: 
   });
 
   for (const bar of system.bars) {
-    const uneven = isUneven(bar.bar, clip.time);
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} system={index} look={look}
           previous={previous} staffStart={system.staffStart}
-          paper={uneven || placed.column.guessed ? look.wash : look.paper}
         />,
       );
     }
@@ -239,14 +208,12 @@ function BarDrawing({ bar, look, final }: { bar: PlacedBar; look: TabLook; final
   );
 }
 
-function ColumnDrawing({ placed, system, look, previous, staffStart, paper }: {
+function ColumnDrawing({ placed, system, look, previous, staffStart }: {
   placed: PlacedColumn;
   system: number;
   look: TabLook;
   previous: Map<Note, Spot>;
   staffStart: number;
-  /** What the column is drawn on, so a number's knockout matches it. */
-  paper: string;
 }) {
   const { column, x } = placed;
   const parts: ReactNode[] = [];
@@ -291,7 +258,7 @@ function ColumnDrawing({ placed, system, look, previous, staffStart, paper }: {
       );
     }
     parts.push(
-      <rect key={`knock-${s}`} x={x - lw / 2} y={y - 7} width={lw} height={14} fill={paper} />,
+      <rect key={`knock-${s}`} x={x - lw / 2} y={y - 7} width={lw} height={14} fill={look.paper} />,
       <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>,
     );
     if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} look={look} />);
@@ -424,18 +391,3 @@ function Rest({ x, value, look }: { x: number; value: number; look: TabLook }) {
   );
 }
 
-/** Runs of neighbouring guessed columns in a bar. */
-function guessedRuns(columns: PlacedColumn[]): PlacedColumn[][] {
-  const runs: PlacedColumn[][] = [];
-  let run: PlacedColumn[] = [];
-  for (const placed of columns) {
-    if (placed.column.guessed) {
-      run.push(placed);
-    } else if (run.length > 0) {
-      runs.push(run);
-      run = [];
-    }
-  }
-  if (run.length > 0) runs.push(run);
-  return runs;
-}

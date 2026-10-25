@@ -33,8 +33,9 @@ comes later.
   staff can come later.
 - **Import replaces the clip;** Ctrl+Z in the same browser tab brings the
   old one back. Opening a link in another tab overwrites the saved clip.
-- **Forgiving import:** whatever can be read is imported; guessed columns
-  and bars are tinted until edited.
+- **Forgiving import:** whatever can be read is imported; one line under
+  the clip says what was guessed, ignored or doesn't add up. Nothing on the
+  drawing marks it (Jeremy dropped the tint, 2026-10-25).
 - **ASCII view:** a Tab | ASCII switch shows the clip as read-only ASCII.
 - **Out:** copy, download or drag the clip as PNG or SVG (the chord export
   pipeline) or as ASCII tab.
@@ -111,12 +112,9 @@ As layout A of the mock, without the list: the clip takes the page width.
   "1." or "2.".
 - Marks above the staff stack in a fixed order, top down: endings and
   counts, strokes, P.M., then bend and vibrato labels.
-- **Guessed spots:** after an import, every column whose duration was
-  guessed has a faint `--warning` wash behind it until that column is
-  edited (the clip stores the mark), and every bar whose durations don't
-  add up has one for as long as they don't (worked out when drawn); one
-  muted line under the card says what was guessed or ignored. Nothing
-  moves when the wash goes.
+- **Guessed spots:** the drawing doesn't mark them. After an import one
+  muted line under the card says how many durations were guessed, which
+  bars don't add up, and what was ignored.
 
 ## Import
 
@@ -135,7 +133,7 @@ As layout A of the mock, without the list: the clip takes the page width.
   24, including digits run together ("128"); `h` or `p` with no earlier
   note on that string; a tie `(5)` whose string's previous note isn't fret
   5.
-- **Forgiven, tinted or listed in the line under the card:** columns
+- **Forgiven, and listed in the line under the card:** columns
   without a rhythm letter, or blocks without a rhythm line (guessed);
   bars whose durations don't add up (drawn as written); unknown characters
   in a string line (read as "-"); string lines of unequal length (padded);
@@ -202,8 +200,7 @@ the ASCII view.
   base 1, 2, 4, 8 or 16, dotted, triplet; rest; six slots of `Note | null`,
   high string first; palm mute; stroke), `Note` (fret and its marks:
   hammer-on, pull-off, slide up / down / in, bend amount in quarter-steps
-  with release and pre-bend, vibrato, muted, tie, harmonic, tap), and which
-  columns and bars were guessed.
+  with release and pre-bend, vibrato, muted, tie, harmonic, tap), .
 - `ascii.ts`: `readAscii(text)` returning a clip with warnings, or errors;
   `writeAscii(clip)`.
 - `layout.ts`: a clip and a width to positioned glyphs; `TabClip.tsx` only
@@ -236,7 +233,7 @@ Each its own PR; this spec and `tab-ascii.txt` ride in the first (PR #90).
 
 1. **View:** the `/tab` page and its Tools entry and icon; `tab-ascii.txt`;
    reading and writing ASCII; import (dialog, paste, drop, link) with undo;
-   drawing everything the format carries, with guessed spots tinted; the
+   drawing everything the format carries, the
    Tab | ASCII switch; Copy and Download ASCII; storage.
 2. **Editing:** the toolbar, cursor and keys above, ⋯'s editing items.
 3. **Images:** PNG and SVG copy and download, Export options, dragging the

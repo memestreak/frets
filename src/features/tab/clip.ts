@@ -49,8 +49,6 @@ export interface Column {
   notes: (Note | null)[];
   palmMute?: boolean;
   stroke?: 'down' | 'up';
-  /** Its duration was guessed on import, so the page tints it. */
-  guessed?: boolean;
 }
 
 export interface Bar {
@@ -169,7 +167,7 @@ function isColumn(v: unknown): v is Column {
   return isObj(v) && isDuration(v.duration)
     && Array.isArray(v.notes) && v.notes.length === STRING_COUNT
     && v.notes.every(n => n === null || isNote(n))
-    && optBool(v.palmMute) && optBool(v.guessed)
+    && optBool(v.palmMute)
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up');
 }
 
