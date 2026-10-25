@@ -59,6 +59,16 @@ describe('TabPage', () => {
     expect(window.location.hash).toBe('');
   });
 
+  it('imports an #ascii= link followed while the page is open', () => {
+    renderAt();
+    act(() => {
+      window.history.replaceState(null, '', `/tab#ascii=${encodeURIComponent(RIFF)}`);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(heading()).toHaveTextContent('Riff');
+    expect(window.location.hash).toBe('');
+  });
+
   it('says why a link\'s tab could not be read and keeps the saved clip', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt(`#ascii=${encodeURIComponent('no tab here')}`);
