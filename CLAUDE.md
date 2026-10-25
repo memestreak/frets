@@ -256,7 +256,7 @@ binds a local port).
   bars and columns go at a width) and `TabClip.tsx` (draws a layout as
   SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
   (import by dialog, paste, drop or an `#ascii=` link, read on load and
-  then cleared; Tab | ASCII; Copy ASCII, Download). Editing and images
+  then cleared; Tab | ASCII, the ASCII view with its copy button; Download). Editing and images
   are PR 2 and 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.

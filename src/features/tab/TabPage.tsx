@@ -137,7 +137,6 @@ export default function TabPage() {
             <button type="button" className="seg-opt" aria-pressed={view === 'ascii'} onClick={() => setView('ascii')}>ASCII</button>
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => void copy()}>Copy ASCII</button>
           <button type="button" className="btn btn-secondary" onClick={download}>Download</button>
         </div>
       </header>

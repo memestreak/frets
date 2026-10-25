@@ -67,13 +67,15 @@ As layout A of the mock, without the list: the clip takes the page width.
 
 - **Header:** the clip's name (Fraunces; "Untitled clip" when empty) on
   the left; on the right the **Tab | ASCII** switch (`.seg`),
-  **Import…**, **Copy ASCII** and **Download** (the ASCII as a .txt; PR 2
+  **Import…** and **Download** (the ASCII as a .txt; PR 2
   or PR 3 folds it into a **⋯** menu once there are more items). A ⠿ grip before the name drags the clip out
   (PR 3). Under the name, muted: the time signature, and the tuning when
   it is not standard ("4/4 · Tuning D A D G B E").
 - **The clip** in a `--surface-raised` card: the tab, wrapped onto more
   lines at bar lines when wider than the card. In the ASCII view the same
-  card holds the clip's ASCII in `--font-mono`, read-only and selectable.
+  card holds the clip's ASCII in `--font-mono`, read-only and selectable,
+  with a copy button in its top-right corner (the only Copy ASCII; every
+  ASCII block gets one).
 - **Toolbar** (PR 2), between the header and the card: Duration (1, ½, ¼,
   ⅛, 1/16), dot, triplet, tie, the techniques, the bend amount (¼, ½,
   full, 1½, 2, release, pre-bend) and stroke. Its buttons show the cursor
@@ -143,7 +145,7 @@ As layout A of the mock, without the list: the clip takes the page width.
 
 ## Export
 
-- **Copy ASCII** and **Download ASCII** write the clip in the canonical
+- **Copy** (the ASCII view's button) and **Download** write the clip in the canonical
   form of `tab-ascii.txt`, as its examples are: header lines, two
   characters a sixteenth (wider where a note needs it), the rhythm line
   always, the other lines when used, blocks broken at bar lines near 80
