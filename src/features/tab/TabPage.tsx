@@ -3,6 +3,7 @@
 import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
+import dynamic from 'next/dynamic';
 import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { usePersist } from '@/hooks/usePersist';
@@ -12,6 +13,11 @@ import {
   clipReducer, initClipState, STORAGE_KEY, type ClipState,
 } from './clipState';
 import { TabClip } from './TabClip';
+import { writeAlphaTex } from './alphatex';
+import { EVERY_SYMBOL, MOCK_CLIPS } from './mockClips';
+
+// MOCK ONLY: alphaTab's drawing, loaded on demand.
+const AlphaTabClip = dynamic(() => import('./AlphaTabClip'), { ssr: false });
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -33,19 +39,26 @@ export default function TabPage() {
   const [state, dispatch] = useReducer(clipReducer, initial.state);
   const { clip } = state;
   usePersist(STORAGE_KEY, clip);
-  const [view, setView] = useState<'tab' | 'ascii'>('tab');
+  const [view, setView] = useState<'tab' | 'alphatex' | 'ascii'>('tab');
+  // MOCK ONLY (?mock=alphatab): which renderer draws the clip, and alphaTex shown instead of the clip.
+  const [mock] = useState(() => new URLSearchParams(window.location.search).get('mock') === 'alphatab');
+  const [drawer, setDrawer] = useState<'frets' | 'alphatab'>('alphatab');
+  const [texOnly, setTexOnly] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(initial.notice);
   const [importing, setImporting] = useState(false);
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
   const [widthRef, clipWidth] = useWidth();
   const ascii = writeAscii(clip);
+  const tex = texOnly ?? writeAlphaTex(clip);
+  const shownText = view === 'alphatex' ? tex : ascii;
 
   /** Reads `text`; on success replaces the clip and returns null, else the errors. */
   const importText = useCallback((text: string): string[] | null => {
     const result = readAscii(text);
     if (!result.ok) return result.errors;
     dispatch({ type: 'replace', clip: result.clip });
+    setTexOnly(null);
     setNotice(result.warnings.length > 0 ? { tone: 'info', lines: result.warnings } : null);
     setView('tab');
     return null;
@@ -114,8 +127,8 @@ export default function TabPage() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(ascii);
-      setNotice({ tone: 'info', lines: ['ASCII copied.'] });
+      await navigator.clipboard.writeText(shownText);
+      setNotice({ tone: 'info', lines: [view === 'alphatex' ? 'alphaTex copied.' : 'ASCII copied.'] });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -139,6 +152,34 @@ export default function TabPage() {
 
   return (
     <div className="grid gap-4">
+      {mock && (
+        <div className="card flex flex-wrap items-center gap-3 py-2" data-testid="mock-bar">
+          <strong>Mock</strong>
+          <div className="seg" role="group" aria-label="Drawn by">
+            <button type="button" className="seg-opt" aria-pressed={drawer === 'frets'} onClick={() => setDrawer('frets')}>Frets</button>
+            <button type="button" className="seg-opt" aria-pressed={drawer === 'alphatab'} onClick={() => setDrawer('alphatab')}>alphaTab</button>
+          </div>
+          <label className="flex items-center gap-2">
+            Example
+            <select
+              className="input" defaultValue=""
+              onChange={e => {
+                const i = e.target.value;
+                if (i === 'symbols') {
+                  setTexOnly(EVERY_SYMBOL);
+                  setDrawer('alphatab');
+                  setView('tab');
+                  setNotice({ tone: 'info', lines: ['Shown by alphaTab only: Frets can\'t read these symbols yet.'] });
+                } else if (i !== '') importText(MOCK_CLIPS[Number(i)].ascii);
+              }}
+            >
+              <option value="" disabled>Pick one…</option>
+              {MOCK_CLIPS.map((c, i) => <option key={c.name} value={i}>{c.name}</option>)}
+              <option value="symbols">Symbols Frets can&apos;t draw yet</option>
+            </select>
+          </label>
+        </div>
+      )}
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
@@ -147,6 +188,7 @@ export default function TabPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="seg" role="group" aria-label="View">
             <button type="button" className="seg-opt" aria-pressed={view === 'tab'} onClick={() => setView('tab')}>Tab</button>
+            {mock && <button type="button" className="seg-opt" aria-pressed={view === 'alphatex'} onClick={() => setView('alphatex')}>alphaTex</button>}
             <button type="button" className="seg-opt" aria-pressed={view === 'ascii'} onClick={() => setView('ascii')}>ASCII</button>
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
@@ -157,13 +199,18 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="min-w-0">
           {view === 'tab'
-            ? clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
+            ? mock && drawer === 'alphatab'
+              ? <AlphaTabClip tex={tex} />
+              : texOnly
+                ? <p className="m-0 text-(--ink-muted)">Frets can&apos;t draw this example; switch to alphaTab.</p>
+                : clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
             : (
               <div className="relative">
-                <pre className="tab-ascii" data-testid="tab-ascii">{ascii}</pre>
+                <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
                 <button
                   type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
-                  aria-label="Copy ASCII" title="Copy ASCII" onClick={() => void copy()}
+                  aria-label={view === 'alphatex' ? 'Copy alphaTex' : 'Copy ASCII'}
+                  title={view === 'alphatex' ? 'Copy alphaTex' : 'Copy ASCII'} onClick={() => void copy()}
                 >
                   {copied ? <CheckIcon /> : <CopyIcon />}
                 </button>
