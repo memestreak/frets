@@ -275,6 +275,7 @@ function ColumnDrawing({ placed, system, look, previous, staffStart }: {
   return <g data-testid="tab-column">{parts}</g>;
 }
 
+/** A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend. */
 function BendDrawing({ bend, x, y, look }: { bend: Bend; x: number; y: number; look: TabLook }) {
   const top = ROW.staffTop - 10;
   const head = (tx: number, ty: number, down = false) => (
@@ -282,7 +283,7 @@ function BendDrawing({ bend, x, y, look }: { bend: Bend; x: number; y: number; l
   );
   const label = (
     <text x={bend.pre ? x : x + 14} y={top - 4} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">
-      {BEND_LABEL[bend.quarters]}
+      {bend.pre ? `PB ${BEND_LABEL[bend.quarters]}` : BEND_LABEL[bend.quarters]}
     </text>
   );
   if (bend.pre) {
