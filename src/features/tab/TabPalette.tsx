@@ -10,16 +10,20 @@ import { TOOL_GROUPS, type ToolId } from './tools';
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
  * button keeps the keyboard on the tab.
  */
-export function TabPalette({ isOn, onTool, disabled }: {
+export function TabPalette({ isOn, onTool, disabled, mock }: {
   isOn: (id: ToolId) => boolean;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
+  /** MOCK: which labelled layout to draw (a, b, c); none draws today's. */
+  mock?: string;
 }) {
   return (
-    <div className="tab-palette" role="toolbar" aria-label="Symbols">
+    <div className={`tab-palette${mock ? ` tab-palette-${mock}` : ''}`} role="toolbar" aria-label="Symbols">
       {TOOL_GROUPS.map(group => (
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
+          {mock && <span className="tab-palette-label" aria-hidden="true">{group.label}</span>}
+          <div className="tab-palette-tools">
           {group.tools.map(tool => (
             <button
               key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
@@ -34,6 +38,7 @@ export function TabPalette({ isOn, onTool, disabled }: {
               </svg>
             </button>
           ))}
+          </div>
         </div>
       ))}
     </div>
