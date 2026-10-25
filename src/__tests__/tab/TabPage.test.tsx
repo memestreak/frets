@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { STORAGE_KEY } from '@/features/tab/clipState';
@@ -100,7 +100,8 @@ describe('TabPage', () => {
     fireEvent.change(text, { target: { value: RIFF } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Import' }));
     await screen.findByRole('heading', { name: 'Riff' }, SLOW);
-    expect(dialog).not.toHaveAttribute('open');
+    // The dialog closes once the import's promise settles, which can be a render after the heading.
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
   it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
