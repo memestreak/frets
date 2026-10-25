@@ -66,8 +66,8 @@ As layout A of the mock, without the list: the clip takes the page width.
 
 - **Header:** the clip's name (Fraunces; "Untitled clip" when empty) on
   the left; on the right the **Tab | ASCII** switch (`.seg`),
-  **Import…**, **Copy ASCII** and **⋯** (Download ASCII (.txt); the image
-  items arrive with PR 3). A ⠿ grip before the name drags the clip out
+  **Import…**, **Copy ASCII** and **Download** (the ASCII as a .txt; PR 2
+  or PR 3 folds it into a **⋯** menu once there are more items). A ⠿ grip before the name drags the clip out
   (PR 3). Under the name, muted: the time signature, and the tuning when
   it is not standard ("4/4 · Tuning D A D G B E").
 - **The clip** in a `--surface-raised` card: the tab, wrapped onto more
@@ -112,8 +112,9 @@ As layout A of the mock, without the list: the clip takes the page width.
 - Marks above the staff stack in a fixed order, top down: endings and
   counts, strokes, P.M., then bend and vibrato labels.
 - **Guessed spots:** after an import, every column whose duration was
-  guessed, and every bar whose durations don't add up, has a faint
-  `--warning` wash behind it until that column or bar is edited, and one
+  guessed has a faint `--warning` wash behind it until that column is
+  edited (the clip stores the mark), and every bar whose durations don't
+  add up has one for as long as they don't (worked out when drawn); one
   muted line under the card says what was guessed or ignored. Nothing
   moves when the wash goes.
 

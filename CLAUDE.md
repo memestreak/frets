@@ -5,8 +5,10 @@
 Guitar fretboard app whose pages fall in two groups
 (`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools, holding the
 Scale lab, Triads, the Circle of fifths, Chords, one page that looks a chord
-up by name and names the notes tapped on the neck, and the Tuner, one page
-with a dial or a strobe, and Practice, holding two quiz trainers
+up by name and names the notes tapped on the neck, the Tuner, one page
+with a dial or a strobe, and Tab, one clip of tablature brought in as ASCII
+tab and drawn with its rhythm (`docs/specs/2026-10-24-tab-editor-design.md`;
+the format, written for agents too, is `public/tab-ascii.txt`), and Practice, holding two quiz trainers
 (Intervals, Notes) (`docs/specs/2026-10-17-tuner-page-design.md`; see
 `docs/specs/2026-10-04-practice-restructure-design.md`,
 `docs/specs/2026-10-04-scale-lab-design.md`,
@@ -103,8 +105,8 @@ binds a local port).
   and `/practice` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
-  for its Advanced view, the modes), the Chords page `/chords` and the Tuner
-  `/tuner`.
+  for its Advanced view, the modes), the Chords page `/chords`, the Tuner
+  `/tuner` and Tab `/tab`.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
@@ -246,6 +248,16 @@ binds a local port).
   `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
   in the menus adds a history entry, everything else replaces it; slugs in
   `src/lib/chords/chordUrls.ts`.
+- `src/features/tab/` — the Tab page: `clip.ts` (the model: bars of
+  columns, six notes each, durations in ticks, whole = 192; `parseClip`),
+  `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
+  and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
+  format, and its examples are tests), `layout.ts` (pure: where systems,
+  bars and columns go at a width) and `TabClip.tsx` (draws a layout as
+  SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
+  (import by dialog, paste, drop or an `#ascii=` link, read on load and
+  then cleared; Tab | ASCII; Copy ASCII, Download). Editing and images
+  are PR 2 and 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -282,7 +294,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing
