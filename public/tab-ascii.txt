@@ -27,7 +27,9 @@ names, lyrics, comments) is ignored.
 
 Tuning is recorded and shown with the clip; frets are frets in any tuning.
 Without a Tuning line, string names that differ from standard (a "D" on
-the bottom line) are read as the tuning.
+the bottom line) are read as the tuning. When there is a Tuning line,
+the string names may be either the Tuning's notes or standard e B G D A E;
+they are not checked against it.
 
 
 2. A BLOCK
@@ -52,7 +54,8 @@ From top to bottom, the first four optional:
 - All six string lines are the same length. Fill every empty position
   with "-".
 - "|" at the same position on all six lines is a bar line. End each line
-  with a bar line.
+  with a bar line. A double or thick final bar line in a picture is
+  written as a plain "|" too.
 - The lines above the strings line up with them character for character,
   counting from the start of the line (so they begin with two spaces,
   under "e|"). Each is told apart by what it holds; keep them in the order
@@ -98,6 +101,19 @@ directly above the column's position.
 - "|" may be written above bar lines and is ignored. Anything else in the
   line must be a space.
 - The durations in each bar must add up to the time signature.
+
+Reading note values from a picture (stems under the tab):
+
+    no stem                        w  whole
+    short stem, no flag or beam    h  half
+    full stem, no flag or beam     q  quarter
+    one flag or beam               e  eighth
+    two flags or beams             s  sixteenth
+    a dot after the stem           .  dotted
+    a "3" over a beamed group      3  triplet
+
+Then count the bar: if the values you read don't add up, look again
+before writing anything else.
 
 
 5. NO RHYTHM LINE
@@ -151,7 +167,9 @@ Palm mute is a line above the strokes and rhythm lines:
     PM-------|
 
 The run starts at "P" and ends at the last "-" or "|"; every column whose
-position falls inside it is palm muted. A PM line may hold several runs,
+position falls inside it is palm muted. The run may reach past its last
+column, to match where a picture's P.M. line ends; it may not reach a
+column that isn't muted. A PM line may hold several runs,
 separated by spaces.
 
 Pick or strum direction is a line of "d" (down) and "u" (up), each
@@ -199,7 +217,9 @@ Endings go on the endings line, the top line of the block:
 "1." starts the first-time bracket at that position, "-" carries it on,
 and it ends at the "|" right above the bar line that closes it (usually
 the end repeat). The second ending starts after it. "3." and so on may
-follow.
+follow. The "1." goes above the bar's first column, not above its bar
+line. The endings line may also hold a repeat count ("x3"), with at least
+one space between it and any bracket.
 
 
 8. EXAMPLES
@@ -282,8 +302,8 @@ replaces the clip open in Frets.
 10. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
 -----------------------------------------------
 
-1. Read the title, time signature and tuning if shown; write "Title:",
-   "Time:" and "Tuning:".
+1. Read the title, time signature and tuning. Write "Time:" always;
+   write "Title:" and "Tuning:" only when the picture shows them.
 2. Copy each system as one block, string by string, top line = highest
    string. Tab in pictures always puts the highest string on top.
 3. Line up notes that sound together at one position.
@@ -297,10 +317,11 @@ replaces the clip open in Frets.
    square and V signs) to a strokes line, parenthesised frets and tie
    arcs to (5), repeat signs and "x4" to |: :| and the count, ending
    brackets to an endings line, "x" to x, diamond notes or <12> to <..>,
-   "T" to t. Leave out marks this format has no letter for (let ring,
+   "T" to t. A bend whose arrow starts already up, or is labelled
+   "PB" or "pre-bend", is pb, not b. Leave out marks this format has no letter for (let ring,
    tremolo picking, slurs across several notes).
 6. Check: six string lines per block, all the same length, every note
    followed by at least one non-digit, bar lines aligned, every column
    with a rhythm letter, each bar adding up.
-7. Give the user the link from section 9 and the text, in case the link
+7. Unless told to give only the text, give the user the link from section 9 and the text, in case the link
    is too long for the chat.

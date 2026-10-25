@@ -104,7 +104,8 @@ As layout A of the mock, without the list: the clip takes the page width.
   string with H or P over it); slide (a slanted line from the previous
   note, or into the note); bend (a curved arrow above the staff labelled
   ¼, ½, full, 1½ or 2; release an arrow back down; a pre-bend a straight
-  arrow up before the note); vibrato (a wavy line above the staff); muted
+  arrow up before the note, its label starting "PB" so a picture of it
+  can't be read as a bend; this came from the agent round trip); vibrato (a wavy line above the staff); muted
   note (x); tie (the fret in parentheses with a tie arc from the note it
   continues); natural harmonic (‹12›); tap (T over the note).
 - On a column: palm mute ("P.M." and a dashed line over the run, ending in

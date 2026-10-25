@@ -57,9 +57,22 @@ export default function TabPage() {
     if (errors) setNotice({ tone: 'error', lines: errors });
   });
   // The link's tab was read on the first render; clear it so a reload doesn't import it again.
+  // A link followed while the page is open only changes the hash: read it then.
   useEffect(() => {
-    const { hash, pathname, search } = window.location;
-    if (hash.startsWith(HASH)) window.history.replaceState(null, '', pathname + search);
+    const clearHash = () => {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, '', pathname + search);
+    };
+    if (window.location.hash.startsWith(HASH)) clearHash();
+    const onHashChange = () => {
+      const text = linkText(window.location.hash);
+      if (text === null) return;
+      clearHash();
+      if (text instanceof Error) setNotice({ tone: 'error', lines: [BAD_ENCODING] });
+      else importOrSay(text);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   // Paste or drop anywhere on the page; undo and redo.
@@ -171,17 +184,24 @@ export default function TabPage() {
   );
 }
 
+const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';
+
+/** The tab in an `#ascii=` hash; null when the hash is something else, an Error when it can't be decoded. */
+function linkText(hash: string): string | Error | null {
+  if (!hash.startsWith(HASH)) return null;
+  try {
+    return decodeURIComponent(hash.slice(HASH.length));
+  } catch (e) {
+    return e as Error;
+  }
+}
+
 /** The saved clip, or the tab in the page's `#ascii=` link with the saved clip one undo back. */
 function startUp(): { state: ClipState; notice: Notice | null } {
   const saved = initClipState();
-  const { hash } = window.location;
-  if (!hash.startsWith(HASH)) return { state: saved, notice: null };
-  let text: string;
-  try {
-    text = decodeURIComponent(hash.slice(HASH.length));
-  } catch {
-    return { state: saved, notice: { tone: 'error', lines: ['The link\'s tab is not percent-encoded correctly.'] } };
-  }
+  const text = linkText(window.location.hash);
+  if (text === null) return { state: saved, notice: null };
+  if (text instanceof Error) return { state: saved, notice: { tone: 'error', lines: [BAD_ENCODING] } };
   const result = readAscii(text);
   if (!result.ok) return { state: saved, notice: { tone: 'error', lines: result.errors } };
   return {
