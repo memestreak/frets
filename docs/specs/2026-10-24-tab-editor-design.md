@@ -56,8 +56,9 @@ thread; details he left open are marked as defaults. Mock:
   example also drags out as its PNG, as a chord diagram does; a press that
   doesn't move is still a click on a column.
 - **ASCII panel** under the paper: the whole sheet as ASCII tab (format
-  below), in `--font-mono`, updated as you type, with Copy. Read-only
-  (default). It does not print. Its height follows the text, so it never
+  below), in `--font-mono`, updated as you type, with Copy. Read-only for
+  now; editing it, with changes flowing back to the page, is a later slice
+  (Jeremy, 2026-10-25). It does not print. Its height follows the text, so it never
   scrolls inside itself.
 - **Tab drawing:** six lines, "TAB" and the time signature at the start of
   the example's first line, bar lines every full bar, a final double bar.
@@ -230,7 +231,7 @@ Each its own PR, this spec in the first.
 3. Images and files: Copy / Download PNG and SVG, drag out, Export
    options; `.json` save and open; chord diagrams beside examples.
 
-Later: song sections and repeats, a standard staff above the tab (likely
+Later: the ASCII panel editable both ways, song sections and repeats, a standard staff above the tab (likely
 an engraving library such as VexFlow), playback, other tunings.
 
 ## Open
@@ -238,8 +239,6 @@ an engraving library such as VexFlow), playback, other tunings.
 - **Phones:** typing needs a keyboard. Default: phones can read and print
   sheets, and tapping a column shows the cursor, but there is no on-screen
   fret pad in slice 1.
-- **ASCII panel:** read-only (default), or editable with changes flowing
-  back to the page.
 - **Renderer:** our own SVG drawing for tab (default), keeping the print
   look in our hands. VexFlow also draws tab with stems and most of these
   techniques; if the staff later uses it, the tab could move to it too.
