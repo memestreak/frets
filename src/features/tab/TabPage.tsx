@@ -3,6 +3,7 @@
 import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
+import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { usePersist } from '@/hooks/usePersist';
 import { readAscii, writeAscii } from './ascii';
@@ -35,6 +36,8 @@ export default function TabPage() {
   const [view, setView] = useState<'tab' | 'ascii'>('tab');
   const [notice, setNotice] = useState<Notice | null>(initial.notice);
   const [importing, setImporting] = useState(false);
+  /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
+  const [copied, setCopied] = useState(false);
   const [widthRef, clipWidth] = useWidth();
   const ascii = writeAscii(clip);
 
@@ -100,6 +103,8 @@ export default function TabPage() {
     try {
       await navigator.clipboard.writeText(ascii);
       setNotice({ tone: 'info', lines: ['ASCII copied.'] });
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
     } catch {
       setNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
     }
@@ -141,7 +146,17 @@ export default function TabPage() {
         <div ref={widthRef} className="min-w-0">
           {view === 'tab'
             ? clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
-            : <pre className="tab-ascii" data-testid="tab-ascii">{ascii}</pre>}
+            : (
+              <div className="relative">
+                <pre className="tab-ascii" data-testid="tab-ascii">{ascii}</pre>
+                <button
+                  type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
+                  aria-label="Copy ASCII" title="Copy ASCII" onClick={() => void copy()}
+                >
+                  {copied ? <CheckIcon /> : <CopyIcon />}
+                </button>
+              </div>
+            )}
         </div>
       </section>
 

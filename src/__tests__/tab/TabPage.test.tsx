@@ -107,6 +107,17 @@ describe('TabPage', () => {
     expect(screen.queryByTestId('tab-column')).toBeNull();
   });
 
+  it('copies the ASCII from a button in the ASCII view', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderAt(`#ascii=${encodeURIComponent(RIFF)}`);
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
+    const view = screen.getByTestId('tab-ascii').parentElement!;
+    await act(async () => { fireEvent.click(within(view).getByRole('button', { name: 'Copy ASCII' })); });
+    expect(writeText).toHaveBeenCalledWith(screen.getByTestId('tab-ascii').textContent);
+    expect(notice()).toHaveTextContent('ASCII copied.');
+  });
+
   it('saves the clip and opens on it next time', () => {
     renderAt();
     paste(RIFF);
