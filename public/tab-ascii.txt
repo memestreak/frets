@@ -96,7 +96,8 @@ directly above the column's position.
 
     w  whole      h  half      q  quarter      e  eighth      s  sixteenth
 
-- "." right after the letter makes it dotted ("q." a dotted quarter).
+- "." right after the letter makes it dotted ("q." a dotted quarter),
+  ".." double dotted ("q..").
 - "3" right after the letter makes it a triplet ("e3": three of them fill
   one quarter). Write triplets in complete groups of three.
 - A letter above a position where every string has "-" is a rest of that

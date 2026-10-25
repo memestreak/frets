@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
 import {
-  BEND_QUARTERS, isUneven, STANDARD_TUNING, ticks,
+  BEND_QUARTERS, isPalmMuted, isUneven, STANDARD_TUNING, ticks,
   type Bar, type Clip, type Column, type Duration, type Note,
 } from '@/features/tab/clip';
 import { seededRng } from '../helpers/rng';
@@ -46,7 +46,7 @@ describe('the examples in tab-ascii.txt', () => {
     expect(two.columns[1].notes[2]).toEqual({ fret: 5, legato: 'p' });
     expect(two.columns[4].notes[4]).toEqual({ fret: 7, bend: { quarters: 4, pre: false, release: false } });
     expect(two.columns[5].notes[5]).toEqual({ fret: 5, vibrato: true });
-    expect(two.columns[4].duration).toEqual({ value: 4, dotted: false, triplet: false });
+    expect(two.columns[4].duration).toEqual({ value: 4, dots: 0, triplet: false });
   });
 
   it('reads strummed chords, ties, a rest, palm mutes, strokes and a counted repeat', () => {
@@ -59,7 +59,7 @@ describe('the examples in tab-ascii.txt', () => {
     expect(notesOf(one.columns[3])).toEqual([null, null, null, null, null, null]);
     expect(two.columns[0].notes.every(n => n?.tie)).toBe(true);
     expect(two.columns[0].duration.value).toBe(2);
-    expect(two.columns.map(c => !!c.palmMute)).toEqual([false, true, true, true, false]);
+    expect(two.columns.map(isPalmMuted)).toEqual([false, true, true, true, false]);
     expect(two.columns[4].notes.every(n => n === null)).toBe(true);
   });
 
@@ -67,8 +67,8 @@ describe('the examples in tab-ascii.txt', () => {
     const { clip } = read(examples[2]);
     const cols = clip.bars[0].columns;
     expect(cols.slice(0, 4).every(c => c.duration.value === 16)).toBe(true);
-    expect(cols[1].notes[1]).toEqual({ fret: 7, slide: 'up' });
-    expect(cols[4].duration).toEqual({ value: 8, dotted: false, triplet: true });
+    expect(cols[1].notes[1]).toEqual({ fret: 7, slide: 'legato' });
+    expect(cols[4].duration).toEqual({ value: 8, dots: 0, triplet: true });
     expect(cols[4].notes[0]).toEqual({ fret: 12, tap: true });
     expect(cols[7].notes.slice(0, 3)).toEqual([0, 1, 2].map(() => ({ fret: 12, harmonic: true })));
     expect(cols[8].notes[1]).toEqual({ fret: 8, bend: { quarters: 4, pre: true, release: true } });
@@ -218,10 +218,10 @@ describe('writeAscii and readAscii round trip', () => {
       const columns: Column[] = [];
       for (let k = 0; k < 1 + Math.floor(rng() * 6); k++) {
         const duration: Duration = {
-          value: pick([1, 2, 4, 8, 16] as const), dotted: rng() < 0.2, triplet: false,
+          value: pick([1, 2, 4, 8, 16] as const), dots: rng() < 0.2 ? 1 : 0, triplet: false,
         };
-        if (duration.dotted && duration.value === 16) duration.dotted = false;
-        if (!duration.dotted && rng() < 0.15) duration.triplet = true;
+        if (duration.dots && duration.value === 16) duration.dots = 0;
+        if (!duration.dots && rng() < 0.15) duration.triplet = true;
         const notes: (Note | null)[] = Array(6).fill(null);
         if (rng() > 0.1) {
           for (let s = 0; s < 6; s++) {
@@ -231,7 +231,8 @@ describe('writeAscii and readAscii round trip', () => {
             const r = rng();
             if (note.fret !== null) {
               if (r < 0.1 && before) note.legato = pick(['h', 'p'] as const);
-              else if (r < 0.2) note.slide = pick(['up', 'down'] as const);
+              // ASCII has a slide from the note before, or from below or above when there is none.
+              else if (r < 0.2) note.slide = before ? 'legato' : pick(['below', 'above'] as const);
               else if (r < 0.3 && before && before.fret !== null) {
                 note.fret = before.fret;
                 note.tie = true;
@@ -246,7 +247,8 @@ describe('writeAscii and readAscii round trip', () => {
           }
         }
         const column: Column = { duration, notes };
-        if (rng() < 0.2) column.palmMute = true;
+        // ASCII palm mutes whole columns.
+        if (rng() < 0.2) for (const n of notes) if (n) n.palmMute = true;
         if (rng() < 0.3) column.stroke = pick(['down', 'up'] as const);
         columns.push(column);
       }
@@ -271,7 +273,22 @@ describe('writeAscii and readAscii round trip', () => {
   });
 
   it('keeps a triplet group exact', () => {
-    const t: Duration = { value: 8, dotted: false, triplet: true };
-    expect(ticks(t) * 3).toBe(ticks({ value: 4, dotted: false, triplet: false }));
+    const t: Duration = { value: 8, dots: 0, triplet: true };
+    expect(ticks(t) * 3).toBe(ticks({ value: 4, dots: 0, triplet: false }));
+  });
+});
+
+describe('readAscii, smaller marks', () => {
+  it('reads a double dot in the rhythm line and writes it back', () => {
+    const result = readAscii('Time: 2/4\n\n   q.. s\ne|-5---7-|\nB|-------|\nG|-------|\nD|-------|\nA|-------|\nE|-------|');
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    expect(result.clip.bars[0].columns[0].duration).toEqual({ value: 4, dots: 2, triplet: false });
+    expect(writeAscii(result.clip)).toContain('q..');
+  });
+
+  it('mutes only the note marked M', () => {
+    const result = readAscii('e|-5M--|\nB|-5---|\nG|-----|\nD|-----|\nA|-----|\nE|-----|');
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    expect(result.clip.bars[0].columns[0].notes.slice(0, 2)).toEqual([{ fret: 5, palmMute: true }, { fret: 5 }]);
   });
 });

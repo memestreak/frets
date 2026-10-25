@@ -65,8 +65,10 @@ then "." and its duration:
                pull-offs are h too.
     sl         slide TO THE NEXT NOTE on this string, on the first note:
                5.3{sl}.8 7.3.8 slides 5 up to 7.
-    sib  sia   slide into this note from below / from above (no note
-               before it).
+    ss         shift slide to the next note (the second note is picked
+               again); written like sl.
+    sib  sia   slide into this note from below / from above, from no
+               fret in particular.
     b (..)     bend, as points in quarter-tones, evenly spaced:
                  b (0 2)      half-step bend (½)
                  b (0 4)      full bend
@@ -77,13 +79,14 @@ then "." and its duration:
                it sets every point that isn't 0, so "PB ½" is b (2 2).
     v          vibrato
     nh         natural harmonic: 12.3{nh}
-    pm         palm mute; put it on every note of every muted beat
+    pm         palm mute, on each muted note
 
 
 4. BEAT EFFECTS FRETS DRAWS
 ---------------------------
 
     d          dotted: 5.3.4{d} is a dotted quarter
+    dd         double dotted
     tu 3       triplet; put it on each of the three: 7.3.8{tu 3}
     sd  su     pick or strum stroke down / up
     tt         tapped (T)

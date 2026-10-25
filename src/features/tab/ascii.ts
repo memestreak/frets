@@ -9,7 +9,7 @@
  * character for character.
  */
 import {
-  barTicks, isStandardTuning, isUneven, nearestDuration, STANDARD_TUNING, STRING_COUNT,
+  barTicks, isPalmMuted, isStandardTuning, isUneven, nearestDuration, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, TIME_SIGNATURES,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
@@ -32,7 +32,7 @@ type LineKind = 'rhythm' | 'strokes' | 'palmMute' | 'endings';
 function annotationKind(line: string): LineKind | null {
   const tokens = line.split(/[\s|]+/).filter(Boolean);
   if (tokens.length === 0) return null;
-  if (tokens.every(t => /^[whqes][.3]?$/.test(t))) return 'rhythm';
+  if (tokens.every(t => /^[whqes](?:\.\.?|3)?$/.test(t))) return 'rhythm';
   if (tokens.every(t => STROKE_MARKS.test(t))) return 'strokes';
   if (/P\.?M/.test(line) && /^[\sPM.\-|]+$/.test(line)) return 'palmMute';
   if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
@@ -75,7 +75,6 @@ interface StringParse {
   bars: Set<number>;
   colons: Set<number>;
   /** Notes marked palm-muted by an "M" after them ("0M"). */
-  palmMuted: Set<number>;
 }
 
 /** Reads one string line from `from` on. */
@@ -85,7 +84,6 @@ function parseStringLine(
   const notes = new Map<number, ReadNote>();
   const bars = new Set<number>();
   const colons = new Set<number>();
-  const palmMuted = new Set<number>();
   let prefix: Partial<Note> = {};
   let hasPrefix = false;
   /** "s" and "^" say a slide or a hammer/pull without a direction; the frets give it. */
@@ -111,7 +109,7 @@ function parseStringLine(
       const note: Note = { fret: fret!, ...prefix };
       if (joinFromLast) {
         const up = lastFret === null || fret! >= lastFret;
-        if (joinFromLast === 'slide') note.slide = up ? 'up' : 'down';
+        if (joinFromLast === 'slide') note.slide = 'legato';
         else note.legato = up ? 'h' : 'p';
       }
       let k = end;
@@ -142,7 +140,7 @@ function parseStringLine(
         k++;
       }
       if (text[k] === 'M') {
-        palmMuted.add(i);
+        note.palmMute = true;
         k++;
       }
       notes.set(i, { note, line: lineNo });
@@ -171,7 +169,8 @@ function parseStringLine(
       prefix = { legato: c };
       hasPrefix = true;
     } else if (c === '/' || c === '\\') {
-      prefix = { slide: c === '/' ? 'up' : 'down' };
+      // From below or above; checkJoins makes it a slide from the earlier note when there is one.
+      prefix = { slide: c === '/' ? 'below' : 'above' };
       hasPrefix = true;
     } else if (c === '(') {
       prefix = { tie: true };
@@ -194,7 +193,7 @@ function parseStringLine(
     }
     i++;
   }
-  return { notes, bars, colons, palmMuted };
+  return { notes, bars, colons };
 }
 
 function bendQuarters(fret: number, target: number | null, lineNo: number, tally: Tally): BendQuarters | null {
@@ -260,7 +259,7 @@ function hasColonInside(g: Boundary, colons: Set<number>, side: 'start' | 'end')
 function parseDuration(token: string): Duration {
   return {
     value: RHYTHM_LETTERS[token[0]],
-    dotted: token[1] === '.',
+    dots: token.startsWith('..', 1) ? 2 : token[1] === '.' ? 1 : 0,
     triplet: token[1] === '3',
   };
 }
@@ -401,7 +400,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const columnAt = new Map<number, Column>();
   for (const pos of positions) {
     columnAt.set(pos, {
-      duration: { value: 4, dotted: false, triplet: false },
+      duration: { value: 4, dots: 0, triplet: false },
       notes: parsed.map(p => p.notes.get(pos)?.note ?? null),
     });
   }
@@ -410,7 +409,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const rhythm = block.annotations.rhythm;
   const known = new Set<number>();
   if (rhythm !== undefined) {
-    for (const m of rhythm.matchAll(/[whqes][.3]?/g)) {
+    for (const m of rhythm.matchAll(/[whqes](?:\.\.?|3)?/g)) {
       const at = m.index!;
       const column = columnAt.get(at);
       if (column) {
@@ -469,10 +468,11 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
     for (const m of pm.matchAll(/P\.?M\.?(?:[-M]| (?=-))*\|?/g)) {
       const from = m.index!;
       const to = from + m[0].length - 1;
-      for (const p of all) if (p >= from && p <= to) columnAt.get(p)!.palmMute = true;
+      for (const p of all) {
+        if (p >= from && p <= to) for (const note of columnAt.get(p)!.notes) if (note) note.palmMute = true;
+      }
     }
   }
-  parsed.forEach(p => p.palmMuted.forEach(pos => { columnAt.get(pos)!.palmMute = true; }));
   const strokes = block.annotations.strokes;
   if (strokes !== undefined) {
     for (const m of strokes.matchAll(/[dunVv]/g)) {
@@ -554,7 +554,10 @@ function splitByTime(columns: Column[], time: TimeSignature): Bar[] {
   return bars;
 }
 
-/** Hammer-ons, pull-offs and ties need an earlier note on their string; a tie needs the same fret. */
+/**
+ * Hammer-ons, pull-offs and ties need an earlier note on their string; a tie needs the same fret.
+ * A slide is from the earlier note when there is one, and from below or above when there isn't.
+ */
 function checkJoins(bars: Bar[], errors: string[]) {
   const previous: (Note | null)[] = Array(STRING_COUNT).fill(null);
   for (const bar of bars) {
@@ -563,6 +566,11 @@ function checkJoins(bars: Bar[], errors: string[]) {
         if (!note) return;
         const line = (lineNumbers.get(column) ?? 0) + s;
         const before = previous[s];
+        if (note.slide === 'below' || note.slide === 'above') {
+          if (before) note.slide = 'legato';
+        } else if (note.slide && !before) {
+          note.slide = 'below';
+        }
         if (note.legato && !before) {
           errors.push(`Line ${line}: "${note.legato}" with no earlier note on that string.`);
         }
@@ -578,10 +586,10 @@ function checkJoins(bars: Bar[], errors: string[]) {
 /* ———————————————————————————— writing ———————————————————————————— */
 
 /** How a note is written: the mark before its position, then the note itself. */
-export function noteText(note: Note): { prefix: string; text: string } {
+export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: string; text: string } {
   let prefix = '';
   if (note.legato) prefix = note.legato;
-  else if (note.slide) prefix = note.slide === 'up' ? '/' : '\\';
+  else if (note.slide) prefix = slide === 'up' ? '/' : '\\';
   else if (note.tie) prefix = '(';
   else if (note.harmonic) prefix = '<';
   else if (note.tap) prefix = 't';
@@ -598,9 +606,9 @@ export function noteText(note: Note): { prefix: string; text: string } {
   return { prefix, text };
 }
 
-export function rhythmToken({ value, dotted, triplet }: Duration): string {
+export function rhythmToken({ value, dots, triplet }: Duration): string {
   const letter = Object.keys(RHYTHM_LETTERS).find(k => RHYTHM_LETTERS[k] === value)!;
-  return letter + (dotted ? '.' : '') + (triplet ? '3' : '');
+  return letter + '.'.repeat(dots) + (triplet ? '3' : '');
 }
 
 /** Characters a column takes: two a sixteenth, and room for its notes and the next column's marks. */
@@ -616,7 +624,7 @@ function columnWidth(column: Column): number {
 const MAX_LINE = 80;
 
 /** One block's lines, names first: endings, palm mute, strokes, rhythm, then the six strings. */
-function writeBlock(bars: Bar[], names: string[]): string[] {
+function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down'>): string[] {
   const strings: string[][] = names.map(() => []);
   const rhythm: string[] = [];
   const strokes: string[] = [];
@@ -639,10 +647,10 @@ function writeBlock(bars: Bar[], names: string[]): string[] {
       push('-'.repeat(width));
       [...rhythmToken(column.duration)].forEach((ch, k) => { rhythm[start + k] = ch; });
       if (column.stroke) strokes[start] = column.stroke === 'down' ? 'd' : 'u';
-      if (column.palmMute) for (let k = 0; k < width; k++) pm[start + k] = '-';
+      if (isPalmMuted(column)) for (let k = 0; k < width; k++) pm[start + k] = '-';
       column.notes.forEach((note, s) => {
         if (!note) return;
-        const { prefix, text } = noteText(note);
+        const { prefix, text } = noteText(note, slides.get(note));
         [...text].forEach((ch, k) => { strings[s][start + k] = ch; });
         [...prefix].forEach((ch, k) => { strings[s][start - prefix.length + k] = ch; });
       });
@@ -702,19 +710,20 @@ export function writeAscii(clip: Clip): string {
   const names = [...clip.tuning].reverse();
   names[0] = names[0].toLowerCase();
 
+  const slides = slideDirections(clip);
   const blocks: string[][] = [];
   let current: Bar[] = [];
   for (const bar of clip.bars) {
     const tried = [...current, bar];
-    const lines = writeBlock(tried, names);
+    const lines = writeBlock(tried, names, slides);
     if (current.length > 0 && lines[lines.length - 1].length > MAX_LINE) {
-      blocks.push(writeBlock(current, names));
+      blocks.push(writeBlock(current, names, slides));
       current = [bar];
     } else {
       current = tried;
     }
   }
-  if (current.length > 0) blocks.push(writeBlock(current, names));
+  if (current.length > 0) blocks.push(writeBlock(current, names, slides));
   return [head.join('\n'), ...blocks.map(b => b.join('\n'))].join('\n\n');
 }
 

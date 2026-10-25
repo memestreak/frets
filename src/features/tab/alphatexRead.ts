@@ -26,10 +26,10 @@ export function loadAlphaTab(): Promise<AlphaTab> {
 
 /* — what Frets reads itself; everything else is kept as written — */
 
-/** Note effects Frets draws. `ss` (shift slide) is read as a slide and written back as `sl`. */
+/** Note effects Frets reads. */
 const NOTE_EFFECTS = new Set(['h', 'sl', 'ss', 'sib', 'sia', 'b', 'be', 'v', 'x', 't', 'nh', 'pm']);
 /** Beat effects Frets draws. */
-const BEAT_EFFECTS = new Set(['d', 'tu', 'sd', 'su', 'tt']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt']);
 /** Tags Frets reads: the title, the tuning, the time signature, repeats and endings. */
 const TAGS = new Set(['title', 'tuning', 'ts', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
@@ -48,7 +48,7 @@ const KEPT_NAMES: Record<string, string> = {
   sou: 'slide out up', sod: 'slide out down', psu: 'pick slide up', psd: 'pick slide down',
   fermata: 'fermata', rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
   au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
-  rf: 'right-hand fingering', ten: 'tenuto', dd: 'double dot',
+  rf: 'right-hand fingering', ten: 'tenuto',
 };
 
 /* — the parse tree, as far as this file uses it — */
@@ -93,8 +93,9 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
     n.tie = true;
     n.fret = note.tieOrigin?.fret ?? note.fret;
   }
-  if (note.slideInType === at.model.SlideInType.IntoFromBelow) n.slide = 'up';
-  if (note.slideInType === at.model.SlideInType.IntoFromAbove) n.slide = 'down';
+  if (note.slideInType === at.model.SlideInType.IntoFromBelow) n.slide = 'below';
+  if (note.slideInType === at.model.SlideInType.IntoFromAbove) n.slide = 'above';
+  if (note.isPalmMute) n.palmMute = true;
   const points = note.bendPoints ?? [];
   if (points.length > 0) {
     const values = points.map(p => p.value);
@@ -116,7 +117,7 @@ function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration']
   }
   return {
     value: value as NoteValue,
-    dotted: beat.dots > 0,
+    dots: beat.dots >= 2 ? 2 : beat.dots === 1 ? 1 : 0,
     triplet: beat.hasTuplet && beat.tupletNumerator === 3 && beat.tupletDenominator === 2,
   };
 }
@@ -129,15 +130,16 @@ function joinToNext(bars: Bar[], origins: Map<Note, AtNote>, at: AlphaTab, warn:
     onString.forEach((note, i) => {
       const source = origins.get(note);
       if (!source) return;
-      const slides = source.slideOutType === at.model.SlideOutType.Shift || source.slideOutType === at.model.SlideOutType.Legato;
-      if (!source.isHammerPullOrigin && !slides) return;
+      const slide = source.slideOutType === at.model.SlideOutType.Shift ? 'shift'
+        : source.slideOutType === at.model.SlideOutType.Legato ? 'legato' : null;
+      if (!source.isHammerPullOrigin && !slide) return;
       const next = onString[i + 1];
       if (!next || note.fret === null || next.fret === null) {
         warn('Left out a hammer-on, pull-off or slide with no later note on its string.');
         return;
       }
       if (source.isHammerPullOrigin) next.legato = next.fret < note.fret ? 'p' : 'h';
-      if (slides) next.slide = next.fret < note.fret ? 'down' : 'up';
+      if (slide) next.slide = slide;
     });
   }
 }
@@ -215,7 +217,6 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         const s = STRING_COUNT - note.string;
         const n = noteOf(note, at);
         if (beat.tap) n.tap = true;
-        if (note.isPalmMute) column.palmMute = true;
         const noteNode = node?.notes?.notes.find(nn => nn.noteString?.value === s + 1);
         const extra = keptEffects(text, noteNode?.noteEffects, NOTE_EFFECTS, kept);
         if (note.vibrato === at.model.VibratoType.Wide && !extra.includes('vw')) extra.push('vw');

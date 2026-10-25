@@ -40,7 +40,7 @@ function bendPoints({ quarters, pre, release }: Bend): string {
   return points.join(' ');
 }
 
-/** For every note, the effects it carries for a later note on its string (h or sl). */
+/** For every note, the effects it carries for a later note on its string (h, sl or ss). */
 function originMarks(clip: Clip): Map<string, string[]> {
   const marks = new Map<string, string[]>();
   const last: (At | null)[] = Array(6).fill(null);
@@ -50,40 +50,32 @@ function originMarks(clip: Clip): Map<string, string[]> {
     if (prev) {
       const key = `${prev.bar}:${prev.column}:${prev.string}`;
       if (note.legato) marks.set(key, [...(marks.get(key) ?? []), 'h']);
-      if (note.slide) marks.set(key, [...(marks.get(key) ?? []), 'sl']);
+      if (note.slide === 'legato') marks.set(key, [...(marks.get(key) ?? []), 'sl']);
+      if (note.slide === 'shift') marks.set(key, [...(marks.get(key) ?? []), 'ss']);
     }
     last[s] = { bar: b, column: c, string: s };
   })));
   return marks;
 }
 
-/** Whether a note has an earlier note on its string, for a slide that starts there. */
-function hasEarlier(clip: Clip, at: At): boolean {
-  for (let b = at.bar; b >= 0; b--) {
-    const columns = clip.bars[b].columns;
-    for (let c = b === at.bar ? at.column - 1 : columns.length - 1; c >= 0; c--) {
-      if (columns[c].notes[at.string]) return true;
-    }
-  }
-  return false;
-}
-
-function noteTex(note: Note, at: At, column: Column, clip: Clip, marks: string[]): string {
+function noteTex(note: Note, at: At, marks: string[]): string {
   const fret = note.tie ? '-' : note.fret === null ? 'x' : String(note.fret);
   const effects = [...marks];
-  if (note.slide && !hasEarlier(clip, at)) effects.push(note.slide === 'up' ? 'sib' : 'sia');
+  if (note.slide === 'below') effects.push('sib');
+  if (note.slide === 'above') effects.push('sia');
   if (note.bend) effects.push(`b (${bendPoints(note.bend)})`);
   if (note.vibrato) effects.push('v');
   if (note.harmonic) effects.push('nh');
-  if (column.palmMute) effects.push('pm');
+  if (note.palmMute) effects.push('pm');
   effects.push(...(note.extra ?? []));
   return `${fret}.${at.string + 1}${effects.length ? `{${effects.join(' ')}}` : ''}`;
 }
 
-function beatTex(column: Column, bar: number, index: number, clip: Clip, marks: Map<string, string[]>): string {
-  const { value, dotted, triplet } = column.duration;
+function beatTex(column: Column, bar: number, index: number, marks: Map<string, string[]>): string {
+  const { value, dots, triplet } = column.duration;
   const effects: string[] = [];
-  if (dotted) effects.push('d');
+  if (dots === 1) effects.push('d');
+  if (dots === 2) effects.push('dd');
   if (triplet) effects.push('tu 3');
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
@@ -93,7 +85,7 @@ function beatTex(column: Column, bar: number, index: number, clip: Clip, marks: 
   const notes = column.notes.flatMap((note, s) => {
     if (!note) return [];
     const at = { bar, column: index, string: s };
-    return [noteTex(note, at, column, clip, marks.get(`${bar}:${index}:${s}`) ?? [])];
+    return [noteTex(note, at, marks.get(`${bar}:${index}:${s}`) ?? [])];
   });
   return `${notes.length === 1 ? notes[0] : `(${notes.join(' ')})`}${after}`;
 }
@@ -115,7 +107,7 @@ export function writeAlphaTex(clip: Clip): string {
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
     meta.push(...(bar.extra ?? []));
-    const beats = bar.columns.map((column, c) => beatTex(column, b, c, clip, marks));
+    const beats = bar.columns.map((column, c) => beatTex(column, b, c, marks));
     lines.push([...meta, ...beats, '|'].join(' '));
   });
   return `${lines.join('\n')}\n`;

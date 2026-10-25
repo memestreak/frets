@@ -59,7 +59,21 @@ describe('readAlphaTex', () => {
   it('puts hammer-ons, pull-offs and slides on the note they lead to', () => {
     const notes = clipOf('5.3{h}.8 7.3{h}.8 5.3{sl}.8 9.3.8 |').bars[0].columns.map(c => c.notes[2]);
     expect(notes.map(n => n?.legato)).toEqual([undefined, 'h', 'p', undefined]);
-    expect(notes[3]?.slide).toBe('up');
+    expect(notes[3]?.slide).toBe('legato');
+  });
+
+  it('keeps every kind of slide, double dots and palm mute on single notes', () => {
+    const tex = [
+      '\\ts (4 4)',
+      '5.3{ss}.8 7.3.8 5.3.8 7.3{sib}.8 5.3{sia}.4{dd} (5.4 3.5{pm}).16 |',
+      '',
+    ].join('\n');
+    const clip = clipOf(tex);
+    const notes = clip.bars[0].columns.map(c => c.notes[2]);
+    expect(notes.map(n => n?.slide)).toEqual([undefined, 'shift', undefined, 'below', 'above', undefined]);
+    expect(clip.bars[0].columns[4].duration.dots).toBe(2);
+    expect(clip.bars[0].columns[5].notes.slice(3, 5)).toEqual([{ fret: 5 }, { fret: 3, palmMute: true }]);
+    expect(writeAlphaTex(clip)).toBe(tex);
   });
 
   it('reads bends, pre-bends and releases from their points', () => {

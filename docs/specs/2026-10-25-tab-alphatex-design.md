@@ -42,9 +42,15 @@ yet: g (ghost note), …").
   tuplets other than triplets (plain), notes shorter than a sixteenth
   (sixteenths), a hammer-on or slide with no later note (left out), bars
   that don't add up.
-- **Known losses:** `ss` (shift slide) is written back as `sl`; `dd` is
-  read as one dot; a palm mute on some notes of a beat is written on all of
-  them.
+- **Nothing Frets reads is lost.** The clip keeps the kind of slide
+  (`sl` legato or `ss` shift from the note before, `sib` / `sia` from below
+  or above even after other notes), up to two dots, and palm mute on each
+  note. These were first squeezed into the model built for ASCII tab and
+  were widened before merging. ASCII tab can't hold them all: written as
+  ASCII, a shift slide becomes a plain slide, a slide in from below or
+  above after another note on its string reads back as a slide from that
+  note, and a palm mute covers whole columns. Shift and legato slides are
+  drawn alike for now.
 
 ## Writing
 
