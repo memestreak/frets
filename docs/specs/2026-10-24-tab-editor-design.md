@@ -12,8 +12,9 @@ thread; details he left open are marked as defaults. Mock:
 
 - **For:** printed sheets for practice and teaching (not quick notes, not
   playback).
-- **Input:** typing on the tab with the keyboard. No neck to tap, no ASCII
-  paste.
+- **Input:** typing on the tab with the keyboard, no neck to tap; and
+  conventional ASCII tab in, from a paste, a file, a drop or a link
+  (2026-10-25).
 - **Rhythm:** stems and beams under the tab now. The data carries pitch and
   duration, so a standard staff above the tab can come later.
 - **A sheet** is a worksheet: title, subtitle, numbered captioned examples.
@@ -21,8 +22,13 @@ thread; details he left open are marked as defaults. Mock:
   riff.
 - **Techniques:** the full set below.
 - **Saving and output:** sheets kept in the browser with a list; Print /
-  Save as PDF; save and open a `.json` file; copy an example as PNG or SVG
-  (the chord export pipeline) or as ASCII tab.
+  Save as PDF; save and open a `.json` file; copy, download or drag out an
+  example as PNG or SVG (the chord export pipeline); copy it as ASCII tab.
+- **ASCII alongside (2026-10-25):** the sheet's ASCII tab shown live under
+  the paper while editing; a rhythm line above the strings carries
+  durations, and without one the import guesses them from the spacing.
+- **The use case behind it (Jeremy):** hand Claude a screenshot of tab, get
+  back a Frets link that opens it as a sheet to edit.
 - **Layout A:** the printed page is the editor. What you see is what
   prints.
 
@@ -46,7 +52,13 @@ thread; details he left open are marked as defaults. Mock:
   chord diagrams to its right. Its menu (right-click, long press or
   Shift+F10 on it, like the chord shapes): Time signature (4/4 default, 3/4,
   2/4, 6/8, 12/8), Add chord…, Copy as PNG, Copy as SVG, Copy as ASCII,
-  Export options…, Move up, Move down, Delete example.
+  Export options…, Move up, Move down, Delete example. With a mouse an
+  example also drags out as its PNG, as a chord diagram does; a press that
+  doesn't move is still a click on a column.
+- **ASCII panel** under the paper: the whole sheet as ASCII tab (format
+  below), in `--font-mono`, updated as you type, with Copy. Read-only
+  (default). It does not print. Its height follows the text, so it never
+  scrolls inside itself.
 - **Tab drawing:** six lines, "TAB" and the time signature at the start of
   the example's first line, bar lines every full bar, a final double bar.
   Columns are spaced by duration. An example too wide for the page wraps
@@ -102,6 +114,71 @@ are ordinary text fields.
 - Marks above the staff stack in a fixed order: strokes, then P.M. / let
   ring, then vibrato and bend labels.
 
+## ASCII tab
+
+One format, read and written, so a sheet exported and imported again comes
+back the same, except pick strokes, let ring and tremolo, which ASCII tab
+has no common marks for and leaves out.
+
+```
+Legato, a bend and vibrato
+   e   e   e   e   e   e   e   e   | e   e   e   e   q       q       |
+e|---------------------------------|---------------------------------|
+B|---------------------------------|---------------------------------|
+G|-------------------------5--h7---|-7--p5---------------------------|
+D|-----------------5--h7-----------|---------7--p5-------------------|
+A|---------5--h7-------------------|-----------------7b9-------------|
+E|-5--h8---------------------------|-------------------------5~------|
+```
+
+- **Strings:** six lines, high e first, each `name|` then the tab; the
+  names are optional, `|` marks bars. A column's position is its first
+  digit; a technique letter that joins two notes (`h p / \`) sits in the
+  gap just before the second. Tunings other than standard are
+  read as standard (later: tunings).
+- **Rhythm line (optional):** directly above the strings, one letter at
+  each column's position: `w h q e s` (whole to sixteenth), `.` after it
+  for dotted, `3` after it for a triplet; a letter over an empty column is
+  a rest. When present it is used as written.
+- **Without a rhythm line (Jeremy, 2026-10-25), durations are guessed from
+  spacing:** each column's duration is its distance to the next column in
+  characters. Where the line has bar lines, a bar's width stands for one
+  bar of the time signature (4/4 unless the text says otherwise); with no
+  bar lines, the most common gap is an eighth. Each guess snaps to the
+  nearest plain or dotted duration. The guess is a start to correct by
+  hand.
+- **Techniques:** `5h7`, `7p5`, `5/7`, `7\5`, `7b9` (a bend up to the
+  pitch of fret 9: two frets is full, one is ½), `7b9r7` (bend and
+  release), `7~`, `x`, `<12>` (harmonic), `t12` (tap), and a `PM----|`
+  line above the strings for palm mute.
+- **Examples and title:** blocks of six lines that follow each other belong
+  to one example. A line of text right before a block starts a new example
+  with that text as its caption; the first such line before any tab, if it
+  stands alone, is the sheet's title. Other lines are ignored.
+- **Writing:** columns are spaced in proportion to duration (two
+  characters a sixteenth), the rhythm line always written, lines wrapped at
+  bar lines near 80 characters, the caption above each example and the
+  title on top.
+- `public/tab-ascii.txt` describes the format in a few lines, so any Claude
+  (or person) given a screenshot can be pointed at it.
+
+### Getting ASCII in
+
+- **⋯ › Import ASCII…** opens a dialog with a text box; Import adds its
+  examples to the open sheet.
+- **Paste** (Ctrl+V while the paper has focus and the clipboard holds tab)
+  does the same.
+- **Drop** a `.txt` file on the page, or **Open file…** one: a new sheet.
+- **A link:** `/tab#ascii=<the tab, percent-encoded>` opens it as a new
+  sheet, then clears the hash so a reload doesn't add it twice. The part
+  after `#` never leaves the browser. This is what Claude hands back from a
+  screenshot: it reads the tab (and the rhythm, if the screenshot shows
+  stems or a staff), writes it in this format and encodes it into the
+  link. Very long links may be cut by some chat apps; a few examples are
+  fine.
+- Anything that doesn't parse says so in the dialog (or a one-line notice
+  for a link or file) and imports nothing.
+
 ## Data
 
 `src/features/tab/sheet.ts` (pure):
@@ -131,9 +208,9 @@ print, PNG and SVG share one drawing.
 - **Copy as PNG / SVG** draws one example through the export pipeline
   (`src/components/chords/export/`, generalised from a chord shape to any
   drawing), always black on white or transparent, as the chord export is.
-- **Copy as ASCII** writes the example as plain tab: `e|--5h7--|` lines,
-  bar lines, `h p / \ b ~ x <12>`, a `PM----|` line above when used.
-  Rhythm does not survive ASCII.
+- **Copy as ASCII** writes one example in the format above, with its
+  rhythm line; the ASCII panel's Copy writes the whole sheet.
+- **Drag out** an example as PNG (mouse), as the chord diagrams do.
 - **Chord diagrams:** Add chord… opens the Chords page's search box
   (`chordSearch.ts`); the chord's first shape is drawn with `ChordDiagram`
   in the export look, up to four beside an example. Right-click one to
@@ -145,11 +222,13 @@ Each its own PR, this spec in the first.
 
 1. The page, sheet list and storage, examples and captions, typing frets,
    durations, rests, dots, triplets and time signatures, stems, beams,
-   bars and line wrapping, hammer-on, pull-off and slides, undo, Print.
-2. The other techniques: bends, vibrato, palm mute, let ring, muted notes,
-   harmonics, tapping, tremolo, pick strokes.
-3. Output: `.json` save and open, Copy as PNG / SVG / ASCII, chord
-   diagrams beside examples.
+   bars and line wrapping, hammer-on, pull-off and slides, undo, Print;
+   ASCII read and written (import dialog, paste, drop, file, the `#ascii=`
+   link, the live panel, Copy as ASCII) and `public/tab-ascii.txt`.
+2. The other techniques, on the page and in ASCII: bends, vibrato, palm
+   mute, let ring, muted notes, harmonics, tapping, tremolo, pick strokes.
+3. Images and files: Copy / Download PNG and SVG, drag out, Export
+   options; `.json` save and open; chord diagrams beside examples.
 
 Later: song sections and repeats, a standard staff above the tab (likely
 an engraving library such as VexFlow), playback, other tunings.
@@ -159,6 +238,8 @@ an engraving library such as VexFlow), playback, other tunings.
 - **Phones:** typing needs a keyboard. Default: phones can read and print
   sheets, and tapping a column shows the cursor, but there is no on-screen
   fret pad in slice 1.
+- **ASCII panel:** read-only (default), or editable with changes flowing
+  back to the page.
 - **Renderer:** our own SVG drawing for tab (default), keeping the print
   look in our hands. VexFlow also draws tab with stems and most of these
   techniques; if the staff later uses it, the tab could move to it too.
