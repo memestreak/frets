@@ -103,8 +103,9 @@ binds a local port).
   and `/practice` are index pages; the trainers are
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
-  for its Advanced view, the modes), the Chords page `/chords` and the Tuner
-  `/tuner`.
+  for its Advanced view, the modes), the Chords page `/chords`, the Tuner
+  `/tuner`. Tab, `/tab`, is still being built: reachable by its URL only,
+  it is in no menu and has no home page card yet.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
@@ -246,6 +247,19 @@ binds a local port).
   `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
   in the menus adds a history entry, everything else replaces it; slugs in
   `src/lib/chords/chordUrls.ts`.
+- `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
+  not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
+  columns, six notes each, durations in ticks, whole = 192; `parseClip`),
+  `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
+  and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
+  format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
+  golden input and output pairs for the spellings it forgives, see its
+  README), `layout.ts` (pure: where systems,
+  bars and columns go at a width) and `TabClip.tsx` (draws a layout as
+  SVG), `clipState.ts` (the clip with undo and redo) and `TabPage.tsx`
+  (import by dialog, paste, drop or an `#ascii=` link, read on load and
+  then cleared; Tab | ASCII, the ASCII view with its copy button; Download). Editing and images
+  are PR 2 and 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -282,7 +296,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

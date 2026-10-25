@@ -1,0 +1,13 @@
+! Guessed the length of 1 note from the spacing.
+! Bar 1 doesn't add up to 4/4.
+! Ignored 1 character that isn't tab.
+
+Time: 4/4
+
+   e   |
+e|-----|
+B|-----|
+G|\1---|
+D|-----|
+A|-----|
+E|-----|

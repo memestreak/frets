@@ -674,6 +674,19 @@ button {
     background: var(--surface-raised); border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
   }
+  /* The Tab page: the drawn clip, its ASCII, and the import box. */
+  .tab-card { min-width: 0; }
+  .tab-ascii {
+    margin: 0; overflow-x: auto; white-space: pre;
+    font: 13px/1.4 var(--font-mono); color: var(--ink);
+    /* Tab must show "|-" and "->" as typed, not as joined glyphs. */
+    font-variant-ligatures: none;
+  }
+  .tab-ascii-copy { position: absolute; top: 0; right: 0; }
+  .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
+  .tab-import-text {
+    width: 100%; min-height: 240px; resize: vertical; padding: 10px 12px;
+    font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
+    font-variant-ligatures: none;
+  }
 }
-
-
