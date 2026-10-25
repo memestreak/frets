@@ -172,10 +172,12 @@ describe('readAscii forgives', () => {
     expect(warnings.join(' ')).toMatch(/padded/);
   });
 
-  it('a time signature the app does not offer', () => {
-    const { clip, warnings } = read('Time: 5/4\ne|-5-|\nB|---|\nG|---|\nD|---|\nA|---|\nE|---|');
+  it('any count over 2, 4, 8, 16 or 32, and anything else as 4/4', () => {
+    const body = '\ne|-5-|\nB|---|\nG|---|\nD|---|\nA|---|\nE|---|';
+    expect(read(`Time: 7/8${body}`).clip.time).toEqual({ beats: 7, value: 8 });
+    const { clip, warnings } = read(`Time: 5/1${body}`);
     expect(clip.time).toEqual({ beats: 4, value: 4 });
-    expect(warnings.join(' ')).toMatch(/5\/4/);
+    expect(warnings.join(' ')).toMatch(/5\/1/);
   });
 
   it('tab as found online: chord names, lyrics, E for both E strings, ||: and :||', () => {

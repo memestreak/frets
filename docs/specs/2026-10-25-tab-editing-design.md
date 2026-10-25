@@ -120,12 +120,26 @@ and the keys use.
 ## Time signature
 
 The time signature under the clip's name ("4/4") is also where it is set
-(Jeremy, 2026-10-25). It is a menu of the five time signatures Frets offers
-(2/4, 3/4, 4/4, 6/8, 12/8), drawn as the muted text it was, with a dotted
-underline and a small chevron. A choice is one undo step. Bars that no
-longer add up are named in the line under the clip. A clip has one time
-signature; a change within a clip (alphaTex allows `\ts` on any bar) is
-later, if needed.
+(Jeremy, 2026-10-25). It reads as the muted text it was, each part with a
+dotted underline:
+
+- **Beats:** a small field, 1 to 32. A typed count takes effect on Enter or
+  when the field loses focus; anything else puts the old count back, and Esc
+  does too. ↑ and ↓ step it at once.
+- **Note value:** a menu of 2, 4, 8, 16 and 32, with a small chevron.
+- **Double-click** anywhere on it goes back to 4/4. Its one-second tip says
+  so.
+- Each change is one undo step. Bars that no longer add up are named in the
+  line under the clip.
+
+Jeremy asked for counts up to 256. alphaTab's parser, which reads every clip
+(saved, linked or imported), refuses a count over 32, as Guitar Pro does, so
+the field stops at 32 (`MAX_BEATS` in `clip.ts`).
+
+Short notes are beamed within a beat, never less than a quarter, or within
+three beats in compound time (6/8, 9/8, 12/16: a count in threes over an
+eighth or shorter). A clip has one time signature; a change within a clip
+(alphaTex allows `\ts` on any bar) is later, if needed.
 
 ## Later
 

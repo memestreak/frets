@@ -8,7 +8,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult } from './ascii';
 import {
-  BEND_QUARTERS, isUneven, NOTE_VALUES, STRING_COUNT, TIME_SIGNATURES,
+  BEND_QUARTERS, isUneven, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature, type TimeSignature,
   type Bar, type BendQuarters, type Clip, type Column, type Note, type NoteValue,
 } from './clip';
 
@@ -181,11 +181,11 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   const warn = (w: string) => { if (!warnings.includes(w)) warnings.push(w); };
   const kept = new Map<string, number>();
   const first = score.masterBars[0];
-  let time = { beats: first.timeSignatureNumerator, value: first.timeSignatureDenominator as 4 | 8 };
-  if (!TIME_SIGNATURES.some(t => t.beats === time.beats && t.value === time.value)) {
-    warn(`Frets doesn't offer ${time.beats}/${time.value} yet; read as 4/4.`);
-    time = { beats: 4, value: 4 };
-  }
+  const beats = first.timeSignatureNumerator;
+  const value = first.timeSignatureDenominator;
+  let time: TimeSignature = COMMON_TIME;
+  if (isTimeSignature(beats, value)) time = { beats, value } as TimeSignature;
+  else warn(`Frets doesn't offer ${beats}/${value}; read as 4/4.`);
 
   const header: string[] = [];
   const origins = new Map<Note, AtNote>();

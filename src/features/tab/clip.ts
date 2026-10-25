@@ -75,14 +75,24 @@ export interface Bar {
 }
 
 export interface TimeSignature {
+  /** How many beats a bar holds, 1 to `MAX_BEATS`. */
   beats: number;
-  value: 4 | 8;
+  /** The note value of one beat. */
+  value: TimeValue;
 }
 
-export const TIME_SIGNATURES: readonly TimeSignature[] = [
-  { beats: 2, value: 4 }, { beats: 3, value: 4 }, { beats: 4, value: 4 },
-  { beats: 6, value: 8 }, { beats: 12, value: 8 },
-];
+/** The note values a time signature's lower number may be. */
+export const TIME_VALUES = [2, 4, 8, 16, 32] as const;
+export type TimeValue = (typeof TIME_VALUES)[number];
+/** alphaTab, which reads the clip's alphaTex, refuses a count over 32, as Guitar Pro does. */
+export const MAX_BEATS = 32;
+export const COMMON_TIME: TimeSignature = { beats: 4, value: 4 };
+
+/** Whether `beats` over `value` is a time signature Frets can hold. */
+export function isTimeSignature(beats: unknown, value: unknown): boolean {
+  return Number.isInteger(beats) && (beats as number) >= 1 && (beats as number) <= MAX_BEATS
+    && TIME_VALUES.includes(value as TimeValue);
+}
 
 export const STANDARD_TUNING: readonly string[] = ['E', 'A', 'D', 'G', 'B', 'E'];
 
@@ -114,9 +124,15 @@ export function barTicks(time: TimeSignature): number {
   return (time.beats * WHOLE) / time.value;
 }
 
-/** The beat that eighths and sixteenths are beamed within: a quarter, or a dotted quarter in 6/8 and 12/8. */
+/**
+ * The span short notes are beamed within. In compound time (6/8, 9/8, 12/16: beats in threes over
+ * an eighth or shorter) it is three beats, a dotted quarter in 6/8. Otherwise it is one beat, but
+ * never shorter than a quarter, so eighths in 5/8 still beam in pairs.
+ */
 export function beatTicks(time: TimeSignature): number {
-  return time.value === 8 ? (3 * WHOLE) / 8 : WHOLE / 4;
+  const beat = WHOLE / time.value;
+  if (time.value >= 8 && time.beats % 3 === 0) return 3 * beat;
+  return Math.max(beat, WHOLE / 4);
 }
 
 export function barLength(bar: Bar): number {
@@ -167,7 +183,7 @@ export function isStandardTuning(tuning: readonly string[]): boolean {
 }
 
 export function emptyClip(): Clip {
-  return { name: '', time: { beats: 4, value: 4 }, tuning: [...STANDARD_TUNING], bars: [{ columns: [] }] };
+  return { name: '', time: COMMON_TIME, tuning: [...STANDARD_TUNING], bars: [{ columns: [] }] };
 }
 
 /** The plain or dotted duration nearest to `t` ticks (ties go to the plain one). */
@@ -232,7 +248,7 @@ function isBar(v: unknown): v is Bar {
 export function parseClip(v: unknown): Clip | null {
   if (!isObj(v) || typeof v.name !== 'string') return null;
   const time = v.time;
-  if (!isObj(time) || !TIME_SIGNATURES.some(t => t.beats === time.beats && t.value === time.value)) return null;
+  if (!isObj(time) || !isTimeSignature(time.beats, time.value)) return null;
   if (!Array.isArray(v.tuning) || v.tuning.length !== STRING_COUNT || !v.tuning.every(n => typeof n === 'string')) return null;
   if (!Array.isArray(v.bars) || v.bars.length === 0 || !v.bars.every(isBar)) return null;
   if (!optStrings(v.header)) return null;

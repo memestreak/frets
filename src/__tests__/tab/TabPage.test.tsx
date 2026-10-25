@@ -200,18 +200,56 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 |');
     });
 
-    it('sets the time signature from the menu under the name, as one undo step', () => {
+    it('sets the time signature under the name, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
-      const menu = screen.getByRole('combobox', { name: 'Time signature' });
-      expect(menu).toHaveValue('4/4');
+      const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
+      const value = screen.getByRole('combobox', { name: 'Beat note value' });
+      expect(beats).toHaveValue('4');
+      expect(value).toHaveValue('4');
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
-      fireEvent.change(menu, { target: { value: '3/4' } });
-      expect(menu).toHaveValue('3/4');
+      // A typed count takes effect on Enter.
+      fireEvent.change(beats, { target: { value: '3' } });
+      expect(notice()).toHaveTextContent('4/4');
+      fireEvent.keyDown(beats, { key: 'Enter' });
       expect(notice()).not.toHaveTextContent('add up');
+      // ↑ steps at once; the value is a menu.
+      fireEvent.keyDown(beats, { key: 'ArrowUp' });
+      expect(beats).toHaveValue('4');
+      fireEvent.change(value, { target: { value: '16' } });
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/16.');
       undo();
-      expect(menu).toHaveValue('4/4');
+      expect(value).toHaveValue('4');
+      undo();
+      expect(beats).toHaveValue('3');
+    });
+
+    it('keeps the count when what is typed isn\'t 1 to 32', () => {
+      renderAt();
+      const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
+      for (const typed of ['0', '33', '']) {
+        fireEvent.change(beats, { target: { value: typed } });
+        fireEvent.blur(beats);
+        expect(beats).toHaveValue('4');
+      }
+      fireEvent.change(beats, { target: { value: '32' } });
+      fireEvent.blur(beats);
+      expect(beats).toHaveValue('32');
+      fireEvent.keyDown(beats, { key: 'ArrowUp' });
+      expect(beats).toHaveValue('32');
+    });
+
+    it('goes back to 4/4 on a double-click', () => {
+      renderAt();
+      const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
+      const value = screen.getByRole('combobox', { name: 'Beat note value' });
+      fireEvent.change(beats, { target: { value: '7' } });
+      fireEvent.keyDown(beats, { key: 'Enter' });
+      fireEvent.change(value, { target: { value: '8' } });
+      fireEvent.doubleClick(screen.getByRole('group', { name: 'Time signature' }));
+      expect(beats).toHaveValue('4');
+      expect(value).toHaveValue('4');
     });
 
     it('says when a bar doesn\'t add up', () => {

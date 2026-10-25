@@ -694,16 +694,19 @@ button {
     font-size: 12px; font-weight: 600; color: var(--ink-muted);
   }
   /* The time signature under the clip's name: text that opens a menu. */
-  .tab-time { position: relative; display: inline-flex; align-items: center; }
-  .tab-time-select {
-    appearance: none; border: 0; background: transparent; color: inherit; font: inherit;
-    padding: 0 18px 0 0; cursor: pointer;
-    /* As wide as the chosen one, not the widest, so the chevron sits by it. */
-    field-sizing: content;
+  /* The time signature under the clip's name: muted text whose parts are fields. */
+  .tab-time { display: inline-flex; align-items: baseline; gap: 2px; }
+  .tab-time input, .tab-time select {
+    border: 0; background: transparent; color: inherit; font: inherit; padding: 0; margin: 0;
+    /* As wide as what they show, so the parts sit together. */
+    field-sizing: content; min-width: 1ch;
     text-decoration: underline dotted; text-underline-offset: 3px;
   }
-  .tab-time-select:focus { outline: none; }
-  .tab-time-select:focus-visible { text-decoration-style: solid; }
+  .tab-time input { cursor: text; text-align: center; }
+  .tab-time-value { position: relative; display: inline-flex; align-items: center; }
+  .tab-time select { appearance: none; padding-right: 16px; cursor: pointer; }
+  .tab-time input:focus, .tab-time select:focus { outline: none; }
+  .tab-time input:focus-visible, .tab-time select:focus-visible { text-decoration-style: solid; }
   .tab-time svg { position: absolute; right: 0; width: 14px; height: 14px; pointer-events: none; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }

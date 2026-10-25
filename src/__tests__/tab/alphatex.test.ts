@@ -56,6 +56,14 @@ describe('readAlphaTex', () => {
     expect(rest.notes.every(n => n === null)).toBe(true);
   });
 
+  it('reads any count over 2, 4, 8, 16 or 32, and anything else as 4/4', () => {
+    expect(clipOf('\\ts (7 8)\n5.3.8 |').time).toEqual({ beats: 7, value: 8 });
+    expect(clipOf('\\ts (32 32)\n5.3.8 |').time).toEqual({ beats: 32, value: 32 });
+    const odd = read('\\ts (3 1)\n5.3.1 |');
+    expect(odd.ok && odd.clip.time).toEqual({ beats: 4, value: 4 });
+    expect(odd.ok && odd.warnings.join(' ')).toMatch(/3\/1/);
+  });
+
   it('puts hammer-ons, pull-offs and slides on the note they lead to', () => {
     const notes = clipOf('5.3{h}.8 7.3{h}.8 5.3{sl}.8 9.3.8 |').bars[0].columns.map(c => c.notes[2]);
     expect(notes.map(n => n?.legato)).toEqual([undefined, 'h', 'p', undefined]);
