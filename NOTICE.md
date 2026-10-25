@@ -26,3 +26,12 @@ credits their sources as:
 
 Changes: each recording was cut to 3 seconds with a fade over the last 0.6,
 mixed to mono and re-encoded as 96 kbps MP3. See `public/sounds/README.md`.
+
+## alphaTex parser: alphaTab
+
+The Tab page reads alphaTex with
+[alphaTab](https://github.com/CoderLine/alphaTab) by Daniel Kuschny and
+contributors (the npm package `@coderline/alphatab`, used unmodified),
+under the [Mozilla Public License 2.0](https://mozilla.org/MPL/2.0/). Its
+source is available from that repository. Frets uses its parser only;
+Frets draws tab itself.

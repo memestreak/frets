@@ -4,7 +4,9 @@
  *
  * The form written here is deliberately plain so a person or an agent can
  * follow it: one bar per line, every beat with its own duration, strings
- * numbered 1 (high e) to 6 (low E) as in tab.
+ * numbered 1 (high e) to 6 (low E) as in tab. What Frets doesn't draw yet
+ * (a clip's `header`, and `extra` on bars, columns and notes) is written
+ * back as it was read. Reading is `alphatexRead.ts`.
  */
 import { isRest, isStandardTuning, type Bend, type Clip, type Column, type Note } from './clip';
 
@@ -74,6 +76,7 @@ function noteTex(note: Note, at: At, column: Column, clip: Clip, marks: string[]
   if (note.vibrato) effects.push('v');
   if (note.harmonic) effects.push('nh');
   if (column.palmMute) effects.push('pm');
+  effects.push(...(note.extra ?? []));
   return `${fret}.${at.string + 1}${effects.length ? `{${effects.join(' ')}}` : ''}`;
 }
 
@@ -84,6 +87,7 @@ function beatTex(column: Column, bar: number, index: number, clip: Clip, marks: 
   if (triplet) effects.push('tu 3');
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
+  effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;
   const notes = column.notes.flatMap((note, s) => {
@@ -98,6 +102,7 @@ function beatTex(column: Column, bar: number, index: number, clip: Clip, marks: 
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
   if (clip.name) lines.push(`\\title "${clip.name.replace(/["\\]/g, '\\$&')}"`);
+  lines.push(...(clip.header ?? []));
   lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
   if (!isStandardTuning(clip.tuning)) {
     const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
@@ -109,6 +114,7 @@ export function writeAlphaTex(clip: Clip): string {
     if (bar.repeatStart) meta.push('\\ro');
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
+    meta.push(...(bar.extra ?? []));
     const beats = bar.columns.map((column, c) => beatTex(column, b, c, clip, marks));
     lines.push([...meta, ...beats, '|'].join(' '));
   });

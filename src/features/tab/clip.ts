@@ -40,6 +40,8 @@ export interface Note {
   tie?: boolean;
   harmonic?: boolean;
   tap?: boolean;
+  /** alphaTex note effects Frets doesn't draw yet, kept as written ("g", "lr"). */
+  extra?: string[];
 }
 
 /** Notes played at one time; a column with no notes is a rest. */
@@ -49,6 +51,8 @@ export interface Column {
   notes: (Note | null)[];
   palmMute?: boolean;
   stroke?: 'down' | 'up';
+  /** alphaTex beat effects Frets doesn't draw yet, kept as written ("gr", "tp 16"). */
+  extra?: string[];
 }
 
 export interface Bar {
@@ -58,6 +62,8 @@ export interface Bar {
   repeatEnd?: number;
   /** Under a 1st, 2nd … ending bracket. */
   ending?: number;
+  /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\section "Chorus"'). */
+  extra?: string[];
 }
 
 export interface TimeSignature {
@@ -78,6 +84,8 @@ export interface Clip {
   /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
   tuning: string[];
   bars: Bar[];
+  /** alphaTex score and staff metadata Frets doesn't use, kept as written ('\artist "Me"'). */
+  header?: string[];
 }
 
 export const STRING_COUNT = 6;
@@ -145,6 +153,7 @@ export function nearestDuration(t: number): Duration {
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const optBool = (v: unknown) => v === undefined || typeof v === 'boolean';
+const optStrings = (v: unknown) => v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'));
 
 function isDuration(v: unknown): v is Duration {
   return isObj(v) && NOTE_VALUES.includes(v.value as NoteValue)
@@ -160,7 +169,7 @@ function isNote(v: unknown): v is Note {
   return fretOk && bendOk
     && (v.legato === undefined || v.legato === 'h' || v.legato === 'p')
     && (v.slide === undefined || v.slide === 'up' || v.slide === 'down')
-    && optBool(v.vibrato) && optBool(v.tie) && optBool(v.harmonic) && optBool(v.tap);
+    && optBool(v.vibrato) && optBool(v.tie) && optBool(v.harmonic) && optBool(v.tap) && optStrings(v.extra);
 }
 
 function isColumn(v: unknown): v is Column {
@@ -168,14 +177,16 @@ function isColumn(v: unknown): v is Column {
     && Array.isArray(v.notes) && v.notes.length === STRING_COUNT
     && v.notes.every(n => n === null || isNote(n))
     && optBool(v.palmMute)
-    && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up');
+    && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
+    && optStrings(v.extra);
 }
 
 function isBar(v: unknown): v is Bar {
   return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn)
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
-    && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1));
+    && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
+    && optStrings(v.extra);
 }
 
 /** A stored clip, checked field by field; null when anything is off. */
@@ -185,5 +196,6 @@ export function parseClip(v: unknown): Clip | null {
   if (!isObj(time) || !TIME_SIGNATURES.some(t => t.beats === time.beats && t.value === time.value)) return null;
   if (!Array.isArray(v.tuning) || v.tuning.length !== STRING_COUNT || !v.tuning.every(n => typeof n === 'string')) return null;
   if (!Array.isArray(v.bars) || v.bars.length === 0 || !v.bars.every(isBar)) return null;
+  if (!optStrings(v.header)) return null;
   return v as unknown as Clip;
 }

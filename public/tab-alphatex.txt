@@ -1,0 +1,216 @@
+FRETS ALPHATEX
+==============
+
+How to write guitar tab that Frets (https://frets.eminor.net/tab) opens and
+draws, as alphaTex. Written for people and for AI agents turning a picture
+of tab into text. Everything below is a rule unless it says "may".
+
+alphaTex is the text notation of alphaTab
+(https://alphatab.net/docs/alphatex/introduction). Frets reads it with
+alphaTab's own parser (version 1.8.4), so anything alphaTab accepts is read
+the same way here; this guide covers the part Frets draws, in the form
+Frets writes it. Prefer alphaTex to ASCII tab when writing tab from a
+picture: nothing has to line up in columns.
+
+One track, one voice, six strings. Riffs, solos, double stops and strummed
+chords fit; fingerstyle with a bass line held under moving notes does not
+(write the moving part and give held notes as ties).
+
+
+1. THE WHOLE TEXT
+-----------------
+
+    \title "<name of the clip>"       optional
+    \ts (<beats> <note>)              optional; (4 4) if left out
+                                      ((2 4), (3 4), (4 4), (6 8) or (12 8))
+    \tuning (<six notes, HIGH to low, with octaves>)
+                                      optional; standard (E4 B3 G3 D3 A2 E2)
+    <bars>
+
+Write each bar on its own line and end it with "|". Drop D is
+\tuning (E4 B3 G3 D3 A2 D2). The tuning is recorded and shown; frets are
+frets in any tuning.
+
+
+2. BEATS AND NOTES
+------------------
+
+A bar is beats, separated by spaces. A beat is one note, a chord or a rest,
+then "." and its duration:
+
+    5.3.8              fret 5 on string 3, an eighth
+    (3.1 0.2 0.3).4    a chord: notes in parentheses, one duration
+    r.4                a rest
+    x.5.8              a muted (dead) note on string 5
+    -.3.4              a tie: string 3 keeps sounding from its last note
+
+- Strings are numbered as in tab: 1 is the high e, 6 the low E.
+- Durations: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth.
+- Write the duration on every beat. (alphaTab carries a duration over to
+  the beats after it, so a missing one is not an error, but it is easy to
+  get wrong.)
+- Note effects go in braces right after the note, before the duration:
+  5.3{h}.8. Beat effects go in braces after the duration: 5.3.8{sd}.
+  Several effects share one pair of braces, separated by spaces: {h v}.
+- The durations in each bar must add up to the time signature.
+
+
+3. NOTE EFFECTS FRETS DRAWS
+---------------------------
+
+    h          hammer-on or pull-off TO THE NEXT NOTE on this string. Put
+               it on the first note: 5.3{h}.8 7.3.8 is 5 hammered to 7;
+               7.3{h}.8 5.3.8 is 7 pulled off to 5.
+    sl         slide TO THE NEXT NOTE on this string, on the first note:
+               5.3{sl}.8 7.3.8 slides 5 up to 7.
+    sib  sia   slide into this note from below / from above (no note
+               before it).
+    b (..)     bend, as points in quarter-tones, evenly spaced:
+                 b (0 2)      half-step bend (½)
+                 b (0 4)      full bend
+                 b (0 4 0)    full bend and release
+                 b (4 4)      pre-bend (bent before picking)
+                 b (4 4 0)    pre-bend and release
+               The bent amount is 1 (¼), 2 (½), 4 (full), 6 (1½) or 8 (2).
+    v          vibrato
+    nh         natural harmonic: 12.3{nh}
+    pm         palm mute; put it on every note of every muted beat
+
+
+4. BEAT EFFECTS FRETS DRAWS
+---------------------------
+
+    d          dotted: 5.3.4{d} is a dotted quarter
+    tu 3       triplet; put it on each of the three: 7.3.8{tu 3}
+    sd  su     pick or strum stroke down / up
+    tt         tapped (T)
+
+
+5. REPEATS AND ENDINGS
+----------------------
+
+Put these at the start of a bar, before its beats:
+
+    \ro        the bar starts a repeat
+    \rc 2      the bar ends a repeat played twice (\rc 4: four times)
+    \ae 1      the bar is under the 1st-time ending (\ae 2: 2nd ending)
+
+Without \ro, a repeat goes back to the beginning.
+
+
+6. EVERYTHING ELSE IS KEPT
+--------------------------
+
+Any other alphaTex is kept exactly as written and written back out, though
+Frets doesn't draw it yet, and Frets lists it under the clip. Write these
+when the picture shows them:
+
+    note effects   g ghost note, lr let ring, ac accent, st staccato,
+                   vw wide vibrato, ah artificial harmonic,
+                   tr (9 16) trill, sou / sod slide out up / down
+    beat effects   gr grace note, tp 16 tremolo picking,
+                   tb (0 -4 0) whammy bar, txt "text",
+                   fermata (medium 1)
+    bar tags       \section "Chorus", \tempo 120
+
+Not read at all (an error): more than one track, staff or voice; a tuning
+of other than six strings. Read with a warning: other time signatures (as
+4/4), tuplets other than triplets (as plain notes), notes shorter than a
+sixteenth (as sixteenths).
+
+
+7. EXAMPLES
+-----------
+
+Each reads in Frets with no warnings and writes back exactly as shown.
+
+    \title "Riff"
+    \ts (4 4)
+    5.5{h}.8 7.5.8 5.4{h}.8 7.4.8 7.3{h}.8 5.3.8 7.4.4 |
+    5.3{sl}.8 7.3.8 8.2.4 r.4 0.6.4 |
+
+    \title "Bends"
+    \ts (4 4)
+    7.3{b (0 4)}.4 8.2{b (0 2)}.4 9.3{b (0 4 0)}.2 |
+    10.2{b (4 4 0)}.4{d} 8.1.8 10.2{v}.2 |
+
+    \title "Strum"
+    \ts (4 4)
+    (3.1 0.2 0.3 0.4 2.5 3.6).4{sd} (3.1 0.2 0.3 0.4 2.5 3.6).8{sd} (3.1 0.2 0.3 0.4 2.5 3.6).8{su} (0.1 1.2 0.3 2.4 3.5).4{sd} (0.1 1.2 0.3 2.4 3.5).4{sd} |
+    (-.1 -.2 -.3 -.4 -.5).2 0.6{pm}.8 0.6{pm}.8 0.6{pm}.8 0.6{pm}.8 |
+
+    \title "Repeats"
+    \ts (4 4)
+    \ro 0.6.8 0.6.8 3.6.8 0.6.8 2.5.4 0.5.4 |
+    \ae 1 \rc 2 3.6.2 5.6.2 |
+    \ae 2 (0.1 0.2 1.3 2.4 2.5 0.6).1 |
+    \ro \rc 3 2.4.4 4.4.4 5.4.4 4.4.4 |
+
+    \title "Drop D"
+    \ts (6 8)
+    \tuning (E4 B3 G3 D3 A2 D2)
+    0.6{pm}.8 0.6{pm}.8 (x.4 x.5 x.6).8 (5.4 5.5 5.6).8 (5.4 5.5 5.6).8 0.6.8 |
+    (3.4 3.5 3.6).4{d} (0.4 0.5 0.6).4{d} |
+
+    \title "Fast"
+    \ts (3 4)
+    5.2.16 8.2.16 5.1.16 8.1.16 7.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 12.1.4{tt} |
+    (12.3{nh} 12.4{nh}).8 r.8 9.3.2 |
+
+
+8. OPENING IT IN FRETS
+----------------------
+
+Paste the text into Import on https://frets.eminor.net/tab, paste it
+anywhere on that page, or make a link that opens it directly:
+
+    https://frets.eminor.net/tab#tab=<the whole text, percent-encoded>
+
+Percent-encode as JavaScript's encodeURIComponent does: a line break is
+%0A, a space %20, "\" %5C, "{" %7B, "}" %7D, "|" %7C, "(" and ")" are left
+as is. Keep the link under about 8,000 characters. The part after "#" is
+never sent to a server. Opening it replaces the clip open in Frets (Ctrl+Z
+brings the old one back). If the text can't be read, Frets says why, with
+the line and column.
+
+The same link and Import also take ASCII tab
+(https://frets.eminor.net/tab-ascii.txt); Frets tells the two apart by
+the text: ASCII tab has runs of dashes, alphaTex never does.
+
+
+9. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
+----------------------------------------------
+
+1. Header: write \ts always; \title and \tuning only when the picture
+   shows them. A tuning like "D A D G B E" (low to high) is written high
+   to low with octaves: \tuning (E4 B3 G3 D3 A2 D2).
+2. Read the strings: the top line of tab is string 1 (high e), the bottom
+   line string 6.
+3. Read each beat's length from the stems under the tab:
+
+       no stem                        1  whole
+       short stem, no flag or beam    2  half
+       full stem, no flag or beam     4  quarter
+       one flag or beam               8  eighth
+       two flags or beams             16 sixteenth
+       a dot after the stem           {d}
+       a "3" over a beamed group      {tu 3} on each of the three
+
+   Then count each bar against the time signature; if it doesn't add up,
+   look again.
+4. Translate the marks: an arc with H or P to h ON THE FIRST NOTE; a
+   slanted line between notes to sl on the first note, one into a note
+   to sib or sia; a curved arrow to b with points from its label (1/4,
+   1/2, full, 1 1/2, 2 as 1, 2, 4, 6, 8); a straight arrow already up
+   before picking, or a "PB" label, to a pre-bend b (4 4); an arrow back
+   down to a release (the last point 0); a wavy line to v; "P.M." to pm
+   on every note under it; down and up strum signs (arrows, or the square
+   and V signs) to sd / su; a parenthesised fret or a tie arc to "-" in
+   place of the fret; repeat signs to \ro and \rc n; ending brackets to
+   \ae n; "x" to x in place of the fret; diamond notes or <12> to nh;
+   "T" to tt. Marks from section 6 are written as shown there.
+5. A double or thick final bar line is just the last "|".
+6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to
+   24, each bar adds up, every bar ends with "|".
+7. Unless told to give only the text, give the user the link from section
+   8 and the text, in case the link is too long for the chat.

@@ -36,5 +36,7 @@ check on every pull request and every push to `main`.
 - Reference notes from
   [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- alphaTex is read with [alphaTab](https://github.com/CoderLine/alphaTab),
+  [MPL 2.0](https://mozilla.org/MPL/2.0/).
 
 See `NOTICE.md` for the details and the changes made.

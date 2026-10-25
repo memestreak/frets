@@ -3,21 +3,17 @@
 import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
-import dynamic from 'next/dynamic';
 import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { usePersist } from '@/hooks/usePersist';
-import { readAscii, writeAscii } from './ascii';
+import { writeAscii } from './ascii';
 import { isStandardTuning } from './clip';
 import {
-  clipReducer, initClipState, STORAGE_KEY, type ClipState,
+  clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import { TabClip } from './TabClip';
 import { writeAlphaTex } from './alphatex';
-import { EVERY_SYMBOL, MOCK_CLIPS } from './mockClips';
-
-// MOCK ONLY: alphaTab's drawing, loaded on demand.
-const AlphaTabClip = dynamic(() => import('./AlphaTabClip'), { ssr: false });
+import { readTab } from './readTab';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -25,67 +21,62 @@ interface Notice {
   lines: string[];
 }
 
-const HASH = '#ascii=';
+const HASH = '#tab=';
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
+type View = 'tab' | 'alphatex' | 'ascii';
+const VIEWS: { id: View; label: string }[] = [
+  { id: 'tab', label: 'Tab' }, { id: 'alphatex', label: 'alphaTex' }, { id: 'ascii', label: 'ASCII' },
+];
+
 /**
- * The Tab page: one clip, brought in as ASCII tab (Import, paste, drop or a
- * `#ascii=` link) and shown drawn or as ASCII. See
- * `docs/specs/2026-10-24-tab-editor-design.md`; the format is
- * `public/tab-ascii.txt`.
+ * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import,
+ * paste, drop or a `#tab=` link) and shown drawn, as alphaTex or as ASCII.
+ * See `docs/specs/2026-10-24-tab-editor-design.md`; the formats are
+ * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
 export default function TabPage() {
-  const [initial] = useState(startUp);
-  const [state, dispatch] = useReducer(clipReducer, initial.state);
+  const [state, dispatch] = useReducer(clipReducer, undefined, initClipState);
   const { clip } = state;
   usePersist(STORAGE_KEY, clip);
-  const [view, setView] = useState<'tab' | 'alphatex' | 'ascii'>('tab');
-  // MOCK ONLY (?mock=alphatab): which renderer draws the clip, and alphaTex shown instead of the clip.
-  const [mock] = useState(() => new URLSearchParams(window.location.search).get('mock') === 'alphatab');
-  const [drawer, setDrawer] = useState<'frets' | 'alphatab'>('alphatab');
-  const [texOnly, setTexOnly] = useState<string | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(initial.notice);
+  const [view, setView] = useState<View>('tab');
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [importing, setImporting] = useState(false);
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
   const [widthRef, clipWidth] = useWidth();
-  const ascii = writeAscii(clip);
-  const tex = texOnly ?? writeAlphaTex(clip);
-  const shownText = view === 'alphatex' ? tex : ascii;
+  // The alphaTex for Tab and Download, too: it is the clip's own format.
+  const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
 
   /** Reads `text`; on success replaces the clip and returns null, else the errors. */
-  const importText = useCallback((text: string): string[] | null => {
-    const result = readAscii(text);
+  const importText = useCallback(async (text: string): Promise<string[] | null> => {
+    const result = await readTab(text);
     if (!result.ok) return result.errors;
     dispatch({ type: 'replace', clip: result.clip });
-    setTexOnly(null);
     setNotice(result.warnings.length > 0 ? { tone: 'info', lines: result.warnings } : null);
     setView('tab');
     return null;
   }, []);
 
   /** Imports `text`, or says on the page why it couldn't. */
-  const importOrSay = useEffectEvent((text: string) => {
-    const errors = importText(text);
+  const importOrSay = useEffectEvent(async (text: string) => {
+    const errors = await importText(text);
     if (errors) setNotice({ tone: 'error', lines: errors });
   });
-  // The link's tab was read on the first render; clear it so a reload doesn't import it again.
-  // A link followed while the page is open only changes the hash: read it then.
+  // The tab in a `#tab=` link, on load or when a link is followed while the page is open.
+  // The hash is cleared so a reload doesn't import it again.
   useEffect(() => {
-    const clearHash = () => {
-      const { pathname, search } = window.location;
-      window.history.replaceState(null, '', pathname + search);
-    };
-    if (window.location.hash.startsWith(HASH)) clearHash();
-    const onHashChange = () => {
+    const readLink = () => {
       const text = linkText(window.location.hash);
       if (text === null) return;
-      clearHash();
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, '', pathname + search);
       if (text instanceof Error) setNotice({ tone: 'error', lines: [BAD_ENCODING] });
-      else importOrSay(text);
+      else void importOrSay(text);
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    readLink();
+    window.addEventListener('hashchange', readLink);
+    return () => window.removeEventListener('hashchange', readLink);
   }, []);
 
   // Paste or drop anywhere on the page; undo and redo.
@@ -96,14 +87,14 @@ export default function TabPage() {
       e.preventDefault();
       const file = [...e.dataTransfer.files].find(f => f.type.startsWith('text/') || /\.txt$/i.test(f.name));
       const text = file ? await file.text() : e.dataTransfer.getData('text/plain');
-      if (text) importOrSay(text);
+      if (text) await importOrSay(text);
     };
     const onPaste = (e: ClipboardEvent) => {
       if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
       const text = e.clipboardData?.getData('text/plain');
       if (!text) return;
       e.preventDefault();
-      importOrSay(text);
+      void importOrSay(text);
     };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
@@ -128,7 +119,7 @@ export default function TabPage() {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(shownText);
-      setNotice({ tone: 'info', lines: [view === 'alphatex' ? 'alphaTex copied.' : 'ASCII copied.'] });
+      setNotice({ tone: 'info', lines: [view === 'ascii' ? 'ASCII copied.' : 'alphaTex copied.'] });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -137,10 +128,10 @@ export default function TabPage() {
   };
 
   const download = () => {
-    const url = URL.createObjectURL(new Blob([`${ascii}\n`], { type: 'text/plain' }));
+    const url = URL.createObjectURL(new Blob([shownText], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${clip.name.trim() || 'tab'}.txt`;
+    a.download = `${clip.name.trim() || 'tab'}${view === 'ascii' ? '' : '.alphatex'}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -152,34 +143,6 @@ export default function TabPage() {
 
   return (
     <div className="grid gap-4">
-      {mock && (
-        <div className="card flex flex-wrap items-center gap-3 py-2" data-testid="mock-bar">
-          <strong>Mock</strong>
-          <div className="seg" role="group" aria-label="Drawn by">
-            <button type="button" className="seg-opt" aria-pressed={drawer === 'frets'} onClick={() => setDrawer('frets')}>Frets</button>
-            <button type="button" className="seg-opt" aria-pressed={drawer === 'alphatab'} onClick={() => setDrawer('alphatab')}>alphaTab</button>
-          </div>
-          <label className="flex items-center gap-2">
-            Example
-            <select
-              className="input" defaultValue=""
-              onChange={e => {
-                const i = e.target.value;
-                if (i === 'symbols') {
-                  setTexOnly(EVERY_SYMBOL);
-                  setDrawer('alphatab');
-                  setView('tab');
-                  setNotice({ tone: 'info', lines: ['Shown by alphaTab only: Frets can\'t read these symbols yet.'] });
-                } else if (i !== '') importText(MOCK_CLIPS[Number(i)].ascii);
-              }}
-            >
-              <option value="" disabled>Pick one…</option>
-              {MOCK_CLIPS.map((c, i) => <option key={c.name} value={i}>{c.name}</option>)}
-              <option value="symbols">Symbols Frets can&apos;t draw yet</option>
-            </select>
-          </label>
-        </div>
-      )}
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
@@ -187,9 +150,11 @@ export default function TabPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="seg" role="group" aria-label="View">
-            <button type="button" className="seg-opt" aria-pressed={view === 'tab'} onClick={() => setView('tab')}>Tab</button>
-            {mock && <button type="button" className="seg-opt" aria-pressed={view === 'alphatex'} onClick={() => setView('alphatex')}>alphaTex</button>}
-            <button type="button" className="seg-opt" aria-pressed={view === 'ascii'} onClick={() => setView('ascii')}>ASCII</button>
+            {VIEWS.map(v => (
+              <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+                {v.label}
+              </button>
+            ))}
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={download}>Download</button>
@@ -199,18 +164,14 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="min-w-0">
           {view === 'tab'
-            ? mock && drawer === 'alphatab'
-              ? <AlphaTabClip tex={tex} />
-              : texOnly
-                ? <p className="m-0 text-(--ink-muted)">Frets can&apos;t draw this example; switch to alphaTab.</p>
-                : clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
+            ? clipWidth > 0 && <TabClip clip={clip} width={clipWidth} title={`${name}, drawn as tab`} />
             : (
               <div className="relative">
                 <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
                 <button
                   type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
-                  aria-label={view === 'alphatex' ? 'Copy alphaTex' : 'Copy ASCII'}
-                  title={view === 'alphatex' ? 'Copy alphaTex' : 'Copy ASCII'} onClick={() => void copy()}
+                  aria-label={view === 'ascii' ? 'Copy ASCII' : 'Copy alphaTex'}
+                  title={view === 'ascii' ? 'Copy ASCII' : 'Copy alphaTex'} onClick={() => void copy()}
                 >
                   {copied ? <CheckIcon /> : <CopyIcon />}
                 </button>
@@ -223,7 +184,7 @@ export default function TabPage() {
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
         role="status" data-testid="tab-notice"
       >
-        {notice ? notice.lines.join(' ') : empty ? 'Import ASCII tab, or paste it here.' : ''}
+        {notice ? notice.lines.join(' ') : empty ? 'Import alphaTex or ASCII tab, or paste it here.' : ''}
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
@@ -233,7 +194,7 @@ export default function TabPage() {
 
 const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';
 
-/** The tab in an `#ascii=` hash; null when the hash is something else, an Error when it can't be decoded. */
+/** The tab in a `#tab=` hash; null when the hash is something else, an Error when it can't be decoded. */
 function linkText(hash: string): string | Error | null {
   if (!hash.startsWith(HASH)) return null;
   try {
@@ -241,20 +202,6 @@ function linkText(hash: string): string | Error | null {
   } catch (e) {
     return e as Error;
   }
-}
-
-/** The saved clip, or the tab in the page's `#ascii=` link with the saved clip one undo back. */
-function startUp(): { state: ClipState; notice: Notice | null } {
-  const saved = initClipState();
-  const text = linkText(window.location.hash);
-  if (text === null) return { state: saved, notice: null };
-  if (text instanceof Error) return { state: saved, notice: { tone: 'error', lines: [BAD_ENCODING] } };
-  const result = readAscii(text);
-  if (!result.ok) return { state: saved, notice: { tone: 'error', lines: result.errors } };
-  return {
-    state: clipReducer(saved, { type: 'replace', clip: result.clip }),
-    notice: result.warnings.length > 0 ? { tone: 'info', lines: result.warnings } : null,
-  };
 }
 
 /** The width of an element, kept up to date. */
@@ -277,7 +224,7 @@ function useWidth() {
 function ImportDialog({ open, onClose, onImport }: {
   open: boolean;
   onClose: () => void;
-  onImport: (text: string) => string[] | null;
+  onImport: (text: string) => Promise<string[] | null>;
 }) {
   const [text, setText] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
@@ -285,8 +232,8 @@ function ImportDialog({ open, onClose, onImport }: {
     setErrors([]);
     onClose();
   };
-  const submit = () => {
-    const found = onImport(text);
+  const submit = async () => {
+    const found = await onImport(text);
     if (found) {
       setErrors(found);
       return;
@@ -295,15 +242,16 @@ function ImportDialog({ open, onClose, onImport }: {
     close();
   };
   return (
-    <Modal open={open} onClose={close} title="Import ASCII tab" className="tab-import">
+    <Modal open={open} onClose={close} title="Import tab" className="tab-import">
       <div className="settings-dialog-body grid gap-3">
         <textarea
           className="input tab-import-text" value={text} onChange={e => setText(e.target.value)}
-          aria-label="ASCII tab" spellCheck={false} rows={12}
-          placeholder={'e|-----5h7-----|\nB|---5-------8-|\n…'}
+          aria-label="Tab, as alphaTex or ASCII" spellCheck={false} rows={12}
+          placeholder={'\\title "Riff"\n5.5{h}.8 7.5.8 5.4{h}.8 7.4.8 |\n\nor ASCII:\ne|-----5h7-----|\n…'}
         />
         <p className="m-0 text-(--ink-muted)">
-          Format: <a href="/tab-ascii.txt" target="_blank" rel="noreferrer">frets.eminor.net/tab-ascii.txt</a>.
+          Formats: <a href="/tab-alphatex.txt" target="_blank" rel="noreferrer">alphaTex</a>{' '}
+          or <a href="/tab-ascii.txt" target="_blank" rel="noreferrer">ASCII tab</a>.
           Importing replaces the clip; Ctrl+Z brings it back.
         </p>
         {errors.length > 0 && (
@@ -312,7 +260,7 @@ function ImportDialog({ open, onClose, onImport }: {
           </ul>
         )}
         <div className="flex justify-end">
-          <button type="button" className="btn btn-primary" onClick={submit} disabled={!text.trim()}>Import</button>
+          <button type="button" className="btn btn-primary" onClick={() => void submit()} disabled={!text.trim()}>Import</button>
         </div>
       </div>
     </Modal>
