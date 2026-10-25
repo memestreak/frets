@@ -63,7 +63,10 @@ pressing it again takes it off once they all have it.
 ## Palette
 
 The palette is a toolbar between the header and the clip. It shows one
-button per symbol, drawn as the symbol looks in tab, in five groups:
+button per symbol, drawn as the symbol looks in tab, in five groups. Each
+group's name is a small muted caption 6px above its buttons (Jeremy picked
+this, layout A, over boxed groups and a side column, 2026-10-25). The
+groups are:
 
 1. Duration: whole to sixteenth, dot, triplet, rest.
 2. Joins: tie, hammer-on/pull-off, slide, shift slide, slide in from below,
