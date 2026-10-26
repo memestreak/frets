@@ -55,7 +55,8 @@ then "." and its duration:
   5.3{h}.8. Beat effects go in braces after the duration: 5.3.8{sd}.
   Several effects share one pair of braces, separated by spaces, in any
   order: {h v}, {b (0 4) v}.
-- The durations in each bar must add up to the time signature.
+- The durations in each bar must add up to the time signature. Grace
+  notes (section 4) take no time and don't count.
 
 
 3. NOTE EFFECTS FRETS DRAWS
@@ -97,6 +98,18 @@ then "." and its duration:
     d          dotted: 5.3.4{d} is a dotted quarter
     dd         double dotted
     tu 3       triplet; put it on each of the three: 7.3.8{tu 3}
+    tu 5       quintuplet: five in the time of four, on each of the five
+    tu 6       sextuplet: six in the time of four
+    tu 7       septuplet: seven in the time of four. Five, six or seven
+               sixteenths with {tu n} fill one quarter.
+    gr         grace note, drawn small, played just before the next beat
+               and taking no time in the bar: 5.3{h}.8{gr} 7.3.4 is a
+               grace 5 hammered to 7. Write one grace note as .8, two in
+               a row as .16, three or more as .32 (alphaTab reads them
+               so whatever is written). "gr ob" is played on the beat.
+    tp 8       tremolo picking, as fast as eighths: one slash across the
+    tp 16      stem; two slashes tp 16, three tp 32. The beat's own
+    tp 32      duration is how long it is picked: 12.1.2{tp 16}.
     sd  su     pick or strum stroke down / up
     tt         tapped (T)
     ch "Am7"   a chord name over the beat, as written: 0.1.2{ch "C/G"}.
@@ -109,6 +122,8 @@ then "." and its duration:
 
 Put these at the start of a bar, before its beats:
 
+    \ts (3 4)                  a new time signature from this bar on;
+                               the one in the header holds until then
     \section "Verse"           a section starts here, drawn in a box;
     \section ("A" "Chorus")    with a rehearsal mark, "A"
     \tempo 90                  the tempo from this bar on, in quarter
@@ -130,15 +145,15 @@ Frets doesn't draw it yet, and Frets lists it under the clip. Write these
 when the picture shows them:
 
     note effects   ah artificial harmonic, tr (9 16) trill, ten tenuto
-    beat effects   gr grace note, tp 16 tremolo picking,
-                   tb (0 -4 0) whammy bar, txt "text",
-                   fermata (medium 1)
+    beat effects   tb (0 -4 0) whammy bar, txt "text",
+                   fermata (medium 1), gr b bend grace note
     bar tags       \ks (key signature), \jump Fine
 
 Not read at all (an error): more than one track, staff or voice; a tuning
 of other than six strings. Read with a warning: other time signatures (as
-4/4), tuplets other than triplets (as plain notes), notes shorter than a
-sixty-fourth (as sixty-fourths).
+4/4, or in a later bar as no change), notes shorter than a sixty-fourth
+(as sixty-fourths). Kept as written, as plain notes: tuplets other than
+3, 5, 6 and 7 (tu 9), tremolo picking with four or more slashes.
 
 
 7. EXAMPLES
@@ -190,6 +205,11 @@ Each reads in Frets with no warnings and writes back exactly as shown.
     5.2.16 8.2.16 5.1.16 8.1.16 7.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 12.1.4{tt} |
     (12.3{nh} 12.4{nh}).8 r.8 9.3.2 |
 
+    \title "Shred"
+    \ts (4 4)
+    7.3{h}.8{gr} 9.3.4 12.2.16{tu 5} 10.2.16{tu 5} 8.2.16{tu 5} 10.2.16{tu 5} 12.2.16{tu 5} 12.1.2{tp 16} |
+    \ts (3 4) 5.4{sl}.8{gr} 7.4.4 5.4.4 7.4.4 |
+
 
 8. OPENING IT IN FRETS
 ----------------------
@@ -232,6 +252,11 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
        four flags or beams            64 sixty-fourth
        a dot after the stem           {d}
        a "3" over a beamed group      {tu 3} on each of the three
+       a 5, 6 or 7 over a group       {tu 5}, {tu 6}, {tu 7} on each
+       a small fret number before     {gr} on it, written .8 (.16 for
+         a full-size one              two, .32 for three or more)
+       slashes across a stem          {tp 8}, {tp 16}, {tp 32} for one,
+                                      two or three
 
    A stem belongs to its beat even when the frets are in parentheses (a
    tie or a ghost note). Rests sit under the tab with no fret above them:
@@ -242,7 +267,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
                                       four r.64)
 
    Then count each bar against the time signature; if it doesn't add up,
-   look again: the bar's total is the surest guide to a short stem.
+   look again: the bar's total is the surest guide to a short stem. A
+   time signature in the middle of the tab, after a bar line, is \ts
+   at the start of that bar; count the bars after it against it.
 4. Translate the marks: an arc with H or P to h ON THE FIRST NOTE; a
    slanted line between notes to sl on the first note, one into a note
    to sib or sia; a curved arrow to b with points from its label (1/4,

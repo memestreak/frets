@@ -14,9 +14,15 @@ export interface Duration {
   value: NoteValue;
   /** Dots after the note: one adds half its length, two add three quarters. */
   dots: 0 | 1 | 2;
-  /** Three of these fill the time of two plain ones. */
-  triplet: boolean;
+  /** One of a tuplet: three in the time of two plain ones, or five, six or seven in the time of four. */
+  tuplet?: Tuplet;
 }
+
+/** The tuplets Frets draws: a triplet, quintuplet, sextuplet and septuplet. */
+export type Tuplet = 3 | 5 | 6 | 7;
+export const TUPLETS: readonly Tuplet[] = [3, 5, 6, 7];
+/** How many plain notes a tuplet takes the time of, as alphaTab reads "tu 3" … "tu 7". */
+export const TUPLET_SPAN: Record<Tuplet, number> = { 3: 2, 5: 4, 6: 4, 7: 4 };
 
 /** Bends in quarter-steps: 1 a ¼-tone curl, 2 a ½, 4 full, 6 1½, 8 two steps. */
 export type BendQuarters = 1 | 2 | 4 | 6 | 8;
@@ -73,12 +79,25 @@ export interface Column {
   stroke?: 'down' | 'up';
   /** A chord name written over the column, as typed ("Am7", "C/G"). */
   chord?: string;
-  /** alphaTex beat effects Frets doesn't draw yet, kept as written ("gr", "tp 16"). */
+  /**
+   * A grace note, drawn small and taking no time in the bar: played just before the beat, or on it,
+   * taking its time from the note after it (alphaTex gr, gr ob).
+   */
+  grace?: 'before' | 'on';
+  /** Tremolo picked: picked over and over as fast as eighths, sixteenths or thirty-seconds, a slash on the stem for each beam. */
+  tremolo?: TremoloValue;
+  /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
 
+/** How fast a tremolo picked note is picked: as eighths, sixteenths or thirty-seconds. */
+export type TremoloValue = 8 | 16 | 32;
+export const TREMOLO_VALUES: readonly TremoloValue[] = [8, 16, 32];
+
 export interface Bar {
   columns: Column[];
+  /** A new time signature from this bar on; the clip's own `time` holds until the first one. */
+  time?: TimeSignature;
   repeatStart?: boolean;
   /** Ends a repeat played this many times (2 unless written). */
   repeatEnd?: number;
@@ -144,16 +163,16 @@ export interface Clip {
 
 export const STRING_COUNT = 6;
 
-/* — durations in ticks: a whole note is 768, so every value, dotted or in a triplet, is a whole number
-   (a double-dotted thirty-second is 42, a sixty-fourth triplet 8) — */
+/* — durations in ticks: a whole note is 26880 (768 × 5 × 7), so every value, dotted or in any tuplet,
+   is a whole number (a double-dotted thirty-second in a septuplet is 840, a sixty-fourth in one 240) — */
 
-export const WHOLE = 768;
+export const WHOLE = 26880;
 
-export function ticks({ value, dots, triplet }: Duration): number {
+export function ticks({ value, dots, tuplet }: Duration): number {
   let t = WHOLE / value;
   if (dots === 1) t *= 1.5;
   if (dots === 2) t *= 1.75;
-  if (triplet) t = (t * 2) / 3;
+  if (tuplet) t = (t * TUPLET_SPAN[tuplet]) / tuplet;
   return t;
 }
 
@@ -172,13 +191,56 @@ export function beatTicks(time: TimeSignature): number {
   return Math.max(beat, WHOLE / 4);
 }
 
+/** The time a bar's columns take; grace notes take none. */
 export function barLength(bar: Bar): number {
-  return bar.columns.reduce((sum, c) => sum + ticks(c.duration), 0);
+  return bar.columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
 }
 
-/** A bar whose durations don't fill the time signature exactly; an empty bar counts as full. */
-export function isUneven(bar: Bar, time: TimeSignature): boolean {
-  return bar.columns.length > 0 && barLength(bar) !== barTicks(time);
+/** The time signature bar `index` is in: the last one set at or before it, else the clip's. */
+export function timeAt(clip: Pick<Clip, 'time' | 'bars'>, index: number): TimeSignature {
+  for (let b = Math.min(index, clip.bars.length - 1); b > 0; b--) {
+    const time = clip.bars[b].time;
+    if (time) return time;
+  }
+  return clip.time;
+}
+
+/** Whether bar `index` starts a new time signature, one that differs from the bar before it. */
+export function changesTime(clip: Clip, index: number): boolean {
+  const time = clip.bars[index]?.time;
+  if (index === 0 || !time) return false;
+  const before = timeAt(clip, index - 1);
+  return time.beats !== before.beats || time.value !== before.value;
+}
+
+/** A bar whose durations don't fill its time signature exactly; an empty bar counts as full. */
+export function isUneven(clip: Pick<Clip, 'time' | 'bars'>, index: number): boolean {
+  const bar = clip.bars[index];
+  return bar.columns.length > 0 && barLength(bar) !== barTicks(timeAt(clip, index));
+}
+
+/** A list of numbers in words: "2", "2 and 5", "2, 5 and 7". */
+export function listed(numbers: number[]): string {
+  return numbers.length < 2 ? numbers.join('') : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
+}
+
+/**
+ * The line that names the bars that don't add up, by the time signature each should fill
+ * ("Bars 2 and 3 don't add up to 4/4; bar 5 doesn't add up to 3/4."), or null when every bar does.
+ */
+export function unevenMessage(clip: Pick<Clip, 'time' | 'bars'>): string | null {
+  const byTime = new Map<string, number[]>();
+  clip.bars.forEach((bar, i) => {
+    if (!isUneven(clip, i)) return;
+    const time = timeAt(clip, i);
+    const key = `${time.beats}/${time.value}`;
+    byTime.set(key, [...(byTime.get(key) ?? []), i + 1]);
+  });
+  if (byTime.size === 0) return null;
+  const parts = [...byTime].map(([time, bars]) =>
+    `${bars.length === 1 ? `bar ${bars[0]} doesn't` : `bars ${listed(bars)} don't`} add up to ${time}`);
+  const line = `${parts.join('; ')}.`;
+  return line[0].toUpperCase() + line.slice(1);
 }
 
 export function isRest(column: Column): boolean {
@@ -236,13 +298,13 @@ export function emptyClip(): Clip {
 
 /** The plain or dotted duration nearest to `t` ticks (ties go to the plain one). */
 export function nearestDuration(t: number): Duration {
-  let best: Duration = { value: 4, dots: 0, triplet: false };
+  let best: Duration = { value: 4, dots: 0 };
   let bestGap = Infinity;
   // Spacing is too rough to tell thirty-seconds, so a guess is a sixteenth at the shortest.
   for (const value of NOTE_VALUES.filter(v => v <= 16)) {
     for (const dots of [0, 1] as const) {
       if (dots && value === 16) continue; // a guessed dotted sixteenth would need a guessed thirty-second
-      const d: Duration = { value, dots, triplet: false };
+      const d: Duration = { value, dots };
       const gap = Math.abs(ticks(d) - t);
       if (gap < bestGap) {
         best = d;
@@ -271,7 +333,7 @@ export function isCapo(v: unknown): v is number {
 
 function isDuration(v: unknown): v is Duration {
   return isObj(v) && NOTE_VALUES.includes(v.value as NoteValue)
-    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && typeof v.triplet === 'boolean';
+    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && (v.tuplet === undefined || TUPLETS.includes(v.tuplet as Tuplet));
 }
 
 function isNote(v: unknown): v is Note {
@@ -295,11 +357,14 @@ function isColumn(v: unknown): v is Column {
     && v.notes.every(n => n === null || isNote(n))
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
     && (v.chord === undefined || typeof v.chord === 'string')
+    && optOneOf(v.grace, ['before', 'on'])
+    && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && optStrings(v.extra);
 }
 
 function isBar(v: unknown): v is Bar {
   return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn)
+    && (v.time === undefined || (isObj(v.time) && isTimeSignature(v.time.beats, v.time.value)))
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))

@@ -102,6 +102,11 @@ directly above the column's position.
 - "3" right after the letter makes it a triplet ("e3": three of them fill
   one quarter). Write triplets in complete groups of three. (A line of
   nothing but "x3"s reads as repeat counts, section 7, not as triplets.)
+- "5", "6" or "7" right after the letter makes it a quintuplet, sextuplet
+  or septuplet: five, six or seven in the time of four ("s5": five fill
+  one quarter). Write them in complete groups.
+- ASCII has no grace notes, tremolo picking or time signature changes;
+  use alphaTex (tab-alphatex.txt) for those.
 - A letter above a position where every string has "-" is a rest of that
   length.
 - With a rhythm line, every column needs a letter.

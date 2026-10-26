@@ -44,6 +44,28 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'tuplets',
+    title: 'Tuplets',
+    shows: 'Triplets, then five, six and seven sixteenths in the time of four',
+    text: [
+      '\\title "Tuplets"',
+      '\\ts (4 4)',
+      '5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 7.2.4 5.2.4 |',
+      '5.2.16{tu 5} 7.2.16{tu 5} 8.2.16{tu 5} 7.2.16{tu 5} 5.2.16{tu 5} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 6} 7.1.16{tu 6} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 7} 7.1.16{tu 7} 5.1.16{tu 7} 8.2.16{tu 7} 7.2.16{tu 7} 5.2.16{tu 7} 7.3.16{tu 7} 5.3.4 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'grace-tremolo',
+    title: 'Grace notes and tremolo picking',
+    shows: 'Grace notes hammered and slid into, and tremolo picking in eighths, sixteenths and thirty-seconds',
+    text: [
+      '\\title "Grace notes and tremolo picking"',
+      '\\ts (4 4)',
+      '5.3{h}.8{gr} 7.3.4 5.3.4 7.4{sl}.8{gr} 9.4.4 5.2.16{gr} 7.2{h}.16{gr} 8.2.4 |',
+      '12.1.4{tp 8} 12.1.4{tp 16} 12.1.2{tp 32} |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'joins',
     title: 'Hammer-ons, slides and ties',
     shows: 'Hammer-ons, pull-offs, slides from the note before or from nowhere, and ties',
@@ -155,6 +177,19 @@ export const TAB_EXAMPLES: TabExample[] = [
       '\\ts (6 8)',
       '0.6.8 2.4.8 2.3.8 0.5.8 2.4.8 2.3.8 |',
       '3.6.4{d} 2.5.4{d} |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'time-changes',
+    title: 'Changing time',
+    shows: 'A new time signature at the start of a bar: 4/4, then 3/4, 7/8 and back to 4/4',
+    text: [
+      '\\title "Changing time"',
+      '\\ts (4 4)',
+      '0.6.4 3.6.4 5.6.4 3.6.4 |',
+      '\\ts (3 4) 0.5.4 2.5.4 3.5.4 |',
+      '\\ts (7 8) 0.4.8 2.4.8 3.4.8 0.4.8 2.4.8 0.4.8 2.4.8 |',
+      '\\ts (4 4) 0.6.1 |',
     ].join('\n') + '\n',
   },
   {

@@ -4,21 +4,22 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import type { Clip, NoteValue } from './clip';
+import { type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
 import {
-  columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide,
-  makeRest, noteAt, setBend, setDead, setMark, setSlide, setValue, toggleBendPart, toggleLegato,
-  toggleRepeatStart, toggleStroke, toggleTie, toggleTriplet, type MarkKind, type Target,
+  columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
+  makeRest, noteAt, setBend, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
+  toggleRepeatStart, toggleStroke, toggleTie, toggleTuplet, type MarkKind, type Target,
 } from './editing';
 
 export type ToolId =
-  | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'triplet' | 'rest' | 'tie'
+  | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
+  | 'triplet' | 'quintuplet' | 'sextuplet' | 'septuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend1' | 'bend2' | 'bend4' | 'bend6' | 'bend8' | 'release' | 'preBend'
   | 'vibrato' | 'wideVibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
-  | 'repeatStart' | 'repeatEnd' | 'ending'
-  | 'chordName' | 'section' | 'tempo';
+  | 'barTime' | 'repeatStart' | 'repeatEnd' | 'ending'
+  | 'chordName' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
   id: ToolId;
@@ -41,8 +42,20 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'thirtySecond', label: 'Thirty-second note', key: '+ −' },
       { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '+ −' },
       { id: 'dot', label: 'Dotted, then double dotted', key: '.' },
-      { id: 'triplet', label: 'Triplet', key: 'Alt+3' },
       { id: 'rest', label: 'Rest', key: 'R' },
+    ],
+  },
+  {
+    label: 'Rhythm',
+    tools: [
+      { id: 'triplet', label: 'Triplet: three in the time of two', key: 'Alt+3' },
+      { id: 'quintuplet', label: 'Quintuplet: five in the time of four', key: 'Alt+5' },
+      { id: 'sextuplet', label: 'Sextuplet: six in the time of four', key: 'Alt+6' },
+      { id: 'septuplet', label: 'Septuplet: seven in the time of four', key: 'Alt+7' },
+      { id: 'grace', label: 'Grace note, just before the beat', key: 'Shift+G' },
+      { id: 'tremolo8', label: 'Tremolo picking in eighths', key: 'Shift+T' },
+      { id: 'tremolo16', label: 'Tremolo picking in sixteenths', key: 'Shift+T' },
+      { id: 'tremolo32', label: 'Tremolo picking in thirty-seconds', key: 'Shift+T' },
     ],
   },
   {
@@ -95,8 +108,9 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     ],
   },
   {
-    label: 'Repeats',
+    label: 'Bars',
     tools: [
+      { id: 'barTime', label: 'Time signature from this bar', key: '' },
       { id: 'repeatStart', label: 'Repeat starts at this bar', key: '[' },
       { id: 'repeatEnd', label: 'Repeat ends at this bar (again: ×3, ×4)', key: ']' },
       { id: 'ending', label: 'Ending 1., then 2.', key: 'E' },
@@ -108,6 +122,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'chordName', label: 'Chord name over this column', key: 'C' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
+      { id: 'capo', label: 'Capo', key: '' },
     ],
   },
 ];
@@ -116,6 +131,8 @@ const VALUE: Partial<Record<ToolId, NoteValue>> = {
   whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
 };
 const BEND: Partial<Record<ToolId, 1 | 2 | 4 | 6 | 8>> = { bend1: 1, bend2: 2, bend4: 4, bend6: 6, bend8: 8 };
+const TUPLET: Partial<Record<ToolId, Tuplet>> = { triplet: 3, quintuplet: 5, sextuplet: 6, septuplet: 7 };
+const TREMOLO: Partial<Record<ToolId, TremoloValue>> = { tremolo8: 8, tremolo16: 16, tremolo32: 32 };
 
 /** Tools that set one note mark to one kind (or on). */
 const MARK: Partial<Record<ToolId, MarkKind>> = {
@@ -141,7 +158,7 @@ function wholeColumns(clip: Clip, target: Target): Target {
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
-export const WORD_TOOLS = { chordName: 'chord', section: 'section', tempo: 'tempo' } as const;
+export const WORD_TOOLS = { chordName: 'chord', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The clip after a palette press. */
@@ -150,11 +167,15 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   if (value) return setValue(clip, target, value);
   const bend = BEND[id];
   if (bend) return setBend(clip, target, bend);
+  const tuplet = TUPLET[id];
+  if (tuplet) return toggleTuplet(clip, target, tuplet);
+  const tremolo = TREMOLO[id];
+  if (tremolo) return setTremolo(clip, target, tremolo);
   const mark = MARK[id];
   if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
     case 'dot': return cycleDots(clip, target);
-    case 'triplet': return toggleTriplet(clip, target);
+    case 'grace': return toggleGrace(clip, target);
     case 'rest': return makeRest(clip, target);
     case 'tie': return toggleTie(clip, target);
     case 'legato': return toggleLegato(clip, target);
@@ -175,7 +196,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
 }
 
 /**
- * The clip after a key press that steps through a tool's choices (b, Shift+B, /, \\, V, N, A), or null
+ * The clip after a key press that steps through a tool's choices (b, Shift+B, /, \\, V, N, A, Shift+T), or null
  * when the key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do.
  */
 export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip | null {
@@ -187,16 +208,21 @@ export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip |
   if (key === 'v') return cycleMark(clip, target, 'vibrato', ['slight', 'wide']);
   if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
+  if (key === 'T') return cycleTremolo(clip, target);
   return null;
 }
 
 /** The tool a key press does, for the keys that do exactly what one button does. */
 export function toolForKey(key: string, alt: boolean, code: string): ToolId | null {
-  if (alt) return code === 'Digit3' ? 'triplet' : null;
+  if (alt) {
+    // Alt with a digit types other characters on some layouts, so the key's place is read, not its character.
+    const tuplets: Record<string, ToolId> = { Digit3: 'triplet', Digit5: 'quintuplet', Digit6: 'sextuplet', Digit7: 'septuplet' };
+    return tuplets[code] ?? null;
+  }
   const keys: Record<string, ToolId> = {
     '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
     x: 'dead', g: 'ghost', t: 'tap', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
-    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
+    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName', G: 'grace',
   };
   return keys[key] ?? null;
 }
@@ -210,6 +236,10 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   if (value) return column?.duration.value === value;
   const bend = BEND[id];
   if (bend) return note?.bend?.quarters === bend;
+  const tuplet = TUPLET[id];
+  if (tuplet) return column?.duration.tuplet === tuplet;
+  const tremolo = TREMOLO[id];
+  if (tremolo) return column?.tremolo === tremolo;
   const mark = MARK[id];
   if (mark && COLUMN_MARKS.has(mark[0])) {
     const notes = column?.notes.filter(n => n !== null) ?? [];
@@ -218,7 +248,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;
-    case 'triplet': return !!column?.duration.triplet;
+    case 'grace': return !!column?.grace;
     case 'rest': return !!column && column.notes.every(n => n === null);
     case 'tie': return !!note?.tie;
     case 'legato': return !!note?.legato;
@@ -237,6 +267,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
     case 'chordName': return !!column?.chord;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
+    case 'capo': return !!clip.capo;
     default: return false;
   }
 }

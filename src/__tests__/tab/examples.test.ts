@@ -6,7 +6,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { isUneven } from '@/features/tab/clip';
+import { unevenMessage } from '@/features/tab/clip';
 import { exampleById, TAB_EXAMPLES } from '@/features/tab/examples';
 
 describe('the example clips', () => {
@@ -15,7 +15,7 @@ describe('the example clips', () => {
     if (!result.ok) throw new Error(result.errors.join('\n'));
     expect(result.warnings).toEqual([]);
     expect(result.clip.name).toBe(example.title);
-    expect(result.clip.bars.filter(bar => isUneven(bar, result.clip.time))).toEqual([]);
+    expect(unevenMessage(result.clip)).toBeNull();
     expect(writeAlphaTex(result.clip)).toBe(example.text);
   });
 

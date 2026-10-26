@@ -5,8 +5,9 @@
  * it so marks that join a note to the one before it stay true.
  */
 import {
-  barTicks, BEND_QUARTERS, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide,
+  barLength, barTicks, BEND_QUARTERS, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
+  type TremoloValue, type Tuplet,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
 
@@ -143,7 +144,27 @@ export function normalize(clip: Clip): Clip {
       }),
     })),
   }));
-  return { ...clip, bars };
+  return tidyTimes({ ...clip, bars });
+}
+
+
+const sameTime = (a: TimeSignature, b: TimeSignature) => a.beats === b.beats && a.value === b.value;
+
+/**
+ * A time signature set on the first bar becomes the clip's, and one that repeats the time signature
+ * already in force is dropped, so a bar's `time` always marks a change.
+ */
+function tidyTimes(clip: Clip): Clip {
+  let time = clip.bars[0]?.time ?? clip.time;
+  const bars = clip.bars.map((bar, b) => {
+    if (!bar.time) return bar;
+    if (b > 0 && !sameTime(bar.time, time)) {
+      time = bar.time;
+      return bar;
+    }
+    return without(bar, 'time');
+  });
+  return { ...clip, time: clip.bars[0]?.time ?? clip.time, bars };
 }
 
 /* — changing columns and notes — */
@@ -156,7 +177,7 @@ function durationNear(clip: Clip, cursor: Cursor): Duration {
     const columns = clip.bars[b].columns;
     if (columns.length > 0) return { ...columns[columns.length - 1].duration };
   }
-  return { value: 4, dots: 0, triplet: false };
+  return { value: 4, dots: 0 };
 }
 
 function emptyColumn(duration: Duration): Column {
@@ -266,9 +287,32 @@ export function cycleDots(clip: Clip, target: Target): Clip {
   });
 }
 
-export function toggleTriplet(clip: Clip, target: Target): Clip {
-  const on = !(columnAt(clip, target.cursor)?.duration.triplet ?? false);
-  return changeColumns(clip, target, column => ({ ...column, duration: { ...column.duration, triplet: on } }));
+/** Makes the target columns one kind of tuplet (a triplet, quintuplet …); the same kind again makes them plain. */
+export function toggleTuplet(clip: Clip, target: Target, tuplet: Tuplet): Clip {
+  const on = columnAt(clip, target.cursor)?.duration.tuplet !== tuplet;
+  return changeColumns(clip, target, column => {
+    const plain = without(column.duration, 'tuplet');
+    return { ...column, duration: on ? { ...plain, tuplet } : plain };
+  });
+}
+
+/** Makes the target columns grace notes, played just before the beat; pressed again on a grace note, plain notes. */
+export function toggleGrace(clip: Clip, target: Target): Clip {
+  const on = !columnAt(clip, target.cursor)?.grace;
+  return changeColumns(clip, target, column => (on ? { ...column, grace: 'before' } : without(column, 'grace')));
+}
+
+/** Tremolo picks the target columns as fast as `value`; the same speed again stops it. */
+export function setTremolo(clip: Clip, target: Target, value: TremoloValue): Clip {
+  const on = columnAt(clip, target.cursor)?.tremolo !== value;
+  return changeColumns(clip, target, column => (on ? { ...column, tremolo: value } : without(column, 'tremolo')));
+}
+
+/** Steps the target columns' tremolo picking through eighths, sixteenths, thirty-seconds and none. */
+export function cycleTremolo(clip: Clip, target: Target): Clip {
+  const now = columnAt(clip, target.cursor)?.tremolo;
+  const next = now === undefined ? TREMOLO_VALUES[0] : TREMOLO_VALUES[TREMOLO_VALUES.indexOf(now) + 1];
+  return changeColumns(clip, target, column => (next ? { ...column, tremolo: next } : without(column, 'tremolo')));
 }
 
 /** A pick or strum stroke on the target columns; the same stroke again clears it. */
@@ -507,10 +551,20 @@ export function cycleEnding(clip: Clip, cursor: Cursor): Clip {
   return replaceBar(clip, cursor.bar, next ? { ...rest, ending: next } : rest);
 }
 
+/**
+ * The time signature from bar `index` on. On the first bar it is the clip's own; on a later bar it
+ * starts a change, and null (or the time signature already in force) takes the change away.
+ */
+export function setBarTime(clip: Clip, index: number, time: TimeSignature | null): Clip {
+  if (index === 0) return time ? normalize({ ...clip, time }) : clip;
+  const bar = clip.bars[index];
+  return normalize(replaceBar(clip, index, time ? { ...bar, time } : without(bar, 'time')));
+}
+
 /* — moving — */
 
-function isFull(clip: Clip, bar: Bar): boolean {
-  return bar.columns.reduce((t, c) => t + ticks(c.duration), 0) >= barTicks(clip.time);
+function isFull(clip: Clip, index: number): boolean {
+  return barLength(clip.bars[index]) >= barTicks(timeAt(clip, index));
 }
 
 /**
@@ -530,7 +584,7 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true
   if (bar < clip.bars.length - 1) return { clip, cursor: { ...cursor, bar: bar + 1, column: 0 } };
   if (!grow || here.columns.length === 0) return { clip, cursor };
   const column0 = emptyColumn(durationNear(clip, cursor));
-  if (!isFull(clip, here)) {
+  if (!isFull(clip, bar)) {
     const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, column0] });
     return { clip: grown, cursor: { ...cursor, column: here.columns.length } };
   }
@@ -578,7 +632,8 @@ export function sliceClip(clip: Clip, [from, to]: [number, number]): Clip {
     });
     if (columns.length > 0) bars.push({ ...bar, columns });
   }
-  return normalize({ ...emptyClip(), time: clip.time, tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });
+  const first = placeOf(clip, from).bar;
+  return normalize({ ...emptyClip(), time: timeAt(clip, first), tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });
 }
 
 /** The columns in `range` as alphaTex, for the clipboard. */

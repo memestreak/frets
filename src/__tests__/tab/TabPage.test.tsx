@@ -53,6 +53,13 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+/** A press on the time signature drawn in front of the first line (jsdom places the drawing at 0, 0). */
+function pressFirstTimeSignature() {
+  const svg = screen.getByRole('img', { name: /drawn as tab/ });
+  // The numbers are centred 13 units in, round the middle of a staff that starts 30 down.
+  fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
+}
+
 describe('TabPage', () => {
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
@@ -199,7 +206,7 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
     });
 
-    it('names a chord from C and a field over the tab, and sets the capo from the button under the name', () => {
+    it('names a chord from C and a field over the tab, and sets the capo from the palette', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'c');
@@ -207,11 +214,22 @@ describe('TabPage', () => {
       fireEvent.change(field, { target: { value: 'Am7' } });
       fireEvent.keyDown(field, { key: 'Enter' });
       expect(screen.queryByRole('textbox', { name: 'Chord name' })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'No capo' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Capo higher' }));
-      expect(screen.getByRole('button', { name: 'Capo on fret 1' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+      const capo = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
+      fireEvent.change(capo, { target: { value: '3' } });
+      fireEvent.keyDown(capo, { key: 'Enter' });
+      expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
+      expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
       fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
-      expect(screen.getByTestId('tab-ascii').textContent).toContain('\\capo 1\n5.1.4{ch "Am7"} |');
+      expect(screen.getByTestId('tab-ascii').textContent).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
+      fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+      // An empty field, or 0, takes the capo off.
+      fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+      const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
+      expect(again).toHaveValue('3');
+      fireEvent.change(again, { target: { value: '0' } });
+      fireEvent.keyDown(again, { key: 'Enter' });
+      expect(screen.queryByTestId('capo')).toBeNull();
     });
 
     it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
@@ -228,13 +246,14 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 |');
     });
 
-    it('sets the time signature from the button under the name, each change one undo step', () => {
+    it('sets the time signature from the palette, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
-      const button = screen.getByRole('button', { name: 'Time signature 4/4' });
+      const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
-      fireEvent.click(button);
+      // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
+      fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
       const panel = screen.getByRole('dialog', { name: 'Time signature' });
       const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
       expect(beats).toHaveValue('4');
@@ -243,7 +262,7 @@ describe('TabPage', () => {
       expect(notice()).toHaveTextContent('4/4');
       fireEvent.keyDown(beats, { key: 'Enter' });
       expect(notice()).not.toHaveTextContent('add up');
-      expect(button).toHaveAccessibleName('Time signature 3/4');
+      expect(drawn()).toBe('34');
       // ↑ and + step at once; the beat is one of 2, 4, 8, 16, 32.
       fireEvent.keyDown(beats, { key: 'ArrowUp' });
       fireEvent.click(within(panel).getByRole('button', { name: 'More beats' }));
@@ -252,7 +271,7 @@ describe('TabPage', () => {
       expect(within(panel).getByRole('button', { name: '8' })).toHaveAttribute('aria-pressed', 'true');
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 5/8.');
       undo();
-      expect(button).toHaveAccessibleName('Time signature 5/4');
+      expect(drawn()).toBe('54');
       undo();
       expect(beats).toHaveValue('4');
       // Esc closes the panel.
@@ -262,7 +281,7 @@ describe('TabPage', () => {
 
     it('keeps the count when what is typed isn\'t 1 to 32', () => {
       renderAt();
-      fireEvent.click(screen.getByRole('button', { name: 'Time signature 4/4' }));
+      pressFirstTimeSignature();
       const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
       for (const typed of ['0', '33', '']) {
         fireEvent.change(beats, { target: { value: typed } });
@@ -300,7 +319,7 @@ describe('TabPage examples', () => {
     const dialog = screen.getByRole('dialog', { name: 'Examples' });
     fireEvent.click(within(dialog).getByRole('button', { name: /Bends and vibrato/ }));
     await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
-    expect(screen.getByTestId('example-facts')).toHaveTextContent("Example: edits aren't saved");
+    expect(screen.getByTestId('clip-facts')).toHaveTextContent("Example: edits aren't saved");
     expect(window.location.hash).toBe('#example=bends');
     // An edit changes the example on the page, not the saved clip.
     act(() => editor().focus());
@@ -309,7 +328,7 @@ describe('TabPage examples', () => {
     expect(saved()).toBe('Tex riff');
     fireEvent.click(screen.getByRole('button', { name: 'Back to my clip' }));
     expect(heading()).toHaveTextContent('Tex riff');
-    expect(screen.queryByTestId('example-facts')).toBeNull();
+    expect(screen.getByTestId('clip-facts')).toBeEmptyDOMElement();
     expect(window.location.hash).toBe('');
     // Undo still has the clip's own history: before the import, the clip was empty.
     undo();
@@ -335,7 +354,7 @@ describe('TabPage examples', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: TEX } });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
-    expect(screen.queryByTestId('example-facts')).toBeNull();
+    expect(screen.getByTestId('clip-facts')).toBeEmptyDOMElement();
     expect(window.location.hash).toBe('');
     await waitFor(() => expect(saved()).toBe('Tex riff'));
   });
