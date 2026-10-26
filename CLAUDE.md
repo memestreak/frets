@@ -257,7 +257,9 @@ binds a local port).
   format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
   golden input and output pairs for the spellings it forgives, see its
   README), `layout.ts` (pure: where systems,
-  bars and columns go at a width) and `TabClip.tsx` (draws a layout as
+  bars and columns go at a width, and `rowsFor`, the rows over the staff,
+  each there only when the clip uses it;
+  `docs/specs/2026-10-26-tab-note-marks-design.md`) and `TabClip.tsx` (draws a layout as
   SVG, with the editor's cursor and selection), `clipState.ts` (the clip
   with undo and redo), `editing.ts` (pure: the cursor, selection and every
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy

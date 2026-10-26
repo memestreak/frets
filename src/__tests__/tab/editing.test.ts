@@ -5,7 +5,7 @@ import { emptyClip, type Clip } from '@/features/tab/clip';
 import {
   clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
   deleteColumns, indexOf, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
-  stepDuration, toggleFlag, toggleLegato, toggleStroke, toggleTie, type Cursor,
+  stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
 
 function clipOf(text: string): Clip {
@@ -43,9 +43,9 @@ describe('typing', () => {
   it('keeps a note\'s marks when its fret changes, but not a tie', () => {
     let clip = clipOf('5.3.4 5.3{v}.4 r.2 |');
     clip = toggleTie(clip, only(at(0, 1, 2)));
-    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 5, tie: true, vibrato: true });
+    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 5, tie: true, vibrato: 'slight' });
     clip = setFret(clip, at(0, 1, 2), 7);
-    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 7, vibrato: true });
+    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 7, vibrato: 'slight' });
   });
 
   it('names a hammer-on or pull-off by the frets, and follows a fret change', () => {
@@ -98,10 +98,31 @@ describe('durations and column marks', () => {
 describe('note marks', () => {
   it('palm mutes every note of a selection, and unmutes when all are muted', () => {
     const selection = { anchor: 0, focus: 1 };
-    let clip = toggleFlag(clipOf('(0.6 2.5).8 0.6.8 r.4 r.2 |'), { cursor: at(0, 0, 5), selection }, 'palmMute');
+    let clip = setMark(clipOf('(0.6 2.5).8 0.6.8 r.4 r.2 |'), { cursor: at(0, 0, 5), selection }, ['palmMute', true]);
     expect(bars(clip)).toBe('(2.5{pm} 0.6{pm}).8 0.6{pm}.8 r.4 r.2 |');
-    clip = toggleFlag(clip, { cursor: at(0, 0, 5), selection }, 'palmMute');
+    clip = setMark(clip, { cursor: at(0, 0, 5), selection }, ['palmMute', true]);
     expect(bars(clip)).toBe('(2.5 0.6).8 0.6.8 r.4 r.2 |');
+  });
+
+  it('sets one kind of a mark, swaps it for another, and clears it when pressed again', () => {
+    let clip = clipOf('5.3.4 r.4 r.2 |');
+    clip = setMark(clip, only(at(0, 0, 2)), ['vibrato', 'slight']);
+    expect(bars(clip)).toBe('5.3{v}.4 r.4 r.2 |');
+    clip = setMark(clip, only(at(0, 0, 2)), ['vibrato', 'wide']);
+    expect(bars(clip)).toBe('5.3{vw}.4 r.4 r.2 |');
+    clip = setMark(clip, only(at(0, 0, 2)), ['vibrato', 'wide']);
+    expect(bars(clip)).toBe('5.3.4 r.4 r.2 |');
+  });
+
+  it('steps a mark through its kinds and then off', () => {
+    let clip = clipOf('5.3.4 r.4 r.2 |');
+    const seen: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      clip = cycleMark(clip, only(at(0, 0, 2)), 'accent', ['normal', 'heavy']);
+      seen.push(bars(clip));
+    }
+    expect(seen).toEqual(['5.3{ac}.4 r.4 r.2 |', '5.3{hac}.4 r.4 r.2 |', '5.3.4 r.4 r.2 |']);
+    expect(cycleMark(clip, only(at(0, 1, 2)), 'accent', ['normal', 'heavy'])).toBe(clip);
   });
 
   it('cycles slides, offering slides from the note before only when there is one', () => {

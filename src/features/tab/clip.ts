@@ -45,13 +45,23 @@ export interface Note {
    */
   slide?: Slide;
   bend?: Bend;
-  vibrato?: boolean;
+  /** Slides away after it is played, to no fret in particular (alphaTex sod, sou). */
+  slideOut?: 'down' | 'up';
+  vibrato?: 'slight' | 'wide';
   /** Keeps sounding from the previous note on the string; not played again. */
   tie?: boolean;
-  harmonic?: boolean;
+  harmonic?: 'natural' | 'pinch';
   tap?: boolean;
   palmMute?: boolean;
-  /** alphaTex note effects Frets doesn't draw yet, kept as written ("g", "lr"). */
+  /** Left to ring over the notes after it. */
+  letRing?: boolean;
+  /** Played softly, a ghost note: its number in brackets. */
+  ghost?: boolean;
+  /** Played harder: '>' over the column, a heavy accent '^'. */
+  accent?: 'normal' | 'heavy';
+  /** Cut short: a dot over the column. */
+  staccato?: boolean;
+  /** alphaTex note effects Frets doesn't draw yet, kept as written ("ah", "tr 7 16"). */
   extra?: string[];
 }
 
@@ -156,6 +166,17 @@ export function isPalmMuted(column: Column): boolean {
   return column.notes.some(n => n?.palmMute);
 }
 
+/** Whether any note of the column is let ring; the "let ring" line runs over such columns. */
+export function isLetRing(column: Column): boolean {
+  return column.notes.some(n => n?.letRing);
+}
+
+/** The strongest accent on any note of the column, drawn once over it. */
+export function columnAccent(column: Column): Note['accent'] {
+  if (column.notes.some(n => n?.accent === 'heavy')) return 'heavy';
+  return column.notes.some(n => n?.accent === 'normal') ? 'normal' : undefined;
+}
+
 /**
  * Which way every slid-into note goes. A slide from the previous note on the string goes up or down
  * as the frets do (from a dead note, or with no note before it, it counts as from below); 'below'
@@ -212,6 +233,7 @@ export function nearestDuration(t: number): Duration {
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const optBool = (v: unknown) => v === undefined || typeof v === 'boolean';
+const optOneOf = (v: unknown, values: readonly string[]) => v === undefined || values.includes(v as string);
 const optStrings = (v: unknown) => v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'));
 
 function isDuration(v: unknown): v is Duration {
@@ -228,7 +250,9 @@ function isNote(v: unknown): v is Note {
   return fretOk && bendOk
     && (v.legato === undefined || v.legato === 'h' || v.legato === 'p')
     && (v.slide === undefined || SLIDES.includes(v.slide as Slide))
-    && optBool(v.vibrato) && optBool(v.tie) && optBool(v.harmonic) && optBool(v.tap) && optBool(v.palmMute)
+    && optOneOf(v.slideOut, ['down', 'up']) && optOneOf(v.vibrato, ['slight', 'wide'])
+    && optOneOf(v.harmonic, ['natural', 'pinch']) && optOneOf(v.accent, ['normal', 'heavy'])
+    && optBool(v.tie) && optBool(v.tap) && optBool(v.palmMute) && optBool(v.letRing) && optBool(v.ghost) && optBool(v.staccato)
     && optStrings(v.extra);
 }
 

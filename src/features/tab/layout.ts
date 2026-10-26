@@ -9,22 +9,70 @@ import {
 } from './clip';
 
 /* — vertical rows of one system, from its top — */
-export const ROW = {
+
+/**
+ * Where things go up and down in every system of a clip, in SVG units from the system's top. The
+ * rows above the staff are there only when the clip uses them (null otherwise), each a line of its
+ * own so marks never collide; the same rows go in every system, so the lines of tab look alike.
+ */
+export interface Rows {
   /** Ending brackets and repeat counts. */
-  endings: 12,
-  strokes: 28,
-  palmMute: 42,
-  /** Bend labels, vibrato, taps. */
-  marks: 56,
+  endings: number | null;
+  strokes: number | null;
+  letRing: number | null;
+  palmMute: number | null;
+  /** "P.H." over pinch harmonics. */
+  harmonics: number | null;
+  vibrato: number | null;
+  /** Accents and staccato dots. */
+  accents: number | null;
   /** The top string. */
-  staffTop: 72,
-  stringGap: 14,
-  stemTop: 150,
-  stemBottom: 174,
-  tuplet: 187,
-} as const;
-export const STAFF_BOTTOM = ROW.staffTop + 5 * ROW.stringGap;
-export const SYSTEM_HEIGHT = 196;
+  staffTop: number;
+  staffBottom: number;
+  stemTop: number;
+  stemBottom: number;
+  tuplet: number;
+  /** One system's height. */
+  height: number;
+}
+
+export const STRING_GAP = 14;
+const FIRST_ROW = 12;
+const ROW_GAP = 15;
+/** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
+const STAFF_HEADROOM = 30;
+
+/** The rows a clip needs, top to bottom. */
+export function rowsFor(clip: Clip): Rows {
+  const columns = clip.bars.flatMap(b => b.columns);
+  const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
+  const used = {
+    endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
+    strokes: columns.some(c => c.stroke),
+    letRing: notes.some(n => n.letRing),
+    palmMute: notes.some(n => n.palmMute),
+    harmonics: notes.some(n => n.harmonic === 'pinch'),
+    vibrato: notes.some(n => n.vibrato),
+    accents: notes.some(n => n.accent || n.staccato),
+  };
+  let y = FIRST_ROW - ROW_GAP;
+  const row = (on: boolean) => (on ? (y += ROW_GAP) : null);
+  const rows = {
+    endings: row(used.endings),
+    strokes: row(used.strokes),
+    letRing: row(used.letRing),
+    palmMute: row(used.palmMute),
+    harmonics: row(used.harmonics),
+    vibrato: row(used.vibrato),
+    accents: row(used.accents),
+  };
+  const staffTop = Math.max(STAFF_HEADROOM, y + 16);
+  const staffBottom = staffTop + 5 * STRING_GAP;
+  return {
+    ...rows, staffTop, staffBottom,
+    stemTop: staffBottom + 8, stemBottom: staffBottom + 32, tuplet: staffBottom + 45, height: staffBottom + 54,
+  };
+}
 
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
@@ -67,6 +115,7 @@ export interface System {
 
 export interface Layout {
   systems: System[];
+  rows: Rows;
   height: number;
   /** Names to draw left of the strings, high string first, when the tuning isn't standard. */
   names: string[] | null;
@@ -77,7 +126,8 @@ export function columnWidth(column: Column): number {
   const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
   // A bend's arrow and label stand right of the number; a release needs more.
   const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
-  return Math.max(byTime, minColumnWidth(column)) + bend;
+  const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
+  return Math.max(byTime, minColumnWidth(column)) + bend + slideOut;
 }
 
 /** The least room a column's widest note needs. */
@@ -86,12 +136,14 @@ function minColumnWidth(column: Column): number {
   return widest * CHAR + 6;
 }
 
-/** What is written on the string for a note: "5", "x", "(5)", "<12>". */
+/**
+ * What is written on the string for a note: "5", "x", "<12>" for a natural harmonic, and in brackets
+ * a tie, "(5)" with an arc from the note before, or a ghost note, "(5)" or "(x)" alone.
+ */
 export function noteLabel(note: Note): string {
-  if (note.fret === null) return 'x';
   if (note.tie) return `(${note.fret})`;
-  if (note.harmonic) return `<${note.fret}>`;
-  return String(note.fret);
+  const label = note.fret === null ? 'x' : note.harmonic === 'natural' ? `<${note.fret}>` : String(note.fret);
+  return note.ghost ? `(${label})` : label;
 }
 
 function barWidth(bar: Bar): number {
@@ -136,12 +188,13 @@ export function layoutClip(clip: Clip, width: number): Layout {
     current.push({ bar, index, x0, x1: x, columns });
   });
   finish();
-  return { systems, height: systems.length * SYSTEM_HEIGHT, names };
+  const rows = rowsFor(clip);
+  return { systems, rows, height: systems.length * rows.height, names };
 }
 
 /** The y of a string's line within a system, high e (0) on top. */
-export function stringY(s: number): number {
-  return ROW.staffTop + s * ROW.stringGap;
+export function stringY(rows: Rows, s: number): number {
+  return rows.staffTop + s * STRING_GAP;
 }
 
 /* — the cursor — */
@@ -155,13 +208,14 @@ export interface Hit {
 
 /** What a point in the drawing is over; null below the last system or left of every bar. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
-  const system = layout.systems[Math.floor(y / SYSTEM_HEIGHT)];
+  const { rows } = layout;
+  const system = layout.systems[Math.floor(y / rows.height)];
   if (!system || y < 0) return null;
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1)
     ?? (x >= system.bars[system.bars.length - 1].x1 ? system.bars[system.bars.length - 1] : null);
   if (!bar) return null;
-  const localY = y - Math.floor(y / SYSTEM_HEIGHT) * SYSTEM_HEIGHT;
-  const string = Math.min(5, Math.max(0, Math.round((localY - ROW.staffTop) / ROW.stringGap)));
+  const localY = y - Math.floor(y / rows.height) * rows.height;
+  const string = Math.min(5, Math.max(0, Math.round((localY - rows.staffTop) / STRING_GAP)));
   let column = 0;
   bar.columns.forEach((c, i) => {
     if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;

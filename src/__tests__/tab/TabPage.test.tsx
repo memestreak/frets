@@ -188,6 +188,17 @@ describe('TabPage', () => {
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
     });
 
+    it('steps V, N, A and \\ through their kinds, and toggles L, G and S', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'v', 'v', 'n', 'n', 'a', 'a', '\\', 'l', 'g', 's');
+      expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 |');
+      expect(screen.getByRole('button', { name: 'Wide vibrato' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'false');
+      keys('v', 'g');
+      expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
+    });
+
     it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
       renderAt();
       act(() => editor().focus());

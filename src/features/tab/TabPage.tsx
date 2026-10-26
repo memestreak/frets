@@ -193,7 +193,7 @@ export default function TabPage() {
       editorRef.current?.blur();
       return;
     }
-    const cycled = applyCyclingKey(clip, cursor, key);
+    const cycled = applyCyclingKey(clip, target, key);
     if (cycled) {
       handled();
       commit(cycled);

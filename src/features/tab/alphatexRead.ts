@@ -27,7 +27,9 @@ export function loadAlphaTab(): Promise<AlphaTab> {
 /* — what Frets reads itself; everything else is kept as written — */
 
 /** Note effects Frets reads. */
-const NOTE_EFFECTS = new Set(['h', 'sl', 'ss', 'sib', 'sia', 'b', 'be', 'v', 'x', 't', 'nh', 'pm']);
+const NOTE_EFFECTS = new Set([
+  'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
+]);
 /** Beat effects Frets draws. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt']);
 /** Tags Frets reads: the title, the tuning, the time signature, repeats and endings. */
@@ -39,13 +41,13 @@ const BAR_TAGS = new Set([
   'spu', 'db', 'voicemode', 'barnumberdisplay', 'beaming',
 ]);
 
-/** What a few kept keywords are, for the line that lists them. */
+/** What a few kept keywords are, for the line that lists them; tags keep their backslash (\ac is a pickup bar, ac an accent). */
 const KEPT_NAMES: Record<string, string> = {
-  g: 'ghost note', lr: 'let ring', ac: 'accent', hac: 'heavy accent', st: 'staccato',
-  vw: 'wide vibrato', ah: 'artificial harmonic', ph: 'pinch harmonic', th: 'tapped harmonic',
+  '\\ac': 'pickup bar',
+  ah: 'artificial harmonic', th: 'tapped harmonic',
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
   tp: 'tremolo picking', tb: 'whammy bar', txt: 'text',
-  sou: 'slide out up', sod: 'slide out down', psu: 'pick slide up', psd: 'pick slide down',
+  psu: 'pick slide up', psd: 'pick slide down',
   fermata: 'fermata', rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
   au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
   rf: 'right-hand fingering', ten: 'tenuto',
@@ -104,8 +106,17 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
       n.bend = { quarters: nearestQuarters(peak), pre: values[0] > 0, release: values[values.length - 1] < peak };
     }
   }
-  if (note.vibrato === at.model.VibratoType.Slight) n.vibrato = true;
-  if (note.harmonicType === at.model.HarmonicType.Natural) n.harmonic = true;
+  if (note.slideOutType === at.model.SlideOutType.OutDown) n.slideOut = 'down';
+  if (note.slideOutType === at.model.SlideOutType.OutUp) n.slideOut = 'up';
+  if (note.vibrato === at.model.VibratoType.Slight) n.vibrato = 'slight';
+  if (note.vibrato === at.model.VibratoType.Wide) n.vibrato = 'wide';
+  if (note.harmonicType === at.model.HarmonicType.Natural) n.harmonic = 'natural';
+  if (note.harmonicType === at.model.HarmonicType.Pinch) n.harmonic = 'pinch';
+  if (note.isLetRing) n.letRing = true;
+  if (note.isGhost) n.ghost = true;
+  if (note.accentuated === at.model.AccentuationType.Normal) n.accent = 'normal';
+  if (note.accentuated === at.model.AccentuationType.Heavy) n.accent = 'heavy';
+  if (note.isStaccato) n.staccato = true;
   return n;
 }
 
@@ -219,7 +230,6 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         if (beat.tap) n.tap = true;
         const noteNode = node?.notes?.notes.find(nn => nn.noteString?.value === s + 1);
         const extra = keptEffects(text, noteNode?.noteEffects, NOTE_EFFECTS, kept);
-        if (note.vibrato === at.model.VibratoType.Wide && !extra.includes('vw')) extra.push('vw');
         if (extra.length > 0) n.extra = extra;
         column.notes[s] = n;
         origins.set(n, note);
@@ -242,7 +252,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   if (header.length > 0) clip.header = header;
 
   if (kept.size > 0) {
-    const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k.replace('\\', '')] ? ` (${KEPT_NAMES[k.replace('\\', '')]})` : ''}${n > 1 ? ` ×${n}` : ''}`);
+    const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k] ? ` (${KEPT_NAMES[k]})` : ''}${n > 1 ? ` ×${n}` : ''}`);
     warnings.push(`Kept but not drawn yet: ${list.join(', ')}.`);
   }
   const uneven = clip.bars.map((bar, i) => (isUneven(bar, clip.time) ? i + 1 : 0)).filter(Boolean);
