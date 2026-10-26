@@ -18,7 +18,7 @@ export function TabPalette({ isOn, kinds, onTool, onBend, disabled }: {
   /** What the cursor note has of the marks the Bend and Vibrato icons draw. */
   kinds: ReturnType<typeof noteKinds>;
   /** A bend amount picked in the Bend button's panel. */
-  onBend: (quarters: BendQuarters) => void;
+  onBend: (quarters: BendQuarters | null) => void;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -92,13 +92,13 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
 
 /**
  * The Bend button: its icon shows the cursor note's amount (none without a bend), and a press opens
- * a panel under it with every amount, the note's lit; picking one sets it, picking the lit one takes
+ * a panel under it with every amount and None, the note's lit; picking one sets it, None takes
  * the bend away. A press outside, or Esc, closes it; focus never leaves the tab.
  */
 function BendTool({ tool, amount, onBend, disabled }: {
   tool: Tool;
   amount: BendQuarters | null;
-  onBend: (quarters: BendQuarters) => void;
+  onBend: (quarters: BendQuarters | null) => void;
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -141,13 +141,13 @@ function BendTool({ tool, amount, onBend, disabled }: {
         <span className="tab-tool-panel card" role="dialog" aria-label="Bend">
           <span className="tab-bar-time-title">Bend</span>
           <span className="seg" role="group" aria-label="Bend amount">
-            {BEND_QUARTERS.map(q => (
+            {[...BEND_QUARTERS, null].map(q => (
               <button
-                key={q} type="button" className="seg-opt tab-bend-amount" aria-pressed={q === amount}
+                key={q ?? 'none'} type="button" className="seg-opt tab-bend-amount" aria-pressed={q === amount}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => { onBend(q); setOpen(false); }}
               >
-                {BEND_AMOUNTS[q]}
+                {q === null ? 'None' : BEND_AMOUNTS[q]}
               </button>
             ))}
           </span>

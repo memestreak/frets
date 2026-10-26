@@ -450,12 +450,11 @@ export function cycleSlide(clip: Clip, cursor: Cursor): Clip {
   });
 }
 
-/** Sets the bend amount of the target notes (the Bend button's panel), or clears the bend when they all bend that much. */
-export function setBend(clip: Clip, target: Target, quarters: BendQuarters): Clip {
-  const off = targetNotes(clip, target).every(n => n.bend?.quarters === quarters);
+/** Sets the bend amount of the target notes, or takes their bends away with null: the Bend button's panel. */
+export function setBend(clip: Clip, target: Target, quarters: BendQuarters | null): Clip {
   return changeNotes(clip, target, note => {
     const { bend, ...rest } = note;
-    if (off) return rest;
+    if (quarters === null) return rest;
     // A ¼-tone curl is never pre-bent.
     return { ...rest, bend: { quarters, pre: quarters === 1 ? false : bend?.pre ?? false, release: bend?.release ?? false } };
   });

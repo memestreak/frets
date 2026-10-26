@@ -77,8 +77,8 @@ groups are:
    slide in from above.
 3. Bends: Bend, release, pre-bend. One Bend button (Jeremy, 2026-10-26,
    in place of one per amount): a press opens a small panel under it with
-   ¼ · ½ · full · 1½ · 2, the note's amount lit; picking one sets it,
-   picking the lit one takes the bend away, and a press outside or Esc
+   ¼ · ½ · full · 1½ · 2 · None, the note's amount lit (None without a
+   bend); picking one sets it, None takes the bend away, and a press outside or Esc
    closes it with the cursor left on the tab. Its icon shows the note's
    amount, none without a bend. B still steps through the amounts.
 4. Techniques: vibrato (one button stepping normal, wide, off, as V does;

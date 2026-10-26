@@ -199,7 +199,7 @@ describe('TabPage', () => {
       expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
     });
 
-    it('picks a bend amount from the Bend button\'s panel, and takes it away with the lit one', () => {
+    it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
       renderAt();
       act(() => editor().focus());
       keys('7');
@@ -215,8 +215,11 @@ describe('TabPage', () => {
       fireEvent.click(screen.getByRole('button', { name: '½' }));
       expect(alphaTex()).toBe('7.1{b (0 2)}.4 |');
       fireEvent.click(bend());
-      fireEvent.click(screen.getByRole('button', { name: '½' }));
+      fireEvent.click(screen.getByRole('button', { name: 'None' }));
       expect(alphaTex()).toBe('7.1.4 |');
+      fireEvent.click(bend());
+      expect(screen.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(bend());
       // Esc closes the panel and leaves the cursor on the tab.
       fireEvent.click(bend());
       fireEvent.keyDown(editor(), { key: 'Escape' });
