@@ -445,6 +445,33 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('150');
   });
 
+  it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    expect(screen.queryByRole('slider', { name: 'Position' })).toBeNull();
+    const loop = () => screen.getByRole('button', { name: 'Loop' });
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7', 'ArrowRight', '9']) fireEvent.keyDown(editor, { key });
+    // No selection: the whole clip; pressed again, cleared.
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    // A selection: its notes; the same selection again clears them, another moves them.
+    fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(loop());
+    fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
+    expect(loop()).toHaveAttribute('data-tip', 'Loop the selected notes');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });

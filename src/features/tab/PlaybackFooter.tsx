@@ -1,10 +1,9 @@
 'use client';
 
 /**
- * Playback, in a footer under the tab (Jeremy picked it from three mocks, 2026-10-26): a round Play,
- * a line of progress through the clip split into bars (press it to jump there, or to put the cursor
- * there when nothing plays), Loop and Speed. The playhead is drawn
- * over the tab by `Playhead`. The sound is `playback.ts`.
+ * Playback, in a footer under the tab (Jeremy picked it from three mocks, 2026-10-26): a round Play
+ * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
+ * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PauseIcon, PlayIcon } from '@/components/icons';
@@ -13,7 +12,7 @@ import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
 import { SpeedField } from './SpeedField';
 import { VolumeKnob } from './VolumeKnob';
-import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, timeline, type PlayerView, type Sound } from './playback';
+import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
 
 /** The saved playback settings: whether the controls show (hidden at first), the sound and the volume. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -37,7 +36,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
   };
 }
 
-/** What a Loop repeats: the columns selected when it was turned on, or the whole clip. */
+/** The loop points: the columns selected when Loop was pressed, or the whole clip. */
 export type Loop = [number, number] | 'whole';
 
 export interface Playback {
@@ -48,11 +47,12 @@ export interface Playback {
   speed: number;
   /** Plays from `from` (a column), or pauses. */
   toggle: (from: number) => void;
-  /** Loop on (the selection, else the whole clip) or off. */
+  /**
+   * Loop pressed: with notes selected, the loop points go round them (pressed again on the same
+   * notes, they go); with none, round the whole clip, or off when there are some.
+   */
   toggleLoop: (selection: [number, number] | null) => void;
   setSpeed: (speed: number) => void;
-  /** Moves the playing clip to a column; false when nothing is playing. */
-  seek: (index: number) => boolean;
   /** Stops, leaving the cursor where it is: when the footer is hidden. */
   stop: () => void;
 }
@@ -107,18 +107,14 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (
       );
     },
     toggleLoop: selection => {
-      const next: Loop | null = loop ? null : selection ?? 'whole';
+      const same = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
+      const next: Loop | null = selection && !same ? selection : loop ? null : 'whole';
       setLoop(next);
       player.current?.setLoop(next);
     },
     setSpeed: s => {
       setSpeedState(s);
       player.current?.setSpeed(s);
-    },
-    seek: index => {
-      if (view.state !== 'playing') return false;
-      player.current?.seek(index);
-      return true;
     },
     stop: () => player.current?.stop(),
   };
@@ -144,7 +140,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow, sound, onSound, volume, onVolume }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -156,25 +152,18 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
   /** Whether the controls show; hidden, only the small button does. */
   shown: boolean;
   onShow: (shown: boolean) => void;
-  /** A press on the progress line while nothing plays: the column there, for the cursor. */
-  onPlace: (index: number) => void;
-  /** The column a Play starts from: the selection's first, else the cursor's. */
+  /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
   selection: [number, number] | null;
 }) {
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
-  // The line is the clip as written, each bar as long as its time: a repeat goes back along it.
-  const time = timeline(clip);
-  const total = time.columns.length;
-  // Playing, the line fills to the column sounding; stopped, to where Play will start.
-  const startsAt = Array.isArray(loop) && (from < loop[0] || from > loop[1]) ? loop[0] : from;
-  const upTo = view.column ?? (view.state === 'playing' ? null : startsAt);
-  const progress = upTo === null ? 0 : (time.columns[upTo] ?? 0) / Math.max(1, time.total);
+  const total = columnCount(clip);
   const percent = Math.round(speed * 100);
-  const loopTip = loop
-    ? 'Loop on: press to play once'
-    : selection ? 'Loop the selected notes' : 'Loop the whole clip (select notes to loop just those)';
+  const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
+  const loopTip = selection && !sameAsLoop
+    ? 'Loop the selected notes'
+    : loop ? 'Clear the loop points' : 'Loop the whole clip (select notes to loop just those)';
   const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Pause' : 'Play';
   return (
     <div className="tab-playback-row">
@@ -195,35 +184,15 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
         <div className="tab-playback" aria-label="Playback" role="group">
           <button
             type="button" className="btn btn-primary btn-icon tab-play" aria-label={playLabel} data-tip={`${playLabel} (Space)`}
-            disabled={total === 0} onClick={() => playback.toggle(from)}
+            disabled={total === 0}
+            // A press leaves the focus (and so the cursor) on the tab.
+            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from)}
           >
             {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <PauseIcon /> : <PlayIcon />}
           </button>
-          <div
-            className="tab-progress" role="slider" aria-label="Position" aria-valuemin={0} aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)} tabIndex={-1}
-            // The press leaves the focus where it was (or where onPlace puts it).
-            onMouseDown={e => e.preventDefault()}
-            onPointerDown={e => {
-              // The column at the point pressed: while playing, the clip goes there; else the cursor does.
-              const box = e.currentTarget.getBoundingClientRect();
-              const at = ((e.clientX - box.left) / box.width) * time.total;
-              let index = 0;
-              while (index + 1 < time.columns.length && time.columns[index + 1] <= at) index++;
-              if (!playback.seek(index)) onPlace(index);
-            }}
-          >
-            {/* The line drawn; the press area round it is as tall as Play, so a press near the line counts. */}
-            <div className="tab-progress-track">
-              <div className="tab-progress-done" style={{ width: `${progress * 100}%` }} />
-              {time.bars.slice(1).map((start, i) => (
-                <div key={i} className="tab-progress-bar" style={{ left: `${(start / Math.max(1, time.total)) * 100}%` }} />
-              ))}
-            </div>
-          </div>
           <button
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
-            onClick={() => playback.toggleLoop(selection)}
+            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggleLoop(selection)}
           >
             <LoopIcon />
           </button>

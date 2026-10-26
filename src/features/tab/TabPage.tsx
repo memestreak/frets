@@ -112,7 +112,7 @@ export default function TabPage() {
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
   const showPlayback = playbackSettings.shown;
-  // Playback starts at the selection's first column, else the cursor's; a Loop takes the selection.
+  // Playback starts at the selection's first column, else the cursor's, else the first; Loop takes the selection.
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, column => {
     setSelection(null);
     setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
@@ -123,7 +123,8 @@ export default function TabPage() {
     setPlaybackSettings(s => ({ ...s, shown }));
   };
   const selectedColumns = selection ? selectedRange(selection) : null;
-  const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
+  // With no cursor on the tab (and nothing selected), Play starts from the beginning.
+  const playFrom = selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0;
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -609,7 +610,6 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
-            onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
           />
         </HoverTips>
       </section>

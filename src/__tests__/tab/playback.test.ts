@@ -5,7 +5,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, DEFAULT_SOUND, isSound, perform, SOUND_FAMILIES, tickOf, ticksOf, timeline } from '@/features/tab/playback';
+import { columnAtTick, DEFAULT_SOUND, isSound, perform, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -77,10 +77,4 @@ describe('playback', () => {
     expect(ticksOf(clip, perform(alphaTab, clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });
   });
 
-  it('lays the clip along the progress line as written, a repeat once', () => {
-    const clip = clipOf('\\ro \\rc 2 0.6.2 2.6.2 | 3.6.1 |');
-    const line = timeline(clip);
-    expect(line.columns.map(t => t / line.total)).toEqual([0, 0.25, 0.5]);
-    expect(line.bars.map(t => t / line.total)).toEqual([0, 0.5]);
-  });
 });
