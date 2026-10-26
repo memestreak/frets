@@ -4,6 +4,7 @@ import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { STORAGE_KEY } from '@/features/tab/clipState';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
+import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 
 const RIFF = [
   'Title: Riff',
@@ -370,6 +371,36 @@ describe('TabPage', () => {
       keys('5');
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
     });
+  });
+});
+
+describe('TabPage playback', () => {
+  const footer = () => screen.queryByRole('group', { name: 'Playback' });
+  const toggle = () => screen.getByRole('button', { name: 'Playback' });
+
+  it('hides the playback footer at first, shows it on the round button, and remembers the choice', () => {
+    renderAt();
+    expect(footer()).toBeNull();
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle());
+    expect(footer()).not.toBeNull();
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem(PLAYBACK_KEY)).toBe('true');
+    cleanup();
+    renderAt();
+    expect(footer()).not.toBeNull();
+    fireEvent.click(toggle());
+    expect(footer()).toBeNull();
+    expect(localStorage.getItem(PLAYBACK_KEY)).toBe('false');
+  });
+
+  it("doesn't play on Space while the footer is hidden", () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    fireEvent.keyDown(editor, { key: ' ' });
+    // Nothing plays, so no spinner and no Pause.
+    expect(screen.queryByRole('button', { name: /Loading the sound|Pause/ })).toBeNull();
   });
 });
 

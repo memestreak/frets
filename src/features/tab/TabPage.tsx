@@ -4,7 +4,7 @@ import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, PlayIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
@@ -32,7 +32,7 @@ import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
-import { PlaybackFooter, Playhead, usePlayback } from './PlaybackFooter';
+import { PLAYBACK_KEY, PlaybackFooter, Playhead, parseShowPlayback, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -114,6 +114,13 @@ export default function TabPage() {
     setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
     editorRef.current?.focus();
   });
+  // The footer shows only when chosen (the round button in the header); hidden, Space doesn't play.
+  const [showPlayback, setShowPlayback] = useState(() => parseShowPlayback(loadJson(PLAYBACK_KEY)));
+  usePersist(PLAYBACK_KEY, showPlayback);
+  const togglePlayback = () => {
+    if (showPlayback) playback.stop();
+    setShowPlayback(!showPlayback);
+  };
   const selectedColumns = selection ? selectedRange(selection) : null;
   const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
 
@@ -194,8 +201,9 @@ export default function TabPage() {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
     if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // Space plays only while the footer shows; hidden, it does nothing (not even scroll the page).
       e.preventDefault();
-      playback.toggle(playFrom);
+      if (showPlayback) playback.toggle(playFrom);
       return;
     }
     if (e.ctrlKey || e.metaKey) {
@@ -538,6 +546,14 @@ export default function TabPage() {
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
+          <HoverTips>
+            <button
+              type="button" className="btn btn-secondary btn-toggle btn-icon tab-play" aria-label="Playback" aria-pressed={showPlayback}
+              data-tip={showPlayback ? 'Hide playback' : 'Show playback'} onClick={togglePlayback}
+            >
+              <PlayIcon />
+            </button>
+          </HoverTips>
         </div>
       </header>
 
@@ -552,7 +568,7 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} />}
+          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -594,12 +610,14 @@ export default function TabPage() {
             />
           )}
         </div>
-        <HoverTips>
-          <PlaybackFooter
-            clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
-            onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
-          />
-        </HoverTips>
+        {showPlayback && (
+          <HoverTips>
+            <PlaybackFooter
+              clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
+              onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
+            />
+          </HoverTips>
+        )}
       </section>
 
       <p

@@ -7,9 +7,15 @@ and Play in the header. He picked the footer in the card.
 
 ## What the page shows
 
+A small round button with a play triangle, at the end of the header's
+buttons, shows or hides the playback footer (Jeremy, 2026-10-26). It is
+hidden at first, and the page remembers the last choice
+(`frets.tab.playback`). Hidden, Space does nothing and the playhead is
+gone; hiding it while the clip plays stops it.
+
 The clip's card has a footer under the tab, split from it by a line:
 
-- **Play / Pause.** A round button; Space does the same while the tab has
+- **Play / Pause.** A round button; Space does the same while the footer shows and the tab has
   the focus. Play starts at the selection's first column, else at the
   cursor's. Pause stops and puts the cursor on the column it stopped on,
   with the playhead gone, so the next Play goes on from there (Jeremy,

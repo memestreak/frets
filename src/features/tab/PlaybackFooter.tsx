@@ -13,6 +13,14 @@ import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
 import { MAX_SPEED, MIN_SPEED, TabPlayer, timeline, type PlayerView } from './playback';
 
+/** Whether the playback footer shows (a round button in the header); hidden at first. */
+export const PLAYBACK_KEY = 'frets.tab.playback';
+
+/** The saved choice: shown only when it was saved as shown. */
+export function parseShowPlayback(saved: unknown): boolean {
+  return saved === true;
+}
+
 /** What a Loop repeats: the columns selected when it was turned on, or the whole clip. */
 export type Loop = [number, number] | 'whole';
 
@@ -29,6 +37,8 @@ export interface Playback {
   setSpeed: (speed: number) => void;
   /** Moves the playing clip to a column; false when nothing is playing. */
   seek: (index: number) => boolean;
+  /** Stops, leaving the cursor where it is: when the footer is hidden. */
+  stop: () => void;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
@@ -86,6 +96,7 @@ export function usePlayback(clip: Clip, onPause: (column: number) => void): Play
       player.current?.seek(index);
       return true;
     },
+    stop: () => player.current?.stop(),
   };
 }
 
