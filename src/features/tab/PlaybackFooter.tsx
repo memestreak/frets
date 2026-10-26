@@ -13,6 +13,14 @@ import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
 import { MAX_SPEED, MIN_SPEED, TabPlayer, timeline, type PlayerView } from './playback';
 
+/** Whether the playback controls show (the small round button under the tab); hidden at first. */
+export const PLAYBACK_KEY = 'frets.tab.playback';
+
+/** The saved choice: shown only when it was saved as shown. */
+export function parseShowPlayback(saved: unknown): boolean {
+  return saved === true;
+}
+
 /** What a Loop repeats: the columns selected when it was turned on, or the whole clip. */
 export type Loop = [number, number] | 'whole';
 
@@ -29,6 +37,8 @@ export interface Playback {
   setSpeed: (speed: number) => void;
   /** Moves the playing clip to a column; false when nothing is playing. */
   seek: (index: number) => boolean;
+  /** Stops, leaving the cursor where it is: when the footer is hidden. */
+  stop: () => void;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
@@ -86,6 +96,7 @@ export function usePlayback(clip: Clip, onPause: (column: number) => void): Play
       player.current?.seek(index);
       return true;
     },
+    stop: () => player.current?.stop(),
   };
 }
 
@@ -105,9 +116,16 @@ function LoopIcon() {
   );
 }
 
-export function PlaybackFooter({ clip, playback, from, selection, onPlace }: {
+/**
+ * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
+ * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
+ */
+export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow }: {
   clip: Clip;
   playback: Playback;
+  /** Whether the controls show; hidden, only the small button does. */
+  shown: boolean;
+  onShow: (shown: boolean) => void;
   /** A press on the progress line while nothing plays: the column there, for the cursor. */
   onPlace: (index: number) => void;
   /** The column a Play starts from: the selection's first, else the cursor's. */
@@ -121,55 +139,72 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace }: {
   const total = time.columns.length;
   // Playing, the line fills to the column sounding; stopped, to where Play will start.
   const startsAt = Array.isArray(loop) && (from < loop[0] || from > loop[1]) ? loop[0] : from;
-  const shown = view.column ?? (view.state === 'playing' ? null : startsAt);
-  const progress = shown === null ? 0 : (time.columns[shown] ?? 0) / Math.max(1, time.total);
+  const upTo = view.column ?? (view.state === 'playing' ? null : startsAt);
+  const progress = upTo === null ? 0 : (time.columns[upTo] ?? 0) / Math.max(1, time.total);
   const percent = Math.round(speed * 100);
   const loopTip = loop
     ? 'Loop on: press to play once'
     : selection ? 'Loop the selected notes' : 'Loop the whole clip (select notes to loop just those)';
   const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Pause' : 'Play';
   return (
-    <div className="tab-playback" aria-label="Playback" role="group">
-      <button
-        type="button" className="btn btn-primary btn-icon tab-play" aria-label={playLabel} data-tip={`${playLabel} (Space)`}
-        disabled={total === 0} onClick={() => playback.toggle(from)}
-      >
-        {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <PauseIcon /> : <PlayIcon />}
-      </button>
-      <div
-        className="tab-progress" role="slider" aria-label="Position" aria-valuemin={0} aria-valuemax={100}
-        aria-valuenow={Math.round(progress * 100)} tabIndex={-1}
-        // The press leaves the focus where it was (or where onPlace puts it).
-        onMouseDown={e => e.preventDefault()}
-        onPointerDown={e => {
-          // The column at the point pressed: while playing, the clip goes there; else the cursor does.
-          const box = e.currentTarget.getBoundingClientRect();
-          const at = ((e.clientX - box.left) / box.width) * time.total;
-          let index = 0;
-          while (index + 1 < time.columns.length && time.columns[index + 1] <= at) index++;
-          if (!playback.seek(index)) onPlace(index);
-        }}
-      >
-        <div className="tab-progress-done" style={{ width: `${progress * 100}%` }} />
-        {time.bars.slice(1).map((start, i) => (
-          <div key={i} className="tab-progress-bar" style={{ left: `${(start / Math.max(1, time.total)) * 100}%` }} />
-        ))}
+    <div className="tab-playback-row">
+      {/* The divider: the button at its left end, the line (only with the controls) just short of it. */}
+      <div className="tab-playback-rule">
+        <button
+          type="button" className="tab-playback-toggle" aria-label="Playback controls" aria-pressed={shown}
+          data-tip={shown ? 'Hide playback' : 'Show playback'} onClick={() => onShow(!shown)}
+        >
+          {/* Hidden: a green play triangle. Shown: a plain minus, to put them away. */}
+          {shown
+            ? <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1 4h6" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" /></svg>
+            : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
+        </button>
+        {shown && <span className="tab-playback-line" aria-hidden="true" />}
       </div>
-      <button
-        type="button" className="btn btn-secondary btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
-        onClick={() => playback.toggleLoop(selection)}
-      >
-        <LoopIcon />
-      </button>
-      <label className="tab-speed">
-        <span className="text-(--ink-muted)">Speed</span>
-        <input
-          type="range" min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} value={percent} aria-label="Speed"
-          onChange={e => playback.setSpeed(Number(e.target.value) / 100)}
-        />
-        <span className="tab-speed-value">{percent}% · {Math.round(playback.bpm * speed)} bpm</span>
-      </label>
-      {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
+      {shown && (
+        <div className="tab-playback" aria-label="Playback" role="group">
+          <button
+            type="button" className="btn btn-primary btn-icon tab-play" aria-label={playLabel} data-tip={`${playLabel} (Space)`}
+            disabled={total === 0} onClick={() => playback.toggle(from)}
+          >
+            {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <PauseIcon /> : <PlayIcon />}
+          </button>
+          <div
+            className="tab-progress" role="slider" aria-label="Position" aria-valuemin={0} aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)} tabIndex={-1}
+            // The press leaves the focus where it was (or where onPlace puts it).
+            onMouseDown={e => e.preventDefault()}
+            onPointerDown={e => {
+              // The column at the point pressed: while playing, the clip goes there; else the cursor does.
+              const box = e.currentTarget.getBoundingClientRect();
+              const at = ((e.clientX - box.left) / box.width) * time.total;
+              let index = 0;
+              while (index + 1 < time.columns.length && time.columns[index + 1] <= at) index++;
+              if (!playback.seek(index)) onPlace(index);
+            }}
+          >
+            <div className="tab-progress-done" style={{ width: `${progress * 100}%` }} />
+            {time.bars.slice(1).map((start, i) => (
+              <div key={i} className="tab-progress-bar" style={{ left: `${(start / Math.max(1, time.total)) * 100}%` }} />
+            ))}
+          </div>
+          <button
+            type="button" className="btn btn-secondary btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
+            onClick={() => playback.toggleLoop(selection)}
+          >
+            <LoopIcon />
+          </button>
+          <label className="tab-speed">
+            <span className="text-(--ink-muted)">Speed</span>
+            <input
+              type="range" min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} value={percent} aria-label="Speed"
+              onChange={e => playback.setSpeed(Number(e.target.value) / 100)}
+            />
+            <span className="tab-speed-value">{percent}% · {Math.round(playback.bpm * speed)} bpm</span>
+          </label>
+          {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
+        </div>
+      )}
     </div>
   );
 }

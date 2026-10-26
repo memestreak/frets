@@ -32,7 +32,7 @@ import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
-import { PlaybackFooter, Playhead, usePlayback } from './PlaybackFooter';
+import { PLAYBACK_KEY, PlaybackFooter, Playhead, parseShowPlayback, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -114,6 +114,13 @@ export default function TabPage() {
     setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
     editorRef.current?.focus();
   });
+  // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
+  const [showPlayback, setShowPlayback] = useState(() => parseShowPlayback(loadJson(PLAYBACK_KEY)));
+  usePersist(PLAYBACK_KEY, showPlayback);
+  const showPlaybackControls = (shown: boolean) => {
+    if (!shown) playback.stop();
+    setShowPlayback(shown);
+  };
   const selectedColumns = selection ? selectedRange(selection) : null;
   const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
 
@@ -194,8 +201,9 @@ export default function TabPage() {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
     if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // Space plays only while the footer shows; hidden, it does nothing (not even scroll the page).
       e.preventDefault();
-      playback.toggle(playFrom);
+      if (showPlayback) playback.toggle(playFrom);
       return;
     }
     if (e.ctrlKey || e.metaKey) {
@@ -552,7 +560,7 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} />}
+          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -597,6 +605,7 @@ export default function TabPage() {
         <HoverTips>
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
+            shown={showPlayback} onShow={showPlaybackControls}
             onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
           />
         </HoverTips>
