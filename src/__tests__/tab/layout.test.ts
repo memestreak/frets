@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnWidth, layoutClip, rowsFor } from '@/features/tab/layout';
+import { columnWidth, hitTest, layoutClip, rowsFor, runAt } from '@/features/tab/layout';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
@@ -98,5 +98,30 @@ describe('rowsFor', () => {
     expect(new Set(used).size).toBe(used.length);
     expect(rows.staffTop).toBeGreaterThan(rows.accents! + 10);
     expect(rows.height).toBe(rows.staffBottom + 54);
+  });
+});
+
+describe('pressing the drawing', () => {
+  const clipOf = (tex: string) => {
+    const result = readAlphaTexWith(alphaTab, tex);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return result.clip;
+  };
+  const layout = layoutClip(clipOf('0.6{pm}.8 0.6{pm}.8 0.6.4 r.2 |'), 800);
+  const { rows } = layout;
+  const [first, second] = layout.systems[0].bars[0].columns;
+
+  it('lands on the staff only, not over or under it or past the last bar', () => {
+    expect(hitTest(layout, first.x, rows.staffTop)).toEqual({ bar: 0, column: 0, string: 0 });
+    expect(hitTest(layout, first.x, rows.palmMute!)).toBeNull();
+    expect(hitTest(layout, first.x, rows.stemBottom)).toBeNull();
+    expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();
+  });
+
+  it('finds the P.M. run under a press on its label or line', () => {
+    const hit = runAt(layout, first.x, rows.palmMute!);
+    expect(hit?.mark).toBe('palmMute');
+    expect(hit?.run.columns).toEqual([first, second]);
+    expect(runAt(layout, first.x, rows.staffTop)).toBeNull();
   });
 });

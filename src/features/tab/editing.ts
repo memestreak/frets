@@ -98,6 +98,19 @@ export function noteBefore(clip: Clip, cursor: Cursor): Note | null {
   return null;
 }
 
+/**
+ * The places of the run of columns round `index` that all have a mark (`has`), as the P.M. and let
+ * ring lines run: across bars and lines of tab, as far as the mark goes.
+ */
+export function runAround(clip: Clip, index: number, has: (column: Column) => boolean): [number, number] {
+  const columns = clip.bars.flatMap(b => b.columns);
+  let from = index;
+  let to = index;
+  while (from > 0 && has(columns[from - 1])) from--;
+  while (to < columns.length - 1 && has(columns[to + 1])) to++;
+  return [from, to];
+}
+
 /* — keeping joins true — */
 
 /**

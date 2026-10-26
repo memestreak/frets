@@ -80,3 +80,21 @@ Three new examples: Accents, ghost notes and staccato (`accents`), Let ring
 (`let-ring`), and Pinch harmonics, wide vibrato, slides out (`lead`). The
 agent guide's section 3 lists the marks, its checklist says how to read
 them from a picture, and its examples gain one that uses them.
+
+## Pressing the drawing
+
+Jeremy, 2026-10-26: "When I click on the palm mute annotation, it should
+highlight the associated fretting … click on the palm mute and then disable
+it." And: "clicking in an area in the clip, other than the tablature itself,
+should not highlight the tablature."
+
+- A press on a P.M. or let ring line, on its label or its dashes, selects
+  every column of the run. The run counts across bars and lines of tab
+  (`runAround`). The cursor goes to the run's first marked note, so the
+  mark's button shows pressed, and one press of it, or of M or L, turns the
+  whole run off.
+- A press lands on the tab only on the staff of a bar: between 10 units
+  above the top string and 10 below the bottom one (the cursor's band).
+  Marks over the staff, the rhythm under it, and the space past the last bar
+  are blank space. A press there takes no focus, and if the editor had the
+  cursor or a selection, they go, as with Esc.

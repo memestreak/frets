@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  isRest, isStandardTuning, ticks, WHOLE,
+  isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note,
 } from './clip';
 
@@ -197,6 +197,57 @@ export function stringY(rows: Rows, s: number): number {
   return rows.staffTop + s * STRING_GAP;
 }
 
+/* — palm mute and let ring: a label and a dashed line over a run of columns — */
+
+export type RunMark = 'palmMute' | 'letRing';
+export const RUN_MARKS: { mark: RunMark; label: string; has: (column: Column) => boolean }[] = [
+  { mark: 'palmMute', label: 'P.M.', has: isPalmMuted },
+  { mark: 'letRing', label: 'let ring', has: isLetRing },
+];
+
+/** One run as drawn on one line of tab: its columns, and where its label starts and its line ends. */
+export interface Run {
+  columns: PlacedColumn[];
+  x0: number;
+  x1: number;
+}
+
+/** How wide a run's label is drawn. */
+export function runLabelWidth(label: string): number {
+  return label.length * 5.5;
+}
+
+/** The runs of columns that have a mark, on one line of tab. */
+export function runsIn(system: System, has: (column: Column) => boolean): Run[] {
+  const runs: Run[] = [];
+  let current: PlacedColumn[] = [];
+  const close = () => {
+    if (current.length > 0) runs.push({ columns: current, x0: current[0].x - 8, x1: current[current.length - 1].x + 8 });
+    current = [];
+  };
+  for (const placed of system.bars.flatMap(b => b.columns)) {
+    if (has(placed.column)) current.push(placed);
+    else close();
+  }
+  close();
+  return runs;
+}
+
+/** The run under a point, label or line, with the mark it draws; null when there is none. */
+export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; run: Run } | null {
+  const { rows } = layout;
+  const system = layout.systems[Math.floor(y / rows.height)];
+  if (!system || y < 0) return null;
+  const localY = y - Math.floor(y / rows.height) * rows.height;
+  for (const { mark, label, has } of RUN_MARKS) {
+    const rowY = rows[mark];
+    if (rowY === null || Math.abs(localY - rowY) > 7) continue;
+    const run = runsIn(system, has).find(r => x >= r.x0 - 2 && x <= Math.max(r.x1, r.x0 + runLabelWidth(label)) + 2);
+    if (run) return { mark, run };
+  }
+  return null;
+}
+
 /* — the cursor — */
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
@@ -206,15 +257,20 @@ export interface Hit {
   string: number;
 }
 
-/** What a point in the drawing is over; null below the last system or left of every bar. */
+/** How far above the top string and below the bottom one a press still lands on the staff, as the cursor's band reaches. */
+export const STAFF_REACH = 10;
+
+/** The column and string a press lands on; null anywhere but on the staff of a bar. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   const { rows } = layout;
   const system = layout.systems[Math.floor(y / rows.height)];
   if (!system || y < 0) return null;
-  const bar = system.bars.find(b => x >= b.x0 && x < b.x1)
-    ?? (x >= system.bars[system.bars.length - 1].x1 ? system.bars[system.bars.length - 1] : null);
-  if (!bar) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
+  // Only the staff itself, as far as the cursor's band reaches: not the marks over it, the rhythm
+  // under it, or the blank space beside the last bar.
+  if (localY < rows.staffTop - STAFF_REACH || localY > rows.staffBottom + STAFF_REACH) return null;
+  const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
+  if (!bar) return null;
   const string = Math.min(5, Math.max(0, Math.round((localY - rows.staffTop) / STRING_GAP)));
   let column = 0;
   bar.columns.forEach((c, i) => {

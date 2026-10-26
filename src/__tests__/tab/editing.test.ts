@@ -5,7 +5,7 @@ import { emptyClip, type Clip } from '@/features/tab/clip';
 import {
   clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
   deleteColumns, indexOf, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
-  stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie, type Cursor,
+  stepDuration, setMark, cycleMark, runAround, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
 
 function clipOf(text: string): Clip {
@@ -210,5 +210,13 @@ describe('cut, copy and paste', () => {
     const result = pasteAt(emptyClip(), at(0, 0, 0), pasted);
     expect(result.clip.name).toBe('Lick');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
+  });
+});
+
+describe('runAround', () => {
+  it('reaches as far as the mark goes, across bars', () => {
+    const clip = clipOf('0.6.4 0.6{pm}.4 0.6{pm}.2 | 0.6{pm}.2 0.6.2 |');
+    const muted = (c: { notes: ({ palmMute?: boolean } | null)[] }) => c.notes.some(n => n?.palmMute);
+    expect(runAround(clip, 2, muted)).toEqual([1, 3]);
   });
 });

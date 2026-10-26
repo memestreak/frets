@@ -1,11 +1,11 @@
-import { useId, type PointerEvent, type ReactNode } from 'react';
+import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isLetRing, isPalmMuted, isRest, slideDirections, STRING_COUNT,
+  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
-  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, stringY,
-  type Hit, type PlacedBar, type PlacedColumn, type Rows, type System,
+  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn, stringY,
+  type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -41,7 +41,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -53,13 +53,31 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   highlight?: Highlight;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   onPick?: (hit: Hit, extend: boolean) => void;
+  /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
+  onPickRun?: (mark: RunMark, index: number) => void;
+  /** A press on neither the staff nor a P.M. or let ring line. */
+  onMiss?: () => void;
 }) {
   const layout = layoutClip(clip, width);
+  /** What a press at a point in the drawing is on. */
+  const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - box.left;
+    const py = e.clientY - box.top;
+    const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
+    return { run, hit: run ? null : hitTest(layout, px, py) };
+  };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const box = e.currentTarget.getBoundingClientRect();
-    const hit = hitTest(layout, e.clientX - box.left, e.clientY - box.top);
-    if (hit) onPick(hit, e.shiftKey);
+    const { run, hit } = target(e);
+    if (run) onPickRun!(run.mark, run.run.columns[0].index);
+    else if (hit) onPick(hit, e.shiftKey);
+    else onMiss?.();
+  };
+  // A press on blank space doesn't take the focus, so no cursor appears there.
+  const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
+    const { run, hit } = target(e);
+    if (!run && !hit) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -72,7 +90,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
     <svg
       x={x} y={y} width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined} onMouseDown={onPick ? keepFocus : undefined}
     >
       {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
       {spot && highlight?.cursor && (
@@ -211,32 +229,20 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   });
 
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
-  const placedAll = system.bars.flatMap(b => b.columns);
-  const runs = [
-    { name: 'palm-mute', label: 'P.M.', y: rows.palmMute, has: isPalmMuted },
-    { name: 'let-ring', label: 'let ring', y: rows.letRing, has: isLetRing },
-  ];
-  for (const run of runs) {
-    if (run.y === null) continue;
-    const y = run.y;
-    const on = (p: PlacedColumn | undefined) => p !== undefined && run.has(p.column);
-    const labelWidth = run.label.length * 5.5;
-    placedAll.forEach((placed, k) => {
-      if (!on(placed) || on(placedAll[k - 1])) return;
-      let last = k;
-      while (on(placedAll[last + 1])) last++;
-      const x0 = placed.x - 8;
-      const x1 = placedAll[last].x + 8;
+  for (const { mark, label, has } of RUN_MARKS) {
+    const y = rows[mark];
+    if (y === null) continue;
+    const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
+    for (const { columns, x0, x1 } of runsIn(system, has)) {
+      const lw = runLabelWidth(label);
       parts.push(
-        <g key={`${run.name}-${k}`} data-testid={run.name}>
-          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{run.label}</text>
-          {x1 > x0 + labelWidth + 2 && (
-            <line x1={x0 + labelWidth} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />
-          )}
+        <g key={`${name}-${columns[0].index}`} data-testid={name}>
+          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
+          {x1 > x0 + lw + 2 && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
           <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />
         </g>,
       );
-    });
+    }
   }
 
   for (const bar of system.bars) {
