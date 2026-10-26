@@ -137,7 +137,8 @@ const ICONS: Record<ToolId, ReactNode> = {
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
-  barTime: <><line x1={5} y1={4} x2={5} y2={20} /><Label x={14} y={11} size={9.5}>3</Label><Label x={14} y={20} size={9.5}>4</Label></>,
+  // A time signature in general: N beats over an M note.
+  barTime: <><Label y={11} size={10}>N</Label><Label y={21} size={10}>M</Label></>,
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
