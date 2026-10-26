@@ -11,9 +11,10 @@ import { PauseIcon, PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
+import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, timeline, type PlayerView, type Sound } from './playback';
 
-/** The saved playback settings: whether the controls show (hidden at first) and the sound. */
+/** The saved playback settings: whether the controls show (hidden at first), the sound and the volume. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
 export interface PlaybackSettings {
@@ -21,6 +22,8 @@ export interface PlaybackSettings {
   shown: boolean;
   /** The General MIDI program the clip plays in. */
   sound: Sound;
+  /** The volume knob, 0 (silent) to 1 (full). */
+  volume: number;
 }
 
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
@@ -29,6 +32,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
   return {
     shown: fields.shown === true,
     sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
+    volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
   };
 }
 
@@ -58,7 +62,7 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * Playback of a clip; any edit stops it, so the next Play plays what is drawn. A pause hands
  * `onPause` the column it stopped on, for the cursor: Play starts from the cursor, so it resumes.
  */
-export function usePlayback(clip: Clip, sound: Sound, onPause: (column: number) => void): Playback {
+export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (column: number) => void): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
@@ -73,6 +77,9 @@ export function usePlayback(clip: Clip, sound: Sound, onPause: (column: number) 
   useEffect(() => {
     player.current?.setSound(sound);
   }, [sound]);
+  useEffect(() => {
+    player.current?.setVolume(volume);
+  }, [volume]);
 
   return {
     view,
@@ -92,6 +99,7 @@ export function usePlayback(clip: Clip, sound: Sound, onPause: (column: number) 
       TabPlayer.create(update).then(
         p => {
           player.current = p;
+          p.setVolume(volume);
           start(p);
         },
         () => update({ state: 'error' }),
@@ -135,12 +143,15 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow, sound, onSound }: {
+export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow, sound, onSound, volume, onVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
   sound: Sound;
   onSound: (sound: Sound) => void;
+  /** The volume, 0 to 1, turned on the knob between Speed and Sound. */
+  volume: number;
+  onVolume: (volume: number) => void;
   /** Whether the controls show; hidden, only the small button does. */
   shown: boolean;
   onShow: (shown: boolean) => void;
@@ -223,6 +234,10 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
             />
             <span className="tab-speed-value">{percent}% · {Math.round(playback.bpm * speed)} bpm</span>
           </label>
+          <div className="tab-volume">
+            <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
+            <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
+          </div>
           <label className="tab-sound">
             <span className="text-(--ink-muted)">Sound</span>
             <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>

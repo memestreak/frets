@@ -54,6 +54,9 @@ export function isSound(value: unknown): value is Sound {
 
 /* — the clip as alphaTab's score and MIDI (no browser needed) — */
 
+/** How long the last notes ring after the clip ends, in alphaTab's ticks: two quarter notes. */
+const RING_OUT_TICKS = 2 * 960;
+
 export interface Performance {
   score: Score;
   midi: AlphaTabModule.midi.MidiFile;
@@ -83,7 +86,11 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
-  return { score, midi, lookup: generator.tickLookup, endTick: masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0 };
+  const endTick = masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0;
+  // The synthesizer stops dead at the MIDI's last event, cutting the last note off with a click
+  // (Jeremy, 2026-10-26: "a glitch at the end of playback"). An event a little later lets it ring.
+  midi.addEvent(new at.midi.EndOfTrackEvent(0, endTick + RING_OUT_TICKS));
+  return { score, midi, lookup: generator.tickLookup, endTick };
 }
 
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
@@ -160,6 +167,8 @@ class Emitter<T = void> {
 const NODE_SIZE = 4096;
 /** About how many samples (both channels) one answer from the synthesizer holds. */
 const ANSWER_SIZE = 4096;
+/** How long the end of playback fades, so it doesn't click. */
+const FADE_SECONDS = 0.03;
 
 /**
  * The synthesizer's samples played through a ScriptProcessorNode (alphaTab's own fallback; an
@@ -218,6 +227,8 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   }
   addSamples(samples: Float32Array) {
     this.pending = Math.max(0, this.pending - 1);
+    // The synthesizer has stopped: fade what is left to nothing, so it ends without a click.
+    if (samples.length === 0 && !this.answeredEmpty) this.fadeQueueOut();
     this.answeredEmpty = samples.length === 0;
     if (samples.length > 0) {
       this.queue.push(samples);
@@ -249,6 +260,22 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
       this.answeredEmpty = false;
       this.sampleRequest.trigger();
       if (this.answeredEmpty) return;
+    }
+  }
+
+  /** Fades the last few milliseconds queued down to silence. */
+  private fadeQueueOut() {
+    let left = Math.floor(FADE_SECONDS * this.sampleRate) * 2;
+    const total = left;
+    for (let c = this.queue.length - 1; c >= 0 && left > 0; c--) {
+      // Copied: the synthesizer may reuse the array it handed over.
+      const chunk = this.queue[c].slice();
+      for (let i = chunk.length - 1; i >= 0 && left > 0; i--, left--) {
+        // Interleaved stereo: both samples of a frame get the same gain.
+        const frameFromEnd = Math.floor((total - left) / 2);
+        chunk[i] *= frameFromEnd / (total / 2);
+      }
+      this.queue[c] = chunk;
     }
   }
 
@@ -309,6 +336,8 @@ export class TabPlayer {
   ) {
     synth.positionChanged.on(e => {
       if (!this.clip || !this.performance || this.ended) return;
+      // While the last notes ring out, the playhead stays on the last column.
+      if (e.currentTick >= this.performance.endTick) return;
       onView({ column: columnAtTick(this.clip, this.performance, e.currentTick) });
     });
     synth.finished.on(() => {
@@ -370,7 +399,10 @@ export class TabPlayer {
   setLoop(loop: [number, number] | 'whole' | null) {
     this.loop = loop;
     this.synth.isLooping = loop !== null;
-    const range = this.clip && this.performance && Array.isArray(loop) ? ticksOf(this.clip, this.performance, loop) : null;
+    // The whole clip loops without its ring-out, so the downbeat comes round on time.
+    const range = !this.clip || !this.performance || loop === null ? null
+      : loop === 'whole' ? { startTick: 0, endTick: this.performance.endTick }
+      : ticksOf(this.clip, this.performance, loop);
     if (range) {
       const playbackRange = new this.at.synth.PlaybackRange();
       playbackRange.startTick = range.startTick;
@@ -383,6 +415,11 @@ export class TabPlayer {
 
   setSpeed(speed: number) {
     this.synth.playbackSpeed = speed;
+  }
+
+  /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
+  setVolume(volume: number) {
+    this.synth.masterVolume = volume;
   }
 
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */

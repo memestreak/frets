@@ -386,13 +386,13 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 25 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 25, volume: 1 });
     cleanup();
     renderAt();
     expect(footer()).not.toBeNull();
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25, volume: 1 });
   });
 
   it('picks the sound at the end of the controls, and remembers it', () => {
@@ -401,10 +401,24 @@ describe('TabPage playback', () => {
     const sound = screen.getByRole('combobox', { name: 'Sound' });
     expect(sound).toHaveValue('25');
     fireEvent.change(sound, { target: { value: '0' } });
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 0 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 0, volume: 1 });
     cleanup();
     renderAt();
     expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
+  });
+
+  it('turns the volume knob with the arrow keys, and remembers it', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const knob = screen.getByRole('slider', { name: 'Volume' });
+    expect(knob).toHaveAttribute('aria-valuenow', '100');
+    fireEvent.keyDown(knob, { key: 'ArrowDown' });
+    fireEvent.keyDown(knob, { key: 'ArrowDown' });
+    expect(knob).toHaveAttribute('aria-valuenow', '90');
+    fireEvent.keyDown(knob, { key: 'Home' });
+    expect(knob).toHaveAttribute('aria-valuenow', '0');
+    fireEvent.keyDown(knob, { key: 'ArrowUp' });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!).volume).toBe(0.05);
   });
 
   it("doesn't play on Space while the footer is hidden", () => {
