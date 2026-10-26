@@ -364,15 +364,18 @@ describe('TabPage examples', () => {
 });
 
 describe('TabPage export', () => {
-  it('opens Copy as PNG and Export options… on a right-click on the tab', async () => {
+  it('offers only bar insertion on a right-click on the tab', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt();
-    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
-    fireEvent.contextMenu(editor);
+    fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
     const menu = screen.getByRole('menu', { name: 'Tab' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after', 'Copy as PNG', 'Export options…']);
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Export options…' }));
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
+  });
+
+  it('opens Export options from the header, and remembers its choices', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);

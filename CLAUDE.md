@@ -272,7 +272,7 @@ binds a local port).
   `WordField.tsx` (the field over the tab for a chord name, section, tempo or
   the capo, "Capo 3" over the first line;
   `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
-  `TabExportDialog.tsx` (right-click the tab: Copy as PNG, Export options…;
+  `TabExportDialog.tsx` (the Export options button; the Tab view's copy button copies the PNG;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
   helpers), and `TabPage.tsx` (the editor: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import

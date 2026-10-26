@@ -604,8 +604,17 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
 }
 
 function Rest({ x, y, value, look }: { x: number; y: number; value: number; look: TabLook }) {
-  if (value === 1) return <rect x={x - 6} y={y - 6} width={12} height={5} fill={look.ink} data-testid="rest" />;
-  if (value === 2) return <rect x={x - 6} y={y - 1} width={12} height={5} fill={look.ink} data-testid="rest" />;
+  // A whole rest hangs from a line, a half rest sits on one. Under the tab there is no staff line to
+  // show which, so each gets a short line of its own, as rests written outside a staff do.
+  if (value === 1 || value === 2) {
+    const line = y - 3;
+    return (
+      <g fill={look.ink} data-testid="rest">
+        <line x1={x - 9} x2={x + 9} y1={line} y2={line} stroke={look.ink} strokeWidth={1.2} />
+        <rect x={x - 6} y={value === 1 ? line : line - 5} width={12} height={5} />
+      </g>
+    );
+  }
   if (value === 4) {
     return (
       <path
