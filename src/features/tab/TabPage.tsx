@@ -30,7 +30,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, isOn, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, isAvailable, isOn, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -121,7 +121,9 @@ export default function TabPage() {
 
   const onTool = (id: ToolId) => {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
-    else if (id === 'barTime') setTimeBar(cursor.bar);
+    else if (id === 'barTime') {
+      if (isAvailable(clip, cursor, id)) setTimeBar(cursor.bar);
+    }
     else commit(applyTool(clip, target, id));
   };
 
@@ -472,7 +474,7 @@ export default function TabPage() {
       </header>
 
       <HoverTips>
-        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+        <TabPalette isOn={id => isOn(clip, cursor, id)} isAvailable={id => isAvailable(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">

@@ -11,8 +11,10 @@ import { TOOL_GROUPS, type ToolId } from './tools';
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
  * button keeps the keyboard on the tab.
  */
-export function TabPalette({ isOn, onTool, disabled }: {
+export function TabPalette({ isOn, isAvailable, onTool, disabled }: {
   isOn: (id: ToolId) => boolean;
+  /** Whether a tool can be used at the cursor; one that can't is shown disabled. */
+  isAvailable: (id: ToolId) => boolean;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -26,7 +28,7 @@ export function TabPalette({ isOn, onTool, disabled }: {
             {group.tools.map(tool => (
               <button
                 key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
-                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
+                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled || !isAvailable(tool.id)}
                 data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
                 // Keep the focus, and so the cursor, on the tab.
                 onMouseDown={e => e.preventDefault()}

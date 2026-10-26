@@ -227,6 +227,16 @@ export function toolForKey(key: string, alt: boolean, code: string): ToolId | nu
   return keys[key] ?? null;
 }
 
+/**
+ * Whether a tool can be used where the cursor is. A bar that already shows a time signature (the
+ * first bar, or one that changes it) is changed by pressing its drawn numbers, so the button that
+ * starts a new one is off there.
+ */
+export function isAvailable(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean {
+  if (id === 'barTime') return cursor.bar > 0 && !changesTime(clip, cursor.bar);
+  return true;
+}
+
 /** Whether the cursor's column, note or bar has what a tool sets, to show its button pressed. */
 export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean {
   const column = columnAt(clip, cursor);
@@ -249,7 +259,6 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;
     case 'grace': return !!column?.grace;
-    case 'barTime': return changesTime(clip, cursor.bar);
     case 'rest': return !!column && column.notes.every(n => n === null);
     case 'tie': return !!note?.tie;
     case 'legato': return !!note?.legato;

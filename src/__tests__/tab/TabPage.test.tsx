@@ -53,6 +53,13 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+/** A press on the time signature drawn in front of the first line (jsdom places the drawing at 0, 0). */
+function pressFirstTimeSignature() {
+  const svg = screen.getByRole('img', { name: /drawn as tab/ });
+  // The numbers are centred 13 units in, round the middle of a staff that starts 30 down.
+  fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
+}
+
 describe('TabPage', () => {
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
@@ -245,7 +252,9 @@ describe('TabPage', () => {
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
-      fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
+      // In the first bar the palette button is off: the drawn 4/4 is what is pressed.
+      expect(screen.getByRole('button', { name: 'Time signature from this bar' })).toBeDisabled();
+      pressFirstTimeSignature();
       const panel = screen.getByRole('dialog', { name: 'Time signature' });
       const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
       expect(beats).toHaveValue('4');
@@ -273,7 +282,7 @@ describe('TabPage', () => {
 
     it('keeps the count when what is typed isn\'t 1 to 32', () => {
       renderAt();
-      fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
+      pressFirstTimeSignature();
       const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
       for (const typed of ['0', '33', '']) {
         fireEvent.change(beats, { target: { value: typed } });
