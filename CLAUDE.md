@@ -290,6 +290,11 @@ binds a local port).
   clip and never saved (`clipState.ts` sets the clip aside;
   `docs/specs/2026-10-26-tab-examples-design.md`); each must read with no
   warnings and write back exactly, and every newly drawn feature gets one.
+  `playback.ts` plays a clip: alphaTab's MIDI generator and synthesizer
+  (loaded on the first Play) with the SONiVOX soundfont in
+  `public/soundfont/`, through a small Web Audio output; `PlaybackFooter.tsx`
+  is the footer under the tab (Play, progress through the bars, Loop,
+  Speed) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
   Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
