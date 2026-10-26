@@ -189,7 +189,7 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
             ))}
           </div>
           <button
-            type="button" className="btn btn-secondary btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
+            type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
             onClick={() => playback.toggleLoop(selection)}
           >
             <LoopIcon />
