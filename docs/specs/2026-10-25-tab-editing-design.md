@@ -38,7 +38,7 @@ readers pass keys through to it.
 | ↑ ↓ | String. |
 | ← → | Column, across bar lines. → from the last column of a bar that doesn't add up adds a rest there, anywhere in the clip: as long as the cursor's column while it fits, else the longest that does (Jeremy, 2026-10-26, after deleting rests left a bar he couldn't refill). → from the clip's last column, once its bar is full, starts a new bar. A pickup bar walked through with → fills up too; Ctrl+Z takes it back. |
 | Shift+← → | Select. |
-| Backspace, Delete | With a selection, removes its columns, and any bar left empty. Otherwise clears the cursor's note, and on a rest removes the column. The cursor stays in the bar: on the column after while there is one in that bar, else on the column before (Jeremy, 2026-10-26: deleting a bar's last note had jumped to the next bar). |
+| Backspace, Delete | With a selection, removes its columns, and the bars a selection over several bars leaves empty. Otherwise clears the cursor's note, and on a rest removes the column. The cursor stays in the bar: on the column after while there is one in that bar, else on the column before (Jeremy, 2026-10-26: deleting a bar's last note had jumped to the next bar). A bar emptied on its own stays, empty, with the cursor in it, so → fills it again a beat at a time (Jeremy, 2026-10-26); Delete in an empty bar removes the bar. |
 | Insert | A rest before the cursor's column. |
 | Ctrl+Enter (⌘+Enter), Ctrl+Shift+Enter | A new bar after (with Shift, before) the cursor's bar, filled with rests, one a beat long for each beat of the time signature in force there (three quarter rests in 3/4; before a bar that changes the time, the time before the change); the cursor goes to its first rest. Also the Bars group's first two buttons and the tab's right-click menu (Insert bar before, Insert bar after, on the bar under the pointer). Jeremy asked for both directions and the menu items the same day. Added 2026-10-26: Jeremy couldn't see how to add a bar of rests mid-clip, and picked this over a Mac key for Insert and over notes spilling into the next bar. |
 | + − | Longer or shorter note value. |
@@ -75,8 +75,14 @@ groups are:
    line writes a thirty-second t and a sixty-fourth x.
 2. Joins: tie, hammer-on/pull-off, slide, shift slide, slide in from below,
    slide in from above.
-3. Bends: ¼, ½, full, 1½, 2, release, pre-bend.
-4. Techniques: vibrato, palm mute, dead note, harmonic, tap, down stroke,
+3. Bends: Bend, release, pre-bend. One Bend button (Jeremy, 2026-10-26,
+   in place of one per amount): a press opens a small panel under it with
+   ¼ · ½ · full · 1½ · 2 · None, the note's amount lit (None without a
+   bend); picking one sets it, None takes the bend away, and a press outside or Esc
+   closes it with the cursor left on the tab. Its icon shows the note's
+   amount, none without a bend. B still steps through the amounts.
+4. Techniques: vibrato (one button stepping normal, wide, off, as V does;
+   its icon shows the note's kind), palm mute, dead note, harmonic, tap, down stroke,
    up stroke.
 5. Repeats: repeat start, repeat end, ending.
 

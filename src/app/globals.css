@@ -731,6 +731,13 @@ button {
   }
   .tab-bar-time-title { font-size: 13px; font-weight: 700; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
+  /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
+  .tab-tool-box { position: relative; display: inline-flex; }
+  .tab-tool-panel {
+    position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; gap: 8px; justify-items: start;
+    padding: 12px; width: max-content; color: var(--ink);
+  }
+  .tab-bend-amount { min-width: 40px; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */
   .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }

@@ -450,25 +450,28 @@ export function cycleSlide(clip: Clip, cursor: Cursor): Clip {
   });
 }
 
-/** Sets the bend amount of the target notes, or clears the bend when they all bend that much. */
-export function setBend(clip: Clip, target: Target, quarters: BendQuarters): Clip {
-  const off = targetNotes(clip, target).every(n => n.bend?.quarters === quarters);
+/** Sets the bend amount of the target notes, or takes their bends away with null: the Bend button's panel. */
+export function setBend(clip: Clip, target: Target, quarters: BendQuarters | null): Clip {
   return changeNotes(clip, target, note => {
     const { bend, ...rest } = note;
-    if (off) return rest;
+    if (quarters === null) return rest;
     // A ¼-tone curl is never pre-bent.
     return { ...rest, bend: { quarters, pre: quarters === 1 ? false : bend?.pre ?? false, release: bend?.release ?? false } };
   });
 }
 
-/** The cursor note's next bend amount, for the "b" key: ¼, ½, full, 1½, 2, none. */
-export function cycleBend(clip: Clip, cursor: Cursor): Clip {
-  const note = noteAt(clip, cursor);
+/**
+ * The next bend amount after the cursor note's (¼, ½, full, 1½, 2, none), on every target note:
+ * the "b" key.
+ */
+export function cycleBend(clip: Clip, target: Target): Clip {
+  const note = noteAt(clip, target.cursor) ?? targetNotes(clip, target)[0];
   if (!note) return clip;
   const i = note.bend ? BEND_QUARTERS.indexOf(note.bend.quarters) : -1;
   const next = BEND_QUARTERS[i + 1];
-  return changeNotes(clip, { cursor, selection: null }, n => {
+  return changeNotes(clip, target, n => {
     const { bend, ...rest } = n;
+    // A ¼-tone curl is never pre-bent.
     return next ? { ...rest, bend: { quarters: next, pre: next === 1 ? false : bend?.pre ?? false, release: bend?.release ?? false } } : rest;
   });
 }
@@ -572,8 +575,11 @@ function isFull(clip: Clip, index: number): boolean {
  * else the longest plain note value that does, so the bar fills up without running over.
  */
 function restToFill(clip: Clip, cursor: Cursor): Duration {
+  const time = timeAt(clip, cursor.bar);
+  // An empty bar fills a beat at a time, as a new bar of rests does.
+  if (clip.bars[cursor.bar].columns.length === 0) return { value: time.value, dots: 0 };
   const near = durationNear(clip, cursor);
-  const room = barTicks(timeAt(clip, cursor.bar)) - barLength(clip.bars[cursor.bar]);
+  const room = barTicks(time) - barLength(clip.bars[cursor.bar]);
   if (ticks(near) <= room) return near;
   const value = NOTE_VALUES.find(v => ticks({ value: v, dots: 0 }) <= room) ?? NOTE_VALUES[NOTE_VALUES.length - 1];
   return { value, dots: 0 };
@@ -582,7 +588,7 @@ function restToFill(clip: Clip, cursor: Cursor): Duration {
 /**
  * The cursor one column left or right. Right from the last column of a bar that doesn't add up yet
  * adds a rest there that fits, anywhere in the clip, so a short bar can be filled (Jeremy,
- * 2026-10-26). Right from the clip's last column, once its bar is full, starts a new bar with a
+ * 2026-10-26), an empty one included. Right from the clip's last column, once its bar is full, starts a new bar with a
  * rest as long as the cursor's column, so typing runs on.
  */
 export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true): { clip: Clip; cursor: Cursor } {
@@ -595,7 +601,8 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true
   }
   const here = clip.bars[bar];
   if (column < here.columns.length - 1) return { clip, cursor: { ...cursor, column: column + 1 } };
-  if (grow && here.columns.length > 0 && !isFull(clip, bar)) {
+  // An emptied bar counts too: its first rest goes where the cursor waits.
+  if (grow && !isFull(clip, bar)) {
     const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, emptyColumn(restToFill(clip, cursor))] });
     return { clip: normalize(grown), cursor: { ...cursor, column: here.columns.length } };
   }
@@ -633,9 +640,13 @@ export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after')
 /**
  * The clip without the columns in `range` (places, inclusive), and where the cursor goes: the
  * column after them while it is in the same bar, else the column before them, so deleting a bar's
- * last note leaves the cursor in that bar. A bar left empty goes too, unless it is the only one.
+ * last note leaves the cursor in that bar. Emptying one bar keeps it, empty, with the cursor in it,
+ * so → can fill it with rests again (Jeremy, 2026-10-26); bars a wider range empties go, unless
+ * none would be left.
  */
 export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip: Clip; cursor: { bar: number; column: number } } {
+  const first = placeOf(clip, from).bar;
+  const oneBar = placeOf(clip, to).bar === first;
   let index = 0;
   const bars: Bar[] = [];
   for (const bar of clip.bars) {
@@ -644,12 +655,24 @@ export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip:
       index++;
       return keep;
     });
-    if (columns.length > 0 || bar.columns.length === 0) bars.push({ ...bar, columns });
+    if (columns.length > 0 || bar.columns.length === 0 || oneBar) bars.push({ ...bar, columns });
   }
   const left = bars.length > 0 ? normalize({ ...clip, bars }) : { ...clip, bars: [{ columns: [] }] };
-  const afterInSameBar = to + 1 < columnCount(clip) && placeOf(clip, to + 1).bar === placeOf(clip, from).bar;
+  if (oneBar && left.bars[first].columns.length === 0) return { clip: left, cursor: { bar: first, column: 0 } };
+  const afterInSameBar = to + 1 < columnCount(clip) && placeOf(clip, to + 1).bar === first;
   const place = afterInSameBar ? from : Math.max(0, from - 1);
   return { clip: left, cursor: placeOf(left, Math.min(place, Math.max(0, columnCount(left) - 1))) };
+}
+
+/**
+ * The clip without an empty bar (Delete in it), and the cursor on the last column before it, else
+ * the first after it. The only bar stays.
+ */
+export function removeEmptyBar(clip: Clip, bar: number): { clip: Clip; cursor: { bar: number; column: number } } {
+  if (clip.bars.length === 1 || clip.bars[bar].columns.length > 0) return { clip, cursor: { bar, column: 0 } };
+  const left = normalize({ ...clip, bars: clip.bars.filter((_, i) => i !== bar) });
+  if (bar === 0) return { clip: left, cursor: { bar: 0, column: 0 } };
+  return { clip: left, cursor: { bar: bar - 1, column: Math.max(0, left.bars[bar - 1].columns.length - 1) } };
 }
 
 /** The columns in `range` as a clip of their own, with the clip's time and tuning; bar lines between them are kept. */

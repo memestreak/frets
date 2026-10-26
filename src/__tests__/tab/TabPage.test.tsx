@@ -167,6 +167,7 @@ describe('TabPage', () => {
 
   describe('editing', () => {
     const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+  const vibrato = () => screen.getByRole('button', { name: /^Vibrato/ });
     const keys = (...list: (string | { key: string; shiftKey?: boolean; altKey?: boolean; code?: string })[]) => {
       for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
     };
@@ -189,13 +190,41 @@ describe('TabPage', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'h', '-');
-      fireEvent.click(screen.getByRole('button', { name: 'Vibrato' }));
+      fireEvent.click(vibrato());
       expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
-      expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'true');
+      expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
       // Off the tab, no button is lit.
       act(() => editor().blur());
       expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
+    });
+
+    it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('7');
+      const bend = () => screen.getByRole('button', { name: 'Bend' });
+      fireEvent.click(bend());
+      expect(bend()).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(screen.getByRole('button', { name: 'full' }));
+      expect(alphaTex()).toBe('7.1{b (0 4)}.4 |');
+      expect(screen.queryByRole('dialog', { name: 'Bend' })).toBeNull();
+      expect(bend()).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(bend());
+      expect(screen.getByRole('button', { name: 'full' })).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(screen.getByRole('button', { name: '½' }));
+      expect(alphaTex()).toBe('7.1{b (0 2)}.4 |');
+      fireEvent.click(bend());
+      fireEvent.click(screen.getByRole('button', { name: 'None' }));
+      expect(alphaTex()).toBe('7.1.4 |');
+      fireEvent.click(bend());
+      expect(screen.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(bend());
+      // Esc closes the panel and leaves the cursor on the tab.
+      fireEvent.click(bend());
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(screen.queryByRole('dialog', { name: 'Bend' })).toBeNull();
+      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     });
 
     it('steps V, N, A and \\ through their kinds, and toggles L, G and S', () => {
@@ -203,8 +232,7 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'v', 'v', 'n', 'n', 'a', 'a', '\\', 'l', 'g', 's');
       expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 |');
-      expect(screen.getByRole('button', { name: 'Wide vibrato' })).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'false');
+      expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       keys('v', 'g');
       expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
     });

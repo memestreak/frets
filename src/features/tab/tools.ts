@@ -4,10 +4,10 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
+import { type BendQuarters, type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
 import {
   columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
-  makeRest, noteAt, setBend, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
+  makeRest, noteAt, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
   toggleRepeatStart, toggleStroke, toggleTie, toggleTuplet, type MarkKind, type Target,
 } from './editing';
 
@@ -15,8 +15,8 @@ export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
   | 'triplet' | 'quintuplet' | 'sextuplet' | 'septuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
-  | 'bend1' | 'bend2' | 'bend4' | 'bend6' | 'bend8' | 'release' | 'preBend'
-  | 'vibrato' | 'wideVibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
+  | 'bend' | 'release' | 'preBend'
+  | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'repeatStart' | 'repeatEnd' | 'ending'
   | 'chordName' | 'section' | 'tempo' | 'capo';
@@ -74,11 +74,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Bends',
     tools: [
-      { id: 'bend1', label: 'Bend ¼', key: 'B' },
-      { id: 'bend2', label: 'Bend ½', key: 'B' },
-      { id: 'bend4', label: 'Bend full', key: 'B' },
-      { id: 'bend6', label: 'Bend 1½', key: 'B' },
-      { id: 'bend8', label: 'Bend 2', key: 'B' },
+      { id: 'bend', label: 'Bend', key: 'B' },
       { id: 'release', label: 'Release the bend', key: 'Shift+B' },
       { id: 'preBend', label: 'Pre-bend', key: 'Shift+B' },
     ],
@@ -86,8 +82,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Techniques',
     tools: [
-      { id: 'vibrato', label: 'Vibrato', key: 'V' },
-      { id: 'wideVibrato', label: 'Wide vibrato', key: 'V' },
+      { id: 'vibrato', label: 'Vibrato: normal, wide, then off', key: 'V' },
       { id: 'palmMute', label: 'Palm mute', key: 'M' },
       { id: 'letRing', label: 'Let ring', key: 'L' },
       { id: 'dead', label: 'Dead note', key: 'X' },
@@ -132,13 +127,14 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
 const VALUE: Partial<Record<ToolId, NoteValue>> = {
   whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
 };
-const BEND: Partial<Record<ToolId, 1 | 2 | 4 | 6 | 8>> = { bend1: 1, bend2: 2, bend4: 4, bend6: 6, bend8: 8 };
 const TUPLET: Partial<Record<ToolId, Tuplet>> = { triplet: 3, quintuplet: 5, sextuplet: 6, septuplet: 7 };
 const TREMOLO: Partial<Record<ToolId, TremoloValue>> = { tremolo8: 8, tremolo16: 16, tremolo32: 32 };
 
+/** The vibrato kinds the V key and the Vibrato button step through, then off. */
+const VIBRATOS: ('slight' | 'wide')[] = ['slight', 'wide'];
+
 /** Tools that set one note mark to one kind (or on). */
 const MARK: Partial<Record<ToolId, MarkKind>> = {
-  vibrato: ['vibrato', 'slight'], wideVibrato: ['vibrato', 'wide'],
   harmonic: ['harmonic', 'natural'], pinchHarmonic: ['harmonic', 'pinch'],
   accent: ['accent', 'normal'], heavyAccent: ['accent', 'heavy'],
   slideOutDown: ['slideOut', 'down'], slideOutUp: ['slideOut', 'up'],
@@ -167,8 +163,6 @@ export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const value = VALUE[id];
   if (value) return setValue(clip, target, value);
-  const bend = BEND[id];
-  if (bend) return setBend(clip, target, bend);
   const tuplet = TUPLET[id];
   if (tuplet) return toggleTuplet(clip, target, tuplet);
   const tremolo = TREMOLO[id];
@@ -177,6 +171,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
     case 'dot': return cycleDots(clip, target);
+    case 'vibrato': return cycleMark(clip, target, 'vibrato', VIBRATOS);
     case 'grace': return toggleGrace(clip, target);
     case 'rest': return makeRest(clip, target);
     case 'tie': return toggleTie(clip, target);
@@ -203,11 +198,11 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
  */
 export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip | null {
   const { cursor } = target;
-  if (key === 'b') return cycleBend(clip, cursor);
+  if (key === 'b') return cycleBend(clip, target);
   if (key === 'B') return cycleBendShape(clip, cursor);
   if (key === '/') return cycleSlide(clip, cursor);
   if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
-  if (key === 'v') return cycleMark(clip, target, 'vibrato', ['slight', 'wide']);
+  if (key === 'v') return cycleMark(clip, target, 'vibrato', VIBRATOS);
   if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   if (key === 'T') return cycleTremolo(clip, target);
@@ -236,8 +231,6 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   const bar = clip.bars[cursor.bar];
   const value = VALUE[id];
   if (value) return column?.duration.value === value;
-  const bend = BEND[id];
-  if (bend) return note?.bend?.quarters === bend;
   const tuplet = TUPLET[id];
   if (tuplet) return column?.duration.tuplet === tuplet;
   const tremolo = TREMOLO[id];
@@ -250,6 +243,8 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;
+    case 'bend': return !!note?.bend;
+    case 'vibrato': return !!note?.vibrato;
     case 'grace': return !!column?.grace;
     case 'rest': return !!column && column.notes.every(n => n === null);
     case 'tie': return !!note?.tie;
@@ -272,4 +267,10 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
     case 'capo': return !!clip.capo;
     default: return false;
   }
+}
+
+/** What the cursor note has of the marks whose buttons draw it (the Bend and Vibrato icons); none off the tab. */
+export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): { bend: BendQuarters | null; vibrato: 'slight' | 'wide' | null } {
+  const note = cursor ? noteAt(clip, cursor) : null;
+  return { bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null };
 }
