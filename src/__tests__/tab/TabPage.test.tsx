@@ -205,22 +205,22 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
       const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
-      const value = screen.getByRole('combobox', { name: 'Beat note value' });
+      const value = screen.getByRole('status', { name: 'Beat note value' });
       expect(beats).toHaveValue('4');
-      expect(value).toHaveValue('4');
+      expect(value).toHaveTextContent('4');
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
       // A typed count takes effect on Enter.
       fireEvent.change(beats, { target: { value: '3' } });
       expect(notice()).toHaveTextContent('4/4');
       fireEvent.keyDown(beats, { key: 'Enter' });
       expect(notice()).not.toHaveTextContent('add up');
-      // ↑ steps at once; the value is a menu.
+      // ↑ steps at once; the value steps along 2, 4, 8, 16, 32.
       fireEvent.keyDown(beats, { key: 'ArrowUp' });
       expect(beats).toHaveValue('4');
-      fireEvent.change(value, { target: { value: '16' } });
-      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/16.');
+      fireEvent.click(screen.getByRole('button', { name: 'Shorter beat' }));
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/8.');
       undo();
-      expect(value).toHaveValue('4');
+      expect(value).toHaveTextContent('4');
       undo();
       expect(beats).toHaveValue('3');
     });
@@ -243,13 +243,14 @@ describe('TabPage', () => {
     it('goes back to 4/4 on a double-click', () => {
       renderAt();
       const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
-      const value = screen.getByRole('combobox', { name: 'Beat note value' });
+      const value = screen.getByRole('status', { name: 'Beat note value' });
       fireEvent.change(beats, { target: { value: '7' } });
       fireEvent.keyDown(beats, { key: 'Enter' });
-      fireEvent.change(value, { target: { value: '8' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Shorter beat' }));
+      expect(value).toHaveTextContent('8');
       fireEvent.doubleClick(screen.getByRole('group', { name: 'Time signature' }));
       expect(beats).toHaveValue('4');
-      expect(value).toHaveValue('4');
+      expect(value).toHaveTextContent('4');
     });
 
     it('says when a bar doesn\'t add up', () => {
