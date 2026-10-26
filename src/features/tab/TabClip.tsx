@@ -457,7 +457,8 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
       );
     }
     if (note.slide) {
-      // Shift and legato slides are drawn alike for now; a slide from below or above starts just before the note.
+      // A slide from below or above starts just before the note. A legato slide (the second note not
+      // picked) also gets a slur over both notes, as printed tab draws it; a shift slide is the line alone.
       const up = slides.get(note) === 'up';
       const fromNote = (note.slide === 'legato' || note.slide === 'shift') && before;
       const from = fromNote ? fromX + 7 : x - 16;
@@ -467,6 +468,14 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
           stroke={look.ink} strokeWidth={1.2}
         />,
       );
+      if (note.slide === 'legato' && before) {
+        parts.push(
+          <path
+            key={`slide-slur-${s}`} d={`M${fromX + 4} ${y - 10} Q${(fromX + x) / 2} ${y - 20} ${x - 4} ${y - 10}`}
+            fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="slide-slur"
+          />,
+        );
+      }
     }
     // Every tie gets its arc, even across a held chord: a number in brackets without one is a ghost note.
     if (note.tie && before) {

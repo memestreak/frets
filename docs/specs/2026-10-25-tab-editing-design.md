@@ -161,6 +161,5 @@ eighth or shorter). A clip has one time signature; a change within a clip
 
 - Renaming and the tuning.
 - An on-screen fret pad for phones.
-- Drawing shift slides differently from legato slides.
 - The other symbols from his screenshot (Q2).
 - Images and dragging the clip out (PR 3).

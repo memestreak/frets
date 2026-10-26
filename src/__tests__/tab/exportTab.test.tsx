@@ -59,6 +59,16 @@ describe('the tab as an image', () => {
     expect(group('palm-mute').match(/<line/g)).toHaveLength(2);
   });
 
+  it('draws a legato slide with a slur over both notes and a shift slide as the line alone', () => {
+    const draw = (tex: string) => {
+      const read = readAlphaTexWith(alphaTab, tex);
+      if (!read.ok) throw new Error(read.errors.join('\n'));
+      return tabSvg(read.clip, { width: 800, transparent: true, name: false }, '');
+    };
+    expect(draw('5.3{sl}.4 7.3.4 r.2 |').match(/data-testid="slide-slur"/g)).toHaveLength(1);
+    expect(draw('5.3{ss}.4 7.3.4 r.2 |')).not.toContain('slide-slur');
+  });
+
   it('names its file safely', () => {
     expect(tabFileName('My riff: take 2')).toBe('My_riff__take_2');
     expect(tabFileName('')).toBe('Tab');
