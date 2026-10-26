@@ -56,7 +56,9 @@ export interface PlacedBar {
 
 export interface System {
   bars: PlacedBar[];
-  /** Where the staff lines start: after the names, "TAB" and the time signature. */
+  /** Where the staff lines and the opening line start: after the names, if any. "TAB" and the time signature sit on the lines. */
+  lineStart: number;
+  /** Where the first bar starts: after "TAB" and the time signature. */
   staffStart: number;
   first: boolean;
 }
@@ -97,14 +99,15 @@ function barWidth(bar: Bar): number {
 
 export function layoutClip(clip: Clip, width: number): Layout {
   const names = isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
-  const head = (first: boolean) => (names ? NAMES_WIDTH : 0) + CLEF_WIDTH + (first ? TIME_WIDTH : 0);
+  const lineStart = names ? NAMES_WIDTH : 0;
+  const head = (first: boolean) => lineStart + CLEF_WIDTH + (first ? TIME_WIDTH : 0);
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
   let x = head(true);
   const finish = () => {
-    systems.push({ bars: current, staffStart: head(systems.length === 0), first: systems.length === 0 });
+    systems.push({ bars: current, lineStart, staffStart: head(systems.length === 0), first: systems.length === 0 });
     current = [];
     x = head(false);
   };

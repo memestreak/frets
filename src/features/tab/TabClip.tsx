@@ -148,7 +148,7 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   const parts: ReactNode[] = [];
   const beat = beatTicks(clip.time);
 
-  // The staff: lines, names, TAB, time signature. The lines stop short of every note's number,
+  // The staff: lines, names, then TAB and the time signature on the lines, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
   parts.push(
     <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={SYSTEM_HEIGHT}>
@@ -163,7 +163,7 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   for (let s = 0; s < STRING_COUNT; s++) {
     parts.push(
       <line
-        key={`string-${s}`} x1={system.staffStart} x2={end} y1={stringY(s)} y2={stringY(s)}
+        key={`string-${s}`} x1={system.lineStart} x2={end} y1={stringY(s)} y2={stringY(s)}
         stroke={look.line} strokeWidth={1} mask={`url(#${maskId})`}
       />,
     );
@@ -174,17 +174,17 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
     }
   }
   parts.push(
-    <line key="open" x1={system.staffStart} x2={system.staffStart} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={1.5} />,
+    <line key="open" x1={system.lineStart} x2={system.lineStart} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={1.5} />,
   );
   const clefX = (names ? 16 : 0) + 13;
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
-    <text key={`clef-${letter}`} x={clefX} y={ROW.staffTop + 19 + k * 20} fontSize={15} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
+    <text key={`clef-${letter}`} x={clefX} y={ROW.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
   if (system.first) {
     const tx = clefX + 25;
     parts.push(
-      <text key="time-top" x={tx} y={ROW.staffTop + 30} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
-      <text key="time-bottom" x={tx} y={ROW.staffTop + 62} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
+      <text key="time-top" x={tx} y={ROW.staffTop + 28} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
+      <text key="time-bottom" x={tx} y={ROW.staffTop + 61} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
     );
   }
 
