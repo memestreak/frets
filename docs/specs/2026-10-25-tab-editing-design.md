@@ -127,8 +127,6 @@ dotted underline:
   when the field loses focus; anything else puts the old count back, and Esc
   does too. ↑ and ↓ step it at once.
 - **Note value:** a menu of 2, 4, 8, 16 and 32, with a small chevron.
-- **Double-click** anywhere on it goes back to 4/4. Its one-second tip says
-  so.
 - Each change is one undo step. Bars that no longer add up are named in the
   line under the clip.
 

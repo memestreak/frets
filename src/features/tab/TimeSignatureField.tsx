@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ChevronDownIcon } from '@/components/icons';
-import { COMMON_TIME, MAX_BEATS, TIME_VALUES, type TimeSignature, type TimeValue } from './clip';
+import { MAX_BEATS, TIME_VALUES, type TimeSignature, type TimeValue } from './clip';
 
 /** MOCK: the three looks Jeremy is choosing between (?mock=a, b or c). */
 export type TimeLook = 'a' | 'b' | 'c';
@@ -10,8 +10,7 @@ export type TimeLook = 'a' | 'b' | 'c';
 /**
  * The time signature under the clip's name, where it is also set: the beats in a bar (1 to 32)
  * over the beat's note value (2, 4, 8, 16 or 32). Typing a count takes effect on Enter or on
- * leaving the field; ↑ and ↓ step it at once. A double-click anywhere on it goes back to 4/4.
- * Each change is one undo step.
+ * leaving the field; ↑ and ↓ step it at once. Each change is one undo step.
  */
 export function TimeSignatureField({ time, onChange, look }: {
   time: TimeSignature;
@@ -29,22 +28,8 @@ export function TimeSignatureField({ time, onChange, look }: {
   };
   const setValue = (value: TimeValue) => { if (value !== time.value) onChange({ ...time, value }); };
 
-  const reset = useEffectEvent(() => {
-    if (time.beats !== COMMON_TIME.beats || time.value !== COMMON_TIME.value) onChange(COMMON_TIME);
-  });
-  // A double-click anywhere on the group, its fields included, resets it. It is a mouse shortcut
-  // beside the fields, so it is listened for directly rather than making the group a control.
-  const groupRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const group = groupRef.current;
-    if (!group) return;
-    const onDoubleClick = () => reset();
-    group.addEventListener('dblclick', onDoubleClick);
-    return () => group.removeEventListener('dblclick', onDoubleClick);
-  }, []);
-
   const beats = <BeatsInput beats={time.beats} onBeats={setBeats} />;
-  const group = { ref: groupRef, role: 'group', 'aria-label': 'Time signature', 'data-tip': 'Double-click for 4/4' };
+  const group = { role: 'group', 'aria-label': 'Time signature' };
 
   if (look === 'a') {
     // A: an engraved time signature, the two numbers stacked, each with a small up / down pair.

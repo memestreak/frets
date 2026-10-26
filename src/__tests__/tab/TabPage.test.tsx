@@ -240,19 +240,6 @@ describe('TabPage', () => {
       expect(beats).toHaveValue('32');
     });
 
-    it('goes back to 4/4 on a double-click', () => {
-      renderAt();
-      const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
-      const value = screen.getByRole('status', { name: 'Beat note value' });
-      fireEvent.change(beats, { target: { value: '7' } });
-      fireEvent.keyDown(beats, { key: 'Enter' });
-      fireEvent.click(screen.getByRole('button', { name: 'Shorter beat' }));
-      expect(value).toHaveTextContent('8');
-      fireEvent.doubleClick(screen.getByRole('group', { name: 'Time signature' }));
-      expect(beats).toHaveValue('4');
-      expect(value).toHaveTextContent('4');
-    });
-
     it('says when a bar doesn\'t add up', () => {
       renderAt();
       act(() => editor().focus());
