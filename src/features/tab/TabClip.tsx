@@ -401,8 +401,8 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
       parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={ROW.stemTop} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
       const group = grouped.get(column);
       if (value >= 8 && (!group || group.length === 1)) {
-        // A lone eighth or sixteenth gets flags.
-        for (let f = 0; f < (value === 16 ? 2 : 1); f++) {
+        // A lone eighth or shorter gets its flags.
+        for (let f = 0; f < beamCount(value); f++) {
           const fy = ROW.stemBottom - f * 6;
           parts.push(<path key={`flag-${key}-${f}`} d={`M${x} ${fy} q6 -2 8 -9`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
         }
@@ -418,18 +418,23 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
     const first = g.columns[0].x;
     const last = g.columns[g.columns.length - 1].x;
     parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={ROW.stemBottom} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={3.2} />);
-    g.columns.forEach((p, k) => {
-      if (p.column.duration.value !== 16) return;
-      const next = g.columns[k + 1];
-      const prev = g.columns[k - 1];
-      const y = ROW.stemBottom - 6;
-      if (next?.column.duration.value === 16) {
-        parts.push(<line key={`beam2-${p.x}`} x1={p.x} x2={next.x} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
-      } else if (prev?.column.duration.value !== 16) {
-        const toward = next ? 7 : -7;
-        parts.push(<line key={`stub-${p.x}`} x1={p.x} x2={p.x + toward} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
-      }
-    });
+    // The second, third and fourth beams join neighbours that have them too; a note alone in having
+    // one gets a short stub toward its neighbour.
+    for (let level = 2; level <= 4; level++) {
+      const has = (p?: PlacedColumn) => p !== undefined && beamCount(p.column.duration.value) >= level;
+      const y = ROW.stemBottom - (level - 1) * 6;
+      g.columns.forEach((p, k) => {
+        if (!has(p)) return;
+        const next = g.columns[k + 1];
+        const prev = g.columns[k - 1];
+        if (has(next)) {
+          parts.push(<line key={`beam${level}-${p.x}`} x1={p.x} x2={next.x} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
+        } else if (!has(prev)) {
+          const toward = next ? 7 : -7;
+          parts.push(<line key={`stub${level}-${p.x}`} x1={p.x} x2={p.x + toward} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
+        }
+      });
+    }
   }
 
   // Triplet numbers under each run of triplets.
@@ -458,13 +463,19 @@ function Rest({ x, value, look }: { x: number; value: number; look: TabLook }) {
       />
     );
   }
-  // Eighth and sixteenth rests: a slanted stem with one or two flags.
+  // Eighth rests and shorter: a slanted stem with a flag for each beam, the stem longer for three or four.
+  const flags = beamCount(value);
+  const length = 16 + Math.max(0, flags - 2) * 6;
   return (
     <g fill={look.ink} stroke={look.ink} data-testid="rest">
-      <line x1={x + 3} y1={y - 8} x2={x - 2} y2={y + 8} strokeWidth={1.4} />
-      <circle cx={x - 2} cy={y - 7} r={2.4} />
-      {value === 16 && <circle cx={x - 4} cy={y - 1} r={2.4} />}
+      <line x1={x + 3} y1={y - 8} x2={x + 3 - length * 5 / 16} y2={y - 8 + length} strokeWidth={1.4} />
+      {Array.from({ length: flags }, (_, f) => <circle key={f} cx={x - 2 - f * 2} cy={y - 7 + f * 6} r={2.4} />)}
     </g>
   );
+}
+
+/** Beams (or flags) a note value has: one for an eighth, two for a sixteenth, up to four for a sixty-fourth. */
+function beamCount(value: number): number {
+  return value >= 8 ? Math.log2(value) - 2 : 0;
 }
 

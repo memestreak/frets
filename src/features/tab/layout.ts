@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  isRest, isStandardTuning, ticks,
+  isRest, isStandardTuning, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note,
 } from './clip';
 
@@ -74,7 +74,7 @@ export interface Layout {
 
 /** A column's width: longer notes take more room, and its widest note must fit. */
 export function columnWidth(column: Column): number {
-  const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / 48);
+  const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
   // A bend's arrow and label stand right of the number; a release needs more.
   const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
   return Math.max(byTime, minColumnWidth(column)) + bend;

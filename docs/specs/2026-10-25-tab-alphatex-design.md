@@ -39,8 +39,8 @@ yet: g (ghost note), …").
 - **Errors** are alphaTab's, with line and column. Also refused: more than
   one track, staff or voice; a tuning of other than six strings.
 - **Read with a warning:** a time signature Frets doesn't offer (4/4),
-  tuplets other than triplets (plain), notes shorter than a sixteenth
-  (sixteenths), a hammer-on or slide with no later note (left out), bars
+  tuplets other than triplets (plain), notes shorter than a sixty-fourth
+  (sixty-fourths), a hammer-on or slide with no later note (left out), bars
   that don't add up.
 - **Nothing Frets reads is lost.** The clip keeps the kind of slide
   (`sl` legato or `ss` shift from the note before, `sib` / `sia` from below

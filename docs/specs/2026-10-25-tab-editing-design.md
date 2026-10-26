@@ -68,7 +68,9 @@ group's name is a small muted caption 6px above its buttons (Jeremy picked
 this, layout A, over boxed groups and a side column, 2026-10-25). The
 groups are:
 
-1. Duration: whole to sixteenth, dot, triplet, rest.
+1. Duration: whole to sixty-fourth, dot, triplet, rest. A sixty-fourth
+   takes no dots (it would need a 128th to fill its beat); the ASCII rhythm
+   line writes a thirty-second t and a sixty-fourth x.
 2. Joins: tie, hammer-on/pull-off, slide, shift slide, slide in from below,
    slide in from above.
 3. Bends: ¼, ½, full, 1½, 2, release, pre-bend.

@@ -45,7 +45,8 @@ then "." and its duration:
     -.3.4              a tie: string 3 keeps sounding from its last note
 
 - Strings are numbered as in tab: 1 is the high e, 6 the low E.
-- Durations: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth.
+- Durations: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth,
+  32 thirty-second, 64 sixty-fourth. A 64 takes no dots.
 - Write the duration on every beat. (alphaTab carries a duration over to
   the beats after it, so a missing one is not an error, but it is easy to
   get wrong.)
@@ -124,7 +125,7 @@ when the picture shows them:
 Not read at all (an error): more than one track, staff or voice; a tuning
 of other than six strings. Read with a warning: other time signatures (as
 4/4), tuplets other than triplets (as plain notes), notes shorter than a
-sixteenth (as sixteenths).
+sixty-fourth (as sixty-fourths).
 
 
 7. EXAMPLES
@@ -203,6 +204,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
        full stem, no flag or beam     4  quarter
        one flag or beam               8  eighth
        two flags or beams             16 sixteenth
+       three flags or beams           32 thirty-second
+       four flags or beams            64 sixty-fourth
        a dot after the stem           {d}
        a "3" over a beamed group      {tu 3} on each of the three
 
@@ -211,7 +214,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 
        a small block or bar           1 or 2 (a whole or half rest)
        a zigzag                       r.4
-       a dot with a slanted stroke    r.8  (two strokes: r.16)
+       a dot with a slanted stroke    r.8  (two dots: r.16, three r.32,
+                                      four r.64)
 
    Then count each bar against the time signature; if it doesn't add up,
    look again: the bar's total is the surest guide to a short stem.

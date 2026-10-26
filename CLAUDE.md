@@ -250,7 +250,8 @@ binds a local port).
   `src/lib/chords/chordUrls.ts`.
 - `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
   not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
-  columns, six notes each, durations in ticks, whole = 192; `parseClip`),
+  columns, six notes each, durations in ticks, whole = 768, so a double-dotted
+  thirty-second and a sixty-fourth triplet are whole numbers too; `parseClip`),
   `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
   and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
   format, and its examples are tests; `src/__tests__/tab/fixtures/` holds

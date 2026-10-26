@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
 import {
-  BEND_QUARTERS, isPalmMuted, isUneven, STANDARD_TUNING, ticks,
+  BEND_QUARTERS, isPalmMuted, isUneven, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks,
   type Bar, type Clip, type Column, type Duration, type Note,
 } from '@/features/tab/clip';
 import { seededRng } from '../helpers/rng';
@@ -115,6 +115,19 @@ describe('readAscii refuses', () => {
 });
 
 describe('readAscii forgives', () => {
+  it('t and x in the rhythm line as thirty-second and sixty-fourth notes', () => {
+    const { clip } = read([
+      '   t. x  x  s  ',
+      'e|-5--7--8--5-|',
+      'B|------------|',
+      'G|------------|',
+      'D|------------|',
+      'A|------------|',
+      'E|------------|',
+    ].join('\n'));
+    expect(clip.bars[0].columns.map(c => [c.duration.value, c.duration.dots])).toEqual([[32, 1], [64, 0], [64, 0], [16, 0]]);
+  });
+
   it('a missing rhythm line, guessing from the spacing within each bar', () => {
     const { clip, warnings } = read([
       'e|-5---5---5---5---|-5-------5-------|',
@@ -220,9 +233,9 @@ describe('writeAscii and readAscii round trip', () => {
       const columns: Column[] = [];
       for (let k = 0; k < 1 + Math.floor(rng() * 6); k++) {
         const duration: Duration = {
-          value: pick([1, 2, 4, 8, 16] as const), dots: rng() < 0.2 ? 1 : 0, triplet: false,
+          value: pick(NOTE_VALUES), dots: rng() < 0.2 ? 1 : 0, triplet: false,
         };
-        if (duration.dots && duration.value === 16) duration.dots = 0;
+        if (duration.dots && duration.value > SHORTEST_DOTTED) duration.dots = 0;
         if (!duration.dots && rng() < 0.15) duration.triplet = true;
         const notes: (Note | null)[] = Array(6).fill(null);
         if (rng() > 0.1) {

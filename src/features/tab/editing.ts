@@ -5,7 +5,7 @@
  * it so marks that join a note to the one before it stay true.
  */
 import {
-  barTicks, BEND_QUARTERS, emptyClip, NOTE_VALUES, STRING_COUNT, ticks,
+  barTicks, BEND_QUARTERS, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
@@ -225,14 +225,14 @@ export function makeRest(clip: Clip, target: Target): Clip {
 }
 
 /**
- * A longer (+1) or shorter (−1) note value for the target columns, from a whole to a sixteenth.
- * A dotted sixteenth can't be written with what Frets reads, so its dots go.
+ * A longer (+1) or shorter (−1) note value for the target columns, from a whole to a sixty-fourth.
+ * A sixty-fourth takes no dots, so its dots go.
  */
 export function stepDuration(clip: Clip, target: Target, step: 1 | -1): Clip {
   return changeColumns(clip, target, column => {
     const i = NOTE_VALUES.indexOf(column.duration.value);
     const value = NOTE_VALUES[Math.min(NOTE_VALUES.length - 1, Math.max(0, i - step))];
-    return { ...column, duration: { ...column.duration, value, dots: value === 16 ? 0 : column.duration.dots } };
+    return { ...column, duration: { ...column.duration, value, dots: value > SHORTEST_DOTTED ? 0 : column.duration.dots } };
   });
 }
 
@@ -240,15 +240,15 @@ export function stepDuration(clip: Clip, target: Target, step: 1 | -1): Clip {
 export function setValue(clip: Clip, target: Target, value: Duration['value']): Clip {
   return changeColumns(clip, target, column => ({
     ...column,
-    duration: { ...column.duration, value, dots: value === 16 ? 0 : column.duration.dots },
+    duration: { ...column.duration, value, dots: value > SHORTEST_DOTTED ? 0 : column.duration.dots },
   }));
 }
 
-/** Cycles none, one dot, two dots on the target columns (a sixteenth takes none). */
+/** Cycles none, one dot, two dots on the target columns (a sixty-fourth takes none). */
 export function cycleDots(clip: Clip, target: Target): Clip {
   return changeColumns(clip, target, column => {
     const { duration } = column;
-    const dots = duration.value === 16 ? 0 : ((duration.dots + 1) % 3) as Duration['dots'];
+    const dots = duration.value > SHORTEST_DOTTED ? 0 : ((duration.dots + 1) % 3) as Duration['dots'];
     return { ...column, duration: { ...duration, dots } };
   });
 }

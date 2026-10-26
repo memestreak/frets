@@ -113,7 +113,7 @@ function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration']
   let value = beat.duration as number;
   if (!NOTE_VALUES.includes(value as NoteValue)) {
     warn(`Read a 1/${value} note as the nearest length Frets draws.`);
-    value = value < 1 ? 1 : 16;
+    value = value < 1 ? 1 : 64;
   }
   return {
     value: value as NoteValue,
