@@ -34,7 +34,7 @@ It follows the Chords page's Export dialog:
   - **Size (px wide):** 480, 640, 800, 1000 or 1200 (default 800). This is
     the image's width. The tab wraps onto more lines to fit it, so a
     narrower image is taller.
-  - **Transparent:** On (default) or Off (white behind the tab).
+  - **Transparent:** Off (default, white behind the tab) or On.
   - **Clip name:** Show (default) or Hide, above the tab.
   - **Name:** what the title says. It starts as the clip's name and can be
     changed for this export only.

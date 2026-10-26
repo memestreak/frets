@@ -24,7 +24,7 @@ export interface TabExportStyle {
 export const TAB_EXPORT_WIDTHS = [480, 640, 800, 1000, 1200] as const;
 export type TabExportWidth = (typeof TAB_EXPORT_WIDTHS)[number];
 
-export const DEFAULT_TAB_EXPORT: TabExportStyle = { width: 800, transparent: true, name: true };
+export const DEFAULT_TAB_EXPORT: TabExportStyle = { width: 800, transparent: false, name: true };
 
 /** Saved choices, with a default for any field missing or invalid. */
 export function parseTabExportStyle(raw: unknown): TabExportStyle {

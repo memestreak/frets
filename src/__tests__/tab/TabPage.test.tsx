@@ -275,12 +275,12 @@ describe('TabPage export', () => {
     expect(screen.queryByRole('menu')).toBeNull();
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
-    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, transparent$/);
+    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);
     // A choice changes the preview's size line and is remembered.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Size' })).getByRole('button', { name: '480' }));
-    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent' })).getByRole('button', { name: 'Off' }));
-    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^480 × \d+ px, on white$/);
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ width: 480, transparent: false }));
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent' })).getByRole('button', { name: 'On' }));
+    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^480 × \d+ px, transparent$/);
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ width: 480, transparent: true }));
     // Hiding the name greys out its field.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Clip name' })).getByRole('button', { name: 'Hide' }));
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
