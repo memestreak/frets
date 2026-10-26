@@ -147,16 +147,20 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
     : selection ? 'Loop the selected notes' : 'Loop the whole clip (select notes to loop just those)';
   const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Pause' : 'Play';
   return (
-    <div className="tab-playback-row" data-shown={shown}>
-      <button
-        type="button" className="tab-playback-toggle" aria-label="Playback controls" aria-pressed={shown}
-        data-tip={shown ? 'Hide playback' : 'Show playback'} onClick={() => onShow(!shown)}
-      >
-        {/* Hidden: a green play triangle. Shown: a plain minus, to put them away. */}
-        {shown
-          ? <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1 4h6" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" /></svg>
-          : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
-      </button>
+    <div className="tab-playback-row">
+      {/* The divider: the button at its left end, the line (only with the controls) just short of it. */}
+      <div className="tab-playback-rule">
+        <button
+          type="button" className="tab-playback-toggle" aria-label="Playback controls" aria-pressed={shown}
+          data-tip={shown ? 'Hide playback' : 'Show playback'} onClick={() => onShow(!shown)}
+        >
+          {/* Hidden: a green play triangle. Shown: a plain minus, to put them away. */}
+          {shown
+            ? <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1 4h6" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" /></svg>
+            : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
+        </button>
+        {shown && <span className="tab-playback-line" aria-hidden="true" />}
+      </div>
       {shown && (
         <div className="tab-playback" aria-label="Playback" role="group">
           <button
