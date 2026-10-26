@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { STORAGE_KEY } from '@/features/tab/clipState';
+import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 
 const RIFF = [
   'Title: Riff',
@@ -258,5 +259,31 @@ describe('TabPage', () => {
       keys('5');
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
     });
+  });
+});
+
+describe('TabPage export', () => {
+  it('opens Copy as PNG and Export options… on a right-click on the tab', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    fireEvent.contextMenu(editor);
+    const menu = screen.getByRole('menu', { name: 'Tab' });
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Copy as PNG', 'Export options…']);
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Export options…' }));
+    expect(screen.queryByRole('menu')).toBeNull();
+    const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, transparent$/);
+    // A choice changes the preview's size line and is remembered.
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Size' })).getByRole('button', { name: '480' }));
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent' })).getByRole('button', { name: 'Off' }));
+    expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^480 × \d+ px, on white$/);
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ width: 480, transparent: false }));
+    // Hiding the name greys out its field.
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Clip name' })).getByRole('button', { name: 'Hide' }));
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+    expect(dialog).not.toHaveAttribute('open');
   });
 });

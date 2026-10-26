@@ -21,7 +21,7 @@ export function exportPixels({ voicing, name }: ExportShape, style: ExportStyle)
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
-const FONT_FAMILY = 'Figtree, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+export const FONT_FAMILY = 'Figtree, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
 /** The app's own Figtree, embedded in the PNG so its text looks the same everywhere. */
 const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.meta.url);
 
@@ -96,20 +96,20 @@ export function exportFileName({ voicing, name }: ExportShape): string {
   return `${name.trim() || 'Chord'}_${voicingKey(voicing)}`.replace(/[\\/:*?"<>|\s]/g, '_');
 }
 
-/** Copies the shape as a PNG; resolves to the line the page shows. */
-export async function copyPng(shape: ExportShape, style: ExportStyle): Promise<string> {
+/** Copies an SVG drawing as a PNG; resolves to the line the page shows. */
+export async function copySvgAsPng(svg: string): Promise<string> {
   // The PNG goes in as a promise, so Safari still counts the click as the gesture.
-  const png = svgToPng(diagramSvg(shape, style));
+  const png = svgToPng(svg);
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
   return 'Copied as PNG';
 }
 
 /**
- * Copies the shape as an SVG image where the browser takes one (Chrome,
- * Edge), and otherwise as SVG code, which design tools paste as vectors.
+ * Copies an SVG drawing as an SVG image where the browser takes one
+ * (Chrome, Edge), and otherwise as SVG code, which design tools paste as
+ * vectors.
  */
-export async function copySvg(shape: ExportShape, style: ExportStyle): Promise<string> {
-  const svg = diagramSvg(shape, style);
+export async function copySvgCode(svg: string): Promise<string> {
   if (typeof ClipboardItem !== 'undefined' && ClipboardItem.supports?.('image/svg+xml')) {
     await navigator.clipboard.write([new ClipboardItem({
       'image/svg+xml': new Blob([svg], { type: 'image/svg+xml' }),
@@ -119,6 +119,29 @@ export async function copySvg(shape: ExportShape, style: ExportStyle): Promise<s
   }
   await navigator.clipboard.writeText(svg);
   return 'Copied the SVG code';
+}
+
+/** Saves an SVG drawing as `<fileName>.png` or `.svg`. */
+export async function downloadSvg(format: 'png' | 'svg', svg: string, fileName: string): Promise<string> {
+  const blob = format === 'png' ? await svgToPng(svg) : new Blob([svg], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${fileName}.${format}`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  return `Downloaded ${a.download}`;
+}
+
+/** Copies the shape as a PNG; resolves to the line the page shows. */
+export function copyPng(shape: ExportShape, style: ExportStyle): Promise<string> {
+  return copySvgAsPng(diagramSvg(shape, style));
+}
+
+/** Copies the shape as an SVG image, or its code (`copySvgCode`). */
+export function copySvg(shape: ExportShape, style: ExportStyle): Promise<string> {
+  return copySvgCode(diagramSvg(shape, style));
 }
 
 /** A shape's PNG, drawn before it is dragged. */
@@ -194,17 +217,6 @@ export function fillDragData(data: DataTransfer, shape: ExportShape, style: Expo
 }
 
 /** Saves the shape as a PNG or SVG file. */
-export async function download(
-  format: 'png' | 'svg', shape: ExportShape, style: ExportStyle,
-): Promise<string> {
-  const svg = diagramSvg(shape, style);
-  const blob = format === 'png' ? await svgToPng(svg) : new Blob([svg], { type: 'image/svg+xml' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${exportFileName(shape)}.${format}`;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  return `Downloaded ${a.download}`;
+export function download(format: 'png' | 'svg', shape: ExportShape, style: ExportStyle): Promise<string> {
+  return downloadSvg(format, diagramSvg(shape, style), exportFileName(shape));
 }

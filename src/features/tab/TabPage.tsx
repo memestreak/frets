@@ -6,7 +6,11 @@ import {
 import { HoverTips } from '@/components/HoverTips';
 import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
+import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
+import { copySvgAsPng } from '@/components/chords/export/exportImage';
+import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
+import { loadJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { isStandardTuning, isUneven, type Clip } from './clip';
 import {
@@ -20,6 +24,8 @@ import {
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
 import { TimeSignatureField } from './TimeSignatureField';
+import { TabExportDialog } from './TabExportDialog';
+import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, isOn, toolForKey, type ToolId } from './tools';
@@ -55,6 +61,12 @@ export default function TabPage() {
   usePersist(STORAGE_KEY, clip);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Export: the saved choices, the right-click menu (where it opened) and the dialog.
+  const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
+  usePersist(TAB_EXPORT_KEY, exportStyle);
+  const [exportMenu, setExportMenu] = useState<{ x: number; y: number } | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
@@ -362,9 +374,11 @@ export default function TabPage() {
             ? clipWidth > 0 && (
               <div
                 // A textbox, so screen readers pass the keys through to it as they do to a text field.
-                ref={editorRef} className="tab-editor" tabIndex={0} role="textbox" aria-multiline="true"
-                aria-label="Tab editor: type frets, arrows move, Shift+arrows select"
+                ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
+                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to export"
                 onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
+                // Right-click, a long press or Shift+F10: Copy as PNG and Export options….
+                {...menuTrigger.props((el, x, y) => setExportMenu(menuSpot(el, x, y)))}
               >
                 <TabClip
                   clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick}
@@ -395,6 +409,31 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
+      {exportMenu && (
+        <ShapeMenu
+          x={exportMenu.x} y={exportMenu.y} label="Tab"
+          onClose={refocus => {
+            if (refocus) editorRef.current?.focus();
+            setExportMenu(null);
+          }}
+          items={[
+            {
+              label: 'Copy as PNG',
+              onSelect: () => {
+                copySvgAsPng(tabSvg(clip, exportStyle, clip.name)).then(
+                  line => setNotice({ tone: 'info', lines: [`${line}.`] }),
+                  (e: unknown) => setNotice({ tone: 'error', lines: [`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`] }),
+                );
+              },
+            },
+            { label: 'Export options…', onSelect: () => setExporting(true) },
+          ]}
+        />
+      )}
+      <TabExportDialog
+        clip={clip} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        onClose={() => setExporting(false)}
+      />
     </div>
   );
 }

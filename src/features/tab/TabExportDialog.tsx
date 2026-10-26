@@ -1,0 +1,134 @@
+'use client';
+
+import { useEffect, useId, useRef, useState } from 'react';
+import { copySvgAsPng, copySvgCode, downloadSvg } from '@/components/chords/export/exportImage';
+import { Segmented } from '@/components/controls';
+import { CloseIcon } from '@/components/icons';
+import type { Clip } from './clip';
+import {
+  TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
+} from './exportTab';
+
+const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
+const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
+const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
+
+/**
+ * The Tab page's Export dialog, as the Chords page's: a preview of the
+ * image as it will be with its size in pixels, the choices (width,
+ * transparent, the name above the tab and what it says), and Copy PNG,
+ * Copy SVG, Download PNG and Download SVG, with a line saying what
+ * happened. The name starts as the clip's and can be changed for this
+ * export. It stays open after an action; Done, × or Esc close it.
+ */
+export function TabExportDialog({ clip, open, style, onStyle, onClose }: {
+  clip: Clip;
+  open: boolean;
+  style: TabExportStyle;
+  onStyle: (style: TabExportStyle) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const headingId = useId();
+  const nameId = useId();
+  const [status, setStatus] = useState('');
+  const [title, setTitle] = useState(clip.name);
+  // Each opening starts on the clip's own name and a blank status line.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setTitle(clip.name);
+      setStatus('');
+    }
+  }
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (open && !el.open) el.showModal();
+    else if (!open && el.open) el.close();
+  }, [open]);
+
+  const set = (patch: Partial<TabExportStyle>) => {
+    onStyle({ ...style, ...patch });
+    setStatus('');
+  };
+  const run = (action: (svg: string) => Promise<string>) => {
+    action(tabSvg(clip, style, title)).then(setStatus, (e: unknown) => {
+      setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
+    });
+  };
+  const { width, height } = tabImageSize(clip, style, title);
+  const fileName = tabFileName(title || clip.name);
+
+  return (
+    <dialog
+      ref={ref} className="settings-dialog export-dialog tab-export-dialog" aria-labelledby={headingId}
+      onCancel={e => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (open) onClose();
+      }}
+    >
+      {open && (
+        <div className="settings-dialog-inner">
+          <div className="flex items-center justify-between gap-3">
+            <h3 id={headingId} className="dialog-title m-0">Export {clip.name.trim() || 'tab'}</h3>
+            <button type="button" className="btn btn-ghost btn-icon" aria-label="Close export" onClick={onClose}>
+              <CloseIcon />
+            </button>
+          </div>
+          <div className="settings-dialog-body">
+            <div className="export-preview" data-testid="export-preview">
+              <TabImage clip={clip} style={style} title={title} />
+            </div>
+            <p className="export-size" data-testid="export-size">
+              {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
+            </p>
+            <div className="export-choices">
+              <span>Size<span className="export-unit"> (px wide)</span></span>
+              <Segmented label="Size" value={style.width} onChange={w => set({ width: w })} options={WIDTHS} />
+              <span>Transparent</span>
+              <Segmented
+                label="Transparent" value={style.transparent ? 'on' : 'off'}
+                onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
+              />
+              <span>Clip name</span>
+              <Segmented
+                label="Clip name" value={style.name ? 'show' : 'hide'}
+                onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
+              />
+              <label htmlFor={nameId}>Name</label>
+              <input
+                id={nameId} type="text" className="input export-name" aria-label="Name"
+                value={title} placeholder="No name" disabled={!style.name}
+                autoComplete="off" spellCheck={false}
+                onChange={e => {
+                  setTitle(e.target.value);
+                  setStatus('');
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="btn btn-primary" onClick={() => run(copySvgAsPng)}>Copy PNG</button>
+            <button type="button" className="btn btn-secondary" onClick={() => run(copySvgCode)}>Copy SVG</button>
+            <button type="button" className="btn btn-ghost" onClick={() => run(svg => downloadSvg('png', svg, fileName))}>
+              Download PNG
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => run(svg => downloadSvg('svg', svg, fileName))}>
+              Download SVG
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-(--ink-muted)" role="status">{status}</span>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Done</button>
+          </div>
+        </div>
+      )}
+    </dialog>
+  );
+}

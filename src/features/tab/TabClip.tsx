@@ -1,4 +1,4 @@
-import type { PointerEvent, ReactNode } from 'react';
+import { useId, type PointerEvent, type ReactNode } from 'react';
 import {
   beatTicks, isPalmMuted, isRest, slideDirections, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
@@ -13,14 +13,11 @@ export interface TabLook {
   ink: string;
   /** The string lines. */
   line: string;
-  /** Behind a note's number, so the line doesn't run through it. */
-  paper: string;
 }
 
 export const PAGE_LOOK: TabLook = {
   ink: 'var(--ink)',
   line: 'var(--line-strong)',
-  paper: 'var(--surface-raised)',
 };
 
 const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
@@ -44,9 +41,12 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, x, y }: {
   clip: Clip;
   width: number;
+  /** Where it sits inside a larger drawing (an exported image). */
+  x?: number;
+  y?: number;
   look?: TabLook;
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
@@ -65,9 +65,11 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   const previous = previousSpots(layout.systems);
   const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
+  // The string lines are masked round each note's number; ids made safe for `url(#…)`.
+  const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
   return (
     <svg
-      width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
+      x={x} y={y} width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined}
     >
@@ -87,7 +89,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
         <g key={si} transform={`translate(0 ${si * SYSTEM_HEIGHT})`} data-testid="tab-system">
           <SystemDrawing
             system={system} index={si} clip={clip} look={look} names={layout.names} slides={slides}
-            previous={previous} lastBar={lastBar}
+            previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
         </g>
       ))}
@@ -130,8 +132,10 @@ function previousSpots(systems: System[]): Map<Note, Spot> {
   return out;
 }
 
-function SystemDrawing({ system, index, clip, look, names, previous, slides, lastBar }: {
+function SystemDrawing({ system, index, clip, look, names, previous, slides, lastBar, maskId }: {
   system: System;
+  /** The mask that keeps the string lines out from behind the numbers. */
+  maskId: string;
   index: number;
   clip: Clip;
   look: TabLook;
@@ -144,10 +148,24 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   const parts: ReactNode[] = [];
   const beat = beatTicks(clip.time);
 
-  // The staff: lines, names, TAB, time signature.
+  // The staff: lines, names, TAB, time signature. The lines stop short of every note's number,
+  // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
+  parts.push(
+    <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={SYSTEM_HEIGHT}>
+      <rect width={end + 1} height={SYSTEM_HEIGHT} fill="#fff" />
+      {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
+        if (!note) return null;
+        const lw = labelWidth(note);
+        return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(s) - 7} width={lw} height={14} fill="#000" />;
+      })))}
+    </mask>,
+  );
   for (let s = 0; s < STRING_COUNT; s++) {
     parts.push(
-      <line key={`string-${s}`} x1={system.staffStart} x2={end} y1={stringY(s)} y2={stringY(s)} stroke={look.line} strokeWidth={1} />,
+      <line
+        key={`string-${s}`} x1={system.staffStart} x2={end} y1={stringY(s)} y2={stringY(s)}
+        stroke={look.line} strokeWidth={1} mask={`url(#${maskId})`}
+      />,
     );
     if (names) {
       parts.push(
@@ -257,6 +275,11 @@ function BarDrawing({ bar, look, final }: { bar: PlacedBar; look: TabLook; final
   );
 }
 
+/** How much of the string line a note's number keeps clear. */
+function labelWidth(note: Note): number {
+  return noteLabel(note).length * 7 + 4;
+}
+
 function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
   placed: PlacedColumn;
   system: number;
@@ -279,7 +302,6 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
     if (!note) return;
     const y = stringY(s);
     const label = noteLabel(note);
-    const lw = label.length * 7 + 4;
     const before = previous.get(note);
     // Where the joined-from note sits on this system, or the staff's start if it was on the line before.
     const fromX = before && before.system === system ? before.x : staffStart;
@@ -310,7 +332,6 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
       );
     }
     parts.push(
-      <rect key={`knock-${s}`} x={x - lw / 2} y={y - 7} width={lw} height={14} fill={look.paper} />,
       <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>,
     );
     if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} look={look} />);
