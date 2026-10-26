@@ -19,8 +19,10 @@ them while the clip plays stops it.
 
 The controls sit under that line:
 
-- **Play / Pause.** A round button; Space does the same while the controls show and the tab has
-  the focus. Play starts at the selection's first column, else at the
+- **Play / Pause.** A round button; Space does the same while the controls
+  show, anywhere on the page but in a field or a dialog (Jeremy,
+  2026-10-26: after clicking off the tab, Space did nothing). The tab keeps
+  the focus, and its cursor, when Space plays from it. Play starts at the selection's first column, else at the
   cursor's; with no cursor on the tab, from the beginning (Jeremy,
   2026-10-26). A press on Play, Loop or the Volume knob leaves the cursor
   on the tab. Pause stops and puts the cursor on the column it stopped on,
@@ -121,5 +123,7 @@ In Chromium, with the sound's peak measured at the audio node:
   sound on the way into the loop keeps it.
 - Speed 50% halves the tempo shown and the pace.
 - With no cursor on the tab, Play starts from the beginning.
+- Space plays and pauses with the focus off the tab, but not in the Speed
+  field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.
 - Checked in light and dark, at 1200 px and on a 390 px phone.

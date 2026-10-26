@@ -10,6 +10,7 @@ import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
+import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
@@ -125,6 +126,9 @@ export default function TabPage() {
   const selectedColumns = selection ? selectedRange(selection) : null;
   // With no cursor on the tab (and nothing selected), Play starts from the beginning.
   const playFrom = selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0;
+  // While the footer shows, Space anywhere on the page plays and pauses (Jeremy, 2026-10-26), but not
+  // in a field or a dialog; the tab keeps the focus, so its cursor stays.
+  useSpaceKey(() => playback.toggle(playFrom), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -203,9 +207,8 @@ export default function TabPage() {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
     if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      // Space plays only while the footer shows; hidden, it does nothing (not even scroll the page).
+      // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
       e.preventDefault();
-      if (showPlayback) playback.toggle(playFrom);
       return;
     }
     if (e.ctrlKey || e.metaKey) {

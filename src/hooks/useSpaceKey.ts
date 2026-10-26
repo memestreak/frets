@@ -13,10 +13,16 @@ import { useEffect } from 'react';
  *
  * Space also takes focus off the button it overrides: after a key press
  * the browser would otherwise draw its focus ring around that button
- * (say, the shape that just stopped being selected).
+ * (say, the shape that just stopped being selected). An element matching
+ * `keepFocusOn` keeps it (the Tab page's editor, whose cursor shows only
+ * while it has the focus).
+ *
+ * While `enabled` is false the hook does nothing and Space does what it
+ * would otherwise do.
  */
-export function useSpaceKey(onPress: () => void) {
+export function useSpaceKey(onPress: () => void, { enabled = true, keepFocusOn }: { enabled?: boolean; keepFocusOn?: string } = {}) {
   useEffect(() => {
+    if (!enabled) return;
     const isOurs = (e: KeyboardEvent) =>
       e.key === ' ' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey
       && !(e.target as Element | null)?.closest?.('input, select, textarea, nav, footer, dialog, [role="menu"]');
@@ -27,7 +33,8 @@ export function useSpaceKey(onPress: () => void) {
       if (e.repeat) return;
       // A fretboard cell is an SVG element, not an HTML one.
       const focused = document.activeElement;
-      if (focused instanceof HTMLElement || focused instanceof SVGElement) focused.blur();
+      const keep = keepFocusOn !== undefined && focused?.matches(keepFocusOn);
+      if (!keep && (focused instanceof HTMLElement || focused instanceof SVGElement)) focused.blur();
       onPress();
     };
     // Some browsers click a focused button when space comes up, not when it goes down.
@@ -42,5 +49,5 @@ export function useSpaceKey(onPress: () => void) {
       window.removeEventListener('keydown', onKeyDown, { capture: true });
       window.removeEventListener('keyup', onKeyUp, { capture: true });
     };
-  }, [onPress]);
+  }, [onPress, enabled, keepFocusOn]);
 }

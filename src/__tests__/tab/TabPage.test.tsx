@@ -472,6 +472,17 @@ describe('TabPage playback', () => {
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('plays on Space anywhere on the page while the footer shows, but not in a field', () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    fireEvent.click(toggle());
+    act(() => screen.getByRole('spinbutton', { name: 'Speed (percent)' }).focus());
+    fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (percent)' }), { key: ' ' });
+    expect(screen.queryByRole('button', { name: /Loading the sound|Pause/ })).toBeNull();
+    act(() => (document.activeElement as HTMLElement).blur());
+    fireEvent.keyDown(document.body, { key: ' ' });
+    expect(screen.getByRole('button', { name: /Loading the sound|Pause/ })).toBeInTheDocument();
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
