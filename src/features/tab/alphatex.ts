@@ -10,6 +10,11 @@
  */
 import { isRest, isStandardTuning, type Bend, type Clip, type Column, type Note } from './clip';
 
+/** A string in alphaTex quotes. */
+function quoted(text: string): string {
+  return `"${text.replace(/["\\]/g, '\\$&')}"`;
+}
+
 /** Where a note sits: bar, column and string (0 = high e). */
 interface At { bar: number; column: number; string: number }
 
@@ -82,6 +87,7 @@ function beatTex(column: Column, bar: number, index: number, marks: Map<string, 
   if (dots === 1) effects.push('d');
   if (dots === 2) effects.push('dd');
   if (triplet) effects.push('tu 3');
+  if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   effects.push(...(column.extra ?? []));
@@ -98,16 +104,22 @@ function beatTex(column: Column, bar: number, index: number, marks: Map<string, 
 /** The clip as alphaTex: header lines, then one bar per line, each ending in "|". */
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
-  if (clip.name) lines.push(`\\title "${clip.name.replace(/["\\]/g, '\\$&')}"`);
+  if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
   lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
   if (!isStandardTuning(clip.tuning)) {
     const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
     lines.push(`\\tuning (${notes.join(' ')})`);
   }
+  if (clip.capo) lines.push(`\\capo ${clip.capo}`);
   const marks = originMarks(clip);
   clip.bars.forEach((bar, b) => {
     const meta: string[] = [];
+    if (bar.section) {
+      const { text, marker } = bar.section;
+      meta.push(marker ? `\\section (${quoted(marker)} ${quoted(text)})` : `\\section ${quoted(text)}`);
+    }
+    if (bar.tempo) meta.push(bar.tempo.label ? `\\tempo (${bar.tempo.bpm} ${quoted(bar.tempo.label)})` : `\\tempo ${bar.tempo.bpm}`);
     if (bar.repeatStart) meta.push('\\ro');
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);

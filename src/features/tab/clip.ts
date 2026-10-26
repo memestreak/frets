@@ -71,6 +71,8 @@ export interface Column {
   /** Six slots, high e first. */
   notes: (Note | null)[];
   stroke?: 'down' | 'up';
+  /** A chord name written over the column, as typed ("Am7", "C/G"). */
+  chord?: string;
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("gr", "tp 16"). */
   extra?: string[];
 }
@@ -82,9 +84,29 @@ export interface Bar {
   repeatEnd?: number;
   /** Under a 1st, 2nd … ending bracket. */
   ending?: number;
+  /** A tempo from this bar on, in quarter notes a minute, with an optional word ("Slowly"). */
+  tempo?: Tempo;
+  /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
+  section?: Section;
   /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\section "Chorus"'). */
   extra?: string[];
 }
+
+export interface Tempo {
+  bpm: number;
+  label?: string;
+}
+/** The tempos Frets offers, in quarter notes a minute. */
+export const MIN_BPM = 20;
+export const MAX_BPM = 400;
+
+export interface Section {
+  text: string;
+  marker?: string;
+}
+
+/** The highest fret a capo goes on. */
+export const MAX_CAPO = 12;
 
 export interface TimeSignature {
   /** How many beats a bar holds, 1 to `MAX_BEATS`. */
@@ -114,6 +136,8 @@ export interface Clip {
   /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
   tuning: string[];
   bars: Bar[];
+  /** The fret the capo is on, if any; frets are counted from it, as tab is written. */
+  capo?: number;
   /** alphaTex score and staff metadata Frets doesn't use, kept as written ('\artist "Me"'). */
   header?: string[];
 }
@@ -234,7 +258,16 @@ export function nearestDuration(t: number): Duration {
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const optBool = (v: unknown) => v === undefined || typeof v === 'boolean';
 const optOneOf = (v: unknown, values: readonly string[]) => v === undefined || values.includes(v as string);
+const optString = (v: unknown) => v === undefined || typeof v === 'string';
 const optStrings = (v: unknown) => v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'));
+
+export function isBpm(v: unknown): v is number {
+  return Number.isInteger(v) && (v as number) >= MIN_BPM && (v as number) <= MAX_BPM;
+}
+
+export function isCapo(v: unknown): v is number {
+  return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_CAPO;
+}
 
 function isDuration(v: unknown): v is Duration {
   return isObj(v) && NOTE_VALUES.includes(v.value as NoteValue)
@@ -261,6 +294,7 @@ function isColumn(v: unknown): v is Column {
     && Array.isArray(v.notes) && v.notes.length === STRING_COUNT
     && v.notes.every(n => n === null || isNote(n))
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
+    && (v.chord === undefined || typeof v.chord === 'string')
     && optStrings(v.extra);
 }
 
@@ -269,6 +303,8 @@ function isBar(v: unknown): v is Bar {
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
+    && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
+    && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
     && optStrings(v.extra);
 }
 
@@ -280,5 +316,6 @@ export function parseClip(v: unknown): Clip | null {
   if (!Array.isArray(v.tuning) || v.tuning.length !== STRING_COUNT || !v.tuning.every(n => typeof n === 'string')) return null;
   if (!Array.isArray(v.bars) || v.bars.length === 0 || !v.bars.every(isBar)) return null;
   if (!optStrings(v.header)) return null;
+  if (v.capo !== undefined && !isCapo(v.capo)) return null;
   return v as unknown as Clip;
 }

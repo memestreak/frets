@@ -8,7 +8,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult } from './ascii';
 import {
-  BEND_QUARTERS, isUneven, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature, type TimeSignature,
+  BEND_QUARTERS, isUneven, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature, type TimeSignature,
   type Bar, type BendQuarters, type Clip, type Column, type Note, type NoteValue,
 } from './clip';
 
@@ -31,9 +31,9 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
 ]);
 /** Beat effects Frets draws. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt']);
-/** Tags Frets reads: the title, the tuning, the time signature, repeats and endings. */
-const TAGS = new Set(['title', 'tuning', 'ts', 'ro', 'rc', 'ae']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch']);
+/** Tags Frets reads: the title, tuning, capo, time signature, tempo, sections, repeats and endings. */
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'tempo', 'section', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
 const BAR_TAGS = new Set([
   'ts', 'ro', 'rc', 'ae', 'ks', 'clef', 'ottava', 'tempo', 'tf', 'ac', 'section', 'jump', 'ft',
@@ -207,6 +207,19 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     if (master?.isRepeatStart) bar.repeatStart = true;
     if (master && master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
     if (master && master.alternateEndings > 0) bar.ending = Math.log2(master.alternateEndings & -master.alternateEndings) + 1;
+    const tags = barNode.metaData.map(m => m.tag.tag.text.toLowerCase());
+    if (master && tags.includes('section') && master.section) {
+      bar.section = { text: master.section.text };
+      if (master.section.marker) bar.section.marker = master.section.marker;
+    }
+    const tempo = master?.tempoAutomations[0];
+    if (tags.includes('tempo') && tempo) {
+      const bpm = Math.round(Math.min(MAX_BPM, Math.max(MIN_BPM, tempo.value)));
+      if (bpm !== tempo.value) warn(`Read a tempo of ${tempo.value} as ${bpm}; Frets offers ${MIN_BPM} to ${MAX_BPM}.`);
+      bar.tempo = { bpm };
+      if (tempo.text) bar.tempo.label = tempo.text;
+    }
+    if (master && master.tempoAutomations.length > 1) warn('Frets draws one tempo a bar; read the first.');
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();
       if (tag === 'ts' && b > 0) warn('Frets draws one time signature; later changes are kept but not drawn.');
@@ -224,6 +237,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };
       if (beat.pickStroke === at.model.PickStroke.Down) column.stroke = 'down';
       if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
+      const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
+      if (chord?.name) column.chord = chord.name;
       for (const note of beat.notes) {
         const s = STRING_COUNT - note.string;
         const n = noteOf(note, at);
@@ -250,6 +265,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     bars: bars.length > 0 ? bars : [{ columns: [] }],
   };
   if (header.length > 0) clip.header = header;
+  if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'capo') && staff.capo > 0) {
+    clip.capo = Math.min(MAX_CAPO, staff.capo);
+    if (staff.capo > MAX_CAPO) warn(`Read capo ${staff.capo} as ${MAX_CAPO}, the highest Frets offers.`);
+  }
 
   if (kept.size > 0) {
     const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k] ? ` (${KEPT_NAMES[k]})` : ''}${n > 1 ? ` ×${n}` : ''}`);

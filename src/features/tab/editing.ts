@@ -451,6 +451,37 @@ export function cycleBendShape(clip: Clip, cursor: Cursor): Clip {
   return changeNotes(clip, { cursor, selection: null }, n => ({ ...n, bend: { quarters, ...next } }));
 }
 
+/* — words over the tab — */
+
+/** The chord name over the cursor's column; empty or blank clears it. */
+export function setChordName(clip: Clip, cursor: Cursor, name: string): Clip {
+  if (!columnAt(clip, cursor)) return clip;
+  const chord = name.trim();
+  return withColumn(clip, cursor, column => {
+    const rest = without(column, 'chord');
+    return chord ? { ...rest, chord } : rest;
+  });
+}
+
+/** The section starting at a bar ("Chorus"); empty or blank clears it, keeping no rehearsal mark. */
+export function setSection(clip: Clip, bar: number, text: string): Clip {
+  const t = text.trim();
+  const { section, ...rest } = clip.bars[bar];
+  return replaceBar(clip, bar, t ? { ...rest, section: { ...section, text: t } } : rest);
+}
+
+/** The tempo from a bar on; null clears it. A tempo's word ("Slowly") stays when only the number changes. */
+export function setTempo(clip: Clip, bar: number, bpm: number | null): Clip {
+  const { tempo, ...rest } = clip.bars[bar];
+  return replaceBar(clip, bar, bpm === null ? rest : { ...rest, tempo: { ...tempo, bpm } });
+}
+
+/** The capo's fret; null for none. */
+export function setCapo(clip: Clip, capo: number | null): Clip {
+  const rest = without(clip, 'capo');
+  return capo === null ? rest : { ...rest, capo };
+}
+
 /* — bars — */
 
 /** A repeat starting at the cursor's bar, or none. */

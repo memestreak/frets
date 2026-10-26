@@ -265,7 +265,10 @@ binds a local port).
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
   and paste at the cursor), `tools.ts` (the symbol palette's table, shared
   with the keys) and `TabPalette.tsx`, `TimeSignatureField.tsx` (the time
-  signature under the name, where it is set), `exportTab.tsx` and
+  signature under the name, where it is set; its `usePanel` and `CountInput`
+  also serve `CapoField.tsx`, the capo beside it), `WordField.tsx` (the field
+  over the tab for a chord name, section or tempo;
+  `docs/specs/2026-10-26-tab-words-design.md`), `exportTab.tsx` and
   `TabExportDialog.tsx` (right-click the tab: Copy as PNG, Export options…;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
   helpers), and `TabPage.tsx` (the editor: keys

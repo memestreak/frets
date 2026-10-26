@@ -733,6 +733,13 @@ button {
   .tab-time-stepper button:focus-visible { color: var(--primary); }
   .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
   .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
+  .tab-capo-button { font: 600 14px/1 var(--font-sans); padding-left: 12px; }
+  /* The field for a chord name, section or tempo, over the spot it is drawn. */
+  .tab-word {
+    position: absolute; z-index: 20; display: grid; gap: 6px; padding: 10px; width: 180px;
+    transform: translateX(-50%); color: var(--ink);
+  }
+  .tab-word-input { width: 100%; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */

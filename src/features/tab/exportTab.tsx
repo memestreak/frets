@@ -38,17 +38,24 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
 }
 
 /** Black ink, as the chord export's black and white: an image is printed or pasted anywhere. */
-const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000' };
+const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000', paper: '#ffffff' };
 /** Room round the tab, so it doesn't touch the image's edges. */
 const PAD = 16;
 const TITLE_SIZE = 20;
 const TITLE_HEIGHT = 34;
+const CAPO_SIZE = 12;
+const CAPO_HEIGHT = 20;
+
+/** How far down the tab starts: under the name, if shown, and the capo, if any. */
+function headHeight(clip: Clip, shown: boolean): number {
+  return (shown ? TITLE_HEIGHT : 0) + (clip.capo ? CAPO_HEIGHT : 0);
+}
 
 /** The image's size in pixels. */
 export function tabImageSize(clip: Clip, style: TabExportStyle, title: string): { width: number; height: number } {
   const tab = layoutClip(clip, style.width - 2 * PAD);
   const shown = style.name && title.trim() !== '';
-  return { width: style.width, height: tab.height + 2 * PAD + (shown ? TITLE_HEIGHT : 0) - 8 };
+  return { width: style.width, height: tab.height + 2 * PAD + headHeight(clip, shown) - 8 };
 }
 
 /**
@@ -68,9 +75,14 @@ export function TabImage({ clip, style, title }: { clip: Clip; style: TabExportS
       {shown && (
         <text x={PAD} y={PAD + TITLE_SIZE - 4} fontSize={TITLE_SIZE} fontWeight={700} fill={EXPORT_LOOK.ink}>{shown}</text>
       )}
+      {clip.capo && (
+        <text x={PAD} y={PAD + (shown ? TITLE_HEIGHT : 0) + CAPO_SIZE - 4} fontSize={CAPO_SIZE} fill={EXPORT_LOOK.ink}>
+          Capo {clip.capo}
+        </text>
+      )}
       <TabClip
         clip={clip} width={width - 2 * PAD} look={EXPORT_LOOK} title={shown || 'Tab'}
-        x={PAD} y={PAD + (shown ? TITLE_HEIGHT : 0) - 8}
+        x={PAD} y={PAD + headHeight(clip, !!shown) - 8}
       />
     </svg>
   );

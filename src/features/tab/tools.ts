@@ -17,13 +17,14 @@ export type ToolId =
   | 'bend1' | 'bend2' | 'bend4' | 'bend6' | 'bend8' | 'release' | 'preBend'
   | 'vibrato' | 'wideVibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
-  | 'repeatStart' | 'repeatEnd' | 'ending';
+  | 'repeatStart' | 'repeatEnd' | 'ending'
+  | 'chordName' | 'section' | 'tempo';
 
 export interface Tool {
   id: ToolId;
   /** The tip's words, and the button's name for screen readers. */
   label: string;
-  /** The key, as the tip shows it. */
+  /** The key, as the tip shows it; empty for none. */
   key: string;
 }
 
@@ -101,6 +102,14 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'ending', label: 'Ending 1., then 2.', key: 'E' },
     ],
   },
+  {
+    label: 'Text',
+    tools: [
+      { id: 'chordName', label: 'Chord name over this column', key: 'C' },
+      { id: 'section', label: 'Section starting at this bar', key: '' },
+      { id: 'tempo', label: 'Tempo from this bar on', key: '' },
+    ],
+  },
 ];
 
 const VALUE: Partial<Record<ToolId, NoteValue>> = {
@@ -130,6 +139,10 @@ function wholeColumns(clip: Clip, target: Target): Target {
   const i = indexOf(clip, target.cursor.bar, target.cursor.column);
   return { ...target, selection: { anchor: i, focus: i } };
 }
+
+/** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
+export const WORD_TOOLS = { chordName: 'chord', section: 'section', tempo: 'tempo' } as const;
+export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The clip after a palette press. */
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
@@ -183,7 +196,7 @@ export function toolForKey(key: string, alt: boolean, code: string): ToolId | nu
   const keys: Record<string, ToolId> = {
     '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
     x: 'dead', g: 'ghost', t: 'tap', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
-    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending',
+    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
   };
   return keys[key] ?? null;
 }
@@ -221,6 +234,9 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
     case 'repeatStart': return !!bar?.repeatStart;
     case 'repeatEnd': return !!bar?.repeatEnd;
     case 'ending': return !!bar?.ending;
+    case 'chordName': return !!column?.chord;
+    case 'section': return !!bar?.section;
+    case 'tempo': return !!bar?.tempo;
     default: return false;
   }
 }
