@@ -71,7 +71,7 @@ export default function TabPage() {
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
   const [widthRef, clipWidth] = useWidth();
-  // The alphaTex for Tab and Download, too: it is the clip's own format.
+  // What the text views show; the Tab view's copy writes alphaTex too, the clip's own format.
   const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
@@ -325,15 +325,6 @@ export default function TabPage() {
     }
   };
 
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([shownText], { type: 'text/plain' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${clip.name.trim() || 'tab'}${view === 'ascii' ? '' : '.alphatex'}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
   const uneven = clip.bars.flatMap((bar, i) => (isUneven(bar, clip.time) ? [i + 1] : []));
@@ -360,7 +351,7 @@ export default function TabPage() {
             ))}
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
-          <button type="button" className="btn btn-secondary" onClick={download}>Download</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export…</button>
         </div>
       </header>
 

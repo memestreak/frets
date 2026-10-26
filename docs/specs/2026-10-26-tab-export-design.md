@@ -17,6 +17,12 @@ the same one as on a chord shape:
 The menu is on the drawn tab only. The ASCII and alphaTex views have their
 own copy button.
 
+## The Export… button
+
+The header's **Download** button became **Export…**, which opens the same
+dialog (Jeremy, 2026-10-26: one way to do a thing). The text downloads it
+used to make moved into the dialog, so nothing is lost.
+
 ## The dialog
 
 It follows the Chords page's Export dialog:
@@ -32,8 +38,9 @@ It follows the Chords page's Export dialog:
   - **Clip name:** Show (default) or Hide, above the tab.
   - **Name:** what the title says. It starts as the clip's name and can be
     changed for this export only.
-- **Actions:** Copy PNG, Copy SVG, Download PNG, Download SVG, with a line
-  saying what happened. It stays open after an action; Done, × or Esc close
+- **Actions:** Copy PNG, Copy SVG, Download PNG, Download SVG. Under them,
+  "As text": Download alphaTex (`<name>.alphatex.txt`) and Download ASCII
+  (`<name>.txt`). A line says what happened. It stays open after an action; Done, × or Esc close
   it.
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,

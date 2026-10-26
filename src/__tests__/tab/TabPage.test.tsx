@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
@@ -285,5 +286,24 @@ describe('TabPage export', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(dialog).not.toHaveAttribute('open');
+  });
+
+  it('opens Export options from the Export… button, which also downloads the clip as text', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
+    renderAt();
+    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Export…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+    const saved: string[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      saved.push(this.download);
+    });
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Download alphaTex' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Download ASCII' }));
+    expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt']);
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.txt');
+    click.mockRestore();
   });
 });

@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { copySvgAsPng, copySvgCode, downloadSvg } from '@/components/chords/export/exportImage';
 import { Segmented } from '@/components/controls';
 import { CloseIcon } from '@/components/icons';
+import { writeAlphaTex } from './alphatex';
+import { writeAscii } from './ascii';
 import type { Clip } from './clip';
 import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
@@ -17,9 +19,11 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * The Tab page's Export dialog, as the Chords page's: a preview of the
  * image as it will be with its size in pixels, the choices (width,
  * transparent, the name above the tab and what it says), and Copy PNG,
- * Copy SVG, Download PNG and Download SVG, with a line saying what
- * happened. The name starts as the clip's and can be changed for this
- * export. It stays open after an action; Done, × or Esc close it.
+ * Copy SVG, Download PNG and Download SVG, then the clip as text (Download
+ * alphaTex, Download ASCII), with a line saying what happened. The page's
+ * Export… button opens it, as does the tab's right-click menu. The name
+ * starts as the clip's and can be changed for this export. It stays open
+ * after an action; Done, × or Esc close it.
  */
 export function TabExportDialog({ clip, open, style, onStyle, onClose }: {
   clip: Clip;
@@ -123,6 +127,15 @@ export function TabExportDialog({ clip, open, style, onStyle, onClose }: {
               Download SVG
             </button>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="tab-export-text-label">As text</span>
+            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
+              Download alphaTex
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(clip)))}>
+              Download ASCII
+            </button>
+          </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--ink-muted)" role="status">{status}</span>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Done</button>
@@ -131,4 +144,15 @@ export function TabExportDialog({ clip, open, style, onStyle, onClose }: {
       )}
     </dialog>
   );
+}
+
+/** Saves `text` as a .txt file; returns the line the dialog shows. */
+function downloadText(fileName: string, text: string): string {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return `Downloaded ${fileName}`;
 }
