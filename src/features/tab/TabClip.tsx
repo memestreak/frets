@@ -591,8 +591,12 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
         }
       }
     }
+    // A note's dots sit by its stem's foot; a rest's beside the rest, clear of a whole or half rest's line.
+    const rest = isRest(column);
+    const dotX = rest ? x + (value <= 2 ? 13 : 8) : x + 5;
+    const dotY = rest ? rows.stemTop + (value <= 2 ? 5 : 10) : rows.stemBottom - 3;
     for (let d = 0; d < dots; d++) {
-      parts.push(<circle key={`dot-${key}-${d}`} cx={x + 5 + d * 5} cy={rows.stemBottom - 3} r={1.8} fill={look.ink} />);
+      parts.push(<circle key={`dot-${key}-${d}`} cx={dotX + d * 5} cy={dotY} r={1.8} fill={look.ink} />);
     }
   }
 
