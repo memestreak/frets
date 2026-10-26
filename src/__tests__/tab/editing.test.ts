@@ -4,7 +4,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { emptyClip, type Clip } from '@/features/tab/clip';
 import {
   clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
-  deleteColumns, indexOf, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
+  deleteColumns, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
   stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
 
@@ -177,6 +177,21 @@ describe('bars', () => {
     }
     expect(counts).toEqual([2, 3, 4, undefined]);
   });
+
+  it('inserts a bar of rests, one a beat, after the cursor\'s bar, in the time in force there', () => {
+    const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 | \\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 | 0.4.4 0.4.8 0.4.4 0.4.8 |');
+    const { clip: next, cursor } = insertBar(clip, at(1, 0, 2));
+    expect(bars(next).split('\n')).toEqual([
+      '0.6.1 |',
+      '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |',
+      'r.4 r.4 r.4 |',
+      '\\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 |',
+      '0.4.4 0.4.8 0.4.4 0.4.8 |',
+    ]);
+    expect(cursor).toEqual(at(2, 0, 2));
+    // After the last bar, and in 6/8: six eighth rests.
+    expect(bars(insertBar(clip, at(3, 0, 0)).clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+  });
 });
 
 describe('cut, copy and paste', () => {
@@ -196,6 +211,16 @@ describe('cut, copy and paste', () => {
     const cut = deleteColumns(clip, [1, 3]);
     expect(bars(cut.clip)).toBe('5.3.4 |');
     expect(cut.cursor).toEqual({ bar: 0, column: 0 });
+  });
+
+  it('keeps the cursor in the bar: the column after a deleted one in that bar, else the one before', () => {
+    const two = clipOf('1.1.4 2.1.4 3.1.2 | 4.1.1 |');
+    // A bar's last column: back to the one before it, not on to the next bar.
+    expect(deleteColumns(two, [2, 2]).cursor).toEqual({ bar: 0, column: 1 });
+    // A middle column: the one that moved into its place.
+    expect(deleteColumns(two, [1, 1]).cursor).toEqual({ bar: 0, column: 1 });
+    // The clip's very first column: the one after it.
+    expect(deleteColumns(two, [0, 0]).cursor).toEqual({ bar: 0, column: 0 });
   });
 
   it('pastes before the cursor column, as at a caret', () => {

@@ -67,7 +67,7 @@ A new **Rhythm** palette group sits after Duration:
 - Grace toggles before-the-beat grace notes. G alone is still a ghost note.
 - Shift+T steps through 8, 16, 32 and off. T alone is still a tap.
 
-The Repeats group is renamed **Bars**, and its first button, drawn as 4 over
+The Repeats group is renamed **Bars**, and its button drawn as 4 over
 4, is **Time signature from this bar**. It opens the cursor bar's panel
 (under the staff, from the bar's start), just as a press on that bar's drawn
 numbers does. In the first bar, that is the clip's own time signature. The

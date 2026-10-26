@@ -599,11 +599,24 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
   return normalize(replaceBar(clip, cursor.bar, { ...bar, columns }));
 }
 
+/**
+ * A new bar after the cursor's bar, filled with rests: one a beat long for each beat of the time
+ * signature in force there (three quarter rests in 3/4). The cursor goes to its first rest.
+ */
+export function insertBar(clip: Clip, cursor: Cursor): { clip: Clip; cursor: Cursor } {
+  const time = timeAt(clip, cursor.bar);
+  const rests = Array.from({ length: time.beats }, () => emptyColumn({ value: time.value, dots: 0 }));
+  const bars = [...clip.bars];
+  bars.splice(cursor.bar + 1, 0, { columns: rests });
+  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: cursor.bar + 1, column: 0 } };
+}
+
 /* — removing, copying and pasting columns — */
 
 /**
  * The clip without the columns in `range` (places, inclusive), and where the cursor goes: the
- * column after them, or the last one left. A bar left empty goes too, unless it is the only one.
+ * column after them while it is in the same bar, else the column before them, so deleting a bar's
+ * last note leaves the cursor in that bar. A bar left empty goes too, unless it is the only one.
  */
 export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip: Clip; cursor: { bar: number; column: number } } {
   let index = 0;
@@ -617,7 +630,9 @@ export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip:
     if (columns.length > 0 || bar.columns.length === 0) bars.push({ ...bar, columns });
   }
   const left = bars.length > 0 ? normalize({ ...clip, bars }) : { ...clip, bars: [{ columns: [] }] };
-  return { clip: left, cursor: placeOf(left, Math.min(from, Math.max(0, columnCount(left) - 1))) };
+  const afterInSameBar = to + 1 < columnCount(clip) && placeOf(clip, to + 1).bar === placeOf(clip, from).bar;
+  const place = afterInSameBar ? from : Math.max(0, from - 1);
+  return { clip: left, cursor: placeOf(left, Math.min(place, Math.max(0, columnCount(left) - 1))) };
 }
 
 /** The columns in `range` as a clip of their own, with the clip's time and tuning; bar lines between them are kept. */
