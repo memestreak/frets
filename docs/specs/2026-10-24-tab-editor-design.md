@@ -109,7 +109,9 @@ As layout A of the mock, without the list: the clip takes the page width.
   string names stand left of the lines (D A D G B E).
 - Columns are spaced by duration. Stems and beams under the bottom string,
   beamed by beat: a half note a short stem, a whole note none, a rest its
-  usual sign; triplets a "3" over their beam.
+  usual sign (a whole rest hanging from a short line of its own, a half rest
+  sitting on one, since no staff line under the tab tells them apart; Jeremy,
+  2026-10-26); triplets a "3" over their beam.
 - On a note: hammer-on and pull-off (an arc to the previous note on that
   string with H or P over it); slide (a slanted line from the previous
   note, or into the note); bend (a curved arrow above the staff labelled
