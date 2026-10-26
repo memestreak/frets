@@ -22,7 +22,7 @@ chords fit; fingerstyle with a bass line held under moving notes does not
 
     \title "<name of the clip>"       optional
     \ts (<beats> <note>)              optional; (4 4) if left out
-                                      ((2 4), (3 4), (4 4), (6 8) or (12 8))
+                                      (beats 1 to 32; note 2, 4, 8, 16 or 32)
     \tuning (<six notes, HIGH to low, with octaves>)
                                       optional; standard (E4 B3 G3 D3 A2 E2)
     <bars>

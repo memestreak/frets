@@ -261,7 +261,8 @@ binds a local port).
   with undo and redo), `editing.ts` (pure: the cursor, selection and every
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
   and paste at the cursor), `tools.ts` (the symbol palette's table, shared
-  with the keys) and `TabPalette.tsx`, and `TabPage.tsx` (the editor: keys
+  with the keys) and `TabPalette.tsx`, `TimeSignatureField.tsx` (the time
+  signature under the name, where it is set), and `TabPage.tsx` (the editor: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog, drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;

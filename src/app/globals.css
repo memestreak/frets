@@ -694,17 +694,41 @@ button {
     font-size: 12px; font-weight: 600; color: var(--ink-muted);
   }
   /* The time signature under the clip's name: text that opens a menu. */
-  .tab-time { position: relative; display: inline-flex; align-items: center; }
-  .tab-time-select {
-    appearance: none; border: 0; background: transparent; color: inherit; font: inherit;
-    padding: 0 18px 0 0; cursor: pointer;
-    /* As wide as the chosen one, not the widest, so the chevron sits by it. */
-    field-sizing: content;
-    text-decoration: underline dotted; text-underline-offset: 3px;
+  /* The time signature under the clip's name: a raised button with the numbers stacked, and its panel. */
+  .tab-time { position: relative; display: inline-block; vertical-align: middle; }
+  .tab-time-button {
+    display: inline-flex; align-items: center; gap: 4px; height: 46px; padding: 0 6px 0 10px;
+    border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-raised);
+    color: var(--ink); cursor: pointer;
   }
-  .tab-time-select:focus { outline: none; }
-  .tab-time-select:focus-visible { text-decoration-style: solid; }
-  .tab-time svg { position: absolute; right: 0; width: 14px; height: 14px; pointer-events: none; }
+  .tab-time-button:hover, .tab-time-button[aria-expanded="true"] { background: var(--surface-sunken); }
+  .tab-time-button:focus { outline: none; }
+  .tab-time-button:focus-visible { border-color: var(--primary); }
+  .tab-time-button svg { width: 14px; height: 14px; color: var(--ink-muted); }
+  .tab-time-stack { display: grid; justify-items: center; min-width: 2.2ch; font: 700 18px/1 var(--font-display); }
+  .tab-time-panel {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: grid; gap: 12px;
+    padding: 12px; width: max-content; color: var(--ink);
+  }
+  .tab-time-field { display: grid; gap: 6px; justify-items: start; }
+  .tab-time-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+  .tab-time-stepper {
+    display: inline-flex; align-items: center; height: 28px; padding: 2px; border-radius: 8px;
+    background: var(--surface-sunken); border: 1px solid var(--line); font-weight: 600;
+  }
+  .tab-time-stepper button {
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent;
+    color: var(--ink-muted); font: 600 15px/1 var(--font-sans); cursor: pointer;
+  }
+  .tab-time-stepper button:hover { background: var(--surface-raised); color: var(--ink); }
+  .tab-time-stepper input {
+    border: 0; background: transparent; color: inherit; font: inherit; padding: 0; margin: 0;
+    width: 3ch; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .tab-time-stepper button:focus, .tab-time-stepper input:focus { outline: none; }
+  .tab-time-stepper button:focus-visible { color: var(--primary); }
+  .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+  .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   .tab-import-text {

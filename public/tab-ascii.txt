@@ -19,7 +19,7 @@ notes does not (write the moving part and give held notes as ties).
 
     Title: <name of the clip>           optional
     Time: <beats>/<note>                optional; 4/4 if left out
-                                        (2/4, 3/4, 4/4, 6/8 or 12/8)
+                                        (beats 1 to 32; note 2, 4, 8, 16 or 32)
     Tuning: <six notes, low to high>    optional; E A D G B E if left out
     <blank line>
     <one or more blocks>

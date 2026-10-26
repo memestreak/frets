@@ -10,7 +10,7 @@
  */
 import {
   barTicks, isPalmMuted, isStandardTuning, isUneven, nearestDuration, slideDirections, STANDARD_TUNING, STRING_COUNT,
-  ticks, TIME_SIGNATURES,
+  ticks, COMMON_TIME, isTimeSignature,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
 } from './clip';
@@ -286,11 +286,11 @@ export function readAscii(text: string): ReadResult {
     }
   });
 
-  let time: TimeSignature = { beats: 4, value: 4 };
+  let time: TimeSignature = COMMON_TIME;
   if (header.time !== undefined) {
     const m = /^(\d+)\s*\/\s*(\d+)$/.exec(header.time);
-    const found = m && TIME_SIGNATURES.find(t => t.beats === Number(m[1]) && t.value === Number(m[2]));
-    if (found) time = found;
+    const found = m && isTimeSignature(Number(m[1]), Number(m[2]));
+    if (found) time = { beats: Number(m[1]), value: Number(m[2]) } as TimeSignature;
     else tally.messages.push(`Time "${header.time}" isn't offered, so 4/4 is used.`);
   }
 
