@@ -213,6 +213,16 @@ describe('cut, copy and paste', () => {
     expect(cut.cursor).toEqual({ bar: 0, column: 0 });
   });
 
+  it('keeps the cursor in the bar: the column after a deleted one in that bar, else the one before', () => {
+    const two = clipOf('1.1.4 2.1.4 3.1.2 | 4.1.1 |');
+    // A bar's last column: back to the one before it, not on to the next bar.
+    expect(deleteColumns(two, [2, 2]).cursor).toEqual({ bar: 0, column: 1 });
+    // A middle column: the one that moved into its place.
+    expect(deleteColumns(two, [1, 1]).cursor).toEqual({ bar: 0, column: 1 });
+    // The clip's very first column: the one after it.
+    expect(deleteColumns(two, [0, 0]).cursor).toEqual({ bar: 0, column: 0 });
+  });
+
   it('pastes before the cursor column, as at a caret', () => {
     const pasted = clipOf('1.1.8 2.1.8 | 3.1.4 |');
     const result = pasteAt(clip, at(0, 1, 0), pasted);

@@ -615,7 +615,8 @@ export function insertBar(clip: Clip, cursor: Cursor): { clip: Clip; cursor: Cur
 
 /**
  * The clip without the columns in `range` (places, inclusive), and where the cursor goes: the
- * column after them, or the last one left. A bar left empty goes too, unless it is the only one.
+ * column after them while it is in the same bar, else the column before them, so deleting a bar's
+ * last note leaves the cursor in that bar. A bar left empty goes too, unless it is the only one.
  */
 export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip: Clip; cursor: { bar: number; column: number } } {
   let index = 0;
@@ -629,7 +630,9 @@ export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip:
     if (columns.length > 0 || bar.columns.length === 0) bars.push({ ...bar, columns });
   }
   const left = bars.length > 0 ? normalize({ ...clip, bars }) : { ...clip, bars: [{ columns: [] }] };
-  return { clip: left, cursor: placeOf(left, Math.min(from, Math.max(0, columnCount(left) - 1))) };
+  const afterInSameBar = to + 1 < columnCount(clip) && placeOf(clip, to + 1).bar === placeOf(clip, from).bar;
+  const place = afterInSameBar ? from : Math.max(0, from - 1);
+  return { clip: left, cursor: placeOf(left, Math.min(place, Math.max(0, columnCount(left) - 1))) };
 }
 
 /** The columns in `range` as a clip of their own, with the clip's time and tuning; bar lines between them are kept. */
