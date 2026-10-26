@@ -302,6 +302,40 @@ export function tupletProblems(bar: Bar, index: number): string[] {
   return problems;
 }
 
+/**
+ * How a bar's columns (grace notes left out) fall into tuplet groups, by their places in that list:
+ * each run of the same kind of tuplet is cut into groups of n of its shortest note (a quarter and an
+ * eighth fill a triplet of eighths), the last one short if the run is. Each group is drawn with its
+ * bracket and number.
+ */
+export function tupletGroups(columns: Column[]): { from: number; to: number; duration: Duration }[] {
+  const groups: { from: number; to: number; duration: Duration }[] = [];
+  let i = 0;
+  while (i < columns.length) {
+    const first = columns[i].duration;
+    if (!first.tuplet) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < columns.length && sameTuplet(columns[end + 1].duration, first)) end++;
+    const plain = (c: Column) => ticks({ value: c.duration.value, dots: c.duration.dots });
+    const unit = Math.min(...columns.slice(i, end + 1).map(plain));
+    let from = i;
+    let filled = 0;
+    for (let k = i; k <= end; k++) {
+      filled += plain(columns[k]);
+      if (filled >= first.tuplet * unit || k === end) {
+        groups.push({ from, to: k, duration: first });
+        from = k + 1;
+        filled = 0;
+      }
+    }
+    i = end + 1;
+  }
+  return groups;
+}
+
 /** The line that names every tuplet missing notes or with extra ones, or null when every one is whole. */
 export function brokenTupletMessage(clip: Pick<Clip, 'bars'>): string | null {
   const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, b));

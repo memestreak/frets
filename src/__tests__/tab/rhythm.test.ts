@@ -7,7 +7,7 @@ import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, unevenMessage, WHOLE, type Clip,
+  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, tupletGroups, unevenMessage, WHOLE, type Clip,
 } from '@/features/tab/clip';
 import {
   copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, setTuplet, sliceClip, toggleGrace, toggleTuplet, type Cursor,
@@ -125,6 +125,15 @@ describe('incomplete tuplets', () => {
     const errors = barErrors(short);
     expect([...errors.keys()]).toEqual([0, 1]);
     expect(errors.get(0)).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 2 notes; it needs 3.");
+  });
+
+  it('are grouped for their brackets, rests included, the last group short when the run is', () => {
+    const groups = (text: string) =>
+      tupletGroups(clipOf(text).bars[0].columns).map(({ from, to, duration }) => [from, to, duration.tuplet]);
+    expect(groups('5.3.8{tu 3} r.8{tu 3} 8.3.8{tu 3} 5.3.4{tu 3} 7.3.8{tu 3} r.2 |')).toEqual([[0, 2, 3], [3, 4, 3]]);
+    expect(groups('5.3.8{tu 3} 7.3.8{tu 3} r.4 r.2 |')).toEqual([[0, 1, 3]]);
+    expect(groups('5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} r.2 r.4 |'))
+      .toEqual([[0, 8, 9]]);
   });
 });
 

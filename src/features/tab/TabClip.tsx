@@ -1,6 +1,6 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, sameTuplet, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletLabel,
+  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
@@ -620,22 +620,26 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
     }
   }
 
-  // A tuplet's number under each group of it: 3 under three triplets, 9 under nine, 3:4 under three in the time of four.
+  // A bracket under each tuplet group, rests included, with its number in a gap in the middle: 3 under
+  // a triplet, 9 under nine, 3:4 under three in the time of four. A group short of notes is drawn as it
+  // is, and the warning under the bar says so.
   const cols = bar.columns.filter(p => !p.column.grace);
-  let k = 0;
-  while (k < cols.length) {
-    const duration = cols[k].column.duration;
-    const n = duration.tuplet;
-    if (!n) {
-      k++;
-      continue;
-    }
-    let last = k;
-    while (last - k < n - 1 && cols[last + 1] && sameTuplet(cols[last + 1].column.duration, duration)) last++;
+  for (const { from, to, duration } of tupletGroups(cols.map(p => p.column))) {
+    const label = tupletLabel(duration);
+    const x0 = cols[from].x - 5;
+    const x1 = cols[to].x + 5;
+    const mid = (x0 + x1) / 2;
+    const gap = label.length * 3.5 + 4;
+    const y = rows.tuplet - 4;
     parts.push(
-      <text key={`tuplet-${cols[k].x}`} x={(cols[k].x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{tupletLabel(duration)}</text>,
+      <g key={`tuplet-${cols[from].x}`} data-testid="tuplet-group">
+        <path
+          d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
+          fill="none" stroke={look.ink} strokeWidth={1}
+        />
+        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
+      </g>,
     );
-    k = last + 1;
   }
 
   return <g>{parts}</g>;
