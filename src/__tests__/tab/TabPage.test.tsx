@@ -182,7 +182,8 @@ describe('TabPage', () => {
       renderAt();
       act(() => editor().focus());
       keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
-      expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 |');
+      // → fills the bar with a dotted half rest; 14 splits it, a quarter like the note before.
+      expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 r.2 |');
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     });
 
@@ -191,7 +192,7 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'h', '-');
       fireEvent.click(vibrato());
-      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
+      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.2 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
       // Off the tab, no button is lit.
@@ -306,13 +307,14 @@ describe('TabPage', () => {
       act(() => { editor().dispatchEvent(copy); });
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
-      expect(alphaTex()).toBe('5.1.4 |');
+      expect(alphaTex()).toBe('5.1.4 r.4 |');
     });
 
     it('sets the time signature from the palette, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
-      keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
+      // Three quarters: the rest → filled the bar with is deleted.
+      keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', 'Delete');
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
       // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.

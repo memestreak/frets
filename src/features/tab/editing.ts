@@ -5,7 +5,7 @@
  * it so marks that join a note to the one before it stay true.
  */
 import {
-  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
   type TremoloValue,
 } from './clip';
@@ -224,9 +224,37 @@ function changeColumns(clip: Clip, { cursor, selection }: Target, change: (colum
   return normalize(selection ? withColumns(clip, selectedRange(selection), change) : withColumn(clip, cursor, change));
 }
 
+/** The length of the last column with a note before the cursor's, in the clip; a quarter when none. */
+function lastNoteLength(clip: Clip, cursor: Cursor): Duration {
+  for (let b = cursor.bar; b >= 0; b--) {
+    const columns = clip.bars[b].columns;
+    for (let c = (b === cursor.bar ? cursor.column : columns.length) - 1; c >= 0; c--) {
+      if (!columns[c].grace && columns[c].notes.some(Boolean)) return { value: columns[c].duration.value, dots: columns[c].duration.dots };
+    }
+  }
+  return { value: 4, dots: 0 };
+}
+
+/**
+ * Before a note goes on a plain rest longer than the note before it (as → fills a bar with), the
+ * rest is split: its first part takes that note's length and the rest of its time stays rests, the
+ * fewest that fill it. So a run of quarters types on as before (Jeremy, 2026-10-26).
+ */
+function splitRest(clip: Clip, cursor: Cursor): Clip {
+  const column = columnAt(clip, cursor);
+  if (!column || column.grace || column.duration.tuplet || column.notes.some(Boolean)) return clip;
+  const length = lastNoteLength(clip, cursor);
+  const room = ticks(column.duration);
+  if (ticks(length) >= room) return clip;
+  const bar = clip.bars[cursor.bar];
+  const columns = [...bar.columns];
+  columns.splice(cursor.column, 1, { ...column, duration: length }, ...fewestRests(room - ticks(length)).map(emptyColumn));
+  return replaceBar(clip, cursor.bar, { ...bar, columns });
+}
+
 /** Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. */
 export function setFret(clip: Clip, cursor: Cursor, fret: number): Clip {
-  return normalize(withColumn(clip, cursor, column => ({
+  return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => {
       if (s !== cursor.string) return note;
@@ -238,7 +266,7 @@ export function setFret(clip: Clip, cursor: Cursor, fret: number): Clip {
 
 /** A dead note (x) on the cursor's string. */
 export function setDead(clip: Clip, cursor: Cursor): Clip {
-  return normalize(withColumn(clip, cursor, column => ({
+  return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => (s === cursor.string ? { fret: null, ...(note?.palmMute ? { palmMute: true } : {}) } : note)),
   })));
@@ -586,26 +614,52 @@ function isFull(clip: Clip, index: number): boolean {
   return barLength(clip.bars[index]) >= barTicks(timeAt(clip, index));
 }
 
+/** Every plain rest length, longest first: each note value, then dotted and double-dotted where it may be. */
+const REST_DURATIONS: Duration[] = NOTE_VALUES.flatMap(value => {
+  const dots: Duration['dots'][] = value > SHORTEST_DOTTED ? [0] : [0, 1, 2];
+  return dots.map(d => ({ value, dots: d }));
+}).sort((a, b) => ticks(b) - ticks(a));
+
+/** The step every rest length is a whole number of: a 256th, since a double-dotted 32nd is 14 of them. */
+const REST_STEP = WHOLE / 256;
+
 /**
- * A rest's length for the end of a bar: the cursor column's length while it fits in the room left,
- * else the longest plain note value that does, so the bar fills up without running over.
+ * The fewest rests that add up to `room` ticks, longest first: a whole rest for an empty bar of 4/4,
+ * a dotted half for 3/4. Time a plain rest can't fill (left by a broken tuplet) stays unfilled.
  */
-function restToFill(clip: Clip, cursor: Cursor): Duration {
-  const time = timeAt(clip, cursor.bar);
-  // An empty bar fills a beat at a time, as a new bar of rests does.
-  if (clip.bars[cursor.bar].columns.length === 0) return { value: time.value, dots: 0 };
-  const near = durationNear(clip, cursor);
-  const room = barTicks(time) - barLength(clip.bars[cursor.bar]);
-  if (ticks(near) <= room) return near;
-  const value = NOTE_VALUES.find(v => ticks({ value: v, dots: 0 }) <= room) ?? NOTE_VALUES[NOTE_VALUES.length - 1];
-  return { value, dots: 0 };
+export function fewestRests(room: number): Duration[] {
+  const steps = Math.floor(Math.max(0, room) / REST_STEP);
+  const sizes = REST_DURATIONS.map(d => ticks(d) / REST_STEP);
+  // fewest[n]: the fewest rests making n steps; last[n]: the rest that ends such a run.
+  const fewest = new Array<number>(steps + 1).fill(Infinity);
+  const last = new Array<number>(steps + 1).fill(-1);
+  fewest[0] = 0;
+  for (let n = 1; n <= steps; n++) {
+    sizes.forEach((size, k) => {
+      if (size <= n && fewest[n - size] + 1 < fewest[n]) {
+        fewest[n] = fewest[n - size] + 1;
+        last[n] = k;
+      }
+    });
+  }
+  // The longest run of steps that can be made (every count can, a 256th aside).
+  let n = steps;
+  while (n > 0 && last[n] === -1) n--;
+  const rests: Duration[] = [];
+  for (; n > 0; n -= sizes[last[n]]) rests.push(REST_DURATIONS[last[n]]);
+  return rests.sort((a, b) => ticks(b) - ticks(a));
+}
+
+/** The rests that complete a bar: the fewest that fill the time it lacks. */
+function restsToFill(clip: Clip, bar: number): Duration[] {
+  return fewestRests(barTicks(timeAt(clip, bar)) - barLength(clip.bars[bar]));
 }
 
 /**
  * The cursor one column left or right. Right from the last column of a bar that doesn't add up yet
- * adds a rest there that fits, anywhere in the clip, so a short bar can be filled (Jeremy,
- * 2026-10-26), an empty one included. Right from the clip's last column, once its bar is full, starts a new bar with a
- * rest as long as the cursor's column, so typing runs on.
+ * fills it at once with the fewest rests that complete it, anywhere in the clip, an empty bar
+ * included (a whole rest in 4/4; Jeremy, 2026-10-26), and the cursor goes to the first of them. Right from the clip's last column, once its bar is full, starts a new bar with a
+ * rest as long as the cursor's column, so typing runs on, and the fewest rests after it that fill the bar.
  */
 export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true): { clip: Clip; cursor: Cursor } {
   const { bar, column } = cursor;
@@ -618,14 +672,18 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true
   const here = clip.bars[bar];
   if (column < here.columns.length - 1) return { clip, cursor: { ...cursor, column: column + 1 } };
   // An emptied bar counts too: its first rest goes where the cursor waits.
-  if (grow && !isFull(clip, bar)) {
-    const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, emptyColumn(restToFill(clip, cursor))] });
+  const rests = grow && !isFull(clip, bar) ? restsToFill(clip, bar) : [];
+  if (rests.length > 0) {
+    const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, ...rests.map(emptyColumn)] });
     return { clip: normalize(grown), cursor: { ...cursor, column: here.columns.length } };
   }
   if (bar < clip.bars.length - 1) return { clip, cursor: { ...cursor, bar: bar + 1, column: 0 } };
   if (!grow || here.columns.length === 0) return { clip, cursor };
-  const next = emptyColumn(durationNear(clip, cursor));
-  return { clip: { ...clip, bars: [...clip.bars, { columns: [next] }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
+  // A new bar: a rest as long as the cursor's column, to type on, and the fewest rests after it that fill the bar.
+  const first = durationNear(clip, cursor);
+  const room = barTicks(timeAt(clip, bar)) - ticks(first);
+  const columns = [first, ...(room > 0 ? fewestRests(room) : [])].map(emptyColumn);
+  return { clip: { ...clip, bars: [...clip.bars, { columns }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
 }
 
 /** A rest with the cursor column's duration, put before the cursor column (the Insert key). */
@@ -637,15 +695,15 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
 }
 
 /**
- * A new bar before or after the cursor's bar, filled with rests: one a beat long for each beat of
- * the time signature in force where it goes (three quarter rests in 3/4). Before a bar that changes
+ * A new bar before or after the cursor's bar, filled with the fewest rests that make up the time
+ * signature in force where it goes (a whole rest in 4/4, a dotted half in 3/4). Before a bar that changes
  * the time, that is the time before the change, which the cursor's bar keeps. The cursor goes to
  * the new bar's first rest.
  */
 export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after'): { clip: Clip; cursor: Cursor } {
   const index = where === 'before' ? cursor.bar : cursor.bar + 1;
   const time = index === 0 ? clip.time : timeAt(clip, index - 1);
-  const rests = Array.from({ length: time.beats }, () => emptyColumn({ value: time.value, dots: 0 }));
+  const rests = fewestRests(barTicks(time)).map(emptyColumn);
   const bars = [...clip.bars];
   bars.splice(index, 0, { columns: rests });
   return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: index, column: 0 } };

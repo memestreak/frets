@@ -1,9 +1,9 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
-import { emptyClip, type Clip } from '@/features/tab/clip';
+import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
 import {
-  clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
+  fewestRests, clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
   deleteColumns, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
   stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
@@ -148,7 +148,7 @@ describe('note marks', () => {
 });
 
 describe('moving', () => {
-  it('adds a column at the end while the bar has room, then a new bar', () => {
+  it('adds a column at the end while the bar has room, then a new bar of rests', () => {
     let clip = clipOf('5.3.2 |');
     let cursor = at(0, 0, 2);
     ({ clip, cursor } = moveColumn(clip, cursor, 1));
@@ -156,7 +156,7 @@ describe('moving', () => {
     clip = setFret(clip, cursor, 7);
     ({ clip, cursor } = moveColumn(clip, cursor, 1));
     expect(cursor).toEqual(at(1, 0, 2));
-    expect(bars(clip)).toBe('5.3.2 7.3.2 |\nr.2 |');
+    expect(bars(clip)).toBe('5.3.2 7.3.2 |\nr.2 r.2 |');
   });
 
   it('crosses bar lines both ways and stops at the start', () => {
@@ -166,25 +166,45 @@ describe('moving', () => {
     expect(moveColumn(clip, at(0, 1, 0), 1).cursor).toEqual(at(1, 0, 0));
   });
 
-  it('fills a short bar anywhere in the clip with rests that fit, then moves on', () => {
-    let clip = clipOf('5.3.4 | 7.3.1 |');
-    let cursor = at(0, 0, 2);
-    for (let i = 0; i < 3; i++) ({ clip, cursor } = moveColumn(clip, cursor, 1));
-    expect(bars(clip)).toBe('5.3.4 r.4 r.4 r.4 |\n7.3.1 |');
-    expect(moveColumn(clip, cursor, 1).cursor).toEqual(at(1, 0, 2));
-    // Only an eighth is left: the rest is an eighth, not the quarter before it.
+  it('fills a short bar anywhere in the clip at once, with the fewest rests, then moves on', () => {
+    const clip = clipOf('5.3.4 | 7.3.1 |');
+    const moved = moveColumn(clip, at(0, 0, 2), 1);
+    expect(bars(moved.clip)).toBe('5.3.4 r.2{d} |\n7.3.1 |');
+    expect(moved.cursor).toEqual(at(0, 1, 2));
+    expect(moveColumn(moved.clip, moved.cursor, 1).cursor).toEqual(at(1, 0, 2));
+    // Only an eighth is left: the rest is an eighth.
     const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
     expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
   });
 
-  it('fills an emptied bar a beat at a time', () => {
+  it('fills an emptied bar with one rest where one will do', () => {
     const full = clipOf('5.3.1 | \\ts (3 4) 7.3.2 7.3.4 | 9.3.2 9.3.4 |');
-    let clip: Clip = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
-    let cursor = at(1, 0, 2);
-    for (let i = 0; i < 3; i++) ({ clip, cursor } = moveColumn(clip, cursor, 1));
-    expect(bars(clip).split('\n')[1]).toBe('\\ts (3 4) r.4 r.4 r.4 |');
-    expect(cursor).toEqual(at(1, 2, 2));
-    expect(moveColumn(clip, cursor, 1).cursor).toEqual(at(2, 0, 2));
+    const clip: Clip = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
+    const moved = moveColumn(clip, at(1, 0, 2), 1);
+    expect(bars(moved.clip).split('\n')[1]).toBe('\\ts (3 4) r.2{d} |');
+    expect(moved.cursor).toEqual(at(1, 0, 2));
+    expect(moveColumn(moved.clip, moved.cursor, 1).cursor).toEqual(at(2, 0, 2));
+  });
+
+  it('splits a long rest when a note goes on it: the note takes the last note\'s length', () => {
+    let { clip, cursor } = moveColumn(clipOf('12.3.4 |'), at(0, 0, 2), 1);
+    clip = setFret(clip, cursor, 14);
+    expect(bars(clip)).toBe('12.3.4 14.3.4 r.2 |');
+    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    clip = setFret(clip, cursor, 15);
+    expect(bars(clip)).toBe('12.3.4 14.3.4 15.3.4 r.4 |');
+    // A rest no longer than the last note keeps its length.
+    expect(bars(setFret(clipOf('5.3.2 r.4 r.4 |'), at(0, 1, 0), 3))).toBe('5.3.2 3.1.4 r.4 |');
+  });
+
+  it('makes up any length with the fewest rests, longest first', () => {
+    const names = (room: number) => fewestRests(room).map(d => `${d.value}${'.'.repeat(d.dots)}`);
+    expect(names(WHOLE)).toEqual(['1']);
+    expect(names(WHOLE * 3 / 4)).toEqual(['2.']);
+    expect(names(WHOLE * 7 / 8)).toEqual(['2..']);
+    expect(names(WHOLE * 5 / 4)).toEqual(['1', '4']);
+    expect(names(WHOLE * 3 / 8)).toEqual(['4.']);
+    expect(names(0)).toEqual([]);
   });
 });
 
@@ -199,28 +219,28 @@ describe('bars', () => {
     expect(counts).toEqual([2, 3, 4, undefined]);
   });
 
-  it('inserts a bar of rests, one a beat, after the cursor\'s bar, in the time in force there', () => {
+  it('inserts a bar of the fewest rests after the cursor\'s bar, in the time in force there', () => {
     const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 | \\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 | 0.4.4 0.4.8 0.4.4 0.4.8 |');
     const { clip: next, cursor } = insertBar(clip, at(1, 0, 2), 'after');
     expect(bars(next).split('\n')).toEqual([
       '0.6.1 |',
       '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |',
-      'r.4 r.4 r.4 |',
+      'r.2{d} |',
       '\\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 |',
       '0.4.4 0.4.8 0.4.4 0.4.8 |',
     ]);
     expect(cursor).toEqual(at(2, 0, 2));
-    // After the last bar, and in 6/8: six eighth rests.
-    expect(bars(insertBar(clip, at(3, 0, 0), 'after').clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+    // After the last bar, and in 6/8: one dotted half rest.
+    expect(bars(insertBar(clip, at(3, 0, 0), 'after').clip).split('\n').at(-1)).toBe('r.2{d} |');
   });
 
   it('inserts a bar before the cursor\'s bar in the time before it; the bar keeps its own change', () => {
     const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 |');
     const { clip: next, cursor } = insertBar(clip, at(1, 1, 0), 'before');
-    expect(bars(next).split('\n')).toEqual(['0.6.1 |', 'r.4 r.4 r.4 r.4 |', '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |']);
+    expect(bars(next).split('\n')).toEqual(['0.6.1 |', 'r.1 |', '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |']);
     expect(cursor).toEqual(at(1, 0, 0));
     // Before the first bar: the clip's own time.
-    expect(bars(insertBar(clip, at(0, 0, 0), 'before').clip).split('\n')[0]).toBe('r.4 r.4 r.4 r.4 |');
+    expect(bars(insertBar(clip, at(0, 0, 0), 'before').clip).split('\n')[0]).toBe('r.1 |');
   });
 });
 
