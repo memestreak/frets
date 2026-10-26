@@ -118,7 +118,7 @@ function LoopIcon() {
 
 /**
  * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
- * that shows or hides the playback controls beside it. It stays put either way.
+ * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
 export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow }: {
   clip: Clip;
@@ -152,7 +152,10 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
         type="button" className="tab-playback-toggle" aria-label="Playback controls" aria-pressed={shown}
         data-tip={shown ? 'Hide playback' : 'Show playback'} onClick={() => onShow(!shown)}
       >
-        <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>
+        {/* Hidden: a green play triangle. Shown: a plain minus, to put them away. */}
+        {shown
+          ? <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1 4h6" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" /></svg>
+          : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
       </button>
       {shown && (
         <div className="tab-playback" aria-label="Playback" role="group">

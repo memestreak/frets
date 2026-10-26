@@ -9,7 +9,8 @@ and Play in the header. He picked the footer in the card.
 
 A very small round button with a green play triangle, at the bottom left
 of the clip's card under the tab, shows or hides the playback controls
-beside it (Jeremy, 2026-10-26). It stays in the same place either way, and
+beside it (Jeremy, 2026-10-26). While they show, the button holds a plain
+minus in the muted ink colour instead. It stays in the same place either way, and
 the line over the controls shows only with them. The controls are hidden
 at first, and the page remembers the last choice (`frets.tab.playback`).
 While they are hidden, Space does nothing and no playhead is drawn; hiding
