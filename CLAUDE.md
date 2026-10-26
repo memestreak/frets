@@ -278,7 +278,7 @@ binds a local port).
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog, drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
-  Tab | ASCII | alphaTex, the text views with their copy button; Export…,
+  Tab | ASCII | alphaTex, each with a copy button (the Tab view copies the PNG); Export options,
   the Export dialog, which also downloads the clip as alphaTex or ASCII). The clip's own format is alphaTex
   (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
   `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's

@@ -21,7 +21,7 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * transparent, the name above the tab and what it says), and Copy PNG,
  * Copy SVG, Download PNG and Download SVG, then the clip as text (Download
  * alphaTex, Download ASCII), with a line saying what happened. The page's
- * Export… button opens it, as does the tab's right-click menu. The name
+ * Export options button opens it, as does the tab's right-click menu. The name
  * starts as the clip's and can be changed for this export. It stays open
  * after an action; Done, × or Esc close it.
  */

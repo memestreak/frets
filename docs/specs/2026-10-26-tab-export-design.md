@@ -14,12 +14,16 @@ the same one as on a chord shape:
   "Copied as PNG.".
 - **Export options…** opens the dialog.
 
-The menu is on the drawn tab only. The ASCII and alphaTex views have their
-own copy button.
+The menu is on the drawn tab only. Every view has a copy button at its top
+right: the ASCII and alphaTex views copy their text, and the Tab view copies
+the same PNG as Copy as PNG (Jeremy, 2026-10-26: "a copy to clipboard button
+(like the ASCII view has) for the primary view"). The tab is drawn 48px
+narrower than the card so the button never covers it.
 
-## The Export… button
+## The Export options button
 
-The header's **Download** button became **Export…**, which opens the same
+The header's **Download** button became **Export options** (first written
+"Export…"; Jeremy renamed it the same day), which opens the same
 dialog (Jeremy, 2026-10-26: one way to do a thing). The text downloads it
 used to make moved into the dialog, so nothing is lost.
 
