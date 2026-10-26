@@ -216,21 +216,22 @@ function barWidth(bar: Bar, timeChange: boolean): number {
 
 export function layoutClip(clip: Clip, width: number): Layout {
   const names = isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
-  // In front of the staff: the time signature (first line only), then the string names.
-  const lineStart = (first: boolean) => (first ? TIME_WIDTH : 0) + (names ? NAMES_WIDTH : 0);
-  const head = (first: boolean) => lineStart(first) + CLEF_WIDTH;
+  // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
+  // room, so the lines start one under another), then the string names.
+  const lineStart = TIME_WIDTH + (names ? NAMES_WIDTH : 0);
+  const head = lineStart + CLEF_WIDTH;
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
-  let x = head(true);
+  let x = head;
   const finish = () => {
     const first = systems.length === 0;
     systems.push({
-      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart: lineStart(first), staffStart: head(first), first,
+      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart, staffStart: head, first,
     });
     current = [];
-    x = head(false);
+    x = head;
   };
   clip.bars.forEach((bar, index) => {
     const timeChange = changesTime(clip, index);
