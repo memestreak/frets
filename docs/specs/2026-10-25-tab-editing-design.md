@@ -40,6 +40,7 @@ readers pass keys through to it.
 | Shift+← → | Select. |
 | Backspace, Delete | With a selection, removes its columns, and any bar left empty. Otherwise clears the cursor's note, and on a rest removes the column. |
 | Insert | A rest before the cursor's column. |
+| Ctrl+Enter (⌘+Enter) | A new bar after the cursor's bar, filled with rests, one a beat long for each beat of its time signature (three quarter rests in 3/4); the cursor goes to its first rest. Also the Bars group's first button. Added 2026-10-26: Jeremy couldn't see how to add a bar of rests mid-clip, and picked this over a Mac key for Insert and over notes spilling into the next bar. |
 | + − | Longer or shorter note value. |
 | . | No dot, then one dot, then two dots. |
 | Alt+3 | Triplet. |

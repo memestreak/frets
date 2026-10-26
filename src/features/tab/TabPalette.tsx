@@ -137,6 +137,8 @@ const ICONS: Record<ToolId, ReactNode> = {
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
+  // A bar between two bar lines, with a plus.
+  insertBar: <><line x1={4} y1={5} x2={4} y2={19} /><line x1={20} y1={5} x2={20} y2={19} /><line x1={12} y1={8} x2={12} y2={16} strokeWidth={2} /><line x1={8} y1={12} x2={16} y2={12} strokeWidth={2} /></>,
   barTime: <><Label y={11} size={10}>4</Label><Label y={21} size={10}>4</Label></>,
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,

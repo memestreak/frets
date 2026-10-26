@@ -599,6 +599,18 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
   return normalize(replaceBar(clip, cursor.bar, { ...bar, columns }));
 }
 
+/**
+ * A new bar after the cursor's bar, filled with rests: one a beat long for each beat of the time
+ * signature in force there (three quarter rests in 3/4). The cursor goes to its first rest.
+ */
+export function insertBar(clip: Clip, cursor: Cursor): { clip: Clip; cursor: Cursor } {
+  const time = timeAt(clip, cursor.bar);
+  const rests = Array.from({ length: time.beats }, () => emptyColumn({ value: time.value, dots: 0 }));
+  const bars = [...clip.bars];
+  bars.splice(cursor.bar + 1, 0, { columns: rests });
+  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: cursor.bar + 1, column: 0 } };
+}
+
 /* — removing, copying and pasting columns — */
 
 /**

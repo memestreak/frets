@@ -17,7 +17,7 @@ import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
-  clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertColumn,
+  clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
   isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
@@ -124,10 +124,17 @@ export default function TabPage() {
     else setWord({ kind, bar: at.bar, column: at.column });
   };
 
+  /** A bar of rests after the cursor's bar (Ctrl+Enter or the Bars group's button), with the cursor in it. */
+  const addBar = () => {
+    const next = insertBar(clip, cursor);
+    commit(next.clip, next.cursor, null);
+  };
+
   const onTool = (id: ToolId) => {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') setTimeBar(cursor.bar);
+    else if (id === 'insertBar') addBar();
     else commit(applyTool(clip, target, id));
   };
 
@@ -176,6 +183,10 @@ export default function TabPage() {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
     if (e.ctrlKey || e.metaKey) {
+      if (key === 'Enter') {
+        e.preventDefault();
+        addBar();
+      }
       if (key.toLowerCase() === 'a' && count > 0) {
         e.preventDefault();
         const last = placeOfLast(clip);
