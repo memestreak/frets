@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
+  changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
 
@@ -16,6 +16,8 @@ import {
  * own so marks never collide; the same rows go in every system, so the lines of tab look alike.
  */
 export interface Rows {
+  /** "Capo 3" over the start of the first line. */
+  capo: number | null;
   /** A tempo over the bar it starts at. */
   tempo: number | null;
   /** A section's name, boxed, over the bar it starts at. */
@@ -53,6 +55,7 @@ export function rowsFor(clip: Clip): Rows {
   const columns = clip.bars.flatMap(b => b.columns);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
   const used = {
+    capo: !!clip.capo,
     tempo: clip.bars.some(b => b.tempo),
     section: clip.bars.some(b => b.section),
     chords: columns.some(c => c.chord),
@@ -67,6 +70,7 @@ export function rowsFor(clip: Clip): Rows {
   let y = FIRST_ROW - ROW_GAP;
   const row = (on: boolean) => (on ? (y += ROW_GAP) : null);
   const rows = {
+    capo: row(used.capo),
     tempo: row(used.tempo),
     section: row(used.section),
     endings: row(used.endings),
@@ -89,6 +93,8 @@ export function rowsFor(clip: Clip): Rows {
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
 const TIME_WIDTH = 30;
+/** Room for a time signature change, just inside the bar it starts. */
+const BAR_TIME_WIDTH = 24;
 const BAR_PAD_START = 14;
 const BAR_PAD_END = 6;
 const REPEAT_PAD = 12;
@@ -111,6 +117,8 @@ export interface PlacedBar {
   /** Where the bar starts (its opening line) and ends (its closing line). */
   x0: number;
   x1: number;
+  /** Where a time signature change's numbers are centred, when the bar starts one. */
+  timeX: number | null;
   columns: PlacedColumn[];
 }
 
@@ -133,9 +141,9 @@ export interface Layout {
   names: string[] | null;
 }
 
-/** A column's width: longer notes take more room, and its widest note must fit. */
+/** A column's width: longer notes take more room, and its widest note must fit; a grace note takes little. */
 export function columnWidth(column: Column): number {
-  const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
+  const byTime = column.grace ? 16 : 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
   // A bend's arrow and label stand right of the number; a release needs more.
   const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
   const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
@@ -145,7 +153,14 @@ export function columnWidth(column: Column): number {
 /** The least room a column's widest note needs. */
 function minColumnWidth(column: Column): number {
   const widest = Math.max(1, ...column.notes.map(n => (n ? noteLabel(n).length : 0)));
-  return Math.max(widest * CHAR + 6, column.chord ? chordWidth(column.chord) + 6 : 0);
+  return Math.max(widest * charWidth(column) + 6, column.chord ? chordWidth(column.chord) + 6 : 0);
+}
+
+/** A grace note's numbers are drawn smaller than the rest. */
+export const GRACE_SIZE = 9;
+/** How wide one character of a column's numbers is drawn. */
+export function charWidth(column: Column): number {
+  return column.grace ? 5.5 : CHAR;
 }
 
 /* — words over the tab: chord names, sections and tempos, and how wide each is drawn — */
@@ -189,9 +204,14 @@ export function noteLabel(note: Note): string {
   return note.ghost ? `(${label})` : label;
 }
 
-function barWidth(bar: Bar): number {
+/** The room a bar takes before its first column: padding, a repeat's dots and a time signature change. */
+function barLead(bar: Bar, timeChange: boolean): number {
+  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0);
+}
+
+function barWidth(bar: Bar, timeChange: boolean): number {
   const inner = bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((w, c) => w + columnWidth(c), 0);
-  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + inner + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+  return barLead(bar, timeChange) + inner + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
 }
 
 export function layoutClip(clip: Clip, width: number): Layout {
@@ -213,13 +233,16 @@ export function layoutClip(clip: Clip, width: number): Layout {
     x = head(false);
   };
   clip.bars.forEach((bar, index) => {
-    let w = barWidth(bar);
+    const timeChange = changesTime(clip, index);
+    let w = barWidth(bar, timeChange);
     if (current.length > 0 && x + w > width) finish();
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
     const inner = bar.columns.reduce((sum, c) => sum + columnWidth(c), 0);
     const squeeze = inner > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
-    let cx = x0 + BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0);
+    // A time signature change stands just inside the bar, after a repeat's dots.
+    const timeX = timeChange ? x0 + (bar.repeatStart ? REPEAT_PAD : 0) + 14 : null;
+    let cx = x0 + barLead(bar, timeChange);
     const columns = bar.columns.map(column => {
       const cw = Math.max(minColumnWidth(column), columnWidth(column) * squeeze);
       const placed = { column, index: place++, x: cx + cw / 2, width: cw };
@@ -228,7 +251,7 @@ export function layoutClip(clip: Clip, width: number): Layout {
     });
     if (squeeze < 1) w = cx - x0 + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     x = x0 + w;
-    current.push({ bar, index, x0, x1: x, columns });
+    current.push({ bar, index, x0, x1: x, timeX, columns });
   });
   finish();
   const rows = rowsFor(clip);
@@ -291,16 +314,31 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
   return null;
 }
 
-/** What a press over the staff's words is on: a chord name (its column's place in the clip), or a bar's section or tempo. */
-export type TextHit = { kind: 'chord'; index: number } | { kind: 'section' | 'tempo'; bar: number };
+/**
+ * What a press on the words over the staff, or on a time signature, is on: a chord name (its
+ * column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
+ */
+export type TextHit = { kind: 'chord'; index: number } | { kind: 'section' | 'tempo' | 'time' | 'capo'; bar: number };
 
-/** The chord name, section or tempo under a point; null when there is none. */
+export const CAPO_SIZE = 11;
+/** The capo's words, as drawn: "Capo 3". */
+export function capoText(capo: number): string {
+  return `Capo ${capo}`;
+}
+
+/** How far from a time signature's centre a press is on it. */
+const TIME_REACH = 11;
+
+/** The chord name, section, tempo, capo or time signature under a point; null when there is none. */
 export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const { rows } = layout;
   const system = layout.systems[Math.floor(y / rows.height)];
   if (!system || y < 0) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
   const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;
+  if (system.first && near(rows.capo) && x >= system.lineStart - 2 && x <= system.lineStart + capoText(1).length * 6.5 + 8) {
+    return { kind: 'capo', bar: 0 };
+  }
   if (near(rows.chords)) {
     for (const placed of system.bars.flatMap(b => b.columns)) {
       const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
@@ -317,6 +355,10 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
       return { kind: 'tempo', bar: bar.index };
     }
   }
+  const onStaff = localY >= rows.staffTop && localY <= rows.staffBottom;
+  if (onStaff && system.timeX !== null && Math.abs(x - system.timeX) <= TIME_REACH) return { kind: 'time', bar: 0 };
+  const changed = system.bars.find(b => b.timeX !== null && Math.abs(x - b.timeX) <= TIME_REACH);
+  if (onStaff && changed) return { kind: 'time', bar: changed.index };
   return null;
 }
 
@@ -380,6 +422,12 @@ export function beamGroups(bar: PlacedBar, beat: number): BeamGroup[] {
     current = [];
   };
   for (const placed of bar.columns) {
+    // A grace note takes no time and is drawn without a stem, so it ends a beam and starts none.
+    if (placed.column.grace) {
+      close();
+      currentBeat = -1;
+      continue;
+    }
     const b = Math.floor(at / beat);
     const beamable = placed.column.duration.value >= 8 && !isRest(placed.column);
     if (!beamable || b !== currentBeat) close();

@@ -12,21 +12,20 @@ import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrig
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { isStandardTuning, isUneven, MAX_BPM, MIN_BPM, type Clip } from './clip';
+import { isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertColumn,
-  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setCapo, setChordName,
+  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
-import { CapoField } from './CapoField';
+import { BarTimePanel } from './BarTimePanel';
 import { WordField } from './WordField';
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
-import { TimeSignatureField } from './TimeSignatureField';
 import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
@@ -93,6 +92,8 @@ export default function TabPage() {
   const [editing, setEditing] = useState(false);
   /** The chord name, section or tempo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
+  /** The bar whose time signature panel is open. */
+  const [timeBar, setTimeBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
@@ -113,13 +114,21 @@ export default function TabPage() {
   const openWord = (kind: WordKind, at: Cursor = cursor) => {
     // A chord name belongs to a column; an empty bar has none yet.
     if (kind === 'chord' && !columnAt(clip, at)) return;
-    setWord({ kind, bar: at.bar, column: at.column });
+    // The capo belongs to the whole clip, written over its first line.
+    if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
+    else setWord({ kind, bar: at.bar, column: at.column });
   };
 
   const onTool = (id: ToolId) => {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
+    else if (id === 'barTime') setTimeBar(cursor.bar);
     else commit(applyTool(clip, target, id));
   };
+
+  const closeTimeBar = useCallback((byKey: boolean) => {
+    setTimeBar(null);
+    if (byKey) editorRef.current?.focus();
+  }, []);
 
   /** A typed chord name, section or tempo set (an empty one clears it); null leaves it as it was. */
   const finishWord = (value: string | null, byKey: boolean) => {
@@ -134,14 +143,20 @@ export default function TabPage() {
       const typed = Number(value);
       commit(setTempo(clip, w.bar, value === '' ? null : Math.min(MAX_BPM, Math.max(MIN_BPM, typed))));
     }
+    // A capo of 0 is no capo.
+    if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
-  /** A press on a drawn chord name, section or tempo opens its field there, with the cursor on its column or bar. */
+  /**
+ * A press on a drawn chord name, section, tempo or capo opens its field there, with the cursor on its
+ * column or bar; one on a time signature opens its bar's panel.
+ */
   const onPickText = (hit: TextHit) => {
     const place = hit.kind === 'chord' ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 };
     const at = { ...cursor, ...place };
     commit(clip, at, null);
-    openWord(hit.kind, at);
+    if (hit.kind === 'time') setTimeBar(hit.bar);
+    else openWord(hit.kind, at);
   };
 
   /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
@@ -164,7 +179,8 @@ export default function TabPage() {
       return;
     }
     const handled = () => e.preventDefault();
-    if (/^[0-9]$/.test(key)) {
+    // With Alt, a digit is a tuplet (Alt+3 a triplet), not a fret.
+    if (/^[0-9]$/.test(key) && !e.altKey) {
       handled();
       const digit = Number(key);
       const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
@@ -425,22 +441,19 @@ export default function TabPage() {
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
-  const uneven = clip.bars.flatMap((bar, i) => (isUneven(bar, clip.time) ? [i + 1] : []));
-  const unevenLine = uneven.length === 0 ? ''
-    : `${uneven.length === 1 ? `Bar ${uneven[0]} doesn't` : `Bars ${uneven.join(', ')} don't`} add up to ${clip.time.beats}/${clip.time.value}.`;
+  const unevenLine = unevenMessage(clip) ?? '';
 
   return (
     <div className="grid gap-4">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
-          <p className="m-0 text-(--ink-muted)" data-testid="clip-facts">
-            {/* The time signature shown here is also where it is set. */}
-            <TimeSignatureField time={clip.time} onChange={time => commit({ ...clip, time })} />
-            {' '}
-            <CapoField capo={clip.capo} onChange={capo => commit(setCapo(clip, capo))} />
-            {!isStandardTuning(clip.tuning) && ` · Tuning ${clip.tuning.join(' ')}`}
-            {example && <span data-testid="example-facts">{" · Example: edits aren't saved"}</span>}
+          {/* The time signature and capo are drawn on the tab, and set there; this line says only what the tab doesn't. */}
+          <p className="m-0 min-h-[1.5em] text-(--ink-muted)" data-testid="clip-facts">
+            {[
+              !isStandardTuning(clip.tuning) && `Tuning ${clip.tuning.join(' ')}`,
+              example && "Example: edits aren't saved",
+            ].filter(Boolean).join(' · ')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -499,6 +512,12 @@ export default function TabPage() {
               initial={wordNow(clip, word)} onDone={finishWord}
             />
           )}
+          {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
+            <BarTimePanel
+              clip={clip} bar={timeBar} {...barTimeSpot(clip, clipWidth, timeBar)}
+              onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
+            />
+          )}
         </div>
       </section>
 
@@ -547,12 +566,12 @@ export default function TabPage() {
   );
 }
 
-/** The last column of the clip, for Ctrl+A. */
 /** What a chord name, section or tempo field starts with: what is there now. */
 function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): string {
   const b = clip.bars[bar];
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
+  if (kind === 'capo') return clip.capo ? String(clip.capo) : '';
   return b?.tempo ? String(b.tempo.bpm) : '';
 }
 
@@ -565,14 +584,27 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
-    const row = kind === 'chord' ? rows.chords : kind === 'section' ? rows.section : rows.tempo;
+    const row = { chord: rows.chords, section: rows.section, tempo: rows.tempo, capo: rows.capo }[kind];
     const y = s * rows.height + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
-    const x = kind === 'chord' ? (placed.columns[column]?.x ?? placed.x0) : placed.x0 + FIELD_WIDTH / 2;
+    // The capo is written at the start of the first line, over the time signature.
+    const x = kind === 'chord' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };
 }
 
+/** Where a bar's time signature panel goes: under the staff of the line the bar is on, from the bar's start, inside the tab's width. */
+function barTimeSpot(clip: Clip, width: number, bar: number): { x: number; y: number } {
+  const layout = layoutClip(clip, width);
+  const PANEL_WIDTH = 230;
+  for (let s = 0; s < layout.systems.length; s++) {
+    const placed = layout.systems[s].bars.find(b => b.index === bar);
+    if (placed) return { x: Math.max(0, Math.min(width - PANEL_WIDTH, placed.x0)), y: s * layout.rows.height + layout.rows.staffBottom + 12 };
+  }
+  return { x: 0, y: 0 };
+}
+
+/** The last column of the clip, for Ctrl+A. */
 function placeOfLast(clip: Clip): { bar: number; column: number } {
   for (let b = clip.bars.length - 1; b >= 0; b--) {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };

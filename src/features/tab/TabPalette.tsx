@@ -72,6 +72,21 @@ function BendGlyph({ amount }: { amount: string }) {
   );
 }
 
+/** A tuplet's bracket with its number under it. */
+function TupletGlyph({ n }: { n: number }) {
+  return <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>{n}</Label></>;
+}
+
+/** A quarter note's stem with tremolo slashes across it, one for eighths up to three for thirty-seconds. */
+function TremoloGlyph({ slashes }: { slashes: number }) {
+  return (
+    <>
+      <NoteGlyph open={false} />
+      {Array.from({ length: slashes }, (_, k) => <line key={k} x1={9} y1={8 + k * 3.5} x2={16} y2={5 + k * 3.5} strokeWidth={1.8} />)}
+    </>
+  );
+}
+
 const ICONS: Record<ToolId, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
@@ -82,7 +97,15 @@ const ICONS: Record<ToolId, ReactNode> = {
   sixtyFourth: <NoteGlyph open={false} flags={4} />,
   // The dot sits where it would beside a note head, at the heads' height in the other duration icons.
   dot: <circle cx={12} cy={17} r={2.6} fill="currentColor" stroke="none" />,
-  triplet: <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>3</Label></>,
+  triplet: <TupletGlyph n={3} />,
+  quintuplet: <TupletGlyph n={5} />,
+  sextuplet: <TupletGlyph n={6} />,
+  septuplet: <TupletGlyph n={7} />,
+  // A small number before a full-size one, as a grace note is drawn.
+  grace: <><Label x={7} y={17} size={7.5}>3</Label><Label x={15} y={18} size={12}>5</Label></>,
+  tremolo8: <TremoloGlyph slashes={1} />,
+  tremolo16: <TremoloGlyph slashes={2} />,
+  tremolo32: <TremoloGlyph slashes={3} />,
   rest: <path d="M10 3 L14 8 L10 12 L14 16 Q9 15 11 20" />,
   tie: <><Label x={7} y={13} size={9}>5</Label><Label x={17} y={13} size={9}>(5)</Label><path d="M5 17 Q12 23 19 17" /></>,
   legato: <><path d="M4 14 Q12 4 20 14" /><Label y={20} size={9}>H</Label></>,
@@ -114,10 +137,13 @@ const ICONS: Record<ToolId, ReactNode> = {
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
+  barTime: <><line x1={5} y1={4} x2={5} y2={20} /><Label x={14} y={11} size={9.5}>3</Label><Label x={14} y={20} size={9.5}>4</Label></>,
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
   chordName: <Label y={16} size={10}>Am</Label>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
+  // A capo: a bar clamped across the strings.
+  capo: <>{[7, 11, 15, 19].map(y => <line key={y} x1={3} y1={y} x2={21} y2={y} strokeWidth={1} />)}<rect x={10} y={4} width={4.5} height={18} rx={2} fill="currentColor" stroke="none" /></>,
   tempo: <><ellipse cx={7} cy={16} rx={2.8} ry={2} transform="rotate(-20 7 16)" fill="currentColor" stroke="none" /><line x1={9.5} y1={15.5} x2={9.5} y2={6} /><Label x={16.5} y={15} size={8}>=</Label></>,
 };

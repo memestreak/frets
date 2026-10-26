@@ -15,7 +15,7 @@ at the spot each is drawn, and the capo beside the time signature.
 | Chord name | `ch "Am7"` on a beat | bold, centred over its column |
 | Section | `\section "Verse"`, `\section ("A" "Chorus")` on a bar | its name in a box at the bar's start; a rehearsal mark in a filled box before it |
 | Tempo | `\tempo 90`, `\tempo (90 "Slowly")` on a bar | a quarter note, "= 90", then the word, at the bar's start |
-| Capo | `\capo 3` | on the page, a button beside 4/4 ("Capo 3"); in an image, "Capo 3" under the name |
+| Capo | `\capo 3` | "Capo 3" over the start of the first line, its own row (changed in `2026-10-26-tab-rhythm-design.md`) |
 
 Each gets its own row over the staff, only when the clip uses it (`rowsFor`).
 From the top, the rows are: tempo, section, endings, chord names, then the note
@@ -42,8 +42,10 @@ nothing then has to be placed after text whose width is unknown.
 - **Tempo:** a whole number from 20 to 400, clamped. Its word ("Slowly") and a
   section's rehearsal mark are kept when the number or the name changes. They
   are set only in the text, for now.
-- **Capo:** a raised button like the time signature's. Its panel has a −/+
-  stepper from 0 to 12, and 0 means no capo.
+- **Capo:** first a raised button beside the time signature. Jeremy found it
+  "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in
+  the Text group opening the same field as a tempo (1 to 12; empty or 0 takes
+  it off), with "Capo 3" drawn over the first line, which a press also edits.
 - Each change is one undo step.
 
 ## Reading

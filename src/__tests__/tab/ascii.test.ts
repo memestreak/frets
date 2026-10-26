@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
 import {
-  BEND_QUARTERS, isPalmMuted, isUneven, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks,
+  BEND_QUARTERS, isPalmMuted, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks, TUPLETS, unevenMessage,
   type Bar, type Clip, type Column, type Duration, type Note,
 } from '@/features/tab/clip';
 import { seededRng } from '../helpers/rng';
@@ -33,7 +33,7 @@ describe('the examples in tab-ascii.txt', () => {
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {
     const { clip, warnings } = read(text as string);
     expect(warnings).toEqual([]);
-    expect(clip.bars.every(b => !isUneven(b, clip.time))).toBe(true);
+    expect(unevenMessage(clip)).toBeNull();
     expect(writeAscii(clip)).toBe(text);
   });
 
@@ -46,7 +46,7 @@ describe('the examples in tab-ascii.txt', () => {
     expect(two.columns[1].notes[2]).toEqual({ fret: 5, legato: 'p' });
     expect(two.columns[4].notes[4]).toEqual({ fret: 7, bend: { quarters: 4, pre: false, release: false } });
     expect(two.columns[5].notes[5]).toEqual({ fret: 5, vibrato: 'slight' });
-    expect(two.columns[4].duration).toEqual({ value: 4, dots: 0, triplet: false });
+    expect(two.columns[4].duration).toEqual({ value: 4, dots: 0 });
   });
 
   it('reads strummed chords, ties, a rest, palm mutes, strokes and a counted repeat', () => {
@@ -68,7 +68,7 @@ describe('the examples in tab-ascii.txt', () => {
     const cols = clip.bars[0].columns;
     expect(cols.slice(0, 4).every(c => c.duration.value === 16)).toBe(true);
     expect(cols[1].notes[1]).toEqual({ fret: 7, slide: 'legato' });
-    expect(cols[4].duration).toEqual({ value: 8, dots: 0, triplet: true });
+    expect(cols[4].duration).toEqual({ value: 8, dots: 0, tuplet: 3 });
     expect(cols[4].notes[0]).toEqual({ fret: 12, tap: true });
     expect(cols[7].notes.slice(0, 3)).toEqual([0, 1, 2].map(() => ({ fret: 12, harmonic: 'natural' })));
     expect(cols[8].notes[1]).toEqual({ fret: 8, bend: { quarters: 4, pre: true, release: true } });
@@ -232,11 +232,9 @@ describe('writeAscii and readAscii round trip', () => {
     for (let b = 0; b < 1 + Math.floor(rng() * 5); b++) {
       const columns: Column[] = [];
       for (let k = 0; k < 1 + Math.floor(rng() * 6); k++) {
-        const duration: Duration = {
-          value: pick(NOTE_VALUES), dots: rng() < 0.2 ? 1 : 0, triplet: false,
-        };
+        const duration: Duration = { value: pick(NOTE_VALUES), dots: rng() < 0.2 ? 1 : 0 };
         if (duration.dots && duration.value > SHORTEST_DOTTED) duration.dots = 0;
-        if (!duration.dots && rng() < 0.15) duration.triplet = true;
+        if (!duration.dots && rng() < 0.15) duration.tuplet = pick(TUPLETS);
         const notes: (Note | null)[] = Array(6).fill(null);
         if (rng() > 0.1) {
           for (let s = 0; s < 6; s++) {
@@ -287,9 +285,13 @@ describe('writeAscii and readAscii round trip', () => {
     expect(back).toEqual(clip);
   });
 
-  it('keeps a triplet group exact', () => {
-    const t: Duration = { value: 8, dots: 0, triplet: true };
-    expect(ticks(t) * 3).toBe(ticks({ value: 4, dots: 0, triplet: false }));
+  it('keeps every tuplet group exact', () => {
+    expect(ticks({ value: 8, dots: 0, tuplet: 3 }) * 3).toBe(ticks({ value: 4, dots: 0 }));
+    for (const n of [5, 6, 7] as const) {
+      expect(ticks({ value: 16, dots: 0, tuplet: n }) * n).toBe(ticks({ value: 4, dots: 0 }));
+    }
+    expect(Number.isInteger(ticks({ value: 32, dots: 2, tuplet: 7 }))).toBe(true);
+    expect(Number.isInteger(ticks({ value: 64, dots: 0, tuplet: 5 }))).toBe(true);
   });
 });
 
@@ -297,7 +299,7 @@ describe('readAscii, smaller marks', () => {
   it('reads a double dot in the rhythm line and writes it back', () => {
     const result = readAscii('Time: 2/4\n\n   q.. s\ne|-5---7-|\nB|-------|\nG|-------|\nD|-------|\nA|-------|\nE|-------|');
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    expect(result.clip.bars[0].columns[0].duration).toEqual({ value: 4, dots: 2, triplet: false });
+    expect(result.clip.bars[0].columns[0].duration).toEqual({ value: 4, dots: 2 });
     expect(writeAscii(result.clip)).toContain('q..');
   });
 

@@ -39,7 +39,8 @@ yet: g (ghost note), …").
 - **Errors** are alphaTab's, with line and column. Also refused: more than
   one track, staff or voice; a tuning of other than six strings.
 - **Read with a warning:** a time signature Frets doesn't offer (4/4),
-  tuplets other than triplets (plain), notes shorter than a sixty-fourth
+  tuplets other than 3, 5, 6 and 7 (plain, kept as written; see
+  `2026-10-26-tab-rhythm-design.md`), notes shorter than a sixty-fourth
   (sixty-fourths), a hammer-on or slide with no later note (left out), bars
   that don't add up.
 - **Nothing Frets reads is lost.** The clip keeps the kind of slide

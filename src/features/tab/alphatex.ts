@@ -81,12 +81,29 @@ function noteTex(note: Note, at: At, marks: string[]): string {
   return `${fret}.${at.string + 1}${effects.length ? `{${effects.join(' ')}}` : ''}`;
 }
 
-function beatTex(column: Column, bar: number, index: number, marks: Map<string, string[]>): string {
-  const { value, dots, triplet } = column.duration;
+/**
+ * How long a grace note is written, as alphaTab reads it back whatever is written: one alone an
+ * eighth, two together sixteenths, three or more thirty-seconds. It takes no time in the bar either way.
+ */
+function graceValue(columns: Column[], index: number): Column['duration']['value'] {
+  let first = index;
+  while (columns[first - 1]?.grace) first--;
+  let last = index;
+  while (columns[last + 1]?.grace) last++;
+  const size = last - first + 1;
+  return size === 1 ? 8 : size === 2 ? 16 : 32;
+}
+
+function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
+  const column = columns[index];
+  // A grace note is written plain, at the length alphaTab gives it.
+  const { value, dots, tuplet } = column.grace ? { value: graceValue(columns, index), dots: 0 } : column.duration;
   const effects: string[] = [];
   if (dots === 1) effects.push('d');
   if (dots === 2) effects.push('dd');
-  if (triplet) effects.push('tu 3');
+  if (tuplet) effects.push(`tu ${tuplet}`);
+  if (column.grace) effects.push(column.grace === 'on' ? 'gr ob' : 'gr');
+  if (column.tremolo) effects.push(`tp ${column.tremolo}`);
   if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
@@ -115,6 +132,7 @@ export function writeAlphaTex(clip: Clip): string {
   const marks = originMarks(clip);
   clip.bars.forEach((bar, b) => {
     const meta: string[] = [];
+    if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
     if (bar.section) {
       const { text, marker } = bar.section;
       meta.push(marker ? `\\section (${quoted(marker)} ${quoted(text)})` : `\\section ${quoted(text)}`);
@@ -124,7 +142,7 @@ export function writeAlphaTex(clip: Clip): string {
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
     meta.push(...(bar.extra ?? []));
-    const beats = bar.columns.map((column, c) => beatTex(column, b, c, marks));
+    const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
     lines.push([...meta, ...beats, '|'].join(' '));
   });
   return `${lines.join('\n')}\n`;

@@ -9,9 +9,9 @@
  * character for character.
  */
 import {
-  barTicks, isPalmMuted, isStandardTuning, isUneven, nearestDuration, slideDirections, STANDARD_TUNING, STRING_COUNT,
+  barTicks, isPalmMuted, isStandardTuning, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, WHOLE,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
+  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue, type Tuplet,
   type TimeSignature,
 } from './clip';
 
@@ -34,7 +34,7 @@ function annotationKind(line: string): LineKind | null {
   if (tokens.length === 0) return null;
   // Endings come first: "x3" alone is a repeat count, though in a rhythm line it is a sixty-fourth triplet.
   if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
-  if (tokens.every(t => /^[whqestx](?:\.\.?|3)?$/.test(t))) return 'rhythm';
+  if (tokens.every(t => /^[whqestx](?:\.\.?|[3567])?$/.test(t))) return 'rhythm';
   if (tokens.every(t => STROKE_MARKS.test(t))) return 'strokes';
   if (/P\.?M/.test(line) && /^[\sPM.\-|]+$/.test(line)) return 'palmMute';
   return null;
@@ -257,12 +257,14 @@ function hasColonInside(g: Boundary, colons: Set<number>, side: 'start' | 'end')
   return false;
 }
 
+/** A rhythm letter with its dots ("e.") or its tuplet ("e3", "s5"). */
 function parseDuration(token: string): Duration {
-  return {
+  const duration: Duration = {
     value: RHYTHM_LETTERS[token[0]],
     dots: token.startsWith('..', 1) ? 2 : token[1] === '.' ? 1 : 0,
-    triplet: token[1] === '3',
   };
+  if (/[3567]/.test(token[1] ?? '')) duration.tuplet = Number(token[1]) as Tuplet;
+  return duration;
 }
 
 interface Block {
@@ -354,11 +356,8 @@ export function readAscii(text: string): ReadResult {
   if (tally.guessed > 0) {
     warnings.unshift(`Guessed the length of ${tally.guessed} ${tally.guessed === 1 ? 'note' : 'notes'} from the spacing.`);
   }
-  const uneven = bars.flatMap((bar, i) => (isUneven(bar, time) ? [i + 1] : []));
-  if (uneven.length > 0) {
-    const which = uneven.length === 1 ? `Bar ${uneven[0]} doesn't` : `Bars ${listed(uneven)} don't`;
-    warnings.push(`${which} add up to ${time.beats}/${time.value}.`);
-  }
+  const uneven = unevenMessage({ time, bars });
+  if (uneven) warnings.push(uneven);
   if (tally.unknown > 0) {
     warnings.push(`Ignored ${tally.unknown} ${tally.unknown === 1 ? 'character that isn\'t' : 'characters that aren\'t'} tab.`);
   }
@@ -372,10 +371,6 @@ export function readAscii(text: string): ReadResult {
 }
 
 /** "2, 5 and 7". */
-function listed(numbers: number[]): string {
-  return numbers.length === 1 ? `${numbers[0]}` : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
-}
-
 function readBlock(lines: string[], block: Block, time: TimeSignature, errors: string[], tally: Tally): Bar[] {
   // Line the string lines up on their first "|", then pad them to one length.
   const raw = lines.slice(block.first, block.first + STRING_COUNT);
@@ -401,7 +396,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const columnAt = new Map<number, Column>();
   for (const pos of positions) {
     columnAt.set(pos, {
-      duration: { value: 4, dots: 0, triplet: false },
+      duration: { value: 4, dots: 0 },
       notes: parsed.map(p => p.notes.get(pos)?.note ?? null),
     });
   }
@@ -410,7 +405,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const rhythm = block.annotations.rhythm;
   const known = new Set<number>();
   if (rhythm !== undefined) {
-    for (const m of rhythm.matchAll(/[whqestx](?:\.\.?|3)?/g)) {
+    for (const m of rhythm.matchAll(/[whqestx](?:\.\.?|[3567])?/g)) {
       const at = m.index!;
       const column = columnAt.get(at);
       if (column) {
@@ -607,9 +602,9 @@ export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: str
   return { prefix, text };
 }
 
-export function rhythmToken({ value, dots, triplet }: Duration): string {
+export function rhythmToken({ value, dots, tuplet }: Duration): string {
   const letter = Object.keys(RHYTHM_LETTERS).find(k => RHYTHM_LETTERS[k] === value)!;
-  return letter + '.'.repeat(dots) + (triplet ? '3' : '');
+  return letter + '.'.repeat(dots) + (tuplet ?? '');
 }
 
 /** Characters a column takes: two a sixteenth, and room for its notes and the next column's marks. */
@@ -642,7 +637,8 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
   bars.forEach((bar, b) => {
     const contentStart = strings[0].length;
     if (bar.ending && bars[b - 1]?.ending !== bar.ending) endingFrom = contentStart;
-    for (const column of bar.columns) {
+    // ASCII tab has no grace notes; they are left out rather than written as notes that take time.
+    for (const column of bar.columns.filter(c => !c.grace)) {
       const start = strings[0].length;
       const width = columnWidth(column);
       push('-'.repeat(width));
@@ -700,7 +696,10 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
   return out;
 }
 
-/** The clip in the canonical form of `tab-ascii.txt`. Reading it back gives the same clip. */
+/**
+ * The clip in the canonical form of `tab-ascii.txt`. Reading it back gives the same clip, but for
+ * what ASCII tab can't hold: grace notes, tremolo picking and time signature changes are left out.
+ */
 export function writeAscii(clip: Clip): string {
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);

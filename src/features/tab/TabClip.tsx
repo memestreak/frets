@@ -1,10 +1,10 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT,
-  type Bend, type Clip, type Column, type Note,
+  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CHORD_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
@@ -175,7 +175,6 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
-  const beat = beatTicks(clip.time);
 
   // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
@@ -184,7 +183,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        const lw = labelWidth(note);
+        const lw = labelWidth(note, placed.column);
         return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
     </mask>,
@@ -209,13 +208,12 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
     <text key={`clef-${letter}`} x={clefX} y={rows.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
-  // The time signature stands in front of the staff, its two numbers close together round the middle.
-  if (system.timeX !== null) {
-    const middle = (rows.staffTop + rows.staffBottom) / 2;
-    parts.push(
-      <text key="time-top" x={system.timeX} y={middle - 2} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
-      <text key="time-bottom" x={system.timeX} y={middle + 16} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
-    );
+  // The time signature stands in front of the staff, and a change just inside the bar it starts.
+  if (system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
+  for (const bar of system.bars) {
+    if (bar.timeX !== null && bar.bar.time) {
+      parts.push(<TimeNumbers key={`time-${bar.index}`} time={bar.bar.time} x={bar.timeX} rows={rows} look={look} />);
+    }
   }
 
   for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} rows={rows} look={look} final={bar.index === lastBar} />);
@@ -236,6 +234,15 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       </g>,
     );
   });
+
+  // The capo, over the start of the first line, as printed tab has it.
+  if (system.first && clip.capo && rows.capo !== null) {
+    parts.push(
+      <text key="capo" x={system.lineStart} y={rows.capo + 4} fontSize={CAPO_SIZE} fontWeight={700} fill={look.ink} data-testid="capo">
+        {capoText(clip.capo)}
+      </text>,
+    );
+  }
 
   // Sections and tempos, over the bar they start at; chord names over their columns.
   for (const bar of system.bars) {
@@ -311,10 +318,21 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
         />,
       );
     }
-    parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beat} look={look} />);
+    parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
   }
 
   return <>{parts}</>;
+}
+
+/** A time signature's two numbers, close together round the staff's middle. */
+function TimeNumbers({ time, x, rows, look }: { time: TimeSignature; x: number; rows: Rows; look: TabLook }) {
+  const middle = (rows.staffTop + rows.staffBottom) / 2;
+  return (
+    <g fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="time-signature">
+      <text x={x} y={middle - 2}>{time.beats}</text>
+      <text x={x} y={middle + 16}>{time.value}</text>
+    </g>
+  );
 }
 
 function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; look: TabLook; final: boolean }) {
@@ -352,8 +370,8 @@ function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; lo
 }
 
 /** How much of the string line a note's number keeps clear. */
-function labelWidth(note: Note): number {
-  return noteLabel(note).length * 7 + 4;
+function labelWidth(note: Note, column: Column): number {
+  return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
 }
 
 function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStart }: {
@@ -408,9 +426,10 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
         <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
       );
     }
-    parts.push(
-      <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>,
-    );
+    // A grace note's number is drawn small.
+    parts.push(column.grace
+      ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
+      : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
     if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
     if (note.slideOut) {
       // A short line away from the number, down or up, to no fret in particular.
@@ -496,7 +515,7 @@ function BendDrawing({ bend, x, y, staffTop, look }: { bend: Bend; x: number; y:
   );
 }
 
-/** Stems, beams, flags, dots, triplet numbers and rests under the staff. */
+/** Stems, beams, flags, dots, tremolo slashes, tuplet numbers and rests under the staff; grace notes get none. */
 function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: number; look: TabLook }) {
   const parts: ReactNode[] = [];
   const groups = beamGroups(bar, beat);
@@ -507,6 +526,17 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
     const { column, x } = placed;
     const { value, dots } = column.duration;
     const key = `${x}`;
+    if (column.grace) continue;
+    if (column.tremolo && !isRest(column)) {
+      // Tremolo picking: a slash across the stem for each beam of the speed, one for eighths up to three for thirty-seconds.
+      // They start near the stem's top: a half note's short stem, or where a stem would be for a whole note.
+      const slashes = TREMOLO_VALUES.indexOf(column.tremolo) + 1;
+      const top = value === 2 ? rows.stemBottom - 12 : rows.stemTop + (value === 1 ? 2 : 0);
+      for (let k = 0; k < slashes; k++) {
+        const ty = top + 3 + k * 4;
+        parts.push(<line key={`tremolo-${key}-${k}`} x1={x - 4} x2={x + 4} y1={ty + 2} y2={ty - 2} stroke={look.ink} strokeWidth={2} data-testid="tremolo" />);
+      }
+    }
     if (isRest(column)) {
       parts.push(<Rest key={`rest-${key}`} x={x} y={rows.stemTop + 10} value={value} look={look} />);
     } else if (value === 2) {
@@ -551,16 +581,22 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
     }
   }
 
-  // Triplet numbers under each run of triplets.
-  const cols = bar.columns;
-  cols.forEach((p, k) => {
-    if (!p.column.duration.triplet || cols[k - 1]?.column.duration.triplet) return;
+  // A tuplet's number under each group of it: 3 under three triplets, 5 under five quintuplets.
+  const cols = bar.columns.filter(p => !p.column.grace);
+  let k = 0;
+  while (k < cols.length) {
+    const n = cols[k].column.duration.tuplet;
+    if (!n) {
+      k++;
+      continue;
+    }
     let last = k;
-    while (cols[last + 1]?.column.duration.triplet && last - k < 2) last++;
+    while (last - k < n - 1 && cols[last + 1]?.column.duration.tuplet === n) last++;
     parts.push(
-      <text key={`tuplet-${p.x}`} x={(p.x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle">3</text>,
+      <text key={`tuplet-${cols[k].x}`} x={(cols[k].x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{n}</text>,
     );
-  });
+    k = last + 1;
+  }
 
   return <g>{parts}</g>;
 }

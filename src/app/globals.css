@@ -699,21 +699,6 @@ button {
   }
   /* The time signature under the clip's name: text that opens a menu. */
   /* The time signature under the clip's name: a raised button with the numbers stacked, and its panel. */
-  .tab-time { position: relative; display: inline-block; vertical-align: middle; }
-  .tab-time-button {
-    display: inline-flex; align-items: center; gap: 4px; height: 46px; padding: 0 6px 0 10px;
-    border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-raised);
-    color: var(--ink); cursor: pointer;
-  }
-  .tab-time-button:hover, .tab-time-button[aria-expanded="true"] { background: var(--surface-sunken); }
-  .tab-time-button:focus { outline: none; }
-  .tab-time-button:focus-visible { border-color: var(--primary); }
-  .tab-time-button svg { width: 14px; height: 14px; color: var(--ink-muted); }
-  .tab-time-stack { display: grid; justify-items: center; min-width: 2.2ch; font: 700 18px/1 var(--font-display); }
-  .tab-time-panel {
-    position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: grid; gap: 12px;
-    padding: 12px; width: max-content; color: var(--ink);
-  }
   .tab-time-field { display: grid; gap: 6px; justify-items: start; }
   .tab-time-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
   .tab-time-stepper {
@@ -733,13 +718,18 @@ button {
   .tab-time-stepper button:focus-visible { color: var(--primary); }
   .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
   .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
-  .tab-capo-button { font: 600 14px/1 var(--font-sans); padding-left: 12px; }
   /* The field for a chord name, section or tempo, over the spot it is drawn. */
   .tab-word {
     position: absolute; z-index: 20; display: grid; gap: 6px; padding: 10px; width: 180px;
     transform: translateX(-50%); color: var(--ink);
   }
   .tab-word-input { width: 100%; }
+  /* The time signature from one bar on, over that bar. */
+  .tab-bar-time {
+    position: absolute; z-index: 20; display: grid; gap: 12px; justify-items: start; padding: 12px;
+    width: max-content; color: var(--ink);
+  }
+  .tab-bar-time-title { font-size: 13px; font-weight: 700; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */

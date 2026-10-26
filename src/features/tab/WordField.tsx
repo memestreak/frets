@@ -7,11 +7,14 @@ const CAPTIONS: Record<WordKind, string> = {
   chord: 'Chord name',
   section: 'Section',
   tempo: 'Tempo, quarter notes a minute',
+  capo: 'Capo on fret, 1 to 12',
 };
-const PLACEHOLDERS: Record<WordKind, string> = { chord: 'Am7', section: 'Chorus', tempo: '120' };
+const PLACEHOLDERS: Record<WordKind, string> = { chord: 'Am7', section: 'Chorus', tempo: '120', capo: '3' };
+/** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
+const NUMBER_LENGTH: Partial<Record<WordKind, number>> = { tempo: 3, capo: 2 };
 
 /**
- * A small field over the tab for a chord name, a section or a tempo, at the spot it is drawn.
+ * A small field over the tab for a chord name, a section, a tempo or the capo, at the spot it is drawn.
  * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was.
  */
 export function WordField({ kind, initial, x, y, onDone }: {
@@ -24,6 +27,7 @@ export function WordField({ kind, initial, x, y, onDone }: {
   onDone: (value: string | null, byKey: boolean) => void;
 }) {
   const [value, setValue] = useState(initial);
+  const digits = NUMBER_LENGTH[kind];
   const inputRef = useRef<HTMLInputElement>(null);
   // The field opens from a press or a key on the tab, so typing goes straight into it.
   useEffect(() => inputRef.current?.focus(), []);
@@ -44,8 +48,8 @@ export function WordField({ kind, initial, x, y, onDone }: {
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       <input
         ref={inputRef} className="input tab-word-input" aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
-        value={value} inputMode={kind === 'tempo' ? 'numeric' : 'text'} maxLength={kind === 'tempo' ? 3 : 40}
-        onChange={e => setValue(kind === 'tempo' ? e.target.value.replace(/\D/g, '') : e.target.value)}
+        value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? 40}
+        onChange={e => setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value)}
         onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(value, false)}
       />
     </span>

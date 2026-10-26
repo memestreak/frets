@@ -36,6 +36,8 @@ clip as the canonical alphaTex Frets writes.
 | --- | --- | --- |
 | durations | Durations and rests | whole to sixteenth notes, rests, dots |
 | short-notes | Triplets and short notes | triplets, 32nds, 64ths, beaming |
+| tuplets | Tuplets | tu 3, 5, 6 and 7 |
+| grace-tremolo | Grace notes and tremolo picking | gr (one and two together), tp 8, 16, 32 |
 | joins | Hammer-ons, slides and ties | h, p, sl, ss, sib, sia, ties |
 | bends | Bends and vibrato | ¼, ½ and full bends, release, pre-bend, vibrato |
 | techniques | Palm mute, dead notes, harmonics, tap | pm, x, nh, tt |
@@ -46,6 +48,7 @@ clip as the canonical alphaTex Frets writes.
 | song-form | Sections, tempo and chord names | ch, \section, \tempo, \capo |
 | repeats | Repeats and endings | \ro, \rc 2 and 3, \ae 1 and 2 |
 | compound-time | Six-eight time | 6/8 beamed in threes |
+| time-changes | Changing time | \ts in later bars: 3/4, 7/8, back to 4/4 |
 | drop-d | Drop D | a tuning, names left of the lines |
 
 Every feature Frets learns to draw gets an example. `examples.test.ts`

@@ -250,8 +250,10 @@ binds a local port).
   `src/lib/chords/chordUrls.ts`.
 - `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
   not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
-  columns, six notes each, durations in ticks, whole = 768, so a double-dotted
-  thirty-second and a sixty-fourth triplet are whole numbers too; `parseClip`),
+  columns, six notes each, durations in ticks, whole = 26880, so a double-dotted
+  thirty-second and a sixty-fourth in any tuplet (3, 5, 6, 7) are whole numbers
+  too; grace notes take no time; a bar may change the time signature, `timeAt`;
+  `parseClip`; `docs/specs/2026-10-26-tab-rhythm-design.md`),
   `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
   and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
   format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
@@ -264,11 +266,12 @@ binds a local port).
   with undo and redo), `editing.ts` (pure: the cursor, selection and every
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
   and paste at the cursor), `tools.ts` (the symbol palette's table, shared
-  with the keys) and `TabPalette.tsx`, `TimeSignatureField.tsx` (the time
-  signature under the name, where it is set; its `usePanel` and `CountInput`
-  also serve `CapoField.tsx`, the capo beside it), `WordField.tsx` (the field
-  over the tab for a chord name, section or tempo;
-  `docs/specs/2026-10-26-tab-words-design.md`), `exportTab.tsx` and
+  with the keys) and `TabPalette.tsx`, `BarTimePanel.tsx` with
+  `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
+  press on a drawn one or the palette; nothing in the header sets it),
+  `WordField.tsx` (the field over the tab for a chord name, section, tempo or
+  the capo, "Capo 3" over the first line;
+  `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
   `TabExportDialog.tsx` (right-click the tab: Copy as PNG, Export options…;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
   helpers), and `TabPage.tsx` (the editor: keys

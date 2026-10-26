@@ -8,8 +8,9 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult } from './ascii';
 import {
-  BEND_QUARTERS, isUneven, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature, type TimeSignature,
-  type Bar, type BendQuarters, type Clip, type Column, type Note, type NoteValue,
+  BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  TREMOLO_VALUES, TUPLET_SPAN, TUPLETS, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
+  type NoteValue, type Tuplet,
 } from './clip';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -30,8 +31,8 @@ export function loadAlphaTab(): Promise<AlphaTab> {
 const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
 ]);
-/** Beat effects Frets draws. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch']);
+/** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'gr', 'tp']);
 /** Tags Frets reads: the title, tuning, capo, time signature, tempo, sections, repeats and endings. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'tempo', 'section', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
@@ -50,7 +51,7 @@ const KEPT_NAMES: Record<string, string> = {
   psu: 'pick slide up', psd: 'pick slide down',
   fermata: 'fermata', rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
   au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
-  rf: 'right-hand fingering', ten: 'tenuto',
+  rf: 'right-hand fingering', ten: 'tenuto', tu: 'tuplet',
 };
 
 /* — the parse tree, as far as this file uses it — */
@@ -120,17 +121,39 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
   return n;
 }
 
+/** The beat's tuplet when it is one Frets draws: 3 in the time of 2, or 5, 6 or 7 in the time of 4. */
+function tupletOf(beat: AtBeat): Tuplet | undefined {
+  const n = beat.tupletNumerator as Tuplet;
+  return beat.hasTuplet && TUPLETS.includes(n) && beat.tupletDenominator === TUPLET_SPAN[n] ? n : undefined;
+}
+
 function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration'] {
   let value = beat.duration as number;
   if (!NOTE_VALUES.includes(value as NoteValue)) {
     warn(`Read a 1/${value} note as the nearest length Frets draws.`);
     value = value < 1 ? 1 : 64;
   }
-  return {
-    value: value as NoteValue,
-    dots: beat.dots >= 2 ? 2 : beat.dots === 1 ? 1 : 0,
-    triplet: beat.hasTuplet && beat.tupletNumerator === 3 && beat.tupletDenominator === 2,
-  };
+  const duration: Column['duration'] = { value: value as NoteValue, dots: beat.dots >= 2 ? 2 : beat.dots === 1 ? 1 : 0 };
+  const tuplet = tupletOf(beat);
+  if (tuplet) duration.tuplet = tuplet;
+  return duration;
+}
+
+/**
+ * Reads a beat's grace note and tremolo picking onto its column, and says which of tu, gr and tp
+ * Frets read; any other form (a 9:8 tuplet, a bend grace note, four tremolo slashes) is kept as written.
+ */
+function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
+  const reads = new Set(BEAT_EFFECTS);
+  if (beat.hasTuplet && !column.duration.tuplet) reads.delete('tu');
+  if (beat.graceType === at.model.GraceType.BeforeBeat) column.grace = 'before';
+  else if (beat.graceType === at.model.GraceType.OnBeat) column.grace = 'on';
+  else reads.delete('gr');
+  const tremolo = beat.tremoloPicking;
+  const value = tremolo ? TREMOLO_VALUES[tremolo.marks - 1] : undefined;
+  if (tremolo && value && tremolo.style === at.model.TremoloPickingStyle.Default) column.tremolo = value;
+  else reads.delete('tp');
+  return reads;
 }
 
 /** Joins hammer-ons, pull-offs and slides to the note they lead to, the next on the same string. */
@@ -200,6 +223,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
 
   const header: string[] = [];
   const origins = new Map<Note, AtNote>();
+  let timeNow = time;
   const bars: Bar[] = tree.bars.map((barNode, b) => {
     const master = score.masterBars[b];
     const atBar = staff.bars[b];
@@ -220,10 +244,14 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       if (tempo.text) bar.tempo.label = tempo.text;
     }
     if (master && master.tempoAutomations.length > 1) warn('Frets draws one tempo a bar; read the first.');
+    if (master && b > 0 && tags.includes('ts')) {
+      const later = { beats: master.timeSignatureNumerator, value: master.timeSignatureDenominator } as TimeSignature;
+      if (!isTimeSignature(later.beats, later.value)) warn(`Frets doesn't offer ${later.beats}/${later.value}; bar ${b + 1} keeps ${timeNow.beats}/${timeNow.value}.`);
+      else if (later.beats !== timeNow.beats || later.value !== timeNow.value) bar.time = timeNow = later;
+    }
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();
-      if (tag === 'ts' && b > 0) warn('Frets draws one time signature; later changes are kept but not drawn.');
-      if (TAGS.has(tag) && !(tag === 'ts' && b > 0)) continue;
+      if (TAGS.has(tag)) continue;
       kept.set(`\\${tag}`, (kept.get(`\\${tag}`) ?? 0) + 1);
       if (b === 0 && !BAR_TAGS.has(tag)) header.push(written(text, meta));
       else (bar.extra ??= []).push(written(text, meta));
@@ -249,8 +277,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         column.notes[s] = n;
         origins.set(n, note);
       }
-      const extra = keptEffects(text, node?.beatEffects, BEAT_EFFECTS, kept);
-      if (beat.hasTuplet && !column.duration.triplet) warn('Frets draws triplets only; other tuplets are read as plain notes.');
+      const extra = keptEffects(text, node?.beatEffects, beatReads(beat, column, at), kept);
       if (extra.length > 0) column.extra = extra;
       bar.columns.push(column);
     });
@@ -274,9 +301,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k] ? ` (${KEPT_NAMES[k]})` : ''}${n > 1 ? ` ×${n}` : ''}`);
     warnings.push(`Kept but not drawn yet: ${list.join(', ')}.`);
   }
-  const uneven = clip.bars.map((bar, i) => (isUneven(bar, clip.time) ? i + 1 : 0)).filter(Boolean);
-  if (uneven.length === 1) warnings.push(`Bar ${uneven[0]} doesn't add up to ${clip.time.beats}/${clip.time.value}.`);
-  if (uneven.length > 1) warnings.push(`Bars ${uneven.join(', ')} don't add up to ${clip.time.beats}/${clip.time.value}.`);
+  const uneven = unevenMessage(clip);
+  if (uneven) warnings.push(uneven);
   return { ok: true, clip, warnings };
 }
 
