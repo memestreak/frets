@@ -25,6 +25,7 @@ chords fit; fingerstyle with a bass line held under moving notes does not
                                       (beats 1 to 32; note 2, 4, 8, 16 or 32)
     \tuning (<six notes, HIGH to low, with octaves>)
                                       optional; standard (E4 B3 G3 D3 A2 E2)
+    \capo <fret>                      optional; 1 to 12
     <bars>
 
 Write each bar on its own line and end it with "|". Drop D is
@@ -98,6 +99,9 @@ then "." and its duration:
     tu 3       triplet; put it on each of the three: 7.3.8{tu 3}
     sd  su     pick or strum stroke down / up
     tt         tapped (T)
+    ch "Am7"   a chord name over the beat, as written: 0.1.2{ch "C/G"}.
+               Put it on the beat it is written over; a chord name may
+               be anything ("N.C.", "Am7(b5)").
 
 
 5. REPEATS AND ENDINGS
@@ -105,6 +109,10 @@ then "." and its duration:
 
 Put these at the start of a bar, before its beats:
 
+    \section "Verse"           a section starts here, drawn in a box;
+    \section ("A" "Chorus")    with a rehearsal mark, "A"
+    \tempo 90                  the tempo from this bar on, in quarter
+    \tempo (90 "Slowly")       notes a minute (20 to 400), with a word
     \ro        the bar starts a repeat
     \rc 2      the bar ends a repeat played twice (\rc 4: four times)
     \ae 1      the bar is under the 1st-time ending (\ae 2: 2nd ending)
@@ -125,7 +133,7 @@ when the picture shows them:
     beat effects   gr grace note, tp 16 tremolo picking,
                    tb (0 -4 0) whammy bar, txt "text",
                    fermata (medium 1)
-    bar tags       \section "Chorus", \tempo 120
+    bar tags       \ks (key signature), \jump Fine
 
 Not read at all (an error): more than one track, staff or voice; a tuning
 of other than six strings. Read with a warning: other time signatures (as
@@ -171,6 +179,12 @@ Each reads in Frets with no warnings and writes back exactly as shown.
     0.6{ac}.8 0.6{g}.16 0.6{g}.16 3.6{st}.8 3.6{st}.8 5.5{hac}.4 x.5{g}.8 5.5{ac}.8 |
     0.5{lr}.8 2.4{lr}.8 2.3{lr}.8 1.2.8 3.3{vw ph}.4 5.2{sod}.4 |
 
+    \title "Song"
+    \ts (4 4)
+    \capo 2
+    \section "Verse" \tempo 92 (0.1 1.2 0.3 2.4 3.5).2{ch "C" sd} (0.1 1.2 2.3 2.4 0.5).2{ch "Am" sd} |
+    \section ("A" "Chorus") (1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F" sd} (3.1 0.2 0.3 0.4 2.5 3.6).2{ch "G" sd} |
+
     \title "Fast"
     \ts (3 4)
     5.2.16 8.2.16 5.1.16 8.1.16 7.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 12.1.4{tt} |
@@ -200,8 +214,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 9. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
 ----------------------------------------------
 
-1. Header: write \ts always; \title and \tuning only when the picture
-   shows them. A tuning like "D A D G B E" (low to high) is written high
+1. Header: write \ts always; \title, \tuning and \capo only when the
+   picture shows them ("Capo 3rd fret" is \capo 3). A tuning like "D A D G B E" (low to high) is written high
    to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the
    octave nearest its standard note (E4 B3 G3 D3 A2 E2): DADGAD is
    \tuning (D4 A3 G3 D3 A2 D2).
@@ -248,7 +262,11 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    dots to \ro (dots after it) or \rc (dots before it), with n from an
    "xn" over it, else 2; ending brackets to \ae n on every bar under
    them; "x" to x in place of the fret; diamond notes or <12> to nh; "T"
-   to tt on the note under it. Marks from section 6 are written as shown
+   to tt on the note under it; a chord name over the tab to ch "..." on
+   the beat under it; a boxed word over a bar ("Verse", "Chorus") to
+   \section, and a letter in a box to its rehearsal mark; "♩ = 90" over a
+   bar to \tempo 90 (a word before it, "Slowly ♩ = 60", to
+   \tempo (60 "Slowly")). Marks from section 6 are written as shown
    there.
 5. A double or thick final bar line is just the last "|".
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to

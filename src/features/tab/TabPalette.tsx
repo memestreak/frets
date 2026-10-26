@@ -27,7 +27,7 @@ export function TabPalette({ isOn, onTool, disabled }: {
               <button
                 key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
                 aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
-                data-tip={`${tool.label} (${tool.key})`}
+                data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
                 // Keep the focus, and so the cursor, on the tab.
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => onTool(tool.id)}
@@ -117,4 +117,7 @@ const ICONS: Record<ToolId, ReactNode> = {
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
+  chordName: <Label y={16} size={10}>Am</Label>,
+  section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
+  tempo: <><ellipse cx={7} cy={16} rx={2.8} ry={2} transform="rotate(-20 7 16)" fill="currentColor" stroke="none" /><line x1={9.5} y1={15.5} x2={9.5} y2={6} /><Label x={16.5} y={15} size={8}>=</Label></>,
 };

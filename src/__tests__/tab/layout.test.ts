@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnWidth, hitTest, layoutClip, rowsFor, runAt } from '@/features/tab/layout';
+import { columnWidth, hitTest, layoutClip, rowsFor, runAt, textAt } from '@/features/tab/layout';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
@@ -123,5 +123,31 @@ describe('pressing the drawing', () => {
     expect(hit?.mark).toBe('palmMute');
     expect(hit?.run.columns).toEqual([first, second]);
     expect(runAt(layout, first.x, rows.staffTop)).toBeNull();
+  });
+});
+
+describe('words over the tab', () => {
+  const clipOf = (tex: string) => {
+    const result = readAlphaTexWith(alphaTab, tex);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return result.clip;
+  };
+
+  it('gives tempos, sections and chord names rows of their own, over the endings and strokes', () => {
+    const rows = rowsFor(clipOf('\\section "A" \\tempo 90 \\ae 1 0.1.2{ch "C" sd} 0.1.2 |'));
+    expect([rows.tempo!, rows.section!, rows.endings!, rows.chords!, rows.strokes!]).toEqual(
+      [rows.tempo!, rows.section!, rows.endings!, rows.chords!, rows.strokes!].sort((a, b) => a - b),
+    );
+  });
+
+  it('finds the chord name, section or tempo under a press', () => {
+    const layout = layoutClip(clipOf('\\section "Verse" \\tempo 90 0.1.2{ch "Am"} 0.1.2 |'), 800);
+    const { rows } = layout;
+    const bar = layout.systems[0].bars[0];
+    expect(textAt(layout, bar.columns[0].x, rows.chords!)).toEqual({ kind: 'chord', index: 0 });
+    expect(textAt(layout, bar.columns[1].x, rows.chords!)).toBeNull();
+    expect(textAt(layout, bar.x0 + 10, rows.section!)).toEqual({ kind: 'section', bar: 0 });
+    expect(textAt(layout, bar.x0 + 10, rows.tempo!)).toEqual({ kind: 'tempo', bar: 0 });
+    expect(textAt(layout, bar.x0 + 10, rows.staffTop)).toBeNull();
   });
 });

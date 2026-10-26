@@ -12,16 +12,18 @@ import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrig
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { isStandardTuning, isUneven, type Clip } from './clip';
+import { isStandardTuning, isUneven, MAX_BPM, MIN_BPM, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertColumn,
-  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START,
-  stepDuration, type Cursor, type Selection,
+  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setCapo, setChordName,
+  setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
-import { RUN_MARKS, type RunMark } from './layout';
+import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
+import { CapoField } from './CapoField';
+import { WordField } from './WordField';
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
 import { TimeSignatureField } from './TimeSignatureField';
@@ -29,7 +31,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, isOn, toolForKey, type ToolId } from './tools';
+import { applyCyclingKey, applyTool, isOn, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -89,6 +91,8 @@ export default function TabPage() {
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
   const [selectionAsSet, setSelection] = useState<Selection | null>(null);
   const [editing, setEditing] = useState(false);
+  /** The chord name, section or tempo being typed, and where: the cursor's column or bar when it opened. */
+  const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
@@ -106,7 +110,39 @@ export default function TabPage() {
     setNotice(null);
   };
 
-  const onTool = (id: ToolId) => commit(applyTool(clip, target, id));
+  const openWord = (kind: WordKind, at: Cursor = cursor) => {
+    // A chord name belongs to a column; an empty bar has none yet.
+    if (kind === 'chord' && !columnAt(clip, at)) return;
+    setWord({ kind, bar: at.bar, column: at.column });
+  };
+
+  const onTool = (id: ToolId) => {
+    if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
+    else commit(applyTool(clip, target, id));
+  };
+
+  /** A typed chord name, section or tempo set (an empty one clears it); null leaves it as it was. */
+  const finishWord = (value: string | null, byKey: boolean) => {
+    const w = word;
+    setWord(null);
+    // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
+    if (byKey) editorRef.current?.focus();
+    if (!w || value === null) return;
+    if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
+    if (w.kind === 'section') commit(setSection(clip, w.bar, value));
+    if (w.kind === 'tempo') {
+      const typed = Number(value);
+      commit(setTempo(clip, w.bar, value === '' ? null : Math.min(MAX_BPM, Math.max(MIN_BPM, typed))));
+    }
+  };
+
+  /** A press on a drawn chord name, section or tempo opens its field there, with the cursor on its column or bar. */
+  const onPickText = (hit: TextHit) => {
+    const place = hit.kind === 'chord' ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 };
+    const at = { ...cursor, ...place };
+    commit(clip, at, null);
+    openWord(hit.kind, at);
+  };
 
   /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
   const copiedRange = (): [number, number] | null => {
@@ -401,6 +437,8 @@ export default function TabPage() {
           <p className="m-0 text-(--ink-muted)" data-testid="clip-facts">
             {/* The time signature shown here is also where it is set. */}
             <TimeSignatureField time={clip.time} onChange={time => commit({ ...clip, time })} />
+            {' '}
+            <CapoField capo={clip.capo} onChange={capo => commit(setCapo(clip, capo))} />
             {!isStandardTuning(clip.tuning) && ` · Tuning ${clip.tuning.join(' ')}`}
             {example && <span data-testid="example-facts">{" · Example: edits aren't saved"}</span>}
           </p>
@@ -425,7 +463,7 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        <div ref={widthRef} className="min-w-0">
+        <div ref={widthRef} className="relative min-w-0">
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -438,7 +476,7 @@ export default function TabPage() {
               >
                 <TabClip
                   clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                  onMiss={() => { setSelection(null); editorRef.current?.blur(); }}
+                  onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
                   highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
                 />
               </div>
@@ -455,6 +493,12 @@ export default function TabPage() {
                 </button>
               </div>
             )}
+          {view === 'tab' && word && clipWidth > 0 && (
+            <WordField
+              key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, word)}
+              initial={wordNow(clip, word)} onDone={finishWord}
+            />
+          )}
         </div>
       </section>
 
@@ -504,6 +548,31 @@ export default function TabPage() {
 }
 
 /** The last column of the clip, for Ctrl+A. */
+/** What a chord name, section or tempo field starts with: what is there now. */
+function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): string {
+  const b = clip.bars[bar];
+  if (kind === 'chord') return b?.columns[column]?.chord ?? '';
+  if (kind === 'section') return b?.section?.text ?? '';
+  return b?.tempo ? String(b.tempo.bpm) : '';
+}
+
+/** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
+function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
+  const layout = layoutClip(clip, width);
+  const { rows } = layout;
+  const FIELD_WIDTH = 180;
+  const FIELD_HEIGHT = 64;
+  for (let s = 0; s < layout.systems.length; s++) {
+    const placed = layout.systems[s].bars.find(b => b.index === bar);
+    if (!placed) continue;
+    const row = kind === 'chord' ? rows.chords : kind === 'section' ? rows.section : rows.tempo;
+    const y = s * rows.height + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
+    const x = kind === 'chord' ? (placed.columns[column]?.x ?? placed.x0) : placed.x0 + FIELD_WIDTH / 2;
+    return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
+  }
+  return { x: FIELD_WIDTH / 2, y: 0 };
+}
+
 function placeOfLast(clip: Clip): { bar: number; column: number } {
   for (let b = clip.bars.length - 1; b >= 0; b--) {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };

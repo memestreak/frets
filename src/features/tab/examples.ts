@@ -120,6 +120,20 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'song-form',
+    title: 'Sections, tempo and chord names',
+    shows: 'Chord names over the strums, a capo, sections and a change of tempo',
+    text: [
+      '\\title "Sections, tempo and chord names"',
+      '\\ts (4 4)',
+      '\\capo 2',
+      '\\section "Verse" \\tempo 92 (0.1 1.2 0.3 2.4 3.5).2{ch "C" sd} (0.1 1.2 2.3 2.4 0.5).2{ch "Am" sd} |',
+      '(1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F" sd} (3.1 0.2 0.3 0.4 2.5 3.6).2{ch "G" sd} |',
+      '\\section ("A" "Chorus") \\tempo (100 "A little faster") (1.1 1.2 2.3 3.4 3.5 1.6).4{ch "F" sd} (1.1 1.2 2.3 3.4 3.5 1.6).4{su} (3.1 0.2 0.3 0.4 2.5 3.6).4{ch "G" sd} (3.1 0.2 0.3 0.4 2.5 3.6).4{su} |',
+      '(0.1 1.2 0.3 2.4 3.5).1{ch "C" sd} |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'repeats',
     title: 'Repeats and endings',
     shows: 'A repeat with first and second endings, and one played three times',

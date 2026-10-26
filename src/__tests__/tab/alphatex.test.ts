@@ -148,6 +148,25 @@ describe('readAlphaTex', () => {
     expect(writeAlphaTex(clip)).toContain(tex);
   });
 
+  it('reads and writes chord names, sections, tempos and the capo', () => {
+    const tex = '\\ts (4 4)\n\\capo 3\n\\section "Verse" \\tempo 90 0.1.2{ch "C/G"} 0.1.2 |\n\\section ("A" "Chorus") \\tempo (120 "Fast") 0.1.1{ch "Am7(b5)"} |\n';
+    const result = read(tex);
+    expect(result.ok && result.warnings).toEqual([]);
+    const clip = clipOf(tex);
+    expect(clip.capo).toBe(3);
+    expect(clip.bars.map(b => [b.section, b.tempo])).toEqual([
+      [{ text: 'Verse' }, { bpm: 90 }],
+      [{ text: 'Chorus', marker: 'A' }, { bpm: 120, label: 'Fast' }],
+    ]);
+    expect(clip.bars[0].columns.map(c => c.chord)).toEqual(['C/G', undefined]);
+    expect(writeAlphaTex(clip)).toBe(tex);
+  });
+
+  it('says so when a tempo or capo is past what Frets offers', () => {
+    const result = read('\\capo 15\n\\tempo 500 0.1.1 |');
+    expect(result.ok && result.warnings.join(' ')).toMatch(/tempo of 500 as 400.*capo 15 as 12|capo 15 as 12.*tempo of 500 as 400/);
+  });
+
   it('gives alphaTab\'s errors with their line and column', () => {
     const result = read('5.3.4\n5.3{zz}.4');
     expect(result.ok).toBe(false);
@@ -171,8 +190,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all seven', () => {
-    expect(examples).toHaveLength(7);
+  it('finds all eight', () => {
+    expect(examples).toHaveLength(8);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {
@@ -183,7 +202,7 @@ describe('the examples in tab-alphatex.txt', () => {
 
   it('keeps every symbol section 6 lists', () => {
     const result = read([
-      '\\section "Chorus" \\tempo 120',
+      '\\ks D \\jump Fine',
       '5.3{ten}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3.8 5.3.16{gr} 5.3.8{tp 16} 3.6.8{tb (0 -4 0)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
     ].join('\n'));
     expect(result.ok).toBe(true);

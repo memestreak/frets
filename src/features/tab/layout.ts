@@ -5,7 +5,7 @@
  */
 import {
   isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
-  type Bar, type Clip, type Column, type Note,
+  type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
 
 /* — vertical rows of one system, from its top — */
@@ -16,8 +16,14 @@ import {
  * own so marks never collide; the same rows go in every system, so the lines of tab look alike.
  */
 export interface Rows {
+  /** A tempo over the bar it starts at. */
+  tempo: number | null;
+  /** A section's name, boxed, over the bar it starts at. */
+  section: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
+  /** Chord names over their columns. */
+  chords: number | null;
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
@@ -47,6 +53,9 @@ export function rowsFor(clip: Clip): Rows {
   const columns = clip.bars.flatMap(b => b.columns);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
   const used = {
+    tempo: clip.bars.some(b => b.tempo),
+    section: clip.bars.some(b => b.section),
+    chords: columns.some(c => c.chord),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
@@ -58,7 +67,10 @@ export function rowsFor(clip: Clip): Rows {
   let y = FIRST_ROW - ROW_GAP;
   const row = (on: boolean) => (on ? (y += ROW_GAP) : null);
   const rows = {
+    tempo: row(used.tempo),
+    section: row(used.section),
     endings: row(used.endings),
+    chords: row(used.chords),
     strokes: row(used.strokes),
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
@@ -133,7 +145,38 @@ export function columnWidth(column: Column): number {
 /** The least room a column's widest note needs. */
 function minColumnWidth(column: Column): number {
   const widest = Math.max(1, ...column.notes.map(n => (n ? noteLabel(n).length : 0)));
-  return widest * CHAR + 6;
+  return Math.max(widest * CHAR + 6, column.chord ? chordWidth(column.chord) + 6 : 0);
+}
+
+/* — words over the tab: chord names, sections and tempos, and how wide each is drawn — */
+
+export const CHORD_SIZE = 12;
+export function chordWidth(chord: string): number {
+  return chord.length * 7;
+}
+
+export const SECTION_SIZE = 11;
+/** A section's rehearsal mark box (if any) and its name's box, from the bar's start. */
+export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
+  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 8 } : null;
+  const x = marker ? marker.width + 4 : 0;
+  return { marker, text: { x, width: section.text.length * 6.4 + 10 } };
+}
+
+export const TEMPO_SIZE = 11;
+/**
+ * Where a tempo's parts go from the bar's start: the note, " = 60", then its word ("Slowly"), which
+ * comes last so nothing has to be placed after text of unknown width. `width` is a guess, for presses.
+ */
+export function tempoParts(tempo: Tempo): { numberX: number; labelX: number; width: number } {
+  const numberX = 8;
+  const labelX = numberX + ` = ${tempo.bpm}`.length * 6.2 + 6;
+  return { numberX, labelX, width: labelX + (tempo.label ? tempo.label.length * 6 : 0) };
+}
+
+/** Where the words over a bar start: just after its opening line. */
+export function barTextX(bar: PlacedBar): number {
+  return bar.x0 + 4;
 }
 
 /**
@@ -244,6 +287,35 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
     if (rowY === null || Math.abs(localY - rowY) > 7) continue;
     const run = runsIn(system, has).find(r => x >= r.x0 - 2 && x <= Math.max(r.x1, r.x0 + runLabelWidth(label)) + 2);
     if (run) return { mark, run };
+  }
+  return null;
+}
+
+/** What a press over the staff's words is on: a chord name (its column's place in the clip), or a bar's section or tempo. */
+export type TextHit = { kind: 'chord'; index: number } | { kind: 'section' | 'tempo'; bar: number };
+
+/** The chord name, section or tempo under a point; null when there is none. */
+export function textAt(layout: Layout, x: number, y: number): TextHit | null {
+  const { rows } = layout;
+  const system = layout.systems[Math.floor(y / rows.height)];
+  if (!system || y < 0) return null;
+  const localY = y - Math.floor(y / rows.height) * rows.height;
+  const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;
+  if (near(rows.chords)) {
+    for (const placed of system.bars.flatMap(b => b.columns)) {
+      const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
+      if (w > 0 && Math.abs(x - placed.x) <= w / 2 + 2) return { kind: 'chord', index: placed.index };
+    }
+  }
+  for (const bar of system.bars) {
+    const x0 = barTextX(bar);
+    if (near(rows.section) && bar.bar.section) {
+      const { text } = sectionBoxes(bar.bar.section);
+      if (x >= x0 - 2 && x <= x0 + text.x + text.width + 2) return { kind: 'section', bar: bar.index };
+    }
+    if (near(rows.tempo) && bar.bar.tempo && x >= x0 - 2 && x <= x0 + tempoParts(bar.bar.tempo).width + 2) {
+      return { kind: 'tempo', bar: bar.index };
+    }
   }
   return null;
 }

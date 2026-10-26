@@ -4,7 +4,8 @@ import {
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
-  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn, stringY,
+  barTextX, beamGroups, CHORD_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
 
@@ -13,11 +14,14 @@ export interface TabLook {
   ink: string;
   /** The string lines. */
   line: string;
+  /** Text on ink, as in a rehearsal mark's box. */
+  paper: string;
 }
 
 export const PAGE_LOOK: TabLook = {
   ink: 'var(--ink)',
   line: 'var(--line-strong)',
+  paper: 'var(--surface-raised)',
 };
 
 const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
@@ -41,7 +45,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onMiss, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onPickText, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -55,6 +59,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   onPick?: (hit: Hit, extend: boolean) => void;
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
   onPickRun?: (mark: RunMark, index: number) => void;
+  /** A press on a chord name, section or tempo. */
+  onPickText?: (hit: TextHit) => void;
   /** A press on neither the staff nor a P.M. or let ring line. */
   onMiss?: () => void;
 }) {
@@ -65,19 +71,22 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
     const px = e.clientX - box.left;
     const py = e.clientY - box.top;
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
-    return { run, hit: run ? null : hitTest(layout, px, py) };
+    const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
+    return { run, text, hit: run || text ? null : hitTest(layout, px, py) };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, hit } = target(e);
+    const { run, text, hit } = target(e);
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
+    else if (text) onPickText!(text);
     else if (hit) onPick(hit, e.shiftKey);
     else onMiss?.();
   };
-  // A press on blank space doesn't take the focus, so no cursor appears there.
+  // A press on blank space doesn't take the focus, so no cursor appears there; nor does one on a
+  // chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, hit } = target(e);
-    if (!run && !hit) e.preventDefault();
+    const { run, text, hit } = target(e);
+    if (text || (!run && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -227,6 +236,54 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       </g>,
     );
   });
+
+  // Sections and tempos, over the bar they start at; chord names over their columns.
+  for (const bar of system.bars) {
+    const x0 = barTextX(bar);
+    const { section, tempo } = bar.bar;
+    if (section && rows.section !== null) {
+      const y = rows.section;
+      const { marker, text } = sectionBoxes(section);
+      parts.push(
+        <g key={`section-${bar.index}`} data-testid="section">
+          {marker && (
+            <>
+              <rect x={x0} y={y - 8} width={marker.width} height={16} rx={2} fill={look.ink} />
+              <text x={x0 + marker.width / 2} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.paper} textAnchor="middle">{section.marker}</text>
+            </>
+          )}
+          <rect x={x0 + text.x} y={y - 8} width={text.width} height={16} rx={2} fill="none" stroke={look.ink} strokeWidth={1.2} />
+          <text x={x0 + text.x + 5} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.ink}>{section.text}</text>
+        </g>,
+      );
+    }
+    if (tempo && rows.tempo !== null) {
+      const y = rows.tempo;
+      const { numberX, labelX } = tempoParts(tempo);
+      parts.push(
+        <g key={`tempo-${bar.index}`} data-testid="tempo" fill={look.ink}>
+          {/* A quarter note: its head and stem. */}
+          <ellipse cx={x0 + 2} cy={y + 2} rx={3.2} ry={2.4} transform={`rotate(-20 ${x0 + 2} ${y + 2})`} />
+          <line x1={x0 + 5} x2={x0 + 5} y1={y + 1} y2={y - 9} stroke={look.ink} strokeWidth={1.1} />
+          <text x={x0 + numberX} y={y + 4} fontSize={TEMPO_SIZE}>{` = ${tempo.bpm}`}</text>
+          {tempo.label && <text x={x0 + labelX} y={y + 4} fontSize={TEMPO_SIZE} fontWeight={700}>{tempo.label}</text>}
+        </g>,
+      );
+    }
+    if (rows.chords !== null) {
+      for (const placed of bar.columns) {
+        if (!placed.column.chord) continue;
+        parts.push(
+          <text
+            key={`chord-${placed.index}`} x={placed.x} y={rows.chords + 4} fontSize={CHORD_SIZE} fontWeight={700} fill={look.ink}
+            textAnchor="middle" data-testid="chord-name"
+          >
+            {placed.column.chord}
+          </text>,
+        );
+      }
+    }
+  }
 
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
   for (const { mark, label, has } of RUN_MARKS) {

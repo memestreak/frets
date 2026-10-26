@@ -43,6 +43,7 @@ clip as the canonical alphaTex Frets writes.
 | let-ring | Let ring | lr, and the note that ends the run |
 | lead | Pinch harmonics, wide vibrato, slides out | ph, vw, sod, sou |
 | strumming | Strummed chords | chords, sd / su, a chord tied over |
+| song-form | Sections, tempo and chord names | ch, \section, \tempo, \capo |
 | repeats | Repeats and endings | \ro, \rc 2 and 3, \ae 1 and 2 |
 | compound-time | Six-eight time | 6/8 beamed in threes |
 | drop-d | Drop D | a tuning, names left of the lines |

@@ -199,6 +199,21 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
     });
 
+    it('names a chord from C and a field over the tab, and sets the capo from the button under the name', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'c');
+      const field = screen.getByRole('textbox', { name: 'Chord name' });
+      fireEvent.change(field, { target: { value: 'Am7' } });
+      fireEvent.keyDown(field, { key: 'Enter' });
+      expect(screen.queryByRole('textbox', { name: 'Chord name' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'No capo' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Capo higher' }));
+      expect(screen.getByRole('button', { name: 'Capo on fret 1' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+      expect(screen.getByTestId('tab-ascii').textContent).toContain('\\capo 1\n5.1.4{ch "Am7"} |');
+    });
+
     it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
       renderAt();
       act(() => editor().focus());
