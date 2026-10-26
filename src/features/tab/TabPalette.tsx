@@ -77,7 +77,8 @@ const ICONS: Record<ToolId, ReactNode> = {
   quarter: <NoteGlyph open={false} />,
   eighth: <NoteGlyph open={false} flags={1} />,
   sixteenth: <NoteGlyph open={false} flags={2} />,
-  dot: <circle cx={12} cy={12} r={2.6} fill="currentColor" stroke="none" />,
+  // The dot sits where it would beside a note head, at the heads' height in the other duration icons.
+  dot: <circle cx={12} cy={17} r={2.6} fill="currentColor" stroke="none" />,
   triplet: <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>3</Label></>,
   rest: <path d="M10 3 L14 8 L10 12 L14 16 Q9 15 11 20" />,
   tie: <><Label x={7} y={13} size={9}>5</Label><Label x={17} y={13} size={9}>(5)</Label><path d="M5 17 Q12 23 19 17" /></>,
