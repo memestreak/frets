@@ -263,6 +263,58 @@ describe('TabPage', () => {
   });
 });
 
+describe('TabPage examples', () => {
+  const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY)!).name as string;
+  const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+
+  it('shows an example in place of the clip, never saves its edits, and goes back to the clip', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    fireEvent.click(screen.getByRole('button', { name: 'Examples…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Examples' });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Bends and vibrato/ }));
+    await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
+    expect(screen.getByTestId('example-facts')).toHaveTextContent("Example: edits aren't saved");
+    expect(window.location.hash).toBe('#example=bends');
+    // An edit changes the example on the page, not the saved clip.
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: '9' });
+    await settle();
+    expect(saved()).toBe('Tex riff');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to my clip' }));
+    expect(heading()).toHaveTextContent('Tex riff');
+    expect(screen.queryByTestId('example-facts')).toBeNull();
+    expect(window.location.hash).toBe('');
+    // Undo still has the clip's own history: before the import, the clip was empty.
+    undo();
+    expect(heading()).toHaveTextContent('Untitled clip');
+  });
+
+  it('opens the example in an #example= link and keeps the link while it is shown', async () => {
+    renderAt('#example=repeats');
+    await screen.findByRole('heading', { name: 'Repeats and endings' }, SLOW);
+    expect(window.location.hash).toBe('#example=repeats');
+    expect(screen.getAllByTestId('repeat-start').length).toBeGreaterThan(0);
+  });
+
+  it('says so when a link names no example', async () => {
+    renderAt('#example=nope');
+    await waitFor(() => expect(notice()).toHaveTextContent('There is no example called "nope".'), SLOW);
+  });
+
+  it('makes an import over an example the saved clip', async () => {
+    renderAt('#example=drop-d');
+    await screen.findByRole('heading', { name: 'Drop D' }, SLOW);
+    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: TEX } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    expect(screen.queryByTestId('example-facts')).toBeNull();
+    expect(window.location.hash).toBe('');
+    await waitFor(() => expect(saved()).toBe('Tex riff'));
+  });
+});
+
 describe('TabPage export', () => {
   it('opens Copy as PNG and Export options… on a right-click on the tab', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));

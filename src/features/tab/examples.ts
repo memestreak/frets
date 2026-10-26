@@ -1,0 +1,128 @@
+/**
+ * The Tab page's example clips: a small library showing each thing Frets
+ * draws, written in alphaTex as an agent would write it. Opening one never
+ * touches the saved clip, and its edits are not saved. Each is also a
+ * test: it must read with no warnings and write back exactly as here
+ * (`src/__tests__/tab/examples.test.ts`). A feature Frets learns to draw
+ * gets an example here.
+ */
+
+export interface TabExample {
+  /** In the link: /tab#example=<id>. */
+  id: string;
+  title: string;
+  /** What it shows, one line in the Examples dialog. */
+  shows: string;
+  /** The clip, in the canonical alphaTex Frets writes. */
+  text: string;
+}
+
+export const TAB_EXAMPLES: TabExample[] = [
+  {
+    id: 'durations',
+    title: 'Durations and rests',
+    shows: 'Whole to sixteenth notes, rests, dotted and double-dotted notes',
+    text: [
+      '\\title "Durations and rests"',
+      '\\ts (4 4)',
+      '0.6.1 |',
+      '3.6.2 r.2 |',
+      '0.5.4 2.5.4 r.4 3.5.4 |',
+      '0.4.8 2.4.8 3.4.8 2.4.8 0.4.16 2.4.16 3.4.16 5.4.16 r.4 |',
+      '5.3.4{d} 7.3.8 5.3.4{d} 7.3.8 |',
+      '5.3.2{dd} 7.3.8 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'short-notes',
+    title: 'Triplets and short notes',
+    shows: 'Triplets, thirty-seconds and sixty-fourths, and how they beam',
+    text: [
+      '\\title "Triplets and short notes"',
+      '\\ts (4 4)',
+      '7.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} r.4 5.3.16{d} 7.3.32 r.8 5.2.32 7.2.32 8.2.32 7.2.32 5.1.64 7.1.64 8.1.64 10.1.64 8.1.64 7.1.64 5.1.64 7.1.64 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'joins',
+    title: 'Hammer-ons, slides and ties',
+    shows: 'Hammer-ons, pull-offs, slides from the note before or from nowhere, and ties',
+    text: [
+      '\\title "Hammer-ons, slides and ties"',
+      '\\ts (4 4)',
+      '5.3{h}.8 7.3.8 7.3{h}.8 5.3.8 5.3{sl}.8 7.3.8 7.3{ss}.8 9.3.8 |',
+      '5.4{sib}.4 9.4{sia}.4 -.4.2 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'bends',
+    title: 'Bends and vibrato',
+    shows: 'Quarter, half and full bends, releases, pre-bends and vibrato',
+    text: [
+      '\\title "Bends and vibrato"',
+      '\\ts (4 4)',
+      '7.3{b (0 4)}.4 7.3{b (0 4 0)}.4 8.2{b (0 2)}.4 8.2{b (0 1)}.4 |',
+      '7.3{b (4 4)}.4 7.3{b (4 4 0)}.4 5.1{v}.2 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'techniques',
+    title: 'Palm mute, dead notes, harmonics, tap',
+    shows: 'Palm-muted and dead notes, natural harmonics and a tapped note',
+    text: [
+      '\\title "Palm mute, dead notes, harmonics, tap"',
+      '\\ts (4 4)',
+      '0.6{pm}.8 0.6{pm}.8 0.6{pm}.8 x.6.8 12.3{nh}.8 12.2{nh}.8 12.1.8{tt} 5.1.8 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'strumming',
+    title: 'Strummed chords',
+    shows: 'Chords with down and up strokes, a chord let ring with ties',
+    text: [
+      '\\title "Strummed chords"',
+      '\\ts (4 4)',
+      '(0.1 1.2 0.3 2.4 3.5).4{sd} (0.1 1.2 0.3 2.4 3.5).8{sd} (0.1 1.2 0.3 2.4 3.5).8{su} r.8 (0.1 1.2 0.3 2.4 3.5).8{su} (0.1 1.2 0.3 2.4 3.5).4{sd} |',
+      '(0.1 1.2 2.3 2.4 0.5).2{sd} (-.1 -.2 -.3 -.4 -.5).2 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'repeats',
+    title: 'Repeats and endings',
+    shows: 'A repeat with first and second endings, and one played three times',
+    text: [
+      '\\title "Repeats and endings"',
+      '\\ts (4 4)',
+      '\\ro 0.6.8 0.6.8 3.6.8 0.6.8 2.5.4 0.5.4 |',
+      '\\ae 1 \\rc 2 3.6.2 5.6.2 |',
+      '\\ae 2 (0.1 0.2 1.3 2.4 2.5 0.6).1 |',
+      '\\ro \\rc 3 2.4.4 4.4.4 5.4.4 4.4.4 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'compound-time',
+    title: 'Six-eight time',
+    shows: 'Compound time: eighths beamed in threes',
+    text: [
+      '\\title "Six-eight time"',
+      '\\ts (6 8)',
+      '0.6.8 2.4.8 2.3.8 0.5.8 2.4.8 2.3.8 |',
+      '3.6.4{d} 2.5.4{d} |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'drop-d',
+    title: 'Drop D',
+    shows: 'A tuning other than standard, its string names left of the lines',
+    text: [
+      '\\title "Drop D"',
+      '\\ts (4 4)',
+      '\\tuning (E4 B3 G3 D3 A2 D2)',
+      '(0.4 0.5 0.6).8 (0.4 0.5 0.6).8 (3.4 3.5 3.6).8 (0.4 0.5 0.6).8 (5.4 5.5 5.6).4 (3.4 3.5 3.6).4 |',
+    ].join('\n') + '\n',
+  },
+];
+
+export function exampleById(id: string): TabExample | undefined {
+  return TAB_EXAMPLES.find(e => e.id === id);
+}

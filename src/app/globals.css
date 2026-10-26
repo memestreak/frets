@@ -735,6 +735,17 @@ button {
   .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
+  /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */
+  .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }
+  .tab-examples { list-style: none; display: grid; gap: 4px; }
+  .tab-example {
+    display: grid; gap: 2px; width: 100%; padding: 8px 12px; text-align: left;
+    border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--ink); cursor: pointer;
+  }
+  .tab-example:hover, .tab-example:focus-visible { background: var(--surface-sunken); outline: none; }
+  .tab-example[aria-current='true'] { border-color: var(--primary); background: var(--primary-soft); }
+  .tab-example-title { font-weight: 600; }
+  .tab-example-shows { color: var(--ink-muted); font-size: 0.875rem; }
   .tab-import-text {
     width: 100%; min-height: 240px; resize: vertical; padding: 10px 12px;
     font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
