@@ -36,7 +36,7 @@ readers pass keys through to it.
 | --- | --- |
 | 0–9 | Fret on the cursor's string. A second digit within a second, on the same spot, makes a two-digit fret, up to 24. A typed fret keeps the note's marks but drops a tie or a dead note. |
 | ↑ ↓ | String. |
-| ← → | Column, across bar lines. → from the clip's last column adds a rest with the same duration: in that bar while it has room, else in a new bar. |
+| ← → | Column, across bar lines. → from the last column of a bar that doesn't add up adds a rest there, anywhere in the clip: as long as the cursor's column while it fits, else the longest that does (Jeremy, 2026-10-26, after deleting rests left a bar he couldn't refill). → from the clip's last column, once its bar is full, starts a new bar. A pickup bar walked through with → fills up too; Ctrl+Z takes it back. |
 | Shift+← → | Select. |
 | Backspace, Delete | With a selection, removes its columns, and any bar left empty. Otherwise clears the cursor's note, and on a rest removes the column. The cursor stays in the bar: on the column after while there is one in that bar, else on the column before (Jeremy, 2026-10-26: deleting a bar's last note had jumped to the next bar). |
 | Insert | A rest before the cursor's column. |

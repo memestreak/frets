@@ -165,6 +165,17 @@ describe('moving', () => {
     expect(moveColumn(clip, at(0, 0, 0), -1).cursor).toEqual(at(0, 0, 0));
     expect(moveColumn(clip, at(0, 1, 0), 1).cursor).toEqual(at(1, 0, 0));
   });
+
+  it('fills a short bar anywhere in the clip with rests that fit, then moves on', () => {
+    let clip = clipOf('5.3.4 | 7.3.1 |');
+    let cursor = at(0, 0, 2);
+    for (let i = 0; i < 3; i++) ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    expect(bars(clip)).toBe('5.3.4 r.4 r.4 r.4 |\n7.3.1 |');
+    expect(moveColumn(clip, cursor, 1).cursor).toEqual(at(1, 0, 2));
+    // Only an eighth is left: the rest is an eighth, not the quarter before it.
+    const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
+    expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
+  });
 });
 
 describe('bars', () => {
