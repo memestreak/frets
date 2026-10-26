@@ -11,7 +11,7 @@ and the third covers rhythm (grace notes, tremolo picking, tuplets of 5 to 7).
 
 | Mark | alphaTex | Drawn | Palette, key |
 | --- | --- | --- | --- |
-| Let ring | `lr` | "let ring" then a dashed line over the run of columns, with an end tick (as P.M.) | Techniques, L |
+| Let ring | `lr` | "let ring" then a dashed line over the run of columns, with an end tick (as P.M.); a run shorter than the label is the label alone | Techniques, L |
 | Ghost note | `g` | the number in brackets, "(5)", "(x)"; no arc | Techniques, G |
 | Accent | `ac` | ">" over the column | Accents, A |
 | Heavy accent | `hac` | "^" over the column | Accents, A (second press) |
