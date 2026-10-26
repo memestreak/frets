@@ -16,7 +16,7 @@ and the third covers rhythm (grace notes, tremolo picking, tuplets of 5 to 7).
 | Accent | `ac` | ">" over the column | Accents, A |
 | Heavy accent | `hac` | "^" over the column | Accents, A (second press) |
 | Staccato | `st` | a dot over the column, under an accent | Accents, S |
-| Wide vibrato | `vw` | a taller, longer wave, in a heavier line | Techniques, V (second press) |
+| Wide vibrato | `vw` | a taller, longer wave, in a heavier line | Techniques, the Vibrato button or V (second press) |
 | Slide out down / up | `sod` / `sou` | a short line after the number, going down or up | Joins, `\` (down, then up) |
 | Pinch harmonic | `ph` | "P.H." over the column; the number stays plain | Techniques, N (second press) |
 

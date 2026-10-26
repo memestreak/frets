@@ -19,7 +19,7 @@ import {
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
   isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
+  setBend, setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
 import { BarTimePanel } from './BarTimePanel';
@@ -30,7 +30,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, isOn, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -517,7 +517,9 @@ export default function TabPage() {
 
       <HoverTips>
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
-        <TabPalette isOn={id => editing && isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+        <TabPalette
+          isOn={id => editing && isOn(clip, cursor, id)} kinds={noteKinds(clip, editing ? cursor : null)}
+          onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">

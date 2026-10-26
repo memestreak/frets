@@ -138,7 +138,7 @@ describe('note marks', () => {
 
   it('cycles bend amounts, then bend shapes', () => {
     let clip = clipOf('7.3.2 r.2 |');
-    for (let i = 0; i < 3; i++) clip = cycleBend(clip, at(0, 0, 2));
+    for (let i = 0; i < 3; i++) clip = cycleBend(clip, only(at(0, 0, 2)));
     expect(noteAt(clip, at(0, 0, 2))?.bend).toEqual({ quarters: 4, pre: false, release: false });
     clip = cycleBendShape(clip, at(0, 0, 2));
     expect(bars(clip)).toBe('7.3{b (0 4 0)}.2 r.2 |');

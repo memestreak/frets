@@ -75,8 +75,14 @@ groups are:
    line writes a thirty-second t and a sixty-fourth x.
 2. Joins: tie, hammer-on/pull-off, slide, shift slide, slide in from below,
    slide in from above.
-3. Bends: ¼, ½, full, 1½, 2, release, pre-bend.
-4. Techniques: vibrato, palm mute, dead note, harmonic, tap, down stroke,
+3. Bends: Bend, release, pre-bend. One Bend button (Jeremy, 2026-10-26,
+   in place of one per amount): a press opens a small panel under it with
+   ¼ · ½ · full · 1½ · 2, the note's amount lit; picking one sets it,
+   picking the lit one takes the bend away, and a press outside or Esc
+   closes it with the cursor left on the tab. Its icon shows the note's
+   amount, none without a bend. B still steps through the amounts.
+4. Techniques: vibrato (one button stepping normal, wide, off, as V does;
+   its icon shows the note's kind), palm mute, dead note, harmonic, tap, down stroke,
    up stroke.
 5. Repeats: repeat start, repeat end, ending.
 

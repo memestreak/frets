@@ -1,7 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { TOOL_GROUPS, type ToolId } from './tools';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { BEND_QUARTERS, type BendQuarters } from './clip';
+import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
 
 /**
  * The symbol palette over the tab, as Guitar Pro's: one button per symbol
@@ -9,10 +10,15 @@ import { TOOL_GROUPS, type ToolId } from './tools';
  * looks in tab. A button shows whether the cursor's column or note has its
  * symbol and toggles it; its
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
- * button keeps the keyboard on the tab.
+ * button keeps the keyboard on the tab. Vibrato steps through normal, wide
+ * and off; Bend opens a panel of amounts. Both icons show the note's kind.
  */
-export function TabPalette({ isOn, onTool, disabled }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, disabled }: {
   isOn: (id: ToolId) => boolean;
+  /** What the cursor note has of the marks the Bend and Vibrato icons draw. */
+  kinds: ReturnType<typeof noteKinds>;
+  /** A bend amount picked in the Bend button's panel. */
+  onBend: (quarters: BendQuarters) => void;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -23,7 +29,9 @@ export function TabPalette({ isOn, onTool, disabled }: {
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
-            {group.tools.map(tool => (
+            {group.tools.map(tool => tool.id === 'bend' ? (
+              <BendTool key={tool.id} tool={tool} amount={disabled ? null : kinds.bend} onBend={onBend} disabled={disabled} />
+            ) : (
               <button
                 key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
                 aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
@@ -33,7 +41,7 @@ export function TabPalette({ isOn, onTool, disabled }: {
                 onClick={() => onTool(tool.id)}
               >
                 <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  {ICONS[tool.id]}
+                  {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : ICONS[tool.id]}
                 </svg>
               </button>
             ))}
@@ -72,6 +80,83 @@ function BendGlyph({ amount }: { amount: string }) {
   );
 }
 
+/** A bend's amount as tab prints it, by quarter tones. */
+const BEND_AMOUNTS: Record<BendQuarters, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
+
+/** A wavy line, taller and heavier when wide. */
+function VibratoGlyph({ wide }: { wide: boolean }) {
+  return wide
+    ? <path d="M3 13 q3 -7 6 0 t6 0 t6 0" strokeWidth={2} />
+    : <path d="M3 13 q2.25 -4 4.5 0 t4.5 0 t4.5 0 t4.5 0" />;
+}
+
+/**
+ * The Bend button: its icon shows the cursor note's amount (none without a bend), and a press opens
+ * a panel under it with every amount, the note's lit; picking one sets it, picking the lit one takes
+ * the bend away. A press outside, or Esc, closes it; focus never leaves the tab.
+ */
+function BendTool({ tool, amount, onBend, disabled }: {
+  tool: Tool;
+  amount: BendQuarters | null;
+  onBend: (quarters: BendQuarters) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    // Caught before the tab's own keys, so Esc closes the panel and leaves the cursor where it is.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
+  return (
+    <span ref={boxRef} className="tab-tool-box">
+      <button
+        type="button" className="btn btn-secondary btn-toggle tab-tool"
+        aria-label={tool.label} aria-pressed={amount !== null} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        data-tip={`${tool.label} (${tool.key})`}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => setOpen(o => !o)}
+      >
+        <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <BendGlyph amount={amount ? BEND_AMOUNTS[amount] : ''} />
+        </svg>
+      </button>
+      {open && !disabled && (
+        <span className="tab-tool-panel card" role="dialog" aria-label="Bend">
+          <span className="tab-bar-time-title">Bend</span>
+          <span className="seg" role="group" aria-label="Bend amount">
+            {BEND_QUARTERS.map(q => (
+              <button
+                key={q} type="button" className="seg-opt tab-bend-amount" aria-pressed={q === amount}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { onBend(q); setOpen(false); }}
+              >
+                {BEND_AMOUNTS[q]}
+              </button>
+            ))}
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** A tuplet's bracket with its number under it. */
 function TupletGlyph({ n }: { n: number }) {
   return <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>{n}</Label></>;
@@ -87,7 +172,7 @@ function TremoloGlyph({ slashes }: { slashes: number }) {
   );
 }
 
-const ICONS: Record<ToolId, ReactNode> = {
+const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
   quarter: <NoteGlyph open={false} />,
@@ -115,15 +200,8 @@ const ICONS: Record<ToolId, ReactNode> = {
   slideAbove: <><line x1={4} y1={10} x2={13} y2={16} /><Label x={18} y={18} size={9}>5</Label></>,
   slideOutDown: <><Label x={6} y={12} size={9}>5</Label><line x1={11} y1={9} x2={20} y2={16} /></>,
   slideOutUp: <><Label x={6} y={18} size={9}>5</Label><line x1={11} y1={15} x2={20} y2={8} /></>,
-  bend1: <BendGlyph amount="¼" />,
-  bend2: <BendGlyph amount="½" />,
-  bend4: <BendGlyph amount="full" />,
-  bend6: <BendGlyph amount="1½" />,
-  bend8: <BendGlyph amount="2" />,
   release: <><path d="M4 21 Q8 21 8 8 L8 6 Q8 4 10 4 Q16 4 16 18" /><path d="M13.5 15.5 L16 18.5 L18.5 15.5" /></>,
   preBend: <><line x1={8} y1={21} x2={8} y2={7} /><path d="M5.5 9.5 L8 6.5 L10.5 9.5" /><Label x={16} y={17} size={8}>PB</Label></>,
-  vibrato: <path d="M3 13 q2.25 -4 4.5 0 t4.5 0 t4.5 0 t4.5 0" />,
-  wideVibrato: <path d="M3 13 q3 -7 6 0 t6 0 t6 0" strokeWidth={2} />,
   palmMute: <Label y={15} size={8.5}>P.M.</Label>,
   letRing: <><Label y={11} size={8}>let</Label><Label y={20} size={8}>ring</Label></>,
   dead: <Label y={17} size={14}>x</Label>,

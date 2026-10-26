@@ -450,7 +450,7 @@ export function cycleSlide(clip: Clip, cursor: Cursor): Clip {
   });
 }
 
-/** Sets the bend amount of the target notes, or clears the bend when they all bend that much. */
+/** Sets the bend amount of the target notes (the Bend button's panel), or clears the bend when they all bend that much. */
 export function setBend(clip: Clip, target: Target, quarters: BendQuarters): Clip {
   const off = targetNotes(clip, target).every(n => n.bend?.quarters === quarters);
   return changeNotes(clip, target, note => {
@@ -461,14 +461,18 @@ export function setBend(clip: Clip, target: Target, quarters: BendQuarters): Cli
   });
 }
 
-/** The cursor note's next bend amount, for the "b" key: ¼, ½, full, 1½, 2, none. */
-export function cycleBend(clip: Clip, cursor: Cursor): Clip {
-  const note = noteAt(clip, cursor);
+/**
+ * The next bend amount after the cursor note's (¼, ½, full, 1½, 2, none), on every target note:
+ * the "b" key.
+ */
+export function cycleBend(clip: Clip, target: Target): Clip {
+  const note = noteAt(clip, target.cursor) ?? targetNotes(clip, target)[0];
   if (!note) return clip;
   const i = note.bend ? BEND_QUARTERS.indexOf(note.bend.quarters) : -1;
   const next = BEND_QUARTERS[i + 1];
-  return changeNotes(clip, { cursor, selection: null }, n => {
+  return changeNotes(clip, target, n => {
     const { bend, ...rest } = n;
+    // A ¼-tone curl is never pre-bent.
     return next ? { ...rest, bend: { quarters: next, pre: next === 1 ? false : bend?.pre ?? false, release: bend?.release ?? false } } : rest;
   });
 }
