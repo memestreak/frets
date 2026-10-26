@@ -183,13 +183,16 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
               if (!playback.seek(index)) onPlace(index);
             }}
           >
-            <div className="tab-progress-done" style={{ width: `${progress * 100}%` }} />
-            {time.bars.slice(1).map((start, i) => (
-              <div key={i} className="tab-progress-bar" style={{ left: `${(start / Math.max(1, time.total)) * 100}%` }} />
-            ))}
+            {/* The line drawn; the press area round it is as tall as Play, so a press near the line counts. */}
+            <div className="tab-progress-track">
+              <div className="tab-progress-done" style={{ width: `${progress * 100}%` }} />
+              {time.bars.slice(1).map((start, i) => (
+                <div key={i} className="tab-progress-bar" style={{ left: `${(start / Math.max(1, time.total)) * 100}%` }} />
+              ))}
+            </div>
           </div>
           <button
-            type="button" className="btn btn-secondary btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
+            type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
             onClick={() => playback.toggleLoop(selection)}
           >
             <LoopIcon />
