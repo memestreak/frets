@@ -386,13 +386,25 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(localStorage.getItem(PLAYBACK_KEY)).toBe('true');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 25 });
     cleanup();
     renderAt();
     expect(footer()).not.toBeNull();
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
-    expect(localStorage.getItem(PLAYBACK_KEY)).toBe('false');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25 });
+  });
+
+  it('picks the sound at the end of the controls, and remembers it', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const sound = screen.getByRole('combobox', { name: 'Sound' });
+    expect(sound).toHaveValue('25');
+    fireEvent.change(sound, { target: { value: '0' } });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 0 });
+    cleanup();
+    renderAt();
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
   });
 
   it("doesn't play on Space while the footer is hidden", () => {

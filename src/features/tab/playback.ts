@@ -23,6 +23,36 @@ export const SOUNDFONT_URL = '/soundfont/sonivox.sf3';
 export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 1.5;
 
+/**
+ * The sounds the footer offers, grouped by General MIDI family: every pitched sound the soundfont
+ * has, by program number (Jeremy, 2026-10-26: "everything except for percussion", so the
+ * Percussion family, 112 to 119, and the drum kits are left out). Steel Guitar is alphaTex's default.
+ */
+export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [number, string])[]])[] = [
+  ['Piano', [[0, 'Acoustic Grand Piano'], [1, 'Bright Acoustic Piano'], [2, 'Electric Grand Piano'], [3, 'Honky-tonk Piano'], [4, 'Electric Piano 1'], [5, 'Electric Piano 2'], [6, 'Harpsichord'], [7, 'Clavinet']]],
+  ['Chromatic percussion', [[8, 'Celesta'], [9, 'Glockenspiel'], [10, 'Music Box'], [11, 'Vibraphone'], [12, 'Marimba'], [13, 'Xylophone'], [14, 'Tubular Bells'], [15, 'Dulcimer']]],
+  ['Organ', [[16, 'Drawbar Organ'], [17, 'Percussive Organ'], [18, 'Rock Organ'], [19, 'Church Organ'], [20, 'Reed Organ'], [21, 'Accordion'], [22, 'Harmonica'], [23, 'Tango Accordion']]],
+  ['Guitar', [[24, 'Nylon Guitar'], [25, 'Steel Guitar'], [26, 'Jazz Guitar'], [27, 'Clean Electric Guitar'], [28, 'Muted Electric Guitar'], [29, 'Overdriven Guitar'], [30, 'Distortion Guitar'], [31, 'Guitar Harmonics']]],
+  ['Bass', [[32, 'Acoustic Bass'], [33, 'Fingered Bass'], [34, 'Picked Bass'], [35, 'Fretless Bass'], [36, 'Slap Bass 1'], [37, 'Slap Bass 2'], [38, 'Synth Bass 1'], [39, 'Synth Bass 2']]],
+  ['Strings', [[40, 'Violin'], [41, 'Viola'], [42, 'Cello'], [43, 'Contrabass'], [44, 'Tremolo Strings'], [45, 'Pizzicato Strings'], [46, 'Orchestral Harp'], [47, 'Timpani']]],
+  ['Ensemble', [[48, 'String Ensemble 1'], [49, 'String Ensemble 2'], [50, 'Synth Strings 1'], [51, 'Synth Strings 2'], [52, 'Choir Aahs'], [53, 'Voice Oohs'], [54, 'Synth Voice'], [55, 'Orchestra Hit']]],
+  ['Brass', [[56, 'Trumpet'], [57, 'Trombone'], [58, 'Tuba'], [59, 'Muted Trumpet'], [60, 'French Horn'], [61, 'Brass Section'], [62, 'Synth Brass 1'], [63, 'Synth Brass 2']]],
+  ['Reed', [[64, 'Soprano Sax'], [65, 'Alto Sax'], [66, 'Tenor Sax'], [67, 'Baritone Sax'], [68, 'Oboe'], [69, 'English Horn'], [70, 'Bassoon'], [71, 'Clarinet']]],
+  ['Pipe', [[72, 'Piccolo'], [73, 'Flute'], [74, 'Recorder'], [75, 'Pan Flute'], [76, 'Blown Bottle'], [77, 'Shakuhachi'], [78, 'Whistle'], [79, 'Ocarina']]],
+  ['Synth lead', [[80, 'Square Lead'], [81, 'Sawtooth Lead'], [82, 'Calliope Lead'], [83, 'Chiff Lead'], [84, 'Charang Lead'], [85, 'Voice Lead'], [86, 'Fifths Lead'], [87, 'Bass and Lead']]],
+  ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
+  ['Synth effects', [[96, 'Rain'], [97, 'Soundtrack'], [98, 'Crystal'], [99, 'Atmosphere'], [100, 'Brightness'], [101, 'Goblins'], [102, 'Echoes'], [103, 'Sci-fi']]],
+  ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
+  ['Sound effects', [[120, 'Guitar Fret Noise'], [121, 'Breath Noise'], [122, 'Seashore'], [123, 'Bird Tweet'], [124, 'Telephone Ring'], [125, 'Helicopter'], [126, 'Applause'], [127, 'Gunshot']]],
+];
+export type Sound = number;
+export const DEFAULT_SOUND: Sound = 25;
+const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
+
+export function isSound(value: unknown): value is Sound {
+  return typeof value === 'number' && SOUND_PROGRAMS.has(value);
+}
+
 /* — the clip as alphaTab's score and MIDI (no browser needed) — */
 
 export interface Performance {
@@ -33,13 +63,23 @@ export interface Performance {
   endTick: number;
 }
 
-/** The clip as alphaTab's score and MIDI, with the lookup from a tick to the beat sounding then. */
-export function perform(at: AlphaTab, clip: Clip): Performance {
+/** The clip as alphaTab's score and MIDI in a sound, with the lookup from a tick to the beat sounding then. */
+export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND): Performance {
   const settings = new at.Settings();
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
   importer.initFromString(writeAlphaTex(clip), settings);
   const score = importer.readScore();
+  // The chosen sound, whatever instrument the clip's alphaTex names: the track's own program, and
+  // the instrument change alphaTab's reader puts on the first beat.
+  for (const track of score.tracks) {
+    track.playbackInfo.program = sound;
+    for (const staff of track.staves) for (const bar of staff.bars) for (const voice of bar.voices) for (const beat of voice.beats) {
+      for (const automation of beat.automations) {
+        if (automation.type === at.model.AutomationType.Instrument) automation.value = sound;
+      }
+    }
+  }
   const midi = new at.midi.MidiFile();
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();
@@ -255,6 +295,8 @@ export interface PlayerView {
 export class TabPlayer {
   private performance: Performance | null = null;
   private clip: Clip | null = null;
+  private sound: Sound = DEFAULT_SOUND;
+  private loop: [number, number] | 'whole' | null = null;
   /**
    * Whether the clip has stopped (paused, edited or played to its end) since the last Play. The
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
@@ -293,10 +335,11 @@ export class TabPlayer {
    * a loop of some columns, from the column when it is in the loop, else from the loop's start.
    * `loop` repeats those columns, or with `whole` the whole clip; null plays once.
    */
-  play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number) {
-    if (clip !== this.clip || !this.performance) {
+  play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+    if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
-      this.performance = perform(this.at, clip);
+      this.sound = sound;
+      this.performance = perform(this.at, clip, sound);
       this.synth.loadMidiFile(this.performance.midi);
     }
     this.setLoop(loop);
@@ -326,6 +369,7 @@ export class TabPlayer {
 
   /** Repeats these columns, or the whole clip; null plays once. */
   setLoop(loop: [number, number] | 'whole' | null) {
+    this.loop = loop;
     this.synth.isLooping = loop !== null;
     const range = this.clip && this.performance && Array.isArray(loop) ? ticksOf(this.clip, this.performance, loop) : null;
     if (range) {
@@ -340,6 +384,20 @@ export class TabPlayer {
 
   setSpeed(speed: number) {
     this.synth.playbackSpeed = speed;
+  }
+
+  /** Changes the sound; a clip playing goes on from where it is, in the new sound. */
+  setSound(sound: Sound) {
+    if (sound === this.sound) return;
+    this.sound = sound;
+    if (!this.clip || !this.performance) return;
+    const playing = !this.ended;
+    const tick = this.synth.tickPosition;
+    this.performance = perform(this.at, this.clip, sound);
+    this.synth.loadMidiFile(this.performance.midi);
+    this.setLoop(this.loop);
+    this.synth.tickPosition = tick;
+    if (playing) this.synth.play();
   }
 
   /** Moves the playing clip to a column (its first time through). */

@@ -32,7 +32,7 @@ import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
-import { PLAYBACK_KEY, PlaybackFooter, Playhead, parseShowPlayback, usePlayback } from './PlaybackFooter';
+import { PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -108,18 +108,19 @@ export default function TabPage() {
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
   const target = { cursor, selection };
+  // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
+  const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
+  usePersist(PLAYBACK_KEY, playbackSettings);
+  const showPlayback = playbackSettings.shown;
   // Playback starts at the selection's first column, else the cursor's; a Loop takes the selection.
-  const playback = usePlayback(clip, column => {
+  const playback = usePlayback(clip, playbackSettings.sound, column => {
     setSelection(null);
     setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
     editorRef.current?.focus();
   });
-  // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
-  const [showPlayback, setShowPlayback] = useState(() => parseShowPlayback(loadJson(PLAYBACK_KEY)));
-  usePersist(PLAYBACK_KEY, showPlayback);
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
-    setShowPlayback(shown);
+    setPlaybackSettings(s => ({ ...s, shown }));
   };
   const selectedColumns = selection ? selectedRange(selection) : null;
   const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
@@ -606,6 +607,7 @@ export default function TabPage() {
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
             shown={showPlayback} onShow={showPlaybackControls}
+            sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
           />
         </HoverTips>

@@ -11,14 +11,25 @@ import { PauseIcon, PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
-import { MAX_SPEED, MIN_SPEED, TabPlayer, timeline, type PlayerView } from './playback';
+import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, timeline, type PlayerView, type Sound } from './playback';
 
-/** Whether the playback controls show (the small round button under the tab); hidden at first. */
+/** The saved playback settings: whether the controls show (hidden at first) and the sound. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
-/** The saved choice: shown only when it was saved as shown. */
-export function parseShowPlayback(saved: unknown): boolean {
-  return saved === true;
+export interface PlaybackSettings {
+  /** Whether the controls show, from the small round button under the tab. */
+  shown: boolean;
+  /** The General MIDI program the clip plays in. */
+  sound: Sound;
+}
+
+/** The saved settings, each field checked; anything missing or wrong takes its default. */
+export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
+  const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
+  return {
+    shown: fields.shown === true,
+    sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
+  };
 }
 
 /** What a Loop repeats: the columns selected when it was turned on, or the whole clip. */
@@ -47,7 +58,7 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * Playback of a clip; any edit stops it, so the next Play plays what is drawn. A pause hands
  * `onPause` the column it stopped on, for the cursor: Play starts from the cursor, so it resumes.
  */
-export function usePlayback(clip: Clip, onPause: (column: number) => void): Playback {
+export function usePlayback(clip: Clip, sound: Sound, onPause: (column: number) => void): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
@@ -58,6 +69,10 @@ export function usePlayback(clip: Clip, onPause: (column: number) => void): Play
     player.current?.stop();
   }, [clip]);
   useEffect(() => () => player.current?.destroy(), []);
+  // A new sound takes over at once, even mid-play.
+  useEffect(() => {
+    player.current?.setSound(sound);
+  }, [sound]);
 
   return {
     view,
@@ -71,7 +86,7 @@ export function usePlayback(clip: Clip, onPause: (column: number) => void): Play
         return player.current?.pause();
       }
       if (view.state === 'loading') return;
-      const start = (p: TabPlayer) => p.play(clip, from, loop, speed);
+      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound);
       if (player.current) return start(player.current);
       update({ state: 'loading' });
       TabPlayer.create(update).then(
@@ -120,9 +135,12 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow }: {
+export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown, onShow, sound, onSound }: {
   clip: Clip;
   playback: Playback;
+  /** The sound the clip plays in, picked at the end of the controls. */
+  sound: Sound;
+  onSound: (sound: Sound) => void;
   /** Whether the controls show; hidden, only the small button does. */
   shown: boolean;
   onShow: (shown: boolean) => void;
@@ -204,6 +222,16 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
               onChange={e => playback.setSpeed(Number(e.target.value) / 100)}
             />
             <span className="tab-speed-value">{percent}% · {Math.round(playback.bpm * speed)} bpm</span>
+          </label>
+          <label className="tab-sound">
+            <span className="text-(--ink-muted)">Sound</span>
+            <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
+              {SOUND_FAMILIES.map(([family, sounds]) => (
+                <optgroup key={family} label={family}>
+                  {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
+                </optgroup>
+              ))}
+            </select>
           </label>
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
         </div>

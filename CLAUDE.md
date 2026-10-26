@@ -294,7 +294,7 @@ binds a local port).
   (loaded on the first Play) with the SONiVOX soundfont in
   `public/soundfont/`, through a small Web Audio output; `PlaybackFooter.tsx`
   is the footer under the tab (Play, progress through the bars, Loop,
-  Speed) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
+  Speed, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
   Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
@@ -332,7 +332,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.playback"]` whether its playback controls show; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.playback"]` whether its playback controls show and their sound; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

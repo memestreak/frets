@@ -725,6 +725,9 @@ button {
   .tab-speed input { width: 128px; min-width: 64px; flex: 0 1 auto; accent-color: var(--primary); }
   /* Wide enough for "150% · 300 bpm", so nothing moves as the slider does. */
   .tab-speed-value { width: 124px; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
+  .tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+  .tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
   /* The cursor shows where the keys go, so the editor has no focus outline. */
   .tab-editor:focus { outline: none; }
   .tab-editor { position: relative; cursor: text; }
