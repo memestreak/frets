@@ -5,18 +5,16 @@ Part of PR 3 of `2026-10-24-tab-editor-design.md` (images). Jeremy asked on
 what we have for chords" (`2026-10-15-copy-chord-diagram-design.md`,
 `2026-10-17-export-size-design.md`).
 
-## The menu
+## Copying and the dialog
 
-Right-click, a long press or Shift+F10 on the drawn tab opens a small menu,
-the same one as on a chord shape:
+The tab's right-click menu first held **Copy as PNG** and **Export
+options…**. Once the copy button and the header button did both, Jeremy
+dropped them from it (2026-10-26); the menu now only inserts bars
+(`2026-10-25-tab-editing-design.md`).
 
-- **Copy as PNG** uses the saved choices. The line under the clip says
-  "Copied as PNG.".
-- **Export options…** opens the dialog.
-
-The menu is on the drawn tab only. Every view has a copy button at its top
-right: the ASCII and alphaTex views copy their text, and the Tab view copies
-the same PNG as Copy as PNG (Jeremy, 2026-10-26: "a copy to clipboard button
+Every view has a copy button at its top right: the ASCII and alphaTex views
+copy their text, and the Tab view copies the PNG, with the saved choices
+(the line under the clip says "Copied as PNG.") (Jeremy, 2026-10-26: "a copy to clipboard button
 (like the ASCII view has) for the primary view"). The tab is drawn 48px
 narrower than the card so the button never covers it.
 

@@ -76,10 +76,10 @@ export default function TabPage() {
   const [choosingExample, setChoosingExample] = useState(false);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
-  // Export: the saved choices, the right-click menu (where it opened) and the dialog.
+  // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
   const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
   usePersist(TAB_EXPORT_KEY, exportStyle);
-  const [exportMenu, setExportMenu] = useState<{ x: number; y: number } | null>(null);
+  const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -451,7 +451,7 @@ export default function TabPage() {
     window.setTimeout(() => setCopied(false), 1500);
   };
 
-  /** Copies the tab as the Export dialog's PNG: the menu's Copy as PNG and the Tab view's copy button. */
+  /** Copies the tab as the Export dialog's PNG: the Tab view's copy button. */
   const copyPng = async () => {
     try {
       const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name));
@@ -527,10 +527,10 @@ export default function TabPage() {
               <div
                 // A textbox, so screen readers pass the keys through to it as they do to a text field.
                 ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to export"
+                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to insert a bar"
                 onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
-                // Right-click, a long press or Shift+F10: Copy as PNG and Export options….
-                {...menuTrigger.props((el, x, y) => setExportMenu(menuSpot(el, x, y)))}
+                // Right-click, a long press or Shift+F10: insert a bar before or after.
+                {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
               >
                 <TabClip
                   clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
@@ -577,22 +577,17 @@ export default function TabPage() {
           if (error) setNotice({ tone: 'error', lines: [error] });
         }}
       />
-      {exportMenu && (
+      {barMenu && (
         <ShapeMenu
-          x={exportMenu.x} y={exportMenu.y} label="Tab"
+          x={barMenu.x} y={barMenu.y} label="Tab"
           onClose={refocus => {
             if (refocus) editorRef.current?.focus();
-            setExportMenu(null);
+            setBarMenu(null);
           }}
           items={[
             // The bar under a right-click already has the cursor: the press put it there.
             { label: 'Insert bar before', onSelect: () => addBar('before') },
             { label: 'Insert bar after', onSelect: () => addBar('after') },
-            {
-              label: 'Copy as PNG',
-              onSelect: () => void copyPng(),
-            },
-            { label: 'Export options…', onSelect: () => setExporting(true) },
           ]}
         />
       )}
