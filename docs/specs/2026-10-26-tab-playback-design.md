@@ -40,6 +40,17 @@ The controls sit under that line:
 - **Speed.** A slider from 25% to 150% of the clip's own tempo, beside
   "100% · 92 bpm". That figure is the tempo where the playhead is, times
   the speed.
+- **Sound.** A dropdown at the end of the row (Jeremy, 2026-10-26) with
+  the soundfont's General MIDI sounds, 104 of them, grouped by family:
+  everything but the Percussion family (programs 112 to 119), the drum kits
+  (his "everything except for percussion"), the Sound effects family
+  (120 to 127, his "remove sound effects") and the Synth effects family
+  (96 to 103, "and remove Synth effects as well"). Steel Guitar
+  is the default, as in alphaTex. A change while the clip plays takes over
+  at once, from where it is. The sound is a playback setting, saved with
+  whether the controls show (`frets.tab.playback`, `{ shown, sound }`),
+  not part of the clip: the program is set on alphaTab's track and on the
+  instrument change its reader puts on the first beat.
 
 While the clip plays, a playhead (a line and a soft band) marks the column
 sounding. It is drawn under the notes, so it tints the paper and not the
@@ -63,8 +74,6 @@ numbers. Any edit stops playback, so the next Play plays what is drawn.
 - The soundfont is SONiVOX EAS (`public/soundfont/sonivox.sf3`, Apache
   2.0). It comes unchanged from alphaTab's package and is credited in
   `NOTICE.md` and the README.
-- The instrument is alphaTex's default, steel-string acoustic guitar
-  (General MIDI 25).
 
 `PlaybackFooter.tsx` holds the footer, `usePlayback` and `Playhead`.
 
@@ -72,7 +81,6 @@ numbers. Any edit stops playback, so the next Play plays what is drawn.
 
 - No count-in and no metronome. alphaTab has both, so they can be added
   later.
-- No choice of instrument.
 - No mute or solo: a clip has one track.
 - The playhead does not follow the clip off screen.
 

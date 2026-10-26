@@ -5,7 +5,8 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, perform, tickOf, ticksOf, timeline } from '@/features/tab/playback';
+import { columnAtTick, DEFAULT_SOUND, isSound, perform, SOUND_FAMILIES, tickOf, ticksOf, timeline } from '@/features/tab/playback';
+import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
@@ -15,6 +16,35 @@ function clipOf(text: string): Clip {
 
 /** alphaTab's ticks: 960 to a quarter note. */
 const Q = 960;
+
+/** The programs the MIDI sets, from its program changes. */
+function programsOf(midi: alphaTab.midi.MidiFile): number[] {
+  return midi.events
+    .filter(e => e.type === alphaTab.midi.MidiEventType.ProgramChange)
+    .map(e => (e as alphaTab.midi.ProgramChangeEvent).program);
+}
+
+describe('playback sounds', () => {
+  it('offers the General MIDI sounds but the synth effects, percussion and sound effects families', () => {
+    const programs = SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program));
+    expect(programs).toHaveLength(104);
+    expect(programs.some(p => p >= 112 || (p >= 96 && p <= 103))).toBe(false);
+    expect(isSound(25) && isSound(0) && isSound(111)).toBe(true);
+    expect(isSound(100) || isSound(115) || isSound(127) || isSound('25')).toBe(false);
+  });
+
+  it('plays the clip in the sound chosen, whatever its alphaTex names', () => {
+    const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
+    expect(new Set(programsOf(perform(alphaTab, clip).midi))).toEqual(new Set([DEFAULT_SOUND]));
+    expect(new Set(programsOf(perform(alphaTab, clip, 40).midi))).toEqual(new Set([40]));
+  });
+
+  it('reads the saved settings, each field checked', () => {
+    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND });
+    expect(parsePlaybackSettings({ shown: true, sound: 0 })).toEqual({ shown: true, sound: 0 });
+    expect(parsePlaybackSettings({ shown: 'yes', sound: 115 })).toEqual({ shown: false, sound: DEFAULT_SOUND });
+  });
+});
 
 describe('playback', () => {
   it('plays each column at its tick, and finds the column sounding at any tick', () => {
