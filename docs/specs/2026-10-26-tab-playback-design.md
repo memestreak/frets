@@ -30,7 +30,8 @@ The controls sit under that line:
 - **The progress line.** It is the clip as written, split at each bar,
   every bar as long as its time. A repeat goes back along it, as the
   playhead does on the tab. Pressing it while the clip plays jumps there;
-  otherwise the cursor goes there. While nothing plays, the line fills up to
+  otherwise the cursor goes there. A press up to 16px above or below the
+  line counts as a press on it (Jeremy, 2026-10-26). While nothing plays, the line fills up to
   where Play will start (the cursor, the selection's start, or a loop's
   start), as it fills to the playhead while playing (Jeremy, 2026-10-26).
 - **Loop.** It is a toggle button. Turned on with notes selected, it
