@@ -237,6 +237,26 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
     });
 
+    it('writes free text over a column from the palette, and edits it from a press on it', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5');
+      fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+      const field = screen.getByRole('textbox', { name: 'Text over the column' });
+      fireEvent.change(field, { target: { value: 'let "it" ring' } });
+      fireEvent.keyDown(field, { key: 'Enter' });
+      expect(screen.getByTestId('beat-text')).toHaveTextContent('let "it" ring');
+      expect(screen.getByRole('button', { name: 'Text over this column' })).toHaveAttribute('aria-pressed', 'true');
+      expect(alphaTex()).toBe('5.1.4{txt "let \\"it\\" ring"} |');
+      // Empty clears it.
+      fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+      const again = screen.getByRole('textbox', { name: 'Text over the column' });
+      expect(again).toHaveValue('let "it" ring');
+      fireEvent.change(again, { target: { value: '' } });
+      fireEvent.keyDown(again, { key: 'Enter' });
+      expect(screen.queryByTestId('beat-text')).toBeNull();
+    });
+
     it('names a chord from C and a field over the tab, and sets the capo from the palette', () => {
       renderAt();
       act(() => editor().focus());

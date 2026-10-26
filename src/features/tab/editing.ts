@@ -506,6 +506,16 @@ export function cycleBendShape(clip: Clip, cursor: Cursor): Clip {
 
 /* — words over the tab — */
 
+/** The free text over the cursor's column; empty or blank clears it. */
+export function setBeatText(clip: Clip, cursor: Cursor, text: string): Clip {
+  if (!columnAt(clip, cursor)) return clip;
+  const t = text.trim();
+  return withColumn(clip, cursor, column => {
+    const rest = without(column, 'text');
+    return t ? { ...rest, text: t } : rest;
+  });
+}
+
 /** The chord name over the cursor's column; empty or blank clears it. */
 export function setChordName(clip: Clip, cursor: Cursor, name: string): Clip {
   if (!columnAt(clip, cursor)) return clip;

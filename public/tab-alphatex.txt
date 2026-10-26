@@ -119,6 +119,10 @@ then "." and its duration:
     ch "Am7"   a chord name over the beat, as written: 0.1.2{ch "C/G"}.
                Put it on the beat it is written over; a chord name may
                be anything ("N.C.", "Am7(b5)").
+    txt "..."  free text over the beat, drawn in italics from that beat
+               rightward: 0.1.1{txt "let ring, slowing"}. Write words
+               printed over the tab that aren't a chord name, section or
+               tempo ("rit.", "harm.", "fade out") this way.
 
 
 5. REPEATS AND ENDINGS
@@ -149,8 +153,8 @@ Frets doesn't draw it yet, and Frets lists it under the clip. Write these
 when the picture shows them:
 
     note effects   ah artificial harmonic, tr (9 16) trill, ten tenuto
-    beat effects   tb (0 -4 0) whammy bar, txt "text",
-                   fermata (medium 1), gr b bend grace note
+    beat effects   tb (0 -4 0) whammy bar, fermata (medium 1),
+                   gr b bend grace note
     bar tags       \ks (key signature), \jump Fine
 
 Not read at all (an error): more than one track, staff or voice; a tuning
@@ -297,7 +301,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    the beat under it; a boxed word over a bar ("Verse", "Chorus") to
    \section, and a letter in a box to its rehearsal mark; "♩ = 90" over a
    bar to \tempo 90 (a word before it, "Slowly ♩ = 60", to
-   \tempo (60 "Slowly")). Marks from section 6 are written as shown
+   \tempo (60 "Slowly")); other words over the tab ("rit.", "harm.")
+   to txt "..." on the beat they start over. Marks from section 6 are written as shown
    there.
 5. A double or thick final bar line is just the last "|".
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to

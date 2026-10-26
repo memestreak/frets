@@ -32,7 +32,7 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'gr', 'tp']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp']);
 /** Tags Frets reads: the title, tuning, capo, time signature, tempo, sections, repeats and endings. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'tempo', 'section', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
@@ -47,7 +47,7 @@ const KEPT_NAMES: Record<string, string> = {
   '\\ac': 'pickup bar',
   ah: 'artificial harmonic', th: 'tapped harmonic',
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
-  tp: 'tremolo picking', tb: 'whammy bar', txt: 'text',
+  tp: 'tremolo picking', tb: 'whammy bar',
   psu: 'pick slide up', psd: 'pick slide down',
   fermata: 'fermata', rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
   au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
@@ -264,6 +264,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
       const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
       if (chord?.name) column.chord = chord.name;
+      if (beat.text) column.text = beat.text;
       for (const note of beat.notes) {
         const s = STRING_COUNT - note.string;
         const n = noteOf(note, at);

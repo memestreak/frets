@@ -103,6 +103,8 @@ export interface Column {
   stroke?: 'down' | 'up';
   /** A chord name written over the column, as typed ("Am7", "C/G"). */
   chord?: string;
+  /** Free text written over the column, from it rightward ("let ring", "slowly"; alphaTex txt). */
+  text?: string;
   /**
    * A grace note, drawn small and taking no time in the bar: played just before the beat, or on it,
    * taking its time from the note after it (alphaTex gr, gr ob).
@@ -390,6 +392,7 @@ function isColumn(v: unknown): v is Column {
     && v.notes.every(n => n === null || isNote(n))
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
     && (v.chord === undefined || typeof v.chord === 'string')
+    && (v.text === undefined || typeof v.text === 'string')
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && optStrings(v.extra);

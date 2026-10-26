@@ -4,7 +4,7 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
@@ -244,7 +244,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
     );
   }
 
-  // Sections and tempos, over the bar they start at; chord names over their columns.
+  // Sections and tempos, over the bar they start at; chord names and free text over their columns.
   for (const bar of system.bars) {
     const x0 = barTextX(bar);
     const { section, tempo } = bar.bar;
@@ -286,6 +286,19 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
             textAnchor="middle" data-testid="chord-name"
           >
             {placed.column.chord}
+          </text>,
+        );
+      }
+    }
+    if (rows.text !== null) {
+      for (const placed of bar.columns) {
+        if (!placed.column.text) continue;
+        parts.push(
+          <text
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            fill={look.ink} data-testid="beat-text"
+          >
+            {placed.column.text}
           </text>,
         );
       }

@@ -59,3 +59,13 @@ nothing then has to be placed after text whose width is unknown.
 - A chord name comes from the beat's chord in alphaTab, so a `\chord`
   definition in the header names it too. The definition itself is kept as
   written.
+
+## Free text over a beat (later, 2026-10-26)
+
+Jeremy asked for alphaTex's `txt "..."` after chord names. It is
+`Column.text`, drawn in italics, 11px, in a row of its own under the chord
+names (there only when a column has text), starting just left of its
+column and running right; it does not widen the column. The Text group's
+"Text over this column" button (no key; T is tap) opens the same field as
+a chord name, and a press on drawn text opens it there. Empty clears it.
+The song-form example has one.

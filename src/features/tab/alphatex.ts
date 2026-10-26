@@ -105,6 +105,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.grace) effects.push(column.grace === 'on' ? 'gr ob' : 'gr');
   if (column.tremolo) effects.push(`tp ${column.tremolo}`);
   if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
+  if (column.text) effects.push(`txt ${quoted(column.text)}`);
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   effects.push(...(column.extra ?? []));

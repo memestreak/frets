@@ -19,7 +19,7 @@ export type ToolId =
   | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'repeatStart' | 'repeatEnd' | 'ending'
-  | 'chordName' | 'section' | 'tempo' | 'capo';
+  | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
   id: ToolId;
@@ -114,6 +114,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     label: 'Text',
     tools: [
       { id: 'chordName', label: 'Chord name over this column', key: 'C' },
+      { id: 'beatText', label: 'Text over this column', key: '' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
       { id: 'capo', label: 'Capo', key: '' },
@@ -152,7 +153,7 @@ function wholeColumns(clip: Clip, target: Target): Target {
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
-export const WORD_TOOLS = { chordName: 'chord', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
+export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The clip after a palette press. */
@@ -260,6 +261,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
     case 'repeatEnd': return !!bar?.repeatEnd;
     case 'ending': return !!bar?.ending;
     case 'chordName': return !!column?.chord;
+    case 'beatText': return !!column?.text;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
     case 'capo': return !!clip.capo;
