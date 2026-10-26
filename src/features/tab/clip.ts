@@ -14,15 +14,39 @@ export interface Duration {
   value: NoteValue;
   /** Dots after the note: one adds half its length, two add three quarters. */
   dots: 0 | 1 | 2;
-  /** One of a tuplet: three in the time of two plain ones, or five, six or seven in the time of four. */
-  tuplet?: Tuplet;
+  /** One of a tuplet of this many notes (2 to 12), played in the time of `tupletSpan` plain ones. */
+  tuplet?: number;
+  /** The plain notes the tuplet takes the time of, when not its usual span (`tu (3 4)`: three in the time of four). */
+  tupletSpan?: number;
 }
 
-/** The tuplets Frets draws: a triplet, quintuplet, sextuplet and septuplet. */
-export type Tuplet = 3 | 5 | 6 | 7;
-export const TUPLETS: readonly Tuplet[] = [3, 5, 6, 7];
-/** How many plain notes a tuplet takes the time of, as alphaTab reads "tu 3" … "tu 7". */
-export const TUPLET_SPAN: Record<Tuplet, number> = { 3: 2, 5: 4, 6: 4, 7: 4 };
+/** The tuplets alphaTex names by one number, and the plain notes each takes the time of ("tu 9": nine in the time of eight). */
+export const TUPLET_SPANS: Readonly<Record<number, number>> = { 3: 2, 5: 4, 6: 4, 7: 4, 9: 8, 10: 8, 11: 8, 12: 8 };
+/** Those tuplets, in order: the palette's choices. */
+export const TUPLETS: readonly number[] = [3, 5, 6, 7, 9, 10, 11, 12];
+/** The most notes in a tuplet; with this many at most, every tuplet's notes are a whole number of ticks. */
+export const MAX_TUPLET = 12;
+
+/** How many plain notes a duration's tuplet takes the time of: its own span, else the usual one. */
+export function spanOf(duration: Duration): number {
+  return duration.tupletSpan ?? TUPLET_SPANS[duration.tuplet ?? 0] ?? 1;
+}
+
+/** A tuplet and span alphaTex can write, as Frets keeps them: the span only when it isn't the usual one. */
+export function tupletFields(n: number, span: number): Pick<Duration, 'tuplet' | 'tupletSpan'> | null {
+  if (!Number.isInteger(n) || !Number.isInteger(span) || n < 2 || n > MAX_TUPLET || span < 1 || span > 2 * MAX_TUPLET || n === span) return null;
+  return TUPLET_SPANS[n] === span ? { tuplet: n } : { tuplet: n, tupletSpan: span };
+}
+
+/** A tuplet's name as drawn over it: "9", or "3:4" when its span isn't the usual one. */
+export function tupletLabel(duration: Duration): string {
+  return duration.tupletSpan ? `${duration.tuplet}:${duration.tupletSpan}` : String(duration.tuplet);
+}
+
+/** Whether two durations are in the same kind of tuplet (or neither is). */
+export function sameTuplet(a: Duration, b: Duration): boolean {
+  return a.tuplet === b.tuplet && a.tupletSpan === b.tupletSpan;
+}
 
 /** Bends in quarter-steps: 1 a ¼-tone curl, 2 a ½, 4 full, 6 1½, 8 two steps. */
 export type BendQuarters = 1 | 2 | 4 | 6 | 8;
@@ -163,16 +187,18 @@ export interface Clip {
 
 export const STRING_COUNT = 6;
 
-/* — durations in ticks: a whole note is 26880 (768 × 5 × 7), so every value, dotted or in any tuplet,
-   is a whole number (a double-dotted thirty-second in a septuplet is 840, a sixty-fourth in one 240) — */
+/* — durations in ticks: a whole note is 3548160 (1024 × 9 × 5 × 7 × 11), so every value, dotted or in
+   a tuplet of up to twelve, is a whole number (a double-dotted thirty-second in a tuplet of eleven
+   is 194040 × 8 / 11 = 141120) — */
 
-export const WHOLE = 26880;
+export const WHOLE = 3548160;
 
-export function ticks({ value, dots, tuplet }: Duration): number {
+export function ticks(duration: Duration): number {
+  const { value, dots, tuplet } = duration;
   let t = WHOLE / value;
   if (dots === 1) t *= 1.5;
   if (dots === 2) t *= 1.75;
-  if (tuplet) t = (t * TUPLET_SPAN[tuplet]) / tuplet;
+  if (tuplet) t = (t * spanOf(duration)) / tuplet;
   return t;
 }
 
@@ -333,7 +359,14 @@ export function isCapo(v: unknown): v is number {
 
 function isDuration(v: unknown): v is Duration {
   return isObj(v) && NOTE_VALUES.includes(v.value as NoteValue)
-    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && (v.tuplet === undefined || TUPLETS.includes(v.tuplet as Tuplet));
+    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && isTuplet(v);
+}
+
+/** No tuplet, or one `tupletFields` would make: the span written only when it isn't the usual one. */
+function isTuplet(v: Record<string, unknown>): boolean {
+  if (v.tuplet === undefined) return v.tupletSpan === undefined;
+  const fields = tupletFields(v.tuplet as number, (v.tupletSpan ?? TUPLET_SPANS[v.tuplet as number]) as number);
+  return fields !== null && fields.tupletSpan === v.tupletSpan;
 }
 
 function isNote(v: unknown): v is Note {

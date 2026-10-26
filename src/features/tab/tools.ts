@@ -4,7 +4,7 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { type BendQuarters, type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
+import { type BendQuarters, type Clip, type Duration, type NoteValue, type TremoloValue } from './clip';
 import {
   columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
   makeRest, noteAt, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
@@ -13,7 +13,7 @@ import {
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
-  | 'triplet' | 'quintuplet' | 'sextuplet' | 'septuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
+  | 'tuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
@@ -48,10 +48,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Rhythm',
     tools: [
-      { id: 'triplet', label: 'Triplet: three in the time of two', key: 'Alt+3' },
-      { id: 'quintuplet', label: 'Quintuplet: five in the time of four', key: 'Alt+5' },
-      { id: 'sextuplet', label: 'Sextuplet: six in the time of four', key: 'Alt+6' },
-      { id: 'septuplet', label: 'Septuplet: seven in the time of four', key: 'Alt+7' },
+      { id: 'tuplet', label: 'Tuplet', key: 'Alt+3, 5, 6 or 7' },
       { id: 'grace', label: 'Grace note, just before the beat', key: 'Shift+G' },
       { id: 'tremolo8', label: 'Tremolo picking in eighths', key: 'Shift+T' },
       { id: 'tremolo16', label: 'Tremolo picking in sixteenths', key: 'Shift+T' },
@@ -127,7 +124,6 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
 const VALUE: Partial<Record<ToolId, NoteValue>> = {
   whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
 };
-const TUPLET: Partial<Record<ToolId, Tuplet>> = { triplet: 3, quintuplet: 5, sextuplet: 6, septuplet: 7 };
 const TREMOLO: Partial<Record<ToolId, TremoloValue>> = { tremolo8: 8, tremolo16: 16, tremolo32: 32 };
 
 /** The vibrato kinds the V key and the Vibrato button step through, then off. */
@@ -163,8 +159,6 @@ export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const value = VALUE[id];
   if (value) return setValue(clip, target, value);
-  const tuplet = TUPLET[id];
-  if (tuplet) return toggleTuplet(clip, target, tuplet);
   const tremolo = TREMOLO[id];
   if (tremolo) return setTremolo(clip, target, tremolo);
   const mark = MARK[id];
@@ -209,13 +203,18 @@ export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip |
   return null;
 }
 
+/**
+ * The clip after Alt with 3, 5, 6 or 7 (a triplet … septuplet on the target, or plain again), or null
+ * for any other key. Alt with a digit types other characters on some layouts, so the key's place is read.
+ */
+export function applyTupletKey(clip: Clip, target: Target, code: string): Clip | null {
+  const n = ({ Digit3: 3, Digit5: 5, Digit6: 6, Digit7: 7 } as Record<string, number>)[code];
+  return n ? toggleTuplet(clip, target, n) : null;
+}
+
 /** The tool a key press does, for the keys that do exactly what one button does. */
-export function toolForKey(key: string, alt: boolean, code: string): ToolId | null {
-  if (alt) {
-    // Alt with a digit types other characters on some layouts, so the key's place is read, not its character.
-    const tuplets: Record<string, ToolId> = { Digit3: 'triplet', Digit5: 'quintuplet', Digit6: 'sextuplet', Digit7: 'septuplet' };
-    return tuplets[code] ?? null;
-  }
+export function toolForKey(key: string, alt: boolean): ToolId | null {
+  if (alt) return null;
   const keys: Record<string, ToolId> = {
     '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
     x: 'dead', g: 'ghost', t: 'tap', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
@@ -231,8 +230,6 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   const bar = clip.bars[cursor.bar];
   const value = VALUE[id];
   if (value) return column?.duration.value === value;
-  const tuplet = TUPLET[id];
-  if (tuplet) return column?.duration.tuplet === tuplet;
   const tremolo = TREMOLO[id];
   if (tremolo) return column?.tremolo === tremolo;
   const mark = MARK[id];
@@ -243,6 +240,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;
+    case 'tuplet': return !!column?.duration.tuplet;
     case 'bend': return !!note?.bend;
     case 'vibrato': return !!note?.vibrato;
     case 'grace': return !!column?.grace;
@@ -269,8 +267,14 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   }
 }
 
-/** What the cursor note has of the marks whose buttons draw it (the Bend and Vibrato icons); none off the tab. */
-export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): { bend: BendQuarters | null; vibrato: 'slight' | 'wide' | null } {
+/** What the cursor has of the things whose buttons draw it (the Bend, Vibrato and Tuplet icons); none off the tab. */
+export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): {
+  bend: BendQuarters | null;
+  vibrato: 'slight' | 'wide' | null;
+  /** The cursor column's duration while it is in a tuplet. */
+  tuplet: Duration | null;
+} {
   const note = cursor ? noteAt(clip, cursor) : null;
-  return { bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null };
+  const duration = cursor ? columnAt(clip, cursor)?.duration : undefined;
+  return { bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null, tuplet: duration?.tuplet ? duration : null };
 }

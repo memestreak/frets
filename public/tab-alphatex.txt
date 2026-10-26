@@ -102,6 +102,10 @@ then "." and its duration:
     tu 6       sextuplet: six in the time of four
     tu 7       septuplet: seven in the time of four. Five, six or seven
                sixteenths with {tu n} fill one quarter.
+    tu 9       nine in the time of eight; tu 10, tu 11 and tu 12 the same:
+               nine to twelve thirty-seconds with {tu n} fill one quarter.
+    tu (n d)   n in the time of d, for any other ratio of up to twelve
+               notes: 5.3.8{tu (3 4)} is three eighths filling a half.
     gr         grace note, drawn small, played just before the next beat
                and taking no time in the bar: 5.3{h}.8{gr} 7.3.4 is a
                grace 5 hammered to 7. Write one grace note as .8, two in
@@ -152,8 +156,8 @@ when the picture shows them:
 Not read at all (an error): more than one track, staff or voice; a tuning
 of other than six strings. Read with a warning: other time signatures (as
 4/4, or in a later bar as no change), notes shorter than a sixty-fourth
-(as sixty-fourths). Kept as written, as plain notes: tuplets other than
-3, 5, 6 and 7 (tu 9), tremolo picking with four or more slashes.
+(as sixty-fourths). Kept as written, as plain notes: tuplets of more
+than twelve notes (tu (13 8)), tremolo picking with four or more slashes.
 
 
 7. EXAMPLES

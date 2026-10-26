@@ -46,12 +46,13 @@ export const TAB_EXAMPLES: TabExample[] = [
   {
     id: 'tuplets',
     title: 'Tuplets',
-    shows: 'Triplets, then five, six and seven sixteenths in the time of four',
+    shows: 'Triplets; five, six and seven sixteenths in the time of four; nine and twelve thirty-seconds in the time of eight; three eighths in the time of four',
     text: [
       '\\title "Tuplets"',
       '\\ts (4 4)',
       '5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 7.2.4 5.2.4 |',
       '5.2.16{tu 5} 7.2.16{tu 5} 8.2.16{tu 5} 7.2.16{tu 5} 5.2.16{tu 5} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 6} 7.1.16{tu 6} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 7} 7.1.16{tu 7} 5.1.16{tu 7} 8.2.16{tu 7} 7.2.16{tu 7} 5.2.16{tu 7} 7.3.16{tu 7} 5.3.4 |',
+      '5.1.32{tu 9} 7.1.32{tu 9} 8.1.32{tu 9} 10.1.32{tu 9} 12.1.32{tu 9} 10.1.32{tu 9} 8.1.32{tu 9} 7.1.32{tu 9} 5.1.32{tu 9} 5.2.32{tu 12} 7.2.32{tu 12} 8.2.32{tu 12} 7.2.32{tu 12} 5.2.32{tu 12} 7.2.32{tu 12} 8.2.32{tu 12} 10.2.32{tu 12} 8.2.32{tu 12} 7.2.32{tu 12} 5.2.32{tu 12} 7.2.32{tu 12} 5.3.8{tu (3 4)} 7.3.8{tu (3 4)} 9.3.8{tu (3 4)} |',
     ].join('\n') + '\n',
   },
   {

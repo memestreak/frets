@@ -10,10 +10,10 @@ import {
   changesTime, parseClip, ticks, timeAt, unevenMessage, WHOLE, type Clip,
 } from '@/features/tab/clip';
 import {
-  copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, sliceClip, toggleGrace, toggleTuplet, type Cursor,
+  copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, setTuplet, sliceClip, toggleGrace, toggleTuplet, type Cursor,
 } from '@/features/tab/editing';
 import { beamGroups, layoutClip, textAt } from '@/features/tab/layout';
-import { applyCyclingKey, applyTool, isOn, toolForKey } from '@/features/tab/tools';
+import { applyCyclingKey, applyTool, applyTupletKey, isOn, toolForKey } from '@/features/tab/tools';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -30,7 +30,15 @@ describe('tuplets', () => {
   it('fill the time of two (a triplet) or four plain notes, in whole ticks', () => {
     expect(ticks({ value: 8, dots: 0, tuplet: 3 }) * 3).toBe(WHOLE / 4);
     for (const n of [5, 6, 7] as const) expect(ticks({ value: 16, dots: 0, tuplet: n }) * n).toBe(WHOLE / 4);
-    expect(ticks({ value: 32, dots: 2, tuplet: 7 })).toBe(840);
+    for (const n of [9, 10, 11, 12] as const) expect(ticks({ value: 32, dots: 0, tuplet: n }) * n).toBe(WHOLE / 4);
+    // Three in the time of four, written tu (3 4).
+    expect(ticks({ value: 8, dots: 0, tuplet: 3, tupletSpan: 4 }) * 3).toBe(WHOLE / 2);
+    // Every value, dotted or not, in a tuplet of up to twelve is a whole number of ticks.
+    for (const value of [1, 2, 4, 8, 16, 32, 64] as const) {
+      for (const dots of value === 64 ? [0] as const : [0, 1, 2] as const) {
+        for (let n = 2; n <= 12; n++) expect(Number.isInteger(ticks({ value, dots, tuplet: n, tupletSpan: 1 }))).toBe(true);
+      }
+    }
   });
 
   it('read and write tu 3, 5, 6 and 7, each bar adding up', () => {
@@ -44,27 +52,43 @@ describe('tuplets', () => {
     expect(bars(clip)).toBe(tex);
   });
 
-  it('keep a tuplet Frets does not draw as written, and say so', () => {
-    const result = read('5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} 5.3.16{tu 9} r.2{d} |');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.clip.bars[0].columns[0]).toMatchObject({ duration: { value: 16, dots: 0 }, extra: ['tu 9'] });
-    expect(result.warnings.join(' ')).toMatch(/tu \(tuplet\) ×9/);
-    expect(bars(result.clip)).toContain('5.3.16{tu 9}');
+  it('read and write tu 9 to 12 and any ratio of up to twelve notes, and keep a longer one as written', () => {
+    const nines = Array(9).fill('5.3.32{tu 9}').join(' ');
+    const twelves = Array(12).fill('7.3.32{tu 12}').join(' ');
+    const threeInFour = Array(3).fill('8.3.8{tu (3 4)}').join(' ');
+    const tex = `${nines} ${twelves} ${threeInFour} |`;
+    const result = read(tex);
+    expect(result.ok && result.warnings).toEqual([]);
+    const clip = clipOf(tex);
+    expect(clip.bars[0].columns.map(c => c.duration.tupletSpan ? `${c.duration.tuplet}:${c.duration.tupletSpan}` : c.duration.tuplet))
+      .toEqual([...Array(9).fill(9), ...Array(12).fill(12), '3:4', '3:4', '3:4']);
+    expect(bars(clip)).toBe(tex);
+    // A tuplet written with its usual span reads as the plain one: tu (9 8) is tu 9.
+    expect(bars(clipOf(`${Array(9).fill('5.3.32{tu (9 8)}').join(' ')} r.4 r.2 |`))).toContain('5.3.32{tu 9}');
+
+    const thirteen = read(`${Array(13).fill('5.3.32{tu (13 8)}').join(' ')} r.4 r.2 |`);
+    expect(thirteen.ok).toBe(true);
+    if (!thirteen.ok) return;
+    expect(thirteen.clip.bars[0].columns[0]).toMatchObject({ duration: { value: 32, dots: 0 }, extra: ['tu (13 8)'] });
+    expect(thirteen.warnings.join(' ')).toMatch(/tu \(tuplet\) ×13/);
   });
 
   it('are toggled one kind at a time, from the palette or Alt with the digit', () => {
     let clip = clipOf('5.3.8 7.3.8 8.3.8 r.8 r.2 |');
     clip = toggleTuplet(clip, all(at(0, 0, 2), 2), 3);
     expect(bars(clip)).toBe('5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} r.8 r.2 |');
-    clip = applyTool(clip, only(at(0, 0, 2)), 'quintuplet');
+    clip = applyTupletKey(clip, only(at(0, 0, 2)), 'Digit5')!;
     expect(clip.bars[0].columns[0].duration.tuplet).toBe(5);
-    expect(isOn(clip, at(0, 0, 2), 'quintuplet')).toBe(true);
-    expect(isOn(clip, at(0, 0, 2), 'triplet')).toBe(false);
-    clip = applyTool(clip, only(at(0, 0, 2)), 'quintuplet');
+    expect(isOn(clip, at(0, 0, 2), 'tuplet')).toBe(true);
+    clip = applyTupletKey(clip, only(at(0, 0, 2)), 'Digit5')!;
     expect(clip.bars[0].columns[0].duration).toEqual({ value: 8, dots: 0 });
-    expect(['Digit3', 'Digit5', 'Digit6', 'Digit7', 'Digit4'].map(code => toolForKey('x', true, code)))
-      .toEqual(['triplet', 'quintuplet', 'sextuplet', 'septuplet', null]);
+    expect(isOn(clip, at(0, 0, 2), 'tuplet')).toBe(false);
+    expect(applyTupletKey(clip, only(at(0, 0, 2)), 'Digit4')).toBeNull();
+    // The Tuplet panel sets any of them, and None makes the columns plain.
+    clip = setTuplet(clip, all(at(0, 0, 2), 2), 11);
+    expect(clip.bars[0].columns.slice(0, 3).map(c => c.duration.tuplet)).toEqual([11, 11, 11]);
+    clip = setTuplet(clip, all(at(0, 0, 2), 2), null);
+    expect(bars(clip)).toBe('5.3.8 7.3.8 8.3.8 r.8 r.2 |');
   });
 
   it('take a digit after the rhythm letter in ASCII tab', () => {
@@ -78,6 +102,17 @@ describe('tuplets', () => {
     expect(result.warnings).toEqual([]);
     expect(result.clip.bars[0].columns.map(c => c.duration.tuplet ?? null)).toEqual([5, 5, 5, 5, 5, null, null]);
     expect(writeAscii(result.clip)).toContain('s5');
+  });
+
+  it('read and write two-digit tuplets and ratios in ASCII tab', () => {
+    const clip = clipOf(`${Array(9).fill('5.1.32{tu 9}').join(' ')} ${Array(3).fill('7.1.8{tu (3 4)}').join(' ')} r.4 |`);
+    const ascii = writeAscii(clip);
+    expect(ascii).toContain('t9');
+    expect(ascii).toContain('e3:4');
+    const back = readAscii(ascii);
+    expect(back.ok && back.warnings).toEqual([]);
+    if (!back.ok) return;
+    expect(back.clip.bars[0].columns.map(c => c.duration)).toEqual(clip.bars[0].columns.map(c => c.duration));
   });
 });
 
@@ -108,8 +143,8 @@ describe('grace notes', () => {
     expect(clip.bars[0].columns[0].duration.value).toBe(4);
     clip = applyTool(clip, only(at(0, 0, 2)), 'grace');
     expect(bars(clip)).toBe('5.3.4 7.3.4 r.2 |');
-    expect(toolForKey('G', false, 'KeyG')).toBe('grace');
-    expect(toolForKey('g', false, 'KeyG')).toBe('ghost');
+    expect(toolForKey('G', false)).toBe('grace');
+    expect(toolForKey('g', false)).toBe('ghost');
   });
 
   it('are left out of ASCII tab, which has no way to write them', () => {

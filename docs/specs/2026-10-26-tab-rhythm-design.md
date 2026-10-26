@@ -24,6 +24,15 @@ six or seven in the time of four.
 - `Duration.tuplet?: 3 | 5 | 6 | 7` replaces `triplet: boolean`.
 - `WHOLE` is now 26880 (768 × 5 × 7), so every duration in any tuplet is a
   whole number of ticks.
+- Later (Jeremy, 2026-10-26: "fix the tuplets read-differently issue"):
+  `tuplet` is any count from 2 to 12, with `tupletSpan` only when the span
+  is not alphaTab's usual one (`tu 9` to `tu 12` take the time of eight;
+  `tu (3 4)` is three in the time of four). Drawn "9", or "3:4" for an
+  unusual span. `WHOLE` is 3548160 (1024 × 9 × 5 × 7 × 11), so every value,
+  dotted or not, in a tuplet of up to twelve is a whole number of ticks. A
+  longer tuplet is kept as written. ASCII writes "t9" and "e3:4". The
+  palette's four tuplet buttons became one Tuplet button with a panel
+  (3 · 5 · 6 · 7 · 9 · 10 · 11 · 12 · None), like Bend; Alt+3/5/6/7 stay.
 - `Column.grace?: 'before' | 'on'`. A grace note takes no time: `barLength`
   skips it, and so do beams and the check for a full bar.
   - alphaTab sets a grace note's length from its group whatever is written:

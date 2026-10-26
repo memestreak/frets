@@ -9,8 +9,8 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult } from './ascii';
 import {
   BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
-  TREMOLO_VALUES, TUPLET_SPAN, TUPLETS, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Tuplet,
+  TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
+  type NoteValue,
 } from './clip';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -121,10 +121,9 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
   return n;
 }
 
-/** The beat's tuplet when it is one Frets draws: 3 in the time of 2, or 5, 6 or 7 in the time of 4. */
-function tupletOf(beat: AtBeat): Tuplet | undefined {
-  const n = beat.tupletNumerator as Tuplet;
-  return beat.hasTuplet && TUPLETS.includes(n) && beat.tupletDenominator === TUPLET_SPAN[n] ? n : undefined;
+/** The beat's tuplet, when Frets draws it: up to twelve notes in the time of any number of plain ones. */
+function tupletOf(beat: AtBeat): ReturnType<typeof tupletFields> {
+  return beat.hasTuplet ? tupletFields(beat.tupletNumerator, beat.tupletDenominator) : null;
 }
 
 function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration'] {
@@ -134,14 +133,12 @@ function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration']
     value = value < 1 ? 1 : 64;
   }
   const duration: Column['duration'] = { value: value as NoteValue, dots: beat.dots >= 2 ? 2 : beat.dots === 1 ? 1 : 0 };
-  const tuplet = tupletOf(beat);
-  if (tuplet) duration.tuplet = tuplet;
-  return duration;
+  return { ...duration, ...tupletOf(beat) };
 }
 
 /**
  * Reads a beat's grace note and tremolo picking onto its column, and says which of tu, gr and tp
- * Frets read; any other form (a 9:8 tuplet, a bend grace note, four tremolo slashes) is kept as written.
+ * Frets read; any other form (a tuplet of thirteen, a bend grace note, four tremolo slashes) is kept as written.
  */
 function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
   const reads = new Set(BEAT_EFFECTS);

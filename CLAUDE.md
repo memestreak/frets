@@ -250,9 +250,9 @@ binds a local port).
   `src/lib/chords/chordUrls.ts`.
 - `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
   not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
-  columns, six notes each, durations in ticks, whole = 26880, so a double-dotted
-  thirty-second and a sixty-fourth in any tuplet (3, 5, 6, 7) are whole numbers
-  too; grace notes take no time; a bar may change the time signature, `timeAt`;
+  columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
+  thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
+  tu 3 … 12, or any ratio `tu (n d)`) are whole numbers too; grace notes take no time; a bar may change the time signature, `timeAt`;
   `parseClip`; `docs/specs/2026-10-26-tab-rhythm-design.md`),
   `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
   and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the

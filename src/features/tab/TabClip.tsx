@@ -1,6 +1,6 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  beatTicks, columnAccent, isRest, sameTuplet, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
@@ -583,19 +583,20 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
     }
   }
 
-  // A tuplet's number under each group of it: 3 under three triplets, 5 under five quintuplets.
+  // A tuplet's number under each group of it: 3 under three triplets, 9 under nine, 3:4 under three in the time of four.
   const cols = bar.columns.filter(p => !p.column.grace);
   let k = 0;
   while (k < cols.length) {
-    const n = cols[k].column.duration.tuplet;
+    const duration = cols[k].column.duration;
+    const n = duration.tuplet;
     if (!n) {
       k++;
       continue;
     }
     let last = k;
-    while (last - k < n - 1 && cols[last + 1]?.column.duration.tuplet === n) last++;
+    while (last - k < n - 1 && cols[last + 1] && sameTuplet(cols[last + 1].column.duration, duration)) last++;
     parts.push(
-      <text key={`tuplet-${cols[k].x}`} x={(cols[k].x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{n}</text>,
+      <text key={`tuplet-${cols[k].x}`} x={(cols[k].x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{tupletLabel(duration)}</text>,
     );
     k = last + 1;
   }

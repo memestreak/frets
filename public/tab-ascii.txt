@@ -104,7 +104,10 @@ directly above the column's position.
   nothing but "x3"s reads as repeat counts, section 7, not as triplets.)
 - "5", "6" or "7" right after the letter makes it a quintuplet, sextuplet
   or septuplet: five, six or seven in the time of four ("s5": five fill
-  one quarter). Write them in complete groups.
+  one quarter). "9" to "12" are nine to twelve in the time of eight ("t9":
+  nine fill one quarter). Any other ratio is the count, ":" and the notes
+  it takes the time of ("e3:4": three eighths fill a half). Write them in
+  complete groups.
 - ASCII has no grace notes, tremolo picking or time signature changes;
   use alphaTex (tab-alphatex.txt) for those.
 - A letter above a position where every string has "-" is a rest of that

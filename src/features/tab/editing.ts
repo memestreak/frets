@@ -7,7 +7,7 @@
 import {
   barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
-  type TremoloValue, type Tuplet,
+  type TremoloValue,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
 
@@ -287,13 +287,19 @@ export function cycleDots(clip: Clip, target: Target): Clip {
   });
 }
 
-/** Makes the target columns one kind of tuplet (a triplet, quintuplet …); the same kind again makes them plain. */
-export function toggleTuplet(clip: Clip, target: Target, tuplet: Tuplet): Clip {
-  const on = columnAt(clip, target.cursor)?.duration.tuplet !== tuplet;
+/** Puts the target columns in one kind of tuplet (3 to 12, in its usual span), or none with null. */
+export function setTuplet(clip: Clip, target: Target, tuplet: number | null): Clip {
   return changeColumns(clip, target, column => {
-    const plain = without(column.duration, 'tuplet');
-    return { ...column, duration: on ? { ...plain, tuplet } : plain };
+    const plain = without(without(column.duration, 'tuplet'), 'tupletSpan');
+    return { ...column, duration: tuplet ? { ...plain, tuplet } : plain };
   });
+}
+
+/** Makes the target columns one kind of tuplet (a triplet, quintuplet …); the same kind again makes them plain. */
+export function toggleTuplet(clip: Clip, target: Target, tuplet: number): Clip {
+  const now = columnAt(clip, target.cursor)?.duration;
+  const on = now?.tuplet !== tuplet || now.tupletSpan !== undefined;
+  return setTuplet(clip, target, on ? tuplet : null);
 }
 
 /** Makes the target columns grace notes, played just before the beat; pressed again on a grace note, plain notes. */
