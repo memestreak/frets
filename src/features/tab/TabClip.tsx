@@ -45,7 +45,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onPickText, onMiss, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, errors, onPick, onPickRun, onPickText, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -55,6 +55,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
   highlight?: Highlight;
+  /** On the page only: bars with something wrong, and what, drawn as a warning under the bar's start with the words as its tip. */
+  errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   onPick?: (hit: Hit, extend: boolean) => void;
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
@@ -119,9 +121,31 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
+          {errors && system.bars.map(bar => {
+            const error = errors.get(bar.index);
+            return error ? <Warning key={`warning-${bar.index}`} x={bar.x0 + WARNING_INSET} y={rows.tuplet - 4} text={error} /> : null;
+          })}
         </g>
       ))}
     </svg>
+  );
+}
+
+/** How far in from a bar's start its warning's middle is drawn: clear of the bar line and the first stem. */
+const WARNING_INSET = 9;
+
+/**
+ * A small triangle with "!" under a bar's start, in the danger colour, whose tip says what is wrong.
+ * Only the page draws it; screen readers get the same words from the line under the clip.
+ */
+function Warning({ x, y, text }: { x: number; y: number; text: string }) {
+  return (
+    <g data-tip={text} data-testid="bar-warning" style={{ cursor: 'help' }}>
+      {/* A bigger, invisible target round the small mark, so the mouse finds it. */}
+      <rect x={x - 10} y={y - 10} width={20} height={20} fill="transparent" />
+      <path d={`M${x} ${y - 6} L${x + 6.5} ${y + 5.5} L${x - 6.5} ${y + 5.5} Z`} fill="var(--danger)" strokeLinejoin="round" stroke="var(--danger)" strokeWidth={1.5} />
+      <text x={x} y={y + 4.2} fontSize={8.5} fontWeight={800} fill="var(--surface-raised)" textAnchor="middle">!</text>
+    </g>
   );
 }
 

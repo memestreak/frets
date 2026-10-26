@@ -271,6 +271,60 @@ export function unevenMessage(clip: Pick<Clip, 'time' | 'bars'>): string | null 
   return line[0].toUpperCase() + line.slice(1);
 }
 
+/**
+ * What is wrong with the tuplets in one bar, a sentence each ("The tuplet of 5 in bar 2 has 4 notes;
+ * it needs 5."). A run of columns in the same kind of tuplet is counted in its shortest note, so a
+ * quarter and an eighth make a whole triplet; the run must come to a whole number of groups. Grace
+ * notes take no part.
+ */
+export function tupletProblems(bar: Bar, index: number): string[] {
+  const problems: string[] = [];
+  const columns = bar.columns.filter(c => !c.grace);
+  let i = 0;
+  while (i < columns.length) {
+    const first = columns[i].duration;
+    if (!first.tuplet) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < columns.length && sameTuplet(columns[end + 1].duration, first)) end++;
+    const plain = columns.slice(i, end + 1).map(c => ticks({ value: c.duration.value, dots: c.duration.dots }));
+    const notes = plain.reduce((sum, t) => sum + t, 0) / Math.min(...plain);
+    const n = first.tuplet;
+    if (notes % n !== 0) {
+      const needs = Math.ceil(notes / n) * n;
+      const count = Number.isInteger(notes) ? String(notes) : notes.toFixed(1);
+      problems.push(`The tuplet of ${tupletLabel(first)} in bar ${index + 1} has ${count} note${notes === 1 ? '' : 's'}; it needs ${needs}.`);
+    }
+    i = end + 1;
+  }
+  return problems;
+}
+
+/** The line that names every tuplet missing notes or with extra ones, or null when every one is whole. */
+export function brokenTupletMessage(clip: Pick<Clip, 'bars'>): string | null {
+  const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, b));
+  return lines.length > 0 ? lines.join(' ') : null;
+}
+
+/**
+ * Each bar with something wrong (it doesn't add up, a tuplet in it isn't whole) and what, in
+ * sentences: the tip on the warning drawn under the bar's start.
+ */
+export function barErrors(clip: Pick<Clip, 'time' | 'bars'>): Map<number, string> {
+  const errors = new Map<number, string>();
+  clip.bars.forEach((bar, b) => {
+    const time = timeAt(clip, b);
+    const lines = [
+      ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}.`] : []),
+      ...tupletProblems(bar, b),
+    ];
+    if (lines.length > 0) errors.set(b, lines.join(' '));
+  });
+  return errors;
+}
+
 export function isRest(column: Column): boolean {
   return column.notes.every(n => n === null);
 }

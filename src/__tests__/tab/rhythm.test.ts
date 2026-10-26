@@ -7,7 +7,7 @@ import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  changesTime, parseClip, ticks, timeAt, unevenMessage, WHOLE, type Clip,
+  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, unevenMessage, WHOLE, type Clip,
 } from '@/features/tab/clip';
 import {
   copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, setTuplet, sliceClip, toggleGrace, toggleTuplet, type Cursor,
@@ -113,6 +113,18 @@ describe('tuplets', () => {
     expect(back.ok && back.warnings).toEqual([]);
     if (!back.ok) return;
     expect(back.clip.bars[0].columns.map(c => c.duration)).toEqual(clip.bars[0].columns.map(c => c.duration));
+  });
+});
+
+describe('incomplete tuplets', () => {
+  it('are named per bar, counted in their shortest note, until the group is whole', () => {
+    const whole = clipOf('5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 5.3.4{tu 3} 7.3.8{tu 3} r.2 |');
+    expect(brokenTupletMessage(whole)).toBeNull();
+    const short = clipOf('5.3.8{tu 3} 7.3.8{tu 3} r.4 r.2 | 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} r.4 r.2 |');
+    expect(brokenTupletMessage(short)).toBe('The tuplet of 3 in bar 1 has 2 notes; it needs 3. The tuplet of 5 in bar 2 has 6 notes; it needs 10.');
+    const errors = barErrors(short);
+    expect([...errors.keys()]).toEqual([0, 1]);
+    expect(errors.get(0)).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 2 notes; it needs 3.");
   });
 });
 

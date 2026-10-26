@@ -12,7 +12,7 @@ import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrig
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
@@ -496,7 +496,8 @@ export default function TabPage() {
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
-  const unevenLine = unevenMessage(clip) ?? '';
+  // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
+  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
 
   return (
     <div className="grid gap-4">
@@ -546,11 +547,15 @@ export default function TabPage() {
                 // Right-click, a long press or Shift+F10: insert a bar before or after.
                 {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
               >
-                <TabClip
-                  clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                  onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
-                  highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
-                />
+                {/* A bar's warning explains itself on hover. */}
+                <HoverTips>
+                  <TabClip
+                    clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
+                    onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                    errors={barErrors(clip)}
+                  />
+                </HoverTips>
               </div>
             )
             : (

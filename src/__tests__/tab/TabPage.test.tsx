@@ -237,6 +237,18 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
     });
 
+    it('marks a bar with something wrong under its start, the words as the tip', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', '-');
+      // One eighth: the bar doesn't add up.
+      expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4.");
+      // A lone triplet eighth: nor is the triplet whole.
+      act(() => { fireEvent.keyDown(editor(), { key: '3', code: 'Digit3', altKey: true }); });
+      const warning = screen.getByTestId('bar-warning');
+      expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
+    });
+
     it('writes free text over a column from the palette, and edits it from a press on it', () => {
       renderAt();
       act(() => editor().focus());

@@ -140,3 +140,15 @@ pressed the Capo button, typed into the field, then checked Enter, a press
 on the drawn capo, 15 kept to 12, Esc, and empty taking it off. It also
 checked the time signature from the drawn 4/4, the export preview drawing
 the capo once, and the facts line. All 16 checks passed.
+
+## Errors under the bar (Jeremy, 2026-10-26)
+
+A tuplet whose run of columns isn't a whole number of groups (a triplet
+member deleted) is an error until it is whole again. A run is counted in
+its shortest note, so a quarter and an eighth make a whole triplet
+(`tupletProblems` in `clip.ts`). Every bar with an error (it doesn't add
+up, or a tuplet in it isn't whole) gets a small triangle with "!" in the
+danger colour under its start; its one-second tip (`HoverTips`) says what
+is wrong (`barErrors`). The page draws it, an exported image never does.
+The same words stay in the line under the clip, for touch screens and
+screen readers.
