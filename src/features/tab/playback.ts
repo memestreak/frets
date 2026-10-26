@@ -26,7 +26,8 @@ export const MAX_SPEED = 1.5;
 /**
  * The sounds the footer offers, grouped by General MIDI family: every pitched sound the soundfont
  * has, by program number (Jeremy, 2026-10-26: "everything except for percussion", so the
- * Percussion family, 112 to 119, and the drum kits are left out). Steel Guitar is alphaTex's default.
+ * Percussion family, 112 to 119, and the drum kits are left out, and then "remove sound effects",
+ * 120 to 127). Steel Guitar is alphaTex's default.
  */
 export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [number, string])[]])[] = [
   ['Piano', [[0, 'Acoustic Grand Piano'], [1, 'Bright Acoustic Piano'], [2, 'Electric Grand Piano'], [3, 'Honky-tonk Piano'], [4, 'Electric Piano 1'], [5, 'Electric Piano 2'], [6, 'Harpsichord'], [7, 'Clavinet']]],
@@ -43,7 +44,6 @@ export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [num
   ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
   ['Synth effects', [[96, 'Rain'], [97, 'Soundtrack'], [98, 'Crystal'], [99, 'Atmosphere'], [100, 'Brightness'], [101, 'Goblins'], [102, 'Echoes'], [103, 'Sci-fi']]],
   ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
-  ['Sound effects', [[120, 'Guitar Fret Noise'], [121, 'Breath Noise'], [122, 'Seashore'], [123, 'Bird Tweet'], [124, 'Telephone Ring'], [125, 'Helicopter'], [126, 'Applause'], [127, 'Gunshot']]],
 ];
 export type Sound = number;
 export const DEFAULT_SOUND: Sound = 25;

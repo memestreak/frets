@@ -25,12 +25,12 @@ function programsOf(midi: alphaTab.midi.MidiFile): number[] {
 }
 
 describe('playback sounds', () => {
-  it('offers every pitched General MIDI sound, without the percussion family', () => {
+  it('offers every pitched General MIDI sound but the percussion and sound effects families', () => {
     const programs = SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program));
-    expect(programs).toHaveLength(120);
-    expect(programs.some(p => p >= 112 && p <= 119)).toBe(false);
-    expect(isSound(25) && isSound(0) && isSound(127)).toBe(true);
-    expect(isSound(115) || isSound(128) || isSound('25')).toBe(false);
+    expect(programs).toHaveLength(112);
+    expect(programs.some(p => p >= 112)).toBe(false);
+    expect(isSound(25) && isSound(0) && isSound(111)).toBe(true);
+    expect(isSound(115) || isSound(127) || isSound('25')).toBe(false);
   });
 
   it('plays the clip in the sound chosen, whatever its alphaTex names', () => {

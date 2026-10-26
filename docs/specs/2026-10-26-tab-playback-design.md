@@ -41,9 +41,10 @@ The controls sit under that line:
   "100% · 92 bpm". That figure is the tempo where the playhead is, times
   the speed.
 - **Sound.** A dropdown at the end of the row (Jeremy, 2026-10-26) with
-  every pitched General MIDI sound the soundfont has, 120 of them, grouped
-  by family: everything but the Percussion family (programs 112 to 119)
-  and the drum kits, his "everything except for percussion". Steel Guitar
+  the soundfont's General MIDI sounds, 112 of them, grouped by family:
+  everything but the Percussion family (programs 112 to 119), the drum kits
+  (his "everything except for percussion") and the Sound effects family
+  (120 to 127, his "remove sound effects"). Steel Guitar
   is the default, as in alphaTex. A change while the clip plays takes over
   at once, from where it is. The sound is a playback setting, saved with
   whether the controls show (`frets.tab.playback`, `{ shown, sound }`),
