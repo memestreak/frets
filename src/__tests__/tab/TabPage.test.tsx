@@ -193,6 +193,9 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
       expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
+      // Off the tab, no button is lit.
+      act(() => editor().blur());
+      expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
     });
 
     it('steps V, N, A and \\ through their kinds, and toggles L, G and S', () => {

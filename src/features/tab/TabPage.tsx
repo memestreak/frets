@@ -504,7 +504,8 @@ export default function TabPage() {
       </header>
 
       <HoverTips>
-        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+        {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
+        <TabPalette isOn={id => editing && isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
