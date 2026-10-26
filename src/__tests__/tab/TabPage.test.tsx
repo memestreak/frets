@@ -421,6 +421,30 @@ describe('TabPage playback', () => {
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!).volume).toBe(0.05);
   });
 
+  it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    expect(field).toHaveValue('100');
+    fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
+    expect(field).toHaveValue('105');
+    fireEvent.click(screen.getByRole('button', { name: 'Slower' }));
+    fireEvent.keyDown(field, { key: 'ArrowDown' });
+    expect(field).toHaveValue('95');
+    fireEvent.change(field, { target: { value: '80' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(field).toHaveValue('80');
+    fireEvent.change(field, { target: { value: '10' } });
+    fireEvent.blur(field);
+    expect(field).toHaveValue('25');
+    fireEvent.change(field, { target: { value: '999' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(field).toHaveValue('150');
+    fireEvent.change(field, { target: { value: '70' } });
+    fireEvent.keyDown(field, { key: 'Escape' });
+    expect(field).toHaveValue('150');
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
