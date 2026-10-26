@@ -165,6 +165,17 @@ describe('moving', () => {
     expect(moveColumn(clip, at(0, 0, 0), -1).cursor).toEqual(at(0, 0, 0));
     expect(moveColumn(clip, at(0, 1, 0), 1).cursor).toEqual(at(1, 0, 0));
   });
+
+  it('fills a short bar anywhere in the clip with rests that fit, then moves on', () => {
+    let clip = clipOf('5.3.4 | 7.3.1 |');
+    let cursor = at(0, 0, 2);
+    for (let i = 0; i < 3; i++) ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    expect(bars(clip)).toBe('5.3.4 r.4 r.4 r.4 |\n7.3.1 |');
+    expect(moveColumn(clip, cursor, 1).cursor).toEqual(at(1, 0, 2));
+    // Only an eighth is left: the rest is an eighth, not the quarter before it.
+    const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
+    expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
+  });
 });
 
 describe('bars', () => {
@@ -180,7 +191,7 @@ describe('bars', () => {
 
   it('inserts a bar of rests, one a beat, after the cursor\'s bar, in the time in force there', () => {
     const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 | \\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 | 0.4.4 0.4.8 0.4.4 0.4.8 |');
-    const { clip: next, cursor } = insertBar(clip, at(1, 0, 2));
+    const { clip: next, cursor } = insertBar(clip, at(1, 0, 2), 'after');
     expect(bars(next).split('\n')).toEqual([
       '0.6.1 |',
       '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |',
@@ -190,7 +201,16 @@ describe('bars', () => {
     ]);
     expect(cursor).toEqual(at(2, 0, 2));
     // After the last bar, and in 6/8: six eighth rests.
-    expect(bars(insertBar(clip, at(3, 0, 0)).clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+    expect(bars(insertBar(clip, at(3, 0, 0), 'after').clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+  });
+
+  it('inserts a bar before the cursor\'s bar in the time before it; the bar keeps its own change', () => {
+    const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 |');
+    const { clip: next, cursor } = insertBar(clip, at(1, 1, 0), 'before');
+    expect(bars(next).split('\n')).toEqual(['0.6.1 |', 'r.4 r.4 r.4 r.4 |', '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |']);
+    expect(cursor).toEqual(at(1, 0, 0));
+    // Before the first bar: the clip's own time.
+    expect(bars(insertBar(clip, at(0, 0, 0), 'before').clip).split('\n')[0]).toBe('r.4 r.4 r.4 r.4 |');
   });
 });
 

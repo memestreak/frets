@@ -36,11 +36,11 @@ readers pass keys through to it.
 | --- | --- |
 | 0–9 | Fret on the cursor's string. A second digit within a second, on the same spot, makes a two-digit fret, up to 24. A typed fret keeps the note's marks but drops a tie or a dead note. |
 | ↑ ↓ | String. |
-| ← → | Column, across bar lines. → from the clip's last column adds a rest with the same duration: in that bar while it has room, else in a new bar. |
+| ← → | Column, across bar lines. → from the last column of a bar that doesn't add up adds a rest there, anywhere in the clip: as long as the cursor's column while it fits, else the longest that does (Jeremy, 2026-10-26, after deleting rests left a bar he couldn't refill). → from the clip's last column, once its bar is full, starts a new bar. A pickup bar walked through with → fills up too; Ctrl+Z takes it back. |
 | Shift+← → | Select. |
 | Backspace, Delete | With a selection, removes its columns, and any bar left empty. Otherwise clears the cursor's note, and on a rest removes the column. The cursor stays in the bar: on the column after while there is one in that bar, else on the column before (Jeremy, 2026-10-26: deleting a bar's last note had jumped to the next bar). |
 | Insert | A rest before the cursor's column. |
-| Ctrl+Enter (⌘+Enter) | A new bar after the cursor's bar, filled with rests, one a beat long for each beat of its time signature (three quarter rests in 3/4); the cursor goes to its first rest. Also the Bars group's first button. Added 2026-10-26: Jeremy couldn't see how to add a bar of rests mid-clip, and picked this over a Mac key for Insert and over notes spilling into the next bar. |
+| Ctrl+Enter (⌘+Enter), Ctrl+Shift+Enter | A new bar after (with Shift, before) the cursor's bar, filled with rests, one a beat long for each beat of the time signature in force there (three quarter rests in 3/4; before a bar that changes the time, the time before the change); the cursor goes to its first rest. Also the Bars group's first two buttons and the tab's right-click menu (Insert bar before, Insert bar after, on the bar under the pointer). Jeremy asked for both directions and the menu items the same day. Added 2026-10-26: Jeremy couldn't see how to add a bar of rests mid-clip, and picked this over a Mac key for Insert and over notes spilling into the next bar. |
 | + − | Longer or shorter note value. |
 | . | No dot, then one dot, then two dots. |
 | Alt+3 | Triplet. |

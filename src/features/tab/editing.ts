@@ -5,7 +5,7 @@
  * it so marks that join a note to the one before it stay true.
  */
 import {
-  barLength, barTicks, BEND_QUARTERS, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
   type TremoloValue, type Tuplet,
 } from './clip';
@@ -568,8 +568,22 @@ function isFull(clip: Clip, index: number): boolean {
 }
 
 /**
- * The cursor one column left or right. Right from the clip's last column adds a column with the
- * same duration, in that bar while it has room and in a new bar once it is full, so typing runs on.
+ * A rest's length for the end of a bar: the cursor column's length while it fits in the room left,
+ * else the longest plain note value that does, so the bar fills up without running over.
+ */
+function restToFill(clip: Clip, cursor: Cursor): Duration {
+  const near = durationNear(clip, cursor);
+  const room = barTicks(timeAt(clip, cursor.bar)) - barLength(clip.bars[cursor.bar]);
+  if (ticks(near) <= room) return near;
+  const value = NOTE_VALUES.find(v => ticks({ value: v, dots: 0 }) <= room) ?? NOTE_VALUES[NOTE_VALUES.length - 1];
+  return { value, dots: 0 };
+}
+
+/**
+ * The cursor one column left or right. Right from the last column of a bar that doesn't add up yet
+ * adds a rest there that fits, anywhere in the clip, so a short bar can be filled (Jeremy,
+ * 2026-10-26). Right from the clip's last column, once its bar is full, starts a new bar with a
+ * rest as long as the cursor's column, so typing runs on.
  */
 export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true): { clip: Clip; cursor: Cursor } {
   const { bar, column } = cursor;
@@ -581,14 +595,14 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true
   }
   const here = clip.bars[bar];
   if (column < here.columns.length - 1) return { clip, cursor: { ...cursor, column: column + 1 } };
+  if (grow && here.columns.length > 0 && !isFull(clip, bar)) {
+    const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, emptyColumn(restToFill(clip, cursor))] });
+    return { clip: normalize(grown), cursor: { ...cursor, column: here.columns.length } };
+  }
   if (bar < clip.bars.length - 1) return { clip, cursor: { ...cursor, bar: bar + 1, column: 0 } };
   if (!grow || here.columns.length === 0) return { clip, cursor };
-  const column0 = emptyColumn(durationNear(clip, cursor));
-  if (!isFull(clip, bar)) {
-    const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, column0] });
-    return { clip: grown, cursor: { ...cursor, column: here.columns.length } };
-  }
-  return { clip: { ...clip, bars: [...clip.bars, { columns: [column0] }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
+  const next = emptyColumn(durationNear(clip, cursor));
+  return { clip: { ...clip, bars: [...clip.bars, { columns: [next] }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
 }
 
 /** A rest with the cursor column's duration, put before the cursor column (the Insert key). */
@@ -600,15 +614,18 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
 }
 
 /**
- * A new bar after the cursor's bar, filled with rests: one a beat long for each beat of the time
- * signature in force there (three quarter rests in 3/4). The cursor goes to its first rest.
+ * A new bar before or after the cursor's bar, filled with rests: one a beat long for each beat of
+ * the time signature in force where it goes (three quarter rests in 3/4). Before a bar that changes
+ * the time, that is the time before the change, which the cursor's bar keeps. The cursor goes to
+ * the new bar's first rest.
  */
-export function insertBar(clip: Clip, cursor: Cursor): { clip: Clip; cursor: Cursor } {
-  const time = timeAt(clip, cursor.bar);
+export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after'): { clip: Clip; cursor: Cursor } {
+  const index = where === 'before' ? cursor.bar : cursor.bar + 1;
+  const time = index === 0 ? clip.time : timeAt(clip, index - 1);
   const rests = Array.from({ length: time.beats }, () => emptyColumn({ value: time.value, dots: 0 }));
   const bars = [...clip.bars];
-  bars.splice(cursor.bar + 1, 0, { columns: rests });
-  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: cursor.bar + 1, column: 0 } };
+  bars.splice(index, 0, { columns: rests });
+  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: index, column: 0 } };
 }
 
 /* — removing, copying and pasting columns — */
