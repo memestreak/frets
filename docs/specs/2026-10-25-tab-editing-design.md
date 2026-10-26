@@ -23,7 +23,9 @@ readers pass keys through to it.
   soft `--primary-soft` band behind its column and a `--primary` box round
   its string. Esc leaves the editor, and the cursor hides.
 - **Selection:** Shift+click or Shift+←/→ selects a run of columns, and
-  each selected column gets the band. Ctrl+A selects every column.
+  the band runs unbroken under it on each line of tab, across the bar
+  lines inside it (Jeremy, 2026-10-26: a band per column left gaps at
+  the bar lines). Ctrl+A selects every column.
 - **No outline, no movement:** the editor has no focus outline, and
   nothing moves when the cursor or the selection does. The palette's
   buttons have a fixed size and only change their fill.

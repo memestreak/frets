@@ -301,7 +301,8 @@ describe('TabPage', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
-      expect(screen.getByTestId('tab-selection').children).toHaveLength(2);
+      // One unbroken band over the two selected columns.
+      expect(screen.getByTestId('tab-selection').children).toHaveLength(1);
       const data = new Map<string, string>();
       const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
