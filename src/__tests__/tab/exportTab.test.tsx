@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readAscii } from '@/features/tab/ascii';
 import type { Clip } from '@/features/tab/clip';
+import * as alphaTab from '@coderline/alphatab';
+import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
   DEFAULT_TAB_EXPORT, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
@@ -46,6 +48,15 @@ describe('the tab as an image', () => {
     const clear = tabSvg(clip, { width: 800, transparent: true, name: false }, 'My riff');
     expect(clear).not.toContain('My riff');
     expect(clear).not.toContain('fill="#ffffff"');
+  });
+
+  it('draws a let ring or P.M. shorter than its label as the label alone, with nothing through the word', () => {
+    const read = readAlphaTexWith(alphaTab, '0.6{lr}.16 0.6.16 0.6.8 0.6.4 0.6{pm}.4 0.6{pm}.4 0.6{pm}.4 |');
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const svg = tabSvg(read.clip, { width: 800, transparent: true, name: false }, '');
+    const group = (id: string) => svg.match(new RegExp(`<g data-testid="${id}">(.*?)</g>`))![1];
+    expect(group('let-ring')).not.toContain('<line');
+    expect(group('palm-mute').match(/<line/g)).toHaveLength(2);
   });
 
   it('names its file safely', () => {

@@ -299,11 +299,13 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
     const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
     for (const { columns, x0, x1 } of runsIn(system, has)) {
       const lw = runLabelWidth(label);
+      // A run shorter than its label is the label alone: its line and end tick would cross the word.
+      const longer = x1 > x0 + lw + 2;
       parts.push(
         <g key={`${name}-${columns[0].index}`} data-testid={name}>
           <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
-          {x1 > x0 + lw + 2 && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
-          <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />
+          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
+          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
         </g>,
       );
     }

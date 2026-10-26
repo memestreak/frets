@@ -49,6 +49,9 @@ const VIEWS: { id: View; label: string }[] = [
   { id: 'tab', label: 'Tab' }, { id: 'ascii', label: 'ASCII' }, { id: 'alphatex', label: 'alphaTex' },
 ];
 
+/** The copy button's width and a gap: the drawing stops short of it. */
+const COPY_BUTTON_ROOM = 48;
+
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
 
@@ -82,7 +85,9 @@ export default function TabPage() {
   const [importing, setImporting] = useState(false);
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
-  const [widthRef, clipWidth] = useWidth();
+  const [widthRef, boxWidth] = useWidth();
+  // The tab is drawn clear of the copy button in the card's top right corner.
+  const clipWidth = Math.max(0, boxWidth - COPY_BUTTON_ROOM);
   // What the text views show; the Tab view's copy writes alphaTex too, the clip's own format.
   const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
 
@@ -429,16 +434,42 @@ export default function TabPage() {
     };
   }, []);
 
+  const showCopied = () => {
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  /** Copies the tab as the Export dialog's PNG: the menu's Copy as PNG and the Tab view's copy button. */
+  const copyPng = async () => {
+    try {
+      const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name));
+      setNotice({ tone: 'info', lines: [`${line}.`] });
+      showCopied();
+    } catch (e) {
+      setNotice({ tone: 'error', lines: [`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`] });
+    }
+  };
+
+  /** The ASCII and alphaTex views copy their text; the Tab view copies the picture. */
   const copy = async () => {
+    if (view === 'tab') return copyPng();
     try {
       await navigator.clipboard.writeText(shownText);
       setNotice({ tone: 'info', lines: [view === 'ascii' ? 'ASCII copied.' : 'alphaTex copied.'] });
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      showCopied();
     } catch {
       setNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
     }
   };
+  const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy ASCII', alphatex: 'Copy alphaTex' }[view];
+  const copyButton = (
+    <button
+      type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
+      aria-label={copyLabel} title={copyLabel} onClick={() => void copy()}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </button>
+  );
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
@@ -468,12 +499,13 @@ export default function TabPage() {
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export…</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
         </div>
       </header>
 
       <HoverTips>
-        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+        {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
+        <TabPalette isOn={id => editing && isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -498,15 +530,10 @@ export default function TabPage() {
             : (
               <div className="relative">
                 <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
-                <button
-                  type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
-                  aria-label={view === 'ascii' ? 'Copy ASCII' : 'Copy alphaTex'}
-                  title={view === 'ascii' ? 'Copy ASCII' : 'Copy alphaTex'} onClick={() => void copy()}
-                >
-                  {copied ? <CheckIcon /> : <CopyIcon />}
-                </button>
+                {copyButton}
               </div>
             )}
+          {view === 'tab' && clipWidth > 0 && copyButton}
           {view === 'tab' && word && clipWidth > 0 && (
             <WordField
               key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, word)}
@@ -548,12 +575,7 @@ export default function TabPage() {
           items={[
             {
               label: 'Copy as PNG',
-              onSelect: () => {
-                copySvgAsPng(tabSvg(clip, exportStyle, clip.name)).then(
-                  line => setNotice({ tone: 'info', lines: [`${line}.`] }),
-                  (e: unknown) => setNotice({ tone: 'error', lines: [`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`] }),
-                );
-              },
+              onSelect: () => void copyPng(),
             },
             { label: 'Export options…', onSelect: () => setExporting(true) },
           ]}

@@ -8,7 +8,7 @@ expects it to make the Tab page easier to test as more of alphaTex is drawn.
 
 ## What it does
 
-- **Examples…** in the page header, beside Import… and Export…, opens a
+- **Examples…** in the page header, beside Import… and Export options, opens a
   dialog listing the examples. Each row is the example's name with a line on
   what it shows below it. The example being shown is filled. Choosing one
   shows it in place of the clip and closes the dialog.

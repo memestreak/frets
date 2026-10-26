@@ -193,6 +193,9 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
       expect(screen.getByRole('button', { name: 'Vibrato' })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
+      // Off the tab, no button is lit.
+      act(() => editor().blur());
+      expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
     });
 
     it('steps V, N, A and \\ through their kinds, and toggles L, G and S', () => {
@@ -385,11 +388,22 @@ describe('TabPage export', () => {
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('opens Export options from the Export… button, which also downloads the clip as text', () => {
+  it('has a copy button in every view: the picture in Tab, the text in ASCII and alphaTex', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
+    renderAt();
+    expect(screen.getByRole('button', { name: 'Copy as PNG' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
+    expect(screen.getByRole('button', { name: 'Copy ASCII' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy as PNG' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+    expect(screen.getByRole('button', { name: 'Copy alphaTex' })).toBeInTheDocument();
+  });
+
+  it('opens Export options from the Export options button, which also downloads the clip as text', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt();
     expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Export…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     const saved: string[] = [];
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
