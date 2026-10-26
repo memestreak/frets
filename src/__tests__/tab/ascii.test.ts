@@ -45,7 +45,7 @@ describe('the examples in tab-ascii.txt', () => {
     expect(one.columns[1].notes[5]).toEqual({ fret: 8, legato: 'h' });
     expect(two.columns[1].notes[2]).toEqual({ fret: 5, legato: 'p' });
     expect(two.columns[4].notes[4]).toEqual({ fret: 7, bend: { quarters: 4, pre: false, release: false } });
-    expect(two.columns[5].notes[5]).toEqual({ fret: 5, vibrato: true });
+    expect(two.columns[5].notes[5]).toEqual({ fret: 5, vibrato: 'slight' });
     expect(two.columns[4].duration).toEqual({ value: 4, dots: 0, triplet: false });
   });
 
@@ -70,7 +70,7 @@ describe('the examples in tab-ascii.txt', () => {
     expect(cols[1].notes[1]).toEqual({ fret: 7, slide: 'legato' });
     expect(cols[4].duration).toEqual({ value: 8, dots: 0, triplet: true });
     expect(cols[4].notes[0]).toEqual({ fret: 12, tap: true });
-    expect(cols[7].notes.slice(0, 3)).toEqual([0, 1, 2].map(() => ({ fret: 12, harmonic: true })));
+    expect(cols[7].notes.slice(0, 3)).toEqual([0, 1, 2].map(() => ({ fret: 12, harmonic: 'natural' })));
     expect(cols[8].notes[1]).toEqual({ fret: 8, bend: { quarters: 4, pre: true, release: true } });
   });
 
@@ -251,11 +251,11 @@ describe('writeAscii and readAscii round trip', () => {
               else if (r < 0.3 && before && before.fret !== null) {
                 note.fret = before.fret;
                 note.tie = true;
-              } else if (r < 0.35) note.harmonic = true;
+              } else if (r < 0.35) note.harmonic = 'natural';
               else if (r < 0.4) note.tap = true;
               if (rng() < 0.15) note.bend = { quarters: pick(BEND_QUARTERS), pre: rng() < 0.3, release: rng() < 0.4 };
               if (note.bend?.quarters === 1) note.bend.pre = false;
-              if (rng() < 0.15) note.vibrato = true;
+              if (rng() < 0.15) note.vibrato = 'slight';
             }
             notes[s] = note;
             previous[s] = note;

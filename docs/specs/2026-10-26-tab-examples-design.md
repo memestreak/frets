@@ -39,6 +39,9 @@ clip as the canonical alphaTex Frets writes.
 | joins | Hammer-ons, slides and ties | h, p, sl, ss, sib, sia, ties |
 | bends | Bends and vibrato | ¼, ½ and full bends, release, pre-bend, vibrato |
 | techniques | Palm mute, dead notes, harmonics, tap | pm, x, nh, tt |
+| accents | Accents, ghost notes and staccato | ac, hac, g, st |
+| let-ring | Let ring | lr, and the note that ends the run |
+| lead | Pinch harmonics, wide vibrato, slides out | ph, vw, sod, sou |
 | strumming | Strummed chords | chords, sd / su, a chord tied over |
 | repeats | Repeats and endings | \ro, \rc 2 and 3, \ae 1 and 2 |
 | compound-time | Six-eight time | 6/8 beamed in threes |

@@ -1,11 +1,11 @@
-import { useId, type PointerEvent, type ReactNode } from 'react';
+import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, isPalmMuted, isRest, slideDirections, STRING_COUNT,
+  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT,
   type Bend, type Clip, type Column, type Note,
 } from './clip';
 import {
-  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, ROW, STAFF_BOTTOM, stringY, SYSTEM_HEIGHT,
-  type Hit, type PlacedBar, type PlacedColumn, type System,
+  beamGroups, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn, stringY,
+  type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -41,7 +41,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -53,42 +53,61 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   highlight?: Highlight;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   onPick?: (hit: Hit, extend: boolean) => void;
+  /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
+  onPickRun?: (mark: RunMark, index: number) => void;
+  /** A press on neither the staff nor a P.M. or let ring line. */
+  onMiss?: () => void;
 }) {
   const layout = layoutClip(clip, width);
+  /** What a press at a point in the drawing is on. */
+  const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - box.left;
+    const py = e.clientY - box.top;
+    const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
+    return { run, hit: run ? null : hitTest(layout, px, py) };
+  };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const box = e.currentTarget.getBoundingClientRect();
-    const hit = hitTest(layout, e.clientX - box.left, e.clientY - box.top);
-    if (hit) onPick(hit, e.shiftKey);
+    const { run, hit } = target(e);
+    if (run) onPickRun!(run.mark, run.run.columns[0].index);
+    else if (hit) onPick(hit, e.shiftKey);
+    else onMiss?.();
+  };
+  // A press on blank space doesn't take the focus, so no cursor appears there.
+  const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
+    const { run, hit } = target(e);
+    if (!run && !hit) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
   const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
+  const { rows } = layout;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
   const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
   return (
     <svg
       x={x} y={y} width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined} onMouseDown={onPick ? keepFocus : undefined}
     >
       {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
       {spot && highlight?.cursor && (
-        <g transform={`translate(0 ${spot.system * SYSTEM_HEIGHT})`} data-testid="tab-cursor">
+        <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
           {!highlight.range && (
-            <rect x={spot.x - spot.width / 2} y={ROW.staffTop - 10} width={spot.width} height={STAFF_BOTTOM - ROW.staffTop + 20} fill="var(--primary-soft)" />
+            <rect x={spot.x - spot.width / 2} y={rows.staffTop - 10} width={spot.width} height={rows.staffBottom - rows.staffTop + 20} fill="var(--primary-soft)" />
           )}
           <rect
-            x={spot.x - 12} y={stringY(highlight.cursor.string) - 9} width={24} height={18} rx={4}
+            x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
             fill="none" stroke="var(--primary)" strokeWidth={1.5}
           />
         </g>
       )}
       {layout.systems.map((system, si) => (
-        <g key={si} transform={`translate(0 ${si * SYSTEM_HEIGHT})`} data-testid="tab-system">
+        <g key={si} transform={`translate(0 ${si * rows.height})`} data-testid="tab-system">
           <SystemDrawing
-            system={system} index={si} clip={clip} look={look} names={layout.names} slides={slides}
+            system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
         </g>
@@ -105,8 +124,8 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
         .filter(c => c.index >= from && c.index <= to)
         .map(c => (
           <rect
-            key={c.index} x={c.x - c.width / 2} y={si * SYSTEM_HEIGHT + ROW.staffTop - 10} width={c.width}
-            height={STAFF_BOTTOM - ROW.staffTop + 20} fill="var(--primary-soft)"
+            key={c.index} x={c.x - c.width / 2} y={si * layout.rows.height + layout.rows.staffTop - 10} width={c.width}
+            height={layout.rows.staffBottom - layout.rows.staffTop + 20} fill="var(--primary-soft)"
           />
         ))))}
     </g>
@@ -132,8 +151,9 @@ function previousSpots(systems: System[]): Map<Note, Spot> {
   return out;
 }
 
-function SystemDrawing({ system, index, clip, look, names, previous, slides, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, lastBar, maskId }: {
   system: System;
+  rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
   maskId: string;
   index: number;
@@ -151,45 +171,45 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
   parts.push(
-    <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={SYSTEM_HEIGHT}>
-      <rect width={end + 1} height={SYSTEM_HEIGHT} fill="#fff" />
+    <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={rows.height}>
+      <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
         const lw = labelWidth(note);
-        return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(s) - 7} width={lw} height={14} fill="#000" />;
+        return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
     </mask>,
   );
   for (let s = 0; s < STRING_COUNT; s++) {
     parts.push(
       <line
-        key={`string-${s}`} x1={system.lineStart} x2={end} y1={stringY(s)} y2={stringY(s)}
+        key={`string-${s}`} x1={system.lineStart} x2={end} y1={stringY(rows, s)} y2={stringY(rows, s)}
         stroke={look.line} strokeWidth={1} mask={`url(#${maskId})`}
       />,
     );
     if (names) {
       parts.push(
-        <text key={`name-${s}`} x={system.lineStart - 10} y={stringY(s) + 4} fontSize={10} fill={look.ink} textAnchor="middle">{names[s]}</text>,
+        <text key={`name-${s}`} x={system.lineStart - 10} y={stringY(rows, s) + 4} fontSize={10} fill={look.ink} textAnchor="middle">{names[s]}</text>,
       );
     }
   }
   parts.push(
-    <line key="open" x1={system.lineStart} x2={system.lineStart} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={1.5} />,
+    <line key="open" x1={system.lineStart} x2={system.lineStart} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={1.5} />,
   );
   const clefX = system.lineStart + 13;
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
-    <text key={`clef-${letter}`} x={clefX} y={ROW.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
+    <text key={`clef-${letter}`} x={clefX} y={rows.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
   // The time signature stands in front of the staff, its two numbers close together round the middle.
   if (system.timeX !== null) {
-    const middle = (ROW.staffTop + STAFF_BOTTOM) / 2;
+    const middle = (rows.staffTop + rows.staffBottom) / 2;
     parts.push(
       <text key="time-top" x={system.timeX} y={middle - 2} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
       <text key="time-bottom" x={system.timeX} y={middle + 16} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
     );
   }
 
-  for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} look={look} final={bar.index === lastBar} />);
+  for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} rows={rows} look={look} final={bar.index === lastBar} />);
 
   // Endings: one bracket over each run of bars with the same ending.
   system.bars.forEach((bar, k) => {
@@ -199,56 +219,54 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
     while (system.bars[last + 1]?.bar.ending === n) last++;
     const x0 = bar.x0 + 4;
     const x1 = system.bars[last].x1 - 4;
+    const y = rows.endings!;
     parts.push(
       <g key={`ending-${bar.index}`} stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="ending">
-        <polyline points={`${x0},${ROW.endings + 8} ${x0},${ROW.endings - 4} ${x1},${ROW.endings - 4}`} />
-        <text x={x0 + 4} y={ROW.endings + 6} fontSize={11} fontWeight={700} fill={look.ink} stroke="none">{n}.</text>
+        <polyline points={`${x0},${y + 8} ${x0},${y - 4} ${x1},${y - 4}`} />
+        <text x={x0 + 4} y={y + 6} fontSize={11} fontWeight={700} fill={look.ink} stroke="none">{n}.</text>
       </g>,
     );
   });
 
-  // Palm mute runs.
-  const placedAll = system.bars.flatMap(b => b.columns);
-  placedAll.forEach((placed, k) => {
-    const muted = (p: PlacedColumn | undefined) => p !== undefined && isPalmMuted(p.column);
-    if (!muted(placed) || muted(placedAll[k - 1])) return;
-    let last = k;
-    while (muted(placedAll[last + 1])) last++;
-    const x0 = placed.x - 8;
-    const x1 = placedAll[last].x + 8;
-    parts.push(
-      <g key={`pm-${k}`} data-testid="palm-mute">
-        <text x={x0} y={ROW.palmMute + 4} fontSize={10} fontWeight={700} fill={look.ink}>P.M.</text>
-        {x1 > x0 + 28 && (
-          <line x1={x0 + 26} x2={x1} y1={ROW.palmMute} y2={ROW.palmMute} stroke={look.ink} strokeDasharray="3 3" />
-        )}
-        <line x1={x1} x2={x1} y1={ROW.palmMute - 4} y2={ROW.palmMute + 4} stroke={look.ink} />
-      </g>,
-    );
-  });
+  // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
+  for (const { mark, label, has } of RUN_MARKS) {
+    const y = rows[mark];
+    if (y === null) continue;
+    const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
+    for (const { columns, x0, x1 } of runsIn(system, has)) {
+      const lw = runLabelWidth(label);
+      parts.push(
+        <g key={`${name}-${columns[0].index}`} data-testid={name}>
+          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
+          {x1 > x0 + lw + 2 && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
+          <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />
+        </g>,
+      );
+    }
+  }
 
   for (const bar of system.bars) {
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} system={index} look={look}
+          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
           previous={previous} slides={slides} staffStart={system.staffStart}
         />,
       );
     }
-    parts.push(<Stems key={`stems-${bar.index}`} bar={bar} beat={beat} look={look} />);
+    parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beat} look={look} />);
   }
 
   return <>{parts}</>;
 }
 
-function BarDrawing({ bar, look, final }: { bar: PlacedBar; look: TabLook; final: boolean }) {
+function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; look: TabLook; final: boolean }) {
   const { x0, x1 } = bar;
   const dots = (x: number) => [1.5, 3.5].map(k => (
-    <circle key={`${x}-${k}`} cx={x} cy={ROW.staffTop + k * ROW.stringGap} r={2.2} fill={look.ink} />
+    <circle key={`${x}-${k}`} cx={x} cy={stringY(rows, k)} r={2.2} fill={look.ink} />
   ));
   const vertical = (x: number, w: number) => (
-    <line x1={x} x2={x} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={w} />
+    <line x1={x} x2={x} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={w} />
   );
   const thickEnd = final || bar.bar.repeatEnd !== undefined;
   return (
@@ -268,7 +286,7 @@ function BarDrawing({ bar, look, final }: { bar: PlacedBar; look: TabLook; final
         </g>
       ) : vertical(x1, 1)}
       {bar.bar.repeatEnd !== undefined && bar.bar.repeatEnd !== 2 && (
-        <text x={x1} y={ROW.endings + 6} fontSize={11} fontWeight={700} fill={look.ink} textAnchor="end">
+        <text x={x1} y={rows.endings! + 6} fontSize={11} fontWeight={700} fill={look.ink} textAnchor="end">
           ×{bar.bar.repeatEnd}
         </text>
       )}
@@ -281,8 +299,9 @@ function labelWidth(note: Note): number {
   return noteLabel(note).length * 7 + 4;
 }
 
-function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
+function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStart }: {
   placed: PlacedColumn;
+  rows: Rows;
   system: number;
   look: TabLook;
   previous: Map<Note, Spot>;
@@ -292,16 +311,15 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
   const { column, x } = placed;
   const parts: ReactNode[] = [];
   if (column.stroke) {
+    const sy = rows.strokes!;
     parts.push(column.stroke === 'down'
-      ? <path key="stroke" d={`M${x - 4} ${ROW.strokes + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
-      : <path key="stroke" d={`M${x - 4} ${ROW.strokes - 4} L${x} ${ROW.strokes + 4} L${x + 4} ${ROW.strokes - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
+      ? <path key="stroke" d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
+      : <path key="stroke" d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
   }
-  let marksDrawn = false;
-  // A whole chord held over draws its numbers in brackets; arcs on every string would only clutter it.
-  const fewTies = column.notes.filter(n => n?.tie).length <= 2;
+  parts.push(...columnMarks(column, x, rows, look));
   column.notes.forEach((note, s) => {
     if (!note) return;
-    const y = stringY(s);
+    const y = stringY(rows, s);
     const label = noteLabel(note);
     const before = previous.get(note);
     // Where the joined-from note sits on this system, or the staff's start if it was on the line before.
@@ -327,7 +345,8 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
         />,
       );
     }
-    if (note.tie && before && fewTies) {
+    // Every tie gets its arc, even across a held chord: a number in brackets without one is a ghost note.
+    if (note.tie && before) {
       parts.push(
         <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
       );
@@ -335,12 +354,16 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
     parts.push(
       <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>,
     );
-    if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} look={look} />);
-    if (!marksDrawn && note.vibrato) {
-      marksDrawn = true;
-      let d = `M${x + 4} ${ROW.marks}`;
-      for (let k = 0; k < 4; k++) d += ' q3 -4 6 0 q3 4 6 0';
-      parts.push(<path key="vibrato" d={d} fill="none" stroke={look.ink} strokeWidth={1.2} data-testid="vibrato" />);
+    if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    if (note.slideOut) {
+      // A short line away from the number, down or up, to no fret in particular.
+      const down = note.slideOut === 'down';
+      parts.push(
+        <line
+          key={`slide-out-${s}`} x1={x + 8} x2={x + 18} y1={y + (down ? -3 : 3)} y2={y + (down ? 4 : -4)}
+          stroke={look.ink} strokeWidth={1.2} data-testid="slide-out"
+        />,
+      );
     }
     if (note.tap) {
       parts.push(<text key={`tap-${s}`} x={x} y={y - 10} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle">T</text>);
@@ -349,9 +372,43 @@ function ColumnDrawing({ placed, system, look, previous, slides, staffStart }: {
   return <g data-testid="tab-column">{parts}</g>;
 }
 
+/** The marks drawn once over a column, each in its own row: vibrato, "P.H.", an accent and a staccato dot. */
+function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): ReactNode[] {
+  const notes = column.notes.filter((n): n is Note => n !== null);
+  const parts: ReactNode[] = [];
+  const vibrato = notes.some(n => n.vibrato === 'wide') ? 'wide' : notes.some(n => n.vibrato) ? 'slight' : null;
+  if (vibrato) {
+    // A wide vibrato's wave is taller and longer, in fewer turns.
+    const [width, height, turns] = vibrato === 'wide' ? [8, 8, 3] : [6, 4, 4];
+    let d = `M${x + 4} ${rows.vibrato}`;
+    for (let k = 0; k < turns; k++) d += ` q${width / 2} -${height} ${width} 0 q${width / 2} ${height} ${width} 0`;
+    parts.push(<path key="vibrato" d={d} fill="none" stroke={look.ink} strokeWidth={vibrato === 'wide' ? 2 : 1.2} data-testid="vibrato" />);
+  }
+  if (notes.some(n => n.harmonic === 'pinch')) {
+    parts.push(
+      <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
+    );
+  }
+  const accent = columnAccent(column);
+  const staccato = notes.some(n => n.staccato);
+  if (accent || staccato) {
+    const y = rows.accents!;
+    // With both, the accent sits over the dot.
+    const ay = staccato ? y - 2 : y;
+    if (accent === 'normal') {
+      parts.push(<path key="accent" d={`M${x - 5} ${ay - 4} L${x + 5} ${ay} L${x - 5} ${ay + 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} data-testid="accent" />);
+    }
+    if (accent === 'heavy') {
+      parts.push(<path key="accent" d={`M${x - 4} ${ay + 4} L${x} ${ay - 5} L${x + 4} ${ay + 4}`} fill="none" stroke={look.ink} strokeWidth={1.8} data-testid="accent" />);
+    }
+    if (staccato) parts.push(<circle key="staccato" cx={x} cy={accent ? y + 6 : y} r={1.8} fill={look.ink} data-testid="staccato" />);
+  }
+  return parts;
+}
+
 /** A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend. */
-function BendDrawing({ bend, x, y, look }: { bend: Bend; x: number; y: number; look: TabLook }) {
-  const top = ROW.staffTop - 10;
+function BendDrawing({ bend, x, y, staffTop, look }: { bend: Bend; x: number; y: number; staffTop: number; look: TabLook }) {
+  const top = staffTop - 10;
   const head = (tx: number, ty: number, down = false) => (
     <path d={down ? `M${tx - 4} ${ty - 7} L${tx} ${ty} L${tx + 4} ${ty - 7}` : `M${tx - 4} ${ty + 7} L${tx} ${ty} L${tx + 4} ${ty + 7}`} fill={look.ink} />
   );
@@ -383,7 +440,7 @@ function BendDrawing({ bend, x, y, look }: { bend: Bend; x: number; y: number; l
 }
 
 /** Stems, beams, flags, dots, triplet numbers and rests under the staff. */
-function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLook }) {
+function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: number; look: TabLook }) {
   const parts: ReactNode[] = [];
   const groups = beamGroups(bar, beat);
   const grouped = new Map<Column, PlacedColumn[]>();
@@ -394,22 +451,22 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
     const { value, dots } = column.duration;
     const key = `${x}`;
     if (isRest(column)) {
-      parts.push(<Rest key={`rest-${key}`} x={x} value={value} look={look} />);
+      parts.push(<Rest key={`rest-${key}`} x={x} y={rows.stemTop + 10} value={value} look={look} />);
     } else if (value === 2) {
-      parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={ROW.stemBottom - 12} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
+      parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={rows.stemBottom - 12} y2={rows.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
     } else if (value >= 4) {
-      parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={ROW.stemTop} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
+      parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={rows.stemTop} y2={rows.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
       const group = grouped.get(column);
       if (value >= 8 && (!group || group.length === 1)) {
         // A lone eighth or shorter gets its flags.
         for (let f = 0; f < beamCount(value); f++) {
-          const fy = ROW.stemBottom - f * 6;
+          const fy = rows.stemBottom - f * 6;
           parts.push(<path key={`flag-${key}-${f}`} d={`M${x} ${fy} q6 -2 8 -9`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
         }
       }
     }
     for (let d = 0; d < dots; d++) {
-      parts.push(<circle key={`dot-${key}-${d}`} cx={x + 5 + d * 5} cy={ROW.stemBottom - 3} r={1.8} fill={look.ink} />);
+      parts.push(<circle key={`dot-${key}-${d}`} cx={x + 5 + d * 5} cy={rows.stemBottom - 3} r={1.8} fill={look.ink} />);
     }
   }
 
@@ -417,12 +474,12 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
     if (g.columns.length < 2) continue;
     const first = g.columns[0].x;
     const last = g.columns[g.columns.length - 1].x;
-    parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={ROW.stemBottom} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={3.2} />);
+    parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={rows.stemBottom} y2={rows.stemBottom} stroke={look.ink} strokeWidth={3.2} />);
     // The second, third and fourth beams join neighbours that have them too; a note alone in having
     // one gets a short stub toward its neighbour.
     for (let level = 2; level <= 4; level++) {
       const has = (p?: PlacedColumn) => p !== undefined && beamCount(p.column.duration.value) >= level;
-      const y = ROW.stemBottom - (level - 1) * 6;
+      const y = rows.stemBottom - (level - 1) * 6;
       g.columns.forEach((p, k) => {
         if (!has(p)) return;
         const next = g.columns[k + 1];
@@ -444,15 +501,14 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
     let last = k;
     while (cols[last + 1]?.column.duration.triplet && last - k < 2) last++;
     parts.push(
-      <text key={`tuplet-${p.x}`} x={(p.x + cols[last].x) / 2} y={ROW.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle">3</text>,
+      <text key={`tuplet-${p.x}`} x={(p.x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle">3</text>,
     );
   });
 
   return <g>{parts}</g>;
 }
 
-function Rest({ x, value, look }: { x: number; value: number; look: TabLook }) {
-  const y = ROW.stemTop + 10;
+function Rest({ x, y, value, look }: { x: number; y: number; value: number; look: TabLook }) {
   if (value === 1) return <rect x={x - 6} y={y - 6} width={12} height={5} fill={look.ink} data-testid="rest" />;
   if (value === 2) return <rect x={x - 6} y={y - 1} width={12} height={5} fill={look.ink} data-testid="rest" />;
   if (value === 4) {

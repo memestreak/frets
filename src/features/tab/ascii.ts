@@ -117,7 +117,7 @@ function parseStringLine(
       if (note.harmonic && (text[k] === '>' || text[k] === ']')) k++;
       // A natural harmonic written "12*".
       if (text[k] === '*') {
-        note.harmonic = true;
+        note.harmonic = 'natural';
         k++;
       }
       if (note.tie && text[k] === ')') k++;
@@ -137,7 +137,7 @@ function parseStringLine(
       }
       // Vibrato: "~" (any number), or "v".
       while (text[k] === '~' || (text[k] === 'v' && !isDigit(text[k + 1]))) {
-        note.vibrato = true;
+        note.vibrato = 'slight';
         k++;
       }
       if (text[k] === 'M') {
@@ -180,7 +180,7 @@ function parseStringLine(
       joinFromLast = c === 's' ? 'slide' : 'legato';
       hasPrefix = true;
     } else if (c === '<' || c === '[') {
-      prefix = { harmonic: true };
+      prefix = { harmonic: 'natural' };
       hasPrefix = true;
     } else if (c === 't') {
       prefix = { tap: true };
@@ -592,11 +592,11 @@ export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: str
   if (note.legato) prefix = note.legato;
   else if (note.slide) prefix = slide === 'up' ? '/' : '\\';
   else if (note.tie) prefix = '(';
-  else if (note.harmonic) prefix = '<';
+  else if (note.harmonic === 'natural') prefix = '<';
   else if (note.tap) prefix = 't';
   if (note.fret === null) return { prefix, text: 'x' };
   let text = String(note.fret);
-  if (note.harmonic && prefix === '<') text += '>';
+  if (prefix === '<') text += '>';
   if (note.tie && prefix === '(') text += ')';
   if (note.bend) {
     const target = note.fret + note.bend.quarters / 2;

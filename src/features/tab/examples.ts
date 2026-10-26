@@ -76,6 +76,39 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'accents',
+    title: 'Accents, ghost notes and staccato',
+    shows: 'Accents and heavy accents, ghost notes in brackets, staccato dots',
+    text: [
+      '\\title "Accents, ghost notes and staccato"',
+      '\\ts (4 4)',
+      '0.6{ac}.8 0.6{g}.16 0.6{g}.16 3.6{st}.8 3.6{st}.8 5.5{hac}.4 x.5{g}.8 5.5{ac}.8 |',
+      '(5.2{hac} 7.3{hac} 5.4{hac}).4{sd} (5.2{st} 7.3{st} 5.4{st}).8{su} r.8 (5.2{ac} 7.3{ac} 5.4{ac}).2{sd} |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'let-ring',
+    title: 'Let ring',
+    shows: 'An arpeggio left to ring, then a note that stops it',
+    text: [
+      '\\title "Let ring"',
+      '\\ts (3 4)',
+      '0.5{lr}.8 2.4{lr}.8 2.3{lr}.8 1.2{lr}.8 0.1{lr}.8 1.2.8 |',
+      '(0.1 1.2 2.3 2.4 0.5).2{d} |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'lead',
+    title: 'Pinch harmonics, wide vibrato, slides out',
+    shows: 'A pinch harmonic with wide vibrato, and notes slid out down and up',
+    text: [
+      '\\title "Pinch harmonics, wide vibrato, slides out"',
+      '\\ts (4 4)',
+      '3.3{vw ph}.2 5.2{sod}.4 r.4 |',
+      '7.3{sou}.4 r.4 12.1{vw}.2 |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'strumming',
     title: 'Strummed chords',
     shows: 'Chords with down and up strokes, a chord let ring with ties',

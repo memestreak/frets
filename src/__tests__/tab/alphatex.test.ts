@@ -114,18 +114,38 @@ describe('readAlphaTex', () => {
   });
 
   it('keeps what it does not draw, says so, and writes it back as written', () => {
-    const tex = '\\title "Kept"\n\\artist "Me"\n\\section "Chorus" 5.3{g lr}.4{gr} 7.3{vw}.4 |';
+    const tex = '\\title "Kept"\n\\artist "Me"\n\\section "Chorus" 5.3{ten}.4{gr} 7.3.4 |';
     const result = read(tex);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.warnings.join(' ')).toMatch(/Kept but not drawn yet: .*g \(ghost note\)/);
+    expect(result.warnings.join(' ')).toMatch(/Kept but not drawn yet: .*ten \(tenuto\)/);
     const out = writeAlphaTex(result.clip);
     expect(out).toContain('\\artist "Me"');
     expect(out).toContain('\\section "Chorus"');
-    expect(out).toContain('5.3{g lr}');
+    expect(out).toContain('5.3{ten}');
     expect(out).toContain('{gr}');
-    expect(out).toContain('7.3{vw}.4');
     expect(clipOf(out)).toEqual(result.clip);
+  });
+
+  it('names a kept \\ac tag a pickup bar, not an accent', () => {
+    const result = read('\\ac 5.3.4 |');
+    expect(result.ok && result.warnings.join(' ')).toMatch(/\\ac \(pickup bar\)/);
+  });
+
+  it('reads and writes let ring, ghost notes, accents, staccato, wide vibrato, slides out and pinch harmonics', () => {
+    const tex = '5.3{lr g}.4 7.3{ac st}.4 8.2{vw hac}.4 5.1{sod ph}.8 5.1{sou}.8 |';
+    const clip = clipOf(tex);
+    const notes = clip.bars[0].columns.map(c => c.notes.find(n => n !== null));
+    expect(notes).toEqual([
+      { fret: 5, letRing: true, ghost: true },
+      { fret: 7, accent: 'normal', staccato: true },
+      { fret: 8, accent: 'heavy', vibrato: 'wide' },
+      { fret: 5, slideOut: 'down', harmonic: 'pinch' },
+      { fret: 5, slideOut: 'up' },
+    ]);
+    const result = read(tex);
+    expect(result.ok && result.warnings).toEqual([]);
+    expect(writeAlphaTex(clip)).toContain(tex);
   });
 
   it('gives alphaTab\'s errors with their line and column', () => {
@@ -151,8 +171,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all six', () => {
-    expect(examples).toHaveLength(6);
+  it('finds all seven', () => {
+    expect(examples).toHaveLength(7);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {
@@ -164,7 +184,7 @@ describe('the examples in tab-alphatex.txt', () => {
   it('keeps every symbol section 6 lists', () => {
     const result = read([
       '\\section "Chorus" \\tempo 120',
-      '5.3{g lr ac st vw}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3{sou}.8 5.3.16{gr} 5.3.8{tp 16} 3.6.8{tb (0 -4 0)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
+      '5.3{ten}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3.8 5.3.16{gr} 5.3.8{tp 16} 3.6.8{tb (0 -4 0)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
     ].join('\n'));
     expect(result.ok).toBe(true);
     if (result.ok) expect(clipOf(writeAlphaTex(result.clip))).toEqual(result.clip);

@@ -1,5 +1,7 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnWidth, layoutClip } from '@/features/tab/layout';
+import { columnWidth, hitTest, layoutClip, rowsFor, runAt } from '@/features/tab/layout';
+import * as alphaTab from '@coderline/alphatab';
+import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
 
 function clipOf(text: string): Clip {
@@ -71,5 +73,55 @@ describe('layoutClip', () => {
   it('names the strings only when the tuning is not standard', () => {
     expect(layoutClip(LONG, 800).names).toBeNull();
     expect(layoutClip({ ...LONG, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] }, 800).names).toEqual(['E', 'B', 'G', 'D', 'A', 'D']);
+  });
+});
+
+describe('rowsFor', () => {
+  const rowsOf = (tex: string) => {
+    const result = readAlphaTexWith(alphaTab, tex);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return rowsFor(result.clip);
+  };
+
+  it('has no rows above the staff for plain notes, only room for bends', () => {
+    const rows = rowsOf('5.3.4 7.3{b (0 4)}.4 r.2 |');
+    expect([rows.endings, rows.strokes, rows.letRing, rows.palmMute, rows.harmonics, rows.vibrato, rows.accents]).toEqual([null, null, null, null, null, null, null]);
+    expect(rows.staffTop).toBe(30);
+  });
+
+  it('gives each mark the clip uses a row of its own, in order, and moves the staff down for them', () => {
+    const rows = rowsOf('5.3{pm ac}.4{sd} 7.3{lr v}.4 r.2 |');
+    expect(rows.endings).toBeNull();
+    expect(rows.harmonics).toBeNull();
+    const used = [rows.strokes!, rows.letRing!, rows.palmMute!, rows.vibrato!, rows.accents!];
+    expect(used).toEqual([...used].sort((a, b) => a - b));
+    expect(new Set(used).size).toBe(used.length);
+    expect(rows.staffTop).toBeGreaterThan(rows.accents! + 10);
+    expect(rows.height).toBe(rows.staffBottom + 54);
+  });
+});
+
+describe('pressing the drawing', () => {
+  const clipOf = (tex: string) => {
+    const result = readAlphaTexWith(alphaTab, tex);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return result.clip;
+  };
+  const layout = layoutClip(clipOf('0.6{pm}.8 0.6{pm}.8 0.6.4 r.2 |'), 800);
+  const { rows } = layout;
+  const [first, second] = layout.systems[0].bars[0].columns;
+
+  it('lands on the staff only, not over or under it or past the last bar', () => {
+    expect(hitTest(layout, first.x, rows.staffTop)).toEqual({ bar: 0, column: 0, string: 0 });
+    expect(hitTest(layout, first.x, rows.palmMute!)).toBeNull();
+    expect(hitTest(layout, first.x, rows.stemBottom)).toBeNull();
+    expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();
+  });
+
+  it('finds the P.M. run under a press on its label or line', () => {
+    const hit = runAt(layout, first.x, rows.palmMute!);
+    expect(hit?.mark).toBe('palmMute');
+    expect(hit?.run.columns).toEqual([first, second]);
+    expect(runAt(layout, first.x, rows.staffTop)).toBeNull();
   });
 });

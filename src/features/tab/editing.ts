@@ -98,6 +98,19 @@ export function noteBefore(clip: Clip, cursor: Cursor): Note | null {
   return null;
 }
 
+/**
+ * The places of the run of columns round `index` that all have a mark (`has`), as the P.M. and let
+ * ring lines run: across bars and lines of tab, as far as the mark goes.
+ */
+export function runAround(clip: Clip, index: number, has: (column: Column) => boolean): [number, number] {
+  const columns = clip.bars.flatMap(b => b.columns);
+  let from = index;
+  let to = index;
+  while (from > 0 && has(columns[from - 1])) from--;
+  while (to < columns.length - 1 && has(columns[to + 1])) to++;
+  return [from, to];
+}
+
 /* — keeping joins true — */
 
 /**
@@ -269,9 +282,6 @@ export function toggleStroke(clip: Clip, target: Target, stroke: 'down' | 'up'):
 
 /* — note marks — */
 
-/** Marks a note can carry that are simply on or off. */
-export type NoteFlag = 'vibrato' | 'harmonic' | 'tap' | 'palmMute';
-
 /**
  * Changes the notes a note mark applies to: with a selection every note in its columns, else the
  * cursor's note. Returns the clip unchanged when there is no note to mark.
@@ -323,14 +333,33 @@ function targetNotes(clip: Clip, { cursor, selection }: Target): Note[] {
   return notes;
 }
 
-/** Turns a mark on for the target notes, or off when they all have it already. */
-export function toggleFlag(clip: Clip, target: Target, flag: NoteFlag): Clip {
-  const notes = targetNotes(clip, target);
-  const on = !notes.every(n => n[flag]);
-  return changeNotes(clip, target, note => {
-    const rest = without(note, flag);
-    return on ? { ...rest, [flag]: true } : rest;
-  });
+/** Marks a note carries that are on or off (true), or one of a few kinds. */
+type NoteMarks = Required<Pick<Note, 'vibrato' | 'harmonic' | 'tap' | 'palmMute' | 'letRing' | 'ghost' | 'accent' | 'staccato' | 'slideOut'>>;
+export type MarkName = keyof NoteMarks;
+/** A mark and one of its kinds: ['vibrato', 'wide'], ['palmMute', true]. */
+export type MarkKind = { [K in MarkName]: [K, NoteMarks[K]] }[MarkName];
+
+function withMark(note: Note, mark: MarkName, value: NoteMarks[MarkName] | undefined): Note {
+  const n: Note = { ...note };
+  delete n[mark];
+  return value === undefined ? n : { ...n, [mark]: value };
+}
+
+/** Sets a mark on the target notes, or clears it when they all have that kind already. */
+export function setMark(clip: Clip, target: Target, [mark, value]: MarkKind): Clip {
+  const off = targetNotes(clip, target).every(n => n[mark] === value);
+  return changeNotes(clip, target, note => withMark(note, mark, off ? undefined : value));
+}
+
+/**
+ * Steps a mark through its kinds, then off, for the keys that do (V: vibrato, then wide). The next
+ * kind is the one after the cursor note's, and every target note gets it.
+ */
+export function cycleMark<K extends MarkName>(clip: Clip, target: Target, mark: K, kinds: NoteMarks[K][]): Clip {
+  const note = noteAt(clip, target.cursor) ?? targetNotes(clip, target)[0];
+  if (!note) return clip;
+  const next = kinds[kinds.indexOf(note[mark] as NoteMarks[K]) + 1];
+  return changeNotes(clip, target, n => withMark(n, mark, next));
 }
 
 /** A hammer-on or pull-off from the note before (named by the frets), or off again. */

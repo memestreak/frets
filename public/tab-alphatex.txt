@@ -78,9 +78,16 @@ then "." and its duration:
                  b (4 4 0)    pre-bend and release
                The bent amount is 1 (¼), 2 (½), 4 (full), 6 (1½) or 8 (2);
                it sets every point that isn't 0, so "PB ½" is b (2 2).
+    sod  sou   slide out of this note, down / up, to no fret in particular
     v          vibrato
+    vw         wide vibrato
     nh         natural harmonic: 12.3{nh}
+    ph         pinch harmonic ("P.H." over it): 3.3{ph}
     pm         palm mute, on each muted note
+    lr         let ring, on each note left to ring
+    g          ghost note, drawn in brackets: 5.3{g}
+    ac  hac    accent (>) / heavy accent (^)
+    st         staccato (a dot over the note)
 
 
 4. BEAT EFFECTS FRETS DRAWS
@@ -114,9 +121,7 @@ Any other alphaTex is kept exactly as written and written back out, though
 Frets doesn't draw it yet, and Frets lists it under the clip. Write these
 when the picture shows them:
 
-    note effects   g ghost note, lr let ring, ac accent, st staccato,
-                   vw wide vibrato, ah artificial harmonic,
-                   tr (9 16) trill, sou / sod slide out up / down
+    note effects   ah artificial harmonic, tr (9 16) trill, ten tenuto
     beat effects   gr grace note, tp 16 tremolo picking,
                    tb (0 -4 0) whammy bar, txt "text",
                    fermata (medium 1)
@@ -160,6 +165,11 @@ Each reads in Frets with no warnings and writes back exactly as shown.
     \tuning (E4 B3 G3 D3 A2 D2)
     0.6{pm}.8 0.6{pm}.8 (x.4 x.5 x.6).8 (5.4 5.5 5.6).8 (5.4 5.5 5.6).8 0.6.8 |
     (3.4 3.5 3.6).4{d} (0.4 0.5 0.6).4{d} |
+
+    \title "Funk"
+    \ts (4 4)
+    0.6{ac}.8 0.6{g}.16 0.6{g}.16 3.6{st}.8 3.6{st}.8 5.5{hac}.4 x.5{g}.8 5.5{ac}.8 |
+    0.5{lr}.8 2.4{lr}.8 2.3{lr}.8 1.2.8 3.3{vw ph}.4 5.2{sod}.4 |
 
     \title "Fast"
     \ts (3 4)
@@ -210,7 +220,7 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
        a "3" over a beamed group      {tu 3} on each of the three
 
    A stem belongs to its beat even when the frets are in parentheses (a
-   tie). Rests sit under the tab with no fret above them:
+   tie or a ghost note). Rests sit under the tab with no fret above them:
 
        a small block or bar           1 or 2 (a whole or half rest)
        a zigzag                       r.4
@@ -225,11 +235,16 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    1/2, full, 1 1/2, 2 as 1, 2, 4, 6, 8; an unlabelled one is full); a
    straight arrow already up before picking, or a "PB" label, to a
    pre-bend b (4 4); an arrow back down after a bend or pre-bend adds a
-   release, a last point 0: b (0 4 0), b (4 4 0); a wavy line to v;
-   "P.M." to pm on every note from where its line starts to its end tick,
-   muted (x) notes included; strum signs to sd / su (the square or a down
-   arrow is down, the V or an up arrow is up); a parenthesised fret or a
-   tie arc to "-" in place of the fret; a repeat's thick-thin bar with
+   release, a last point 0: b (0 4 0), b (4 4 0); a wavy line to v, a
+   wide or heavy one to vw; "P.M." to pm and "let ring" (or "l.r.") to lr
+   on every note from where its line starts to its end tick, muted (x)
+   notes included; "P.H." or "PH" to ph; strum signs to sd / su (the
+   square or a down arrow is down, the V or an up arrow is up); a fret
+   joined by a tie arc to the same fret before it to "-" in place of the
+   fret (a tied fret is often also in parentheses); a fret in parentheses
+   with no tie arc to g; ">" over a note to ac, "^" to hac, a dot over it
+   to st; a short slanted line after a note leading nowhere to sod (down)
+   or sou (up); a repeat's thick-thin bar with
    dots to \ro (dots after it) or \rc (dots before it), with n from an
    "xn" over it, else 2; ending brackets to \ae n on every bar under
    them; "x" to x in place of the fret; diamond notes or <12> to nh; "T"

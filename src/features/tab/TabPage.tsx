@@ -18,9 +18,10 @@ import {
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertColumn,
-  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, selectedRange, setFret, START, stepDuration,
-  type Cursor, type Selection,
+  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START,
+  stepDuration, type Cursor, type Selection,
 } from './editing';
+import { RUN_MARKS, type RunMark } from './layout';
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
 import { TimeSignatureField } from './TimeSignatureField';
@@ -193,7 +194,7 @@ export default function TabPage() {
       editorRef.current?.blur();
       return;
     }
-    const cycled = applyCyclingKey(clip, cursor, key);
+    const cycled = applyCyclingKey(clip, target, key);
     if (cycled) {
       handled();
       commit(cycled);
@@ -215,6 +216,20 @@ export default function TabPage() {
     } else {
       commit(clip, hit, null);
     }
+  };
+
+  /**
+   * A press on a P.M. or let ring line selects every column under it, so its palette button shows
+   * pressed and one press turns the whole run off. The cursor goes to the run's first marked note.
+   */
+  const onPickRun = (mark: RunMark, index: number) => {
+    lastDigit.current = null;
+    const { has } = RUN_MARKS.find(r => r.mark === mark)!;
+    const [from, to] = runAround(clip, index, has);
+    const place = placeOf(clip, from);
+    const notes = clip.bars[place.bar].columns[place.column].notes;
+    const string = notes.findIndex(n => n?.[mark]);
+    commit(clip, { ...place, string }, { anchor: from, focus: to });
   };
 
   /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
@@ -422,7 +437,8 @@ export default function TabPage() {
                 {...menuTrigger.props((el, x, y) => setExportMenu(menuSpot(el, x, y)))}
               >
                 <TabClip
-                  clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick}
+                  clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
+                  onMiss={() => { setSelection(null); editorRef.current?.blur(); }}
                   highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
                 />
               </div>

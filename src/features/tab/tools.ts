@@ -6,16 +6,17 @@
  */
 import type { Clip, NoteValue } from './clip';
 import {
-  columnAt, cycleBend, cycleBendShape, cycleDots, cycleEnding, cycleRepeatEnd, cycleSlide,
-  makeRest, noteAt, setBend, setDead, setSlide, setValue, toggleBendPart, toggleFlag, toggleLegato,
-  toggleRepeatStart, toggleStroke, toggleTie, toggleTriplet, type Cursor, type Target,
+  columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide,
+  makeRest, noteAt, setBend, setDead, setMark, setSlide, setValue, toggleBendPart, toggleLegato,
+  toggleRepeatStart, toggleStroke, toggleTie, toggleTriplet, type MarkKind, type Target,
 } from './editing';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'triplet' | 'rest' | 'tie'
-  | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove'
+  | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend1' | 'bend2' | 'bend4' | 'bend6' | 'bend8' | 'release' | 'preBend'
-  | 'vibrato' | 'palmMute' | 'dead' | 'harmonic' | 'tap' | 'strokeDown' | 'strokeUp'
+  | 'vibrato' | 'wideVibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
+  | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
   | 'repeatStart' | 'repeatEnd' | 'ending';
 
 export interface Tool {
@@ -52,6 +53,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'shiftSlide', label: 'Shift slide from the note before', key: '/' },
       { id: 'slideBelow', label: 'Slide in from below', key: '/' },
       { id: 'slideAbove', label: 'Slide in from above', key: '/' },
+      { id: 'slideOutDown', label: 'Slide out downward', key: '\\' },
+      { id: 'slideOutUp', label: 'Slide out upward', key: '\\' },
     ],
   },
   {
@@ -70,12 +73,24 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     label: 'Techniques',
     tools: [
       { id: 'vibrato', label: 'Vibrato', key: 'V' },
+      { id: 'wideVibrato', label: 'Wide vibrato', key: 'V' },
       { id: 'palmMute', label: 'Palm mute', key: 'M' },
+      { id: 'letRing', label: 'Let ring', key: 'L' },
       { id: 'dead', label: 'Dead note', key: 'X' },
+      { id: 'ghost', label: 'Ghost note', key: 'G' },
       { id: 'harmonic', label: 'Natural harmonic', key: 'N' },
+      { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'N' },
       { id: 'tap', label: 'Tap', key: 'T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
+    ],
+  },
+  {
+    label: 'Accents',
+    tools: [
+      { id: 'accent', label: 'Accent', key: 'A' },
+      { id: 'heavyAccent', label: 'Heavy accent', key: 'A' },
+      { id: 'staccato', label: 'Staccato', key: 'S' },
     ],
   },
   {
@@ -93,12 +108,37 @@ const VALUE: Partial<Record<ToolId, NoteValue>> = {
 };
 const BEND: Partial<Record<ToolId, 1 | 2 | 4 | 6 | 8>> = { bend1: 1, bend2: 2, bend4: 4, bend6: 6, bend8: 8 };
 
+/** Tools that set one note mark to one kind (or on). */
+const MARK: Partial<Record<ToolId, MarkKind>> = {
+  vibrato: ['vibrato', 'slight'], wideVibrato: ['vibrato', 'wide'],
+  harmonic: ['harmonic', 'natural'], pinchHarmonic: ['harmonic', 'pinch'],
+  accent: ['accent', 'normal'], heavyAccent: ['accent', 'heavy'],
+  slideOutDown: ['slideOut', 'down'], slideOutUp: ['slideOut', 'up'],
+  palmMute: ['palmMute', true], letRing: ['letRing', true], ghost: ['ghost', true],
+  staccato: ['staccato', true], tap: ['tap', true],
+};
+
+/**
+ * Marks drawn once over a column (the P.M. and let ring lines, accents, staccato) apply to every note
+ * in the column, wherever the cursor is in it: a mark half the column had would look all on.
+ */
+const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato']);
+
+/** The target as whole columns: the selection, else the cursor's column. */
+function wholeColumns(clip: Clip, target: Target): Target {
+  if (target.selection || !columnAt(clip, target.cursor)) return target;
+  const i = indexOf(clip, target.cursor.bar, target.cursor.column);
+  return { ...target, selection: { anchor: i, focus: i } };
+}
+
 /** The clip after a palette press. */
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const value = VALUE[id];
   if (value) return setValue(clip, target, value);
   const bend = BEND[id];
   if (bend) return setBend(clip, target, bend);
+  const mark = MARK[id];
+  if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
     case 'dot': return cycleDots(clip, target);
     case 'triplet': return toggleTriplet(clip, target);
@@ -111,7 +151,6 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
     case 'slideAbove': return setSlide(clip, target, 'above');
     case 'release': return toggleBendPart(clip, target, 'release');
     case 'preBend': return toggleBendPart(clip, target, 'pre');
-    case 'vibrato': case 'palmMute': case 'harmonic': case 'tap': return toggleFlag(clip, target, id);
     case 'dead': return setDead(clip, target.cursor);
     case 'strokeDown': return toggleStroke(clip, target, 'down');
     case 'strokeUp': return toggleStroke(clip, target, 'up');
@@ -123,13 +162,18 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
 }
 
 /**
- * The clip after a key press that steps through a tool's choices (b, Shift+B, /), or null when the
- * key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do.
+ * The clip after a key press that steps through a tool's choices (b, Shift+B, /, \\, V, N, A), or null
+ * when the key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do.
  */
-export function applyCyclingKey(clip: Clip, cursor: Cursor, key: string): Clip | null {
+export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip | null {
+  const { cursor } = target;
   if (key === 'b') return cycleBend(clip, cursor);
   if (key === 'B') return cycleBendShape(clip, cursor);
   if (key === '/') return cycleSlide(clip, cursor);
+  if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
+  if (key === 'v') return cycleMark(clip, target, 'vibrato', ['slight', 'wide']);
+  if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch']);
+  if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   return null;
 }
 
@@ -137,15 +181,15 @@ export function applyCyclingKey(clip: Clip, cursor: Cursor, key: string): Clip |
 export function toolForKey(key: string, alt: boolean, code: string): ToolId | null {
   if (alt) return code === 'Digit3' ? 'triplet' : null;
   const keys: Record<string, ToolId> = {
-    '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', v: 'vibrato', m: 'palmMute',
-    x: 'dead', n: 'harmonic', t: 'tap', d: 'strokeDown', u: 'strokeUp',
+    '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
+    x: 'dead', g: 'ghost', t: 'tap', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending',
   };
   return keys[key] ?? null;
 }
 
 /** Whether the cursor's column, note or bar has what a tool sets, to show its button pressed. */
-export function isOn(clip: Clip, cursor: Cursor, id: ToolId): boolean {
+export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean {
   const column = columnAt(clip, cursor);
   const note = noteAt(clip, cursor);
   const bar = clip.bars[cursor.bar];
@@ -153,6 +197,12 @@ export function isOn(clip: Clip, cursor: Cursor, id: ToolId): boolean {
   if (value) return column?.duration.value === value;
   const bend = BEND[id];
   if (bend) return note?.bend?.quarters === bend;
+  const mark = MARK[id];
+  if (mark && COLUMN_MARKS.has(mark[0])) {
+    const notes = column?.notes.filter(n => n !== null) ?? [];
+    return notes.length > 0 && notes.every(n => n[mark[0]] === mark[1]);
+  }
+  if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;
     case 'triplet': return !!column?.duration.triplet;
@@ -165,7 +215,6 @@ export function isOn(clip: Clip, cursor: Cursor, id: ToolId): boolean {
     case 'slideAbove': return note?.slide === 'above';
     case 'release': return !!note?.bend?.release;
     case 'preBend': return !!note?.bend?.pre;
-    case 'vibrato': case 'palmMute': case 'harmonic': case 'tap': return !!note?.[id];
     case 'dead': return note?.fret === null;
     case 'strokeDown': return column?.stroke === 'down';
     case 'strokeUp': return column?.stroke === 'up';

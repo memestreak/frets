@@ -64,9 +64,14 @@ function noteTex(note: Note, at: At, marks: string[]): string {
   if (note.slide === 'below') effects.push('sib');
   if (note.slide === 'above') effects.push('sia');
   if (note.bend) effects.push(`b (${bendPoints(note.bend)})`);
-  if (note.vibrato) effects.push('v');
-  if (note.harmonic) effects.push('nh');
+  if (note.slideOut) effects.push(note.slideOut === 'down' ? 'sod' : 'sou');
+  if (note.vibrato) effects.push(note.vibrato === 'wide' ? 'vw' : 'v');
+  if (note.harmonic) effects.push(note.harmonic === 'pinch' ? 'ph' : 'nh');
   if (note.palmMute) effects.push('pm');
+  if (note.letRing) effects.push('lr');
+  if (note.ghost) effects.push('g');
+  if (note.accent) effects.push(note.accent === 'heavy' ? 'hac' : 'ac');
+  if (note.staccato) effects.push('st');
   effects.push(...(note.extra ?? []));
   return `${fret}.${at.string + 1}${effects.length ? `{${effects.join(' ')}}` : ''}`;
 }
