@@ -119,7 +119,10 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace }: {
   // The line is the clip as written, each bar as long as its time: a repeat goes back along it.
   const time = timeline(clip);
   const total = time.columns.length;
-  const progress = view.column === null ? 0 : time.columns[view.column] / Math.max(1, time.total);
+  // Playing, the line fills to the column sounding; stopped, to where Play will start.
+  const startsAt = Array.isArray(loop) && (from < loop[0] || from > loop[1]) ? loop[0] : from;
+  const shown = view.column ?? (view.state === 'playing' ? null : startsAt);
+  const progress = shown === null ? 0 : (time.columns[shown] ?? 0) / Math.max(1, time.total);
   const percent = Math.round(speed * 100);
   const loopTip = loop
     ? 'Loop on: press to play once'
