@@ -149,18 +149,27 @@ function Warning({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
-/** A soft band behind every selected column, joined across each run. */
+/**
+ * A soft band behind the selected columns: one unbroken band on each line of tab, from the first
+ * selected column there to the last, so it runs across the bar lines between them (Jeremy, 2026-10-26).
+ */
 function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<typeof layoutClip>; range: [number, number] }) {
+  const { rows } = layout;
   return (
     <g data-testid="tab-selection">
-      {layout.systems.flatMap((system, si) => system.bars.flatMap(bar => bar.columns
-        .filter(c => c.index >= from && c.index <= to)
-        .map(c => (
+      {layout.systems.map((system, si) => {
+        const chosen = system.bars.flatMap(bar => bar.columns).filter(c => c.index >= from && c.index <= to);
+        if (chosen.length === 0) return null;
+        const first = chosen[0];
+        const last = chosen[chosen.length - 1];
+        const x0 = first.x - first.width / 2;
+        return (
           <rect
-            key={c.index} x={c.x - c.width / 2} y={si * layout.rows.height + layout.rows.staffTop - 10} width={c.width}
-            height={layout.rows.staffBottom - layout.rows.staffTop + 20} fill="var(--primary-soft)"
+            key={si} x={x0} y={si * rows.height + rows.staffTop - 10} width={last.x + last.width / 2 - x0}
+            height={rows.staffBottom - rows.staffTop + 20} fill="var(--primary-soft)"
           />
-        ))))}
+        );
+      })}
     </g>
   );
 }
