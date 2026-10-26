@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { BEND_QUARTERS, type BendQuarters } from './clip';
+import { BEND_QUARTERS, TUPLETS, tupletLabel, type BendQuarters } from './clip';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
 
 /**
@@ -11,14 +11,17 @@ import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
  * symbol and toggles it; its
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
  * button keeps the keyboard on the tab. Vibrato steps through normal, wide
- * and off; Bend opens a panel of amounts. Both icons show the note's kind.
+ * and off; Bend and Tuplet open a panel of choices. Their icons show the
+ * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, disabled }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, disabled }: {
   isOn: (id: ToolId) => boolean;
-  /** What the cursor note has of the marks the Bend and Vibrato icons draw. */
+  /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
   /** A bend amount picked in the Bend button's panel. */
   onBend: (quarters: BendQuarters | null) => void;
+  /** A tuplet picked in the Tuplet button's panel. */
+  onTuplet: (n: number | null) => void;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -30,7 +33,17 @@ export function TabPalette({ isOn, kinds, onTool, onBend, disabled }: {
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
             {group.tools.map(tool => tool.id === 'bend' ? (
-              <BendTool key={tool.id} tool={tool} amount={disabled ? null : kinds.bend} onBend={onBend} disabled={disabled} />
+              <PanelTool
+                key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
+                icon={<BendGlyph amount={kinds.bend ? BEND_AMOUNTS[kinds.bend] : ''} />} onPick={onBend} disabled={disabled}
+              />
+            ) : tool.id === 'tuplet' ? (
+              <PanelTool
+                key={tool.id} tool={tool}
+                // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
+                current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
+                icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
+              />
             ) : (
               <button
                 key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
@@ -91,14 +104,19 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
 }
 
 /**
- * The Bend button: its icon shows the cursor note's amount (none without a bend), and a press opens
- * a panel under it with every amount and None, the note's lit; picking one sets it, None takes
- * the bend away. A press outside, or Esc, closes it; focus never leaves the tab.
+ * A palette button that opens a panel of choices under it (Bend, Tuplet): its icon shows the cursor's
+ * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
+ * closes the panel; focus never leaves the tab.
  */
-function BendTool({ tool, amount, onBend, disabled }: {
+function PanelTool<T extends number>({ tool, current, choices, label, icon, onPick, disabled }: {
   tool: Tool;
-  amount: BendQuarters | null;
-  onBend: (quarters: BendQuarters | null) => void;
+  /** The cursor's choice, or null for none. */
+  current: T | null;
+  choices: readonly T[];
+  /** A choice as the panel names it. */
+  label: (choice: T) => string;
+  icon: ReactNode;
+  onPick: (choice: T | null) => void;
   disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -128,26 +146,26 @@ function BendTool({ tool, amount, onBend, disabled }: {
     <span ref={boxRef} className="tab-tool-box">
       <button
         type="button" className="btn btn-secondary btn-toggle tab-tool"
-        aria-label={tool.label} aria-pressed={amount !== null} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        aria-label={tool.label} aria-pressed={!disabled && current !== null} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={`${tool.label} (${tool.key})`}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
       >
         <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-          <BendGlyph amount={amount ? BEND_AMOUNTS[amount] : ''} />
+          {icon}
         </svg>
       </button>
       {open && !disabled && (
-        <span className="tab-tool-panel card" role="dialog" aria-label="Bend">
-          <span className="tab-bar-time-title">Bend</span>
-          <span className="seg" role="group" aria-label="Bend amount">
-            {[...BEND_QUARTERS, null].map(q => (
+        <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
+          <span className="tab-bar-time-title">{tool.label}</span>
+          <span className="seg" role="group" aria-label={`${tool.label} choices`}>
+            {[...choices, null].map(choice => (
               <button
-                key={q ?? 'none'} type="button" className="seg-opt tab-bend-amount" aria-pressed={q === amount}
+                key={choice ?? 'none'} type="button" className="seg-opt tab-panel-choice" aria-pressed={choice === current}
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { onBend(q); setOpen(false); }}
+                onClick={() => { onPick(choice); setOpen(false); }}
               >
-                {q === null ? 'None' : BEND_AMOUNTS[q]}
+                {choice === null ? 'None' : label(choice)}
               </button>
             ))}
           </span>
@@ -158,8 +176,9 @@ function BendTool({ tool, amount, onBend, disabled }: {
 }
 
 /** A tuplet's bracket with its number under it. */
-function TupletGlyph({ n }: { n: number }) {
-  return <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>{n}</Label></>;
+function TupletGlyph({ n }: { n: string }) {
+  // Two digits or a ratio (12, 3:4) in smaller type, to fit.
+  return <><path d="M4 9 V6 H20 V9" /><Label y={20} size={n.length > 1 ? 9 : 12}>{n}</Label></>;
 }
 
 /** A quarter note's stem with tremolo slashes across it, one for eighths up to three for thirty-seconds. */
@@ -172,7 +191,7 @@ function TremoloGlyph({ slashes }: { slashes: number }) {
   );
 }
 
-const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato'>, ReactNode> = {
+const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
   quarter: <NoteGlyph open={false} />,
@@ -182,10 +201,6 @@ const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato'>, ReactNode> = {
   sixtyFourth: <NoteGlyph open={false} flags={4} />,
   // The dot sits where it would beside a note head, at the heads' height in the other duration icons.
   dot: <circle cx={12} cy={17} r={2.6} fill="currentColor" stroke="none" />,
-  triplet: <TupletGlyph n={3} />,
-  quintuplet: <TupletGlyph n={5} />,
-  sextuplet: <TupletGlyph n={6} />,
-  septuplet: <TupletGlyph n={7} />,
   // A small number before a full-size one, as a grace note is drawn.
   grace: <><Label x={7} y={17} size={7.5}>3</Label><Label x={15} y={18} size={12}>5</Label></>,
   tremolo8: <TremoloGlyph slashes={1} />,
@@ -223,6 +238,8 @@ const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato'>, ReactNode> = {
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
   chordName: <Label y={16} size={10}>Am</Label>,
+  // Words in italics, as free text is drawn over the tab.
+  beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
   // A capo: a bar clamped across the strings.
   capo: <>{[7, 11, 15, 19].map(y => <line key={y} x1={3} y1={y} x2={21} y2={y} strokeWidth={1} />)}<rect x={10} y={4} width={4.5} height={18} rx={2} fill="currentColor" stroke="none" /></>,

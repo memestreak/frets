@@ -97,14 +97,15 @@ function graceValue(columns: Column[], index: number): Column['duration']['value
 function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
   const column = columns[index];
   // A grace note is written plain, at the length alphaTab gives it.
-  const { value, dots, tuplet } = column.grace ? { value: graceValue(columns, index), dots: 0 } : column.duration;
+  const { value, dots, tuplet, tupletSpan } = column.grace ? { value: graceValue(columns, index), dots: 0 } : column.duration;
   const effects: string[] = [];
   if (dots === 1) effects.push('d');
   if (dots === 2) effects.push('dd');
-  if (tuplet) effects.push(`tu ${tuplet}`);
+  if (tuplet) effects.push(tupletSpan ? `tu (${tuplet} ${tupletSpan})` : `tu ${tuplet}`);
   if (column.grace) effects.push(column.grace === 'on' ? 'gr ob' : 'gr');
   if (column.tremolo) effects.push(`tp ${column.tremolo}`);
   if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
+  if (column.text) effects.push(`txt ${quoted(column.text)}`);
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   effects.push(...(column.extra ?? []));

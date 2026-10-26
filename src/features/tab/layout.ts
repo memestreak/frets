@@ -26,6 +26,8 @@ export interface Rows {
   endings: number | null;
   /** Chord names over their columns. */
   chords: number | null;
+  /** Free text over its column (alphaTex txt). */
+  text: number | null;
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
@@ -59,6 +61,7 @@ export function rowsFor(clip: Clip): Rows {
     tempo: clip.bars.some(b => b.tempo),
     section: clip.bars.some(b => b.section),
     chords: columns.some(c => c.chord),
+    text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
@@ -75,6 +78,7 @@ export function rowsFor(clip: Clip): Rows {
     section: row(used.section),
     endings: row(used.endings),
     chords: row(used.chords),
+    text: row(used.text),
     strokes: row(used.strokes),
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
@@ -168,6 +172,13 @@ export function charWidth(column: Column): number {
 export const CHORD_SIZE = 12;
 export function chordWidth(chord: string): number {
   return chord.length * 7;
+}
+
+export const BEAT_TEXT_SIZE = 11;
+/** Free text starts a little left of its column's middle and runs right. */
+export const BEAT_TEXT_INSET = 4;
+export function beatTextWidth(text: string): number {
+  return text.length * 5.6;
 }
 
 export const SECTION_SIZE = 11;
@@ -316,10 +327,10 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
 }
 
 /**
- * What a press on the words over the staff, or on a time signature, is on: a chord name (its
- * column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
+ * What a press on the words over the staff, or on a time signature, is on: a chord name or free text
+ * (its column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
  */
-export type TextHit = { kind: 'chord'; index: number } | { kind: 'section' | 'tempo' | 'time' | 'capo'; bar: number };
+export type TextHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'time' | 'capo'; bar: number };
 
 export const CAPO_SIZE = 11;
 /** The capo's words, as drawn: "Capo 3". */
@@ -344,6 +355,13 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
     for (const placed of system.bars.flatMap(b => b.columns)) {
       const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
       if (w > 0 && Math.abs(x - placed.x) <= w / 2 + 2) return { kind: 'chord', index: placed.index };
+    }
+  }
+  if (near(rows.text)) {
+    for (const placed of system.bars.flatMap(b => b.columns)) {
+      const t = placed.column.text;
+      const x0 = placed.x - BEAT_TEXT_INSET;
+      if (t && x >= x0 - 2 && x <= x0 + beatTextWidth(t) + 2) return { kind: 'text', index: placed.index };
     }
   }
   for (const bar of system.bars) {

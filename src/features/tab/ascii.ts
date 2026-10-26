@@ -10,8 +10,8 @@
  */
 import {
   barTicks, isPalmMuted, isStandardTuning, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
-  ticks, COMMON_TIME, isTimeSignature, WHOLE,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue, type Tuplet,
+  ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
+  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
 } from './clip';
 
@@ -34,7 +34,7 @@ function annotationKind(line: string): LineKind | null {
   if (tokens.length === 0) return null;
   // Endings come first: "x3" alone is a repeat count, though in a rhythm line it is a sixty-fourth triplet.
   if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
-  if (tokens.every(t => /^[whqestx](?:\.\.?|[3567])?$/.test(t))) return 'rhythm';
+  if (tokens.every(t => /^[whqestx](?:\.\.?|\d{1,2}(?::\d{1,2})?)?$/.test(t))) return 'rhythm';
   if (tokens.every(t => STROKE_MARKS.test(t))) return 'strokes';
   if (/P\.?M/.test(line) && /^[\sPM.\-|]+$/.test(line)) return 'palmMute';
   return null;
@@ -257,14 +257,15 @@ function hasColonInside(g: Boundary, colons: Set<number>, side: 'start' | 'end')
   return false;
 }
 
-/** A rhythm letter with its dots ("e.") or its tuplet ("e3", "s5"). */
+/** A rhythm letter with its dots ("e.") or its tuplet ("e3", "s5", "s9", "e3:4": three in the time of four). */
 function parseDuration(token: string): Duration {
   const duration: Duration = {
     value: RHYTHM_LETTERS[token[0]],
     dots: token.startsWith('..', 1) ? 2 : token[1] === '.' ? 1 : 0,
   };
-  if (/[3567]/.test(token[1] ?? '')) duration.tuplet = Number(token[1]) as Tuplet;
-  return duration;
+  const tuplet = /^\d+(?::(\d+))?$/.exec(token.slice(1)) ? token.slice(1).split(':').map(Number) : null;
+  const fields = tuplet ? tupletFields(tuplet[0], tuplet[1] ?? TUPLET_SPANS[tuplet[0]]) : null;
+  return { ...duration, ...fields };
 }
 
 interface Block {
@@ -405,7 +406,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const rhythm = block.annotations.rhythm;
   const known = new Set<number>();
   if (rhythm !== undefined) {
-    for (const m of rhythm.matchAll(/[whqestx](?:\.\.?|[3567])?/g)) {
+    for (const m of rhythm.matchAll(/[whqestx](?:\.\.?|\d{1,2}(?::\d{1,2})?)?/g)) {
       const at = m.index!;
       const column = columnAt.get(at);
       if (column) {
@@ -602,9 +603,9 @@ export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: str
   return { prefix, text };
 }
 
-export function rhythmToken({ value, dots, tuplet }: Duration): string {
-  const letter = Object.keys(RHYTHM_LETTERS).find(k => RHYTHM_LETTERS[k] === value)!;
-  return letter + '.'.repeat(dots) + (tuplet ?? '');
+export function rhythmToken(duration: Duration): string {
+  const letter = Object.keys(RHYTHM_LETTERS).find(k => RHYTHM_LETTERS[k] === duration.value)!;
+  return letter + '.'.repeat(duration.dots) + (duration.tuplet ? tupletLabel(duration) : '');
 }
 
 /** Characters a column takes: two a sixteenth, and room for its notes and the next column's marks. */

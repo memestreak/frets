@@ -102,6 +102,10 @@ then "." and its duration:
     tu 6       sextuplet: six in the time of four
     tu 7       septuplet: seven in the time of four. Five, six or seven
                sixteenths with {tu n} fill one quarter.
+    tu 9       nine in the time of eight; tu 10, tu 11 and tu 12 the same:
+               nine to twelve thirty-seconds with {tu n} fill one quarter.
+    tu (n d)   n in the time of d, for any other ratio of up to twelve
+               notes: 5.3.8{tu (3 4)} is three eighths filling a half.
     gr         grace note, drawn small, played just before the next beat
                and taking no time in the bar: 5.3{h}.8{gr} 7.3.4 is a
                grace 5 hammered to 7. Write one grace note as .8, two in
@@ -115,6 +119,10 @@ then "." and its duration:
     ch "Am7"   a chord name over the beat, as written: 0.1.2{ch "C/G"}.
                Put it on the beat it is written over; a chord name may
                be anything ("N.C.", "Am7(b5)").
+    txt "..."  free text over the beat, drawn in italics from that beat
+               rightward: 0.1.1{txt "let ring, slowing"}. Write words
+               printed over the tab that aren't a chord name, section or
+               tempo ("rit.", "harm.", "fade out") this way.
 
 
 5. REPEATS AND ENDINGS
@@ -145,15 +153,15 @@ Frets doesn't draw it yet, and Frets lists it under the clip. Write these
 when the picture shows them:
 
     note effects   ah artificial harmonic, tr (9 16) trill, ten tenuto
-    beat effects   tb (0 -4 0) whammy bar, txt "text",
-                   fermata (medium 1), gr b bend grace note
+    beat effects   tb (0 -4 0) whammy bar, fermata (medium 1),
+                   gr b bend grace note
     bar tags       \ks (key signature), \jump Fine
 
 Not read at all (an error): more than one track, staff or voice; a tuning
 of other than six strings. Read with a warning: other time signatures (as
 4/4, or in a later bar as no change), notes shorter than a sixty-fourth
-(as sixty-fourths). Kept as written, as plain notes: tuplets other than
-3, 5, 6 and 7 (tu 9), tremolo picking with four or more slashes.
+(as sixty-fourths). Kept as written, as plain notes: tuplets of more
+than twelve notes (tu (13 8)), tremolo picking with four or more slashes.
 
 
 7. EXAMPLES
@@ -293,7 +301,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    the beat under it; a boxed word over a bar ("Verse", "Chorus") to
    \section, and a letter in a box to its rehearsal mark; "♩ = 90" over a
    bar to \tempo 90 (a word before it, "Slowly ♩ = 60", to
-   \tempo (60 "Slowly")). Marks from section 6 are written as shown
+   \tempo (60 "Slowly")); other words over the tab ("rit.", "harm.")
+   to txt "..." on the beat they start over. Marks from section 6 are written as shown
    there.
 5. A double or thick final bar line is just the last "|".
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to

@@ -14,15 +14,39 @@ export interface Duration {
   value: NoteValue;
   /** Dots after the note: one adds half its length, two add three quarters. */
   dots: 0 | 1 | 2;
-  /** One of a tuplet: three in the time of two plain ones, or five, six or seven in the time of four. */
-  tuplet?: Tuplet;
+  /** One of a tuplet of this many notes (2 to 12), played in the time of `tupletSpan` plain ones. */
+  tuplet?: number;
+  /** The plain notes the tuplet takes the time of, when not its usual span (`tu (3 4)`: three in the time of four). */
+  tupletSpan?: number;
 }
 
-/** The tuplets Frets draws: a triplet, quintuplet, sextuplet and septuplet. */
-export type Tuplet = 3 | 5 | 6 | 7;
-export const TUPLETS: readonly Tuplet[] = [3, 5, 6, 7];
-/** How many plain notes a tuplet takes the time of, as alphaTab reads "tu 3" … "tu 7". */
-export const TUPLET_SPAN: Record<Tuplet, number> = { 3: 2, 5: 4, 6: 4, 7: 4 };
+/** The tuplets alphaTex names by one number, and the plain notes each takes the time of ("tu 9": nine in the time of eight). */
+export const TUPLET_SPANS: Readonly<Record<number, number>> = { 3: 2, 5: 4, 6: 4, 7: 4, 9: 8, 10: 8, 11: 8, 12: 8 };
+/** Those tuplets, in order: the palette's choices. */
+export const TUPLETS: readonly number[] = [3, 5, 6, 7, 9, 10, 11, 12];
+/** The most notes in a tuplet; with this many at most, every tuplet's notes are a whole number of ticks. */
+export const MAX_TUPLET = 12;
+
+/** How many plain notes a duration's tuplet takes the time of: its own span, else the usual one. */
+export function spanOf(duration: Duration): number {
+  return duration.tupletSpan ?? TUPLET_SPANS[duration.tuplet ?? 0] ?? 1;
+}
+
+/** A tuplet and span alphaTex can write, as Frets keeps them: the span only when it isn't the usual one. */
+export function tupletFields(n: number, span: number): Pick<Duration, 'tuplet' | 'tupletSpan'> | null {
+  if (!Number.isInteger(n) || !Number.isInteger(span) || n < 2 || n > MAX_TUPLET || span < 1 || span > 2 * MAX_TUPLET || n === span) return null;
+  return TUPLET_SPANS[n] === span ? { tuplet: n } : { tuplet: n, tupletSpan: span };
+}
+
+/** A tuplet's name as drawn over it: "9", or "3:4" when its span isn't the usual one. */
+export function tupletLabel(duration: Duration): string {
+  return duration.tupletSpan ? `${duration.tuplet}:${duration.tupletSpan}` : String(duration.tuplet);
+}
+
+/** Whether two durations are in the same kind of tuplet (or neither is). */
+export function sameTuplet(a: Duration, b: Duration): boolean {
+  return a.tuplet === b.tuplet && a.tupletSpan === b.tupletSpan;
+}
 
 /** Bends in quarter-steps: 1 a ¼-tone curl, 2 a ½, 4 full, 6 1½, 8 two steps. */
 export type BendQuarters = 1 | 2 | 4 | 6 | 8;
@@ -79,6 +103,8 @@ export interface Column {
   stroke?: 'down' | 'up';
   /** A chord name written over the column, as typed ("Am7", "C/G"). */
   chord?: string;
+  /** Free text written over the column, from it rightward ("let ring", "slowly"; alphaTex txt). */
+  text?: string;
   /**
    * A grace note, drawn small and taking no time in the bar: played just before the beat, or on it,
    * taking its time from the note after it (alphaTex gr, gr ob).
@@ -163,16 +189,18 @@ export interface Clip {
 
 export const STRING_COUNT = 6;
 
-/* — durations in ticks: a whole note is 26880 (768 × 5 × 7), so every value, dotted or in any tuplet,
-   is a whole number (a double-dotted thirty-second in a septuplet is 840, a sixty-fourth in one 240) — */
+/* — durations in ticks: a whole note is 3548160 (1024 × 9 × 5 × 7 × 11), so every value, dotted or in
+   a tuplet of up to twelve, is a whole number (a double-dotted thirty-second in a tuplet of eleven
+   is 194040 × 8 / 11 = 141120) — */
 
-export const WHOLE = 26880;
+export const WHOLE = 3548160;
 
-export function ticks({ value, dots, tuplet }: Duration): number {
+export function ticks(duration: Duration): number {
+  const { value, dots, tuplet } = duration;
   let t = WHOLE / value;
   if (dots === 1) t *= 1.5;
   if (dots === 2) t *= 1.75;
-  if (tuplet) t = (t * TUPLET_SPAN[tuplet]) / tuplet;
+  if (tuplet) t = (t * spanOf(duration)) / tuplet;
   return t;
 }
 
@@ -241,6 +269,94 @@ export function unevenMessage(clip: Pick<Clip, 'time' | 'bars'>): string | null 
     `${bars.length === 1 ? `bar ${bars[0]} doesn't` : `bars ${listed(bars)} don't`} add up to ${time}`);
   const line = `${parts.join('; ')}.`;
   return line[0].toUpperCase() + line.slice(1);
+}
+
+/**
+ * What is wrong with the tuplets in one bar, a sentence each ("The tuplet of 5 in bar 2 has 4 notes;
+ * it needs 5."). A run of columns in the same kind of tuplet is counted in its shortest note, so a
+ * quarter and an eighth make a whole triplet; the run must come to a whole number of groups. Grace
+ * notes take no part.
+ */
+export function tupletProblems(bar: Bar, index: number): string[] {
+  const problems: string[] = [];
+  const columns = bar.columns.filter(c => !c.grace);
+  let i = 0;
+  while (i < columns.length) {
+    const first = columns[i].duration;
+    if (!first.tuplet) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < columns.length && sameTuplet(columns[end + 1].duration, first)) end++;
+    const plain = columns.slice(i, end + 1).map(c => ticks({ value: c.duration.value, dots: c.duration.dots }));
+    const notes = plain.reduce((sum, t) => sum + t, 0) / Math.min(...plain);
+    const n = first.tuplet;
+    if (notes % n !== 0) {
+      const needs = Math.ceil(notes / n) * n;
+      const count = Number.isInteger(notes) ? String(notes) : notes.toFixed(1);
+      problems.push(`The tuplet of ${tupletLabel(first)} in bar ${index + 1} has ${count} note${notes === 1 ? '' : 's'}; it needs ${needs}.`);
+    }
+    i = end + 1;
+  }
+  return problems;
+}
+
+/**
+ * How a bar's columns (grace notes left out) fall into tuplet groups, by their places in that list:
+ * each run of the same kind of tuplet is cut into groups of n of its shortest note (a quarter and an
+ * eighth fill a triplet of eighths), the last one short if the run is. Each group is drawn with its
+ * bracket and number.
+ */
+export function tupletGroups(columns: Column[]): { from: number; to: number; duration: Duration }[] {
+  const groups: { from: number; to: number; duration: Duration }[] = [];
+  let i = 0;
+  while (i < columns.length) {
+    const first = columns[i].duration;
+    if (!first.tuplet) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < columns.length && sameTuplet(columns[end + 1].duration, first)) end++;
+    const plain = (c: Column) => ticks({ value: c.duration.value, dots: c.duration.dots });
+    const unit = Math.min(...columns.slice(i, end + 1).map(plain));
+    let from = i;
+    let filled = 0;
+    for (let k = i; k <= end; k++) {
+      filled += plain(columns[k]);
+      if (filled >= first.tuplet * unit || k === end) {
+        groups.push({ from, to: k, duration: first });
+        from = k + 1;
+        filled = 0;
+      }
+    }
+    i = end + 1;
+  }
+  return groups;
+}
+
+/** The line that names every tuplet missing notes or with extra ones, or null when every one is whole. */
+export function brokenTupletMessage(clip: Pick<Clip, 'bars'>): string | null {
+  const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, b));
+  return lines.length > 0 ? lines.join(' ') : null;
+}
+
+/**
+ * Each bar with something wrong (it doesn't add up, a tuplet in it isn't whole) and what, in
+ * sentences: the tip on the warning drawn under the bar's start.
+ */
+export function barErrors(clip: Pick<Clip, 'time' | 'bars'>): Map<number, string> {
+  const errors = new Map<number, string>();
+  clip.bars.forEach((bar, b) => {
+    const time = timeAt(clip, b);
+    const lines = [
+      ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}.`] : []),
+      ...tupletProblems(bar, b),
+    ];
+    if (lines.length > 0) errors.set(b, lines.join(' '));
+  });
+  return errors;
 }
 
 export function isRest(column: Column): boolean {
@@ -333,7 +449,14 @@ export function isCapo(v: unknown): v is number {
 
 function isDuration(v: unknown): v is Duration {
   return isObj(v) && NOTE_VALUES.includes(v.value as NoteValue)
-    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && (v.tuplet === undefined || TUPLETS.includes(v.tuplet as Tuplet));
+    && (v.dots === 0 || v.dots === 1 || v.dots === 2) && isTuplet(v);
+}
+
+/** No tuplet, or one `tupletFields` would make: the span written only when it isn't the usual one. */
+function isTuplet(v: Record<string, unknown>): boolean {
+  if (v.tuplet === undefined) return v.tupletSpan === undefined;
+  const fields = tupletFields(v.tuplet as number, (v.tupletSpan ?? TUPLET_SPANS[v.tuplet as number]) as number);
+  return fields !== null && fields.tupletSpan === v.tupletSpan;
 }
 
 function isNote(v: unknown): v is Note {
@@ -357,6 +480,7 @@ function isColumn(v: unknown): v is Column {
     && v.notes.every(n => n === null || isNote(n))
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
     && (v.chord === undefined || typeof v.chord === 'string')
+    && (v.text === undefined || typeof v.text === 'string')
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && optStrings(v.extra);

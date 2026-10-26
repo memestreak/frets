@@ -737,7 +737,7 @@ button {
     position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; gap: 8px; justify-items: start;
     padding: 12px; width: max-content; color: var(--ink);
   }
-  .tab-bend-amount { min-width: 40px; }
+  .tab-panel-choice { min-width: 36px; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */
   .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }

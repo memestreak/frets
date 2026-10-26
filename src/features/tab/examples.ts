@@ -46,12 +46,13 @@ export const TAB_EXAMPLES: TabExample[] = [
   {
     id: 'tuplets',
     title: 'Tuplets',
-    shows: 'Triplets, then five, six and seven sixteenths in the time of four',
+    shows: 'Triplets; five, six and seven sixteenths in the time of four; nine and twelve thirty-seconds in the time of eight; three eighths in the time of four',
     text: [
       '\\title "Tuplets"',
       '\\ts (4 4)',
       '5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} 7.2.4 5.2.4 |',
       '5.2.16{tu 5} 7.2.16{tu 5} 8.2.16{tu 5} 7.2.16{tu 5} 5.2.16{tu 5} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 6} 7.1.16{tu 6} 5.1.16{tu 6} 7.1.16{tu 6} 8.1.16{tu 7} 7.1.16{tu 7} 5.1.16{tu 7} 8.2.16{tu 7} 7.2.16{tu 7} 5.2.16{tu 7} 7.3.16{tu 7} 5.3.4 |',
+      '5.1.32{tu 9} 7.1.32{tu 9} 8.1.32{tu 9} 10.1.32{tu 9} 12.1.32{tu 9} 10.1.32{tu 9} 8.1.32{tu 9} 7.1.32{tu 9} 5.1.32{tu 9} 5.2.32{tu 12} 7.2.32{tu 12} 8.2.32{tu 12} 7.2.32{tu 12} 5.2.32{tu 12} 7.2.32{tu 12} 8.2.32{tu 12} 10.2.32{tu 12} 8.2.32{tu 12} 7.2.32{tu 12} 5.2.32{tu 12} 7.2.32{tu 12} 5.3.8{tu (3 4)} 7.3.8{tu (3 4)} 9.3.8{tu (3 4)} |',
     ].join('\n') + '\n',
   },
   {
@@ -144,7 +145,7 @@ export const TAB_EXAMPLES: TabExample[] = [
   {
     id: 'song-form',
     title: 'Sections, tempo and chord names',
-    shows: 'Chord names over the strums, a capo, sections and a change of tempo',
+    shows: 'Chord names over the strums, a capo, sections, a change of tempo and text over a beat',
     text: [
       '\\title "Sections, tempo and chord names"',
       '\\ts (4 4)',
@@ -152,7 +153,7 @@ export const TAB_EXAMPLES: TabExample[] = [
       '\\section "Verse" \\tempo 92 (0.1 1.2 0.3 2.4 3.5).2{ch "C" sd} (0.1 1.2 2.3 2.4 0.5).2{ch "Am" sd} |',
       '(1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F" sd} (3.1 0.2 0.3 0.4 2.5 3.6).2{ch "G" sd} |',
       '\\section ("A" "Chorus") \\tempo (100 "A little faster") (1.1 1.2 2.3 3.4 3.5 1.6).4{ch "F" sd} (1.1 1.2 2.3 3.4 3.5 1.6).4{su} (3.1 0.2 0.3 0.4 2.5 3.6).4{ch "G" sd} (3.1 0.2 0.3 0.4 2.5 3.6).4{su} |',
-      '(0.1 1.2 0.3 2.4 3.5).1{ch "C" sd} |',
+      '(0.1 1.2 0.3 2.4 3.5).1{ch "C" txt "slowing, let ring" sd} |',
     ].join('\n') + '\n',
   },
   {

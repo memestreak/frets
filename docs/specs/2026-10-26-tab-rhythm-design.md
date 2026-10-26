@@ -11,7 +11,7 @@ the rhythm PR", 2026-10-26).
 
 | Mark | alphaTex | Drawn |
 | --- | --- | --- |
-| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | its number under each group of n |
+| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | its number under each group of n; a bracket across the group, rests included, when one beam doesn't already join it |
 | Grace note | `gr` (before the beat), `gr ob` (on it) | small numbers in a narrow column, no stem |
 | Tremolo picking | `tp 8`, `tp 16`, `tp 32` | one, two or three slashes across the stem |
 | Time signature change | `\ts (3 4)` at the start of a later bar | the two numbers just inside that bar |
@@ -24,6 +24,15 @@ six or seven in the time of four.
 - `Duration.tuplet?: 3 | 5 | 6 | 7` replaces `triplet: boolean`.
 - `WHOLE` is now 26880 (768 × 5 × 7), so every duration in any tuplet is a
   whole number of ticks.
+- Later (Jeremy, 2026-10-26: "fix the tuplets read-differently issue"):
+  `tuplet` is any count from 2 to 12, with `tupletSpan` only when the span
+  is not alphaTab's usual one (`tu 9` to `tu 12` take the time of eight;
+  `tu (3 4)` is three in the time of four). Drawn "9", or "3:4" for an
+  unusual span. `WHOLE` is 3548160 (1024 × 9 × 5 × 7 × 11), so every value,
+  dotted or not, in a tuplet of up to twelve is a whole number of ticks. A
+  longer tuplet is kept as written. ASCII writes "t9" and "e3:4". The
+  palette's four tuplet buttons became one Tuplet button with a panel
+  (3 · 5 · 6 · 7 · 9 · 10 · 11 · 12 · None), like Bend; Alt+3/5/6/7 stay.
 - `Column.grace?: 'before' | 'on'`. A grace note takes no time: `barLength`
   skips it, and so do beams and the check for a full bar.
   - alphaTab sets a grace note's length from its group whatever is written:
@@ -131,3 +140,22 @@ pressed the Capo button, typed into the field, then checked Enter, a press
 on the drawn capo, 15 kept to 12, Esc, and empty taking it off. It also
 checked the time signature from the drawn 4/4, the export preview drawing
 the capo once, and the facts line. All 16 checks passed.
+
+## Errors under the bar (Jeremy, 2026-10-26)
+
+A tuplet whose run of columns isn't a whole number of groups (a triplet
+member deleted) is an error until it is whole again. A run is counted in
+its shortest note, so a quarter and an eighth make a whole triplet
+(`tupletProblems` in `clip.ts`). Every bar with an error (it doesn't add
+up, or a tuplet in it isn't whole) gets a small triangle with "!" in the
+danger colour under its start; its one-second tip (`HoverTips`) says what
+is wrong (`barErrors`). The page draws it, an exported image never does.
+The same words stay in the line under the clip, for touch screens and
+screen readers.
+
+Each tuplet group's number ("3", "9", "3:4") sits under its middle
+(`tupletGroups` in `clip.ts`). When one beam doesn't already join the whole
+group (a rest in it, quarter notes, or a lone note), a bracket across every
+member, rests included, has the number in a gap (Jeremy, 2026-10-26: a "3"
+not joined to three notes looked wrong, and a bracket under a beamed group
+is an extra line).

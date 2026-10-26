@@ -1,10 +1,10 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES,
+  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
@@ -45,7 +45,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPick, onPickRun, onPickText, onMiss, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, errors, onPick, onPickRun, onPickText, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -55,6 +55,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
   highlight?: Highlight;
+  /** On the page only: bars with something wrong, and what, drawn as a warning under the bar's start with the words as its tip. */
+  errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   onPick?: (hit: Hit, extend: boolean) => void;
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
@@ -119,9 +121,31 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, onPic
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
+          {errors && system.bars.map(bar => {
+            const error = errors.get(bar.index);
+            return error ? <Warning key={`warning-${bar.index}`} x={bar.x0 + WARNING_INSET} y={rows.tuplet - 4} text={error} /> : null;
+          })}
         </g>
       ))}
     </svg>
+  );
+}
+
+/** How far in from a bar's start its warning's middle is drawn: clear of the bar line and the first stem. */
+const WARNING_INSET = 9;
+
+/**
+ * A small triangle with "!" under a bar's start, in the danger colour, whose tip says what is wrong.
+ * Only the page draws it; screen readers get the same words from the line under the clip.
+ */
+function Warning({ x, y, text }: { x: number; y: number; text: string }) {
+  return (
+    <g data-tip={text} data-testid="bar-warning" style={{ cursor: 'help' }}>
+      {/* A bigger, invisible target round the small mark, so the mouse finds it. */}
+      <rect x={x - 10} y={y - 10} width={20} height={20} fill="transparent" />
+      <path d={`M${x} ${y - 6} L${x + 6.5} ${y + 5.5} L${x - 6.5} ${y + 5.5} Z`} fill="var(--danger)" strokeLinejoin="round" stroke="var(--danger)" strokeWidth={1.5} />
+      <text x={x} y={y + 4.2} fontSize={8.5} fontWeight={800} fill="var(--surface-raised)" textAnchor="middle">!</text>
+    </g>
   );
 }
 
@@ -244,7 +268,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
     );
   }
 
-  // Sections and tempos, over the bar they start at; chord names over their columns.
+  // Sections and tempos, over the bar they start at; chord names and free text over their columns.
   for (const bar of system.bars) {
     const x0 = barTextX(bar);
     const { section, tempo } = bar.bar;
@@ -286,6 +310,19 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
             textAnchor="middle" data-testid="chord-name"
           >
             {placed.column.chord}
+          </text>,
+        );
+      }
+    }
+    if (rows.text !== null) {
+      for (const placed of bar.columns) {
+        if (!placed.column.text) continue;
+        parts.push(
+          <text
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            fill={look.ink} data-testid="beat-text"
+          >
+            {placed.column.text}
           </text>,
         );
       }
@@ -583,21 +620,32 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
     }
   }
 
-  // A tuplet's number under each group of it: 3 under three triplets, 5 under five quintuplets.
+  // Each tuplet group's number in its middle: 3 under a triplet, 9 under nine, 3:4 under three in the
+  // time of four. Where one beam doesn't already join the whole group (a rest in it, or quarter notes),
+  // a bracket across every member shows what the number counts. A group short of notes is drawn as it
+  // is, and the warning under the bar says so.
   const cols = bar.columns.filter(p => !p.column.grace);
-  let k = 0;
-  while (k < cols.length) {
-    const n = cols[k].column.duration.tuplet;
-    if (!n) {
-      k++;
-      continue;
-    }
-    let last = k;
-    while (last - k < n - 1 && cols[last + 1]?.column.duration.tuplet === n) last++;
+  for (const { from, to, duration } of tupletGroups(cols.map(p => p.column))) {
+    const label = tupletLabel(duration);
+    const members = cols.slice(from, to + 1);
+    const beam = grouped.get(members[0].column);
+    const beamed = members.length > 1 && members.every(p => grouped.get(p.column) === beam);
+    const x0 = cols[from].x - 5;
+    const x1 = cols[to].x + 5;
+    const mid = (x0 + x1) / 2;
+    const gap = label.length * 3.5 + 4;
+    const y = rows.tuplet - 4;
     parts.push(
-      <text key={`tuplet-${cols[k].x}`} x={(cols[k].x + cols[last].x) / 2} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{n}</text>,
+      <g key={`tuplet-${cols[from].x}`} data-testid="tuplet-group">
+        {!beamed && (
+          <path
+            d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
+            fill="none" stroke={look.ink} strokeWidth={1} data-testid="tuplet-bracket"
+          />
+        )}
+        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
+      </g>,
     );
-    k = last + 1;
   }
 
   return <g>{parts}</g>;

@@ -12,14 +12,14 @@ import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrig
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
   isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setBend, setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
+  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
 import { BarTimePanel } from './BarTimePanel';
@@ -30,7 +30,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -95,7 +95,7 @@ export default function TabPage() {
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
   const [selectionAsSet, setSelection] = useState<Selection | null>(null);
   const [editing, setEditing] = useState(false);
-  /** The chord name, section or tempo being typed, and where: the cursor's column or bar when it opened. */
+  /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
@@ -117,8 +117,8 @@ export default function TabPage() {
   };
 
   const openWord = (kind: WordKind, at: Cursor = cursor) => {
-    // A chord name belongs to a column; an empty bar has none yet.
-    if (kind === 'chord' && !columnAt(clip, at)) return;
+    // A chord name or text belongs to a column; an empty bar has none yet.
+    if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
     // The capo belongs to the whole clip, written over its first line.
     if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
     else setWord({ kind, bar: at.bar, column: at.column });
@@ -144,7 +144,7 @@ export default function TabPage() {
     if (byKey) editorRef.current?.focus();
   }, []);
 
-  /** A typed chord name, section or tempo set (an empty one clears it); null leaves it as it was. */
+  /** A typed chord name, text, section, tempo or capo set (an empty one clears it); null leaves it as it was. */
   const finishWord = (value: string | null, byKey: boolean) => {
     const w = word;
     setWord(null);
@@ -152,6 +152,7 @@ export default function TabPage() {
     if (byKey) editorRef.current?.focus();
     if (!w || value === null) return;
     if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
+    if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     if (w.kind === 'tempo') {
       const typed = Number(value);
@@ -162,11 +163,11 @@ export default function TabPage() {
   };
 
   /**
- * A press on a drawn chord name, section, tempo or capo opens its field there, with the cursor on its
+ * A press on a drawn chord name, text, section, tempo or capo opens its field there, with the cursor on its
  * column or bar; one on a time signature opens its bar's panel.
  */
   const onPickText = (hit: TextHit) => {
-    const place = hit.kind === 'chord' ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 };
+    const place = 'index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 };
     const at = { ...cursor, ...place };
     commit(clip, at, null);
     if (hit.kind === 'time') setTimeBar(hit.bar);
@@ -274,7 +275,13 @@ export default function TabPage() {
       commit(cycled);
       return;
     }
-    const tool = toolForKey(key, e.altKey, e.code);
+    const tupleted = e.altKey ? applyTupletKey(clip, target, e.code) : null;
+    if (tupleted) {
+      handled();
+      commit(tupleted);
+      return;
+    }
+    const tool = toolForKey(key, e.altKey);
     if (tool) {
       handled();
       onTool(tool);
@@ -489,7 +496,8 @@ export default function TabPage() {
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
-  const unevenLine = unevenMessage(clip) ?? '';
+  // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
+  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
 
   return (
     <div className="grid gap-4">
@@ -523,7 +531,8 @@ export default function TabPage() {
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
           isOn={id => editing && isOn(clip, cursor, id)} kinds={noteKinds(clip, editing ? cursor : null)}
-          onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))} disabled={view !== 'tab'} />
+          onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
+          onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -538,11 +547,15 @@ export default function TabPage() {
                 // Right-click, a long press or Shift+F10: insert a bar before or after.
                 {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
               >
-                <TabClip
-                  clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                  onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
-                  highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
-                />
+                {/* A bar's warning explains itself on hover. */}
+                <HoverTips>
+                  <TabClip
+                    clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
+                    onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                    errors={barErrors(clip)}
+                  />
+                </HoverTips>
               </div>
             )
             : (
@@ -605,10 +618,11 @@ export default function TabPage() {
   );
 }
 
-/** What a chord name, section or tempo field starts with: what is there now. */
+/** What a word's field starts with: what is there now. */
 function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): string {
   const b = clip.bars[bar];
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
+  if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
   if (kind === 'capo') return clip.capo ? String(clip.capo) : '';
   return b?.tempo ? String(b.tempo.bpm) : '';
@@ -623,10 +637,10 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
-    const row = { chord: rows.chords, section: rows.section, tempo: rows.tempo, capo: rows.capo }[kind];
+    const row = { chord: rows.chords, text: rows.text, section: rows.section, tempo: rows.tempo, capo: rows.capo }[kind];
     const y = s * rows.height + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
     // The capo is written at the start of the first line, over the time signature.
-    const x = kind === 'chord' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0 : placed.x0 + FIELD_WIDTH / 2;
+    const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };
