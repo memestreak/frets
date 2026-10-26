@@ -241,10 +241,14 @@ export function changesTime(clip: Clip, index: number): boolean {
   return time.beats !== before.beats || time.value !== before.value;
 }
 
-/** A bar whose durations don't fill its time signature exactly; an empty bar counts as full. */
+/**
+ * A bar whose durations don't fill its time signature exactly. An emptied bar is short too (Jeremy,
+ * 2026-10-26); only a clip with nothing in it yet, one empty bar, isn't.
+ */
 export function isUneven(clip: Pick<Clip, 'time' | 'bars'>, index: number): boolean {
   const bar = clip.bars[index];
-  return bar.columns.length > 0 && barLength(bar) !== barTicks(timeAt(clip, index));
+  if (bar.columns.length === 0 && clip.bars.every(b => b.columns.length === 0)) return false;
+  return barLength(bar) !== barTicks(timeAt(clip, index));
 }
 
 /** A list of numbers in words: "2", "2 and 5", "2, 5 and 7". */

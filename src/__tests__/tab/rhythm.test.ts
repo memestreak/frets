@@ -127,6 +127,13 @@ describe('incomplete tuplets', () => {
     expect(errors.get(0)).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 2 notes; it needs 3.");
   });
 
+  it('flag an emptied bar, but not a clip with nothing in it yet', () => {
+    const clip = clipOf('5.3.1 | r.1 |');
+    const emptied: Clip = { ...clip, bars: [clip.bars[0], { ...clip.bars[1], columns: [] }] };
+    expect(barErrors(emptied).get(1)).toBe("Bar 2 doesn't add up to 4/4.");
+    expect(barErrors({ ...clip, bars: [{ columns: [] }] }).size).toBe(0);
+  });
+
   it('are grouped for their brackets, rests included, the last group short when the run is', () => {
     const groups = (text: string) =>
       tupletGroups(clipOf(text).bars[0].columns).map(({ from, to, duration }) => [from, to, duration.tuplet]);

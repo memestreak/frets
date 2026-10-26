@@ -27,11 +27,20 @@ credits their sources as:
 Changes: each recording was cut to 3 seconds with a fade over the last 0.6,
 mixed to mono and re-encoded as 96 kbps MP3. See `public/sounds/README.md`.
 
-## alphaTex parser: alphaTab
+## alphaTex parser and synthesizer: alphaTab
 
 The Tab page reads alphaTex with
 [alphaTab](https://github.com/CoderLine/alphaTab) by Daniel Kuschny and
 contributors (the npm package `@coderline/alphatab`, used unmodified),
 under the [Mozilla Public License 2.0](https://mozilla.org/MPL/2.0/). Its
-source is available from that repository. Frets uses its parser only;
-Frets draws tab itself.
+source is available from that repository. Frets uses its parser, and its
+MIDI generator and synthesizer to play clips; Frets draws tab itself.
+
+## Playback soundfont: SONiVOX EAS
+
+`public/soundfont/sonivox.sf3` is the SONiVOX EAS General MIDI soundfont,
+Copyright (c) 2004-2006 Sonic Network Inc., under the
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (its
+`LICENSE` is beside it). It comes unchanged from alphaTab's package, which
+ships it from the [Android Open Source Project](https://android.googlesource.com/platform/external/sonivox/).
+See `public/soundfont/README.md`.
