@@ -13,7 +13,7 @@ import {
   copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, sliceClip, toggleGrace, toggleTuplet, type Cursor,
 } from '@/features/tab/editing';
 import { beamGroups, layoutClip, textAt } from '@/features/tab/layout';
-import { applyCyclingKey, applyTool, isAvailable, isOn, toolForKey } from '@/features/tab/tools';
+import { applyCyclingKey, applyTool, isOn, toolForKey } from '@/features/tab/tools';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -182,9 +182,8 @@ describe('time signature changes', () => {
     let clip = clipOf('\\ts (4 4)\n0.6.1 |\n0.6.1 |\n0.6.1 |\n');
     clip = setBarTime(clip, 1, { beats: 3, value: 4 });
     expect(clip.bars[1].time).toEqual({ beats: 3, value: 4 });
-    // The button never shows pressed; in a bar that shows a time signature it is off, the drawn numbers being the way to change it.
+    // The button never shows pressed: it opens the panel, it isn't a mark the bar has.
     expect(isOn(clip, at(1, 0, 0), 'barTime')).toBe(false);
-    expect([0, 1, 2].map(b => isAvailable(clip, at(b, 0, 0), 'barTime'))).toEqual([false, false, true]);
     expect(setBarTime(clip, 1, null).bars[1].time).toBeUndefined();
     expect(setBarTime(clip, 1, { beats: 4, value: 4 }).bars[1].time).toBeUndefined();
     const first = setBarTime(clip, 0, { beats: 3, value: 4 });

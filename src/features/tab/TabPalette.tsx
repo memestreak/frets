@@ -11,10 +11,8 @@ import { TOOL_GROUPS, type ToolId } from './tools';
  * one-second tip (`HoverTips` round the page) names its key. Pressing a
  * button keeps the keyboard on the tab.
  */
-export function TabPalette({ isOn, isAvailable, onTool, disabled }: {
+export function TabPalette({ isOn, onTool, disabled }: {
   isOn: (id: ToolId) => boolean;
-  /** Whether a tool can be used at the cursor; one that can't is shown disabled. */
-  isAvailable: (id: ToolId) => boolean;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -28,7 +26,7 @@ export function TabPalette({ isOn, isAvailable, onTool, disabled }: {
             {group.tools.map(tool => (
               <button
                 key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
-                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled || !isAvailable(tool.id)}
+                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
                 data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
                 // Keep the focus, and so the cursor, on the tab.
                 onMouseDown={e => e.preventDefault()}
@@ -139,8 +137,7 @@ const ICONS: Record<ToolId, ReactNode> = {
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
-  // A time signature in general: N beats over an M note.
-  barTime: <><Label y={11} size={10}>N</Label><Label y={21} size={10}>M</Label></>,
+  barTime: <><Label y={11} size={10}>4</Label><Label y={21} size={10}>4</Label></>,
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,

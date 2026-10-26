@@ -4,7 +4,7 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { changesTime, type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
+import { type Clip, type NoteValue, type TremoloValue, type Tuplet } from './clip';
 import {
   columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
   makeRest, noteAt, setBend, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
@@ -225,16 +225,6 @@ export function toolForKey(key: string, alt: boolean, code: string): ToolId | nu
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName', G: 'grace',
   };
   return keys[key] ?? null;
-}
-
-/**
- * Whether a tool can be used where the cursor is. A bar that already shows a time signature (the
- * first bar, or one that changes it) is changed by pressing its drawn numbers, so the button that
- * starts a new one is off there.
- */
-export function isAvailable(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean {
-  if (id === 'barTime') return cursor.bar > 0 && !changesTime(clip, cursor.bar);
-  return true;
 }
 
 /** Whether the cursor's column, note or bar has what a tool sets, to show its button pressed. */

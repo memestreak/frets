@@ -67,21 +67,21 @@ A new **Rhythm** palette group sits after Duration:
 - Grace toggles before-the-beat grace notes. G alone is still a ghost note.
 - Shift+T steps through 8, 16, 32 and off. T alone is still a tap.
 
-The Repeats group is renamed **Bars**, and its first button, drawn as N over
-M, is **Time signature from this bar**. It opens a panel over the cursor's
-bar (under the staff, from the bar's start). It only starts a new time
-signature. In a bar that already shows one (the first bar, or a bar that
-changes it), the button is disabled, and the drawn numbers are what you
-press. The button never shows as pressed (Jeremy, 2026-10-26: "if there is a
-time signature, I want the time signature to be the thing that is clicked").
+The Repeats group is renamed **Bars**, and its first button, drawn as 4 over
+4, is **Time signature from this bar**. It opens the cursor bar's panel
+(under the staff, from the bar's start), just as a press on that bar's drawn
+numbers does. In the first bar, that is the clip's own time signature. The
+button is never greyed out and never shows as pressed (Jeremy, 2026-10-26,
+after trying N over M and a button disabled in bars that show a time
+signature).
 
 - The panel's fields: beats with
   a − / + stepper, and the beat's value. Each change is one undo step.
 - On a later bar, **Remove the change** takes the change away. It is disabled
   while the bar has no change of its own, so the panel never changes size.
   Setting the time back to the one before also removes the change.
-- On the first bar, opened from its drawn numbers, it sets the clip's own
-  time signature and has no Remove button.
+- On the first bar it sets the clip's own time signature and has no Remove
+  button.
 - A press on any drawn time signature opens its bar's panel, the first line's
   for bar 1.
 - A click outside or Esc closes it. Esc gives the keys back to the tab.

@@ -252,9 +252,8 @@ describe('TabPage', () => {
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
-      // In the first bar the palette button is off: the drawn 4/4 is what is pressed.
-      expect(screen.getByRole('button', { name: 'Time signature from this bar' })).toBeDisabled();
-      pressFirstTimeSignature();
+      // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
+      fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
       const panel = screen.getByRole('dialog', { name: 'Time signature' });
       const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
       expect(beats).toHaveValue('4');
