@@ -200,33 +200,41 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 |');
     });
 
-    it('sets the time signature under the name, each change one undo step', () => {
+    it('sets the time signature from the button under the name, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5');
-      const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
-      const value = screen.getByRole('status', { name: 'Beat note value' });
-      expect(beats).toHaveValue('4');
-      expect(value).toHaveTextContent('4');
+      const button = screen.getByRole('button', { name: 'Time signature 4/4' });
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+      fireEvent.click(button);
+      const panel = screen.getByRole('dialog', { name: 'Time signature' });
+      const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
+      expect(beats).toHaveValue('4');
       // A typed count takes effect on Enter.
       fireEvent.change(beats, { target: { value: '3' } });
       expect(notice()).toHaveTextContent('4/4');
       fireEvent.keyDown(beats, { key: 'Enter' });
       expect(notice()).not.toHaveTextContent('add up');
-      // ↑ steps at once; the value steps along 2, 4, 8, 16, 32.
+      expect(button).toHaveAccessibleName('Time signature 3/4');
+      // ↑ and + step at once; the beat is one of 2, 4, 8, 16, 32.
       fireEvent.keyDown(beats, { key: 'ArrowUp' });
+      fireEvent.click(within(panel).getByRole('button', { name: 'More beats' }));
+      expect(beats).toHaveValue('5');
+      fireEvent.click(within(panel).getByRole('button', { name: '8' }));
+      expect(within(panel).getByRole('button', { name: '8' })).toHaveAttribute('aria-pressed', 'true');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 5/8.');
+      undo();
+      expect(button).toHaveAccessibleName('Time signature 5/4');
+      undo();
       expect(beats).toHaveValue('4');
-      fireEvent.click(screen.getByRole('button', { name: 'Shorter beat' }));
-      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/8.');
-      undo();
-      expect(value).toHaveTextContent('4');
-      undo();
-      expect(beats).toHaveValue('3');
+      // Esc closes the panel.
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
     });
 
     it('keeps the count when what is typed isn\'t 1 to 32', () => {
       renderAt();
+      fireEvent.click(screen.getByRole('button', { name: 'Time signature 4/4' }));
       const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
       for (const typed of ['0', '33', '']) {
         fireEvent.change(beats, { target: { value: typed } });
@@ -238,6 +246,10 @@ describe('TabPage', () => {
       expect(beats).toHaveValue('32');
       fireEvent.keyDown(beats, { key: 'ArrowUp' });
       expect(beats).toHaveValue('32');
+      fireEvent.change(beats, { target: { value: '1' } });
+      fireEvent.blur(beats);
+      fireEvent.click(screen.getByRole('button', { name: 'Fewer beats' }));
+      expect(beats).toHaveValue('1');
     });
 
     it('says when a bar doesn\'t add up', () => {

@@ -19,7 +19,7 @@ import {
 } from './editing';
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
-import { TimeSignatureField, type TimeLook } from './TimeSignatureField';
+import { TimeSignatureField } from './TimeSignatureField';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, isOn, toolForKey, type ToolId } from './tools';
@@ -323,26 +323,19 @@ export default function TabPage() {
   };
 
   const name = clip.name.trim() || 'Untitled clip';
-  // MOCK: which time-signature look to show, from ?mock=a|b|c.
-  const timeLook: TimeLook = (() => {
-    const m = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('mock');
-    return m === 'b' || m === 'c' ? m : 'a';
-  })();
   const empty = isEmpty(clip);
   const uneven = clip.bars.flatMap((bar, i) => (isUneven(bar, clip.time) ? [i + 1] : []));
   const unevenLine = uneven.length === 0 ? ''
     : `${uneven.length === 1 ? `Bar ${uneven[0]} doesn't` : `Bars ${uneven.join(', ')} don't`} add up to ${clip.time.beats}/${clip.time.value}.`;
 
   return (
-    // Tips for the palette's buttons and the time signature.
-    <HoverTips>
     <div className="grid gap-4">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
           <p className="m-0 text-(--ink-muted)" data-testid="clip-facts">
             {/* The time signature shown here is also where it is set. */}
-            <TimeSignatureField time={clip.time} onChange={time => commit({ ...clip, time })} look={timeLook} />
+            <TimeSignatureField time={clip.time} onChange={time => commit({ ...clip, time })} />
             {!isStandardTuning(clip.tuning) && ` · Tuning ${clip.tuning.join(' ')}`}
           </p>
         </div>
@@ -359,7 +352,9 @@ export default function TabPage() {
         </div>
       </header>
 
-      <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+      <HoverTips>
+        <TabPalette isOn={id => isOn(clip, cursor, id)} onTool={onTool} disabled={view !== 'tab'} />
+      </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="min-w-0">
@@ -400,16 +395,7 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
-      <nav className="mock-bar" aria-label="Mock">
-        Time signature:
-        {(['a', 'b', 'c'] as const).map(m => (
-          <a key={m} href={`?mock=${m}`} aria-current={m === timeLook ? 'page' : undefined}>
-            {{ a: 'A · engraved', b: 'B · steppers', c: 'C · button + panel' }[m]}
-          </a>
-        ))}
-      </nav>
     </div>
-    </HoverTips>
   );
 }
 

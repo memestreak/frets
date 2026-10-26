@@ -694,78 +694,41 @@ button {
     font-size: 12px; font-weight: 600; color: var(--ink-muted);
   }
   /* The time signature under the clip's name: text that opens a menu. */
-  /* The time signature under the clip's name. */
-  .ts-beats {
-    border: 0; background: transparent; color: inherit; font: inherit; padding: 0; margin: 0;
-    width: 2.2ch; text-align: center; font-variant-numeric: tabular-nums;
-  }
-  .ts-beats:focus { outline: none; }
-  .ts-beats:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
-
-  /* A: engraved, the numbers stacked like a time signature on a staff. */
-  .ts-a {
-    display: inline-grid; justify-items: center; padding: 4px 4px 4px 10px; border-radius: 10px;
-    background: var(--surface-sunken); border: 1px solid var(--line); color: var(--ink);
-    font: 700 20px/1 var(--font-display); vertical-align: middle;
-  }
-  .ts-a-row { display: inline-flex; align-items: center; gap: 2px; height: 26px; }
-  .ts-a-num { width: 2.2ch; text-align: center; font-variant-numeric: tabular-nums; }
-  .ts-a-rule { width: 100%; height: 1px; background: var(--line-strong); margin: 1px 0; }
-  .ts-a-steps { display: inline-grid; gap: 1px; }
-  .ts-a-steps button {
-    display: grid; place-items: center; width: 16px; height: 11px; padding: 0; border: 0; border-radius: 3px;
-    background: transparent; color: var(--ink-muted); cursor: pointer;
-  }
-  .ts-a-steps button:hover { background: var(--surface-raised); color: var(--ink); }
-  .ts-a-steps svg { width: 9px; height: 6px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-  .ts-a-steps button:focus { outline: none; }
-  .ts-a-steps button:focus-visible { color: var(--primary); }
-
-  /* B: two steppers on sunken tracks. */
-  .ts-b { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
-  .ts-b-label { font-size: 12px; font-weight: 600; color: var(--ink-muted); margin-right: 2px; }
-  .ts-b-track {
-    display: inline-flex; align-items: center; height: 28px; padding: 2px; border-radius: 8px;
-    background: var(--surface-sunken); border: 1px solid var(--line); font-weight: 600;
-  }
-  .ts-b-num { width: 2.2ch; text-align: center; font-variant-numeric: tabular-nums; }
-  .ts-b-step {
-    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent;
-    color: var(--ink-muted); font: 600 15px/1 var(--font-sans); cursor: pointer;
-  }
-  .ts-b-step:hover { background: var(--surface-raised); color: var(--ink); }
-  .ts-b-step:focus { outline: none; }
-  .ts-b-step:focus-visible { color: var(--primary); }
-  .ts-b-slash { color: var(--ink-muted); font-size: 18px; }
-
-  /* C: a raised button with the stacked numbers, opening a small panel. */
-  .ts-c { position: relative; display: inline-block; vertical-align: middle; }
-  .ts-c-button {
+  /* The time signature under the clip's name: a raised button with the numbers stacked, and its panel. */
+  .tab-time { position: relative; display: inline-block; vertical-align: middle; }
+  .tab-time-button {
     display: inline-flex; align-items: center; gap: 4px; height: 46px; padding: 0 6px 0 10px;
     border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-raised);
     color: var(--ink); cursor: pointer;
   }
-  .ts-c-button:hover, .ts-c-button[aria-expanded="true"] { background: var(--surface-sunken); }
-  .ts-c-button:focus { outline: none; }
-  .ts-c-button:focus-visible { border-color: var(--primary); }
-  .ts-c-button svg { width: 14px; height: 14px; color: var(--ink-muted); }
-  .ts-c-stack { display: grid; justify-items: center; min-width: 2.2ch; font: 700 18px/1 var(--font-display); }
-  .ts-c-panel {
+  .tab-time-button:hover, .tab-time-button[aria-expanded="true"] { background: var(--surface-sunken); }
+  .tab-time-button:focus { outline: none; }
+  .tab-time-button:focus-visible { border-color: var(--primary); }
+  .tab-time-button svg { width: 14px; height: 14px; color: var(--ink-muted); }
+  .tab-time-stack { display: grid; justify-items: center; min-width: 2.2ch; font: 700 18px/1 var(--font-display); }
+  .tab-time-panel {
     position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: grid; gap: 12px;
     padding: 12px; width: max-content; color: var(--ink);
   }
-  .ts-c-field { display: grid; gap: 6px; justify-items: start; }
-  .ts-c-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
-  .ts-c-opt { min-width: 34px; font-variant-numeric: tabular-nums; }
-
-  /* MOCK: the switcher bar. */
-  .mock-bar {
-    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 50;
-    display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 999px;
-    background: var(--ink); color: var(--surface); font-size: 13px; box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+  .tab-time-field { display: grid; gap: 6px; justify-items: start; }
+  .tab-time-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+  .tab-time-stepper {
+    display: inline-flex; align-items: center; height: 28px; padding: 2px; border-radius: 8px;
+    background: var(--surface-sunken); border: 1px solid var(--line); font-weight: 600;
   }
-  .mock-bar a { color: inherit; opacity: 0.7; text-decoration: none; padding: 2px 8px; border-radius: 999px; }
-  .mock-bar a[aria-current] { opacity: 1; background: var(--primary); }
+  .tab-time-stepper button {
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent;
+    color: var(--ink-muted); font: 600 15px/1 var(--font-sans); cursor: pointer;
+  }
+  .tab-time-stepper button:hover { background: var(--surface-raised); color: var(--ink); }
+  .tab-time-stepper input {
+    border: 0; background: transparent; color: inherit; font: inherit; padding: 0; margin: 0;
+    width: 3ch; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .tab-time-stepper button:focus, .tab-time-stepper input:focus { outline: none; }
+  .tab-time-stepper button:focus-visible { color: var(--primary); }
+  .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+  .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   .tab-import-text {
