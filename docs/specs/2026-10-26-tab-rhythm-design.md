@@ -11,7 +11,7 @@ the rhythm PR", 2026-10-26).
 
 | Mark | alphaTex | Drawn |
 | --- | --- | --- |
-| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | a bracket across each group of n, rests included, its number in a gap in the middle |
+| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | its number under each group of n; a bracket across the group, rests included, when one beam doesn't already join it |
 | Grace note | `gr` (before the beat), `gr ob` (on it) | small numbers in a narrow column, no stem |
 | Tremolo picking | `tp 8`, `tp 16`, `tp 32` | one, two or three slashes across the stem |
 | Time signature change | `\ts (3 4)` at the start of a later bar | the two numbers just inside that bar |
@@ -153,8 +153,9 @@ is wrong (`barErrors`). The page draws it, an exported image never does.
 The same words stay in the line under the clip, for touch screens and
 screen readers.
 
-Each tuplet group is drawn as a bracket across all its members, rests
-included, with its number ("3", "9", "3:4") in a gap in the middle
-(`tupletGroups` in `clip.ts`; Jeremy, 2026-10-26: a "3" not joined to three
-notes looked wrong). A short group keeps its bracket, over the notes it
-has, beside the triangle.
+Each tuplet group's number ("3", "9", "3:4") sits under its middle
+(`tupletGroups` in `clip.ts`). When one beam doesn't already join the whole
+group (a rest in it, quarter notes, or a lone note), a bracket across every
+member, rests included, has the number in a gap (Jeremy, 2026-10-26: a "3"
+not joined to three notes looked wrong, and a bracket under a beamed group
+is an extra line).
