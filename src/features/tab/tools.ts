@@ -6,7 +6,7 @@
  */
 import type { Clip, NoteValue } from './clip';
 import {
-  columnAt, cycleBend, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide,
+  columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide,
   makeRest, noteAt, setBend, setDead, setMark, setSlide, setValue, toggleBendPart, toggleLegato,
   toggleRepeatStart, toggleStroke, toggleTie, toggleTriplet, type MarkKind, type Target,
 } from './editing';
@@ -118,6 +118,19 @@ const MARK: Partial<Record<ToolId, MarkKind>> = {
   staccato: ['staccato', true], tap: ['tap', true],
 };
 
+/**
+ * Marks drawn once over a column (the P.M. and let ring lines, accents, staccato) apply to every note
+ * in the column, wherever the cursor is in it: a mark half the column had would look all on.
+ */
+const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato']);
+
+/** The target as whole columns: the selection, else the cursor's column. */
+function wholeColumns(clip: Clip, target: Target): Target {
+  if (target.selection || !columnAt(clip, target.cursor)) return target;
+  const i = indexOf(clip, target.cursor.bar, target.cursor.column);
+  return { ...target, selection: { anchor: i, focus: i } };
+}
+
 /** The clip after a palette press. */
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const value = VALUE[id];
@@ -125,7 +138,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const bend = BEND[id];
   if (bend) return setBend(clip, target, bend);
   const mark = MARK[id];
-  if (mark) return setMark(clip, target, mark);
+  if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
     case 'dot': return cycleDots(clip, target);
     case 'triplet': return toggleTriplet(clip, target);
@@ -160,7 +173,7 @@ export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip |
   if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
   if (key === 'v') return cycleMark(clip, target, 'vibrato', ['slight', 'wide']);
   if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch']);
-  if (key === 'a') return cycleMark(clip, target, 'accent', ['normal', 'heavy']);
+  if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   return null;
 }
 
@@ -185,6 +198,10 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean 
   const bend = BEND[id];
   if (bend) return note?.bend?.quarters === bend;
   const mark = MARK[id];
+  if (mark && COLUMN_MARKS.has(mark[0])) {
+    const notes = column?.notes.filter(n => n !== null) ?? [];
+    return notes.length > 0 && notes.every(n => n[mark[0]] === mark[1]);
+  }
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
     case 'dot': return (column?.duration.dots ?? 0) > 0;

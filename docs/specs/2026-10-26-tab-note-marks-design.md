@@ -23,8 +23,16 @@ and the third covers rhythm (grace notes, tremolo picking, tuplets of 5 to 7).
 The palette's buttons each set one kind, and pressing a button again clears
 it. A key that has more than one kind (V, N, A, `\`) steps through its kinds
 and then clears, starting from the cursor's note. With a selection, every
-note in it gets the same kind. Accents, staccato and the vibrato wave are
-per note in alphaTex but drawn once per column, the strongest accent winning.
+note in it gets the same kind.
+
+Palm mute, let ring, accents and staccato are per note in alphaTex but drawn
+once per column, so their buttons and keys mark every note in the cursor's
+column, wherever the cursor is in it. A button shows pressed only when every
+note in the column has the mark. Jeremy found that palm mute could not be
+turned off on a chord. With the cursor on a string the chord leaves empty,
+the button did nothing, and a column muted on some notes still drew its
+P.M. line. The vibrato wave is drawn once per column too, but it stays per
+note: it is a sound, not a line over the column.
 
 **Ghost note or tie.** Both print a fret in brackets. A tie now always has its
 arc from the note before, even across a held chord (it used to drop the arcs
