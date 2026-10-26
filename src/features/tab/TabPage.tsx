@@ -18,7 +18,7 @@ import {
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBend, setFret, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
@@ -244,6 +244,10 @@ export default function TabPage() {
       } else if (columnAt(clip, cursor)) {
         const i = indexOf(clip, cursor.bar, cursor.column);
         const cut = deleteColumns(clip, [i, i]);
+        commit(cut.clip, { ...cursor, ...cut.cursor }, null);
+      } else {
+        // An empty bar: Delete takes the bar itself away.
+        const cut = removeEmptyBar(clip, cursor.bar);
         commit(cut.clip, { ...cursor, ...cut.cursor }, null);
       }
       return;

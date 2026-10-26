@@ -4,7 +4,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { emptyClip, type Clip } from '@/features/tab/clip';
 import {
   clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
-  deleteColumns, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
+  deleteColumns, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
   stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
 
@@ -176,6 +176,16 @@ describe('moving', () => {
     const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
     expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
   });
+
+  it('fills an emptied bar a beat at a time', () => {
+    const full = clipOf('5.3.1 | \\ts (3 4) 7.3.2 7.3.4 | 9.3.2 9.3.4 |');
+    let clip: Clip = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
+    let cursor = at(1, 0, 2);
+    for (let i = 0; i < 3; i++) ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    expect(bars(clip).split('\n')[1]).toBe('\\ts (3 4) r.4 r.4 r.4 |');
+    expect(cursor).toEqual(at(1, 2, 2));
+    expect(moveColumn(clip, cursor, 1).cursor).toEqual(at(2, 0, 2));
+  });
 });
 
 describe('bars', () => {
@@ -241,6 +251,19 @@ describe('cut, copy and paste', () => {
     expect(deleteColumns(two, [1, 1]).cursor).toEqual({ bar: 0, column: 1 });
     // The clip's very first column: the one after it.
     expect(deleteColumns(two, [0, 0]).cursor).toEqual({ bar: 0, column: 0 });
+  });
+
+  it('keeps a bar emptied on its own, with the cursor in it, and Delete there takes the bar away', () => {
+    const three = clipOf('1.1.1 | 2.1.2 3.1.2 | 4.1.1 |');
+    const cut = deleteColumns(three, [1, 2]);
+    expect(cut.clip.bars.map(b => b.columns.length)).toEqual([1, 0, 1]);
+    expect(cut.cursor).toEqual({ bar: 1, column: 0 });
+    const gone = removeEmptyBar(cut.clip, 1);
+    expect(bars(gone.clip)).toBe('1.1.1 |\n4.1.1 |');
+    expect(gone.cursor).toEqual({ bar: 0, column: 0 });
+    // The only bar stays.
+    const only = deleteColumns(clipOf('1.1.1 |'), [0, 0]).clip;
+    expect(removeEmptyBar(only, 0).clip.bars).toHaveLength(1);
   });
 
   it('pastes before the cursor column, as at a caret', () => {
