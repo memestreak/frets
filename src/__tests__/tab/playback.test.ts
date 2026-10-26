@@ -40,9 +40,9 @@ describe('playback sounds', () => {
   });
 
   it('reads the saved settings, each field checked', () => {
-    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND });
-    expect(parsePlaybackSettings({ shown: true, sound: 0 })).toEqual({ shown: true, sound: 0 });
-    expect(parsePlaybackSettings({ shown: 'yes', sound: 115 })).toEqual({ shown: false, sound: DEFAULT_SOUND });
+    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1 });
+    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4 })).toEqual({ shown: true, sound: 0, volume: 0.4 });
+    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2 })).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1 });
   });
 });
 
@@ -54,6 +54,13 @@ describe('playback', () => {
     expect([0, 1, 2, 3].map(i => tickOf(clip, played, i))).toEqual([0, Q, 2 * Q, 4 * Q]);
     expect(columnAtTick(clip, played, Q + 10)).toBe(1);
     expect(columnAtTick(clip, played, 5 * Q)).toBe(3);
+  });
+
+  it('lets the last notes ring a little after the clip ends', () => {
+    const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
+    const played = perform(alphaTab, clip);
+    const lastTick = Math.max(...played.midi.events.map(e => e.tick));
+    expect(lastTick).toBe(played.endTick + 2 * Q);
   });
 
   it('plays repeats twice: the second time through finds the same columns', () => {

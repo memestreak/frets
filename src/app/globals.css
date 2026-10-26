@@ -725,6 +725,11 @@ button {
   .tab-speed input { width: 128px; min-width: 64px; flex: 0 1 auto; accent-color: var(--primary); }
   /* Wide enough for "150% · 300 bpm", so nothing moves as the slider does. */
   .tab-speed-value { width: 124px; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  /* The volume: a small knob, captioned like Speed. */
+  .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+  .tab-knob { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; cursor: ns-resize; touch-action: none; }
+  .tab-knob:focus { outline: none; }
+  .tab-knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
   /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
   .tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
