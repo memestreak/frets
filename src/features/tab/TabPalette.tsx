@@ -55,7 +55,8 @@ function NoteGlyph({ open, stem = true, flags = 0 }: { open: boolean; stem?: boo
     <>
       <ellipse cx={9} cy={17} rx={3.6} ry={2.6} transform="rotate(-20 9 17)" fill={open ? 'none' : 'currentColor'} />
       {stem && <line x1={12.4} y1={16} x2={12.4} y2={4} />}
-      {Array.from({ length: flags }, (_, f) => <path key={f} d={`M12.4 ${4 + f * 4} q5 2 4 7`} />)}
+      {/* Three or four flags sit closer, so the last still clears the head. */}
+      {Array.from({ length: flags }, (_, f) => <path key={f} d={`M12.4 ${4 + f * (flags > 2 ? 3 : 4)} q5 2 4 7`} />)}
     </>
   );
 }
@@ -77,7 +78,10 @@ const ICONS: Record<ToolId, ReactNode> = {
   quarter: <NoteGlyph open={false} />,
   eighth: <NoteGlyph open={false} flags={1} />,
   sixteenth: <NoteGlyph open={false} flags={2} />,
-  dot: <><NoteGlyph open={false} /><circle cx={18} cy={17} r={1.6} fill="currentColor" stroke="none" /></>,
+  thirtySecond: <NoteGlyph open={false} flags={3} />,
+  sixtyFourth: <NoteGlyph open={false} flags={4} />,
+  // The dot sits where it would beside a note head, at the heads' height in the other duration icons.
+  dot: <circle cx={12} cy={17} r={2.6} fill="currentColor" stroke="none" />,
   triplet: <><path d="M4 9 V6 H20 V9" /><Label y={20} size={12}>3</Label></>,
   rest: <path d="M10 3 L14 8 L10 12 L14 16 Q9 15 11 20" />,
   tie: <><Label x={7} y={13} size={9}>5</Label><Label x={17} y={13} size={9}>(5)</Label><path d="M5 17 Q12 23 19 17" /></>,

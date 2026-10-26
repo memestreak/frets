@@ -12,7 +12,7 @@ import {
 } from './editing';
 
 export type ToolId =
-  | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'dot' | 'triplet' | 'rest' | 'tie'
+  | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'triplet' | 'rest' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove'
   | 'bend1' | 'bend2' | 'bend4' | 'bend6' | 'bend8' | 'release' | 'preBend'
   | 'vibrato' | 'palmMute' | 'dead' | 'harmonic' | 'tap' | 'strokeDown' | 'strokeUp'
@@ -36,6 +36,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'quarter', label: 'Quarter note', key: '+ −' },
       { id: 'eighth', label: 'Eighth note', key: '+ −' },
       { id: 'sixteenth', label: 'Sixteenth note', key: '+ −' },
+      { id: 'thirtySecond', label: 'Thirty-second note', key: '+ −' },
+      { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '+ −' },
       { id: 'dot', label: 'Dotted, then double dotted', key: '.' },
       { id: 'triplet', label: 'Triplet', key: 'Alt+3' },
       { id: 'rest', label: 'Rest', key: 'R' },
@@ -86,7 +88,9 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   },
 ];
 
-const VALUE: Partial<Record<ToolId, NoteValue>> = { whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16 };
+const VALUE: Partial<Record<ToolId, NoteValue>> = {
+  whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
+};
 const BEND: Partial<Record<ToolId, 1 | 2 | 4 | 6 | 8>> = { bend1: 1, bend2: 2, bend4: 4, bend6: 6, bend8: 8 };
 
 /** The clip after a palette press. */

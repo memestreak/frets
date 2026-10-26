@@ -10,7 +10,7 @@
  */
 import {
   barTicks, isPalmMuted, isStandardTuning, isUneven, nearestDuration, slideDirections, STANDARD_TUNING, STRING_COUNT,
-  ticks, COMMON_TIME, isTimeSignature,
+  ticks, COMMON_TIME, isTimeSignature, WHOLE,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
 } from './clip';
@@ -21,7 +21,7 @@ export type ReadResult =
 
 /* ———————————————————————————— reading ———————————————————————————— */
 
-const RHYTHM_LETTERS: Record<string, NoteValue> = { w: 1, h: 2, q: 4, e: 8, s: 16 };
+const RHYTHM_LETTERS: Record<string, NoteValue> = { w: 1, h: 2, q: 4, e: 8, s: 16, t: 32, x: 64 };
 const NOTE_NAME = /^[A-Ga-g][#b♯♭]?$/;
 /** Some tabs number the strings 1 (high e) to 6 instead of naming them. */
 const STRING_NUMBER = /^[1-6]$/;
@@ -32,10 +32,11 @@ type LineKind = 'rhythm' | 'strokes' | 'palmMute' | 'endings';
 function annotationKind(line: string): LineKind | null {
   const tokens = line.split(/[\s|]+/).filter(Boolean);
   if (tokens.length === 0) return null;
-  if (tokens.every(t => /^[whqes](?:\.\.?|3)?$/.test(t))) return 'rhythm';
+  // Endings come first: "x3" alone is a repeat count, though in a rhythm line it is a sixty-fourth triplet.
+  if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
+  if (tokens.every(t => /^[whqestx](?:\.\.?|3)?$/.test(t))) return 'rhythm';
   if (tokens.every(t => STROKE_MARKS.test(t))) return 'strokes';
   if (/P\.?M/.test(line) && /^[\sPM.\-|]+$/.test(line)) return 'palmMute';
-  if (/^(?:[\s\-|]|\d+\.|x\d+)+$/.test(line) && /\d\.|x\d/.test(line)) return 'endings';
   return null;
 }
 
@@ -409,7 +410,7 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   const rhythm = block.annotations.rhythm;
   const known = new Set<number>();
   if (rhythm !== undefined) {
-    for (const m of rhythm.matchAll(/[whqes](?:\.\.?|3)?/g)) {
+    for (const m of rhythm.matchAll(/[whqestx](?:\.\.?|3)?/g)) {
       const at = m.index!;
       const column = columnAt.get(at);
       if (column) {
@@ -443,12 +444,12 @@ function readBlock(lines: string[], block: Block, time: TimeSignature, errors: s
   // Tab with no bar lines inside and no rhythm line is split into bars by the time signature.
   const onlyOneBar = segments.length === 1 && rhythm === undefined;
   if (onlyOneBar) {
-    // No bar lines inside: the most common gap is an eighth (24 ticks).
+    // No bar lines inside: the most common gap is an eighth.
     const ps = segments[0].positions;
     const gaps = ps.slice(1).map((p, k) => p - ps[k]);
     const common = mostCommon(gaps) ?? 4;
     ps.forEach((p, k) => {
-      if (!known.has(p)) guess(p, ps[k + 1] ?? p + common, common / 24);
+      if (!known.has(p)) guess(p, ps[k + 1] ?? p + common, common / (WHOLE / 8));
     });
   } else {
     for (const seg of segments) {
@@ -618,7 +619,7 @@ function columnWidth(column: Column): number {
     const { prefix, text } = noteText(n);
     return prefix.length + text.length;
   }));
-  return Math.max(own + 2, Math.round(ticks(column.duration) / 6), rhythmToken(column.duration).length + 1);
+  return Math.max(own + 2, Math.round(ticks(column.duration) / (WHOLE / 32)), rhythmToken(column.duration).length + 1);
 }
 
 const MAX_LINE = 80;

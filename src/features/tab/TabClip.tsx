@@ -148,7 +148,7 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   const parts: ReactNode[] = [];
   const beat = beatTicks(clip.time);
 
-  // The staff: lines, names, TAB, time signature. The lines stop short of every note's number,
+  // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
   parts.push(
     <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={SYSTEM_HEIGHT}>
@@ -163,28 +163,29 @@ function SystemDrawing({ system, index, clip, look, names, previous, slides, las
   for (let s = 0; s < STRING_COUNT; s++) {
     parts.push(
       <line
-        key={`string-${s}`} x1={system.staffStart} x2={end} y1={stringY(s)} y2={stringY(s)}
+        key={`string-${s}`} x1={system.lineStart} x2={end} y1={stringY(s)} y2={stringY(s)}
         stroke={look.line} strokeWidth={1} mask={`url(#${maskId})`}
       />,
     );
     if (names) {
       parts.push(
-        <text key={`name-${s}`} x={6} y={stringY(s) + 4} fontSize={10} fill={look.ink} textAnchor="middle">{names[s]}</text>,
+        <text key={`name-${s}`} x={system.lineStart - 10} y={stringY(s) + 4} fontSize={10} fill={look.ink} textAnchor="middle">{names[s]}</text>,
       );
     }
   }
   parts.push(
-    <line key="open" x1={system.staffStart} x2={system.staffStart} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={1.5} />,
+    <line key="open" x1={system.lineStart} x2={system.lineStart} y1={ROW.staffTop} y2={STAFF_BOTTOM} stroke={look.ink} strokeWidth={1.5} />,
   );
-  const clefX = (names ? 16 : 0) + 13;
+  const clefX = system.lineStart + 13;
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
-    <text key={`clef-${letter}`} x={clefX} y={ROW.staffTop + 19 + k * 20} fontSize={15} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
+    <text key={`clef-${letter}`} x={clefX} y={ROW.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
-  if (system.first) {
-    const tx = clefX + 25;
+  // The time signature stands in front of the staff, its two numbers close together round the middle.
+  if (system.timeX !== null) {
+    const middle = (ROW.staffTop + STAFF_BOTTOM) / 2;
     parts.push(
-      <text key="time-top" x={tx} y={ROW.staffTop + 30} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
-      <text key="time-bottom" x={tx} y={ROW.staffTop + 62} fontSize={22} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
+      <text key="time-top" x={system.timeX} y={middle - 2} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.beats}</text>,
+      <text key="time-bottom" x={system.timeX} y={middle + 16} fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle">{clip.time.value}</text>,
     );
   }
 
@@ -400,8 +401,8 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
       parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={ROW.stemTop} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
       const group = grouped.get(column);
       if (value >= 8 && (!group || group.length === 1)) {
-        // A lone eighth or sixteenth gets flags.
-        for (let f = 0; f < (value === 16 ? 2 : 1); f++) {
+        // A lone eighth or shorter gets its flags.
+        for (let f = 0; f < beamCount(value); f++) {
           const fy = ROW.stemBottom - f * 6;
           parts.push(<path key={`flag-${key}-${f}`} d={`M${x} ${fy} q6 -2 8 -9`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
         }
@@ -417,18 +418,23 @@ function Stems({ bar, beat, look }: { bar: PlacedBar; beat: number; look: TabLoo
     const first = g.columns[0].x;
     const last = g.columns[g.columns.length - 1].x;
     parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={ROW.stemBottom} y2={ROW.stemBottom} stroke={look.ink} strokeWidth={3.2} />);
-    g.columns.forEach((p, k) => {
-      if (p.column.duration.value !== 16) return;
-      const next = g.columns[k + 1];
-      const prev = g.columns[k - 1];
-      const y = ROW.stemBottom - 6;
-      if (next?.column.duration.value === 16) {
-        parts.push(<line key={`beam2-${p.x}`} x1={p.x} x2={next.x} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
-      } else if (prev?.column.duration.value !== 16) {
-        const toward = next ? 7 : -7;
-        parts.push(<line key={`stub-${p.x}`} x1={p.x} x2={p.x + toward} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
-      }
-    });
+    // The second, third and fourth beams join neighbours that have them too; a note alone in having
+    // one gets a short stub toward its neighbour.
+    for (let level = 2; level <= 4; level++) {
+      const has = (p?: PlacedColumn) => p !== undefined && beamCount(p.column.duration.value) >= level;
+      const y = ROW.stemBottom - (level - 1) * 6;
+      g.columns.forEach((p, k) => {
+        if (!has(p)) return;
+        const next = g.columns[k + 1];
+        const prev = g.columns[k - 1];
+        if (has(next)) {
+          parts.push(<line key={`beam${level}-${p.x}`} x1={p.x} x2={next.x} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
+        } else if (!has(prev)) {
+          const toward = next ? 7 : -7;
+          parts.push(<line key={`stub${level}-${p.x}`} x1={p.x} x2={p.x + toward} y1={y} y2={y} stroke={look.ink} strokeWidth={3.2} />);
+        }
+      });
+    }
   }
 
   // Triplet numbers under each run of triplets.
@@ -457,13 +463,19 @@ function Rest({ x, value, look }: { x: number; value: number; look: TabLook }) {
       />
     );
   }
-  // Eighth and sixteenth rests: a slanted stem with one or two flags.
+  // Eighth rests and shorter: a slanted stem with a flag for each beam, the stem longer for three or four.
+  const flags = beamCount(value);
+  const length = 16 + Math.max(0, flags - 2) * 6;
   return (
     <g fill={look.ink} stroke={look.ink} data-testid="rest">
-      <line x1={x + 3} y1={y - 8} x2={x - 2} y2={y + 8} strokeWidth={1.4} />
-      <circle cx={x - 2} cy={y - 7} r={2.4} />
-      {value === 16 && <circle cx={x - 4} cy={y - 1} r={2.4} />}
+      <line x1={x + 3} y1={y - 8} x2={x + 3 - length * 5 / 16} y2={y - 8 + length} strokeWidth={1.4} />
+      {Array.from({ length: flags }, (_, f) => <circle key={f} cx={x - 2 - f * 2} cy={y - 7 + f * 6} r={2.4} />)}
     </g>
   );
+}
+
+/** Beams (or flags) a note value has: one for an eighth, two for a sixteenth, up to four for a sixty-fourth. */
+function beamCount(value: number): number {
+  return value >= 8 ? Math.log2(value) - 2 : 0;
 }
 

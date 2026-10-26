@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  isRest, isStandardTuning, ticks,
+  isRest, isStandardTuning, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note,
 } from './clip';
 
@@ -28,7 +28,7 @@ export const SYSTEM_HEIGHT = 196;
 
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
-const TIME_WIDTH = 24;
+const TIME_WIDTH = 30;
 const BAR_PAD_START = 14;
 const BAR_PAD_END = 6;
 const REPEAT_PAD = 12;
@@ -56,7 +56,11 @@ export interface PlacedBar {
 
 export interface System {
   bars: PlacedBar[];
-  /** Where the staff lines start: after the names, "TAB" and the time signature. */
+  /** Where the time signature's numbers are centred, on the first line of tab only. */
+  timeX: number | null;
+  /** Where the staff lines and the opening line start: after the time signature and the names, if any. "TAB" sits on the lines. */
+  lineStart: number;
+  /** Where the first bar starts: after "TAB". */
   staffStart: number;
   first: boolean;
 }
@@ -70,7 +74,7 @@ export interface Layout {
 
 /** A column's width: longer notes take more room, and its widest note must fit. */
 export function columnWidth(column: Column): number {
-  const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / 48);
+  const byTime = 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
   // A bend's arrow and label stand right of the number; a release needs more.
   const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
   return Math.max(byTime, minColumnWidth(column)) + bend;
@@ -97,14 +101,19 @@ function barWidth(bar: Bar): number {
 
 export function layoutClip(clip: Clip, width: number): Layout {
   const names = isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
-  const head = (first: boolean) => (names ? NAMES_WIDTH : 0) + CLEF_WIDTH + (first ? TIME_WIDTH : 0);
+  // In front of the staff: the time signature (first line only), then the string names.
+  const lineStart = (first: boolean) => (first ? TIME_WIDTH : 0) + (names ? NAMES_WIDTH : 0);
+  const head = (first: boolean) => lineStart(first) + CLEF_WIDTH;
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
   let x = head(true);
   const finish = () => {
-    systems.push({ bars: current, staffStart: head(systems.length === 0), first: systems.length === 0 });
+    const first = systems.length === 0;
+    systems.push({
+      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart: lineStart(first), staffStart: head(first), first,
+    });
     current = [];
     x = head(false);
   };

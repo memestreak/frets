@@ -77,6 +77,18 @@ describe('durations and column marks', () => {
     expect(bars(clip)).toMatch(/^5\.3\.8\{dd\} /);
   });
 
+  it('steps down to a sixty-fourth, which drops its dots and takes none', () => {
+    let clip = clipOf('5.3.16{d} r.16 r.8 r.4 r.2 |');
+    clip = stepDuration(clip, only(at(0, 0, 2)), -1);
+    expect(bars(clip)).toMatch(/^5\.3\.32\{d\} /);
+    clip = stepDuration(clip, only(at(0, 0, 2)), -1);
+    expect(bars(clip)).toMatch(/^5\.3\.64 /);
+    clip = stepDuration(clip, only(at(0, 0, 2)), -1);
+    expect(bars(clip)).toMatch(/^5\.3\.64 /);
+    clip = cycleDots(clip, only(at(0, 0, 2)));
+    expect(bars(clip)).toMatch(/^5\.3\.64 /);
+  });
+
   it('applies to every selected column', () => {
     const clip = toggleStroke(clipOf('5.3.4 5.3.4 5.3.4 5.3.4 |'), { cursor: at(0, 1, 2), selection: { anchor: 2, focus: 1 } }, 'down');
     expect(clip.bars[0].columns.map(c => c.stroke)).toEqual([undefined, 'down', 'down', undefined]);

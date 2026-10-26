@@ -4,9 +4,11 @@
  * to the lowest (index 5), the order tab is written in.
  */
 
-/** A note value: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth. */
-export type NoteValue = 1 | 2 | 4 | 8 | 16;
-export const NOTE_VALUES: readonly NoteValue[] = [1, 2, 4, 8, 16];
+/** A note value: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth, 32 thirty-second, 64 sixty-fourth. */
+export type NoteValue = 1 | 2 | 4 | 8 | 16 | 32 | 64;
+export const NOTE_VALUES: readonly NoteValue[] = [1, 2, 4, 8, 16, 32, 64];
+/** The shortest value that takes dots: a dotted sixty-fourth would need a 128th to fill its beat. */
+export const SHORTEST_DOTTED: NoteValue = 32;
 
 export interface Duration {
   value: NoteValue;
@@ -108,9 +110,10 @@ export interface Clip {
 
 export const STRING_COUNT = 6;
 
-/* — durations in ticks: a whole note is 192, so every value, dotted or in a triplet, is whole — */
+/* — durations in ticks: a whole note is 768, so every value, dotted or in a triplet, is a whole number
+   (a double-dotted thirty-second is 42, a sixty-fourth triplet 8) — */
 
-export const WHOLE = 192;
+export const WHOLE = 768;
 
 export function ticks({ value, dots, triplet }: Duration): number {
   let t = WHOLE / value;
@@ -190,9 +193,10 @@ export function emptyClip(): Clip {
 export function nearestDuration(t: number): Duration {
   let best: Duration = { value: 4, dots: 0, triplet: false };
   let bestGap = Infinity;
-  for (const value of NOTE_VALUES) {
+  // Spacing is too rough to tell thirty-seconds, so a guess is a sixteenth at the shortest.
+  for (const value of NOTE_VALUES.filter(v => v <= 16)) {
     for (const dots of [0, 1] as const) {
-      if (dots && value === 16) continue; // a dotted sixteenth needs a thirty-second to pair with
+      if (dots && value === 16) continue; // a guessed dotted sixteenth would need a guessed thirty-second
       const d: Duration = { value, dots, triplet: false };
       const gap = Math.abs(ticks(d) - t);
       if (gap < bestGap) {

@@ -99,8 +99,11 @@ As layout A of the mock, without the list: the clip takes the page width.
 
 ## Drawing
 
-- Six lines, "TAB" and the time signature at the start, bar lines, a final
-  double bar, in `--ink` (both themes). With a non-standard tuning, the
+- Six lines that start at an opening line, with "TAB" stacked T, A, B on
+  them at the start of every line of tab, as printed tab does. The time
+  signature stands in front of the first line of tab, left of its opening
+  line, its two numbers close together; bar lines, a final double bar, in
+  `--ink` (both themes). With a non-standard tuning, the
   string names stand left of the lines (D A D G B E).
 - Columns are spaced by duration. Stems and beams under the bottom string,
   beamed by beat: a half note a short stem, a whole note none, a rest its

@@ -95,11 +95,13 @@ The line just above the strings gives each column's duration: a letter
 directly above the column's position.
 
     w  whole      h  half      q  quarter      e  eighth      s  sixteenth
+    t  thirty-second          x  sixty-fourth (takes no dots)
 
 - "." right after the letter makes it dotted ("q." a dotted quarter),
   ".." double dotted ("q..").
 - "3" right after the letter makes it a triplet ("e3": three of them fill
-  one quarter). Write triplets in complete groups of three.
+  one quarter). Write triplets in complete groups of three. (A line of
+  nothing but "x3"s reads as repeat counts, section 7, not as triplets.)
 - A letter above a position where every string has "-" is a rest of that
   length.
 - With a rhythm line, every column needs a letter.
@@ -114,6 +116,8 @@ Reading note values from a picture (stems under the tab):
     full stem, no flag or beam     q  quarter
     one flag or beam               e  eighth
     two flags or beams             s  sixteenth
+    three flags or beams           t  thirty-second
+    four flags or beams            x  sixty-fourth
     a dot after the stem           .  dotted
     a "3" over a beamed group      3  triplet
 

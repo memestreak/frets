@@ -56,6 +56,21 @@ describe('readAlphaTex', () => {
     expect(rest.notes.every(n => n === null)).toBe(true);
   });
 
+  it('reads thirty-second and sixty-fourth notes, dotted too, and writes them back', () => {
+    const text = '5.3.32{d} 7.3.64 7.3.64 5.3.16{d} 5.3.32 r.8 r.4 r.2 |';
+    const clip = clipOf(text);
+    expect(clip.bars[0].columns.map(c => [c.duration.value, c.duration.dots])).toEqual([
+      [32, 1], [64, 0], [64, 0], [16, 1], [32, 0], [8, 0], [4, 0], [2, 0],
+    ]);
+    expect(clipOf(writeAlphaTex(clip))).toEqual(clip);
+  });
+
+  it('reads a note shorter than a sixty-fourth as one, and says so', () => {
+    const result = read('5.3.128 |');
+    expect(result.ok && result.clip.bars[0].columns[0].duration.value).toBe(64);
+    expect(result.ok && result.warnings.join(' ')).toMatch(/1\/128/);
+  });
+
   it('reads any count over 2, 4, 8, 16 or 32, and anything else as 4/4', () => {
     expect(clipOf('\\ts (7 8)\n5.3.8 |').time).toEqual({ beats: 7, value: 8 });
     expect(clipOf('\\ts (32 32)\n5.3.8 |').time).toEqual({ beats: 32, value: 32 });
