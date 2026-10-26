@@ -50,8 +50,9 @@ yet: g (ghost note), …").
   were widened before merging. ASCII tab can't hold them all: written as
   ASCII, a shift slide becomes a plain slide, a slide in from below or
   above after another note on its string reads back as a slide from that
-  note, and a palm mute covers whole columns. Shift and legato slides are
-  drawn alike for now.
+  note, and a palm mute covers whole columns. On the drawn tab a legato
+  slide is its line with a slur over both notes, as printed tab draws it;
+  a shift slide is the line alone.
 
 ## Writing
 

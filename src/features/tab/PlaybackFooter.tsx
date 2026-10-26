@@ -11,6 +11,7 @@ import { PauseIcon, PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { layoutClip } from './layout';
+import { SpeedField } from './SpeedField';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, timeline, type PlayerView, type Sound } from './playback';
 
@@ -226,14 +227,11 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace, shown
           >
             <LoopIcon />
           </button>
-          <label className="tab-speed">
+          <div className="tab-speed">
             <span className="text-(--ink-muted)">Speed</span>
-            <input
-              type="range" min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} value={percent} aria-label="Speed"
-              onChange={e => playback.setSpeed(Number(e.target.value) / 100)}
-            />
-            <span className="tab-speed-value">{percent}% · {Math.round(playback.bpm * speed)} bpm</span>
-          </label>
+            <SpeedField percent={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} onChange={p => playback.setSpeed(p / 100)} />
+            <span className="tab-speed-value">{Math.round(playback.bpm * speed)} bpm</span>
+          </div>
           <div className="tab-volume">
             <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
             <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />

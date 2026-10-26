@@ -37,9 +37,13 @@ The controls sit under that line:
 - **Loop.** It is a toggle button. Turned on with notes selected, it
   repeats those notes, and a bracket under their stems marks them.
   Otherwise it repeats the whole clip.
-- **Speed.** A slider from 25% to 150% of the clip's own tempo, beside
-  "100% · 92 bpm". That figure is the tempo where the playhead is, times
-  the speed.
+- **Speed.** A number field, 25% to 150% of the clip's own tempo, with
+  stacked up and down buttons (5% a press, as are ↑ ↓ in the field) and
+  "92 bpm" beside it: the tempo where the playhead is, times the speed
+  (Jeremy's ask, replacing a slider, 2026-10-26). Pressing the number and
+  dragging up or down changes it by 1% every 2px; a press that doesn't
+  move puts the caret in the field to type. A typed number takes effect on
+  Enter or on leaving the field, kept within the range; Esc drops it.
 - **Volume.** A small rotary knob between Speed and Sound (Jeremy picked
   a knob over a slider or a speaker button, 2026-10-26). It sweeps 270°,
   from silent at lower left to full at lower right, with the turned-up
