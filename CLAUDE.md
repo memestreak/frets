@@ -277,8 +277,12 @@ binds a local port).
   parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
   its renderer is not used) and keeps what Frets doesn't draw as written
   (`extra` and `header` in the clip), `alphatex.ts` writes it, and
-  `readTab.ts` tells ASCII from alphaTex. Images and dragging are PR 3 in
-  the spec.
+  `readTab.ts` tells ASCII from alphaTex. `examples.ts` is the library of
+  example clips (Examples…, or `/tab#example=<id>`), shown in place of the
+  clip and never saved (`clipState.ts` sets the clip aside;
+  `docs/specs/2026-10-26-tab-examples-design.md`); each must read with no
+  warnings and write back exactly, and every newly drawn feature gets one.
+  Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 

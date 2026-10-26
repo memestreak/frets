@@ -10,7 +10,7 @@ import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
-import { loadJson } from '@/lib/storage';
+import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { isStandardTuning, isUneven, type Clip } from './clip';
 import {
@@ -29,6 +29,7 @@ import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, isOn, toolForKey, type ToolId } from './tools';
+import { exampleById, TAB_EXAMPLES } from './examples';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -37,6 +38,8 @@ interface Notice {
 }
 
 const HASH = '#tab=';
+/** An example's link, /tab#example=bends; it stays in the address while the example is shown. */
+const EXAMPLE_HASH = '#example=';
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 type View = 'tab' | 'alphatex' | 'ascii';
@@ -49,7 +52,9 @@ const SECOND_DIGIT_MS = 1000;
 
 /**
  * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
- * drop or a `#tab=` link replace it; a paste goes in at the cursor), edited
+ * drop or a `#tab=` link replace it; a paste goes in at the cursor), or one
+ * of the examples in its place (Examples… or a `#example=` link; never
+ * saved, and Back to my clip brings the clip back), edited
  * on the tab with the keys and the symbol palette, and shown drawn, as
  * alphaTex or as ASCII. See `docs/specs/2026-10-24-tab-editor-design.md` and
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
@@ -58,7 +63,12 @@ const SECOND_DIGIT_MS = 1000;
 export default function TabPage() {
   const [state, dispatch] = useReducer(clipReducer, undefined, initClipState);
   const { clip } = state;
-  usePersist(STORAGE_KEY, clip);
+  const example = state.example ? exampleById(state.example.id) ?? null : null;
+  // An example's edits are never saved: the saved clip waits, untouched, until the example is left.
+  useEffect(() => {
+    if (!example) saveJson(STORAGE_KEY, clip);
+  }, [clip, example]);
+  const [choosingExample, setChoosingExample] = useState(false);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // Export: the saved choices, the right-click menu (where it opened) and the dialog.
@@ -238,15 +248,47 @@ export default function TabPage() {
     commit(left.clip, { ...cursor, ...left.cursor }, null);
   });
 
-  /** Reads `text`; on success replaces the clip and returns null, else the errors. */
+  /** Reads `text`; on success replaces the clip (an example too: it becomes the saved clip) and returns null, else the errors. */
   const importText = useCallback(async (text: string): Promise<string[] | null> => {
     const result = await readTab(text);
     if (!result.ok) return result.errors;
-    dispatch({ type: 'replace', clip: result.clip });
+    dispatch({ type: 'import', clip: result.clip });
+    clearHash(EXAMPLE_HASH);
     setNotice(result.warnings.length > 0 ? { tone: 'info', lines: result.warnings } : null);
     setView('tab');
     return null;
   }, []);
+
+  /** Shows the example with this id in place of the clip; null when it opened, else why it couldn't. */
+  const openExample = useCallback(async (id: string): Promise<string | null> => {
+    const chosen = exampleById(id);
+    if (!chosen) return `There is no example called "${id}".`;
+    const result = await readTab(chosen.text);
+    if (!result.ok) return result.errors.join(' ');
+    dispatch({ type: 'openExample', id, clip: result.clip });
+    setCursor(START);
+    setSelection(null);
+    setNotice(null);
+    setView('tab');
+    // The address names the example, so a reload or a copied link shows it again.
+    const { pathname, search } = window.location;
+    window.history.replaceState(null, '', `${pathname}${search}${EXAMPLE_HASH}${id}`);
+    return null;
+  }, []);
+
+  const leaveExample = () => {
+    dispatch({ type: 'leaveExample' });
+    setCursor(START);
+    setSelection(null);
+    setNotice(null);
+    clearHash(EXAMPLE_HASH);
+  };
+
+  /** Opens the example in an `#example=` link, or says on the page why it couldn't. */
+  const openExampleOrSay = useEffectEvent(async (id: string) => {
+    const error = await openExample(id);
+    if (error) setNotice({ tone: 'error', lines: [error] });
+  });
 
   /** Imports `text`, or says on the page why it couldn't. */
   const importOrSay = useEffectEvent(async (text: string) => {
@@ -257,7 +299,12 @@ export default function TabPage() {
   // The hash is cleared so a reload doesn't import it again.
   useEffect(() => {
     const readLink = () => {
-      const text = linkText(window.location.hash);
+      const { hash } = window.location;
+      if (hash.startsWith(EXAMPLE_HASH)) {
+        void openExampleOrSay(decodeURIComponent(hash.slice(EXAMPLE_HASH.length)));
+        return;
+      }
+      const text = linkText(hash);
       if (text === null) return;
       const { pathname, search } = window.location;
       window.history.replaceState(null, '', pathname + search);
@@ -340,6 +387,7 @@ export default function TabPage() {
             {/* The time signature shown here is also where it is set. */}
             <TimeSignatureField time={clip.time} onChange={time => commit({ ...clip, time })} />
             {!isStandardTuning(clip.tuning) && ` · Tuning ${clip.tuning.join(' ')}`}
+            {example && <span data-testid="example-facts">{" · Example: edits aren't saved"}</span>}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -350,6 +398,8 @@ export default function TabPage() {
               </button>
             ))}
           </div>
+          {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
+          <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export…</button>
         </div>
@@ -400,6 +450,14 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
+      <ExamplesDialog
+        open={choosingExample} current={example?.id ?? null} onClose={() => setChoosingExample(false)}
+        onOpen={async id => {
+          const error = await openExample(id);
+          setChoosingExample(false);
+          if (error) setNotice({ tone: 'error', lines: [error] });
+        }}
+      />
       {exportMenu && (
         <ShapeMenu
           x={exportMenu.x} y={exportMenu.y} label="Tab"
@@ -438,6 +496,12 @@ function placeOfLast(clip: Clip): { bar: number; column: number } {
 }
 
 const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';
+
+/** Takes a `#tab=` or `#example=` hash out of the address, so a reload doesn't bring it back. */
+function clearHash(prefix: string) {
+  const { pathname, search, hash } = window.location;
+  if (hash.startsWith(prefix)) window.history.replaceState(null, '', pathname + search);
+}
 
 /** The tab in a `#tab=` hash; null when the hash is something else, an Error when it can't be decoded. */
 function linkText(hash: string): string | Error | null {
@@ -507,6 +571,33 @@ function ImportDialog({ open, onClose, onImport }: {
         <div className="flex justify-end">
           <button type="button" className="btn btn-primary" onClick={() => void submit()} disabled={!text.trim()}>Import</button>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+/** The example clips, each with a line on what it shows; choosing one shows it in place of the clip. */
+function ExamplesDialog({ open, current, onClose, onOpen }: {
+  open: boolean;
+  /** The example shown now, marked in the list. */
+  current: string | null;
+  onClose: () => void;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="Examples" className="tab-examples-dialog">
+      <div className="settings-dialog-body grid gap-3">
+        <p className="m-0 text-(--ink-muted)">Each shows what Frets draws. Edit one freely: it is never saved, and your own clip waits.</p>
+        <ul className="tab-examples m-0 p-0">
+          {TAB_EXAMPLES.map(e => (
+            <li key={e.id}>
+              <button type="button" className="tab-example" aria-current={e.id === current || undefined} onClick={() => onOpen(e.id)}>
+                <span className="tab-example-title">{e.title}</span>
+                <span className="tab-example-shows">{e.shows}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </Modal>
   );
