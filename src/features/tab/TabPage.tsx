@@ -32,6 +32,7 @@ import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
+import { MockSwitcher, PlayheadOverlay, TransportBarA, TransportFooterB, TransportHeaderC, useMockVariant, usePlayback } from './TransportMock';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -107,6 +108,10 @@ export default function TabPage() {
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
   const target = { cursor, selection };
+  // MOCK: playback transport layouts behind ?mock=a|b|c.
+  const [mock, chooseMock] = useMockVariant();
+  const mockSelection = selection ? selectedRange(selection) : null;
+  const playback = usePlayback(clip, mockSelection, indexOf(clip, cursor.bar, cursor.column));
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -184,6 +189,11 @@ export default function TabPage() {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
+    if (mock && key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      playback.toggle();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       if (key === 'Enter') {
         e.preventDefault();
@@ -501,6 +511,7 @@ export default function TabPage() {
 
   return (
     <div className="grid gap-4">
+      {mock && <MockSwitcher variant={mock} onChoose={chooseMock} />}
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
           <h1 className="m-0">{name}</h1>
@@ -513,6 +524,7 @@ export default function TabPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {mock === 'c' && <TransportHeaderC playback={playback} selection={mockSelection} />}
           <div className="seg" role="group" aria-label="View">
             {VIEWS.map(v => (
               <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => setView(v.id)}>
@@ -534,6 +546,8 @@ export default function TabPage() {
           onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
           onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
+
+      {mock === 'a' && <TransportBarA clip={clip} playback={playback} selection={mockSelection} />}
 
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="relative min-w-0">
@@ -564,6 +578,7 @@ export default function TabPage() {
                 {copyButton}
               </div>
             )}
+          {mock && view === 'tab' && clipWidth > 0 && <PlayheadOverlay clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab' && clipWidth > 0 && copyButton}
           {view === 'tab' && word && clipWidth > 0 && (
             <WordField
@@ -578,6 +593,7 @@ export default function TabPage() {
             />
           )}
         </div>
+        {mock === 'b' && <TransportFooterB clip={clip} playback={playback} selection={mockSelection} />}
       </section>
 
       <p
