@@ -688,10 +688,24 @@ button {
   }
   .tab-ascii-copy { position: absolute; top: 0; right: 0; }
   /* Playback, a footer in the clip's card: Play, the progress through the bars, Loop and Speed. */
-  .tab-playback {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px;
-    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+  /* The row under the tab: the small toggle, then (when shown) the controls. The line over it and its
+     height stay the same either way, so the toggle never moves. */
+  .tab-playback-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid transparent;
   }
+  .tab-playback-row[data-shown='true'] { border-top-color: var(--line); }
+  /* Very small and round, with a green triangle; sits level with the middle of Play (40px). */
+  .tab-playback-toggle {
+    display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin-top: 11px;
+    padding: 0; padding-left: 1px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--lit);
+  }
+  .tab-playback-toggle:hover { border-color: var(--lit); }
+  .tab-playback-toggle[aria-pressed='true'] { background: var(--surface-sunken); }
+  .tab-playback-toggle:focus { outline: none; }
+  .tab-playback-toggle:focus-visible { box-shadow: 0 0 0 2px var(--lit-glow); }
+  .tab-playback { display: flex; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
   .tab-play { border-radius: 999px; }
   .tab-play-spinner {
     width: 14px; height: 14px; border-radius: 999px;

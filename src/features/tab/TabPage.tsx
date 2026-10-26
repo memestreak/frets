@@ -4,7 +4,7 @@ import {
   useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon, PlayIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
@@ -114,12 +114,12 @@ export default function TabPage() {
     setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
     editorRef.current?.focus();
   });
-  // The footer shows only when chosen (the round button in the header); hidden, Space doesn't play.
+  // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
   const [showPlayback, setShowPlayback] = useState(() => parseShowPlayback(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, showPlayback);
-  const togglePlayback = () => {
-    if (showPlayback) playback.stop();
-    setShowPlayback(!showPlayback);
+  const showPlaybackControls = (shown: boolean) => {
+    if (!shown) playback.stop();
+    setShowPlayback(shown);
   };
   const selectedColumns = selection ? selectedRange(selection) : null;
   const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
@@ -546,14 +546,6 @@ export default function TabPage() {
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
-          <HoverTips>
-            <button
-              type="button" className="btn btn-secondary btn-toggle btn-icon tab-play" aria-label="Playback" aria-pressed={showPlayback}
-              data-tip={showPlayback ? 'Hide playback' : 'Show playback'} onClick={togglePlayback}
-            >
-              <PlayIcon />
-            </button>
-          </HoverTips>
         </div>
       </header>
 
@@ -610,14 +602,13 @@ export default function TabPage() {
             />
           )}
         </div>
-        {showPlayback && (
-          <HoverTips>
-            <PlaybackFooter
-              clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
-              onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
-            />
-          </HoverTips>
-        )}
+        <HoverTips>
+          <PlaybackFooter
+            clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
+            shown={showPlayback} onShow={showPlaybackControls}
+            onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
+          />
+        </HoverTips>
       </section>
 
       <p

@@ -376,9 +376,9 @@ describe('TabPage', () => {
 
 describe('TabPage playback', () => {
   const footer = () => screen.queryByRole('group', { name: 'Playback' });
-  const toggle = () => screen.getByRole('button', { name: 'Playback' });
+  const toggle = () => screen.getByRole('button', { name: 'Playback controls' });
 
-  it('hides the playback footer at first, shows it on the round button, and remembers the choice', () => {
+  it('hides the playback footer at first, shows it on the small button under the tab, and remembers the choice', () => {
     renderAt();
     expect(footer()).toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
