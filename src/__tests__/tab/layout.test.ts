@@ -31,15 +31,19 @@ describe('layoutClip', () => {
     }
   });
 
-  it('starts every line of tab at the left edge, with "TAB" (and the time signature first) on the lines before the bars', () => {
+  it('puts the time signature in front of the first line of tab, and "TAB" on the lines before the bars', () => {
     const layout = layoutClip(LONG, 600);
-    for (const system of layout.systems) {
+    const [first, ...rest] = layout.systems;
+    expect(first.timeX).toBeGreaterThan(0);
+    expect(first.timeX!).toBeLessThan(first.lineStart);
+    for (const system of rest) {
+      expect(system.timeX).toBeNull();
       expect(system.lineStart).toBe(0);
+    }
+    for (const system of layout.systems) {
       expect(system.bars[0].x0).toBe(system.staffStart);
       expect(system.staffStart).toBeGreaterThan(system.lineStart);
     }
-    // The time signature takes room on the first line only.
-    expect(layout.systems[0].staffStart).toBeGreaterThan(layout.systems[1].staffStart);
   });
 
   it('squeezes a bar wider than a whole line to fit', () => {

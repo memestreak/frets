@@ -28,7 +28,7 @@ export const SYSTEM_HEIGHT = 196;
 
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
-const TIME_WIDTH = 24;
+const TIME_WIDTH = 30;
 const BAR_PAD_START = 14;
 const BAR_PAD_END = 6;
 const REPEAT_PAD = 12;
@@ -56,9 +56,11 @@ export interface PlacedBar {
 
 export interface System {
   bars: PlacedBar[];
-  /** Where the staff lines and the opening line start: after the names, if any. "TAB" and the time signature sit on the lines. */
+  /** Where the time signature's numbers are centred, on the first line of tab only. */
+  timeX: number | null;
+  /** Where the staff lines and the opening line start: after the time signature and the names, if any. "TAB" sits on the lines. */
   lineStart: number;
-  /** Where the first bar starts: after "TAB" and the time signature. */
+  /** Where the first bar starts: after "TAB". */
   staffStart: number;
   first: boolean;
 }
@@ -99,15 +101,19 @@ function barWidth(bar: Bar): number {
 
 export function layoutClip(clip: Clip, width: number): Layout {
   const names = isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
-  const lineStart = names ? NAMES_WIDTH : 0;
-  const head = (first: boolean) => lineStart + CLEF_WIDTH + (first ? TIME_WIDTH : 0);
+  // In front of the staff: the time signature (first line only), then the string names.
+  const lineStart = (first: boolean) => (first ? TIME_WIDTH : 0) + (names ? NAMES_WIDTH : 0);
+  const head = (first: boolean) => lineStart(first) + CLEF_WIDTH;
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
   let x = head(true);
   const finish = () => {
-    systems.push({ bars: current, lineStart, staffStart: head(systems.length === 0), first: systems.length === 0 });
+    const first = systems.length === 0;
+    systems.push({
+      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart: lineStart(first), staffStart: head(first), first,
+    });
     current = [];
     x = head(false);
   };
