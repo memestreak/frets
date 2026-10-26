@@ -262,11 +262,15 @@ binds a local port).
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
   and paste at the cursor), `tools.ts` (the symbol palette's table, shared
   with the keys) and `TabPalette.tsx`, `TimeSignatureField.tsx` (the time
-  signature under the name, where it is set), and `TabPage.tsx` (the editor: keys
+  signature under the name, where it is set), `exportTab.tsx` and
+  `TabExportDialog.tsx` (right-click the tab: Copy as PNG, Export options…;
+  `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
+  helpers), and `TabPage.tsx` (the editor: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog, drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
-  Tab | ASCII | alphaTex, the text views with their copy button; Download). The clip's own format is alphaTex
+  Tab | ASCII | alphaTex, the text views with their copy button; Export…,
+  the Export dialog, which also downloads the clip as alphaTex or ASCII). The clip's own format is alphaTex
   (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
   `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
   parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
@@ -310,7 +314,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

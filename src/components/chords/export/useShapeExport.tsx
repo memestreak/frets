@@ -1,17 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { ExportDialog } from './ExportDialog';
 import { copyPng, fillDragData, prepareDrag, type ExportShape } from './exportImage';
 import { EXPORT_STORAGE_KEY, parseExportStyle } from './exportStyle';
 import { ShapeMenu, type MenuItem } from './ShapeMenu';
+import { menuSpot, useMenuTrigger, type MenuTriggerProps } from './useMenuTrigger';
 
-/** A touch held this long opens the menu (iPhone Safari sends no contextmenu). */
-const LONG_PRESS_MS = 500;
-/** A touch that moves further than this is a scroll, not a long press. */
-const LONG_PRESS_SLOP = 10;
 /** How long "Copied as PNG" stays up. */
 const NOTICE_MS = 2500;
 /**
@@ -31,13 +28,7 @@ interface MenuState {
 }
 
 /** Props for a shape's diagram (or the neck), opening the menu on it. */
-export interface ShapeExportTriggerProps {
-  onContextMenu: (e: React.MouseEvent<HTMLElement>) => void;
-  onPointerDown: (e: React.PointerEvent<HTMLElement>) => void;
-  onPointerMove: (e: React.PointerEvent<HTMLElement>) => void;
-  onPointerUp: () => void;
-  onPointerCancel: () => void;
-  onClickCapture: (e: React.MouseEvent<HTMLElement>) => void;
+export interface ShapeExportTriggerProps extends MenuTriggerProps {
   draggable?: boolean;
   onPointerEnter?: (e: React.PointerEvent<HTMLElement>) => void;
   onDragStart?: (e: React.DragEvent<HTMLElement>) => void;
@@ -65,9 +56,7 @@ export function useShapeExport(): {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dialogFor, setDialogFor] = useState<ExportShape | null>(null);
   const [notice, setNotice] = useState('');
-  const press = useRef<{ timer: number; x: number; y: number } | null>(null);
-  /** A long press just opened the menu, so the click that ends it is swallowed. */
-  const swallowClick = useRef(false);
+  const trigger = useMenuTrigger();
   const [canDrag, setCanDrag] = useState(false);
 
   useEffect(() => {
@@ -86,23 +75,12 @@ export function useShapeExport(): {
     return () => window.clearTimeout(t);
   }, [notice]);
 
-  const cancelPress = () => {
-    if (press.current) window.clearTimeout(press.current.timer);
-    press.current = null;
-  };
-  useEffect(() => cancelPress, []);
-
   const openMenu = (
     shape: ExportShape, items: MenuItem[], trigger: HTMLElement, x: number, y: number,
   ) => {
     const focused = document.activeElement;
     const returnTo = focused instanceof HTMLElement && trigger.contains(focused) ? focused : trigger;
-    const r = trigger.getBoundingClientRect();
-    // From the keyboard there's no pointer, so it opens under the diagram.
-    const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-    setMenu(inside
-      ? { shape, items, returnTo, x, y }
-      : { shape, items, returnTo, x: r.left, y: r.bottom + 4 });
+    setMenu({ shape, items, returnTo, ...menuSpot(trigger, x, y) });
   };
 
   const dragProps = (shape: ExportShape): Partial<ShapeExportTriggerProps> => ({
@@ -111,7 +89,7 @@ export function useShapeExport(): {
       if (e.pointerType === 'mouse') void prepareDrag(shape, style);
     },
     onDragStart: e => {
-      cancelPress();
+      trigger.cancel();
       fillDragData(e.dataTransfer, shape, style);
     },
   });
@@ -121,37 +99,7 @@ export function useShapeExport(): {
     { drag = false, items = [] }: { drag?: boolean; items?: MenuItem[] } = {},
   ): ShapeExportTriggerProps => ({
     ...(drag && canDrag ? dragProps(shape) : {}),
-    onContextMenu: e => {
-      e.preventDefault();
-      cancelPress();
-      openMenu(shape, items, e.currentTarget, e.clientX, e.clientY);
-    },
-    onPointerDown: e => {
-      if (e.pointerType !== 'touch') return;
-      const trigger = e.currentTarget;
-      const { clientX: x, clientY: y } = e;
-      cancelPress();
-      press.current = {
-        x, y,
-        timer: window.setTimeout(() => {
-          press.current = null;
-          swallowClick.current = true;
-          openMenu(shape, items, trigger, x, y);
-        }, LONG_PRESS_MS),
-      };
-    },
-    onPointerMove: e => {
-      const p = press.current;
-      if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > LONG_PRESS_SLOP) cancelPress();
-    },
-    onPointerUp: cancelPress,
-    onPointerCancel: cancelPress,
-    onClickCapture: e => {
-      if (!swallowClick.current) return;
-      swallowClick.current = false;
-      e.preventDefault();
-      e.stopPropagation();
-    },
+    ...trigger.props((el, x, y) => openMenu(shape, items, el, x, y)),
   });
 
   const closeMenu = (refocus: boolean) => {
