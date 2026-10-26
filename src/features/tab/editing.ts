@@ -600,15 +600,18 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
 }
 
 /**
- * A new bar after the cursor's bar, filled with rests: one a beat long for each beat of the time
- * signature in force there (three quarter rests in 3/4). The cursor goes to its first rest.
+ * A new bar before or after the cursor's bar, filled with rests: one a beat long for each beat of
+ * the time signature in force where it goes (three quarter rests in 3/4). Before a bar that changes
+ * the time, that is the time before the change, which the cursor's bar keeps. The cursor goes to
+ * the new bar's first rest.
  */
-export function insertBar(clip: Clip, cursor: Cursor): { clip: Clip; cursor: Cursor } {
-  const time = timeAt(clip, cursor.bar);
+export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after'): { clip: Clip; cursor: Cursor } {
+  const index = where === 'before' ? cursor.bar : cursor.bar + 1;
+  const time = index === 0 ? clip.time : timeAt(clip, index - 1);
   const rests = Array.from({ length: time.beats }, () => emptyColumn({ value: time.value, dots: 0 }));
   const bars = [...clip.bars];
-  bars.splice(cursor.bar + 1, 0, { columns: rests });
-  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: cursor.bar + 1, column: 0 } };
+  bars.splice(index, 0, { columns: rests });
+  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: index, column: 0 } };
 }
 
 /* — removing, copying and pasting columns — */

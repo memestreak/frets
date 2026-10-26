@@ -370,7 +370,7 @@ describe('TabPage export', () => {
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     fireEvent.contextMenu(editor);
     const menu = screen.getByRole('menu', { name: 'Tab' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Copy as PNG', 'Export options…']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after', 'Copy as PNG', 'Export options…']);
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Export options…' }));
     expect(screen.queryByRole('menu')).toBeNull();
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });

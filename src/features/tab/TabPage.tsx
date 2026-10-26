@@ -124,9 +124,9 @@ export default function TabPage() {
     else setWord({ kind, bar: at.bar, column: at.column });
   };
 
-  /** A bar of rests after the cursor's bar (Ctrl+Enter or the Bars group's button), with the cursor in it. */
-  const addBar = () => {
-    const next = insertBar(clip, cursor);
+  /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
+  const addBar = (where: 'before' | 'after') => {
+    const next = insertBar(clip, cursor, where);
     commit(next.clip, next.cursor, null);
   };
 
@@ -134,7 +134,8 @@ export default function TabPage() {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') setTimeBar(cursor.bar);
-    else if (id === 'insertBar') addBar();
+    else if (id === 'insertBar') addBar('after');
+    else if (id === 'insertBarBefore') addBar('before');
     else commit(applyTool(clip, target, id));
   };
 
@@ -185,7 +186,7 @@ export default function TabPage() {
     if (e.ctrlKey || e.metaKey) {
       if (key === 'Enter') {
         e.preventDefault();
-        addBar();
+        addBar(e.shiftKey ? 'before' : 'after');
       }
       if (key.toLowerCase() === 'a' && count > 0) {
         e.preventDefault();
@@ -584,6 +585,9 @@ export default function TabPage() {
             setExportMenu(null);
           }}
           items={[
+            // The bar under a right-click already has the cursor: the press put it there.
+            { label: 'Insert bar before', onSelect: () => addBar('before') },
+            { label: 'Insert bar after', onSelect: () => addBar('after') },
             {
               label: 'Copy as PNG',
               onSelect: () => void copyPng(),

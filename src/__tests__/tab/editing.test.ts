@@ -180,7 +180,7 @@ describe('bars', () => {
 
   it('inserts a bar of rests, one a beat, after the cursor\'s bar, in the time in force there', () => {
     const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 | \\ts (6 8) 0.4.4 0.4.8 0.4.4 0.4.8 | 0.4.4 0.4.8 0.4.4 0.4.8 |');
-    const { clip: next, cursor } = insertBar(clip, at(1, 0, 2));
+    const { clip: next, cursor } = insertBar(clip, at(1, 0, 2), 'after');
     expect(bars(next).split('\n')).toEqual([
       '0.6.1 |',
       '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |',
@@ -190,7 +190,16 @@ describe('bars', () => {
     ]);
     expect(cursor).toEqual(at(2, 0, 2));
     // After the last bar, and in 6/8: six eighth rests.
-    expect(bars(insertBar(clip, at(3, 0, 0)).clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+    expect(bars(insertBar(clip, at(3, 0, 0), 'after').clip).split('\n').at(-1)).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
+  });
+
+  it('inserts a bar before the cursor\'s bar in the time before it; the bar keeps its own change', () => {
+    const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.4 0.5.4 0.5.4 |');
+    const { clip: next, cursor } = insertBar(clip, at(1, 1, 0), 'before');
+    expect(bars(next).split('\n')).toEqual(['0.6.1 |', 'r.4 r.4 r.4 r.4 |', '\\ts (3 4) 0.5.4 0.5.4 0.5.4 |']);
+    expect(cursor).toEqual(at(1, 0, 0));
+    // Before the first bar: the clip's own time.
+    expect(bars(insertBar(clip, at(0, 0, 0), 'before').clip).split('\n')[0]).toBe('r.4 r.4 r.4 r.4 |');
   });
 });
 
