@@ -11,13 +11,16 @@ The clip's card has a footer under the tab, split from it by a line:
 
 - **Play / Pause.** A round button; Space does the same while the tab has
   the focus. Play starts at the selection's first column, else at the
-  cursor's. After a pause it goes on from where it stopped. The first Play
+  cursor's. Pause stops and puts the cursor on the column it stopped on,
+  with the playhead gone, so the next Play goes on from there (Jeremy,
+  2026-10-26: a paused playhead had stayed on the tab with no way to clear
+  it). The first Play
   loads alphaTab and the soundfont, about 1 MB, and shows a spinner until
   they are ready.
 - **The progress line.** It is the clip as written, split at each bar,
   every bar as long as its time. A repeat goes back along it, as the
-  playhead does on the tab. Pressing it while the clip plays or is paused
-  jumps there; when nothing plays, the cursor goes there instead.
+  playhead does on the tab. Pressing it while the clip plays jumps there;
+  otherwise the cursor goes there.
 - **Loop.** It is a toggle button. Turned on with notes selected, it
   repeats those notes, and a bracket under their stems marks them.
   Otherwise it repeats the whole clip.

@@ -109,7 +109,11 @@ export default function TabPage() {
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
   const target = { cursor, selection };
   // Playback starts at the selection's first column, else the cursor's; a Loop takes the selection.
-  const playback = usePlayback(clip);
+  const playback = usePlayback(clip, column => {
+    setSelection(null);
+    setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
+    editorRef.current?.focus();
+  });
   const selectedColumns = selection ? selectedRange(selection) : null;
   const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
 

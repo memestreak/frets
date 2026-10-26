@@ -239,7 +239,7 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
 
 /* — the player — */
 
-export type PlayerState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
+export type PlayerState = 'idle' | 'loading' | 'playing' | 'error';
 
 /** What the page shows while a clip plays. */
 export interface PlayerView {
@@ -255,10 +255,11 @@ export interface PlayerView {
 export class TabPlayer {
   private performance: Performance | null = null;
   private clip: Clip | null = null;
-  /** Whether a Play resumes where it paused, rather than starting afresh. */
-  private paused = false;
-  /** Whether the clip has played to its end since the last Play. */
-  private ended = false;
+  /**
+   * Whether the clip has stopped (paused, edited or played to its end) since the last Play. The
+   * synthesizer still reports positions for a moment after; they must not bring the playhead back.
+   */
+  private ended = true;
 
   private constructor(
     private readonly at: AlphaTab,
@@ -266,13 +267,11 @@ export class TabPlayer {
     private readonly onView: (view: Partial<PlayerView>) => void,
   ) {
     synth.positionChanged.on(e => {
-      // Once the clip has ended the synthesizer goes back to its start; the playhead doesn't.
       if (!this.clip || !this.performance || this.ended) return;
       onView({ column: columnAtTick(this.clip, this.performance, e.currentTick) });
     });
     synth.finished.on(() => {
       if (synth.isLooping) return;
-      this.paused = false;
       this.ended = true;
       onView({ state: 'idle', column: null });
     });
@@ -290,7 +289,8 @@ export class TabPlayer {
   }
 
   /**
-   * Plays the clip: on from where it paused, else from `from` (a column), or the loop's start.
+   * Plays the clip from a column (a pause leaves the cursor where it stopped, so Play resumes). With
+   * a loop of some columns, from the column when it is in the loop, else from the loop's start.
    * `loop` repeats those columns, or with `whole` the whole clip; null plays once.
    */
   play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number) {
@@ -298,29 +298,29 @@ export class TabPlayer {
       this.clip = clip;
       this.performance = perform(this.at, clip);
       this.synth.loadMidiFile(this.performance.midi);
-      this.paused = false;
     }
     this.setLoop(loop);
     this.setSpeed(speed);
-    if (!this.paused) this.synth.tickPosition = tickOf(clip, this.performance, Array.isArray(loop) ? loop[0] : from);
-    this.paused = false;
+    const start = Array.isArray(loop) && (from < loop[0] || from > loop[1]) ? loop[0] : from;
+    this.synth.tickPosition = tickOf(clip, this.performance, start);
     this.ended = false;
     this.synth.play();
-    this.onView({ state: 'playing' });
+    this.onView({ state: 'playing', column: start });
   }
 
+  /** Stops where it is; the view hears the state go idle and the playhead go. */
   pause() {
+    this.ended = true;
     this.synth.pause();
-    this.paused = true;
-    this.onView({ state: 'paused' });
+    this.onView({ state: 'idle', column: null });
   }
 
-  /** Stops and forgets the clip, as after an edit; the next Play starts afresh. */
+  /** Stops and forgets the clip, as after an edit. */
   stop() {
+    this.ended = true;
     this.synth.stop();
     this.clip = null;
     this.performance = null;
-    this.paused = false;
     this.onView({ state: 'idle', column: null });
   }
 
@@ -342,7 +342,7 @@ export class TabPlayer {
     this.synth.playbackSpeed = speed;
   }
 
-  /** Moves the playing or paused clip to a column (its first time through). */
+  /** Moves the playing clip to a column (its first time through). */
   seek(index: number) {
     if (!this.clip || !this.performance) return;
     this.synth.tickPosition = tickOf(this.clip, this.performance, index);

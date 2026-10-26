@@ -27,14 +27,17 @@ export interface Playback {
   /** Loop on (the selection, else the whole clip) or off. */
   toggleLoop: (selection: [number, number] | null) => void;
   setSpeed: (speed: number) => void;
-  /** Moves the playing or paused clip to a column; false when nothing is playing or paused. */
+  /** Moves the playing clip to a column; false when nothing is playing. */
   seek: (index: number) => boolean;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
 
-/** Playback of a clip; any edit stops it, so the next Play plays what is drawn. */
-export function usePlayback(clip: Clip): Playback {
+/**
+ * Playback of a clip; any edit stops it, so the next Play plays what is drawn. A pause hands
+ * `onPause` the column it stopped on, for the cursor: Play starts from the cursor, so it resumes.
+ */
+export function usePlayback(clip: Clip, onPause: (column: number) => void): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
@@ -52,7 +55,11 @@ export function usePlayback(clip: Clip): Playback {
     loop,
     speed,
     toggle: from => {
-      if (view.state === 'playing') return player.current?.pause();
+      if (view.state === 'playing') {
+        // The cursor goes where it stopped, so the next Play goes on from there.
+        if (view.column !== null) onPause(view.column);
+        return player.current?.pause();
+      }
       if (view.state === 'loading') return;
       const start = (p: TabPlayer) => p.play(clip, from, loop, speed);
       if (player.current) return start(player.current);
@@ -75,7 +82,7 @@ export function usePlayback(clip: Clip): Playback {
       player.current?.setSpeed(s);
     },
     seek: index => {
-      if (view.state !== 'playing' && view.state !== 'paused') return false;
+      if (view.state !== 'playing') return false;
       player.current?.seek(index);
       return true;
     },
@@ -132,7 +139,7 @@ export function PlaybackFooter({ clip, playback, from, selection, onPlace }: {
         // The press leaves the focus where it was (or where onPlace puts it).
         onMouseDown={e => e.preventDefault()}
         onPointerDown={e => {
-          // The column at the point pressed: playing or paused, the clip goes there; else the cursor does.
+          // The column at the point pressed: while playing, the clip goes there; else the cursor does.
           const box = e.currentTarget.getBoundingClientRect();
           const at = ((e.clientX - box.left) / box.width) * time.total;
           let index = 0;
