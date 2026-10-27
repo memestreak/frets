@@ -3,7 +3,7 @@
  * (https://alphatab.net/docs/alphatex/introduction). Pure; no React.
  *
  * The form written here is deliberately plain so a person or an agent can
- * follow it: one bar per line, every beat with its own duration, strings
+ * follow it: lines of at most 80 characters broken at bar lines, every beat with its own duration, strings
  * numbered 1 (high e) to 6 (low E) as in tab. What Frets doesn't draw yet
  * (a clip's `header`, and `extra` on bars, columns and notes) is written
  * back as it was read. Reading is `alphatexRead.ts`.
@@ -119,7 +119,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   return `${notes.length === 1 ? notes[0] : `(${notes.join(' ')})`}${after}`;
 }
 
-/** The clip as alphaTex: header lines, then one bar per line, each ending in "|". */
+/** The clip as alphaTex: header lines, then the bars, each ending in "|", wrapped at `LINE_WIDTH`. */
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
@@ -130,8 +130,19 @@ export function writeAlphaTex(clip: Clip): string {
     lines.push(`\\tuning (${notes.join(' ')})`);
   }
   if (clip.capo) lines.push(`\\capo ${clip.capo}`);
+  lines.push(...wrapBars(barTokens(clip)));
+  return `${lines.join('\n')}\n`;
+}
+
+/** Each bar on one line, unwrapped: what tests and anything comparing bars want. */
+export function writeBars(clip: Clip): string[] {
+  return barTokens(clip).map(tokens => tokens.join(' '));
+}
+
+/** Each bar's marks, beats and closing bar line, as the tokens a line break may go between. */
+function barTokens(clip: Clip): string[][] {
   const marks = originMarks(clip);
-  clip.bars.forEach((bar, b) => {
+  return clip.bars.map((bar, b) => {
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
     if (bar.section) {
@@ -144,7 +155,51 @@ export function writeAlphaTex(clip: Clip): string {
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
     meta.push(...(bar.extra ?? []));
     const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
-    lines.push([...meta, ...beats, '|'].join(' '));
+    // The bar line goes with the last beat, so a wrapped bar never leaves it alone on a line.
+    const last = beats.pop();
+    return [...meta, ...beats, last === undefined ? '|' : `${last} |`];
   });
-  return `${lines.join('\n')}\n`;
+}
+
+/** The longest line the writer makes, unless one beat or bar mark is longer by itself. */
+export const LINE_WIDTH = 80;
+/** The start of a line that carries on a bar too long for one line. */
+const CONTINUED = '  ';
+
+/**
+ * The bars as lines of at most `LINE_WIDTH` characters (Jeremy, 2026-10-27): as many whole bars on a
+ * line as fit, a new line at a bar line when the next bar doesn't, or starts a section. A bar too long for a line by
+ * itself starts a line of its own and breaks between its beats, each later line indented.
+ */
+function wrapBars(bars: string[][]): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const tokens of bars) {
+    const bar = tokens.join(' ');
+    // A new section starts a line, so the song's form reads down the left edge.
+    const startsSection = tokens.some(t => t.startsWith('\\section'));
+    if (line && !startsSection && line.length + 1 + bar.length <= LINE_WIDTH) {
+      line += ` ${bar}`;
+      continue;
+    }
+    if (line) lines.push(line);
+    if (bar.length <= LINE_WIDTH) {
+      line = bar;
+      continue;
+    }
+    // Too long for one line: its beats fill lines, and the next bar starts a fresh one.
+    let part = '';
+    for (const token of tokens) {
+      if (part && part.length + 1 + token.length > LINE_WIDTH) {
+        lines.push(part);
+        part = CONTINUED + token;
+      } else {
+        part = part ? `${part} ${token}` : token;
+      }
+    }
+    lines.push(part);
+    line = '';
+  }
+  if (line) lines.push(line);
+  return lines;
 }

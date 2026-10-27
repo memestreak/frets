@@ -186,7 +186,9 @@ describe('TabPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
       const text = screen.getByTestId('tab-ascii').textContent ?? '';
       fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
-      return text.split('\n').filter(l => l.endsWith('|')).join('\n');
+      // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
+      const body = text.split('\n').filter(l => l.includes('|') || !/^\\(title|ts|tuning|capo) /.test(l)).join(' ');
+      return (body.match(/[^|]*\|/g) ?? []).map(b => b.trim().replace(/\s+/g, ' ')).join('\n');
     };
 
     it('types frets, two digits making one, and moves on with the arrows', () => {

@@ -1,5 +1,5 @@
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
 import { applyCyclingKey, applyTool, isOn } from '@/features/tab/tools';
@@ -9,7 +9,7 @@ function clipOf(text: string): Clip {
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return result.clip;
 }
-const bars = (clip: Clip) => writeAlphaTex(clip).split('\n').filter(l => l.endsWith('|')).join('\n');
+const bars = (clip: Clip) => writeBars(clip).join('\n');
 
 describe('marks drawn over a column', () => {
   // The cursor on the low E, which the chord leaves empty.

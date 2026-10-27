@@ -57,8 +57,12 @@ yet: g (ghost note), …").
 ## Writing
 
 `src/features/tab/alphatex.ts`, `writeAlphaTex`: `\title`, kept header
-tags, `\ts`, `\tuning` when not standard; then one bar per line, ending in
-"|": bar tags (`\ro`, `\ae n`, `\rc n`, kept tags), then beats, each with
+tags, `\ts`, `\tuning` when not standard; then the bars, each ending in
+"|", in lines of at most 80 characters (Jeremy, 2026-10-27): as many whole
+bars to a line as fit, a new line at a bar line when the next bar doesn't
+fit or starts a `\section`; a bar longer than a line starts its own and goes
+on over lines indented two spaces, broken between beats, the "|" kept with
+the last beat. Each bar: bar tags (`\ro`, `\ae n`, `\rc n`, kept tags), then beats, each with
 its own duration. `h` and `sl` go on the note before the one that carries
 them in the clip. Reading what was written gives the same clip; a test
 checks this for every golden ASCII fixture.
