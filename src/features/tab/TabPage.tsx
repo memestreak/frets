@@ -522,7 +522,7 @@ export default function TabPage() {
     const onDrop = async (e: DragEvent) => {
       if (!e.dataTransfer) return;
       e.preventDefault();
-      const file = [...e.dataTransfer.files].find(f => f.type.startsWith('text/') || /\.txt$/i.test(f.name));
+      const file = [...e.dataTransfer.files].find(isTabFile);
       const text = file ? await file.text() : e.dataTransfer.getData('text/plain');
       if (text) await importOrSay(text);
     };
@@ -817,6 +817,13 @@ function useWidth() {
   return [ref, value] as const;
 }
 
+/**
+ * The files Import's Open file… offers, and a drop takes: text, and alphaTex's own extensions
+ * (our download is `.alphatex.txt`; alphaTab's tools write `.atex` and `.alphatex`).
+ */
+const TAB_FILE_TYPES = '.txt,.atex,.alphatex,.tex,text/plain';
+const isTabFile = (f: File) => f.type.startsWith('text/') || /\.(txt|atex|alphatex|tex)$/i.test(f.name);
+
 function ImportDialog({ open, onClose, onImport }: {
   open: boolean;
   onClose: () => void;
@@ -828,14 +835,23 @@ function ImportDialog({ open, onClose, onImport }: {
     setErrors([]);
     onClose();
   };
-  const submit = async () => {
-    const found = await onImport(text);
+  const submit = async (tab: string = text) => {
+    const found = await onImport(tab);
     if (found) {
       setErrors(found);
       return;
     }
     setText('');
     close();
+  };
+  // A file from the computer goes into the box and is imported at once; if it can't be read, the
+  // errors show under its text.
+  const fileInput = useRef<HTMLInputElement>(null);
+  const openFile = async (file: File | undefined) => {
+    if (!file) return;
+    const tab = await file.text();
+    setText(tab);
+    await submit(tab);
   };
   return (
     <Modal open={open} onClose={close} title="Import tab" className="tab-import">
@@ -855,7 +871,12 @@ function ImportDialog({ open, onClose, onImport }: {
             {errors.map(e => <li key={e}>{e}</li>)}
           </ul>
         )}
-        <div className="flex justify-end">
+        <div className="flex justify-between gap-3">
+          <button type="button" className="btn btn-secondary" onClick={() => fileInput.current?.click()}>Open file…</button>
+          <input
+            ref={fileInput} type="file" accept={TAB_FILE_TYPES} hidden aria-label="Tab file"
+            onChange={e => { void openFile(e.target.files?.[0]); e.target.value = ''; }}
+          />
           <button type="button" className="btn btn-primary" onClick={() => void submit()} disabled={!text.trim()}>Import</button>
         </div>
       </div>

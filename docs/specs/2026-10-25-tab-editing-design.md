@@ -111,7 +111,11 @@ and the keys use.
 - **Paste into an empty clip:** the paste comes in whole, with its name,
   time and tuning.
 - **Replacing the clip:** Import…, a dropped file and a `#tab=` link still
-  replace it.
+  replace it. Import…'s Open file… (Jeremy, 2026-10-27) picks a file from the
+  computer: text, or alphaTex's own `.atex`, `.alphatex` and `.tex` (our
+  download is `.alphatex.txt`). Its text goes into the box and is imported at
+  once; if it can't be read, the errors show under it. A drop takes the same
+  files.
 
 ## Code
 

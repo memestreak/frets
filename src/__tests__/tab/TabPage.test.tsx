@@ -114,6 +114,16 @@ describe('TabPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
+  it('imports an alphaTex file opened from the dialog', async () => {
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
+    const dialog = screen.getByRole('dialog');
+    const file = new File(['\\title "From file"\n5.3.4 7.3.4 5.3.2 |'], 'riff.atex', { type: '' });
+    fireEvent.change(within(dialog).getByLabelText('Tab file'), { target: { files: [file] } });
+    await screen.findByRole('heading', { name: 'From file' }, SLOW);
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
+  });
+
   it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
     renderAt();
     await paste(RIFF);
