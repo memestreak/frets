@@ -190,14 +190,14 @@ export function beatTextWidth(text: string): number {
 }
 
 export const SECTION_SIZE = 11;
-/** A section's boxes: their height and the room between the name and its box's sides (Jeremy, 2026-10-27: more room round the name). */
-export const SECTION_BOX_HEIGHT = 20;
-export const SECTION_PAD = 8;
-/** Extra room above and below the section row, so its taller box doesn't touch the rows beside it. */
-const SECTION_ROOM = 3;
+/** A section's boxes: their height and the room between the name and its box's sides. */
+export const SECTION_BOX_HEIGHT = 16;
+export const SECTION_PAD = 5;
+/** Extra room above and below the section row, so its box stands clear of the rows beside it (Jeremy, 2026-10-27). */
+const SECTION_ROOM = 5;
 /** A section's rehearsal mark box (if any) and its name's box, from the bar's start. */
 export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
-  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 2 * SECTION_PAD } : null;
+  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 8 } : null;
   const x = marker ? marker.width + 4 : 0;
   return { marker, text: { x, width: section.text.length * 6.4 + 2 * SECTION_PAD } };
 }

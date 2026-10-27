@@ -19,10 +19,8 @@ at the spot each is drawn, and the capo beside the time signature.
 
 Each gets its own row over the staff, only when the clip uses it (`rowsFor`).
 From the top, the rows are: tempo, section, endings, chord names, then the note
-marks' rows. A section's name has 8px of room each side inside its box,
-which is 20px tall, and its row 3px more room above and below so the box
-doesn't touch the rows beside it (Jeremy, 2026-10-27; the box had been tight
-round the name).
+marks' rows. The section row has 5px more room above and below than the
+others, so its box stands clear of the words beside it (Jeremy, 2026-10-27).
 
 A chord name's column is at least as wide as the name. A section's box and a
 tempo's hit area are sized by guessing the text's width from its length, since
