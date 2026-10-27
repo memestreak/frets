@@ -297,7 +297,7 @@ binds a local port).
   `public/soundfont/` (Acoustic Grand Piano is the Salamander Grand and Steel Guitar the Iowa
   acoustic and Clean Electric Guitar Karoryfer's, each its own soundfont loaded when used, `OWN_FONTS`, built by `scripts/build-soundfonts.py`; `docs/specs/2026-10-27-tab-instruments-design.md`), through a small Web Audio output; `PlaybackFooter.tsx`
   is the footer under the tab (Play from the cursor, Loop setting loop points,
-  Speed, a number field in `SpeedField.tsx`, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
+  Speed, a number field in `NumberField.tsx`, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`); a right-click on Play opens `PlaybackOptions.tsx`, Stop leaves the cursor where it stopped and a pause between loops (`docs/specs/2026-10-27-tab-playback-options-design.md`). `ClipTitle.tsx` is the page's title, a click renaming the clip.
   Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
@@ -335,7 +335,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.parts"]` whether Notation shows the staff, the tab or both; `["frets.tab.playback"]` whether its playback controls show, their sound and volume; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.parts"]` whether Notation shows the staff, the tab or both; `["frets.tab.playback"]` whether its playback controls show, their sound, volume and options; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

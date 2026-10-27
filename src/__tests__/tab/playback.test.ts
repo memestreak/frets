@@ -59,9 +59,12 @@ describe('playback sounds', () => {
   });
 
   it('reads the saved settings, each field checked', () => {
-    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1 });
-    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4 })).toEqual({ shown: true, sound: 0, volume: 0.4 });
-    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2 })).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1 });
+    const options = { stopAtPlayhead: false, loopPause: false, loopPauseSeconds: 1 };
+    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
+    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 }))
+      .toEqual({ shown: true, sound: 0, volume: 0.4, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 });
+    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, stopAtPlayhead: 1, loopPause: 'on', loopPauseSeconds: 60 }))
+      .toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
   });
 });
 

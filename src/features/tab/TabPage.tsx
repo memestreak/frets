@@ -39,6 +39,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
+import { ClipTitle, UNTITLED } from './ClipTitle';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -59,6 +60,8 @@ const VIEWS: { id: View; label: string }[] = [
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
+/** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
+const COLUMN_REACH = 16;
 
 /**
  * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
@@ -177,7 +180,14 @@ export default function TabPage() {
   // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
   // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
-  const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume);
+  const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, {
+    loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
+    // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
+    // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
+    onStopAt: column => {
+      if (playbackSettings.stopAtPlayhead) setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: selectionAsSet });
+    },
+  });
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
    * view without a blur, so it is no longer being edited.
@@ -906,7 +916,9 @@ export default function TabPage() {
     </button>
   );
 
-  const name = clip.name.trim() || 'Untitled clip';
+  const name = clip.name.trim() || UNTITLED;
+  /** A new title: one undo step, as any edit. */
+  const rename = (next: string) => dispatch({ type: 'replace', clip: { ...clip, name: next } });
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
@@ -915,7 +927,7 @@ export default function TabPage() {
     <div className="grid gap-4">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
-          <h1 className="m-0">{name}</h1>
+          <ClipTitle name={clip.name} onRename={rename} />
           {/* The time signature and capo are drawn on the tab, and set there; this line says only what the tab doesn't. */}
           <p className="m-0 min-h-[1.5em] text-(--ink-muted)" data-testid="clip-facts">
             {[
@@ -984,7 +996,7 @@ export default function TabPage() {
                     clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                     onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
+                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly} columnReach={COLUMN_REACH}
                     highlight={{
                       cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
                       staffPitch: staffKeys ? staffPitch : null,
@@ -1038,6 +1050,7 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
+            options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
           />
         </HoverTips>
         )}

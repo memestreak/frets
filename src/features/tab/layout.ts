@@ -676,6 +676,12 @@ function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number
 
 /** How far past the staff's lines a press still lands on it, in steps: two ledger lines. */
 const STAFF_PRESS_STEPS = 4;
+/**
+ * In Both, below the staff toward the tab: one ledger line, and the tab reaches less far up, so the
+ * gap between them is left for moving the cursor or the playback line (Jeremy, 2026-10-27).
+ */
+const STAFF_PRESS_STEPS_OVER_TAB = 2;
+const TAB_REACH_UNDER_STAFF = 6;
 
 /** Where a press on the notation staff lands: a column, the line or space, and the string of the head pressed (null off a head). */
 export interface StaffHit {
@@ -696,7 +702,8 @@ export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
   if (!score || !system || y < 0) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
   const step = Math.round((score.bottom - localY) / (SPACE / 2));
-  if (step < -STAFF_PRESS_STEPS || step > 8 + STAFF_PRESS_STEPS) return null;
+  const below = rows.tab ? STAFF_PRESS_STEPS_OVER_TAB : STAFF_PRESS_STEPS;
+  if (step < -below || step > 8 + STAFF_PRESS_STEPS) return null;
   const head = staffHeadAt(system, score, x, localY);
   if (head) {
     const placed = system.bars.find(b => b.index === head.bar)!.columns[head.column];
@@ -720,7 +727,8 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   const localY = y - Math.floor(y / rows.height) * rows.height;
   // Only the staff itself, as far as the cursor's band reaches: not the marks over it, the rhythm
   // under it, or the blank space beside the last bar.
-  if (localY < rows.staffTop - STAFF_REACH || localY > rows.staffBottom + STAFF_REACH) return null;
+  const above = rows.score ? TAB_REACH_UNDER_STAFF : STAFF_REACH;
+  if (localY < rows.staffTop - above || localY > rows.staffBottom + STAFF_REACH) return null;
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
   if (!bar) return null;
   const string = Math.min(5, Math.max(0, Math.round((localY - rows.staffTop) / STRING_GAP)));
@@ -731,18 +739,25 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   return { bar: bar.index, column, string };
 }
 
+/** How far right of a column's centre a press still counts as on it: about a note head's half width. */
+export const ON_COLUMN_REACH = 8;
+
 /**
- * The column (its place in the whole clip) nearest a press anywhere in a bar's height, above or
- * below the staff included: where the playback line goes. Null beside the bars or in an empty bar.
+ * Where a press anywhere in a bar's height, above or below the staff included, puts the playback line:
+ * on the column pressed, else the first column after the press (Jeremy, 2026-10-27: "it should be
+ * sufficient to click anywhere after the note"). Past a bar's last column, the next bar's first; past
+ * the clip's last, the last. Null beside the bars or in an empty bar.
  */
 export function columnAt(layout: Layout, x: number, y: number): number | null {
   const system = layout.systems[Math.floor(y / layout.rows.height)];
   if (!system || y < 0) return null;
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
   if (!bar || bar.columns.length === 0) return null;
-  let nearest = bar.columns[0];
-  for (const c of bar.columns) if (Math.abs(c.x - x) < Math.abs(nearest.x - x)) nearest = c;
-  return nearest.index;
+  const next = bar.columns.find(c => x <= c.x + Math.min(ON_COLUMN_REACH, c.width / 2));
+  if (next) return next.index;
+  const last = bar.columns[bar.columns.length - 1].index;
+  const later = layout.systems.some(s => s.bars.some(b => b.columns.some(c => c.index > last)));
+  return later ? last + 1 : last;
 }
 
 /** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */

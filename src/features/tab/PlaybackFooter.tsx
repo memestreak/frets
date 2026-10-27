@@ -5,19 +5,20 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { columnAt, layoutClip, type Layout, type Parts } from './layout';
-import { SpeedField } from './SpeedField';
+import { NumberField } from './NumberField';
+import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
 
-/** The saved playback settings: whether the controls show (hidden at first), the sound and the volume. */
+/** The saved playback settings: whether the controls show (hidden at first), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
-export interface PlaybackSettings {
+export interface PlaybackSettings extends PlaybackOptionValues {
   /** Whether the controls show, from the small round button under the tab. */
   shown: boolean;
   /** The General MIDI program the clip plays in. */
@@ -33,6 +34,10 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     shown: fields.shown === true,
     sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
+    stopAtPlayhead: fields.stopAtPlayhead === true,
+    loopPause: fields.loopPause === true,
+    loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
+      && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
   };
 }
 
@@ -68,7 +73,12 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback {
+export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, onStopAt }: {
+  /** The rest between loops, in seconds; 0 loops straight round. */
+  loopPause: number;
+  /** Stop pressed (or Space) while playing, with the column the playhead was on. */
+  onStopAt: (column: number) => void;
+}): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
@@ -86,6 +96,9 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback 
   useEffect(() => {
     player.current?.setVolume(volume);
   }, [volume]);
+  useEffect(() => {
+    player.current?.setLoopPause(loopPause);
+  }, [loopPause]);
 
   return {
     view,
@@ -93,7 +106,11 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback 
     loop,
     speed,
     toggle: from => {
-      if (view.state === 'playing') return player.current?.halt();
+      if (view.state === 'playing') {
+        player.current?.halt();
+        if (view.column !== null) onStopAt(view.column);
+        return;
+      }
       if (view.state === 'loading') return;
       const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound).catch(() => update({ state: 'error' }));
       if (player.current) return start(player.current);
@@ -102,6 +119,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback 
         p => {
           player.current = p;
           p.setVolume(volume);
+          p.setLoopPause(loopPause);
           start(p);
         },
         () => update({ state: 'error' }),
@@ -159,7 +177,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -174,11 +192,23 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
   selection: [number, number] | null;
+  /** The options a right-click on Play opens. */
+  options: PlaybackOptionValues;
+  onOptions: (options: PlaybackOptionValues) => void;
 }) {
+  // Where the options menu opened; null while it is shut.
+  const [optionsAt, setOptionsAt] = useState<{ x: number; y: number } | null>(null);
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
+  const resetSpeed = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest('button')) return;
+    // A number being typed is settled first, so the reset is what stays.
+    const typing = e.currentTarget.querySelector('input');
+    if (typing && document.activeElement === typing) typing.blur();
+    playback.setSpeed(1);
+  };
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes'
@@ -202,10 +232,14 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
       {shown && (
         <div className="tab-playback" aria-label="Playback" role="group">
           <button
-            type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space)`}
+            type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space). Right-click for options`}
             disabled={total === 0}
             // A press leaves the focus (and so the cursor) on the tab.
             onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from)}
+            onContextMenu={e => {
+              e.preventDefault();
+              setOptionsAt({ x: e.clientX, y: e.clientY });
+            }}
           >
             {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <StopIcon /> : <PlayIcon />}
           </button>
@@ -215,9 +249,15 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
           >
             <LoopIcon />
           </button>
-          <div className="tab-speed">
+          {/* A double-click on the label, the number or the bpm resets the speed (Jeremy, 2026-10-27);
+              not on the step buttons, so pressing one quickly twice still steps twice. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
+          <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={resetSpeed}>
             <span className="text-(--ink-muted)">Speed</span>
-            <SpeedField percent={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} onChange={p => playback.setSpeed(p / 100)} />
+            <NumberField
+              value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
+              label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
+            />
             <span className="tab-speed-value">{Math.round(playback.bpm * speed)} bpm</span>
           </div>
           <div className="tab-volume">
@@ -236,6 +276,9 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
           </label>
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
         </div>
+      )}
+      {optionsAt && (
+        <PlaybackOptions x={optionsAt.x} y={optionsAt.y} values={options} onChange={onOptions} onClose={() => setOptionsAt(null)} />
       )}
     </div>
   );

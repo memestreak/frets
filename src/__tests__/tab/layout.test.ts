@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, textAt } from '@/features/tab/layout';
+import { columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, staffAt, textAt } from '@/features/tab/layout';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
@@ -119,10 +119,25 @@ describe('pressing the drawing', () => {
     expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();
   });
 
-  it('finds the column nearest a press above or below the staff, for the playback line', () => {
+  it('finds the column pressed above or below the staff, else the next one, for the playback line', () => {
     expect(columnAt(layout, second.x + 2, rows.stemBottom)).toBe(1);
     expect(columnAt(layout, first.x, 0)).toBe(0);
+    expect(columnAt(layout, first.x - 10, 0)).toBe(0);
+    // Past a note: the next one, even nearer the note just passed.
+    expect(columnAt(layout, first.x + (second.x - first.x) / 4, 0)).toBe(1);
+    // Past the last column of the clip: the last.
+    const bar = layout.systems[0].bars[0];
+    expect(columnAt(layout, bar.x1 - 1, 0)).toBe(bar.columns[bar.columns.length - 1].index);
     expect(columnAt(layout, layout.systems[0].bars[0].x1 + 20, rows.stemBottom)).toBeNull();
+  });
+
+  it('in Both, leaves the gap between the staff and the tab to the playback line', () => {
+    const both = layoutClip(clipOf('0.6.4 2.6.4 |'), 800, 'both');
+    const x = both.systems[0].bars[0].columns[0].x;
+    const gap = (both.rows.score!.bottom + both.rows.staffTop) / 2;
+    expect(staffAt(both, x, gap)).toBeNull();
+    expect(hitTest(both, x, gap)).toBeNull();
+    expect(columnAt(both, x, gap)).toBe(0);
   });
 
   it('finds the P.M. run under a press on its label or line', () => {

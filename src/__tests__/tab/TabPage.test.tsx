@@ -76,6 +76,25 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
   });
 
+  it('renames the clip from its title, which the export Name starts on', () => {
+    renderAt();
+    fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled clip' }));
+    const field = screen.getByRole('textbox', { name: 'Clip title' });
+    expect(field).toHaveValue('');
+    fireEvent.change(field, { target: { value: '  Riff  ' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(heading()).toHaveTextContent('Riff');
+    expect(screen.queryByRole('textbox', { name: 'Clip title' })).toBeNull();
+    // Esc keeps the old title.
+    fireEvent.click(within(heading()).getByRole('button', { name: 'Riff' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Clip title' }), { target: { value: 'Other' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Clip title' }), { key: 'Escape' });
+    expect(heading()).toHaveTextContent('Riff');
+    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
+    expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    expect(JSON.parse(JSON.stringify(localStorage.getItem('frets.tab.clip')))).toContain('Riff');
+  });
+
   it('imports the tab in a #tab= link, then clears the link', async () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     await settle();
@@ -433,13 +452,13 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
     cleanup();
     renderAt();
     expect(footer()).not.toBeNull();
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, sound: 25, volume: 1 });
   });
 
   it('shows neither the toggle nor the controls in the text views', () => {
@@ -458,7 +477,7 @@ describe('TabPage playback', () => {
     const sound = screen.getByRole('combobox', { name: 'Sound' });
     expect(sound).toHaveValue('25');
     fireEvent.change(sound, { target: { value: '0' } });
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 0, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 0, volume: 1 });
     cleanup();
     renderAt();
     expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
@@ -476,6 +495,30 @@ describe('TabPage playback', () => {
     expect(knob).toHaveAttribute('aria-valuenow', '0');
     fireEvent.keyDown(knob, { key: 'ArrowUp' });
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!).volume).toBe(0.05);
+  });
+
+  it('opens the playback options on a right-click on Play, and remembers them', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Play' }), { clientX: 40, clientY: 40 });
+    const stop = screen.getByRole('menuitemcheckbox', { name: 'Stop leaves the cursor where it stopped' });
+    const pause = screen.getByRole('menuitemcheckbox', { name: 'Pause between loops' });
+    expect(stop).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(stop);
+    fireEvent.click(pause);
+    // The menu stays open while its options change.
+    expect(stop).toHaveAttribute('aria-checked', 'true');
+    expect(pause).toHaveAttribute('aria-checked', 'true');
+    const seconds = screen.getByRole('spinbutton', { name: 'Pause between loops (seconds)' });
+    expect(seconds).toHaveValue('1.0');
+    fireEvent.click(screen.getByRole('button', { name: 'Longer pause' }));
+    expect(seconds).toHaveValue('1.5');
+    fireEvent.change(seconds, { target: { value: '2.25' } });
+    fireEvent.keyDown(seconds, { key: 'Enter' });
+    expect(seconds).toHaveValue('2.3');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.3 });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
   });
 
   it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
@@ -500,6 +543,39 @@ describe('TabPage playback', () => {
     fireEvent.change(field, { target: { value: '70' } });
     fireEvent.keyDown(field, { key: 'Escape' });
     expect(field).toHaveValue('150');
+  });
+
+  it('resets the speed to 100% on a double-click on its label, number or bpm, not its step buttons', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    const faster = screen.getByRole('button', { name: 'Faster' });
+    fireEvent.click(faster);
+    fireEvent.click(faster);
+    fireEvent.doubleClick(faster);
+    expect(field).toHaveValue('110');
+    fireEvent.doubleClick(screen.getByText('Speed'));
+    expect(field).toHaveValue('100');
+    fireEvent.click(faster);
+    fireEvent.doubleClick(screen.getByText(/bpm$/));
+    expect(field).toHaveValue('100');
+    fireEvent.click(faster);
+    act(() => field.focus());
+    fireEvent.change(field, { target: { value: '60' } });
+    fireEvent.doubleClick(field);
+    expect(field).toHaveValue('100');
+  });
+
+  it('takes a press just above or below the drawing as one on its column', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    act(() => editor.blur());
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    // jsdom puts the drawing at 0, 0: 10 px above it, over the first bar.
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
   });
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
