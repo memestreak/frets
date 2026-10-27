@@ -48,7 +48,7 @@ See `public/soundfont/README.md`.
 ## Notation symbols: Bravura, via VexFlow
 
 `src/features/tab/smufl.ts` holds the outlines of a few music symbols (the
-clef, note heads, accidentals, rests and flags) from the
+clef, note heads, accidentals, rests, flags and the bracket's ends) from the
 [Bravura](https://github.com/steinbergmedia/bravura) font by Steinberg Media
 Technologies GmbH, under the
 [SIL Open Font License 1.1](https://openfontlicense.org) (its licence is
