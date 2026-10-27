@@ -807,7 +807,7 @@ export default function TabPage() {
     { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
   ];
   /**
-   * The save button at the clip's bottom right (Jeremy, 2026-10-27): in Standard it lists the
+   * The save button at the clip's top right (Jeremy, 2026-10-27): in Standard it lists the
    * formats; the ASCII Tab view saves its text, and the AlphaTex view its text as typed.
    */
   const saveLabel = { tab: 'Save as…', ascii: 'Save as text file', alphatex: 'Save as alphaTex file' }[view];
@@ -828,8 +828,6 @@ export default function TabPage() {
       <SaveIcon />
     </button>
   );
-  /** At the clip's bottom right: copy, then save (Jeremy, 2026-10-27). */
-  const clipButtons = <div className="tab-clip-buttons">{copyButton}{saveButton}</div>;
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
@@ -867,7 +865,7 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: Staff | Tab | Both at the top left, the view switch at the top right (Jeremy, 2026-10-27). */}
+        {/* Over the clip: Staff | Tab | Both at the top left; the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
           {view === 'tab' && (
             <div className="seg tab-parts" role="group" aria-label="Show">
@@ -878,12 +876,16 @@ export default function TabPage() {
               ))}
             </div>
           )}
-          <div className="seg tab-views" role="group" aria-label="View">
-            {VIEWS.map(v => (
-              <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
-                {v.label}
-              </button>
-            ))}
+          <div className="tab-card-end">
+            <div className="seg" role="group" aria-label="View">
+              {VIEWS.map(v => (
+                <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+            {copyButton}
+            {saveButton}
           </div>
         </div>
         <div ref={widthRef} className="relative min-w-0">
@@ -960,12 +962,9 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
-            end={clipButtons}
           />
         </HoverTips>
         )}
-        {/* The text views have no playback row, so copy and save have a row of their own, in the same place. */}
-        {view !== 'tab' && <div className="tab-card-foot">{clipButtons}</div>}
       </section>
 
       <p
