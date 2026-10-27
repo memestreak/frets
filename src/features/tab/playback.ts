@@ -46,18 +46,30 @@ export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [num
 ];
 /**
  * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by
- * `scripts/build-pianos.py`, `docs/specs/2026-10-27-tab-pianos-design.md`). Each is fetched the first
+ * `scripts/build-soundfonts.py`, `docs/specs/2026-10-27-tab-instruments-design.md`). Each is fetched the first
  * time its sound is picked and wins over SONiVOX's preset for that program. `level` brings it to about
  * SONiVOX's loudness, measured by rendering one passage with each.
  */
-export const OWN_FONTS: readonly { program: number; url: string; level: number }[] = [
+export const OWN_FONTS: readonly { program: number; url: string; level: number; trial?: string }[] = [
   // The Salamander Grand Piano: three velocity layers, 3.9 MB.
   { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
+  // Guitars on trial (Jeremy, 2026-10-27: "the same thing with a guitar instrument"), each played as a
+  // program the list doesn't otherwise offer, so it shadows no other sound.
+  { program: 120, url: '/soundfont/guitar-iowa.sf3', level: 0.74, trial: 'Guitar A: acoustic, Iowa (1.5 MB)' },
+  { program: 121, url: '/soundfont/guitar-nylon.sf3', level: 0.69, trial: 'Guitar B: nylon (0.7 MB)' },
+  { program: 122, url: '/soundfont/guitar-generaluser.sf3', level: 4.3, trial: 'Guitar C: GeneralUser GS steel (0.1 MB)' },
+];
+
+/** The Sound list: the GM families, with the guitars on trial after Guitar. */
+export const SOUND_LIST: typeof SOUND_FAMILIES = [
+  ...SOUND_FAMILIES.slice(0, 4),
+  ['Guitar trial', OWN_FONTS.flatMap(f => (f.trial ? [[f.program, f.trial] as const] : []))],
+  ...SOUND_FAMILIES.slice(4),
 ];
 
 export type Sound = number;
 export const DEFAULT_SOUND: Sound = 25;
-const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
+const SOUND_PROGRAMS = new Set(SOUND_LIST.flatMap(([, sounds]) => sounds.map(([program]) => program)));
 
 export function isSound(value: unknown): value is Sound {
   return typeof value === 'number' && SOUND_PROGRAMS.has(value);

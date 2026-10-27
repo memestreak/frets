@@ -12,7 +12,7 @@ import { columnCount, placeOf } from './editing';
 import { columnAt, layoutClip, type Layout, type Parts } from './layout';
 import { SpeedField } from './SpeedField';
 import { VolumeKnob } from './VolumeKnob';
-import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
+import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_LIST, TabPlayer, type PlayerView, type Sound } from './playback';
 
 /** The saved playback settings: whether the controls show (hidden at first), the sound and the volume. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -227,7 +227,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
           <label className="tab-sound">
             <span className="text-(--ink-muted)">Sound</span>
             <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
-              {SOUND_FAMILIES.map(([family, sounds]) => (
+              {SOUND_LIST.map(([family, sounds]) => (
                 <optgroup key={family} label={family}>
                   {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
                 </optgroup>

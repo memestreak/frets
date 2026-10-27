@@ -1,21 +1,28 @@
 """
-Builds the piano soundfonts the Tab page's playback can load in place of
-SONiVOX's piano (issue #124). Each is a small SF3: one preset in bank 0
-(program 0, or --as-program), mono samples compressed as Ogg Vorbis, which is what alphaTab's
-synthesizer reads (it skips stereo samples).
+Builds the soundfonts the Tab page's playback loads for a sound in place of
+SONiVOX's (issue #124). Each is a small SF3: one preset in bank 0 (program 0,
+or --as-program), mono samples compressed as Ogg Vorbis, which is what
+alphaTab's synthesizer reads (it skips stereo samples).
 
-    uv run --no-project scripts/build-pianos.py salamander <flac dir> <out.sf3> [--layers 11] [--quality 2] [--rate 32000] [--as-program 0]
-    uv run --no-project scripts/build-pianos.py extract <font.sf3> <out.sf3> [--program 0] [--as-program 0]
+    uv run --no-project scripts/build-soundfonts.py salamander <flac dir> <out.sf3> [--layers 11] [--quality 2] [--rate 32000]
+    uv run --no-project scripts/build-soundfonts.py notes <wav dir> <out.sf3> --name N --copyright C [--release 0.2]
+    uv run --no-project scripts/build-soundfonts.py extract <font.sf2|sf3> <out.sf3> [--program 0]
+
+Every command takes --as-program, the program the preset is written as.
 
 salamander: the Salamander Grand Piano's FLAC samples (CC BY 3.0, Alexander
 Holm), one per minor third from A0 to C8, named like `D#4v11.flac`. Fetch
 them from https://github.com/sfzinstruments/SalamanderGrandPiano (folder
-Samples/). Each kept velocity layer's samples are mixed to mono, cut short
-with a fade (low notes ring longer), resampled and encoded with ffmpeg's
-libvorbis.
+Samples/).
 
-extract: one preset of an existing SF3 (FluidR3 Mono's piano, MIT), with
-only the instruments and samples it uses.
+notes: one recording per note, named by it (`A2.wav`, `Fs2.wav`), as
+tonejs-instruments has them (https://github.com/nbrosowsky/tonejs-instruments).
+
+Both mix each recording to mono, cut it short with a fade (low notes ring
+longer), resample it and encode it with ffmpeg's libvorbis.
+
+extract: one preset of an existing SF2 or SF3, with only the instruments and
+samples it uses (an SF2's samples compressed on the way).
 
 Python's standard library and the ffmpeg command line only.
 """
@@ -23,6 +30,7 @@ Python's standard library and the ffmpeg command line only.
 import argparse
 import array
 import math
+import re
 import struct
 import subprocess
 import sys
@@ -193,7 +201,14 @@ def name_of(raw: bytes) -> str:
     return raw.split(b'\0', 1)[0].decode('ascii', 'replace')
 
 
-def extract(source: Path, program: int, bank: int) -> Font:
+def compress(pcm: bytes, rate: int, quality: float) -> bytes:
+    """16-bit mono samples as one Ogg Vorbis stream."""
+    return subprocess.run(['ffmpeg', '-v', 'error', '-f', 's16le', '-ar', str(rate), '-ac', '1', '-i', '-',
+                           '-c:a', 'libvorbis', '-q:a', str(quality), '-f', 'ogg', '-'],
+                          input=pcm, check=True, capture_output=True).stdout
+
+
+def extract(source: Path, program: int, bank: int, quality: float) -> Font:
     data = source.read_bytes()
     top = read_chunks(data, 12, len(data))
     info = read_chunks(data, *top[b'INFO'])
@@ -237,10 +252,16 @@ def extract(source: Path, program: int, bank: int) -> Font:
                         if sample not in sample_ids:
                             sample_ids[sample] = len(samples)
                             name, start, end, loop_start, loop_end, rate, key, correction, _, kind = shdr[sample]
-                            if not kind & 16:
-                                sys.exit(f'{name_of(name)} is not Ogg Vorbis: extract reads SF3 fonts only')
-                            samples.append(Sample(name_of(name), data[smpl[0] + start:smpl[0] + end], rate, key,
-                                                  correction, loop_start, loop_end, kind & ~0x8000))
+                            if kind & 16:
+                                # SF3: the Ogg stream as it is; its loop points already count from its start.
+                                ogg = data[smpl[0] + start:smpl[0] + end]
+                            else:
+                                # SF2: 16-bit samples, compressed here; loop points made to count from the start.
+                                ogg = compress(data[smpl[0] + 2 * start:smpl[0] + 2 * end], rate, quality)
+                                loop_start, loop_end = loop_start - start, loop_end - start
+                            if kind & 0x7 not in (0, 1):
+                                sys.exit(f'{name_of(name)} is a stereo sample: alphaTab plays mono ones only')
+                            samples.append(Sample(name_of(name), ogg, rate, key, correction, loop_start, loop_end, MONO_VORBIS))
                         inst_zone.gens[s] = (GEN_SAMPLE_ID, sample_ids[sample])
                 instruments.append(Instrument(name_of(inst[amount][0]), inst_zones))
             zone.gens[g] = (GEN_INSTRUMENT, instrument_ids[amount])
@@ -253,7 +274,7 @@ def extract(source: Path, program: int, bank: int) -> Font:
     return Font(f'{text(b"INAM")}: {preset.name}', text(b'ICOP'), f'One preset of {source.name}.', [preset], instruments, samples)
 
 
-# — Salamander —
+# — building from recordings —
 
 NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 # Salamander's own velocity for each layer: vN covers roughly 8 * N.
@@ -264,14 +285,29 @@ def note_name(key: int) -> str:
     return f'{NOTE_NAMES[key % 12]}{key // 12 - 1}'
 
 
+def key_of(name: str) -> int | None:
+    """The MIDI key a note name stands for: `C4` is 60; `F#2`, `Fs2` and `Gb2` are 42. None for anything else."""
+    match = re.fullmatch(r'([A-G])(#|s|b)?(-?\d)', name)
+    if not match:
+        return None
+    letter, sign, octave = match.groups()
+    return (int(octave) + 1) * 12 + NOTE_NAMES.index(letter) + {None: 0, '#': 1, 's': 1, 'b': -1}[sign]
+
+
 def ring_seconds(key: int) -> float:
-    """How long a sample is kept: ten seconds at A0, down to three by C7."""
+    """How long a sample is kept at most: ten seconds at A0, down to three by C7."""
     return max(3.0, min(10.0, 10 - (key - 21) * 0.08))
 
 
+def duration(path: Path) -> float:
+    out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', str(path)],
+                         check=True, capture_output=True, text=True).stdout
+    return float(out)
+
+
 def decode(path: Path, seconds: float, rate: int) -> array.array:
-    """A FLAC as mono 32-bit floats, cut at a length."""
-    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path), '-t', f'{seconds}', '-af', 'pan=mono|c0=0.5*c0+0.5*c1',
+    """A recording as mono 32-bit floats, cut at a length."""
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path), '-t', f'{seconds}', '-ac', '1',
                           '-ar', str(rate), '-f', 'f32le', '-'], check=True, capture_output=True).stdout
     samples = array.array('f')
     samples.frombytes(raw)
@@ -279,50 +315,74 @@ def decode(path: Path, seconds: float, rate: int) -> array.array:
 
 
 def encode(path: Path, seconds: float, rate: int, gain: float, quality: float) -> bytes:
+    """A recording as one mono Ogg Vorbis stream, cut at a length with a fade."""
     fade = min(1.5, seconds / 3)
-    filters = f'pan=mono|c0=0.5*c0+0.5*c1,atrim=0:{seconds},afade=t=out:st={seconds - fade}:d={fade},volume={gain:.4f}'
-    return subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path), '-af', filters, '-ar', str(rate),
+    filters = f'atrim=0:{seconds},afade=t=out:st={seconds - fade}:d={fade},volume={gain:.4f}'
+    return subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path), '-ac', '1', '-af', filters, '-ar', str(rate),
                            '-c:a', 'libvorbis', '-q:a', str(quality), '-f', 'ogg', '-'],
                           check=True, capture_output=True).stdout
 
 
-def salamander(folder: Path, layers: list[int], quality: float, rate: int) -> Font:
-    keys = [key for key in range(21, 109) if (key - 21) % 3 == 0]
-    files = {(key, layer): folder / f'{note_name(key)}v{layer}.flac' for key in keys for layer in layers}
-    missing = [str(f) for f in files.values() if not f.exists()]
-    if missing:
-        sys.exit('missing samples: ' + ', '.join(missing))
-
-    # One gain for the whole piano, so its loudest sample peaks just under full scale.
+def recorded(name: str, copyright: str, files: dict[tuple[int, int], Path], layers: list[int], quality: float, rate: int,
+             release: float) -> Font:
+    """
+    An instrument from recordings, `files[(key, layer)]`: each spread over the keys halfway to its
+    neighbours, each layer over the velocities halfway to the next.
+    """
+    keys = sorted({key for key, _ in files})
+    # One gain for the whole instrument, so its loudest sample peaks just under full scale.
     peak = max(max(abs(x) for x in decode(f, 1.0, rate)) for f in files.values())
     gain = 0.95 / peak
     print(f'peak {peak:.3f}, gain {gain:.2f}', file=sys.stderr)
 
-    # Velocity ranges split halfway between the layers' own velocities.
     centres = [layer * LAYER_VELOCITY for layer in layers]
     bounds = [0] + [(a + b) // 2 + 1 for a, b in zip(centres, centres[1:])] + [128]
 
     samples: list[Sample] = []
     zones: list[Zone] = []
     for k, key in enumerate(keys):
-        lo = 0 if k == 0 else key - 1
-        hi = 127 if k == len(keys) - 1 else key + 1
+        lo = 0 if k == 0 else (keys[k - 1] + key) // 2 + 1
+        hi = 127 if k == len(keys) - 1 else (key + keys[k + 1]) // 2
         for v, layer in enumerate(layers):
-            seconds = ring_seconds(key)
-            data = encode(files[(key, layer)], seconds, rate, gain, quality)
+            path = files[(key, layer)]
+            seconds = min(ring_seconds(key), duration(path))
+            data = encode(path, seconds, rate, gain, quality)
             zones.append(Zone(gens=[(GEN_KEY_RANGE, key_range(lo, hi)), (GEN_VEL_RANGE, key_range(bounds[v], bounds[v + 1] - 1)),
                                     (GEN_SAMPLE_ID, len(samples))]))
             samples.append(Sample(f'{note_name(key)}v{layer}', data, rate, key))
         print(f'{note_name(key)} done', file=sys.stderr)
 
-    # The instrument's global zone: a release like the damper's.
-    global_zone = Zone(gens=[(GEN_RELEASE_VOL_ENV, timecents(0.35))])
-    name = 'Salamander Grand'
+    # The instrument's global zone: how long a note takes to die away once let go.
+    global_zone = Zone(gens=[(GEN_RELEASE_VOL_ENV, timecents(release))])
     instrument = Instrument(name[:19], [global_zone] + zones)
     preset = Preset(name[:19], 0, 0, [Zone(gens=[(GEN_INSTRUMENT, 0)])])
-    layer_names = ', '.join(f'v{layer}' for layer in layers)
-    return Font(name, 'Alexander Holm, CC BY 3.0', f'Mono, {rate} Hz, velocity layers {layer_names}; built by Frets\' scripts/build-pianos.py.',
-                [preset], [instrument], samples)
+    return Font(name, copyright, f'Mono, {rate} Hz; built by Frets\' scripts/build-soundfonts.py.', [preset], [instrument], samples)
+
+
+def salamander(folder: Path, layers: list[int], quality: float, rate: int) -> Font:
+    """The Salamander Grand Piano: a FLAC every minor third from A0 to C8, per velocity layer, `D#4v11.flac`."""
+    keys = [key for key in range(21, 109) if (key - 21) % 3 == 0]
+    files = {(key, layer): folder / f'{note_name(key)}v{layer}.flac' for key in keys for layer in layers}
+    missing = [str(f) for f in files.values() if not f.exists()]
+    if missing:
+        sys.exit('missing samples: ' + ', '.join(missing))
+    # A release like the damper's.
+    return recorded('Salamander Grand', 'Alexander Holm, CC BY 3.0', files, layers, quality, rate, 0.35)
+
+
+def notes(folder: Path, name: str, copyright: str, quality: float, rate: int, release: float, sounds: dict[str, str]) -> Font:
+    """
+    One recording per note, named by it (`A2.wav`, `Fs2.wav`): one velocity layer. `sounds` names the
+    note a misnamed recording really plays (`D5` → `Ds5`).
+    """
+    files = {}
+    for path in sorted(folder.iterdir()):
+        key = key_of(sounds.get(path.stem, path.stem))
+        if key is not None:
+            files[(key, 0)] = path
+    if not files:
+        sys.exit(f'no notes in {folder}')
+    return recorded(name, copyright, files, [0], quality, rate, release)
 
 
 def main() -> None:
@@ -332,21 +392,34 @@ def main() -> None:
     s.add_argument('folder', type=Path)
     s.add_argument('out', type=Path)
     s.add_argument('--layers', default='11', help='velocity layers to keep, e.g. 5,11,16')
-    s.add_argument('--quality', type=float, default=2, help='libvorbis quality, -1 to 10')
-    s.add_argument('--rate', type=int, default=32000)
+    n = sub.add_parser('notes')
+    n.add_argument('folder', type=Path)
+    n.add_argument('out', type=Path)
+    n.add_argument('--name', required=True)
+    n.add_argument('--copyright', required=True)
+    n.add_argument('--release', type=float, default=0.2, help='seconds a note takes to die away once let go')
+    n.add_argument('--sounds', action='append', default=[], metavar='FILE=NOTE',
+                   help='a recording named for one note that plays another, e.g. D5=Ds5')
+    for command in (s, n):
+        command.add_argument('--quality', type=float, default=2, help='libvorbis quality, -1 to 10')
+        command.add_argument('--rate', type=int, default=32000)
     e = sub.add_parser('extract')
     e.add_argument('source', type=Path)
     e.add_argument('out', type=Path)
     e.add_argument('--program', type=int, default=0)
     e.add_argument('--bank', type=int, default=0)
-    for command in (s, e):
+    e.add_argument('--quality', type=float, default=4, help='libvorbis quality for an SF2\'s samples')
+    for command in (s, n, e):
         command.add_argument('--as-program', type=int, default=0, help='the program the preset is written as')
     args = parser.parse_args()
 
     if args.command == 'salamander':
         font = salamander(args.folder, [int(x) for x in args.layers.split(',')], args.quality, args.rate)
+    elif args.command == 'notes':
+        font = notes(args.folder, args.name, args.copyright, args.quality, args.rate, args.release,
+                     dict(pair.split('=', 1) for pair in args.sounds))
     else:
-        font = extract(args.source, args.program, args.bank)
+        font = extract(args.source, args.program, args.bank, args.quality)
     font.presets[0].program = args.as_program
     write_font(font, args.out)
     print(f'{args.out}: {args.out.stat().st_size / 1e6:.2f} MB, {len(font.samples)} samples', file=sys.stderr)

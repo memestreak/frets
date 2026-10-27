@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
+import { columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, SOUND_LIST, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -32,6 +32,11 @@ describe('playback sounds', () => {
     expect(programs.some(p => p >= 112 || (p >= 96 && p <= 103))).toBe(false);
     expect(isSound(25) && isSound(0) && isSound(111)).toBe(true);
     expect(isSound(100) || isSound(115) || isSound(127) || isSound('25')).toBe(false);
+  });
+
+  it('offers the guitars on trial after the Guitar family', () => {
+    expect(SOUND_LIST[4][0]).toBe('Guitar trial');
+    expect(SOUND_LIST[4][1].map(([program]) => program)).toEqual([120, 121, 122]);
   });
 
   it('plays a sound from its own soundfont, which alphaTab reads with sound in it', () => {

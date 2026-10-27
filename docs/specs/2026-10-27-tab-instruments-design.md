@@ -1,4 +1,4 @@
-# A better piano for Tab playback
+# Better instruments for Tab playback
 
 Issue #124. Jeremy, 2026-10-27: "a piano that isn't embarrassing. Is this practical?", then "let's
 try out a few pianos". SONiVOX's piano was 11 short looped samples, 46 KB of a 977 KB General MIDI
@@ -29,9 +29,26 @@ He picked B ("lets use piano B").
 
 ## The soundfont
 
-alphaTab's synthesizer reads SF2 and SF3 but plays mono samples only, so `scripts/build-pianos.py`
+alphaTab's synthesizer reads SF2 and SF3 but plays mono samples only, so `scripts/build-soundfonts.py`
 writes a one-preset SF3 of mono Ogg Vorbis samples. From the Salamander Grand's FLACs (one every
 minor third, A0 to C8) it keeps velocity layers v5, v11 and v16, mixes each sample to mono, keeps ten
 seconds at A0 down to three by C7 with a fade, and spreads each over the keys either side; a release
 of 0.35 s stands in for the damper. alphaTab's reader skips no RIFF pad byte, so the sample data is
 padded to an even size. The script can also copy one preset out of another SF3 (`extract`).
+
+## Guitars on trial
+
+Jeremy, 2026-10-27: "Let's do the same thing with a guitar instrument." Steel Guitar is the default
+sound, and SONiVOX's, like every General MIDI font's, is a few short looped samples. Three guitars sit
+in a "Guitar trial" group after Guitar (programs 120 to 122), each loaded when picked and brought to
+about SONiVOX's Steel Guitar loudness:
+
+| | Source | Size |
+|---|---|---|
+| A | An acoustic guitar from the University of Iowa's instrument samples, a recording per semitone E2 to D5, ringing out | 1.5 MB |
+| B | A classical guitar from Freesound (quartertone), most semitones B1 to A♯5, ringing out | 0.7 MB |
+| C | GeneralUser GS's Steel Guitar: ten short looped samples, as General MIDI fonts have | 0.1 MB |
+
+A and B come from tonejs-instruments, which edited them (trimmed, normalised, pitch-corrected); a
+pitch check of every recording found them within about 10 cents but for B's `D5`, which plays D♯5 and
+is used as D♯5. The one he picks replaces Steel Guitar (program 25).

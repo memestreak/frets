@@ -1,6 +1,6 @@
 # Plan: a better piano for Tab playback (#124)
 
-1. `scripts/build-pianos.py` (stdlib + ffmpeg): SF3 writer, Salamander builder (layers, quality,
+1. `scripts/build-soundfonts.py` (stdlib + ffmpeg): SF3 writer, Salamander builder (layers, quality,
    rate), `extract` for one preset of an SF3, `--as-program`. Pad the sample chunk to an even size:
    alphaTab's RIFF reader skips no pad byte.
 2. Trial: build three pianos as programs 120 to 122 in a "Piano trial" group; render one passage
@@ -11,3 +11,13 @@
    Remove A, C and the trial group.
 4. Test: the font renders a note. Credits in NOTICE.md, README and the soundfont README.
 5. Check in Chromium: Acoustic Grand Piano loads and plays, a switch mid-play carries on.
+
+## Guitars
+
+6. Builder renamed `scripts/build-soundfonts.py`: `notes` builds from one recording per note
+   (tonejs-instruments' naming, `--sounds` for a misnamed one); `extract` also reads SF2, compressing
+   its samples.
+7. Build A (Iowa acoustic), B (nylon, `D5=Ds5` after a pitch check) and C (GeneralUser GS Steel
+   Guitar) as programs 120 to 122; levels from the offline render against SONiVOX's Steel Guitar.
+8. `OWN_FONTS` entries with `trial` make the "Guitar trial" group (`SOUND_LIST`). Credits; check in
+   Chromium.

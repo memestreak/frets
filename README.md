@@ -43,6 +43,10 @@ check on every pull request and every push to `main`.
   [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 - The piano from the [Salamander Grand Piano](https://github.com/sfzinstruments/SalamanderGrandPiano),
   Alexander Holm, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- Trial guitars from the University of Iowa Electronic Music Studios and quartertone (Freesound),
+  via [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), and from
+  [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS), S. Christian Collins.
 - Notation symbols from the [Bravura](https://github.com/steinbergmedia/bravura)
   font, Steinberg Media Technologies GmbH,
   [SIL OFL 1.1](https://openfontlicense.org), as packaged in
