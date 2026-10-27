@@ -369,13 +369,23 @@ export default function TabPage() {
   };
 
   /** Takes the picked word away; the cursor stays where it was put. */
-  const deletePicked = (hit: WordHit) => {
-    const at = wordPlace(hit);
-    if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at);
-    if (hit.kind === 'text') commit(setBeatText(clip, at, ''), at);
-    if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at);
-    if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at);
-    if (hit.kind === 'capo') commit(setCapo(clip, null), at);
+  /**
+   * Takes a picked word or mark away. Nothing is left selected and no cursor shows (Jeremy, 2026-10-27):
+   * the tab lets the keys go, as after a press on blank space.
+   */
+  const deletePicked = (hit: WordHit | MarkHit) => {
+    if (hit.kind === 'mark') commit(removeMark(clip, hit), cursor, null);
+    else {
+      const at = wordPlace(hit);
+      if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at, null);
+      if (hit.kind === 'text') commit(setBeatText(clip, at, ''), at, null);
+      if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
+      if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
+      if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);
+    }
+    setColumnOnly(false);
+    // After the clip above is drawn: the blur fills the cursor's bar, and must start from the clip without the mark.
+    window.setTimeout(() => editorRef.current?.blur(), 0);
   };
 
   /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
@@ -392,7 +402,7 @@ export default function TabPage() {
     if (picked?.kind === 'mark') {
       if (key === 'Delete' || key === 'Backspace') {
         e.preventDefault();
-        commit(removeMark(clip, picked));
+        deletePicked(picked);
         return;
       }
       setPicked(null);
@@ -892,7 +902,7 @@ export default function TabPage() {
             <WordTools
               clip={clip} width={clipWidth} hit={picked}
               onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
-              onDelete={() => (picked.kind === 'mark' ? commit(removeMark(clip, picked)) : deletePicked(picked))}
+              onDelete={() => deletePicked(picked)}
             />
           )}
           {view === 'tab' && word && clipWidth > 0 && (

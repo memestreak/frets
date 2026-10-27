@@ -16,7 +16,9 @@ through to the nearest note or does nothing.
   picked.
 - Delete or Backspace, or the Delete icon, takes the mark away. The note
   stays. A tie taken away leaves its note played at the same fret. This is
-  one undo step.
+  one undo step. Afterwards nothing is selected and no cursor shows, as after
+  a press on blank space. Deleting a picked chord name, text, section, tempo
+  or capo works the same way (Jeremy, 2026-10-27).
 - Esc lets the mark go and shows the cursor where it was. Any other key lets
   the mark go and then does what it does on the note.
 

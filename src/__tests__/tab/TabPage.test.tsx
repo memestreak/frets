@@ -760,7 +760,11 @@ describe('picking a technique mark (issue #128)', () => {
     expect(screen.getAllByTestId('bend')).toHaveLength(6);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.getAllByTestId('bend')).toHaveLength(5);
+    // Nothing is left selected: no outline, no cursor, and the tab lets the keys go.
     expect(screen.queryByTestId('picked-mark')).toBeNull();
+    await settle();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(editor()).not.toHaveFocus();
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toContain('\n7.3.4 7.3{b (0 4 0)}.4');
   });
@@ -777,6 +781,9 @@ describe('picking a technique mark (issue #128)', () => {
     await pressMark('accents', 'staccato');
     fireEvent.keyDown(editor(), { key: 'Delete' });
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots - 1);
+    await settle();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.queryByTestId('tab-selection')).toBeNull();
     undo();
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
   });
