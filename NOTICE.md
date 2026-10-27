@@ -44,3 +44,17 @@ Copyright (c) 2004-2006 Sonic Network Inc., under the
 `LICENSE` is beside it). It comes unchanged from alphaTab's package, which
 ships it from the [Android Open Source Project](https://android.googlesource.com/platform/external/sonivox/).
 See `public/soundfont/README.md`.
+
+## Notation symbols: Bravura, via VexFlow
+
+`src/features/tab/smufl.ts` holds the outlines of a few music symbols (the
+clef, note heads, accidentals, rests, flags and the bracket's ends) from the
+[Bravura](https://github.com/steinbergmedia/bravura) font by Steinberg Media
+Technologies GmbH, under the
+[SIL Open Font License 1.1](https://openfontlicense.org) (its licence is
+`src/features/tab/BRAVURA-LICENSE.txt`). They were taken from the outlines
+packaged in [VexFlow](https://github.com/vexflow/vexflow) 4.2.5, Copyright (c)
+2010 Mohit Muthanna Cheppudira, under the
+[MIT License](https://opensource.org/licenses/MIT). Changes: each outline was
+converted from VexFlow's units to SVG paths in staff spaces by
+`scripts/smufl-glyphs.mjs`; no font file is shipped.

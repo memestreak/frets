@@ -6,8 +6,8 @@
  */
 import type { MarkHit } from './marks';
 import {
-  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, MAX_BPM, MIN_BPM, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
+  barLength, barTicks, BEND_QUARTERS, C_MAJOR, keyAt, sameKey, ticks, emptyClip, MAX_BPM, MIN_BPM, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
+  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Key, type Note, type Slide, type TimeSignature,
   type Tempo, type TremoloValue,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
@@ -652,6 +652,18 @@ export function setBarTime(clip: Clip, index: number, time: TimeSignature | null
   if (index === 0) return time ? normalize({ ...clip, time }) : clip;
   const bar = clip.bars[index];
   return normalize(replaceBar(clip, index, time ? { ...bar, time } : without(bar, 'time')));
+}
+
+/**
+ * A key signature from a bar on (issue #122), or null to take a bar's own away; on the first bar
+ * it is the clip's own, and C major there is the same as none.
+ */
+export function setBarKey(clip: Clip, index: number, key: Key | null): Clip {
+  const bar = clip.bars[index];
+  const before = index === 0 ? C_MAJOR : keyAt(clip, index - 1);
+  // Setting the key already in force takes the bar's own away.
+  const keep = key && !sameKey(key, before);
+  return replaceBar(clip, index, keep ? { ...bar, key } : without(bar, 'key'));
 }
 
 /* — moving — */

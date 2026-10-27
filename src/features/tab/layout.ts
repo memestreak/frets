@@ -4,9 +4,24 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  STRING_COUNT, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
+  STRING_COUNT, changesKey, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, keyAt, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
+import { accidentalLanes, barHeads, MIDDLE_STEP, openStrings, type Head } from './notation';
+
+/**
+ * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
+ * the tab, the staff, or both, the staff over the tab.
+ */
+export type Parts = 'tab' | 'staff' | 'both';
+export const PARTS: readonly Parts[] = ['staff', 'tab', 'both'];
+/** Which parts the viewer last chose, kept for the next visit (not in the clip). */
+export const PARTS_KEY = 'frets.tab.parts';
+
+/** A saved choice of parts; the tab alone when missing or invalid. */
+export function parseParts(saved: unknown): Parts {
+  return PARTS.find(p => p === saved) ?? 'tab';
+}
 
 /* — vertical rows of one system, from its top — */
 
@@ -36,6 +51,16 @@ export interface Rows {
   vibrato: number | null;
   /** Accents and staccato dots. */
   accents: number | null;
+  /** The notation staff, over the tab, when it is drawn. */
+  score: ScoreRows | null;
+  /** Whether the tab is drawn, and whether it has its own stems (not under a staff, which has them). */
+  tab: boolean;
+  tabStems: boolean;
+  /** The cursor's band, the selection and the playhead: over the tab, and the staff too when it is drawn. */
+  bandTop: number;
+  bandBottom: number;
+  /** The loop's bracket, under the rhythm. */
+  loopY: number;
   /** The top string. */
   staffTop: number;
   staffBottom: number;
@@ -46,14 +71,31 @@ export interface Rows {
   height: number;
 }
 
+/** Where the notation staff is: its top and bottom lines. */
+export interface ScoreRows {
+  top: number;
+  bottom: number;
+}
+
+/** The notation staff's space between lines; a step (line to space) is half of it. */
+export const SPACE = 9;
+/** How far a stem reaches from its note head, in steps: three and a half spaces. */
+export const STEM_STEPS = 7;
+
+/** The y of a staff step (half spaces up from the bottom line) in a system. */
+export function stepY(score: ScoreRows, step: number): number {
+  return score.bottom - step * SPACE / 2;
+}
+
 export const STRING_GAP = 14;
 const FIRST_ROW = 12;
 const ROW_GAP = 15;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
 
-/** The rows a clip needs, top to bottom. */
-export function rowsFor(clip: Clip): Rows {
+/** The rows a clip needs, top to bottom: the words over everything, the staff, the tab's marks, the tab. */
+export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
+  const tab = parts !== 'staff';
   const columns = clip.bars.flatMap(b => b.columns);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
   const used = {
@@ -63,12 +105,12 @@ export function rowsFor(clip: Clip): Rows {
     chords: columns.some(c => c.chord),
     text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
-    strokes: columns.some(c => c.stroke),
-    letRing: notes.some(n => n.letRing),
-    palmMute: notes.some(n => n.palmMute),
-    harmonics: notes.some(n => n.harmonic === 'pinch'),
-    vibrato: notes.some(n => n.vibrato),
-    accents: notes.some(n => n.accent || n.staccato),
+    strokes: tab && columns.some(c => c.stroke),
+    letRing: tab && notes.some(n => n.letRing),
+    palmMute: tab && notes.some(n => n.palmMute),
+    harmonics: tab && notes.some(n => n.harmonic === 'pinch'),
+    vibrato: tab && notes.some(n => n.vibrato),
+    accents: tab && notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
   // A row comes ROW_GAP after the one before, plus room for a section's box when either is the section row.
@@ -80,13 +122,23 @@ export function rowsFor(clip: Clip): Rows {
     lastWasSection = section;
     return y;
   };
-  const rows = {
+  const words = {
     capo: row(used.capo),
     tempo: row(used.tempo),
     section: row(used.section, true),
     endings: row(used.endings),
     chords: row(used.chords),
     text: row(used.text),
+  };
+  // The staff: room over its top line and under its bottom one for what reaches past them.
+  let score: ScoreRows | null = null;
+  if (parts !== 'tab') {
+    const top = Math.max(y + 12, 10) + Math.max(SPACE, (reach.high - 8) * SPACE / 2 + 4);
+    const bottom = top + 4 * SPACE;
+    score = { top, bottom };
+    y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) - 4;
+  }
+  const marks = {
     strokes: row(used.strokes),
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
@@ -94,17 +146,42 @@ export function rowsFor(clip: Clip): Rows {
     vibrato: row(used.vibrato),
     accents: row(used.accents),
   };
-  const staffTop = Math.max(STAFF_HEADROOM, y + 16);
+  if (!tab) {
+    // The staff alone: the tab's rows stand at the staff's foot, drawing nothing.
+    const end = y + 12;
+    return {
+      ...words, ...marks, score, tab, tabStems: false, staffTop: end, staffBottom: end,
+      bandTop: score!.top - 10, bandBottom: score!.bottom + 10, loopY: end,
+      stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
+    };
+  }
+  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + 16);
   const staffBottom = staffTop + 5 * STRING_GAP;
+  // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
+  const tabStems = score === null;
   return {
-    ...rows, staffTop, staffBottom,
-    stemTop: staffBottom + 8, stemBottom: staffBottom + 32, tuplet: staffBottom + 45, height: staffBottom + 54,
+    ...words, ...marks, score, tab, tabStems, staffTop, staffBottom,
+    bandTop: (score ? score.top : staffTop) - 10, bandBottom: staffBottom + 10,
+    loopY: tabStems ? staffBottom + 40 : staffBottom + 14,
+    stemTop: staffBottom + 8, stemBottom: staffBottom + 32, tuplet: staffBottom + 45, height: tabStems ? staffBottom + 54 : staffBottom + 16,
   };
+}
+
+/** How far the staff's notes and stems reach, in steps: the highest over the top line, the lowest under the bottom one. */
+export interface StaffReach {
+  high: number;
+  low: number;
 }
 
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
 const TIME_WIDTH = 30;
+/** The notation staff's room for the first line's time signature, after the key signature, and the margin before its lines. */
+const STAFF_TIME_WIDTH = 26;
+const STAFF_MARGIN = 2;
+/** In Both, room before the lines for the bracket that joins the staff and the tab. */
+export const BRACKET_WIDTH = 10;
+const BRACKET_MARGIN = BRACKET_WIDTH + 6;
 /** Room for a time signature change, just inside the bar it starts. */
 const BAR_TIME_WIDTH = 24;
 const BAR_PAD_START = 14;
@@ -112,6 +189,18 @@ const BAR_PAD_END = 6;
 const REPEAT_PAD = 12;
 const EMPTY_BAR = 120;
 const CHAR = 7.5;
+/** A key signature's room per sharp or flat, and after the last. */
+const KEY_SIGN_WIDTH = 8;
+const KEY_PAD = 6;
+/** Room left of a note head for one lane of sharps, flats and naturals. */
+export const ACCIDENTAL_ROOM = 10;
+/** A note head's width; a head a second from the one below it goes beside it, this far right. */
+export const HEAD_WIDTH = 1.18 * SPACE;
+
+/** How wide a key signature is drawn, with the room after it; none for C major. */
+function keyWidth(fifths: number): number {
+  return fifths === 0 ? 0 : Math.abs(fifths) * KEY_SIGN_WIDTH + KEY_PAD;
+}
 
 export interface PlacedColumn {
   column: Column;
@@ -120,6 +209,9 @@ export interface PlacedColumn {
   /** The column's centre. */
   x: number;
   width: number;
+  /** On the staff: its note heads, low to high, and which way its stem goes. */
+  heads: Head[];
+  stemUp: boolean;
 }
 
 export interface PlacedBar {
@@ -131,6 +223,8 @@ export interface PlacedBar {
   x1: number;
   /** Where a time signature change's numbers are centred, when the bar starts one. */
   timeX: number | null;
+  /** On the staff: where a key signature change's first sign goes, when the bar starts one. */
+  keyX: number | null;
   columns: PlacedColumn[];
 }
 
@@ -140,12 +234,15 @@ export interface System {
   timeX: number | null;
   /** Where the staff lines and the opening line start: after the time signature and the names, if any. "TAB" sits on the lines. */
   lineStart: number;
-  /** Where the first bar starts: after "TAB". */
+  /** Where the first bar starts: after "TAB", and on the staff the clef and the key signature. */
   staffStart: number;
+  /** On the staff: where the key signature's first sign goes. */
+  keyX: number;
   first: boolean;
 }
 
 export interface Layout {
+  parts: Parts;
   systems: System[];
   rows: Rows;
   height: number;
@@ -228,59 +325,117 @@ export function noteLabel(note: Note): string {
   return note.ghost ? `(${label})` : label;
 }
 
-/** The room a bar takes before its first column: padding, a repeat's dots and a time signature change. */
-function barLead(bar: Bar, timeChange: boolean): number {
-  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0);
+/** The room a bar takes before its first column: padding, a repeat's dots, and a time or key signature change. */
+function barLead(bar: Bar, timeChange: boolean, keyChange: number): number {
+  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0) + keyChange;
 }
 
-function barWidth(bar: Bar, timeChange: boolean): number {
-  const inner = bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((w, c) => w + columnWidth(c), 0);
-  return barLead(bar, timeChange) + inner + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+/** A column's room on the staff too: its accidentals and a head set beside its neighbour a second away. */
+function staffWidth(column: Column, heads: Head[]): number {
+  const signs = signRoom(heads);
+  const seconds = heads.some((h, k) => k > 0 && h.step - heads[k - 1].step === 1) ? HEAD_WIDTH : 0;
+  return columnWidth(column) + signs + seconds;
 }
 
-export function layoutClip(clip: Clip, width: number): Layout {
-  const names = isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
+/** The room a column's accidentals take left of its heads. */
+export function signRoom(heads: Head[]): number {
+  const lanes = accidentalLanes(heads).filter((l): l is number => l !== null);
+  return lanes.length === 0 ? 0 : (Math.max(...lanes) + 1) * ACCIDENTAL_ROOM + 2;
+}
+
+/** Which way a column's stem goes: down when its heads sit mostly on or above the middle line. */
+export function stemUpFor(heads: Head[]): boolean {
+  if (heads.length === 0) return true;
+  const far = heads[0].step + heads[heads.length - 1].step;
+  return far < 2 * MIDDLE_STEP;
+}
+
+export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Layout {
+  const staff = parts !== 'tab';
+  const names = staff || isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
-  // room, so the lines start one under another), then the string names.
-  const lineStart = TIME_WIDTH + (names ? NAMES_WIDTH : 0);
-  const head = lineStart + CLEF_WIDTH;
+  // room, so the lines start one under another), then the string names. On the notation staff the
+  // clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
+  // With the notation staff, the first line's time signature goes after the clef and key signature
+  // instead, as printed music has it (Jeremy, 2026-10-27).
+  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH + (names ? NAMES_WIDTH : 0);
+  const widestKey = staff ? Math.max(0, ...clip.bars.map((_, b) => keyWidth(keyAt(clip, b).fifths))) : 0;
+  const keyStart = lineStart + CLEF_WIDTH;
+  const head = keyStart + widestKey;
+  const firstKey = staff ? keyWidth(keyAt(clip, 0).fifths) : 0;
+  const firstTimeX = staff ? keyStart + firstKey + STAFF_TIME_WIDTH / 2 - 2 : TIME_WIDTH / 2 - 2;
+  const firstHead = staff ? Math.max(head, keyStart + firstKey + STAFF_TIME_WIDTH) : head;
+  const open = openStrings(clip.tuning);
+  const heads = staff ? clip.bars.map((_, b) => barHeads(clip, b, open)) : clip.bars.map(bar => bar.columns.map(() => []));
+  const widthOf = (column: Column, b: number, c: number) => (staff ? staffWidth(column, heads[b][c]) : columnWidth(column));
 
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
-  let x = head;
+  let x = firstHead;
   const finish = () => {
     const first = systems.length === 0;
     systems.push({
-      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart, staffStart: head, first,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first,
     });
     current = [];
     x = head;
   };
   clip.bars.forEach((bar, index) => {
     const timeChange = changesTime(clip, index);
-    let w = barWidth(bar, timeChange);
-    if (current.length > 0 && x + w > width) finish();
+    let keyChange = staff && index > 0 && changesKey(clip, index) ? keyWidth(keyAt(clip, index).fifths) : 0;
+    const inner = bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
+    const widthWith = (keyRoom: number) => barLead(bar, timeChange, keyRoom) + inner + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+    let w = widthWith(keyChange);
+    if (current.length > 0 && x + w > width) {
+      finish();
+      // A key change that starts a line is the line's own key signature, drawn once in front of it.
+      keyChange = 0;
+      w = widthWith(0);
+    }
+    const lead = barLead(bar, timeChange, keyChange);
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
-    const inner = bar.columns.reduce((sum, c) => sum + columnWidth(c), 0);
-    const squeeze = inner > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
-    // A time signature change stands just inside the bar, after a repeat's dots.
-    const timeX = timeChange ? x0 + (bar.repeatStart ? REPEAT_PAD : 0) + 14 : null;
-    let cx = x0 + barLead(bar, timeChange);
-    const columns = bar.columns.map(column => {
-      const cw = Math.max(minColumnWidth(column), columnWidth(column) * squeeze);
-      const placed = { column, index: place++, x: cx + cw / 2, width: cw };
+    const squeeze = bar.columns.length > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
+    // A time signature change stands just inside the bar, after a repeat's dots; a key change after it.
+    // On the notation staff the key change comes first, then the time signature.
+    const inside = x0 + (bar.repeatStart ? REPEAT_PAD : 0);
+    const timeX = timeChange ? inside + (staff ? keyChange : 0) + 14 : null;
+    const keyX = keyChange ? inside + (staff ? 0 : timeChange ? BAR_TIME_WIDTH : 0) + 8 : null;
+    let cx = x0 + lead;
+    const columns = bar.columns.map((column, k) => {
+      const columnHeads = heads[index][k];
+      const cw = Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
+      // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
+      const signs = signRoom(columnHeads) / 2;
+      const placed = { column, index: place++, x: cx + cw / 2 + signs * Math.min(1, squeeze), width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
       cx += cw;
       return placed;
     });
     if (squeeze < 1) w = cx - x0 + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     x = x0 + w;
-    current.push({ bar, index, x0, x1: x, timeX, columns });
+    current.push({ bar, index, x0, x1: x, timeX, keyX, columns });
   });
   finish();
-  const rows = rowsFor(clip);
-  return { systems, rows, height: systems.length * rows.height, names };
+  const rows = rowsFor(clip, parts, staffReach(heads));
+  return { parts, systems, rows, height: systems.length * rows.height, names };
+}
+
+/** How far the clip's heads and stems reach above and below the staff, in steps. */
+function staffReach(heads: Head[][][]): StaffReach {
+  let high = 8;
+  let low = 0;
+  for (const bar of heads) {
+    for (const column of bar) {
+      if (column.length === 0) continue;
+      const top = column[column.length - 1].step;
+      const bottom = column[0].step;
+      const up = stemUpFor(column);
+      high = Math.max(high, top + (up ? STEM_STEPS + 2 : 1));
+      low = Math.min(low, bottom - (up ? 1 : STEM_STEPS + 2));
+    }
+  }
+  return { high, low };
 }
 
 /** The y of a string's line within a system, high e (0) on top. */
@@ -343,7 +498,7 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
  * What a press on the words over the staff, or on a time signature, is on: a chord name or free text
  * (its column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
  */
-export type TextHit = WordHit | { kind: 'time'; bar: number };
+export type TextHit = WordHit | { kind: 'time'; bar: number } | { kind: 'key'; bar: number };
 
 export const CAPO_SIZE = 11;
 /** The capo's words, as drawn: "Capo 3". */
@@ -429,10 +584,19 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
       return { kind: 'tempo', bar: bar.index };
     }
   }
-  const onStaff = localY >= rows.staffTop && localY <= rows.staffBottom;
+  // Time signatures are drawn on the notation staff when it is shown, else on the tab.
+  const onStaff = rows.score
+    ? localY >= rows.score.top - 4 && localY <= rows.score.bottom + 4
+    : rows.tab && localY >= rows.staffTop && localY <= rows.staffBottom;
   if (onStaff && system.timeX !== null && Math.abs(x - system.timeX) <= TIME_REACH) return { kind: 'time', bar: 0 };
   const changed = system.bars.find(b => b.timeX !== null && Math.abs(x - b.timeX) <= TIME_REACH);
   if (onStaff && changed) return { kind: 'time', bar: changed.index };
+  // The key signature on the staff, after the clef (the line's own) or inside a bar that changes it.
+  if (rows.score && onStaff) {
+    if (x >= system.keyX - 4 && x < system.staffStart) return { kind: 'key', bar: system.bars[0].index };
+    const keyed = system.bars.find(b => b.keyX !== null && x >= b.keyX - 4 && x < b.columns[0]?.x - 6);
+    if (keyed) return { kind: 'key', bar: keyed.index };
+  }
   return null;
 }
 
@@ -473,12 +637,39 @@ export interface Hit {
 /** How far above the top string and below the bottom one a press still lands on the staff, as the cursor's band reaches. */
 export const STAFF_REACH = 10;
 
-/** The column and string a press lands on; null anywhere but on the staff of a bar. */
+/** How near a note head a press on the notation staff must be: about a head's width across, a space up or down. */
+const HEAD_REACH_X = HEAD_WIDTH;
+const HEAD_REACH_Y = SPACE;
+
+/** The tab note under a press on a note head of the notation staff: the nearest head within reach. */
+function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number): Hit | null {
+  let best: { hit: Hit; distance: number } | null = null;
+  for (const bar of system.bars) {
+    bar.columns.forEach((placed, column) => {
+      const dx = Math.abs(placed.x - x);
+      if (dx > HEAD_REACH_X) return;
+      for (const head of placed.heads) {
+        const dy = Math.abs(stepY(score, head.step) - localY);
+        if (dy > HEAD_REACH_Y) continue;
+        const distance = dx + dy;
+        if (!best || distance < best.distance) best = { hit: { bar: bar.index, column, string: head.string }, distance };
+      }
+    });
+  }
+  return best ? (best as { hit: Hit }).hit : null;
+}
+
+/** The column and string a press lands on: on the tab, or a note head on the staff over it; null anywhere else. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   const { rows } = layout;
   const system = layout.systems[Math.floor(y / rows.height)];
   if (!system || y < 0) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
+  // Over the tab, a press on a note head on the notation staff puts the cursor on its tab note.
+  if (rows.tab && rows.score) {
+    const head = staffHeadAt(system, rows.score, x, localY);
+    if (head) return head;
+  }
   // Only the staff itself, as far as the cursor's band reaches: not the marks over it, the rhythm
   // under it, or the blank space beside the last bar.
   if (localY < rows.staffTop - STAFF_REACH || localY > rows.staffBottom + STAFF_REACH) return null;

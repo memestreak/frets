@@ -6,8 +6,10 @@ import {
 import {
   barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
-  type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
+  type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
+import { previousHeads, StaffDrawing } from './StaffDrawing';
+import { GLYPHS } from './smufl';
 import { markAt, markBox, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -44,9 +46,11 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onMiss, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onMiss, x, y }: {
   clip: Clip;
   width: number;
+  /** The tab, the notation staff, or both (the staff over the tab). */
+  parts?: Parts;
   /** Where it sits inside a larger drawing (an exported image). */
   x?: number;
   y?: number;
@@ -74,7 +78,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
 }) {
-  const layout = layoutClip(clip, width);
+  const layout = layoutClip(clip, width, parts);
   const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
   /** What a press at a point in the drawing is on. */
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
@@ -106,6 +110,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
+  const heads = layout.rows.score ? previousHeads(layout.systems) : null;
   const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;
@@ -127,7 +132,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
       {spot && highlight?.cursor && (
         <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
           {!highlight.range && (
-            <rect x={spot.x - spot.width / 2} y={rows.staffTop - 10} width={spot.width} height={rows.staffBottom - rows.staffTop + 20} fill="var(--primary-soft)" />
+            <rect x={spot.x - spot.width / 2} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
           )}
           {!highlight.columnOnly && (
             <rect
@@ -143,9 +148,15 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
+          {rows.score && heads && (
+            <StaffDrawing system={system} si={si} score={rows.score} clip={clip} look={look} lastBar={lastBar} previous={heads} />
+          )}
+          {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {errors && system.bars.map(bar => {
             const error = errors.get(bar.index);
-            return error ? <Warning key={`warning-${bar.index}`} x={bar.x0 + WARNING_INSET} y={rows.tuplet - 4} text={error} /> : null;
+            // Under the rhythm: the tab's stems, or the tab or the staff when it has none.
+            const y = rows.tabStems ? rows.tuplet - 4 : rows.height - 10;
+            return error ? <Warning key={`warning-${bar.index}`} x={bar.x0 + WARNING_INSET} y={y} text={error} /> : null;
           })}
         </g>
       ))}
@@ -187,8 +198,8 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
         const x0 = first.x - first.width / 2;
         return (
           <rect
-            key={si} x={x0} y={si * rows.height + rows.staffTop - 10} width={last.x + last.width / 2 - x0}
-            height={rows.staffBottom - rows.staffTop + 20} fill="var(--primary-soft)"
+            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.x + last.width / 2 - x0}
+            height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)"
           />
         );
       })}
@@ -211,6 +222,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
+  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} />;
+  // The staff alone: the words over it, and no tab.
+  if (!rows.tab) return words;
 
   // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
@@ -244,9 +258,10 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
     <text key={`clef-${letter}`} x={clefX} y={rows.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
-  // The time signature stands in front of the staff, and a change just inside the bar it starts.
-  if (system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
-  for (const bar of system.bars) {
+  // The time signature stands in front of the staff, and a change just inside the bar it starts; under
+  // the notation staff, only on that staff (Jeremy, 2026-10-27).
+  if (!rows.score && system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
+  for (const bar of rows.score ? [] : system.bars) {
     if (bar.timeX !== null && bar.bar.time) {
       parts.push(<TimeNumbers key={`time-${bar.index}`} time={bar.bar.time} x={bar.timeX} rows={rows} look={look} />);
     }
@@ -254,6 +269,46 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 
   for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} rows={rows} look={look} final={bar.index === lastBar} />);
 
+  parts.push(<g key="words">{words}</g>);
+
+  // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
+  for (const { mark, label, has } of RUN_MARKS) {
+    const y = rows[mark];
+    if (y === null) continue;
+    const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
+    for (const { columns, x0, x1 } of runsIn(system, has)) {
+      const lw = runLabelWidth(label);
+      // A run shorter than its label is the label alone: its line and end tick would cross the word.
+      const longer = x1 > x0 + lw + 2;
+      parts.push(
+        <g key={`${name}-${columns[0].index}`} data-testid={name}>
+          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
+          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
+          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
+        </g>,
+      );
+    }
+  }
+
+  for (const bar of system.bars) {
+    for (const placed of bar.columns) {
+      parts.push(
+        <ColumnDrawing
+          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
+          previous={previous} slides={slides} staffStart={system.staffStart}
+        />,
+      );
+    }
+    // Under a staff, the staff carries the rhythm.
+    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
+  }
+
+  return <>{parts}</>;
+}
+
+/** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
+function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Clip; look: TabLook }) {
+  const parts: ReactNode[] = [];
   // Endings: one bracket over each run of bars with the same ending.
   system.bars.forEach((bar, k) => {
     const n = bar.bar.ending;
@@ -339,37 +394,6 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
         );
       }
     }
-  }
-
-  // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
-  for (const { mark, label, has } of RUN_MARKS) {
-    const y = rows[mark];
-    if (y === null) continue;
-    const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
-    for (const { columns, x0, x1 } of runsIn(system, has)) {
-      const lw = runLabelWidth(label);
-      // A run shorter than its label is the label alone: its line and end tick would cross the word.
-      const longer = x1 > x0 + lw + 2;
-      parts.push(
-        <g key={`${name}-${columns[0].index}`} data-testid={name}>
-          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
-          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
-          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
-        </g>,
-      );
-    }
-  }
-
-  for (const bar of system.bars) {
-    for (const placed of bar.columns) {
-      parts.push(
-        <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
-          previous={previous} slides={slides} staffStart={system.staffStart}
-        />,
-      );
-    }
-    parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
   }
 
   return <>{parts}</>;
@@ -712,3 +736,24 @@ function beamCount(value: number): number {
   return value >= 8 ? Math.log2(value) - 2 : 0;
 }
 
+/**
+ * The staff and the tab of one guitar joined as one part (Jeremy, 2026-10-27): a square bracket in
+ * front, its ends curling over the lines, and the opening line drawn through both.
+ */
+function StaffJoin({ x, top, bottom, look }: { x: number; top: number; bottom: number; look: TabLook }) {
+  const bar = x - BRACKET_GAP - BRACKET_THICKNESS;
+  return (
+    <g data-testid="staff-join">
+      <rect x={bar} y={top} width={BRACKET_THICKNESS} height={bottom - top} fill={look.ink} />
+      <path d={GLYPHS.bracketTop.d} transform={`translate(${bar} ${top}) scale(${BRACKET_SCALE})`} fill={look.ink} />
+      <path d={GLYPHS.bracketBottom.d} transform={`translate(${bar} ${bottom}) scale(${BRACKET_SCALE})`} fill={look.ink} />
+      <line x1={x} x2={x} y1={top} y2={bottom} stroke={look.ink} strokeWidth={1.5} />
+    </g>
+  );
+}
+
+/** The bracket's bar, a little thinner than Bravura's half a staff space (Jeremy), and its gap before the lines. */
+const BRACKET_THICKNESS = 3.5;
+const BRACKET_GAP = 4;
+/** Bravura draws the ends for a bar half a space thick; they are scaled to meet this one. */
+const BRACKET_SCALE = BRACKET_THICKNESS * 2;

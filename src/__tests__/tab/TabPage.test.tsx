@@ -192,7 +192,7 @@ describe('TabPage', () => {
     const alphaTex = () => {
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       const text = alphaTexText();
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       // The editor went away with the Tab view; back on it, the keys go to the tab again, the cursor where it was.
       act(() => editor().focus());
       // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
@@ -308,7 +308,7 @@ describe('TabPage', () => {
       expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       // An empty field, or 0, takes the capo off.
       fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
       const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
@@ -378,6 +378,21 @@ describe('TabPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
     });
 
+    it('sets the key signature on the piano keys, Major or Minor keeping its signs', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5');
+      fireEvent.click(screen.getByRole('button', { name: 'Key signature from this bar' }));
+      const panel = screen.getByRole('dialog', { name: 'Key signature' });
+      expect(panel).toHaveTextContent('Key signature: C major');
+      // D♯ is a key no signature writes; the tile picks E♭, as it names it.
+      fireEvent.click(within(panel).getByRole('radio', { name: 'E♭' }));
+      expect(panel).toHaveTextContent('Key signature: E♭ major');
+      fireEvent.click(within(panel).getByRole('button', { name: 'Minor' }));
+      expect(panel).toHaveTextContent('Key signature: C minor');
+      expect(alphaTex()).toBe('\\ks Cminor 5.1.4 |');
+    });
+
     it('keeps the count when what is typed isn\'t 1 to 32', () => {
       renderAt();
       pressFirstTimeSignature();
@@ -433,7 +448,7 @@ describe('TabPage playback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.queryByRole('button', { name: 'Playback controls' })).toBeNull();
     expect(footer()).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
     expect(footer()).not.toBeNull();
   });
 
@@ -677,7 +692,7 @@ describe('TabPage export', () => {
       await settle();
       const typed = '// kept\n\\title "Quick"\n:4 5.6 |';
       type(typed);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       expect(heading()).toHaveTextContent('Quick');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toBe(typed);
@@ -690,10 +705,10 @@ describe('TabPage export', () => {
       const typed = '// kept\n\\title "Mine"\n:4 5.6 |';
       type(typed);
       await waitFor(() => expect(heading()).toHaveTextContent('Mine'), SLOW);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toBe(typed);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       const editor = screen.getByRole('textbox', { name: /Tab editor/ });
       act(() => editor.focus());
       fireEvent.keyDown(editor, { key: '7' });
@@ -794,5 +809,23 @@ describe('picking a technique mark (issue #128)', () => {
     fireEvent.click(screen.getByRole('button', { name: '½' }));
     expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
     expect(screen.getAllByTestId('bend')[0]).toHaveTextContent('½');
+  });
+});
+
+describe('the notation staff (issue #122)', () => {
+  it('shows the staff, the tab or both, the two joined by a bracket', async () => {
+    renderAt('#example=key-signatures');
+    await screen.findAllByTestId('tab-system');
+    const count = (id: string) => screen.queryAllByTestId(id).length;
+    expect(count('staff')).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Both' }));
+    expect(count('staff')).toBeGreaterThan(0);
+    expect(count('staff-join')).toBe(count('tab-system'));
+    // With the staff shown, the time signature is on it and not on the tab.
+    expect(count('staff-time-signature')).toBe(1);
+    expect(count('time-signature')).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
+    expect(count('staff-join')).toBe(0);
+    expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeDisabled();
   });
 });

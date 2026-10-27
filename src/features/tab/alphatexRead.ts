@@ -33,8 +33,8 @@ const NOTE_EFFECTS = new Set([
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp']);
-/** Tags Frets reads: the title, tuning, capo, time signature, tempo, sections, repeats and endings. */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'tempo', 'section', 'ro', 'rc', 'ae']);
+/** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats and endings. */
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
 const BAR_TAGS = new Set([
   'ts', 'ro', 'rc', 'ae', 'ks', 'clef', 'ottava', 'tempo', 'tf', 'ac', 'section', 'jump', 'ft',
@@ -258,6 +258,11 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       const later = { beats: master.timeSignatureNumerator, value: master.timeSignatureDenominator } as TimeSignature;
       if (!isTimeSignature(later.beats, later.value)) warn(`Frets doesn't offer ${later.beats}/${later.value}; bar ${b + 1} keeps ${timeNow.beats}/${timeNow.value}.`);
       else if (later.beats !== timeNow.beats || later.value !== timeNow.value) bar.time = timeNow = later;
+    }
+    // A key signature as written, even one the bar before already had, so the text reads back the same.
+    if (atBar && tags.includes('ks')) {
+      bar.key = { fifths: atBar.keySignature as number };
+      if ((atBar.keySignatureType as number) === 1) bar.key.minor = true;
     }
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();

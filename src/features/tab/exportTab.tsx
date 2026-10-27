@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Clip } from './clip';
-import { layoutClip } from './layout';
+import { layoutClip, type Parts } from './layout';
 import { TabClip, type TabLook } from './TabClip';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
@@ -50,19 +50,19 @@ function headHeight(shown: boolean): number {
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Clip, style: TabExportStyle, title: string): { width: number; height: number } {
-  const tab = layoutClip(clip, style.width - 2 * PAD);
+export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab'): { width: number; height: number } {
+  const tab = layoutClip(clip, style.width - 2 * PAD, parts);
   const shown = style.name && title.trim() !== '';
   return { width: style.width, height: tab.height + 2 * PAD + headHeight(shown) - 8 };
 }
 
 /**
  * The clip as an image: the page's own `TabClip` in black, with the name
- * above it if the style shows it, on white unless transparent. The Export
- * dialog's preview draws the same.
+ * above it if the style shows it, on white unless transparent; the staff, the
+ * tab or both, as the page shows them. The Export dialog's preview draws the same.
  */
-export function TabImage({ clip, style, title }: { clip: Clip; style: TabExportStyle; title: string }) {
-  const { width, height } = tabImageSize(clip, style, title);
+export function TabImage({ clip, style, title, parts = 'tab' }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts }) {
+  const { width, height } = tabImageSize(clip, style, title, parts);
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
   return (
     <svg
@@ -74,7 +74,7 @@ export function TabImage({ clip, style, title }: { clip: Clip; style: TabExportS
         <text x={PAD} y={PAD + TITLE_SIZE - 4} fontSize={TITLE_SIZE} fontWeight={700} fill={EXPORT_LOOK.ink}>{shown}</text>
       )}
       <TabClip
-        clip={clip} width={width - 2 * PAD} look={EXPORT_LOOK} title={shown || 'Tab'}
+        clip={clip} width={width - 2 * PAD} parts={parts} look={EXPORT_LOOK} title={shown || 'Tab'}
         x={PAD} y={PAD + headHeight(!!shown) - 8}
       />
     </svg>
@@ -82,10 +82,10 @@ export function TabImage({ clip, style, title }: { clip: Clip; style: TabExportS
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Clip, style: TabExportStyle, title: string): string {
+export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab'): string {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() => root.render(createElement(TabImage, { clip, style, title })));
+  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts })));
   const svg = host.querySelector('svg')!;
   root.unmount();
   svg.removeAttribute('class');
