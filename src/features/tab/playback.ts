@@ -44,9 +44,27 @@ export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [num
   ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
   ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
 ];
+/**
+ * Trial pianos for issue #124, to be heard side by side before one replaces SONiVOX's piano: each a
+ * soundfont of its own (`scripts/build-pianos.py`), fetched the first time it is picked and played as
+ * a program the Sound list doesn't otherwise offer, so it never shadows another sound. `level` brings
+ * each to about SONiVOX's loudness, measured by rendering one passage with each.
+ */
+export const TRIAL_PIANOS: readonly { program: number; name: string; url: string; level: number }[] = [
+  { program: 120, name: 'Piano A: Salamander, small (1.1 MB)', url: '/soundfont/piano-salamander-small.sf3', level: 0.95 },
+  { program: 121, name: 'Piano B: Salamander, large (3.9 MB)', url: '/soundfont/piano-salamander-large.sf3', level: 1.65 },
+  { program: 122, name: 'Piano C: FluidR3 (0.5 MB)', url: '/soundfont/piano-fluidr3.sf3', level: 3.8 },
+];
+/** The Sound list: the GM families with the trial pianos after Piano. */
+export const SOUND_LIST: typeof SOUND_FAMILIES = [
+  ...SOUND_FAMILIES.slice(0, 1),
+  ['Piano trial', TRIAL_PIANOS.map(p => [p.program, p.name] as const)],
+  ...SOUND_FAMILIES.slice(1),
+];
+
 export type Sound = number;
 export const DEFAULT_SOUND: Sound = 25;
-const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
+const SOUND_PROGRAMS = new Set(SOUND_LIST.flatMap(([, sounds]) => sounds.map(([program]) => program)));
 
 export function isSound(value: unknown): value is Sound {
   return typeof value === 'number' && SOUND_PROGRAMS.has(value);
@@ -349,6 +367,9 @@ export class TabPlayer {
   private performance: Performance | null = null;
   private clip: Clip | null = null;
   private sound: Sound = DEFAULT_SOUND;
+  private volume = 1;
+  /** The trial pianos' soundfonts loaded so far, by URL. */
+  private readonly pianos = new Set<string>();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
@@ -390,10 +411,12 @@ export class TabPlayer {
    * With loop points, playing past the end one goes back to the start one; a start before them
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    */
-  play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+  async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+    await this.loadPiano(sound);
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
+      this.setVolume(this.volume);
       this.performance = perform(this.at, clip, sound);
       this.synth.loadMidiFile(this.performance.midi);
     }
@@ -460,21 +483,46 @@ export class TabPlayer {
 
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
   setVolume(volume: number) {
-    this.synth.masterVolume = volume;
+    this.volume = volume;
+    this.synth.masterVolume = volume * (TRIAL_PIANOS.find(p => p.program === this.sound)?.level ?? 1);
+  }
+
+  /**
+   * Fetches and loads a trial piano's soundfont the first time it is wanted, alongside SONiVOX's. The
+   * view shows Loading meanwhile; loading pauses the synthesizer.
+   */
+  private async loadPiano(sound: Sound): Promise<boolean> {
+    const piano = TRIAL_PIANOS.find(p => p.program === sound);
+    if (!piano || this.pianos.has(piano.url)) return false;
+    this.onView({ state: 'loading' });
+    const response = await fetch(piano.url);
+    if (!response.ok) {
+      this.onView({ state: 'error' });
+      throw new Error(`the piano didn't load (${response.status})`);
+    }
+    this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
+    this.pianos.add(piano.url);
+    return true;
   }
 
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */
-  setSound(sound: Sound) {
+  async setSound(sound: Sound) {
     if (sound === this.sound) return;
-    this.sound = sound;
-    if (!this.clip || !this.performance) return;
     const playing = !this.ended;
     const tick = this.synth.tickPosition;
+    const loaded = await this.loadPiano(sound);
+    this.sound = sound;
+    this.setVolume(this.volume);
+    if (!this.clip || !this.performance) {
+      if (loaded) this.onView({ state: 'idle' });
+      return;
+    }
     this.performance = perform(this.at, this.clip, sound);
     this.synth.loadMidiFile(this.performance.midi);
     this.moveTo(tick);
     this.setLoop(this.loop);
     if (playing) this.synth.play();
+    if (loaded) this.onView({ state: playing ? 'playing' : 'idle' });
   }
 
   /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */

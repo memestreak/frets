@@ -45,6 +45,20 @@ Copyright (c) 2004-2006 Sonic Network Inc., under the
 ships it from the [Android Open Source Project](https://android.googlesource.com/platform/external/sonivox/).
 See `public/soundfont/README.md`.
 
+## Trial pianos: Salamander Grand Piano and FluidR3 Mono
+
+`public/soundfont/piano-salamander-small.sf3` and `piano-salamander-large.sf3`
+are made from the [Salamander Grand Piano](https://github.com/sfzinstruments/SalamanderGrandPiano)
+by Alexander Holm, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+The samples were changed: mixed to mono, shortened with a fade, resampled and
+compressed (`scripts/build-pianos.py`).
+
+`public/soundfont/piano-fluidr3.sf3` is the piano preset of FluidR3 Mono GM,
+Copyright (c) 2000-2002, 2008 Frank Wen, mono version Copyright (c) 2014-16
+Michael Cowgill, under the MIT licence (`public/soundfont/FluidR3Mono_License.md`,
+beside it), taken from [MuseScore](https://github.com/musescore/MuseScore)'s
+2.1 sources. See `public/soundfont/README.md`.
+
 ## Notation symbols: Bravura, via VexFlow
 
 `src/features/tab/smufl.ts` holds the outlines of a few music symbols (the
