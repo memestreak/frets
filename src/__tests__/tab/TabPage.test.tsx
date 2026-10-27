@@ -164,7 +164,7 @@ describe('TabPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy ASCII' })); });
     expect(writeText).toHaveBeenCalledWith(screen.getByTestId('tab-ascii').textContent);
-    expect(notice()).toHaveTextContent('ASCII copied.');
+    expect(notice()).toHaveTextContent('Copied as text.');
   });
 
   it('saves the clip and opens on it next time', async () => {

@@ -679,7 +679,7 @@ export default function TabPage() {
     if (view === 'tab') return copyPng();
     try {
       await navigator.clipboard.writeText(shownText);
-      setNotice({ tone: 'info', lines: [view === 'ascii' ? 'ASCII copied.' : 'alphaTex copied.'] });
+      setNotice({ tone: 'info', lines: ['Copied as text.'] });
       showCopied();
     } catch {
       setNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
