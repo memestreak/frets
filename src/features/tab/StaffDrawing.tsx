@@ -54,6 +54,31 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks }: {
   return <g data-testid="staff">{parts}</g>;
 }
 
+/**
+ * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
+ * its ledger lines and, when the key doesn't give it, its sharp, flat or natural.
+ */
+export function StaffCursor({ x, step, sign, score }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows }) {
+  const y = stepY(score, step);
+  const left = x - HEAD_WIDTH / 2;
+  const ledgers: number[] = [];
+  for (let ls = -2; ls >= step; ls -= 2) ledgers.push(ls);
+  for (let ls = 10; ls <= step; ls += 2) ledgers.push(ls);
+  const signGlyph: GlyphName | null = sign === null ? null : sign > 0 ? 'accidentalSharp' : sign < 0 ? 'accidentalFlat' : 'accidentalNatural';
+  return (
+    <g data-testid="staff-cursor" pointerEvents="none">
+      {ledgers.map(ls => (
+        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--primary)" strokeWidth={1} />
+      ))}
+      <path
+        d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`}
+        fill="var(--primary)" fillOpacity={0.3} stroke="var(--primary)" strokeWidth={1.5 / SPACE}
+      />
+      {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--primary)" />}
+    </g>
+  );
+}
+
 /** A glyph from the music font, its origin at (x, y). */
 function Glyph({ name, x, y, look, scale = 1 }: { name: GlyphName; x: number; y: number; look: TabLook; scale?: number }) {
   return <path d={GLYPHS[name].d} transform={`translate(${x} ${y}) scale(${SPACE * scale})`} fill={look.ink} />;
