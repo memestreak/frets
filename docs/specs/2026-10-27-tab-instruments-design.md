@@ -54,3 +54,10 @@ pitch check of every recording found them within about 10 cents but for B's `D5`
 is used as D♯5. He picked A ("Guitar A please"): Steel Guitar (program 25), the default sound, is now the Iowa
 acoustic guitar, its own soundfont loaded the first time it plays (about 1.5 s), at about SONiVOX's
 level. B, C and the trial group went.
+
+## Clean electric guitar
+
+Jeremy, 2026-10-27: "Is there an electric guitar (not-distorted)?", then yes to a follow-up. Clean
+Electric Guitar (program 27) is now Karoryfer Samples' clean electric guitar from tonejs-instruments:
+17 recordings, about one every minor third from C♯2 to C6, each about four seconds; every one within
+7 cents of its name. 0.55 MB, at about SONiVOX's Clean Electric Guitar level.

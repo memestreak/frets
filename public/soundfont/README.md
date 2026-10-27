@@ -22,3 +22,9 @@ as edited in tonejs-instruments (https://github.com/nbrosowsky/tonejs-instrument
 compressed:
 
     uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-acoustic> public/soundfont/guitar-iowa.sf3 --name "Acoustic Guitar" --copyright "University of Iowa Electronic Music Studios, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 25
+
+`guitar-electric-karoryfer.sf3` is Clean Electric Guitar's own soundfont, loaded only when that sound
+plays: a clean electric guitar from Karoryfer Samples (https://www.karoryfer.com/karoryfer-samples),
+as edited in tonejs-instruments (samples CC BY 3.0). Changed: compressed:
+
+    uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-electric> public/soundfont/guitar-electric-karoryfer.sf3 --name "Clean Electric Guitar" --copyright "Karoryfer Samples, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 27

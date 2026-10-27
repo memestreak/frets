@@ -55,6 +55,8 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
   { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
   // An acoustic guitar from the University of Iowa's instrument samples: a note per semitone, 1.5 MB.
   { program: 25, url: '/soundfont/guitar-iowa.sf3', level: 0.74 },
+  // A clean electric guitar from Karoryfer Samples: a note every minor third or so, 0.55 MB.
+  { program: 27, url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
 ];
 
 export type Sound = number;
