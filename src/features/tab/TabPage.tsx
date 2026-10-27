@@ -97,6 +97,12 @@ export default function TabPage() {
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
   const [selectionAsSet, setSelection] = useState<Selection | null>(null);
   const [editing, setEditing] = useState(false);
+  /**
+   * The cursor is on its column only, with no string picked (Jeremy, 2026-10-27): Esc on a string, or a
+   * press above or below the staff while the playback controls are hidden. The tools and keys then work
+   * on the whole column; ↑ ↓ or a press on a string pick a string again.
+   */
+  const [columnOnly, setColumnOnly] = useState(false);
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
   /** The chord name, text, section, tempo or capo picked by a press: outlined, with Edit and Delete beside it. */
@@ -114,7 +120,12 @@ export default function TabPage() {
   const cursor = clampCursor(clip, cursorAsSet);
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
-  const target = { cursor, selection };
+  // With no string picked, the tools work on the cursor's whole column, as on a one-column selection.
+  const cursorIndex = indexOf(clip, cursor.bar, cursor.column);
+  const target = {
+    cursor,
+    selection: selection ?? (columnOnly && columnAt(clip, cursor) ? { anchor: cursorIndex, focus: cursorIndex } : null),
+  };
   // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
@@ -153,6 +164,23 @@ export default function TabPage() {
     if (playback.seek(index)) return;
     setSelection(null);
     setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
+  };
+  /**
+   * A press above or below the staff while the playback controls are hidden: the cursor goes to that
+   * column with no string picked (Jeremy, 2026-10-27). With Shift, the columns from the cursor to there are selected.
+   */
+  const pickColumnOnly = (index: number, extend: boolean) => {
+    lastDigit.current = null;
+    const place = placeOf(clip, index);
+    const at = { ...cursor, bar: place.bar, column: place.column };
+    if (extend && editing && columnAt(clip, cursor)) {
+      commit(clip, at, { anchor: selection?.anchor ?? cursorIndex, focus: index });
+    } else {
+      const left = editing && at.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+      commit(left, at, null);
+    }
+    setColumnOnly(true);
+    editorRef.current?.focus();
   };
   /**
    * Off the tab (no string picked), the arrow keys work on the playback line while the footer shows
@@ -224,7 +252,8 @@ export default function TabPage() {
     else if (id === 'barTime') setTimeBar(cursor.bar);
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
-    else commit(applyTool(clip, target, id));
+    // A dead note goes on one string; with none picked there is nothing to mark.
+    else if (!(columnOnly && id === 'dead')) commit(applyTool(clip, target, id));
   };
 
   const closeTimeBar = useCallback((byKey: boolean) => {
@@ -337,6 +366,8 @@ export default function TabPage() {
     // With Alt, a digit is a tuplet (Alt+3 a triplet), not a fret.
     if (/^[0-9]$/.test(key) && !e.altKey) {
       handled();
+      // A fret goes on a string; with none picked, ↑ ↓ or a press picks one first.
+      if (columnOnly) return;
       const digit = Number(key);
       const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
       const before = lastDigit.current;
@@ -353,8 +384,10 @@ export default function TabPage() {
     lastDigit.current = null;
     if (key === 'ArrowUp' || key === 'ArrowDown') {
       handled();
-      const string = Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
+      // With no string picked, ↑ ↓ pick back the string the cursor was last on.
+      const string = columnOnly ? cursor.string : Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
       commit(clip, { ...cursor, string });
+      setColumnOnly(false);
       return;
     }
     if (key === 'ArrowLeft' || key === 'ArrowRight') {
@@ -377,7 +410,7 @@ export default function TabPage() {
       if (selection) {
         const cut = deleteColumns(clip, selectedRange(selection));
         commit(cut.clip, { ...cursor, ...cut.cursor }, null);
-      } else if (noteAt(clip, cursor)) {
+      } else if (!columnOnly && noteAt(clip, cursor)) {
         commit(clearNote(clip, cursor));
       } else if (column && !isRest(column)) {
         // On an empty string of a column with notes: the column becomes a rest first (Jeremy, 2026-10-27).
@@ -407,10 +440,13 @@ export default function TabPage() {
       handled();
       setSelection(null);
       setPlayMark(null);
-      editorRef.current?.blur();
+      // On a string, Esc first drops the string and keeps the column (Jeremy, 2026-10-27); then it leaves the tab.
+      if (!columnOnly && !selection && columnAt(clip, cursor)) setColumnOnly(true);
+      else editorRef.current?.blur();
       return;
     }
-    const cycled = applyCyclingKey(clip, target, key);
+    // B (the bend's shape) and / (the slide's kind) step one string's note; with none picked they do nothing.
+    const cycled = columnOnly && (key === 'B' || key === '/') ? null : applyCyclingKey(clip, target, key);
     if (cycled) {
       handled();
       commit(cycled);
@@ -431,6 +467,7 @@ export default function TabPage() {
 
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
+    setColumnOnly(false);
     const hasColumn = clip.bars[hit.bar].columns.length > 0;
     if (extend && hasColumn && columnAt(clip, cursor)) {
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
@@ -451,6 +488,7 @@ export default function TabPage() {
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     setEditing(false);
     setPicked(null);
+    setColumnOnly(false);
     const to = e.relatedTarget;
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;
@@ -464,6 +502,7 @@ export default function TabPage() {
    */
   const onPickRun = (mark: RunMark, index: number) => {
     lastDigit.current = null;
+    setColumnOnly(false);
     const { has } = RUN_MARKS.find(r => r.mark === mark)!;
     const [from, to] = runAround(clip, index, has);
     const place = placeOf(clip, from);
@@ -690,7 +729,7 @@ export default function TabPage() {
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id))} kinds={noteKinds(clip, lit ? cursor : null)}
+          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={noteKinds(clip, lit ? cursor : null)}
           onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
           onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
@@ -714,8 +753,8 @@ export default function TabPage() {
                   <TabClip
                     clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
-                    onPickColumn={showPlayback ? pickColumn : undefined}
-                    highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
+                    highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly }}
                     picked={editing ? picked : null}
                     errors={barErrors(clip)}
                   />

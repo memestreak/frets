@@ -22,6 +22,18 @@ readers pass keys through to it.
   column and string. While the editor has focus, the cursor shows as a
   soft `--primary-soft` band behind its column and a `--primary` box round
   its string. Esc leaves the editor, and the cursor hides.
+- **Column cursor** (Jeremy, 2026-10-27, both ways in): the cursor can sit
+  on a column with no string picked, drawn as the band without the box.
+  Esc on a string drops the string and keeps the column (a second Esc
+  leaves the editor); a press above or below the staff puts it there while
+  the playback controls are hidden (shown, that press places the playback
+  line, as before). Every tool and key then works on the whole column, as
+  on a one-column selection, and a note's button is lit only when every
+  note in the column has its mark. ← → and Shift+← → work as usual. A
+  fret needs a string, so digits do nothing until ↑ or ↓ (back to the
+  string the cursor was on) or a press on a string picks one. Delete makes
+  a column with notes a rest, then removes the rest. Dead note (X), B and /
+  work on one string's note, so they do nothing here.
 - **Selection:** Shift+click or Shift+←/→ selects a run of columns, and
   the band runs unbroken under it on each line of tab, across the bar
   lines inside it (Jeremy, 2026-10-26: a band per column left gaps at

@@ -37,6 +37,8 @@ export interface Highlight {
   cursor: Hit | null;
   /** First and last selected places in the clip, inclusive. */
   range: [number, number] | null;
+  /** The cursor is on its column only, with no string picked: the column is tinted, no string boxed. */
+  columnOnly?: boolean;
 }
 
 /**
@@ -126,10 +128,12 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
           {!highlight.range && (
             <rect x={spot.x - spot.width / 2} y={rows.staffTop - 10} width={spot.width} height={rows.staffBottom - rows.staffTop + 20} fill="var(--primary-soft)" />
           )}
-          <rect
-            x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
-            fill="none" stroke="var(--primary)" strokeWidth={1.5}
-          />
+          {!highlight.columnOnly && (
+            <rect
+              x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
+              fill="none" stroke="var(--primary)" strokeWidth={1.5}
+            />
+          )}
         </g>
       )}
       {layout.systems.map((system, si) => (
