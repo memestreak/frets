@@ -8,9 +8,10 @@ import {
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
-import { previousHeads, StaffDrawing } from './StaffDrawing';
+import { StaffDrawing } from './StaffDrawing';
+import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
-import { markAt, markBox, type MarkHit } from './marks';
+import { markAt, markBox, vibratoWave, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
 export interface TabLook {
@@ -110,7 +111,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
-  const heads = layout.rows.score ? previousHeads(layout.systems) : null;
+  const onStaff = layout.rows.score ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;
@@ -148,8 +149,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
-          {rows.score && heads && (
-            <StaffDrawing system={system} si={si} score={rows.score} clip={clip} look={look} lastBar={lastBar} previous={heads} />
+          {rows.score && onStaff && (
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {errors && system.bars.map(bar => {
@@ -223,8 +224,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
   const words = <SystemWords system={system} rows={rows} clip={clip} look={look} />;
-  // The staff alone: the words over it, and no tab.
-  if (!rows.tab) return words;
+  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} />;
+  // The staff alone: the words over it and the marks under it, and no tab.
+  if (!rows.tab) return <>{words}{rowMarks}</>;
 
   // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
@@ -271,6 +273,27 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 
   parts.push(<g key="words">{words}</g>);
 
+  parts.push(<g key="row-marks">{rowMarks}</g>);
+
+  for (const bar of system.bars) {
+    for (const placed of bar.columns) {
+      parts.push(
+        <ColumnDrawing
+          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
+          previous={previous} slides={slides} staffStart={system.staffStart}
+        />,
+      );
+    }
+    // Under a staff, the staff carries the rhythm.
+    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
+  }
+
+  return <>{parts}</>;
+}
+
+/** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
+function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; look: TabLook }) {
+  const parts: ReactNode[] = [];
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
   for (const { mark, label, has } of RUN_MARKS) {
     const y = rows[mark];
@@ -291,18 +314,16 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   }
 
   for (const bar of system.bars) {
-    for (const placed of bar.columns) {
-      parts.push(
-        <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
-          previous={previous} slides={slides} staffStart={system.staffStart}
-        />,
-      );
+    for (const { column, x, index } of bar.columns) {
+      if (column.stroke && rows.strokes !== null) {
+        const sy = rows.strokes;
+        parts.push(column.stroke === 'down'
+          ? <path key={`stroke-${index}`} d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
+          : <path key={`stroke-${index}`} d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
+      }
+      parts.push(<g key={`marks-${index}`}>{columnMarks(column, x, rows, look)}</g>);
     }
-    // Under a staff, the staff carries the rhythm.
-    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
   }
-
   return <>{parts}</>;
 }
 
@@ -460,13 +481,6 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
 }) {
   const { column, x } = placed;
   const parts: ReactNode[] = [];
-  if (column.stroke) {
-    const sy = rows.strokes!;
-    parts.push(column.stroke === 'down'
-      ? <path key="stroke" d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
-      : <path key="stroke" d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
-  }
-  parts.push(...columnMarks(column, x, rows, look));
   column.notes.forEach((note, s) => {
     if (!note) return;
     const y = stringY(rows, s);
@@ -537,22 +551,20 @@ function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): Reac
   const notes = column.notes.filter((n): n is Note => n !== null);
   const parts: ReactNode[] = [];
   const vibrato = notes.some(n => n.vibrato === 'wide') ? 'wide' : notes.some(n => n.vibrato) ? 'slight' : null;
-  if (vibrato) {
-    // A wide vibrato's wave is taller and longer, in fewer turns.
-    const [width, height, turns] = vibrato === 'wide' ? [8, 8, 3] : [6, 4, 4];
-    let d = `M${x + 4} ${rows.vibrato}`;
-    for (let k = 0; k < turns; k++) d += ` q${width / 2} -${height} ${width} 0 q${width / 2} ${height} ${width} 0`;
-    parts.push(<path key="vibrato" d={d} fill="none" stroke={look.ink} strokeWidth={vibrato === 'wide' ? 2 : 1.2} data-testid="vibrato" />);
+  // With the staff shown, vibrato, accents and staccato dots go on it instead (`staffMarks.ts`).
+  if (vibrato && rows.vibrato !== null) {
+    const { d, strokeWidth } = vibratoWave(x, rows.vibrato, vibrato === 'wide');
+    parts.push(<path key="vibrato" d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
   }
-  if (notes.some(n => n.harmonic === 'pinch')) {
+  if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) {
     parts.push(
       <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
     );
   }
   const accent = columnAccent(column);
   const staccato = notes.some(n => n.staccato);
-  if (accent || staccato) {
-    const y = rows.accents!;
+  if ((accent || staccato) && rows.accents !== null) {
+    const y = rows.accents;
     // With both, the accent sits over the dot.
     const ay = staccato ? y - 2 : y;
     if (accent === 'normal') {

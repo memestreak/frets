@@ -9,8 +9,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
   switch, **Staff | Tab | Both**, chooses the parts. The choice is the
   viewer's, saved in `frets.tab.parts` (Tab by default), and is not part of the
   clip.
-- The staff is a treble clef with an 8 under it: guitar is written an octave
-  above how it sounds.
+- The staff is a plain treble clef. Guitar is written an octave above how it
+  sounds; as in most guitar books, the clef has no 8 under it to say so
+  (Jeremy dropped it, 2026-10-27).
 - In **Both** the staff carries the rhythm (stems, flags, beams, rests, dots,
   tuplet numbers, ties) and the tab drops its own stems. **Tab** alone is drawn
   as before.
@@ -57,7 +58,26 @@ its tab note. Staff alone is read-only (the palette is off).
 Next, in its own PR: entering pitches on the staff (press a line or space,
 step a semitone up or down, Frets picks the string and fret).
 
-## Not yet on the staff
+## Technique marks on the staff
 
-Technique marks (bends, slides, harmonics, vibrato, P.M. and the rest) and
-tremolo slashes are drawn on the tab only.
+Placed as printed guitar music places them (`staffMarks.ts`; Jeremy asked to
+finish #122 with them, 2026-10-27):
+
+- **At the heads:** accents (> and ^) and staccato dots, on the side away from
+  the stem (over a whole note). Inside the staff a dot sits in a space.
+- **Over the staff:** a vibrato's wave, clear of the heads and an upward stem.
+- **On the stem:** tremolo slashes, one per beam of the speed; over a whole note.
+- **Between heads:** a slur for a hammer-on, pull-off or legato slide, away
+  from the stem; a straight line for a slide; ties as before. Slides into a
+  note from below or above, and out of it, are short lines.
+- **Heads:** a natural harmonic is a diamond, a dead note an ×, a ghost note's
+  head is in brackets.
+- **Between the staff and the tab** (under the staff alone): pick strokes,
+  P.M. and let ring runs, P.H.
+- **On the tab only, under a staff:** bends, taps and the tab's own H and P,
+  slides and ties. With the staff alone, bends (arrow and amount) and taps (T)
+  go on the staff.
+
+In Both, accents, staccato and vibrato are drawn on the staff only, not over
+the tab too. A press on a mark on the staff picks it as one on the tab does
+(outline, Delete, its palette tool lit); a press on a head is still the note.

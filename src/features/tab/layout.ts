@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  STRING_COUNT, changesKey, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, keyAt, ticks, WHOLE,
+  STRING_COUNT, beatTicks, changesKey, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, keyAt, ticks, timeAt, WHOLE,
   type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, openStrings, type Head } from './notation';
@@ -105,12 +105,14 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     chords: columns.some(c => c.chord),
     text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
-    strokes: tab && columns.some(c => c.stroke),
-    letRing: tab && notes.some(n => n.letRing),
-    palmMute: tab && notes.some(n => n.palmMute),
-    harmonics: tab && notes.some(n => n.harmonic === 'pinch'),
-    vibrato: tab && notes.some(n => n.vibrato),
-    accents: tab && notes.some(n => n.accent || n.staccato),
+    // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
+    // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
+    strokes: columns.some(c => c.stroke),
+    letRing: notes.some(n => n.letRing),
+    palmMute: notes.some(n => n.palmMute),
+    harmonics: notes.some(n => n.harmonic === 'pinch'),
+    vibrato: parts === 'tab' && notes.some(n => n.vibrato),
+    accents: parts === 'tab' && notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
   // A row comes ROW_GAP after the one before, plus room for a section's box when either is the section row.
@@ -225,6 +227,8 @@ export interface PlacedBar {
   timeX: number | null;
   /** On the staff: where a key signature change's first sign goes, when the bar starts one. */
   keyX: number | null;
+  /** Ticks in one of its beats: eighths and shorter are beamed within one. */
+  beat: number;
   columns: PlacedColumn[];
 }
 
@@ -414,11 +418,21 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     });
     if (squeeze < 1) w = cx - x0 + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     x = x0 + w;
-    current.push({ bar, index, x0, x1: x, timeX, keyX, columns });
+    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(timeAt(clip, index)), columns });
   });
   finish();
-  const rows = rowsFor(clip, parts, staffReach(heads));
+  const reach = staffReach(heads);
+  // The staff's own marks need room past its notes: a vibrato's wave over it, accents either side.
+  const extra = staff ? marksReach(clip.bars.flatMap(b => b.columns.flatMap(c => c.notes.filter((n): n is Note => n !== null)))) : { high: 0, low: 0 };
+  const rows = rowsFor(clip, parts, { high: reach.high + extra.high, low: reach.low - extra.low });
   return { parts, systems, rows, height: systems.length * rows.height, names };
+}
+
+/** Room the staff's marks (`staffMarks.ts`) need past its heads and stems, in steps: over it for vibrato, both ways for accents. */
+export function marksReach(notes: Note[]): { high: number; low: number } {
+  const vibrato = notes.some(n => n.vibrato);
+  const articulated = notes.some(n => n.accent || n.staccato);
+  return { high: (vibrato ? 5 : 0) + (articulated ? 4 : 0), low: articulated ? 4 : 0 };
 }
 
 /** How far the clip's heads and stems reach above and below the staff, in steps. */
