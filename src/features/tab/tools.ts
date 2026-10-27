@@ -230,7 +230,12 @@ export function toolForKey(key: string, alt: boolean): ToolId | null {
 }
 
 /** Whether the cursor's column, note or bar has what a tool sets, to show its button pressed. */
-export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId): boolean {
+export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId, columnOnly = false): boolean {
+  // With no string picked, a note's mark is on when every note in the column has it.
+  if (columnOnly) {
+    const strings = columnAt(clip, cursor)?.notes.flatMap((n, s) => (n ? [s] : [])) ?? [];
+    if (strings.length > 0) return strings.every(string => isOn(clip, { ...cursor, string }, id));
+  }
   const column = columnAt(clip, cursor);
   const note = noteAt(clip, cursor);
   const bar = clip.bars[cursor.bar];

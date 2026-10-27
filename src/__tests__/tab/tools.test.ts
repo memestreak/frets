@@ -39,3 +39,23 @@ describe('marks drawn over a column', () => {
     expect(bars(clip)).toBe('(0.1 1.2{g}).2 r.2 |');
   });
 });
+
+describe('the cursor on a column with no string picked', () => {
+  // The tools work on the whole column, as on a one-column selection (TabPage passes that as the target).
+  const cursor = { bar: 0, column: 0, string: 5 };
+  const target = { cursor, selection: { anchor: 0, focus: 0 } };
+
+  it('marks every note of the column, and shows a note mark on only when every note has it', () => {
+    let clip = applyTool(clipOf('(0.1 1.2).2 r.2 |'), target, 'ghost');
+    expect(bars(clip)).toBe('(0.1{g} 1.2{g}).2 r.2 |');
+    expect(isOn(clip, cursor, 'ghost', true)).toBe(true);
+    clip = clipOf('(0.1{g} 1.2).2 r.2 |');
+    expect(isOn(clip, cursor, 'ghost', true)).toBe(false);
+  });
+
+  it('reads a column without notes as the cursor does', () => {
+    const clip = clipOf('r.2 r.2 |');
+    expect(isOn(clip, cursor, 'rest', true)).toBe(true);
+    expect(isOn(clip, cursor, 'half', true)).toBe(true);
+  });
+});
