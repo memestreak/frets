@@ -366,6 +366,12 @@ button {
     cursor: pointer;
   }
   .shape-menu-item:hover, .shape-menu-item:focus { background: var(--surface-sunken); outline: none; }
+  /* The playback options (a right-click on Play): a tick before each option, the pause's seconds beside it. */
+  .tab-options { min-width: 0; }
+  .tab-options-item { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
+  .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
+  .tab-options-row .tab-options-item { flex: 1; }
 
   /* The Export dialog: the image on white, as it comes out. The colour is
      BACKDROP in exportStyle.ts; a test keeps them in step. */
@@ -769,26 +775,26 @@ button {
   .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
   .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   /* The speed field: the number (drag it up or down, or type), "%", and stacked up and down buttons. */
-  .tab-speed-field {
+  .tab-number-field {
     display: inline-flex; align-items: center; height: var(--control-height); padding-left: 10px;
     background: var(--surface-raised); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
     font: 600 15px/20px var(--font-sans);
   }
-  .tab-speed-field input {
+  .tab-number-field input {
     width: 3ch; border: 0; padding: 0; margin: 0; background: transparent; color: var(--ink);
     font: inherit; text-align: right; font-variant-numeric: tabular-nums; cursor: ns-resize; touch-action: none;
   }
-  .tab-speed-field input:focus { outline: none; cursor: text; }
-  .tab-speed-field:focus-within { border-color: var(--primary); }
-  .tab-speed-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
-  .tab-speed-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
-  .tab-speed-steps button {
+  .tab-number-field input:focus { outline: none; cursor: text; }
+  .tab-number-field:focus-within { border-color: var(--primary); }
+  .tab-number-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
+  .tab-number-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
+  .tab-number-steps button {
     display: grid; place-items: center; width: 20px; padding: 0; border: 0; background: transparent;
     color: var(--ink-muted); cursor: pointer;
   }
-  .tab-speed-steps button:first-child { border-bottom: 1px solid var(--line); border-top-right-radius: calc(var(--radius-sm) - 1.5px); }
-  .tab-speed-steps button:last-child { border-bottom-right-radius: calc(var(--radius-sm) - 1.5px); }
-  .tab-speed-steps button:hover { background: var(--surface-sunken); color: var(--ink); }
+  .tab-number-steps button:first-child { border-bottom: 1px solid var(--line); border-top-right-radius: calc(var(--radius-sm) - 1.5px); }
+  .tab-number-steps button:last-child { border-bottom-right-radius: calc(var(--radius-sm) - 1.5px); }
+  .tab-number-steps button:hover { background: var(--surface-sunken); color: var(--ink); }
   /* Wide enough for "300 bpm", so nothing moves as the speed does. */
   .tab-speed-value { width: 60px; flex: none; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
   /* The volume: a small knob, captioned like Speed. */

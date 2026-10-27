@@ -373,6 +373,19 @@ export class TabPlayer {
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
    */
   private ended = true;
+  /** Whether the loop points are ahead of the playhead, so playing past the end one goes back to the start one. */
+  private looping = false;
+  /** The loop's ticks while `looping`. */
+  private range: { startTick: number; endTick: number } | null = null;
+  /**
+   * The rest between the loop's end and its start again, in seconds (Jeremy, 2026-10-27); 0 loops
+   * straight round, as alphaTab's own looping does. With a rest, the clip plays to the loop's end and
+   * stops (its notes dying away as at the clip's end), and starts again from the loop's start after it.
+   */
+  private loopPause = 0;
+  /** When the playhead reached the loop's end, so the rest counts from there; and the rest's timer. */
+  private loopEndAt: number | null = null;
+  private resting: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private readonly at: AlphaTab,
@@ -381,12 +394,17 @@ export class TabPlayer {
   ) {
     synth.positionChanged.on(e => {
       if (!this.clip || !this.performance || this.ended) return;
+      if (this.looping && this.range && e.currentTick >= this.range.endTick) this.loopEndAt ??= performance.now();
       // While the last notes ring out, the playhead stays on the last column.
       if (e.currentTick >= this.performance.endTick) return;
       onView({ column: columnAtTick(this.clip, this.performance, e.currentTick) });
     });
     synth.finished.on(() => {
       if (synth.isLooping) return;
+      if (this.looping && !this.ended) {
+        this.rest();
+        return;
+      }
       this.ended = true;
       onView({ state: 'idle', column: null });
     });
@@ -410,6 +428,7 @@ export class TabPlayer {
    */
   async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
     await this.loadFont(sound);
+    this.endRest();
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
@@ -428,6 +447,7 @@ export class TabPlayer {
   /** Stops, keeping the clip ready for the next Play; the view hears the state go idle and the playhead go. */
   halt() {
     this.ended = true;
+    this.endRest();
     this.synth.pause();
     this.onView({ state: 'idle', column: null });
   }
@@ -435,6 +455,7 @@ export class TabPlayer {
   /** Stops and forgets the clip, as after an edit. */
   stop() {
     this.ended = true;
+    this.endRest();
     this.synth.stop();
     this.clip = null;
     this.performance = null;
@@ -453,11 +474,13 @@ export class TabPlayer {
       : ticksOf(this.clip, this.performance, loop);
     let ahead = range !== null && this.synth.tickPosition < range.endTick;
     // Loop points dragged back behind the playhead while it loops: it goes round to their start.
-    if (range !== null && !ahead && this.synth.isLooping && !this.ended) {
+    if (range !== null && !ahead && this.looping && !this.ended) {
       this.moveTo(range.startTick);
       ahead = true;
     }
-    this.synth.isLooping = ahead;
+    this.looping = ahead;
+    this.range = ahead ? range : null;
+    this.synth.isLooping = ahead && this.loopPause === 0;
     if (ahead && range) {
       const playbackRange = new this.at.synth.PlaybackRange();
       playbackRange.startTick = range.startTick;
@@ -466,6 +489,36 @@ export class TabPlayer {
     } else {
       rangeWithoutSeek(this.synth, null);
     }
+  }
+
+  /** The rest between loops, in seconds; 0 loops straight round. */
+  setLoopPause(seconds: number) {
+    this.loopPause = seconds;
+    this.synth.isLooping = this.looping && seconds === 0;
+  }
+
+  /**
+   * The playhead reached the loop's end and the notes have died away: the clip waits out what is left
+   * of the rest, counted from the loop's end, then plays from the loop's start again. The view stays
+   * playing meanwhile, so Stop ends the rest.
+   */
+  private rest() {
+    const since = this.loopEndAt === null ? 0 : performance.now() - this.loopEndAt;
+    this.endRest();
+    this.resting = setTimeout(() => {
+      this.resting = null;
+      this.loopEndAt = null;
+      if (this.ended || !this.range) return;
+      this.moveTo(this.range.startTick);
+      this.setLoop(this.loop);
+      this.synth.play();
+    }, Math.max(0, this.loopPause * 1000 - since));
+  }
+
+  private endRest() {
+    if (this.resting !== null) clearTimeout(this.resting);
+    this.resting = null;
+    this.loopEndAt = null;
   }
 
   /** Puts the playhead on a tick, with no loop points to hold it in. */
@@ -505,7 +558,8 @@ export class TabPlayer {
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */
   async setSound(sound: Sound) {
     if (sound === this.sound) return;
-    const playing = !this.ended;
+    // Resting between loops counts as stopped here: the rest starts the loop again itself.
+    const playing = !this.ended && this.resting === null;
     const tick = this.synth.tickPosition;
     const loaded = await this.loadFont(sound);
     this.sound = sound;
@@ -525,11 +579,15 @@ export class TabPlayer {
   /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */
   seek(index: number) {
     if (!this.clip || !this.performance) return;
+    const resting = this.resting !== null;
+    this.endRest();
     this.moveTo(tickOf(this.clip, this.performance, index));
     this.setLoop(this.loop);
+    if (resting) this.synth.play();
   }
 
   destroy() {
+    this.endRest();
     this.synth.destroy();
   }
 }

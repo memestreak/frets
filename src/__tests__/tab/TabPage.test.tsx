@@ -433,13 +433,13 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
     cleanup();
     renderAt();
     expect(footer()).not.toBeNull();
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, sound: 25, volume: 1 });
   });
 
   it('shows neither the toggle nor the controls in the text views', () => {
@@ -458,7 +458,7 @@ describe('TabPage playback', () => {
     const sound = screen.getByRole('combobox', { name: 'Sound' });
     expect(sound).toHaveValue('25');
     fireEvent.change(sound, { target: { value: '0' } });
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: true, sound: 0, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 0, volume: 1 });
     cleanup();
     renderAt();
     expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
@@ -476,6 +476,30 @@ describe('TabPage playback', () => {
     expect(knob).toHaveAttribute('aria-valuenow', '0');
     fireEvent.keyDown(knob, { key: 'ArrowUp' });
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!).volume).toBe(0.05);
+  });
+
+  it('opens the playback options on a right-click on Play, and remembers them', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Play' }), { clientX: 40, clientY: 40 });
+    const stop = screen.getByRole('menuitemcheckbox', { name: 'Stop leaves the cursor where it stopped' });
+    const pause = screen.getByRole('menuitemcheckbox', { name: 'Pause between loops' });
+    expect(stop).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(stop);
+    fireEvent.click(pause);
+    // The menu stays open while its options change.
+    expect(stop).toHaveAttribute('aria-checked', 'true');
+    expect(pause).toHaveAttribute('aria-checked', 'true');
+    const seconds = screen.getByRole('spinbutton', { name: 'Pause between loops (seconds)' });
+    expect(seconds).toHaveValue('1.0');
+    fireEvent.click(screen.getByRole('button', { name: 'Longer pause' }));
+    expect(seconds).toHaveValue('1.5');
+    fireEvent.change(seconds, { target: { value: '2.25' } });
+    fireEvent.keyDown(seconds, { key: 'Enter' });
+    expect(seconds).toHaveValue('2.3');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.3 });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
   });
 
   it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
