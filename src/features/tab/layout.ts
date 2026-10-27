@@ -48,8 +48,7 @@ export interface Rows {
 
 export const STRING_GAP = 14;
 const FIRST_ROW = 12;
-/** From one row over the staff to the next: room for a section's box without touching the row above (Jeremy, 2026-10-27). */
-const ROW_GAP = 18;
+const ROW_GAP = 15;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
 
@@ -72,11 +71,19 @@ export function rowsFor(clip: Clip): Rows {
     accents: notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
-  const row = (on: boolean) => (on ? (y += ROW_GAP) : null);
+  // A row comes ROW_GAP after the one before, plus room for a section's box when either is the section row.
+  let lastWasSection = false;
+  const row = (on: boolean, section = false) => {
+    if (!on) return null;
+    const first = y === FIRST_ROW - ROW_GAP;
+    y += ROW_GAP + (!first && (section || lastWasSection) ? SECTION_ROOM : 0);
+    lastWasSection = section;
+    return y;
+  };
   const rows = {
     capo: row(used.capo),
     tempo: row(used.tempo),
-    section: row(used.section),
+    section: row(used.section, true),
     endings: row(used.endings),
     chords: row(used.chords),
     text: row(used.text),
@@ -183,11 +190,16 @@ export function beatTextWidth(text: string): number {
 }
 
 export const SECTION_SIZE = 11;
+/** A section's boxes: their height and the room between the name and its box's sides (Jeremy, 2026-10-27: more room round the name). */
+export const SECTION_BOX_HEIGHT = 20;
+export const SECTION_PAD = 8;
+/** Extra room above and below the section row, so its taller box doesn't touch the rows beside it. */
+const SECTION_ROOM = 3;
 /** A section's rehearsal mark box (if any) and its name's box, from the bar's start. */
 export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
-  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 8 } : null;
+  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 2 * SECTION_PAD } : null;
   const x = marker ? marker.width + 4 : 0;
-  return { marker, text: { x, width: section.text.length * 6.4 + 10 } };
+  return { marker, text: { x, width: section.text.length * 6.4 + 2 * SECTION_PAD } };
 }
 
 export const TEMPO_SIZE = 11;
@@ -348,8 +360,8 @@ export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'secti
  */
 export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
   const { rows } = layout;
-  const box = (s: number, rowY: number | null, x0: number, x1: number) =>
-    rowY === null ? null : { x: x0 - 3, y: s * rows.height + rowY - 9, width: x1 - x0 + 6, height: 18 };
+  const box = (s: number, rowY: number | null, x0: number, x1: number, height = 18) =>
+    rowY === null ? null : { x: x0 - 3, y: s * rows.height + rowY - height / 2, width: x1 - x0 + 6, height };
   for (let s = 0; s < layout.systems.length; s++) {
     const system = layout.systems[s];
     if (hit.kind === 'capo') {
@@ -374,7 +386,7 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     if (hit.kind === 'section') {
       if (!bar.bar.section) return null;
       const { text } = sectionBoxes(bar.bar.section);
-      return box(s, rows.section, x0, x0 + text.x + text.width);
+      return box(s, rows.section, x0, x0 + text.x + text.width, SECTION_BOX_HEIGHT + 6);
     }
     return bar.bar.tempo ? box(s, rows.tempo, x0, x0 + tempoParts(bar.bar.tempo).width) : null;
   }

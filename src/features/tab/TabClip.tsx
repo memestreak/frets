@@ -5,7 +5,7 @@ import {
 } from './clip';
 import {
   barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
-  SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
+  SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
 
@@ -305,12 +305,12 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
         <g key={`section-${bar.index}`} data-testid="section">
           {marker && (
             <>
-              <rect x={x0} y={y - 8} width={marker.width} height={16} rx={2} fill={look.ink} />
+              <rect x={x0} y={y - SECTION_BOX_HEIGHT / 2} width={marker.width} height={SECTION_BOX_HEIGHT} rx={2} fill={look.ink} />
               <text x={x0 + marker.width / 2} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.paper} textAnchor="middle">{section.marker}</text>
             </>
           )}
-          <rect x={x0 + text.x} y={y - 8} width={text.width} height={16} rx={2} fill="none" stroke={look.ink} strokeWidth={1.2} />
-          <text x={x0 + text.x + 5} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.ink}>{section.text}</text>
+          <rect x={x0 + text.x} y={y - SECTION_BOX_HEIGHT / 2} width={text.width} height={SECTION_BOX_HEIGHT} rx={2} fill="none" stroke={look.ink} strokeWidth={1.2} />
+          <text x={x0 + text.x + SECTION_PAD} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.ink}>{section.text}</text>
         </g>,
       );
     }
