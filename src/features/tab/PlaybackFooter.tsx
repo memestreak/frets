@@ -11,7 +11,7 @@ import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { columnAt, layoutClip, type Layout, type Parts } from './layout';
 import { NumberField, resetOnDoubleClick } from './NumberField';
-import { MAX_LOOP_PAUSE, MAX_TRANSPOSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
+import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
 
@@ -27,7 +27,12 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   volume: number;
   /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
   hearNotes: boolean;
+  /** Semitones playback is moved by, up or down, from the field after Speed; 0 plays as written. The tab is unchanged. */
+  transpose: number;
 }
+
+/** How far playback may be transposed, in semitones either way: an octave. */
+export const MAX_TRANSPOSE = 12;
 
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
@@ -218,7 +223,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -236,6 +241,9 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   /** Whether each note entered sounds, the toggle after Loop. */
   hearNotes: boolean;
   onHearNotes: (on: boolean) => void;
+  /** Semitones playback is moved by, the field after Speed. */
+  transpose: number;
+  onTranspose: (semitones: number) => void;
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
@@ -301,6 +309,16 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
               label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
             />
             <span className="tab-speed-value">{Math.round(playback.bpm * speed)} bpm</span>
+          </div>
+          {/* A double-click on the label, the number or "semitones" puts it back to 0. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}
+          <div className="tab-speed" role="group" aria-label="Transpose" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
+            <span className="text-(--ink-muted)">Transpose</span>
+            <NumberField
+              value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
+              label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
+            />
+            <span className="text-(--ink-muted)">semitones</span>
           </div>
           <div className="tab-volume">
             <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>

@@ -517,7 +517,14 @@ describe('TabPage playback', () => {
     fireEvent.keyDown(seconds, { key: 'Enter' });
     expect(seconds).toHaveValue('2.3');
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.3 });
-    // Transpose: the buttons, a typed number with its sign, and a double-click back to 0.
+    expect(within(screen.getByRole('menu', { name: 'Playback options' })).queryByRole('spinbutton', { name: 'Transpose (semitones)' })).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
+  });
+
+  it('transposes playback from the field after Speed, and a double-click puts it back to 0', () => {
+    renderAt();
+    fireEvent.click(toggle());
     const transpose = screen.getByRole('spinbutton', { name: 'Transpose (semitones)' });
     expect(transpose).toHaveValue('0');
     fireEvent.click(screen.getByRole('button', { name: 'Transpose up' }));
@@ -531,8 +538,6 @@ describe('TabPage playback', () => {
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ transpose: -12 });
     fireEvent.doubleClick(screen.getByText('Transpose'));
     expect(transpose).toHaveValue('0');
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
   });
 
   it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
@@ -758,6 +763,19 @@ describe('TabPage export', () => {
       expect(alphaTexText()).toBe(typed);
       expect(screen.getByTestId('margin-note-2')).toHaveAttribute('data-tip', 'Comments are not kept');
       // An undo from outside the text box takes the clip back, and the text with it.
+      undo();
+      expect(heading()).toHaveTextContent('Tex riff');
+      expect(alphaTexText()).toContain('\\title "Tex riff"');
+    });
+
+    it('clears the text and the clip from the × at the top left, as one undo step', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+      expect(alphaTexText()).toBe('');
+      expect(heading()).toHaveTextContent('Untitled clip');
       undo();
       expect(heading()).toHaveTextContent('Tex riff');
       expect(alphaTexText()).toContain('\\title "Tex riff"');

@@ -365,14 +365,14 @@ button {
     border-radius: var(--radius-sm);
     cursor: pointer;
   }
-  .shape-menu-item:hover, .shape-menu-item:focus { background: var(--surface-sunken); outline: none; }
+  /* The same soft fill as a ghost button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
+  .shape-menu-item:hover, .shape-menu-item:focus { background: var(--primary-soft); outline: none; }
   /* The playback options (a right-click on Play): a tick before each option, the pause's seconds beside it. */
   .tab-options { min-width: 0; }
   .tab-options-item { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
   .tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
   .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
   .tab-options-row .tab-options-item { flex: 1; }
-  .tab-options-label { padding: 8px 10px; font: 500 14px/20px var(--font-sans); color: var(--ink); cursor: default; }
 
   /* The Export dialog: the image on white, as it comes out. The colour is
      BACKDROP in exportStyle.ts; a test keeps them in step. */

@@ -64,9 +64,11 @@ off but the loop range stays set, so the synth finishes at the range end; on
 
 Jeremy, 2026-10-27: "allows me in the playback menu to transpose playback by
 a specified number of semitones", and "double click on the label or widget
-should reset it".
+should reset it". Then, with a picture of the menu in dark mode: "I don't
+like the black used in this menu. I also want transposition control in the
+main playback menu."
 
-- A third row in the menu: "Transpose" and a number field, −12 to +12
+- In the footer, after Speed: "Transpose" and a number field, −12 to +12
   semitones in steps of 1 (a plus sign shown above 0), starting at 0. Not a
   toggle: 0 plays as written. Saved as `transpose` in `frets.tab.playback`.
 - A double-click on its label or its number puts it back to 0 (not on the
@@ -76,3 +78,9 @@ should reset it".
   written. It applies at once, to notes already sounding, and to notes heard
   as they are entered. It is the synthesizer's own transposition
   (`applyTranspositionPitches`) on every channel but General MIDI's drums.
+- It moved out of the right-click menu rather than showing in both (one way
+  to do a thing); the menu keeps the two on/off options.
+- The menu's hovered or focused item, here and in the shapes' export menu
+  that it shares its look with, is filled with `--primary-soft` (a ghost
+  button's hover) instead of `--surface-sunken`, which was near black in
+  dark mode.

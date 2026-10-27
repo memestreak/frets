@@ -32,8 +32,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   step: number;
   /** Digits after the point, as shown and as kept. */
   decimals?: number;
-  /** Shown after the number: `%`, `s`. */
-  unit: string;
+  /** Shown after the number, inside the box: `%`, `s`. A long unit goes outside it instead. */
+  unit?: string;
   /** The field's accessible name, and the buttons'. */
   label: string;
   upLabel: string;
@@ -114,7 +114,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove}
         onPointerUp={onPointerUp} onPointerCancel={() => { drag.current = null; }}
       />
-      <span className="tab-number-unit" aria-hidden="true">{unit}</span>
+      <span className="tab-number-unit" aria-hidden="true">{unit ?? ''}</span>
       <span className="tab-number-steps">
         <button type="button" aria-label={upLabel} tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
