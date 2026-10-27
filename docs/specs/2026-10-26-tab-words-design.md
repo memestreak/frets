@@ -19,7 +19,8 @@ at the spot each is drawn, and the capo beside the time signature.
 
 Each gets its own row over the staff, only when the clip uses it (`rowsFor`).
 From the top, the rows are: tempo, section, endings, chord names, then the note
-marks' rows.
+marks' rows. Rows are 18px apart, so the words on neighbouring rows don't
+touch (Jeremy, 2026-10-27; it was 15).
 
 A chord name's column is at least as wide as the name. A section's box and a
 tempo's hit area are sized by guessing the text's width from its length, since
@@ -45,12 +46,13 @@ nothing then has to be placed after text whose width is unknown.
   any other key, a press elsewhere or the tab losing the focus lets it go.
   While a word is picked the column cursor isn't drawn. A time signature
   still opens its panel at once.
-- **Tempo:** bpm, a whole number from 20 to 400, clamped, then an optional
-  label: the field shows and takes "100 A little faster" (Jeremy, 2026-10-27;
-  before, the label could be set only in the text), and a press on the label
-  opens it too. Just a number drops the label; text that doesn't start with a
-  number leaves the tempo as it was; empty clears it. The field's caption is
-  "Tempo in bpm, then a label". A section's rehearsal mark is kept when its
+- **Tempo:** bpm, a whole number from 20 to 400, clamped, and an optional
+  label such as "A little faster" (Jeremy, 2026-10-27; before, the label could
+  be set only in the text), and a press on the label picks it too. The field
+  has two boxes (Jeremy, 2026-10-27; it had been one box taking "100 A little
+  faster"): "Tempo (bpm)", digits only, and "Label (optional)". Tab moves
+  between them; Enter in either, or leaving both, sets the tempo. An empty
+  label drops the label; an empty bpm clears the tempo. A section's rehearsal mark is kept when its
   name changes; it is set only in the text, for now.
 - **Capo:** first a raised button beside the time signature. Jeremy found it
   "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in

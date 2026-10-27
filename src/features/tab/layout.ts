@@ -48,7 +48,8 @@ export interface Rows {
 
 export const STRING_GAP = 14;
 const FIRST_ROW = 12;
-const ROW_GAP = 15;
+/** From one row over the staff to the next: room for a section's box without touching the row above (Jeremy, 2026-10-27). */
+const ROW_GAP = 18;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
 

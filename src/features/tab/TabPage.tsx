@@ -808,7 +808,8 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
   const layout = layoutClip(clip, width);
   const { rows } = layout;
   const FIELD_WIDTH = 180;
-  const FIELD_HEIGHT = 64;
+  // A tempo's field has two boxes, bpm and a label.
+  const FIELD_HEIGHT = kind === 'tempo' ? 120 : 64;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
