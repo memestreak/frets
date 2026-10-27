@@ -25,10 +25,11 @@ The controls sit under that line:
   the focus, and its cursor, when Space plays from it. Play starts at the selection's first column, else at the
   cursor's; with no cursor on the tab, from the beginning (Jeremy,
   2026-10-26). A press on Play, Loop or the Volume knob leaves the cursor
-  on the tab. Pause stops and puts the cursor on the column it stopped on,
-  with the playhead gone, so the next Play goes on from there (Jeremy,
-  2026-10-26: a paused playhead had stayed on the tab with no way to clear
-  it). The first Play
+  on the tab. Pause stops and leaves the playback line (below) on the
+  column it stopped on, so the next Play goes on from there; the band goes,
+  no string is picked and the tab gives up the focus (Jeremy, 2026-10-27:
+  pausing had put the cursor on a string). A press on a note or Esc takes
+  the line away. The first Play
   loads alphaTab and the soundfont, about 1 MB, and shows a spinner until
   they are ready.
 - **Loop.** It sets the loop points (Jeremy, 2026-10-26, replacing a

@@ -113,20 +113,22 @@ export default function TabPage() {
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
   const showPlayback = playbackSettings.shown;
-  // Playback starts at the selection's first column, else the cursor's, else the first; Loop takes the selection.
+  // The playback line: put on a column by a press above or below the staff, or by a pause (Jeremy,
+  // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
+  // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
+  const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
+  // A pause leaves the playback line where it stopped, so Play goes on from there; no string is
+  // picked (Jeremy, 2026-10-27), so the tab gives up the focus and its cursor.
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, column => {
     setSelection(null);
-    setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
-    editorRef.current?.focus();
+    setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
+    editorRef.current?.blur();
   });
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
     setPlaybackSettings(s => ({ ...s, shown }));
   };
   const selectedColumns = selection ? selectedRange(selection) : null;
-  // A press above or below the staff puts the playback line on a column (Jeremy, 2026-10-26); it
-  // holds until the clip, the cursor or the selection changes.
-  const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
