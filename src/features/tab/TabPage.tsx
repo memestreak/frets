@@ -731,8 +731,9 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* What the card shows, and its copy, at its top right (Jeremy, 2026-10-27; the switch had been in the header). */}
+        {/* Over the clip: the copy button at the top left, the view switch at the top right (Jeremy, 2026-10-27; the switch had been in the header). */}
         <div className="tab-card-bar">
+          {copyButton}
           <div className="seg" role="group" aria-label="View">
             {VIEWS.map(v => (
               <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
@@ -740,7 +741,6 @@ export default function TabPage() {
               </button>
             ))}
           </div>
-          {copyButton}
         </div>
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}

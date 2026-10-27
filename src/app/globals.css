@@ -693,8 +693,8 @@ button {
     /* Tab must show "|-" and "->" as typed, not as joined glyphs. */
     font-variant-ligatures: none;
   }
-  /* Over the clip, at the card's top right: the view switch, then the copy button. */
-  .tab-card-bar { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px; }
+  /* Over the clip: the copy button at the left, the view switch at the right. */
+  .tab-card-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
   /* Playback, a footer in the clip's card: Play, Loop, Speed, Volume and Sound. */
   /* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
      controls, stops 6px short of it), then the controls. The toggle never moves. */
