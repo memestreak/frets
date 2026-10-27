@@ -713,6 +713,8 @@ button {
     animation: tab-spin 0.8s linear infinite;
   }
   @keyframes tab-spin { to { transform: rotate(360deg); } }
+  /* The loop bracket's ends, over the tab: drag them sideways. */
+  .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
   .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   /* The speed field: the number (drag it up or down, or type), "%", and stacked up and down buttons. */
   .tab-speed-field {

@@ -33,7 +33,7 @@ import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
-import { PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
+import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
 interface Notice {
@@ -655,6 +655,8 @@ export default function TabPage() {
               </div>
             )}
           {view === 'tab' && clipWidth > 0 && copyButton}
+          {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
+          {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab' && word && clipWidth > 0 && (
             <WordField
               key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, word)}
