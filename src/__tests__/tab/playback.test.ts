@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 /**
  * Playback's pure part: the clip as alphaTab's score and MIDI, and the way between its ticks and
  * the clip's columns. The sound itself needs a browser. See docs/specs/2026-10-26-tab-playback-design.md.
@@ -5,7 +6,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, DEFAULT_SOUND, isSound, perform, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
+import { columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -32,6 +33,24 @@ describe('playback sounds', () => {
     expect(isSound(25) && isSound(0) && isSound(111)).toBe(true);
     expect(isSound(100) || isSound(115) || isSound(127) || isSound('25')).toBe(false);
   });
+
+  it('plays a sound from its own soundfont, which alphaTab reads with sound in it', () => {
+    for (const piano of OWN_FONTS) {
+      expect(isSound(piano.program)).toBe(true);
+      const font = readFileSync(`public${piano.url}`);
+      // Rendered offline, as the player would play it: one note, which must not be silent.
+      const midi = perform(alphaTab, clipOf('0.3.4 |'), piano.program).midi;
+      const options = new alphaTab.synth.AudioExportOptions();
+      options.soundFonts = [font];
+      const output = new Proxy({ sampleRate: 44100 }, { get: (o, k) => (k in o ? o[k as 'sampleRate'] : k === 'ready' || k === 'samplesPlayed' || k === 'sampleRequest' ? { on() {} } : () => {}) });
+      const synth = new alphaTab.synth.AlphaSynth(output as unknown as alphaTab.synth.ISynthOutput, 500);
+      const exporter = synth.exportAudio(options, midi, [], new Map());
+      let peak = 0;
+      for (let chunk = exporter.render(500); chunk; chunk = exporter.render(500)) for (const x of chunk.samples) peak = Math.max(peak, Math.abs(x));
+      expect(peak).toBeGreaterThan(0.01);
+    }
+    // Decoding every Vorbis sample takes seconds.
+  }, 60_000);
 
   it('plays the clip in the sound chosen, whatever its alphaTex names', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');

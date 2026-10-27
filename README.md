@@ -41,6 +41,11 @@ check on every pull request and every push to `main`.
   [MPL 2.0](https://mozilla.org/MPL/2.0/).
 - Playback sounds from the SONiVOX EAS soundfont, Sonic Network Inc.,
   [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+- The piano from the [Salamander Grand Piano](https://github.com/sfzinstruments/SalamanderGrandPiano),
+  Alexander Holm, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- The steel guitar from the University of Iowa Electronic Music Studios, via
+  [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 - Notation symbols from the [Bravura](https://github.com/steinbergmedia/bravura)
   font, Steinberg Media Technologies GmbH,
   [SIL OFL 1.1](https://openfontlicense.org), as packaged in

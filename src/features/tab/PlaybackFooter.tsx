@@ -81,7 +81,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback 
   useEffect(() => () => player.current?.destroy(), []);
   // A new sound takes over at once, even mid-play.
   useEffect(() => {
-    player.current?.setSound(sound);
+    player.current?.setSound(sound).catch(() => undefined);
   }, [sound]);
   useEffect(() => {
     player.current?.setVolume(volume);
@@ -95,7 +95,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback 
     toggle: from => {
       if (view.state === 'playing') return player.current?.halt();
       if (view.state === 'loading') return;
-      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound);
+      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound).catch(() => update({ state: 'error' }));
       if (player.current) return start(player.current);
       update({ state: 'loading' });
       TabPlayer.create(update).then(

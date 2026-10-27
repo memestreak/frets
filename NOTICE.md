@@ -45,6 +45,22 @@ Copyright (c) 2004-2006 Sonic Network Inc., under the
 ships it from the [Android Open Source Project](https://android.googlesource.com/platform/external/sonivox/).
 See `public/soundfont/README.md`.
 
+## Piano: Salamander Grand Piano
+
+`public/soundfont/piano-salamander.sf3` is made from the
+[Salamander Grand Piano](https://github.com/sfzinstruments/SalamanderGrandPiano) by Alexander
+Holm, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The samples were changed:
+three velocity layers kept, mixed to mono, shortened with a fade, resampled and compressed
+(`scripts/build-soundfonts.py`). See `public/soundfont/README.md`.
+
+## Guitar: University of Iowa acoustic guitar, via tonejs-instruments
+
+`public/soundfont/guitar-iowa.sf3` is an acoustic guitar from the
+[University of Iowa Electronic Music Studios](https://theremin.music.uiowa.edu/)' Musical Instrument
+Samples, as edited in [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by
+Nicholaus P. Brosowsky, samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+Changed: shortened with a fade and compressed (`scripts/build-soundfonts.py`).
+
 ## Notation symbols: Bravura, via VexFlow
 
 `src/features/tab/smufl.ts` holds the outlines of a few music symbols (the

@@ -44,6 +44,19 @@ export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [num
   ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
   ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
 ];
+/**
+ * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by
+ * `scripts/build-soundfonts.py`, `docs/specs/2026-10-27-tab-instruments-design.md`). Each is fetched the first
+ * time its sound is picked and wins over SONiVOX's preset for that program. `level` brings it to about
+ * SONiVOX's loudness, measured by rendering one passage with each.
+ */
+export const OWN_FONTS: readonly { program: number; url: string; level: number }[] = [
+  // The Salamander Grand Piano: three velocity layers, 3.9 MB.
+  { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
+  // An acoustic guitar from the University of Iowa's instrument samples: a note per semitone, 1.5 MB.
+  { program: 25, url: '/soundfont/guitar-iowa.sf3', level: 0.74 },
+];
+
 export type Sound = number;
 export const DEFAULT_SOUND: Sound = 25;
 const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
@@ -349,6 +362,9 @@ export class TabPlayer {
   private performance: Performance | null = null;
   private clip: Clip | null = null;
   private sound: Sound = DEFAULT_SOUND;
+  private volume = 1;
+  /** The sounds' own soundfonts loaded so far, by URL. */
+  private readonly fonts = new Set<string>();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
@@ -390,10 +406,12 @@ export class TabPlayer {
    * With loop points, playing past the end one goes back to the start one; a start before them
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    */
-  play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+  async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+    await this.loadFont(sound);
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
+      this.setVolume(this.volume);
       this.performance = perform(this.at, clip, sound);
       this.synth.loadMidiFile(this.performance.midi);
     }
@@ -460,21 +478,46 @@ export class TabPlayer {
 
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
   setVolume(volume: number) {
-    this.synth.masterVolume = volume;
+    this.volume = volume;
+    this.synth.masterVolume = volume * (OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1);
+  }
+
+  /**
+   * Fetches and loads a sound's own soundfont the first time it is wanted, alongside SONiVOX's. The
+   * view shows Loading meanwhile; loading pauses the synthesizer.
+   */
+  private async loadFont(sound: Sound): Promise<boolean> {
+    const font = OWN_FONTS.find(f => f.program === sound);
+    if (!font || this.fonts.has(font.url)) return false;
+    this.onView({ state: 'loading' });
+    const response = await fetch(font.url);
+    if (!response.ok) {
+      this.onView({ state: 'error' });
+      throw new Error(`the sound didn't load (${response.status})`);
+    }
+    this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
+    this.fonts.add(font.url);
+    return true;
   }
 
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */
-  setSound(sound: Sound) {
+  async setSound(sound: Sound) {
     if (sound === this.sound) return;
-    this.sound = sound;
-    if (!this.clip || !this.performance) return;
     const playing = !this.ended;
     const tick = this.synth.tickPosition;
+    const loaded = await this.loadFont(sound);
+    this.sound = sound;
+    this.setVolume(this.volume);
+    if (!this.clip || !this.performance) {
+      if (loaded) this.onView({ state: 'idle' });
+      return;
+    }
     this.performance = perform(this.at, this.clip, sound);
     this.synth.loadMidiFile(this.performance.midi);
     this.moveTo(tick);
     this.setLoop(this.loop);
     if (playing) this.synth.play();
+    if (loaded) this.onView({ state: playing ? 'playing' : 'idle' });
   }
 
   /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */

@@ -294,7 +294,8 @@ binds a local port).
   warnings and write back exactly, and every newly drawn feature gets one.
   `playback.ts` plays a clip: alphaTab's MIDI generator and synthesizer
   (loaded on the first Play) with the SONiVOX soundfont in
-  `public/soundfont/`, through a small Web Audio output; `PlaybackFooter.tsx`
+  `public/soundfont/` (Acoustic Grand Piano is the Salamander Grand and Steel Guitar the Iowa
+  acoustic, each its own soundfont loaded when used, `OWN_FONTS`, built by `scripts/build-soundfonts.py`; `docs/specs/2026-10-27-tab-instruments-design.md`), through a small Web Audio output; `PlaybackFooter.tsx`
   is the footer under the tab (Play from the cursor, Loop setting loop points,
   Speed, a number field in `SpeedField.tsx`, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
   Images and dragging are PR 3 in the spec.
