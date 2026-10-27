@@ -330,12 +330,54 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
  * What a press on the words over the staff, or on a time signature, is on: a chord name or free text
  * (its column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
  */
-export type TextHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'time' | 'capo'; bar: number };
+export type TextHit = WordHit | { kind: 'time'; bar: number };
 
 export const CAPO_SIZE = 11;
 /** The capo's words, as drawn: "Capo 3". */
 export function capoText(capo: number): string {
   return `Capo ${capo}`;
+}
+
+/** A word over the staff that can be picked: a chord name, free text, a section, a tempo or the capo. */
+export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo'; bar: number };
+
+/**
+ * The box round a drawn word, in the tab's units, as a press finds it (`textAt`); null when it isn't
+ * drawn. A picked word is outlined with it, and its Edit and Delete buttons go beside it.
+ */
+export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
+  const { rows } = layout;
+  const box = (s: number, rowY: number | null, x0: number, x1: number) =>
+    rowY === null ? null : { x: x0 - 3, y: s * rows.height + rowY - 9, width: x1 - x0 + 6, height: 18 };
+  for (let s = 0; s < layout.systems.length; s++) {
+    const system = layout.systems[s];
+    if (hit.kind === 'capo') {
+      if (!system.first || !capo) continue;
+      return box(s, rows.capo, system.lineStart, system.lineStart + capoText(capo).length * 6.5);
+    }
+    if (hit.kind === 'chord' || hit.kind === 'text') {
+      const placed = system.bars.flatMap(b => b.columns).find(c => c.index === hit.index);
+      if (!placed) continue;
+      if (hit.kind === 'chord') {
+        const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
+        return w > 0 ? box(s, rows.chords, placed.x - w / 2, placed.x + w / 2) : null;
+      }
+      const t = placed.column.text;
+      const x0 = placed.x - BEAT_TEXT_INSET;
+      return t ? box(s, rows.text, x0, x0 + beatTextWidth(t)) : null;
+    }
+    if (!('bar' in hit)) continue;
+    const bar = system.bars.find(b => b.index === hit.bar);
+    if (!bar) continue;
+    const x0 = barTextX(bar);
+    if (hit.kind === 'section') {
+      if (!bar.bar.section) return null;
+      const { text } = sectionBoxes(bar.bar.section);
+      return box(s, rows.section, x0, x0 + text.x + text.width);
+    }
+    return bar.bar.tempo ? box(s, rows.tempo, x0, x0 + tempoParts(bar.bar.tempo).width) : null;
+  }
+  return null;
 }
 
 /** How far from a time signature's centre a press is on it. */
