@@ -135,6 +135,8 @@ export default function TabPage() {
   const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : WORD_TOOL[picked.kind];
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
+  /** Where a press opened the time or key signature panel; null when the palette did. */
+  const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -293,8 +295,8 @@ export default function TabPage() {
   const onTool = (id: ToolId) => {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
-    else if (id === 'barTime') setTimeBar(cursor.bar);
-    else if (id === 'barKey') setKeyBar(cursor.bar);
+    else if (id === 'barTime') { setPanelAt(null); setTimeBar(cursor.bar); }
+    else if (id === 'barKey') { setPanelAt(null); setKeyBar(cursor.bar); }
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
     // A dead note goes on one string; with none picked there is nothing to mark.
@@ -345,11 +347,12 @@ export default function TabPage() {
    * bar: outlined, with Edit and Delete to its right, and Enter or Delete do the same (Jeremy, 2026-10-27;
    * a press had opened its field at once). One on a time signature opens its bar's panel.
    */
-  const onPickText = (hit: TextHit) => {
+  const onPickText = (hit: TextHit, press: { x: number; y: number }) => {
     const at = wordPlace(hit);
     commit(clip, at, null);
-    // A time or key signature opens its bar's panel.
+    // A time or key signature opens its bar's panel, just under the press (Jeremy, 2026-10-27).
     if (hit.kind === 'time' || hit.kind === 'key') {
+      setPanelAt({ x: press.x - PANEL_LEAD, y: press.y + PANEL_DROP });
       (hit.kind === 'time' ? setTimeBar : setKeyBar)(hit.bar);
       return;
     }
@@ -943,13 +946,13 @@ export default function TabPage() {
           )}
           {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
             <BarKeyPanel
-              clip={clip} bar={keyBar} {...barTimeSpot(clip, clipWidth, parts, keyBar)}
+              clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, keyBar))}
               onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
             />
           )}
           {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
             <BarTimePanel
-              clip={clip} bar={timeBar} {...barTimeSpot(clip, clipWidth, parts, timeBar)}
+              clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, timeBar))}
               onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
             />
           )}
@@ -1080,13 +1083,21 @@ function WordTools({ clip, width, parts, hit, onEdit, onDelete }: {
   );
 }
 
-/** Where a bar's time signature panel goes: under the staff of the line the bar is on, from the bar's start, inside the tab's width. */
+/** How far left of a press its signature panel starts, and how far under it. */
+const PANEL_LEAD = 16;
+const PANEL_DROP = 14;
+
+/**
+ * Where a bar's time or key signature panel goes when the palette opens it: from the bar's start,
+ * under the staff its signatures are drawn on (the notation staff when it is shown). The panel keeps
+ * itself inside the tab's width.
+ */
 function barTimeSpot(clip: Clip, width: number, parts: Parts, bar: number): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
-  const PANEL_WIDTH = 230;
+  const bottom = layout.rows.score ? layout.rows.score.bottom : layout.rows.staffBottom;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
-    if (placed) return { x: Math.max(0, Math.min(width - PANEL_WIDTH, placed.x0)), y: s * layout.rows.height + layout.rows.staffBottom + 12 };
+    if (placed) return { x: placed.x0, y: s * layout.rows.height + bottom + 12 };
   }
   return { x: 0, y: 0 };
 }

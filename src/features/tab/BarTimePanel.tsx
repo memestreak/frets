@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { changesTime, timeAt, type Clip, type TimeSignature } from './clip';
 import { TimeSignatureFields } from './TimeSignatureFields';
 
@@ -10,6 +10,16 @@ import { TimeSignatureFields } from './TimeSignatureFields';
  * own; on a later bar it starts a change, which "Remove the change" takes away (so does setting it
  * back to the time signature before). A click outside or Esc closes it, Esc giving the keys back to the tab.
  */
+/** Keeps a panel over the tab from running past its right edge: it moves left as far as it must. */
+export function usePanelInside(boxRef: RefObject<HTMLDivElement | null>, x: number) {
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const room = box?.parentElement?.clientWidth;
+    if (!box || !room) return;
+    box.style.left = `${Math.max(0, Math.min(x, room - box.offsetWidth))}px`;
+  });
+}
+
 export function BarTimePanel({ clip, bar, x, y, onChange, onClose }: {
   clip: Clip;
   bar: number;
@@ -22,6 +32,7 @@ export function BarTimePanel({ clip, bar, x, y, onChange, onClose }: {
   onClose: (byKey: boolean) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
+  usePanelInside(boxRef, x);
   const time = timeAt(clip, bar);
   const changed = changesTime(clip, bar);
 

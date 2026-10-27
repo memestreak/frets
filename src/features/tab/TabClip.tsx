@@ -68,7 +68,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
   onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo. */
-  onPickText?: (hit: TextHit) => void;
+  /** With the press, in the drawing's own units. */
+  onPickText?: (hit: TextHit, at: { x: number; y: number }) => void;
   /** A press on a technique mark: a bend, slide, tie, vibrato, accent… (`marks.ts`). */
   onPickMark?: (hit: MarkHit) => void;
   /**
@@ -91,13 +92,13 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
     const hit = run || text || mark ? null : hitTest(layout, px, py);
     const column = run || text || mark || hit || !onPickColumn ? null : columnAt(layout, px, py);
-    return { run, text, mark, hit, column };
+    return { run, text, mark, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, mark, hit, column } = target(e);
+    const { run, text, mark, hit, column, px, py } = target(e);
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
-    else if (text) onPickText!(text);
+    else if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);

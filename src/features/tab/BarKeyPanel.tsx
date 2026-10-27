@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/notation';
+import { usePanelInside } from './BarTimePanel';
 import { changesKey, keyAt, keyTonic, MAJOR_NAMES, MAX_FIFTHS, MINOR_NAMES, type Clip, type Key } from './clip';
 
 const PITCH: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -34,6 +35,7 @@ export function BarKeyPanel({ clip, bar, x, y, onChange, onClose }: {
   onClose: (byKey: boolean) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
+  usePanelInside(boxRef, x);
   const key = keyAt(clip, bar);
   const minor = !!key.minor;
   const changed = changesKey(clip, bar);
