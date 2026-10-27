@@ -31,7 +31,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
@@ -103,6 +103,8 @@ export default function TabPage() {
   const [picked, setPicked] = useState<WordHit | null>(null);
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
+  /** The palette tool that sets the picked word, lit while it is picked. */
+  const pickedTool = editing && picked ? WORD_TOOL[picked.kind] : null;
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -687,8 +689,8 @@ export default function TabPage() {
       <HoverTips>
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
-          // Lit for the cursor's notes only: not while a word over the tab is picked, nor off the tab.
-          isOn={id => lit && isOn(clip, cursor, id)} kinds={noteKinds(clip, lit ? cursor : null)}
+          // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
+          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id))} kinds={noteKinds(clip, lit ? cursor : null)}
           onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
           onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
@@ -810,7 +812,8 @@ function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: numbe
 function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
   const layout = layoutClip(clip, width);
   const { rows } = layout;
-  const FIELD_WIDTH = 180;
+  // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
+  const FIELD_WIDTH = kind === 'capo' ? 150 : 180;
   // A tempo's field has two boxes, bpm and a label.
   const FIELD_HEIGHT = kind === 'tempo' ? 120 : 64;
   for (let s = 0; s < layout.systems.length; s++) {

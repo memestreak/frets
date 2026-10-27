@@ -44,7 +44,7 @@ nothing then has to be placed after text whose width is unknown.
   bin) (Jeremy picked the right over the left after trying both); at the
   tab's right edge they go on its left. Enter edits it and Delete or Backspace takes it away; Esc,
   any other key, a press elsewhere or the tab losing the focus lets it go.
-  While a word is picked the column cursor isn't drawn and nothing in the palette is lit. A time signature
+  While a word is picked the column cursor isn't drawn, and only the palette tool that sets it is lit (Jeremy, 2026-10-27). A time signature
   still opens its panel at once.
 - **Tempo:** bpm, a whole number from 20 to 400, clamped, and an optional
   label such as "A little faster" (Jeremy, 2026-10-27; before, the label could
@@ -52,7 +52,9 @@ nothing then has to be placed after text whose width is unknown.
   has two boxes (Jeremy, 2026-10-27; it had been one box taking "100 A little
   faster"): "Tempo (bpm)", digits only, and "Label (optional)". Tab moves
   between them; Enter in either, or leaving both, sets the tempo. An empty
-  label drops the label; an empty bpm clears the tempo. A section's rehearsal mark is kept when its
+  label drops the label; an empty bpm clears the tempo. A number's box (bpm,
+  capo) is 7 digits wide (Jeremy, 2026-10-27), and the capo's field fits round
+  it. A section's rehearsal mark is kept when its
   name changes; it is set only in the text, for now.
 - **Capo:** first a raised button beside the time signature. Jeremy found it
   "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in

@@ -156,6 +156,11 @@ function wholeColumns(clip: Clip, target: Target): Target {
 export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
+/** The palette tool that sets each kind of word: `WORD_TOOLS` the other way round. */
+export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
+  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo',
+};
+
 /** The clip after a palette press. */
 export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
   const value = VALUE[id];

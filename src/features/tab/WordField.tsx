@@ -52,10 +52,10 @@ function OneWordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     if (e.key === 'Escape') finish(null, true);
   };
   return (
-    <span className="tab-word card" style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
+    <span className={`tab-word card${digits ? ' tab-word-fit' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       <input
-        ref={inputRef} className="input tab-word-input" aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
+        ref={inputRef} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
         value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? 40}
         onChange={e => setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value)}
         onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(value, false)}
@@ -97,7 +97,7 @@ function TempoField({ initial, x, y, onDone }: WordFieldProps) {
       <label className="grid gap-1.5">
         <span className="tab-time-caption">Tempo (bpm)</span>
         <input
-          ref={bpmRef} className="input tab-word-input" aria-label="Tempo (bpm)" placeholder="120" value={bpm} inputMode="numeric" maxLength={3} onBlur={onBlur}
+          ref={bpmRef} className="input tab-word-number" aria-label="Tempo (bpm)" placeholder="120" value={bpm} inputMode="numeric" maxLength={3} onBlur={onBlur}
           onChange={e => setBpm(e.target.value.replace(/\D/g, ''))} onFocus={e => e.target.select()} onKeyDown={onKeyDown}
         />
       </label>
