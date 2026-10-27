@@ -63,8 +63,11 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, error
   onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo. */
   onPickText?: (hit: TextHit) => void;
-  /** A press above or below the staff, off any mark or label: the column there (for the playback line). */
-  onPickColumn?: (index: number) => void;
+  /**
+   * A press above or below the staff, off any mark or label: the column there (for the playback
+   * line); `extend` when Shift was held, to select up to it.
+   */
+  onPickColumn?: (index: number, extend: boolean) => void;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
 }) {
@@ -86,7 +89,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, error
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text);
     else if (hit) onPick(hit, e.shiftKey);
-    else if (column !== null) onPickColumn!(column);
+    else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
   };
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor

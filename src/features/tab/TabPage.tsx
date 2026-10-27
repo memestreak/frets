@@ -133,9 +133,58 @@ export default function TabPage() {
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
   const playFrom = markAt ?? (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
-  const pickColumn = (index: number) => {
-    if (!playback.seek(index)) setPlayMark({ index, clip, cursor: cursorAsSet, selection: selectionAsSet });
+  /**
+   * A press above or below the staff: the playback line goes there (while playing, playback jumps
+   * there), and any selection goes. With Shift, the columns from the line (else the selection's
+   * anchor, else the cursor) to there are selected, with no string picked (Jeremy, 2026-10-27).
+   */
+  const pickColumn = (index: number, extend: boolean) => {
+    const anchor = markAt ?? selection?.anchor ?? (editing ? indexOf(clip, cursor.bar, cursor.column) : null);
+    if (extend && anchor !== null) {
+      setSelection({ anchor, focus: index });
+      return;
+    }
+    if (playback.seek(index)) return;
+    setSelection(null);
+    setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
+  /**
+   * Off the tab (no string picked), the arrow keys work on the playback line while the footer shows
+   * (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
+   * made so), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
+   */
+  const onLineKey = useEffectEvent((e: KeyboardEvent) => {
+    if (!showPlayback || view !== 'tab' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const target = e.target as Element | null;
+    if (target?.closest?.('input, select, textarea, dialog, [role="menu"], [role="slider"], .tab-editor')) return;
+    if (e.key === 'Escape') {
+      if (markAt === null && !selection) return;
+      setPlayMark(null);
+      setSelection(null);
+      e.preventDefault();
+      return;
+    }
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const step = e.key === 'ArrowRight' ? 1 : -1;
+    const within = (i: number) => Math.min(count - 1, Math.max(0, i));
+    if (e.shiftKey) {
+      const anchor = markAt ?? selection?.anchor;
+      const from = selection ? selection.focus : markAt;
+      if (anchor === undefined || anchor === null || from === null) return;
+      setSelection({ anchor, focus: within(from + step) });
+    } else {
+      const from = markAt ?? selection?.focus;
+      if (from === undefined) return;
+      setSelection(null);
+      setPlayMark({ index: within(from + step), clip, cursor: cursorAsSet, selection: null });
+    }
+    e.preventDefault();
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => onLineKey(e);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   // While the footer shows, Space anywhere on the page plays and pauses (Jeremy, 2026-10-26), but not
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
