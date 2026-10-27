@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
+  type FocusEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { CheckIcon, CopyIcon } from '@/components/icons';
@@ -19,7 +19,7 @@ import {
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  fillBar, isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBeatText, setBend, setFret, setTuplet, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
@@ -382,8 +382,25 @@ export default function TabPage() {
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
       commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
     } else {
-      commit(clip, hit, null);
+      // A press in another bar leaves the cursor's bar, which fills up; the rests go after its last
+      // column, so the bar pressed keeps its columns.
+      const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+      commit(left, hit, null);
     }
+  };
+
+  /**
+   * The tab losing the focus leaves the cursor's bar, which fills up (Jeremy, 2026-10-27): a press
+   * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
+   * time signature panel) or goes to the palette, nor when the whole window loses it.
+   */
+  const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
+    setEditing(false);
+    const to = e.relatedTarget;
+    if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
+    if (!document.hasFocus()) return;
+    const filled = fillBar(clip, cursor.bar);
+    if (filled !== clip) dispatch({ type: 'replace', clip: filled });
   };
 
   /**
@@ -632,7 +649,7 @@ export default function TabPage() {
                 // A textbox, so screen readers pass the keys through to it as they do to a text field.
                 ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
                 aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to insert a bar"
-                onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={() => setEditing(false)}
+                onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={onEditorBlur}
                 // Right-click, a long press or Shift+F10: insert a bar before or after.
                 {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
               >

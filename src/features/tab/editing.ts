@@ -656,7 +656,21 @@ function restsToFill(clip: Clip, bar: number): Duration[] {
 }
 
 /**
- * The cursor one column left or right. Right from the last column of a bar that doesn't add up yet
+ * A bar that doesn't add up yet, completed with the fewest rests after its last column; an empty bar
+ * gets a whole bar's rest. A full bar, or a bar no plain rest can complete, comes back as it was.
+ * The cursor leaving a bar (←, or the tab losing focus) does this (Jeremy, 2026-10-27).
+ */
+export function fillBar(clip: Clip, bar: number): Clip {
+  const here = clip.bars[bar];
+  if (!here || isFull(clip, bar)) return clip;
+  const rests = restsToFill(clip, bar);
+  if (rests.length === 0) return clip;
+  return normalize(replaceBar(clip, bar, { ...here, columns: [...here.columns, ...rests.map(emptyColumn)] }));
+}
+
+/**
+ * The cursor one column left or right. Left off a bar's first column fills the bar it leaves
+ * (`fillBar`). Right from the last column of a bar that doesn't add up yet
  * fills it at once with the fewest rests that complete it, anywhere in the clip, an empty bar
  * included (a whole rest in 4/4; Jeremy, 2026-10-26), and the cursor goes to the first of them. Right from the clip's last column, once its bar is full, starts a new bar with a
  * rest as long as the cursor's column, so typing runs on, and the fewest rests after it that fill the bar.
@@ -667,7 +681,9 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, grow = true
     if (column > 0) return { clip, cursor: { ...cursor, column: column - 1 } };
     if (bar === 0) return { clip, cursor };
     const columns = clip.bars[bar - 1].columns.length;
-    return { clip, cursor: { ...cursor, bar: bar - 1, column: Math.max(0, columns - 1) } };
+    // Rests go after the bar left behind, so the columns of the bar before keep their places.
+    const left = grow ? fillBar(clip, bar) : clip;
+    return { clip: left, cursor: { ...cursor, bar: bar - 1, column: Math.max(0, columns - 1) } };
   }
   const here = clip.bars[bar];
   if (column < here.columns.length - 1) return { clip, cursor: { ...cursor, column: column + 1 } };
