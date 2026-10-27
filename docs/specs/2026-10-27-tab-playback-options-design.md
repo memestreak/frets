@@ -56,3 +56,6 @@ off but the loop range stays set, so the synth finishes at the range end; on
   transparent rect). In Both, the staff reaches one ledger line down (not
   two) and the tab 6 px up (not 10), so the gap between them moves the
   cursor or the playback line too.
+- **Moving the playhead lets the selection go** (Jeremy, 2026-10-27): a
+  press above or below the staff while playing jumps the playhead there and
+  clears the selection, as it already did while stopped. Loop points stay.

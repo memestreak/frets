@@ -229,8 +229,9 @@ export default function TabPage() {
       setSelection({ anchor, focus: index });
       return;
     }
-    if (playback.seek(index)) return;
+    // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
+    if (playback.seek(index)) return;
     setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
   /**
