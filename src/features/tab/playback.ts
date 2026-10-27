@@ -45,26 +45,19 @@ export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [num
   ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
 ];
 /**
- * Trial pianos for issue #124, to be heard side by side before one replaces SONiVOX's piano: each a
- * soundfont of its own (`scripts/build-pianos.py`), fetched the first time it is picked and played as
- * a program the Sound list doesn't otherwise offer, so it never shadows another sound. `level` brings
- * each to about SONiVOX's loudness, measured by rendering one passage with each.
+ * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by
+ * `scripts/build-pianos.py`, `docs/specs/2026-10-27-tab-pianos-design.md`). Each is fetched the first
+ * time its sound is picked and wins over SONiVOX's preset for that program. `level` brings it to about
+ * SONiVOX's loudness, measured by rendering one passage with each.
  */
-export const TRIAL_PIANOS: readonly { program: number; name: string; url: string; level: number }[] = [
-  { program: 120, name: 'Piano A: Salamander, small (1.1 MB)', url: '/soundfont/piano-salamander-small.sf3', level: 0.95 },
-  { program: 121, name: 'Piano B: Salamander, large (3.9 MB)', url: '/soundfont/piano-salamander-large.sf3', level: 1.65 },
-  { program: 122, name: 'Piano C: FluidR3 (0.5 MB)', url: '/soundfont/piano-fluidr3.sf3', level: 3.8 },
-];
-/** The Sound list: the GM families with the trial pianos after Piano. */
-export const SOUND_LIST: typeof SOUND_FAMILIES = [
-  ...SOUND_FAMILIES.slice(0, 1),
-  ['Piano trial', TRIAL_PIANOS.map(p => [p.program, p.name] as const)],
-  ...SOUND_FAMILIES.slice(1),
+export const OWN_FONTS: readonly { program: number; url: string; level: number }[] = [
+  // The Salamander Grand Piano: three velocity layers, 3.9 MB.
+  { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
 ];
 
 export type Sound = number;
 export const DEFAULT_SOUND: Sound = 25;
-const SOUND_PROGRAMS = new Set(SOUND_LIST.flatMap(([, sounds]) => sounds.map(([program]) => program)));
+const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
 
 export function isSound(value: unknown): value is Sound {
   return typeof value === 'number' && SOUND_PROGRAMS.has(value);
@@ -368,8 +361,8 @@ export class TabPlayer {
   private clip: Clip | null = null;
   private sound: Sound = DEFAULT_SOUND;
   private volume = 1;
-  /** The trial pianos' soundfonts loaded so far, by URL. */
-  private readonly pianos = new Set<string>();
+  /** The sounds' own soundfonts loaded so far, by URL. */
+  private readonly fonts = new Set<string>();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
@@ -412,7 +405,7 @@ export class TabPlayer {
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    */
   async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
-    await this.loadPiano(sound);
+    await this.loadFont(sound);
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
@@ -484,24 +477,24 @@ export class TabPlayer {
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
   setVolume(volume: number) {
     this.volume = volume;
-    this.synth.masterVolume = volume * (TRIAL_PIANOS.find(p => p.program === this.sound)?.level ?? 1);
+    this.synth.masterVolume = volume * (OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1);
   }
 
   /**
-   * Fetches and loads a trial piano's soundfont the first time it is wanted, alongside SONiVOX's. The
+   * Fetches and loads a sound's own soundfont the first time it is wanted, alongside SONiVOX's. The
    * view shows Loading meanwhile; loading pauses the synthesizer.
    */
-  private async loadPiano(sound: Sound): Promise<boolean> {
-    const piano = TRIAL_PIANOS.find(p => p.program === sound);
-    if (!piano || this.pianos.has(piano.url)) return false;
+  private async loadFont(sound: Sound): Promise<boolean> {
+    const font = OWN_FONTS.find(f => f.program === sound);
+    if (!font || this.fonts.has(font.url)) return false;
     this.onView({ state: 'loading' });
-    const response = await fetch(piano.url);
+    const response = await fetch(font.url);
     if (!response.ok) {
       this.onView({ state: 'error' });
-      throw new Error(`the piano didn't load (${response.status})`);
+      throw new Error(`the sound didn't load (${response.status})`);
     }
     this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
-    this.pianos.add(piano.url);
+    this.fonts.add(font.url);
     return true;
   }
 
@@ -510,7 +503,7 @@ export class TabPlayer {
     if (sound === this.sound) return;
     const playing = !this.ended;
     const tick = this.synth.tickPosition;
-    const loaded = await this.loadPiano(sound);
+    const loaded = await this.loadFont(sound);
     this.sound = sound;
     this.setVolume(this.volume);
     if (!this.clip || !this.performance) {

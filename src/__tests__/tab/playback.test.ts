@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, DEFAULT_SOUND, isSound, perform, SOUND_FAMILIES, SOUND_LIST, tickOf, ticksOf, TRIAL_PIANOS } from '@/features/tab/playback';
+import { columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -34,9 +34,8 @@ describe('playback sounds', () => {
     expect(isSound(100) || isSound(115) || isSound(127) || isSound('25')).toBe(false);
   });
 
-  it('offers the trial pianos after the Piano family, each a soundfont alphaTab reads with sound in it', () => {
-    expect(SOUND_LIST[1][1].map(([program]) => program)).toEqual(TRIAL_PIANOS.map(p => p.program));
-    for (const piano of TRIAL_PIANOS) {
+  it('plays a sound from its own soundfont, which alphaTab reads with sound in it', () => {
+    for (const piano of OWN_FONTS) {
       expect(isSound(piano.program)).toBe(true);
       const font = readFileSync(`public${piano.url}`);
       // Rendered offline, as the player would play it: one note, which must not be silent.
