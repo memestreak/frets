@@ -162,8 +162,7 @@ describe('TabPage', () => {
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
     fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
-    const view = screen.getByTestId('tab-ascii').parentElement!;
-    await act(async () => { fireEvent.click(within(view).getByRole('button', { name: 'Copy ASCII' })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy ASCII' })); });
     expect(writeText).toHaveBeenCalledWith(screen.getByTestId('tab-ascii').textContent);
     expect(notice()).toHaveTextContent('ASCII copied.');
   });
@@ -186,6 +185,8 @@ describe('TabPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
       const text = screen.getByTestId('tab-ascii').textContent ?? '';
       fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+      // The editor went away with the Tab view; back on it, the keys go to the tab again, the cursor where it was.
+      act(() => editor().focus());
       // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
       const body = text.split('\n').filter(l => l.includes('|') || !/^\\(title|ts|tuning|capo) /.test(l)).join(' ');
       return (body.match(/[^|]*\|/g) ?? []).map(b => b.trim().replace(/\s+/g, ' ')).join('\n');
@@ -416,6 +417,16 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25, volume: 1 });
+  });
+
+  it('shows neither the toggle nor the controls in the text views', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
+    expect(screen.queryByRole('button', { name: 'Playback controls' })).toBeNull();
+    expect(footer()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+    expect(footer()).not.toBeNull();
   });
 
   it('picks the sound at the end of the controls, and remembers it', () => {
