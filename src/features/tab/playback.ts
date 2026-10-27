@@ -396,9 +396,14 @@ export class TabPlayer {
     const range = !this.clip || !this.performance || loop === null ? null
       : loop === 'whole' ? { startTick: 0, endTick: this.performance.endTick }
       : ticksOf(this.clip, this.performance, loop);
-    const ahead = range !== null && this.synth.tickPosition < range.endTick;
+    let ahead = range !== null && this.synth.tickPosition < range.endTick;
+    // Loop points dragged back behind the playhead while it loops: it goes round to their start.
+    if (range !== null && !ahead && this.synth.isLooping && !this.ended) {
+      this.moveTo(range.startTick);
+      ahead = true;
+    }
     this.synth.isLooping = ahead;
-    if (ahead) {
+    if (ahead && range) {
       const playbackRange = new this.at.synth.PlaybackRange();
       playbackRange.startTick = range.startTick;
       playbackRange.endTick = range.endTick;

@@ -5,11 +5,11 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { PauseIcon, PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
-import { layoutClip } from './layout';
+import { columnAt, layoutClip, type Layout } from './layout';
 import { SpeedField } from './SpeedField';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
@@ -52,6 +52,8 @@ export interface Playback {
    * notes, they go); with none, round the whole clip, or off when there are some.
    */
   toggleLoop: (selection: [number, number] | null) => void;
+  /** Moves the loop points, as dragging an end of their bracket does. */
+  setLoopPoints: (points: [number, number]) => void;
   setSpeed: (speed: number) => void;
   /** Moves the playing clip to a column; false when nothing is playing. */
   seek: (index: number) => boolean;
@@ -113,6 +115,10 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (
       const next: Loop | null = selection && !same ? selection : loop ? null : 'whole';
       setLoop(next);
       player.current?.setLoop(next);
+    },
+    setLoopPoints: points => {
+      setLoop(points);
+      player.current?.setLoop(points);
     },
     setSpeed: s => {
       setSpeedState(s);
@@ -246,13 +252,14 @@ export function Playhead({ clip, width, playback, mark }: { clip: Clip; width: n
     const y = si * rows.height;
     const cols = system.bars.flatMap(b => b.columns);
     if (loop) {
-      const inLoop = cols.filter(c => c.index >= loop[0] && c.index <= loop[1]);
-      if (inLoop.length > 0) {
-        const x0 = inLoop[0].x - inLoop[0].width / 2;
-        const last = inLoop[inLoop.length - 1];
-        const x1 = last.x + last.width / 2;
-        const ly = y + rows.stemBottom + 8;
-        parts.push(<path key={`loop-${si}`} d={`M${x0} ${ly - 3} V${ly} H${x1} V${ly - 3}`} fill="none" stroke="var(--primary)" strokeWidth={2} />);
+      // The bracket, its ends a little taller: they are the handles `LoopHandles` drags.
+      for (const b of loopBracket(layout, loop).filter(b => b.system === si)) {
+        parts.push(
+          <path
+            key={`loop-${si}`} d={`M${b.x0} ${b.y - (b.start ? 8 : 0)} V${b.y} H${b.x1} V${b.y - (b.end ? 8 : 0)}`}
+            fill="none" stroke="var(--primary)" strokeWidth={2}
+          />,
+        );
       }
     }
     const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
@@ -279,6 +286,68 @@ export function Playhead({ clip, width, playback, mark }: { clip: Clip; width: n
   return (
     <svg className="pointer-events-none absolute left-0 top-0" width={width} height={layout.height} aria-hidden="true">
       {parts}
+    </svg>
+  );
+}
+
+/** Where the loop bracket is drawn on a system: its two ends and its height. */
+function loopBracket(layout: Layout, loop: [number, number]): { system: number; x0: number; x1: number; y: number; start: boolean; end: boolean }[] {
+  const { rows } = layout;
+  const out: { system: number; x0: number; x1: number; y: number; start: boolean; end: boolean }[] = [];
+  layout.systems.forEach((system, si) => {
+    const inLoop = system.bars.flatMap(b => b.columns).filter(c => c.index >= loop[0] && c.index <= loop[1]);
+    if (inLoop.length === 0) return;
+    const first = inLoop[0];
+    const last = inLoop[inLoop.length - 1];
+    out.push({
+      system: si,
+      x0: first.x - first.width / 2,
+      x1: last.x + last.width / 2,
+      y: si * rows.height + rows.stemBottom + 8,
+      start: first.index === loop[0],
+      end: last.index === loop[1],
+    });
+  });
+  return out;
+}
+
+/**
+ * The ends of the loop bracket as handles over the tab: drag either one forwards or backwards to
+ * move that loop point, a column at a time (Jeremy, 2026-10-27). The start never passes the end.
+ */
+export function LoopHandles({ clip, width, playback }: { clip: Clip; width: number; playback: Playback }) {
+  const drag = useRef<'start' | 'end' | null>(null);
+  const loop = Array.isArray(playback.loop) ? playback.loop : null;
+  if (!loop) return null;
+  const layout = layoutClip(clip, width);
+  const onMove = (e: PointerEvent<SVGRectElement>) => {
+    if (!drag.current) return;
+    const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+    const column = columnAt(layout, e.clientX - box.left, e.clientY - box.top);
+    if (column === null) return;
+    const next: [number, number] = drag.current === 'start' ? [Math.min(column, loop[1]), loop[1]] : [loop[0], Math.max(column, loop[0])];
+    if (next[0] !== loop[0] || next[1] !== loop[1]) playback.setLoopPoints(next);
+  };
+  const handle = (which: 'start' | 'end', x: number, y: number) => (
+    <rect
+      key={which} data-testid={`loop-${which}`} x={x - 8} y={y - 22} width={16} height={30} fill="transparent"
+      className="tab-loop-handle" aria-hidden="true"
+      onPointerDown={e => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = which;
+      }}
+      onPointerMove={onMove}
+      onPointerUp={() => { drag.current = null; }}
+      onPointerCancel={() => { drag.current = null; }}
+    />
+  );
+  return (
+    <svg className="pointer-events-none absolute left-0 top-0" width={width} height={layout.height} aria-hidden="true">
+      {loopBracket(layout, loop).flatMap(b => [
+        ...(b.start ? [handle('start', b.x0, b.y)] : []),
+        ...(b.end ? [handle('end', b.x1, b.y)] : []),
+      ])}
     </svg>
   );
 }
