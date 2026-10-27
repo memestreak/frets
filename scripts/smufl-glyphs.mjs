@@ -6,7 +6,8 @@ import fs from 'node:fs';
 const src = fs.readFileSync(process.argv[2], 'utf8');
 const names = ['gClef', 'accidentalSharp', 'accidentalFlat', 'accidentalNatural', 'noteheadBlack', 'noteheadHalf', 'noteheadWhole', 'noteheadXBlack',
   'restWhole', 'restHalf', 'restQuarter', 'rest8th', 'rest16th', 'rest32nd', 'rest64th',
-  'flag8thUp', 'flag8thDown', 'flag16thUp', 'flag16thDown', 'flag32ndUp', 'flag32ndDown', 'flag64thUp', 'flag64thDown'];
+  'flag8thUp', 'flag8thDown', 'flag16thUp', 'flag16thDown', 'flag32ndUp', 'flag32ndDown', 'flag64thUp', 'flag64thDown',
+  'bracketTop', 'bracketBottom'];
 const U = 360;
 const r = v => Math.round(v / U * 1000) / 1000;
 let out = '';

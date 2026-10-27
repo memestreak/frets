@@ -179,9 +179,9 @@ const TIME_WIDTH = 30;
 /** The notation staff's room for the first line's time signature, after the key signature, and the margin before its lines. */
 const STAFF_TIME_WIDTH = 26;
 const STAFF_MARGIN = 2;
-/** In Both, room before the lines for the brace that joins the staff and the tab. */
-export const BRACE_WIDTH = 10;
-const BRACE_MARGIN = BRACE_WIDTH + 6;
+/** In Both, room before the lines for the bracket that joins the staff and the tab. */
+export const BRACKET_WIDTH = 10;
+const BRACKET_MARGIN = BRACKET_WIDTH + 6;
 /** Room for a time signature change, just inside the bar it starts. */
 const BAR_TIME_WIDTH = 24;
 const BAR_PAD_START = 14;
@@ -358,7 +358,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   // clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
   // With the notation staff, the first line's time signature goes after the clef and key signature
   // instead, as printed music has it (Jeremy, 2026-10-27).
-  const lineStart = parts === 'both' ? BRACE_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH + (names ? NAMES_WIDTH : 0);
+  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH + (names ? NAMES_WIDTH : 0);
   const widestKey = staff ? Math.max(0, ...clip.bars.map((_, b) => keyWidth(keyAt(clip, b).fifths))) : 0;
   const keyStart = lineStart + CLEF_WIDTH;
   const head = keyStart + widestKey;

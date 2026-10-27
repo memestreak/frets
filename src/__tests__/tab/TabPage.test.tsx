@@ -813,7 +813,7 @@ describe('picking a technique mark (issue #128)', () => {
 });
 
 describe('the notation staff (issue #122)', () => {
-  it('shows the staff, the tab or both, the two joined by a brace', async () => {
+  it('shows the staff, the tab or both, the two joined by a bracket', async () => {
     renderAt('#example=key-signatures');
     await screen.findAllByTestId('tab-system');
     const count = (id: string) => screen.queryAllByTestId(id).length;

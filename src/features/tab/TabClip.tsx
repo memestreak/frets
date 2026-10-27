@@ -4,11 +4,12 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, BRACE_WIDTH, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, SPACE, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
 import { previousHeads, StaffDrawing } from './StaffDrawing';
+import { GLYPHS } from './smufl';
 import { markAt, markBox, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -736,27 +737,21 @@ function beamCount(value: number): number {
 }
 
 /**
- * The staff and the tab of one guitar joined as one part, as printed music joins the staves of one
- * instrument: a brace in front, and the opening line drawn through both.
+ * The staff and the tab of one guitar joined as one part (Jeremy, 2026-10-27): a square bracket in
+ * front, its ends curling over the lines, and the opening line drawn through both.
  */
 function StaffJoin({ x, top, bottom, look }: { x: number; top: number; bottom: number; look: TabLook }) {
+  const bar = x - BRACKET_GAP - BRACKET_THICKNESS;
   return (
     <g data-testid="staff-join">
-      <path d={bracePath(x - 4, top, bottom, BRACE_WIDTH)} fill={look.ink} />
+      <rect x={bar} y={top} width={BRACKET_THICKNESS} height={bottom - top} fill={look.ink} />
+      <path d={GLYPHS.bracketTop.d} transform={`translate(${bar} ${top}) scale(${SPACE})`} fill={look.ink} />
+      <path d={GLYPHS.bracketBottom.d} transform={`translate(${bar} ${bottom}) scale(${SPACE})`} fill={look.ink} />
       <line x1={x} x2={x} y1={top} y2={bottom} stroke={look.ink} strokeWidth={1.5} />
     </g>
   );
 }
 
-/** A curly brace from `top` to `bottom`, its tips at `x` and its point `width` to the left. */
-export function bracePath(x: number, top: number, bottom: number, width: number): string {
-  const h = bottom - top;
-  const mid = top + h / 2;
-  const tip = x - width;
-  // Each half is two curves, an outer and an inner, meeting thin at the tips and the point.
-  const outer1 = `${tip - 1.5 * width} ${top + 0.2 * h} ${x + 1.7 * width} ${mid - 0.135 * h}`;
-  const outer2 = `${x + 1.7 * width} ${mid + 0.135 * h} ${tip - 1.5 * width} ${bottom - 0.2 * h}`;
-  const inner2 = `${tip} ${bottom - 0.2 * h} ${x + 0.4 * width} ${mid + 0.135 * h}`;
-  const inner1 = `${x + 0.4 * width} ${mid - 0.135 * h} ${tip} ${top + 0.2 * h}`;
-  return `M${x} ${top}C${outer1} ${tip} ${mid}C${outer2} ${x} ${bottom}C${inner2} ${tip} ${mid}C${inner1} ${x} ${top}Z`;
-}
+/** The bracket's bar: half a staff space thick, as Bravura draws its ends, and its gap before the lines. */
+const BRACKET_THICKNESS = SPACE / 2;
+const BRACKET_GAP = 4;

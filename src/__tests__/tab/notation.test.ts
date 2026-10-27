@@ -134,14 +134,14 @@ describe('time signatures with the staff shown', () => {
   });
 });
 
-describe('the brace joining the staff and the tab', () => {
+describe('the bracket joining the staff and the tab', () => {
   it('has room in front of the lines in Both only', async () => {
     const alphaTab = await import('@coderline/alphatab');
     const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
-    const { BRACE_WIDTH, layoutClip } = await import('@/features/tab/layout');
+    const { BRACKET_WIDTH, layoutClip } = await import('@/features/tab/layout');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    expect(layoutClip(read.clip, 900, 'both').systems[0].lineStart).toBeGreaterThan(BRACE_WIDTH);
-    expect(layoutClip(read.clip, 900, 'staff').systems[0].lineStart).toBeLessThan(BRACE_WIDTH);
+    expect(layoutClip(read.clip, 900, 'both').systems[0].lineStart).toBeGreaterThan(BRACKET_WIDTH);
+    expect(layoutClip(read.clip, 900, 'staff').systems[0].lineStart).toBeLessThan(BRACKET_WIDTH);
   });
 });
