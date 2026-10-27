@@ -13,13 +13,13 @@ import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  fillBar, isEmpty, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBeatText, setBend, setFret, setTuplet, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
@@ -323,12 +323,16 @@ export default function TabPage() {
     }
     if (key === 'Backspace' || key === 'Delete') {
       handled();
+      const column = columnAt(clip, cursor);
       if (selection) {
         const cut = deleteColumns(clip, selectedRange(selection));
         commit(cut.clip, { ...cursor, ...cut.cursor }, null);
       } else if (noteAt(clip, cursor)) {
         commit(clearNote(clip, cursor));
-      } else if (columnAt(clip, cursor)) {
+      } else if (column && !isRest(column)) {
+        // On an empty string of a column with notes: the column becomes a rest first (Jeremy, 2026-10-27).
+        commit(makeRest(clip, { cursor, selection: null }));
+      } else if (column) {
         const i = indexOf(clip, cursor.bar, cursor.column);
         const cut = deleteColumns(clip, [i, i]);
         commit(cut.clip, { ...cursor, ...cut.cursor }, null);

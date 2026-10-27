@@ -324,6 +324,17 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 r.4 |');
     });
 
+    it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
+      // On string 3, under a column whose notes are on strings 1 and 2.
+      keys('ArrowLeft', 'Delete');
+      expect(alphaTex()).toBe('r.4 3.2.4 r.2 |');
+      keys('Delete');
+      expect(alphaTex()).toBe('3.2.4 r.2 |');
+    });
+
     it('sets the time signature from the palette, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
