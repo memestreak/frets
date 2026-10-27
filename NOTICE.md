@@ -53,19 +53,13 @@ Holm, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The sampl
 three velocity layers kept, mixed to mono, shortened with a fade, resampled and compressed
 (`scripts/build-soundfonts.py`). See `public/soundfont/README.md`.
 
-## Guitars on trial
+## Guitar: University of Iowa acoustic guitar, via tonejs-instruments
 
-- `public/soundfont/guitar-iowa.sf3`: an acoustic guitar from the
-  [University of Iowa Electronic Music Studios](https://theremin.music.uiowa.edu/)' Musical
-  Instrument Samples, as edited in [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments)
-  by Nicholaus P. Brosowsky, samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-- `public/soundfont/guitar-nylon.sf3`: a classical guitar recorded by quartertone on
-  [Freesound](https://freesound.org) (pack 11573), as edited in tonejs-instruments, CC BY 3.0.
-- `public/soundfont/guitar-generaluser.sf3`: the Steel Guitar preset of
-  [GeneralUser GS](https://github.com/mrbumpy409/GeneralUser-GS) v2.0.3 by S. Christian Collins,
-  under its licence (`public/soundfont/GeneralUser-GS-LICENSE.txt`, beside it).
-
-All three were changed: shortened, compressed or cut down to one preset (`scripts/build-soundfonts.py`).
+`public/soundfont/guitar-iowa.sf3` is an acoustic guitar from the
+[University of Iowa Electronic Music Studios](https://theremin.music.uiowa.edu/)' Musical Instrument
+Samples, as edited in [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by
+Nicholaus P. Brosowsky, samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+Changed: shortened with a fade and compressed (`scripts/build-soundfonts.py`).
 
 ## Notation symbols: Bravura, via VexFlow
 

@@ -51,4 +51,6 @@ about SONiVOX's Steel Guitar loudness:
 
 A and B come from tonejs-instruments, which edited them (trimmed, normalised, pitch-corrected); a
 pitch check of every recording found them within about 10 cents but for B's `D5`, which plays D♯5 and
-is used as D♯5. The one he picks replaces Steel Guitar (program 25).
+is used as D♯5. He picked A ("Guitar A please"): Steel Guitar (program 25), the default sound, is now the Iowa
+acoustic guitar, its own soundfont loaded the first time it plays (about 1.5 s), at about SONiVOX's
+level. B, C and the trial group went.

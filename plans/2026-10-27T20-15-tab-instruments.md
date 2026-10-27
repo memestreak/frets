@@ -21,3 +21,4 @@
    Guitar) as programs 120 to 122; levels from the offline render against SONiVOX's Steel Guitar.
 8. `OWN_FONTS` entries with `trial` make the "Guitar trial" group (`SOUND_LIST`). Credits; check in
    Chromium.
+9. Jeremy picked A: rebuild it as program 25, drop B, C, the trial group and their credits.
