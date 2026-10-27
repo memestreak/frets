@@ -4,7 +4,7 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, BRACE_WIDTH, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
@@ -150,6 +150,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
           {rows.score && heads && (
             <StaffDrawing system={system} si={si} score={rows.score} clip={clip} look={look} lastBar={lastBar} previous={heads} />
           )}
+          {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {errors && system.bars.map(bar => {
             const error = errors.get(bar.index);
             // Under the rhythm: the tab's stems, or the tab or the staff when it has none.
@@ -734,3 +735,28 @@ function beamCount(value: number): number {
   return value >= 8 ? Math.log2(value) - 2 : 0;
 }
 
+/**
+ * The staff and the tab of one guitar joined as one part, as printed music joins the staves of one
+ * instrument: a brace in front, and the opening line drawn through both.
+ */
+function StaffJoin({ x, top, bottom, look }: { x: number; top: number; bottom: number; look: TabLook }) {
+  return (
+    <g data-testid="staff-join">
+      <path d={bracePath(x - 4, top, bottom, BRACE_WIDTH)} fill={look.ink} />
+      <line x1={x} x2={x} y1={top} y2={bottom} stroke={look.ink} strokeWidth={1.5} />
+    </g>
+  );
+}
+
+/** A curly brace from `top` to `bottom`, its tips at `x` and its point `width` to the left. */
+export function bracePath(x: number, top: number, bottom: number, width: number): string {
+  const h = bottom - top;
+  const mid = top + h / 2;
+  const tip = x - width;
+  // Each half is two curves, an outer and an inner, meeting thin at the tips and the point.
+  const outer1 = `${tip - 1.5 * width} ${top + 0.2 * h} ${x + 1.7 * width} ${mid - 0.135 * h}`;
+  const outer2 = `${x + 1.7 * width} ${mid + 0.135 * h} ${tip - 1.5 * width} ${bottom - 0.2 * h}`;
+  const inner2 = `${tip} ${bottom - 0.2 * h} ${x + 0.4 * width} ${mid + 0.135 * h}`;
+  const inner1 = `${x + 0.4 * width} ${mid - 0.135 * h} ${tip} ${top + 0.2 * h}`;
+  return `M${x} ${top}C${outer1} ${tip} ${mid}C${outer2} ${x} ${bottom}C${inner2} ${tip} ${mid}C${inner1} ${x} ${top}Z`;
+}

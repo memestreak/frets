@@ -18,6 +18,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
   change) are drawn on the staff only, and pressed there. As in printed music,
   the first comes after the clef and the key signature, and a change inside a
   bar comes after that bar's key change. The tab lines up under the staff.
+- In Both, a brace in front and the opening line drawn through both join the
+  staff and the tab as one part, as printed music joins the staves of one
+  instrument.
 - Export (PNG, SVG, copy), the playhead and the loop follow the parts shown.
 
 ## Pitch and spelling

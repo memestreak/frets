@@ -811,3 +811,21 @@ describe('picking a technique mark (issue #128)', () => {
     expect(screen.getAllByTestId('bend')[0]).toHaveTextContent('½');
   });
 });
+
+describe('the notation staff (issue #122)', () => {
+  it('shows the staff, the tab or both, the two joined by a brace', async () => {
+    renderAt('#example=key-signatures');
+    await screen.findAllByTestId('tab-system');
+    const count = (id: string) => screen.queryAllByTestId(id).length;
+    expect(count('staff')).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Both' }));
+    expect(count('staff')).toBeGreaterThan(0);
+    expect(count('staff-join')).toBe(count('tab-system'));
+    // With the staff shown, the time signature is on it and not on the tab.
+    expect(count('staff-time-signature')).toBe(1);
+    expect(count('time-signature')).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
+    expect(count('staff-join')).toBe(0);
+    expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeDisabled();
+  });
+});
