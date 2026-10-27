@@ -202,14 +202,15 @@ function StopIcon() {
 }
 
 /** An ear: each note entered is heard. */
-/** A music note sounding: an eighth note with two sound waves to its right, like a speaker's. */
+/** A music note sounding: an eighth note with three sound waves to its right, like a speaker's. */
 function NoteSoundIcon() {
   return (
-    <svg width={14} height={14} viewBox="1.5 2 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <ellipse cx={5.5} cy={17.5} rx={3} ry={2.3} transform="rotate(-20 5.5 17.5)" fill="currentColor" stroke="none" />
-      <path d="M8.3 16.8V4c.4 1.8 2.9 2.6 3.4 4.8" />
-      <path d="M15 9a4.5 4.5 0 0 1 0 6" />
-      <path d="M18 6a8.5 8.5 0 0 1 0 12" />
+    <svg width={20} height={20} viewBox="1 2.5 20 20" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx={4.6} cy={17.6} rx={2.6} ry={2} transform="rotate(-20 4.6 17.6)" fill="currentColor" stroke="none" />
+      <path d="M7 17V5.5c.3 1.5 2.4 2.1 2.8 3.9" />
+      <path d="M12.6 10.3a2.6 2.6 0 0 1 0 3.4" />
+      <path d="M14.8 8.1a5.7 5.7 0 0 1 0 7.8" />
+      <path d="M17 5.9a8.8 8.8 0 0 1 0 12.2" />
     </svg>
   );
 }
