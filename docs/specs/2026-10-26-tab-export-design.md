@@ -12,7 +12,7 @@ options…**. Once the copy button and the header button did both, Jeremy
 dropped them from it (2026-10-26); the menu now only inserts bars
 (`2026-10-25-tab-editing-design.md`).
 
-Every view has a copy button at its top left (Jeremy, 2026-10-27; it had been at the top right): the ASCII and alphaTex views
+Every view has a copy button at its bottom right, just left of the save button (Jeremy, 2026-10-27; it had been at the top left, which Staff | Tab | Both now takes): the ASCII and alphaTex views
 copy their text (tip "Copy as text", and the line under the clip says "Copied as text."; Jeremy, 2026-10-27), and the Tab view copies the PNG, with the saved choices
 (the line under the clip says "Copied as PNG.") (Jeremy, 2026-10-26: "a copy to clipboard button
 (like the ASCII view has) for the primary view"). The view switch, Standard |

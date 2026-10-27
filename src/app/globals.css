@@ -723,17 +723,20 @@ button {
     margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
     font: inherit; font-variant-ligatures: none; color: var(--ink); caret-color: var(--ink); background: transparent;
   }
-  /* Over the clip: the copy button at the left, the view switch at the right, pulled 8px into the
-     card's padding so they sit close to its top corners (Jeremy, 2026-10-27). */
+  /* Over the clip: Staff | Tab | Both at the left, the view switch at the right (alone, it stays
+     there), pulled 8px into the card's padding so they sit close to its top corners (Jeremy, 2026-10-27). */
   .tab-card-bar {
     display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
     margin: -8px -8px 12px;
   }
+  .tab-views { margin-left: auto; }
+  /* Copy, then save, at the clip's bottom right. */
+  .tab-clip-buttons { display: flex; gap: 6px; }
   /* Playback, a footer in the clip's card: Play, Loop, Speed, Volume and Sound. */
   /* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
      controls, stops 6px short of it), then the controls. The toggle never moves. */
   .tab-playback-row { margin-top: 12px; }
-  /* Under a text view: the save button at the right, where the playback row has it in Standard. */
+  /* Under a text view: copy and save at the right, where the playback row has it in Standard. */
   .tab-card-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
   .tab-playback-rule { display: flex; align-items: center; gap: 6px; }
   .tab-playback-line { flex: 1; height: 1px; background: var(--line); }

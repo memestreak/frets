@@ -828,6 +828,8 @@ export default function TabPage() {
       <SaveIcon />
     </button>
   );
+  /** At the clip's bottom right: copy, then save (Jeremy, 2026-10-27). */
+  const clipButtons = <div className="tab-clip-buttons">{copyButton}{saveButton}</div>;
 
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
@@ -865,9 +867,8 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: the copy button at the top left, the view switch at the top right (Jeremy, 2026-10-27; the switch had been in the header). */}
+        {/* Over the clip: Staff | Tab | Both at the top left, the view switch at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
-          {copyButton}
           {view === 'tab' && (
             <div className="seg tab-parts" role="group" aria-label="Show">
               {PARTS.map(p => (
@@ -877,7 +878,7 @@ export default function TabPage() {
               ))}
             </div>
           )}
-          <div className="seg" role="group" aria-label="View">
+          <div className="seg tab-views" role="group" aria-label="View">
             {VIEWS.map(v => (
               <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
                 {v.label}
@@ -959,12 +960,12 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
-            end={saveButton}
+            end={clipButtons}
           />
         </HoverTips>
         )}
-        {/* The text views have no playback row, so the save button has a row of its own, in the same place. */}
-        {view !== 'tab' && <div className="tab-card-foot">{saveButton}</div>}
+        {/* The text views have no playback row, so copy and save have a row of their own, in the same place. */}
+        {view !== 'tab' && <div className="tab-card-foot">{clipButtons}</div>}
       </section>
 
       <p
