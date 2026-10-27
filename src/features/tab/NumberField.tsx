@@ -6,7 +6,19 @@
  * field), press the buttons or ↑ ↓ to step it, or press on the number and drag up or down. A press
  * that doesn't move puts the caret in the field to type.
  */
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+
+/**
+ * A double-click on a number field's row (its label, number or what follows it) puts it back to its
+ * usual value (Jeremy, 2026-10-27); not on the step buttons, so two quick presses still step twice.
+ * A number being typed is settled first, so the reset is what stays.
+ */
+export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void) {
+  if ((e.target as Element).closest('button')) return;
+  const typing = e.currentTarget.querySelector('input');
+  if (typing && document.activeElement === typing) typing.blur();
+  reset();
+}
 
 /** How many pixels of drag move it by one step, and how far a press must move to be a drag, not a click. */
 const DRAG_PX_PER_STEP = 10;
@@ -20,8 +32,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   step: number;
   /** Digits after the point, as shown and as kept. */
   decimals?: number;
-  /** Shown after the number: `%`, `s`. */
-  unit: string;
+  /** Shown after the number, inside the box: `%`, `s`. A long unit goes outside it instead. */
+  unit?: string;
   /** The field's accessible name, and the buttons'. */
   label: string;
   upLabel: string;
@@ -34,8 +46,11 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     const next = clamp(v);
     if (next !== value) onChange(next);
   };
-  const shown = value.toFixed(decimals);
-  const pattern = decimals > 0 ? /^\d*\.?\d*$/ : /^\d*$/;
+  // Below zero allowed (a transposition), a value above zero shows its plus sign.
+  const signed = min < 0;
+  const shown = `${signed && value > 0 ? '+' : ''}${value.toFixed(decimals)}`;
+  const digits = decimals > 0 ? '\\d*\\.?\\d*' : '\\d*';
+  const pattern = new RegExp(`^${signed ? '[+-]?' : ''}${digits}$`);
   const parse = (text: string) => (/\d/.test(text) && pattern.test(text) ? Number(text) : null);
 
   const input = useRef<HTMLInputElement>(null);
@@ -86,19 +101,20 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     }
   };
 
-  const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length);
+  // Room for the longest value, its sign included.
+  const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
     <span className="tab-number-field">
       <input
-        ref={input} type="text" inputMode={decimals > 0 ? 'decimal' : 'numeric'} aria-label={label}
+        ref={input} type="text" inputMode={signed ? 'text' : decimals > 0 ? 'decimal' : 'numeric'} aria-label={label}
         role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={value}
         value={draft ?? shown} maxLength={width + 1} style={{ width: `${width}ch` }}
-        onChange={e => setDraft(e.target.value.replace(decimals > 0 ? /[^\d.]/g : /\D/g, ''))}
+        onChange={e => setDraft(e.target.value.replace(decimals > 0 ? (signed ? /[^\d.+-]/g : /[^\d.]/g) : (signed ? /[^\d+-]/g : /\D/g), ''))}
         onBlur={settle} onKeyDown={onKeyDown}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove}
         onPointerUp={onPointerUp} onPointerCancel={() => { drag.current = null; }}
       />
-      <span className="tab-number-unit" aria-hidden="true">{unit}</span>
+      <span className="tab-number-unit" aria-hidden="true">{unit ?? ''}</span>
       <span className="tab-number-steps">
         <button type="button" aria-label={upLabel} tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>

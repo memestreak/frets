@@ -80,6 +80,17 @@ Jeremy's pick 1 of: a plain text box, or CodeMirror.
   the mouse. The textarea sets its own tip to the underline under the
   pointer.
 
+## Clear
+
+Jeremy, 2026-10-27: "Add a small X button in the top left of the alphatex
+view that clears the buffer. Mouseover should be \"Clear\"".
+
+- In the AlphaTex view only, a small × button at the top left of the clip's
+  card (where Notation keeps Staff | Tab | Both), titled "Clear".
+- It empties the text and makes the clip an empty one (no title, one empty
+  4/4 bar, which is what empty text reads as), one undo step, so Ctrl+Z
+  brings everything back. No confirmation, since undo covers it.
+
 ## Not editable
 
 The ASCII Tab view stays read-only, the recommended answer to the last

@@ -6,7 +6,8 @@ little toggle button for this."
 
 ## Behaviour
 
-- A toggle with an ear, after Loop in the playback footer: "Hear notes as you
+- A toggle with a music note sounding (a quarter note with a speaker's three
+  waves; it was an ear until Jeremy asked for this, 2026-10-27), after Loop in the playback footer: "Hear notes as you
   enter them". Off at first; saved with the other playback settings
   (`hearNotes` in `frets.tab.playback`).
 - On, and with the playback controls showing, each note entered sounds:

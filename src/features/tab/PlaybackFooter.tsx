@@ -5,12 +5,12 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { columnAt, layoutClip, type Layout, type Parts } from './layout';
-import { NumberField } from './NumberField';
+import { NumberField, resetOnDoubleClick } from './NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
@@ -27,7 +27,12 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   volume: number;
   /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
   hearNotes: boolean;
+  /** Semitones playback is moved by, up or down, from the field after Speed; 0 plays as written. The tab is unchanged. */
+  transpose: number;
 }
+
+/** How far playback may be transposed, in semitones either way: an octave. */
+export const MAX_TRANSPOSE = 12;
 
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
@@ -41,6 +46,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     loopPause: fields.loopPause === true,
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
       && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
+    transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : 0,
   };
 }
 
@@ -78,9 +84,11 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, onStopAt }: {
+export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
+  /** Semitones everything heard is moved by. */
+  transpose: number;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -104,6 +112,9 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setLoopPause(loopPause);
   }, [loopPause]);
+  useEffect(() => {
+    player.current?.setTranspose(transpose);
+  }, [transpose]);
 
   /** The player, made on first use: an AudioContext may only start after a press or a key. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -112,6 +123,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       player.current = p;
       p.setVolume(volume);
       p.setLoopPause(loopPause);
+      p.setTranspose(transpose);
       return p;
     });
     return making.current;
@@ -190,11 +202,15 @@ function StopIcon() {
 }
 
 /** An ear: each note entered is heard. */
-function EarIcon() {
+/** A music note sounding: a quarter note with three sound waves to its right, like a speaker's. */
+function NoteSoundIcon() {
   return (
-    <svg width={14} height={14} viewBox="4 1.5 16 19" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 8.5a6 6 0 0 1 12 0c0 3.5-2.5 4.5-3.5 6.5-.8 1.6-.6 4.5-3.5 4.5a3 3 0 0 1-3-2.5" />
-      <path d="M9 9a3 3 0 0 1 6 0c0 1.5-1.5 2-1.5 3.5" />
+    <svg width={20} height={20} viewBox="1 2.5 20 20" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx={4.6} cy={17.6} rx={2.6} ry={2} transform="rotate(-20 4.6 17.6)" fill="currentColor" stroke="none" />
+      <path d="M7 17V5.5" />
+      <path d="M12.6 10.3a2.6 2.6 0 0 1 0 3.4" />
+      <path d="M14.8 8.1a5.7 5.7 0 0 1 0 7.8" />
+      <path d="M17 5.9a8.8 8.8 0 0 1 0 12.2" />
     </svg>
   );
 }
@@ -211,7 +227,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -229,6 +245,9 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   /** Whether each note entered sounds, the toggle after Loop. */
   hearNotes: boolean;
   onHearNotes: (on: boolean) => void;
+  /** Semitones playback is moved by, the field after Speed. */
+  transpose: number;
+  onTranspose: (semitones: number) => void;
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
@@ -239,13 +258,6 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   const playing = view.state === 'playing';
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
-  const resetSpeed = (e: MouseEvent<HTMLDivElement>) => {
-    if ((e.target as Element).closest('button')) return;
-    // A number being typed is settled first, so the reset is what stays.
-    const typing = e.currentTarget.querySelector('input');
-    if (typing && document.activeElement === typing) typing.blur();
-    playback.setSpeed(1);
-  };
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes'
@@ -290,18 +302,27 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Hear notes as you enter them" aria-pressed={hearNotes}
             data-tip="Hear notes as you enter them" onMouseDown={e => e.preventDefault()} onClick={() => onHearNotes(!hearNotes)}
           >
-            <EarIcon />
+            <NoteSoundIcon />
           </button>
-          {/* A double-click on the label, the number or the bpm resets the speed (Jeremy, 2026-10-27);
-              not on the step buttons, so pressing one quickly twice still steps twice. */}
+          {/* A double-click on the label, the number or the bpm resets the speed to 100%. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
-          <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={resetSpeed}>
+          <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
             <span className="text-(--ink-muted)">Speed</span>
             <NumberField
               value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
               label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
             />
             <span className="tab-speed-value">{Math.round(playback.bpm * speed)} bpm</span>
+          </div>
+          {/* A double-click on the label, the number or "semitones" puts it back to 0. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}
+          <div className="tab-speed" role="group" aria-label="Transpose" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
+            <span className="text-(--ink-muted)">Transpose</span>
+            <NumberField
+              value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
+              label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
+            />
+            <span className="text-(--ink-muted)">semitones</span>
           </div>
           <div className="tab-volume">
             <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>

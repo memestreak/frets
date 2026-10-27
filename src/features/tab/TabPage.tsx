@@ -4,7 +4,7 @@ import {
   type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, CloseIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
@@ -14,7 +14,7 @@ import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_CAPO, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, isRest, isStandardTuning, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
@@ -182,6 +182,7 @@ export default function TabPage() {
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, {
     loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
+    transpose: playbackSettings.transpose,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     onStopAt: column => {
@@ -208,6 +209,12 @@ export default function TabPage() {
   const applyAlphaTex = (next: Clip, text: string) => {
     dispatch({ type: 'replace', clip: next });
     setDraft(d => (d && d.text === text ? { text, clip: next } : d));
+  };
+  /** The AlphaTex view's ×: the text and the clip emptied, one undo step (Jeremy, 2026-10-27). */
+  const clearAlphaTex = () => {
+    const empty = emptyClip();
+    dispatch({ type: 'replace', clip: empty });
+    setDraft({ text: '', clip: empty });
   };
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
@@ -249,6 +256,9 @@ export default function TabPage() {
       commit(left, at, null);
     }
     setColumnOnly(true);
+    // The staff's cursor goes, else its pitch would show as a ghost head on the column (Jeremy, 2026-10-27);
+    // with the staff alone it is the only cursor, so it stays.
+    if (parts !== 'staff') setStaffPitch(null);
     editorRef.current?.focus();
   };
   /**
@@ -972,6 +982,11 @@ export default function TabPage() {
               ))}
             </div>
           )}
+          {view === 'alphatex' && (
+            <button type="button" className="btn btn-secondary btn-icon" aria-label="Clear" title="Clear" onClick={clearAlphaTex}>
+              <CloseIcon />
+            </button>
+          )}
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">
               {VIEWS.map(v => (
@@ -1058,6 +1073,7 @@ export default function TabPage() {
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
+            transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
           />
         </HoverTips>

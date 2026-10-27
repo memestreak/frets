@@ -363,6 +363,9 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
 
 /* — the player — */
 
+/** General MIDI's percussion channel, which a transposition leaves alone. */
+const DRUM_CHANNEL = 9;
+
 export type PlayerState = 'idle' | 'loading' | 'playing' | 'error';
 
 /** What the page shows while a clip plays. */
@@ -555,6 +558,16 @@ export class TabPlayer {
 
   setSpeed(speed: number) {
     this.synth.playbackSpeed = speed;
+  }
+
+  /**
+   * Moves everything heard by some semitones (Jeremy, 2026-10-27), notes already sounding too: the
+   * synthesizer's own transposition, on every channel but General MIDI's drums.
+   */
+  setTranspose(semitones: number) {
+    const pitches = new Map<number, number>();
+    if (semitones !== 0) for (let channel = 0; channel < 16; channel++) if (channel !== DRUM_CHANNEL) pitches.set(channel, semitones);
+    this.synth.applyTranspositionPitches(pitches);
   }
 
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */

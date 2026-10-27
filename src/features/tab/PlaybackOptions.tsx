@@ -2,7 +2,7 @@
 
 /**
  * The playback options, from a right-click on Play (Jeremy, 2026-10-27): whether Stop leaves the
- * playback line where the playhead stopped, and whether loops rest between rounds, and for how long.
+ * playback line where the playhead stopped, and whether loops rest between rounds and for how long.
  * A small menu at the press, like the shapes' menu; it stays open while its options are changed, and
  * a press elsewhere, a scroll or Esc closes it.
  */
