@@ -5,6 +5,11 @@ import { readAscii } from '@/features/tab/ascii';
 import { STORAGE_KEY } from '@/features/tab/clipState';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
+import * as alphaTab from '@coderline/alphatab';
+import { readAlphaTexWith } from '@/features/tab/alphatexRead';
+import { exampleById } from '@/features/tab/examples';
+import { layoutClip } from '@/features/tab/layout';
+import { markBoxes, type MarkHit } from '@/features/tab/marks';
 
 const RIFF = [
   'Title: Riff',
@@ -726,5 +731,68 @@ describe('TabPage export', () => {
     expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt']);
     expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.txt');
     click.mockRestore();
+  });
+});
+
+describe('picking a technique mark (issue #128)', () => {
+  const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+  const tool = (name: string) => screen.getByRole('button', { name });
+
+  /** Opens an example and presses the middle of its first drawn `mark` (jsdom draws the tab 800 wide at 0, 0). */
+  async function pressMark(example: string, mark: MarkHit['mark']) {
+    const { title, text } = exampleById(example)!;
+    renderAt(`#example=${example}`);
+    await screen.findByRole('heading', { name: title }, SLOW);
+    const read = readAlphaTexWith(alphaTab, text);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { box } = markBoxes(layoutClip(read.clip, 800)).find(m => m.hit.mark === mark)!;
+    const svg = screen.getByRole('img', { name: /drawn as tab/ });
+    fireEvent.pointerDown(svg, { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  }
+
+  it('outlines the mark, lights only its tool and offers Delete, which keeps the note', async () => {
+    await pressMark('bends', 'bend');
+    expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(tool('Bend')).toHaveAttribute('aria-pressed', 'true');
+    expect(tool('Quarter note')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(screen.getAllByTestId('bend')).toHaveLength(6);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getAllByTestId('bend')).toHaveLength(5);
+    // Nothing is left selected: no outline, no cursor, and the tab lets the keys go.
+    expect(screen.queryByTestId('picked-mark')).toBeNull();
+    await settle();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(editor()).not.toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\n7.3.4 7.3{b (0 4 0)}.4');
+  });
+
+  it('takes the mark away with the Delete key, and lets it go with Esc or an arrow', async () => {
+    await pressMark('accents', 'staccato');
+    const dots = screen.getAllByTestId('staccato').length;
+    expect(tool('Staccato')).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(editor(), { key: 'Escape' });
+    expect(screen.queryByTestId('picked-mark')).toBeNull();
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
+    cleanup();
+    await pressMark('accents', 'staccato');
+    fireEvent.keyDown(editor(), { key: 'Delete' });
+    expect(screen.getAllByTestId('staccato')).toHaveLength(dots - 1);
+    await settle();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.queryByTestId('tab-selection')).toBeNull();
+    undo();
+    expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
+  });
+
+  it('keeps a bend picked while the palette changes it', async () => {
+    await pressMark('bends', 'bend');
+    fireEvent.click(tool('Bend'));
+    fireEvent.click(screen.getByRole('button', { name: '½' }));
+    expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+    expect(screen.getAllByTestId('bend')[0]).toHaveTextContent('½');
   });
 });

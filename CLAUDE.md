@@ -262,7 +262,9 @@ binds a local port).
   bars and columns go at a width, and `rowsFor`, the rows over the staff,
   each there only when the clip uses it;
   `docs/specs/2026-10-26-tab-note-marks-design.md`) and `TabClip.tsx` (draws a layout as
-  SVG, with the editor's cursor and selection), `clipState.ts` (the clip
+  SVG, with the editor's cursor and selection), `marks.ts` (pure: where each
+  drawn technique mark is, so a press picks it, and its palette tool;
+  `docs/specs/2026-10-27-tab-pick-marks-design.md`), `clipState.ts` (the clip
   with undo and redo), `editing.ts` (pure: the cursor, selection and every
   edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
   and paste at the cursor), `tools.ts` (the symbol palette's table, shared
