@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  type FocusEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
+  type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { CheckIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
@@ -23,7 +23,9 @@ import {
   fillBar, isEmpty, makeRest, removeMark, MAX_FRET, setBarKey, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
-import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type TextHit, type WordHit } from './layout';
+import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type StaffHit, type TextHit, type WordHit } from './layout';
+import { openStrings } from './notation';
+import { moveToString, pitchAtStep, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { markBox, markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
@@ -82,10 +84,16 @@ export default function TabPage() {
   // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
   const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
   usePersist(TAB_EXPORT_KEY, exportStyle);
-  /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27); the staff alone is for reading. */
+  /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
   const [parts, setParts] = useState<Parts>(() => parseParts(loadJson(PARTS_KEY)));
   usePersist(PARTS_KEY, parts);
-  const editable = parts !== 'staff';
+  /**
+   * The staff's own cursor (issue #136): the sounding pitch on the cursor's column that Enter adds or
+   * takes away. Set by a press on the staff, which hands the keys to it; a press on the tab sets it to
+   * null and hands them back. With the staff alone it is always there.
+   */
+  const [staffPitch, setStaffPitch] = useState<number | null>(null);
+  const staffKeys = parts !== 'tab' && staffPitch !== null;
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   /** The Standard view's save button's list of formats, open under it (its right edge at x). */
   const [saveMenu, setSaveMenu] = useState<{ x: number; y: number } | null>(null);
@@ -464,6 +472,10 @@ export default function TabPage() {
       return;
     }
     const handled = () => e.preventDefault();
+    if (staffKeys && onStaffKey(e)) {
+      handled();
+      return;
+    }
     // With Alt, a digit is a tuplet (Alt+3 a triplet), not a fret.
     if (/^[0-9]$/.test(key) && !e.altKey) {
       handled();
@@ -568,6 +580,7 @@ export default function TabPage() {
 
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
+    setStaffPitch(null);
     setColumnOnly(false);
     const hasColumn = clip.bars[hit.bar].columns.length > 0;
     if (extend && hasColumn && columnAt(clip, cursor)) {
@@ -579,6 +592,67 @@ export default function TabPage() {
       const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
       commit(left, hit, null);
     }
+  };
+
+  /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
+  const toPitch = (next: Clip, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
+    const string = stringAtPitch(next, at, pitch);
+    commit(next, { ...at, string: string ?? at.string }, nextSelection);
+    setColumnOnly(string === null);
+    setStaffPitch(pitch);
+  };
+
+  /** The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. */
+  const onEditorFocus = () => {
+    setEditing(true);
+    if (parts !== 'staff' || staffPitch !== null) return;
+    const note = noteAt(clip, cursor);
+    setStaffPitch(note && note.fret !== null ? openStrings(clip.tuning)[cursor.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, cursor.bar, 4));
+  };
+
+  /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
+  const onPickStaff = (hit: StaffHit, extend: boolean) => {
+    lastDigit.current = null;
+    const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
+    const note = hit.string === null ? null : noteAt(clip, at);
+    const pitch = note && note.fret !== null ? openStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
+    if (extend && clip.bars[hit.bar].columns.length > 0 && columnAt(clip, cursor)) {
+      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
+      toPitch(clip, at, pitch, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      return;
+    }
+    const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+    toPitch(left, at, pitch);
+  };
+
+  /**
+   * The keys the staff cursor takes (issue #136): ↑ ↓ a line or space in the key, # and b a semitone,
+   * Enter adds or takes away the note at its pitch, Alt+↑ ↓ move that note to another string. True
+   * when the key was one of them.
+   */
+  const onStaffKey = (e: ReactKeyboardEvent<HTMLDivElement>): boolean => {
+    const pitch = staffPitch!;
+    const { key } = e;
+    if ((key === 'ArrowUp' || key === 'ArrowDown') && !e.shiftKey) {
+      if (e.altKey) {
+        const moved = moveToString(clip, cursor, pitch, key === 'ArrowUp' ? -1 : 1);
+        toPitch(moved.clip, cursor, pitch, selection);
+      } else {
+        toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), selection);
+      }
+      return true;
+    }
+    if ((key === '#' || key === 'b') && !e.altKey) {
+      toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), selection);
+      return true;
+    }
+    if (key === 'Enter' && !e.altKey && !e.shiftKey) {
+      const edit = toggleStaffNote(clip, cursor, pitch);
+      toPitch(edit.clip, cursor, pitch, selection);
+      if (edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
+      return true;
+    }
+    return false;
   };
 
   /**
@@ -864,7 +938,7 @@ export default function TabPage() {
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
           isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
           onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
-          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab' || !editable} />
+          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -894,28 +968,27 @@ export default function TabPage() {
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} />}
-          {view === 'tab' && !editable
-            ? clipWidth > 0 && (
-              // The staff alone is for reading (Jeremy, 2026-10-27): no cursor, no keys.
-              <TabClip clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as a staff`} errors={barErrors(clip)} />
-            )
-            : view === 'tab'
+          {view === 'tab'
             ? clipWidth > 0 && (
               <div
                 // A textbox, so screen readers pass the keys through to it as they do to a text field.
                 ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to insert a bar"
-                onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={onEditorBlur}
+                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Shift+F10 to insert a bar"
+                onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                 // Right-click, a long press or Shift+F10: insert a bar before or after.
                 {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
               >
                 {/* A bar's warning explains itself on hover. */}
                 <HoverTips>
                   <TabClip
-                    clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
+                    clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
+                    onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                     onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
-                    highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly }}
+                    highlight={{
+                      cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
+                      staffPitch: staffKeys ? staffPitch : null,
+                    }}
                     picked={editing ? picked : null}
                     errors={barErrors(clip)}
                   />

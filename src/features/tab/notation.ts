@@ -112,7 +112,7 @@ export function keySigns(key: Key): { step: number; sharp: boolean }[] {
 }
 
 /** The accidental the key signature gives each letter, C to B. */
-function keyAccidentals(key: Key): Accidental[] {
+export function keyAccidentals(key: Key): Accidental[] {
   const out: Accidental[] = [0, 0, 0, 0, 0, 0, 0];
   const count = Math.abs(key.fifths);
   const letters = key.fifths > 0 ? SHARP_LETTERS : FLAT_LETTERS;

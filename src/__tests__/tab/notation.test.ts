@@ -81,21 +81,26 @@ describe('barHeads', () => {
 });
 
 describe('a press on the staff', () => {
-  it('puts the cursor on the tab note under the head pressed', async () => {
+  it('lands on the head pressed, or on the line or space of a column', async () => {
     const alphaTab = await import('@coderline/alphatab');
     const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
-    const { hitTest, layoutClip, stepY } = await import('@/features/tab/layout');
+    const { hitTest, layoutClip, staffAt, stepY } = await import('@/features/tab/layout');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n(0.1 3.4).4 r.4 r.2 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const layout = layoutClip(read.clip, 900, 'both');
-    const placed = layout.systems[0].bars[0].columns[0];
-    const [low, high] = placed.heads;
-    const score = layout.rows.score!;
-    expect(hitTest(layout, placed.x, stepY(score, high.step))).toEqual({ bar: 0, column: 0, string: 0 });
-    expect(hitTest(layout, placed.x + 2, stepY(score, low.step) + 2)).toEqual({ bar: 0, column: 0, string: 3 });
-    // Staff alone has no tab to put a cursor on; its presses land nowhere.
-    const staffOnly = layoutClip(read.clip, 900, 'staff');
-    expect(hitTest(staffOnly, placed.x, stepY(staffOnly.rows.score!, high.step))).toBeNull();
+    for (const parts of ['both', 'staff'] as const) {
+      const layout = layoutClip(read.clip, 900, parts);
+      const placed = layout.systems[0].bars[0].columns[0];
+      const [low, high] = placed.heads;
+      const score = layout.rows.score!;
+      expect(staffAt(layout, placed.x, stepY(score, high.step))).toEqual({ bar: 0, column: 0, step: high.step, string: 0 });
+      expect(staffAt(layout, placed.x + 2, stepY(score, low.step) + 2)).toEqual({ bar: 0, column: 0, step: low.step, string: 3 });
+      // The rest's column, on the top line.
+      const rest = layout.systems[0].bars[0].columns[1];
+      expect(staffAt(layout, rest.x + 1, stepY(score, 8) + 1)).toEqual({ bar: 0, column: 1, step: 8, string: null });
+      // Not on the tab, and not far over the staff.
+      expect(staffAt(layout, rest.x, stepY(score, 16))).toBeNull();
+      if (layout.rows.tab) expect(hitTest(layout, placed.x, stepY(score, high.step))).toBeNull();
+    }
   });
 });
 

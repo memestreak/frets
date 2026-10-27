@@ -6,9 +6,10 @@ import {
 import {
   barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
-  type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
+  type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
-import { StaffDrawing } from './StaffDrawing';
+import { StaffCursor, StaffDrawing } from './StaffDrawing';
+import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
 import { markAt, markBox, vibratoWave, type MarkHit } from './marks';
@@ -39,6 +40,8 @@ export interface Highlight {
   range: [number, number] | null;
   /** The cursor is on its column only, with no string picked: the column is tinted, no string boxed. */
   columnOnly?: boolean;
+  /** The staff's own cursor on the cursor's column: the sounding pitch Enter would put there (issue #136). */
+  staffPitch?: number | null;
 }
 
 /**
@@ -47,7 +50,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onMiss, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -67,8 +70,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   onPick?: (hit: Hit, extend: boolean) => void;
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
   onPickRun?: (mark: RunMark, index: number) => void;
-  /** A press on a chord name, section or tempo. */
-  /** With the press, in the drawing's own units. */
+  /** A press on a chord name, section or tempo, or a time or key signature; with the press, in the drawing's own units. */
   onPickText?: (hit: TextHit, at: { x: number; y: number }) => void;
   /** A press on a technique mark: a bend, slide, tie, vibrato, accent… (`marks.ts`). */
   onPickMark?: (hit: MarkHit) => void;
@@ -77,6 +79,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
    * line); `extend` when Shift was held, to select up to it.
    */
   onPickColumn?: (index: number, extend: boolean) => void;
+  /** A press on the notation staff: the column and line or space (and string, on a head); `extend` with Shift. */
+  onPickStaff?: (hit: StaffHit, extend: boolean) => void;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
 }) {
@@ -90,16 +94,18 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
     const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
     const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
-    const hit = run || text || mark ? null : hitTest(layout, px, py);
-    const column = run || text || mark || hit || !onPickColumn ? null : columnAt(layout, px, py);
-    return { run, text, mark, hit, column, px, py };
+    const staff = run || text || mark || !onPickStaff ? null : staffAt(layout, px, py);
+    const hit = run || text || mark || staff ? null : hitTest(layout, px, py);
+    const column = run || text || mark || staff || hit || !onPickColumn ? null : columnAt(layout, px, py);
+    return { run, text, mark, staff, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, mark, hit, column, px, py } = target(e);
+    const { run, text, mark, staff, hit, column, px, py } = target(e);
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
+    else if (staff) onPickStaff!(staff, e.shiftKey);
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
@@ -107,8 +113,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, text, mark, hit } = target(e);
-    if (text || (!run && !mark && !hit)) e.preventDefault();
+    const { run, text, mark, staff, hit } = target(e);
+    if (text || (!run && !mark && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -136,7 +142,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
           {!highlight.range && (
             <rect x={spot.x - spot.width / 2} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
           )}
-          {!highlight.columnOnly && (
+          {!highlight.columnOnly && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
               fill="none" stroke="var(--primary)" strokeWidth={1.5}
@@ -152,6 +158,9 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
           />
           {rows.score && onStaff && (
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
+          )}
+          {rows.score && spot?.system === si && highlight?.cursor && highlight.staffPitch != null && (
+            <StaffCursor x={spot.x} score={rows.score} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {errors && system.bars.map(bar => {

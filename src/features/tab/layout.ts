@@ -674,17 +674,50 @@ function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number
   return best ? (best as { hit: Hit }).hit : null;
 }
 
-/** The column and string a press lands on: on the tab, or a note head on the staff over it; null anywhere else. */
+/** How far past the staff's lines a press still lands on it, in steps: two ledger lines. */
+const STAFF_PRESS_STEPS = 4;
+
+/** Where a press on the notation staff lands: a column, the line or space, and the string of the head pressed (null off a head). */
+export interface StaffHit {
+  bar: number;
+  column: number;
+  step: number;
+  string: number | null;
+}
+
+/**
+ * A press on the notation staff (issue #136): on a note head, that note; else the nearest column of
+ * the bar and the line or space pressed, up to two ledger lines past the staff. Null anywhere else.
+ */
+export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
+  const { rows } = layout;
+  const score = rows.score;
+  const system = layout.systems[Math.floor(y / rows.height)];
+  if (!score || !system || y < 0) return null;
+  const localY = y - Math.floor(y / rows.height) * rows.height;
+  const step = Math.round((score.bottom - localY) / (SPACE / 2));
+  if (step < -STAFF_PRESS_STEPS || step > 8 + STAFF_PRESS_STEPS) return null;
+  const head = staffHeadAt(system, score, x, localY);
+  if (head) {
+    const placed = system.bars.find(b => b.index === head.bar)!.columns[head.column];
+    return { bar: head.bar, column: head.column, step: placed.heads.find(h => h.string === head.string)!.step, string: head.string };
+  }
+  const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
+  if (!bar) return null;
+  let column = 0;
+  bar.columns.forEach((c, i) => {
+    if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
+  });
+  return { bar: bar.index, column, step, string: null };
+}
+
+/** The column and string a press on the tab lands on; null anywhere else. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   const { rows } = layout;
   const system = layout.systems[Math.floor(y / rows.height)];
   if (!system || y < 0) return null;
+  if (!rows.tab) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
-  // Over the tab, a press on a note head on the notation staff puts the cursor on its tab note.
-  if (rows.tab && rows.score) {
-    const head = staffHeadAt(system, rows.score, x, localY);
-    if (head) return head;
-  }
   // Only the staff itself, as far as the cursor's band reaches: not the marks over it, the rhythm
   // under it, or the blank space beside the last bar.
   if (localY < rows.staffTop - STAFF_REACH || localY > rows.staffBottom + STAFF_REACH) return null;

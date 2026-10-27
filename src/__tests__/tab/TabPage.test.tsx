@@ -826,6 +826,7 @@ describe('the notation staff (issue #122)', () => {
     expect(count('time-signature')).toBe(0);
     fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
     expect(count('staff-join')).toBe(0);
-    expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeDisabled();
+    // The staff alone is edited too (issue #136), so its palette stays on.
+    expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeEnabled();
   });
 });
