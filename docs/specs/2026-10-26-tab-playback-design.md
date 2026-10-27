@@ -76,7 +76,8 @@ selecting a specific string"). Play and Space then start from it. A
 Shift+press there selects the columns from the line (else the selection's
 first press, else the cursor) to that column, still with no string picked
 (Jeremy, 2026-10-27), so Loop can take them; a press without Shift drops the
-selection. While the
+selection. Off the tab, the keys do the same: ← → move the line a column,
+Shift+← → select from it or grow that selection, and Esc drops both. While the
 clip plays, such a press jumps playback there. The line goes when the
 cursor or the selection moves, the clip changes, on Esc, or on a press
 beside the bars.
@@ -140,7 +141,8 @@ In Chromium, with the sound's peak measured at the audio node:
 - A press above or below the staff puts the line there and Play starts
   from it; while playing it jumps there; a chord name still opens its
   field; a note press or Esc takes the line away; Shift+press from the line
-  selects the columns between, and Loop then loops them.
+  selects the columns between, and Loop then loops them; off the tab, ← →
+  move the line and Shift+← → select from it.
 - Space plays and pauses with the focus off the tab, but not in the Speed
   field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.
