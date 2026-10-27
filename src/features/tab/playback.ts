@@ -108,6 +108,32 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   return { score, midi, lookup: generator.tickLookup, endTick };
 }
 
+/** How long a column heard on its own sounds: a quarter note at 120 bpm, before it rings out. */
+const HEARD_BPM = 120;
+
+/**
+ * A clip of one note, to hear it alone (Jeremy, 2026-10-27: "just play the note added"): the note on a
+ * string of a column as a plain picked note (no tie, slide or bend, which need the notes round it),
+ * with the clip's tuning and capo. Null where there is no note.
+ */
+export function noteAlone(clip: Clip, bar: number, column: number, string: number): Clip | null {
+  const placed = clip.bars[bar]?.columns[column];
+  if (!placed?.notes[string]) return null;
+  const note = placed.notes[string]!;
+  const notes = placed.notes.map((_, s) => s !== string ? null : {
+    fret: note.fret,
+    ...(note.harmonic && { harmonic: note.harmonic }),
+    ...(note.palmMute && { palmMute: true }),
+    ...(note.ghost && { ghost: true }),
+  });
+  return {
+    ...clip,
+    // A bar of one beat, so the MIDI ends with the note rather than after a bar's silence.
+    time: { beats: 1, value: 4 },
+    bars: [{ columns: [{ duration: { value: 4, dots: 0 }, notes }], tempo: { bpm: HEARD_BPM } }],
+  };
+}
+
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
 export function columnOfBeat(clip: Clip, beat: Beat): number | null {
   const bar = beat.voice.bar.index;
@@ -574,6 +600,32 @@ export class TabPlayer {
     this.setLoop(this.loop);
     if (playing) this.synth.play();
     if (loaded) this.onView({ state: playing ? 'playing' : 'idle' });
+  }
+
+  /**
+   * Sounds one note of a clip on its own, as it is entered (Jeremy, 2026-10-27): for a quarter note at
+   * 120 bpm, then ringing out. Not while the clip plays. The note is loaded as the
+   * synthesizer's MIDI in place of the clip's (alphaTab's one-time MIDI files play no notes here), so
+   * the next Play loads the clip again.
+   */
+  async hear(clip: Clip, bar: number, column: number, string: number, sound: Sound) {
+    if (!this.ended) return;
+    const alone = noteAlone(clip, bar, column, string);
+    if (!alone) return;
+    // A sound's own soundfont shows Loading on Play while it loads; heard, it goes back to Play.
+    if (await this.loadFont(sound)) this.onView({ state: 'idle' });
+    if (!this.ended) return;
+    // A note still sounding fades out (the output's own fade) before this one starts.
+    this.synth.stop();
+    this.sound = sound;
+    this.clip = null;
+    this.performance = null;
+    this.setVolume(this.volume);
+    this.synth.loadMidiFile(perform(this.at, alone, sound).midi);
+    this.synth.playbackSpeed = 1;
+    this.synth.isLooping = false;
+    this.moveTo(0);
+    this.synth.play();
   }
 
   /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */

@@ -25,6 +25,8 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   sound: Sound;
   /** The volume knob, 0 (silent) to 1 (full). */
   volume: number;
+  /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
+  hearNotes: boolean;
 }
 
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
@@ -34,6 +36,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     shown: fields.shown === true,
     sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
+    hearNotes: fields.hearNotes === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
     loopPause: fields.loopPause === true,
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
@@ -64,6 +67,8 @@ export interface Playback {
   seek: (index: number) => boolean;
   /** Stops, leaving the cursor where it is: when the footer is hidden. */
   stop: () => void;
+  /** Sounds a note alone once the edit that put it there has drawn: "Hear notes as you enter them". */
+  hear: (bar: number, column: number, string: number) => void;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
@@ -100,6 +105,29 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     player.current?.setLoopPause(loopPause);
   }, [loopPause]);
 
+  /** The player, made on first use: an AudioContext may only start after a press or a key. */
+  const making = useRef<Promise<TabPlayer> | null>(null);
+  const playerNow = () => {
+    making.current ??= TabPlayer.create(update).then(p => {
+      player.current = p;
+      p.setVolume(volume);
+      p.setLoopPause(loopPause);
+      return p;
+    });
+    return making.current;
+  };
+
+  // A note to hear, asked for by an edit: heard after the edit's own clip has drawn (and stopped
+  // any playing), and again for each ask, even when the edit changed nothing.
+  const [heard, setHeard] = useState<{ bar: number; column: number; string: number; n: number } | null>(null);
+  const hearing = useRef(0);
+  useEffect(() => {
+    if (!heard) return;
+    playerNow().then(p => p.hear(clip, heard.bar, heard.column, heard.string, sound)).catch(() => undefined);
+    // Only a new ask sounds; the clip and sound are the ones it was asked with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heard]);
+
   return {
     view,
     bpm: tempoAt(clip, view.column ?? 0),
@@ -115,15 +143,10 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound).catch(() => update({ state: 'error' }));
       if (player.current) return start(player.current);
       update({ state: 'loading' });
-      TabPlayer.create(update).then(
-        p => {
-          player.current = p;
-          p.setVolume(volume);
-          p.setLoopPause(loopPause);
-          start(p);
-        },
-        () => update({ state: 'error' }),
-      );
+      playerNow().then(start, () => {
+        making.current = null;
+        update({ state: 'error' });
+      });
     },
     toggleLoop: selection => {
       const same = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
@@ -145,6 +168,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       return true;
     },
     stop: () => player.current?.stop(),
+    hear: (bar, column, string) => setHeard({ bar, column, string, n: ++hearing.current }),
   };
 }
 
@@ -165,6 +189,16 @@ function StopIcon() {
   );
 }
 
+/** An ear: each note entered is heard. */
+function EarIcon() {
+  return (
+    <svg width={14} height={14} viewBox="4 1.5 16 19" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8.5a6 6 0 0 1 12 0c0 3.5-2.5 4.5-3.5 6.5-.8 1.6-.6 4.5-3.5 4.5a3 3 0 0 1-3-2.5" />
+      <path d="M9 9a3 3 0 0 1 6 0c0 1.5-1.5 2-1.5 3.5" />
+    </svg>
+  );
+}
+
 function LoopIcon() {
   return (
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -177,7 +211,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -192,6 +226,9 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
   selection: [number, number] | null;
+  /** Whether each note entered sounds, the toggle after Loop. */
+  hearNotes: boolean;
+  onHearNotes: (on: boolean) => void;
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
@@ -248,6 +285,12 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             onMouseDown={e => e.preventDefault()} onClick={() => playback.toggleLoop(selection)}
           >
             <LoopIcon />
+          </button>
+          <button
+            type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Hear notes as you enter them" aria-pressed={hearNotes}
+            data-tip="Hear notes as you enter them" onMouseDown={e => e.preventDefault()} onClick={() => onHearNotes(!hearNotes)}
+          >
+            <EarIcon />
           </button>
           {/* A double-click on the label, the number or the bpm resets the speed (Jeremy, 2026-10-27);
               not on the step buttons, so pressing one quickly twice still steps twice. */}
