@@ -162,7 +162,7 @@ describe('TabPage', () => {
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy ASCII' })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy as text' })); });
     expect(writeText).toHaveBeenCalledWith(screen.getByTestId('tab-ascii').textContent);
     expect(notice()).toHaveTextContent('Copied as text.');
   });
@@ -612,10 +612,10 @@ describe('TabPage export', () => {
     renderAt();
     expect(screen.getByRole('button', { name: 'Copy as PNG' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
-    expect(screen.getByRole('button', { name: 'Copy ASCII' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy as PNG' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-    expect(screen.getByRole('button', { name: 'Copy alphaTex' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
   });
 
   it('opens Export options from the Export options button, which also downloads the clip as text', () => {

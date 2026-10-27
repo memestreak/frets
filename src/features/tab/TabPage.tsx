@@ -685,7 +685,7 @@ export default function TabPage() {
       setNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
     }
   };
-  const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy ASCII', alphatex: 'Copy alphaTex' }[view];
+  const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy as text', alphatex: 'Copy as text' }[view];
   const copyButton = (
     <button
       type="button" className="btn btn-secondary btn-icon"
