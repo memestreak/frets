@@ -591,6 +591,19 @@ describe('TabPage export', () => {
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
   });
 
+  it('saves from a button at the clip\'s bottom right: a list of formats in Standard, the text in the text views', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+    const menu = screen.getByRole('menu', { name: 'Save as' });
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…']);
+    fireEvent.keyDown(menu, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(screen.getByRole('button', { name: 'Save as text file' })).not.toHaveAttribute('aria-haspopup');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(screen.getByRole('button', { name: 'Save as alphaTex file' })).toBeInTheDocument();
+  });
+
   it('opens Export options from the header, and remembers its choices', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt();

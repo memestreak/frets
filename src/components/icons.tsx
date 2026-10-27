@@ -168,6 +168,17 @@ export function CopyIcon() {
   );
 }
 
+/** Save: an arrow down into a tray. */
+export function SaveIcon() {
+  return (
+    <Icon size={16}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 15v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4" />
+    </Icon>
+  );
+}
+
 export function CheckIcon() {
   return (
     <Icon size={16}>

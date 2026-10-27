@@ -4,10 +4,11 @@ import {
   type FocusEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon, PencilIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
-import { copySvgAsPng } from '@/components/chords/export/exportImage';
+import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
+import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
@@ -80,6 +81,13 @@ export default function TabPage() {
   const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
   usePersist(TAB_EXPORT_KEY, exportStyle);
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
+  /** The Standard view's save button's list of formats, open under it (its right edge at x). */
+  const [saveMenu, setSaveMenu] = useState<{ x: number; y: number } | null>(null);
+  /**
+   * When a press outside last closed the list. A press on the save button while the list is open closes
+   * it that way, before the button hears of it, and the click that follows must not open it again.
+   */
+  const saveMenuPressedAway = useRef(0);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -708,6 +716,45 @@ export default function TabPage() {
     </button>
   );
 
+  /** Saves the clip in one format, through the browser's Save As dialog where it has one. */
+  const save = (kind: SaveKind, make: () => Blob | Promise<Blob>) => {
+    saveFile(clip.name.trim() || 'tab', kind, make).then(
+      line => { if (line) setNotice({ tone: 'info', lines: [line] }); },
+      (e: unknown) => setNotice({ tone: 'error', lines: [`Couldn't save: ${e instanceof Error ? e.message : String(e)}`] }),
+    );
+  };
+  const asText = (text: string) => new Blob([text], { type: 'text/plain' });
+  /** The picture as the Export dialog makes it, with its saved choices. */
+  const picture = () => tabSvg(clip, exportStyle, clip.name);
+  const saveFormats = [
+    { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
+    { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
+    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(clip))) },
+    { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
+  ];
+  /**
+   * The save button at the clip's bottom right (Jeremy, 2026-10-27): in Standard it lists the
+   * formats; the ASCII Tab view saves its text, and the AlphaTex view its text as typed.
+   */
+  const saveLabel = { tab: 'Save as…', ascii: 'Save as text file', alphatex: 'Save as alphaTex file' }[view];
+  const saveButton = (
+    <button
+      type="button" className="btn btn-secondary btn-icon" aria-label={saveLabel} title={saveLabel}
+      aria-haspopup={view === 'tab' ? 'menu' : undefined} aria-expanded={view === 'tab' ? saveMenu !== null : undefined}
+      // Pressed, it leaves the focus (and the cursor) on the tab.
+      onMouseDown={e => e.preventDefault()}
+      onClick={e => {
+        if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(clip)));
+        if (view === 'alphatex') return save(SAVE_KINDS.alphatex, () => asText(alphaTexText));
+        const r = e.currentTarget.getBoundingClientRect();
+        if (Date.now() - saveMenuPressedAway.current < 500) return;
+        setSaveMenu({ x: r.right, y: r.bottom + 4 });
+      }}
+    >
+      <SaveIcon />
+    </button>
+  );
+
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
@@ -817,9 +864,12 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
+            end={saveButton}
           />
         </HoverTips>
         )}
+        {/* The text views have no playback row, so the save button has a row of its own, in the same place. */}
+        {view !== 'tab' && <div className="tab-card-foot">{saveButton}</div>}
       </section>
 
       <p
@@ -850,6 +900,16 @@ export default function TabPage() {
             { label: 'Insert bar before', onSelect: () => addBar('before') },
             { label: 'Insert bar after', onSelect: () => addBar('after') },
           ]}
+        />
+      )}
+      {saveMenu && (
+        <ShapeMenu
+          x={saveMenu.x} y={saveMenu.y} align="end" label="Save as"
+          onClose={refocus => {
+            if (!refocus) saveMenuPressedAway.current = Date.now();
+            setSaveMenu(null);
+          }}
+          items={saveFormats}
         />
       )}
       <TabExportDialog

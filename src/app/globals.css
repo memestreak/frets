@@ -733,6 +733,8 @@ button {
   /* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
      controls, stops 6px short of it), then the controls. The toggle never moves. */
   .tab-playback-row { margin-top: 12px; }
+  /* Under a text view: the save button at the right, where the playback row has it in Standard. */
+  .tab-card-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
   .tab-playback-rule { display: flex; align-items: center; gap: 6px; }
   .tab-playback-line { flex: 1; height: 1px; background: var(--line); }
   /* Very small and round, with a green triangle. */

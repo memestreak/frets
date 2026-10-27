@@ -13,6 +13,8 @@ interface ShapeMenuProps {
   y: number;
   label: string;
   items: MenuItem[];
+  /** 'end': the menu's right edge goes at x (a menu opened from a button at the right of something). */
+  align?: 'start' | 'end';
   /**
    * Esc, Tab or an item chosen (`refocus`: focus goes back where the menu
    * came from), or a press outside, a scroll or a resize.
@@ -25,7 +27,7 @@ interface ShapeMenuProps {
  * ↑ ↓ (and Home, End) move between items. Arrow keys go no further, so the
  * page's ← → don't step the shape behind it.
  */
-export function ShapeMenu({ x, y, label, items, onClose }: ShapeMenuProps) {
+export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: ShapeMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
 
@@ -36,11 +38,11 @@ export function ShapeMenu({ x, y, label, items, onClose }: ShapeMenuProps) {
     const { width, height } = el.getBoundingClientRect();
     const margin = 8;
     setPos({
-      left: x + width + margin > window.innerWidth ? Math.max(margin, x - width) : x,
+      left: align === 'end' || x + width + margin > window.innerWidth ? Math.max(margin, x - width) : x,
       top: y + height + margin > window.innerHeight ? Math.max(margin, y - height) : y,
     });
     el.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-  }, [x, y]);
+  }, [x, y, align]);
 
   const close = useEffectEvent(onClose);
   useEffect(() => {
