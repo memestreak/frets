@@ -101,6 +101,8 @@ export default function TabPage() {
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
   /** The chord name, text, section, tempo or capo picked by a press: outlined, with Edit and Delete beside it. */
   const [picked, setPicked] = useState<WordHit | null>(null);
+  /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
+  const lit = editing && !picked;
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -685,7 +687,8 @@ export default function TabPage() {
       <HoverTips>
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
-          isOn={id => editing && isOn(clip, cursor, id)} kinds={noteKinds(clip, editing ? cursor : null)}
+          // Lit for the cursor's notes only: not while a word over the tab is picked, nor off the tab.
+          isOn={id => lit && isOn(clip, cursor, id)} kinds={noteKinds(clip, lit ? cursor : null)}
           onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
           onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
