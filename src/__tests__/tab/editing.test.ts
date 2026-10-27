@@ -4,7 +4,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
 import {
   fewestRests, clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
-  deleteColumns, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
+  deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
   stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, type Cursor,
 } from '@/features/tab/editing';
 
@@ -175,6 +175,22 @@ describe('moving', () => {
     // Only an eighth is left: the rest is an eighth.
     const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
     expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
+  });
+
+  it('fills the bar it leaves going left, after its last column', () => {
+    const clip = clipOf('5.3.2 5.3.2 | 7.3.4 | 9.3.1 |');
+    const moved = moveColumn(clip, at(1, 0, 2), -1);
+    expect(bars(moved.clip)).toBe('5.3.2 5.3.2 |\n7.3.4 r.2{d} |\n9.3.1 |');
+    expect(moved.cursor).toEqual(at(0, 1, 2));
+    // Within a bar, and when selecting, nothing is added.
+    expect(moveColumn(clip, at(2, 0, 2), -1).clip).toBe(clip);
+    expect(moveColumn(clip, at(1, 0, 2), -1, false).clip).toBe(clip);
+  });
+
+  it('fills a bar with the fewest rests, and leaves a full one alone', () => {
+    const clip = clipOf('5.3.2 | 7.3.1 |');
+    expect(bars(fillBar(clip, 0))).toBe('5.3.2 r.2 |\n7.3.1 |');
+    expect(fillBar(clip, 1)).toBe(clip);
   });
 
   it('fills an emptied bar with one rest where one will do', () => {
