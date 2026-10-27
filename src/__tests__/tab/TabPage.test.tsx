@@ -378,6 +378,21 @@ describe('TabPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
     });
 
+    it('sets the key signature on the piano keys, Major or Minor keeping its signs', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5');
+      fireEvent.click(screen.getByRole('button', { name: 'Key signature from this bar' }));
+      const panel = screen.getByRole('dialog', { name: 'Key signature' });
+      expect(panel).toHaveTextContent('Key signature: C major');
+      // D♯ is a key no signature writes; the tile picks E♭, as it names it.
+      fireEvent.click(within(panel).getByRole('radio', { name: 'E♭' }));
+      expect(panel).toHaveTextContent('Key signature: E♭ major');
+      fireEvent.click(within(panel).getByRole('button', { name: 'Minor' }));
+      expect(panel).toHaveTextContent('Key signature: C minor');
+      expect(alphaTex()).toBe('\\ks Cminor 5.1.4 |');
+    });
+
     it('keeps the count when what is typed isn\'t 1 to 32', () => {
       renderAt();
       pressFirstTimeSignature();

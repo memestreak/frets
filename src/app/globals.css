@@ -849,17 +849,6 @@ button {
     width: max-content; color: var(--ink);
   }
   .tab-bar-time-title { font-size: 13px; font-weight: 700; }
-  /* The key signature panel's pickers (mocks b and c; a is the shared KeyPicker). */
-  .tab-key-cell { cursor: pointer; }
-  .tab-key-cell:hover:not([aria-checked='true']) { fill: var(--line); }
-  .tab-key-grid { display: grid; grid-template-columns: repeat(5, auto); gap: 4px; }
-  .tab-key-chip {
-    display: grid; justify-items: center; gap: 2px; padding: 4px 4px 6px; cursor: pointer;
-    font: 600 12px/1 var(--font-sans); color: var(--ink);
-    background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-sm);
-  }
-  .tab-key-chip:hover:not([aria-checked='true']) { background: var(--surface-sunken); }
-  .tab-key-chip[aria-checked='true'] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
   .tab-tool { width: 30px; height: 30px; padding: 0; }
   /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
   .tab-tool-box { position: relative; display: inline-flex; }

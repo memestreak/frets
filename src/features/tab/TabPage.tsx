@@ -25,7 +25,7 @@ import {
 } from './editing';
 import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type TextHit, type WordHit } from './layout';
 import { markBox, markTool, type MarkHit } from './marks';
-import { BarKeyPanel, type KeyPanelMock } from './BarKeyPanel';
+import { BarKeyPanel } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { WordField } from './WordField';
 import { TabClip } from './TabClip';
@@ -137,11 +137,6 @@ export default function TabPage() {
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
-  /** Which mocked key picker the panel shows (`?mock=a|b|c`), until one is chosen. */
-  const [keyMock] = useState<KeyPanelMock>(() => {
-    const m = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('mock');
-    return m === 'b' || m === 'c' ? m : 'a';
-  });
   const editorRef = useRef<HTMLDivElement>(null);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
@@ -945,7 +940,7 @@ export default function TabPage() {
           )}
           {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
             <BarKeyPanel
-              clip={clip} bar={keyBar} {...barTimeSpot(clip, clipWidth, parts, keyBar)} mock={keyMock}
+              clip={clip} bar={keyBar} {...barTimeSpot(clip, clipWidth, parts, keyBar)}
               onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
             />
           )}

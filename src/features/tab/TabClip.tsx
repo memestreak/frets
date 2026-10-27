@@ -256,9 +256,10 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   ['T', 'A', 'B'].forEach((letter, k) => parts.push(
     <text key={`clef-${letter}`} x={clefX} y={rows.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
-  // The time signature stands in front of the staff, and a change just inside the bar it starts.
-  if (system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
-  for (const bar of system.bars) {
+  // The time signature stands in front of the staff, and a change just inside the bar it starts; under
+  // the notation staff, only on that staff (Jeremy, 2026-10-27).
+  if (!rows.score && system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
+  for (const bar of rows.score ? [] : system.bars) {
     if (bar.timeX !== null && bar.bar.time) {
       parts.push(<TimeNumbers key={`time-${bar.index}`} time={bar.bar.time} x={bar.timeX} rows={rows} look={look} />);
     }

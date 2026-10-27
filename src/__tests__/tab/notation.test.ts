@@ -113,3 +113,20 @@ describe('a key change at the start of a line', () => {
     expect(narrow.systems[1].bars[0].keyX).toBeNull();
   });
 });
+
+describe('time signatures with the staff shown', () => {
+  it('are pressed on the staff, not the tab', async () => {
+    const alphaTab = await import('@coderline/alphatab');
+    const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
+    const { layoutClip, stringY, textAt } = await import('@/features/tab/layout');
+    const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const both = layoutClip(read.clip, 900, 'both');
+    const x = both.systems[0].timeX!;
+    const score = both.rows.score!;
+    expect(textAt(both, x, (score.top + score.bottom) / 2)).toEqual({ kind: 'time', bar: 0 });
+    expect(textAt(both, x, stringY(both.rows, 2))).toBeNull();
+    const tab = layoutClip(read.clip, 900, 'tab');
+    expect(textAt(tab, x, stringY(tab.rows, 2))).toEqual({ kind: 'time', bar: 0 });
+  });
+});

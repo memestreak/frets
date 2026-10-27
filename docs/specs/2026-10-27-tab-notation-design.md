@@ -14,6 +14,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
 - In **Both** the staff carries the rhythm (stems, flags, beams, rests, dots,
   tuplet numbers, ties) and the tab drops its own stems. **Tab** alone is drawn
   as before.
+- With the staff shown, the time signatures (the first line's and every
+  change) are drawn on the staff only, and pressed there; the tab keeps their
+  room so the bars line up.
 - Export (PNG, SVG, copy), the playhead and the loop follow the parts shown.
 
 ## Pitch and spelling
@@ -37,15 +40,9 @@ Major | Minor keeps the signature (G major becomes E minor). Bars after the
 first have "Remove the change". A change that starts a line is drawn once, as
 that line's own key signature.
 
-The panel's picker is mocked three ways until Jeremy picks one
-(`?mock=a`, `b`, `c` on the page):
-
-- **a**: the shared piano `KeyPicker`, each tile naming the key a signature can
-  write (D♯ major is E♭).
-- **b**: a small circle of fifths, majors outside and relative minors inside;
-  the three bottom cells hold two spellings and a second press swaps them.
-- **c**: every signature drawn small, seven flats to seven sharps, named for
-  Major or Minor.
+The key is picked on the shared piano `KeyPicker` (Jeremy chose it over a
+circle of fifths and a grid of drawn signatures): each tile names the key a
+signature can write, so D♯ major is written E♭ major.
 
 ## Editing
 
