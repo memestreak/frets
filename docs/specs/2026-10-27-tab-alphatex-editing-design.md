@@ -41,16 +41,19 @@ or both:
 
 ## Formatting and comments
 
-Jeremy's pick 1 of: rewrite on leaving, keep the text until an edit
-elsewhere, keep comments in the clip.
+Jeremy first picked 1 of: rewrite on leaving the view, keep the text until an
+edit elsewhere, keep comments in the clip. After trying it he asked why the
+text was rewritten on every switch of view; nothing required it, so he chose
+the second (2026-10-27):
 
-- The text stays as typed, with its spacing and comments, while the view is
-  open.
-- Leaving the view, or an edit that changes the clip from outside the box
-  (an undo, an import, an example), writes the clip out again in Frets' own
-  layout. Comments are dropped then.
+- The text stays as typed, with its spacing and comments, across switches of
+  view, even when it has errors.
+- Only an edit that changes the clip from outside the box (on the Standard
+  view, an undo, an import, an example) writes the clip out again in Frets'
+  own layout. Comments are dropped then.
 - Each line holding a comment gets a grey ⚠ whose tip says "Comments are not
   kept", so dropping one is no surprise.
+- The typed text is not saved: a reload shows the saved clip written out.
 - Keeping comments in the clip was left for later.
 
 ## The editor
@@ -60,6 +63,9 @@ Jeremy's pick 1 of: a plain text box, or CodeMirror.
 - A plain `<textarea>` in Fretwood styling: a raised surface with the strong
   line border, the monospace face with no ligatures, and no syntax colours
   or new library.
+- The text as typed and the clip it was typed against are held by the page
+  (`draft` in `TabPage.tsx`); the box shows it while the clip is still that
+  clip.
 - The textarea lies over a copy of its lines (`AlphaTexEditor.tsx`). The copy
   draws the line numbers and ⚠ in a margin to the left and the underlines
   under the transparent text. Both wrap long lines the same way, so on a

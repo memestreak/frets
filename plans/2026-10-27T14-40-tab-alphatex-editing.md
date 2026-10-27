@@ -10,7 +10,7 @@ Spec: `docs/specs/2026-10-27-tab-alphatex-editing-design.md`.
    applied on unmount. The pointer finds underlines by their boxes and sets
    the textarea's `data-tip`.
 4. `TabPage.tsx`: a `draft` (text and the clip it was typed against). The
-   text is shown only while the clip is that clip, and cleared on changing
+   text is shown only while the clip is that clip, across changes of
    view. `applyAlphaTex` dispatches `replace`.
 5. `HoverTips`: restart when the `data-tip` text changes on the same
    element.

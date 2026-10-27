@@ -89,8 +89,9 @@ export default function TabPage() {
   // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
   const clipWidth = boxWidth;
   /**
-   * The AlphaTex view's text as typed, and the clip it was typed against: kept until the view is
-   * left, or until an edit elsewhere (an undo, an import) changes the clip; then the clip is written out again.
+   * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
+   * view, until an edit elsewhere (on the Standard view, an undo, an import) changes the clip; then the
+   * clip is written out again in Frets' own layout, without comments (Jeremy, 2026-10-27).
    */
   const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
   const alphaTexText = draft && draft.clip === clip ? draft.text : writeAlphaTex(clip);
@@ -149,8 +150,6 @@ export default function TabPage() {
       setEditing(false);
       setPicked(null);
     }
-    // Back in the AlphaTex view, the clip is written out in Frets' own layout, without comments.
-    if (next !== view) setDraft(null);
     setView(next);
   };
   /** A clip read from the AlphaTex view's text: one undo step, and the text stays as typed. */

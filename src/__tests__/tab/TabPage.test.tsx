@@ -652,17 +652,36 @@ describe('TabPage export', () => {
       await waitFor(() => expect(screen.getByTestId('margin-error-1')).toHaveAttribute('data-tip', 'Frets reads six-string tab; this has 7 strings.'), SLOW);
     });
 
-    it('takes the last keys when the view is left before they are read, and writes the clip out again', async () => {
+    it('takes the last keys when the view is left before they are read, and keeps the text as typed', async () => {
       renderAt(`#tab=${encodeURIComponent(TEX)}`);
       await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       await settle();
-      type('// gone\n\\title "Quick"\n:4 5.6 |');
+      const typed = '// kept\n\\title "Quick"\n:4 5.6 |';
+      type(typed);
       fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
       expect(heading()).toHaveTextContent('Quick');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-      expect(alphaTexText()).not.toContain('gone');
-      expect(alphaTexText()).toContain('\\title "Quick"');
+      expect(alphaTexText()).toBe(typed);
+    });
+
+    it('writes the clip out again only once an edit on the Standard view changes it', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const typed = '// kept\n\\title "Mine"\n:4 5.6 |';
+      type(typed);
+      await waitFor(() => expect(heading()).toHaveTextContent('Mine'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).toBe(typed);
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+      act(() => editor.focus());
+      fireEvent.keyDown(editor, { key: '7' });
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).not.toContain('kept');
+      expect(alphaTexText()).toContain('\\title "Mine"');
     });
   });
 
