@@ -182,6 +182,7 @@ export default function TabPage() {
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, {
     loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
+    transpose: playbackSettings.transpose,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     onStopAt: column => {

@@ -2,17 +2,20 @@
 
 /**
  * The playback options, from a right-click on Play (Jeremy, 2026-10-27): whether Stop leaves the
- * playback line where the playhead stopped, and whether loops rest between rounds, and for how long.
+ * playback line where the playhead stopped, whether loops rest between rounds and for how long, and
+ * how many semitones playback is transposed by.
  * A small menu at the press, like the shapes' menu; it stays open while its options are changed, and
  * a press elsewhere, a scroll or Esc closes it.
  */
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
-import { NumberField } from './NumberField';
+import { NumberField, resetOnDoubleClick } from './NumberField';
 
 /** The rest between loops, in seconds: its range and step. */
 export const MIN_LOOP_PAUSE = 0.5;
 export const MAX_LOOP_PAUSE = 10;
 const LOOP_PAUSE_STEP = 0.5;
+/** How far playback may be transposed, in semitones either way: an octave. */
+export const MAX_TRANSPOSE = 12;
 
 export interface PlaybackOptionValues {
   /** Stop puts the playback line where the playhead was, so the next Play goes on from there. */
@@ -20,6 +23,8 @@ export interface PlaybackOptionValues {
   /** Loops rest between rounds, for `loopPauseSeconds`. */
   loopPause: boolean;
   loopPauseSeconds: number;
+  /** Semitones playback is moved by, up or down; 0 plays as written. The tab itself is unchanged. */
+  transpose: number;
 }
 
 function Check({ on }: { on: boolean }) {
@@ -107,6 +112,20 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
           value={values.loopPauseSeconds} min={MIN_LOOP_PAUSE} max={MAX_LOOP_PAUSE} step={LOOP_PAUSE_STEP} decimals={1} unit="s"
           label="Pause between loops (seconds)" upLabel="Longer pause" downLabel="Shorter pause"
           onChange={loopPauseSeconds => onChange({ ...values, loopPauseSeconds })}
+        />
+      </div>
+      {/* A double-click on the label or the number puts it back to 0. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}
+      <div className="tab-options-row" onDoubleClick={e => resetOnDoubleClick(e, () => onChange({ ...values, transpose: 0 }))}>
+        {/* Not a toggle: 0 is off. Lined up with the items' text, past their tick. */}
+        <span className="tab-options-item tab-options-label">
+          <Check on={false} />
+          Transpose
+        </span>
+        <NumberField
+          value={values.transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1} unit="semitones"
+          label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down"
+          onChange={transpose => onChange({ ...values, transpose })}
         />
       </div>
     </div>

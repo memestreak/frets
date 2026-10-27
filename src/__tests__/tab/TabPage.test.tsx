@@ -517,6 +517,20 @@ describe('TabPage playback', () => {
     fireEvent.keyDown(seconds, { key: 'Enter' });
     expect(seconds).toHaveValue('2.3');
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.3 });
+    // Transpose: the buttons, a typed number with its sign, and a double-click back to 0.
+    const transpose = screen.getByRole('spinbutton', { name: 'Transpose (semitones)' });
+    expect(transpose).toHaveValue('0');
+    fireEvent.click(screen.getByRole('button', { name: 'Transpose up' }));
+    expect(transpose).toHaveValue('+1');
+    fireEvent.change(transpose, { target: { value: '-5' } });
+    fireEvent.keyDown(transpose, { key: 'Enter' });
+    expect(transpose).toHaveValue('-5');
+    fireEvent.change(transpose, { target: { value: '-40' } });
+    fireEvent.keyDown(transpose, { key: 'Enter' });
+    expect(transpose).toHaveValue('-12');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ transpose: -12 });
+    fireEvent.doubleClick(screen.getByText('Transpose'));
+    expect(transpose).toHaveValue('0');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
   });

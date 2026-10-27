@@ -59,3 +59,20 @@ off but the loop range stays set, so the synth finishes at the range end; on
 - **Moving the playhead lets the selection go** (Jeremy, 2026-10-27): a
   press above or below the staff while playing jumps the playhead there and
   clears the selection, as it already did while stopped. Loop points stay.
+
+## Transpose
+
+Jeremy, 2026-10-27: "allows me in the playback menu to transpose playback by
+a specified number of semitones", and "double click on the label or widget
+should reset it".
+
+- A third row in the menu: "Transpose" and a number field, −12 to +12
+  semitones in steps of 1 (a plus sign shown above 0), starting at 0. Not a
+  toggle: 0 plays as written. Saved as `transpose` in `frets.tab.playback`.
+- A double-click on its label or its number puts it back to 0 (not on the
+  step buttons), as Speed's does to 100% (`resetOnDoubleClick` in
+  `NumberField.tsx`).
+- Only what is heard moves: the tab, the staff and every export stay as
+  written. It applies at once, to notes already sounding, and to notes heard
+  as they are entered. It is the synthesizer's own transposition
+  (`applyTranspositionPitches`) on every channel but General MIDI's drums.
