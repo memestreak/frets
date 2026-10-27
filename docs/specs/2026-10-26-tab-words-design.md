@@ -39,9 +39,9 @@ nothing then has to be placed after text whose width is unknown.
 - **Click to pick:** a press on a drawn chord name, text, section, tempo or
   capo moves the cursor to its column or bar and picks the word (Jeremy,
   2026-10-27; a press had opened its field at once): it is outlined like the
-  cursor, with two small buttons to its left, Edit (a pencil) and Delete (a
-  bin); where there is no room on the left, as at a line's start, they go
-  on its right. Enter edits it and Delete or Backspace takes it away; Esc,
+  cursor, with two small buttons to its right, Edit (a pencil) and Delete (a
+  bin) (Jeremy picked the right over the left after trying both); at the
+  tab's right edge they go on its left. Enter edits it and Delete or Backspace takes it away; Esc,
   any other key, a press elsewhere or the tab losing the focus lets it go.
   While a word is picked the column cursor isn't drawn. A time signature
   still opens its panel at once.

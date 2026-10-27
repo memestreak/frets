@@ -252,7 +252,7 @@ export default function TabPage() {
 
   /**
    * A press on a drawn chord name, text, section, tempo or capo picks it, with the cursor on its column or
-   * bar: outlined, with Edit and Delete beside it, and Enter or Delete do the same (Jeremy, 2026-10-27;
+   * bar: outlined, with Edit and Delete to its right, and Enter or Delete do the same (Jeremy, 2026-10-27;
    * a press had opened its field at once). One on a time signature opens its bar's panel.
    */
   const onPickText = (hit: TextHit) => {
@@ -821,7 +821,7 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
   return { x: FIELD_WIDTH / 2, y: 0 };
 }
 
-/** Edit and Delete for a picked word, to its left (to its right when there is no room). */
+/** Edit and Delete for a picked word, to its right (Jeremy, 2026-10-27), or its left at the tab's right edge. */
 function WordTools({ clip, width, hit, onEdit, onDelete }: {
   clip: Clip;
   width: number;
@@ -833,7 +833,8 @@ function WordTools({ clip, width, hit, onEdit, onDelete }: {
   if (!box) return null;
   const TOOLS_WIDTH = 58;
   const GAP = 4;
-  const left = box.x - GAP - TOOLS_WIDTH >= 0 ? box.x - GAP - TOOLS_WIDTH : box.x + box.width + GAP;
+  const right = box.x + box.width + GAP;
+  const left = right + TOOLS_WIDTH <= width ? right : box.x - GAP - TOOLS_WIDTH;
   // The buttons keep the focus on the tab, so the word stays picked and its keys still work.
   const keep = (e: React.MouseEvent) => e.preventDefault();
   return (
