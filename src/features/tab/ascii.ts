@@ -15,9 +15,17 @@ import {
   type TimeSignature,
 } from './clip';
 
+/** Where in the text an error is: from and to are string indexes (to is past its last character). */
+export interface TextSpot {
+  from: number;
+  to: number;
+  message: string;
+}
+
+/** A read clip, or why there is none; an alphaTex read also says where its errors are (`spots`). */
 export type ReadResult =
   | { ok: true; clip: Clip; warnings: string[] }
-  | { ok: false; errors: string[] };
+  | { ok: false; errors: string[]; spots?: TextSpot[] };
 
 /* ———————————————————————————— reading ———————————————————————————— */
 

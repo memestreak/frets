@@ -35,6 +35,9 @@ function renderAt(hash = '') {
 }
 
 const heading = () => screen.getByRole('heading', { level: 1 });
+/** The AlphaTex view's text box, and the text in it. */
+const alphaTexBox = () => screen.getByRole('textbox', { name: 'alphaTex' }) as HTMLTextAreaElement;
+const alphaTexText = () => alphaTexBox().value;
 const notice = () => screen.getByTestId('tab-notice');
 const paste = async (text: string) => {
   const event = new Event('paste', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
@@ -150,7 +153,7 @@ describe('TabPage', () => {
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-    expect(screen.getByTestId('tab-ascii').textContent).toContain('\\title "Riff"');
+    expect(alphaTexText()).toContain('\\title "Riff"');
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.getByTestId('tab-ascii').textContent).toContain('Title: Riff');
     expect(screen.queryByTestId('tab-column')).toBeNull();
@@ -183,7 +186,7 @@ describe('TabPage', () => {
     };
     const alphaTex = () => {
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-      const text = screen.getByTestId('tab-ascii').textContent ?? '';
+      const text = alphaTexText();
       fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
       // The editor went away with the Tab view; back on it, the keys go to the tab again, the cursor where it was.
       act(() => editor().focus());
@@ -299,7 +302,7 @@ describe('TabPage', () => {
       expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
       expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-      expect(screen.getByTestId('tab-ascii').textContent).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
+      expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
       fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
       // An empty field, or 0, takes the capo off.
       fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
@@ -605,6 +608,81 @@ describe('TabPage export', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(dialog).not.toHaveAttribute('open');
+  });
+
+  describe('the AlphaTex view (issue #126)', () => {
+    const type = (text: string) => fireEvent.change(alphaTexBox(), { target: { value: text } });
+
+    it('changes the clip from the text once it reads cleanly, as one undo step, and keeps the text as typed', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const typed = '\\title   "Typed"\n// my riff\n:8 5.5 7.5 |';
+      type(typed);
+      await waitFor(() => expect(heading()).toHaveTextContent('Typed'), SLOW);
+      expect(alphaTexText()).toBe(typed);
+      expect(screen.getByTestId('margin-note-2')).toHaveAttribute('data-tip', 'Comments are not kept');
+      // An undo from outside the text box takes the clip back, and the text with it.
+      undo();
+      expect(heading()).toHaveTextContent('Tex riff');
+      expect(alphaTexText()).toContain('\\title "Tex riff"');
+    });
+
+    it('marks errors in the margin and under the text, and leaves the clip as it was', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      type('\\title "Broken"\n:4 5.6 3.q |');
+      await waitFor(() => expect(alphaTexBox()).toHaveAttribute('aria-invalid', 'true'), SLOW);
+      expect(heading()).toHaveTextContent('Tex riff');
+      expect(screen.getByTestId('margin-error-2').getAttribute('data-tip')).toMatch(/Unexpected/);
+      expect(screen.getByTestId('alphatex-mirror').querySelector('[data-error]')).toHaveTextContent('q');
+      // Fixed, the marks go and the clip follows.
+      type('\\title "Fixed"\n:4 5.6 3.6 |');
+      await waitFor(() => expect(heading()).toHaveTextContent('Fixed'), SLOW);
+      expect(alphaTexBox()).toHaveAttribute('aria-invalid', 'false');
+      expect(screen.queryByTestId('margin-error-2')).toBeNull();
+    });
+
+    it('marks an error with no place in the text on the first line', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      type('\\tuning (E4 B3 G3 D3 A2 E2 B1)\n5.6 |');
+      await waitFor(() => expect(screen.getByTestId('margin-error-1')).toHaveAttribute('data-tip', 'Frets reads six-string tab; this has 7 strings.'), SLOW);
+    });
+
+    it('takes the last keys when the view is left before they are read, and keeps the text as typed', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      await settle();
+      const typed = '// kept\n\\title "Quick"\n:4 5.6 |';
+      type(typed);
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      expect(heading()).toHaveTextContent('Quick');
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).toBe(typed);
+    });
+
+    it('writes the clip out again only once an edit on the Standard view changes it', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const typed = '// kept\n\\title "Mine"\n:4 5.6 |';
+      type(typed);
+      await waitFor(() => expect(heading()).toHaveTextContent('Mine'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).toBe(typed);
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+      act(() => editor.focus());
+      fireEvent.keyDown(editor, { key: '7' });
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).not.toContain('kept');
+      expect(alphaTexText()).toContain('\\title "Mine"');
+    });
   });
 
   it('has a copy button in every view: the picture in Tab, the text in ASCII and alphaTex', () => {
