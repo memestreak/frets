@@ -44,3 +44,8 @@ off but the loop range stays set, so the synth finishes at the range end; on
   the text, trimmed, as one undo step; Esc keeps the old title. Empty is
   "Untitled clip". The Export dialog's Name already starts on the clip's
   name, so it follows the title.
+- **A press after a note moves the line past it** (Jeremy, 2026-10-27): a
+  press above or below the staff puts the playback line on the note pressed
+  (within a head's half width, 8 px, right of its centre), else on the first
+  note after the press, not the nearest one. Past a bar's last note, the
+  next bar's first; past the clip's last, the last (`columnAt`).

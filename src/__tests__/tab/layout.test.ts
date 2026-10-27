@@ -119,9 +119,15 @@ describe('pressing the drawing', () => {
     expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();
   });
 
-  it('finds the column nearest a press above or below the staff, for the playback line', () => {
+  it('finds the column pressed above or below the staff, else the next one, for the playback line', () => {
     expect(columnAt(layout, second.x + 2, rows.stemBottom)).toBe(1);
     expect(columnAt(layout, first.x, 0)).toBe(0);
+    expect(columnAt(layout, first.x - 10, 0)).toBe(0);
+    // Past a note: the next one, even nearer the note just passed.
+    expect(columnAt(layout, first.x + (second.x - first.x) / 4, 0)).toBe(1);
+    // Past the last column of the clip: the last.
+    const bar = layout.systems[0].bars[0];
+    expect(columnAt(layout, bar.x1 - 1, 0)).toBe(bar.columns[bar.columns.length - 1].index);
     expect(columnAt(layout, layout.systems[0].bars[0].x1 + 20, rows.stemBottom)).toBeNull();
   });
 
