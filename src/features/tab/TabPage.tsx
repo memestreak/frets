@@ -4,7 +4,7 @@ import {
   type FocusEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
@@ -13,16 +13,16 @@ import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
+  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
-import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
+import { layoutClip, RUN_MARKS, textBox, type RunMark, type TextHit, type WordHit } from './layout';
 import { BarTimePanel } from './BarTimePanel';
 import { WordField } from './WordField';
 import { TabClip } from './TabClip';
@@ -31,7 +31,7 @@ import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
@@ -99,6 +99,12 @@ export default function TabPage() {
   const [editing, setEditing] = useState(false);
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
+  /** The chord name, text, section, tempo or capo picked by a press: outlined, with Edit and Delete beside it. */
+  const [picked, setPicked] = useState<WordHit | null>(null);
+  /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
+  const lit = editing && !picked;
+  /** The palette tool that sets the picked word, lit while it is picked. */
+  const pickedTool = editing && picked ? WORD_TOOL[picked.kind] : null;
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -194,6 +200,7 @@ export default function TabPage() {
     if (next !== clip) dispatch({ type: 'replace', clip: next });
     setCursor(nextCursor);
     setSelection(nextSelection);
+    setPicked(null);
     setNotice(null);
   };
 
@@ -236,23 +243,48 @@ export default function TabPage() {
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     if (w.kind === 'tempo') {
-      const typed = Number(value);
-      commit(setTempo(clip, w.bar, value === '' ? null : Math.min(MAX_BPM, Math.max(MIN_BPM, typed))));
+      // Text that isn't a tempo leaves it as it was.
+      const tempo = readTempo(value);
+      if (tempo !== undefined) commit(setTempo(clip, w.bar, tempo));
     }
     // A capo of 0 is no capo.
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
+  /** Where a word over the tab belongs: its column, or its bar's first. */
+  const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
+
   /**
- * A press on a drawn chord name, text, section, tempo or capo opens its field there, with the cursor on its
- * column or bar; one on a time signature opens its bar's panel.
- */
+   * A press on a drawn chord name, text, section, tempo or capo picks it, with the cursor on its column or
+   * bar: outlined, with Edit and Delete to its right, and Enter or Delete do the same (Jeremy, 2026-10-27;
+   * a press had opened its field at once). One on a time signature opens its bar's panel.
+   */
   const onPickText = (hit: TextHit) => {
-    const place = 'index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 };
-    const at = { ...cursor, ...place };
+    const at = wordPlace(hit);
     commit(clip, at, null);
-    if (hit.kind === 'time') setTimeBar(hit.bar);
-    else openWord(hit.kind, at);
+    if (hit.kind === 'time') {
+      setTimeBar(hit.bar);
+      return;
+    }
+    setPicked(hit);
+    editorRef.current?.focus();
+  };
+
+  /** Opens the picked word's field. */
+  const editPicked = (hit: WordHit) => {
+    const at = wordPlace(hit);
+    commit(clip, at, null);
+    openWord(hit.kind, at);
+  };
+
+  /** Takes the picked word away; the cursor stays where it was put. */
+  const deletePicked = (hit: WordHit) => {
+    const at = wordPlace(hit);
+    if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at);
+    if (hit.kind === 'text') commit(setBeatText(clip, at, ''), at);
+    if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at);
+    if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at);
+    if (hit.kind === 'capo') commit(setCapo(clip, null), at);
   };
 
   /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
@@ -265,6 +297,24 @@ export default function TabPage() {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
+    // A picked word: Delete takes it away, Enter edits it, Esc lets it go; any other key lets it go and does what it does.
+    if (picked) {
+      if (key === 'Delete' || key === 'Backspace') {
+        e.preventDefault();
+        deletePicked(picked);
+        return;
+      }
+      if (key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        editPicked(picked);
+        return;
+      }
+      setPicked(null);
+      if (key === 'Escape') {
+        e.preventDefault();
+        return;
+      }
+    }
     if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
       e.preventDefault();
@@ -400,6 +450,7 @@ export default function TabPage() {
    */
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     setEditing(false);
+    setPicked(null);
     const to = e.relatedTarget;
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;
@@ -638,7 +689,8 @@ export default function TabPage() {
       <HoverTips>
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
-          isOn={id => editing && isOn(clip, cursor, id)} kinds={noteKinds(clip, editing ? cursor : null)}
+          // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
+          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id))} kinds={noteKinds(clip, lit ? cursor : null)}
           onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
           onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
@@ -661,9 +713,10 @@ export default function TabPage() {
                 <HoverTips>
                   <TabClip
                     clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                    onMiss={() => { setSelection(null); setPlayMark(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
                     onPickColumn={showPlayback ? pickColumn : undefined}
-                    highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                    highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null }}
+                    picked={editing ? picked : null}
                     errors={barErrors(clip)}
                   />
                 </HoverTips>
@@ -678,6 +731,12 @@ export default function TabPage() {
           {view === 'tab' && clipWidth > 0 && copyButton}
           {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
+          {view === 'tab' && editing && picked && clipWidth > 0 && (
+            <WordTools
+              clip={clip} width={clipWidth} hit={picked}
+              onEdit={() => editPicked(picked)} onDelete={() => deletePicked(picked)}
+            />
+          )}
           {view === 'tab' && word && clipWidth > 0 && (
             <WordField
               key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, word)}
@@ -746,15 +805,17 @@ function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: numbe
   if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
   if (kind === 'capo') return clip.capo ? String(clip.capo) : '';
-  return b?.tempo ? String(b.tempo.bpm) : '';
+  return tempoText(b?.tempo);
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
 function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
   const layout = layoutClip(clip, width);
   const { rows } = layout;
-  const FIELD_WIDTH = 180;
-  const FIELD_HEIGHT = 64;
+  // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
+  const FIELD_WIDTH = kind === 'capo' ? 150 : 180;
+  // A tempo's field has two boxes, bpm and a label.
+  const FIELD_HEIGHT = kind === 'tempo' ? 120 : 64;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
@@ -765,6 +826,34 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };
+}
+
+/** Edit and Delete for a picked word, to its right (Jeremy, 2026-10-27), or its left at the tab's right edge. */
+function WordTools({ clip, width, hit, onEdit, onDelete }: {
+  clip: Clip;
+  width: number;
+  hit: WordHit;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const box = textBox(layoutClip(clip, width), hit, clip.capo ?? null);
+  if (!box) return null;
+  const TOOLS_WIDTH = 58;
+  const GAP = 4;
+  const right = box.x + box.width + GAP;
+  const left = right + TOOLS_WIDTH <= width ? right : box.x - GAP - TOOLS_WIDTH;
+  // The buttons keep the focus on the tab, so the word stays picked and its keys still work.
+  const keep = (e: React.MouseEvent) => e.preventDefault();
+  return (
+    <span className="tab-word-tools" style={{ left, top: box.y + box.height / 2 - 13 }} data-testid="word-tools">
+      <button type="button" className="tab-word-tool" aria-label="Edit" data-tip="Edit (Enter)" onMouseDown={keep} onClick={onEdit}>
+        <PencilIcon />
+      </button>
+      <button type="button" className="tab-word-tool" aria-label="Delete" data-tip="Delete" onMouseDown={keep} onClick={onDelete}>
+        <TrashIcon />
+      </button>
+    </span>
+  );
 }
 
 /** Where a bar's time signature panel goes: under the staff of the line the bar is on, from the bar's start, inside the tab's width. */

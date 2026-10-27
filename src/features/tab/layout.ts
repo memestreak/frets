@@ -71,11 +71,19 @@ export function rowsFor(clip: Clip): Rows {
     accents: notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
-  const row = (on: boolean) => (on ? (y += ROW_GAP) : null);
+  // A row comes ROW_GAP after the one before, plus room for a section's box when either is the section row.
+  let lastWasSection = false;
+  const row = (on: boolean, section = false) => {
+    if (!on) return null;
+    const first = y === FIRST_ROW - ROW_GAP;
+    y += ROW_GAP + (!first && (section || lastWasSection) ? SECTION_ROOM : 0);
+    lastWasSection = section;
+    return y;
+  };
   const rows = {
     capo: row(used.capo),
     tempo: row(used.tempo),
-    section: row(used.section),
+    section: row(used.section, true),
     endings: row(used.endings),
     chords: row(used.chords),
     text: row(used.text),
@@ -182,11 +190,16 @@ export function beatTextWidth(text: string): number {
 }
 
 export const SECTION_SIZE = 11;
+/** A section's boxes: their height and the room between the name and its box's sides. */
+export const SECTION_BOX_HEIGHT = 16;
+export const SECTION_PAD = 5;
+/** Extra room above and below the section row, so its box stands clear of the rows beside it (Jeremy, 2026-10-27). */
+const SECTION_ROOM = 5;
 /** A section's rehearsal mark box (if any) and its name's box, from the bar's start. */
 export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
   const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 8 } : null;
   const x = marker ? marker.width + 4 : 0;
-  return { marker, text: { x, width: section.text.length * 6.4 + 10 } };
+  return { marker, text: { x, width: section.text.length * 6.4 + 2 * SECTION_PAD } };
 }
 
 export const TEMPO_SIZE = 11;
@@ -330,12 +343,54 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
  * What a press on the words over the staff, or on a time signature, is on: a chord name or free text
  * (its column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
  */
-export type TextHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'time' | 'capo'; bar: number };
+export type TextHit = WordHit | { kind: 'time'; bar: number };
 
 export const CAPO_SIZE = 11;
 /** The capo's words, as drawn: "Capo 3". */
 export function capoText(capo: number): string {
   return `Capo ${capo}`;
+}
+
+/** A word over the staff that can be picked: a chord name, free text, a section, a tempo or the capo. */
+export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo'; bar: number };
+
+/**
+ * The box round a drawn word, in the tab's units, as a press finds it (`textAt`); null when it isn't
+ * drawn. A picked word is outlined with it, and its Edit and Delete buttons go beside it.
+ */
+export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
+  const { rows } = layout;
+  const box = (s: number, rowY: number | null, x0: number, x1: number, height = 18) =>
+    rowY === null ? null : { x: x0 - 3, y: s * rows.height + rowY - height / 2, width: x1 - x0 + 6, height };
+  for (let s = 0; s < layout.systems.length; s++) {
+    const system = layout.systems[s];
+    if (hit.kind === 'capo') {
+      if (!system.first || !capo) continue;
+      return box(s, rows.capo, system.lineStart, system.lineStart + capoText(capo).length * 6.5);
+    }
+    if (hit.kind === 'chord' || hit.kind === 'text') {
+      const placed = system.bars.flatMap(b => b.columns).find(c => c.index === hit.index);
+      if (!placed) continue;
+      if (hit.kind === 'chord') {
+        const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
+        return w > 0 ? box(s, rows.chords, placed.x - w / 2, placed.x + w / 2) : null;
+      }
+      const t = placed.column.text;
+      const x0 = placed.x - BEAT_TEXT_INSET;
+      return t ? box(s, rows.text, x0, x0 + beatTextWidth(t)) : null;
+    }
+    if (!('bar' in hit)) continue;
+    const bar = system.bars.find(b => b.index === hit.bar);
+    if (!bar) continue;
+    const x0 = barTextX(bar);
+    if (hit.kind === 'section') {
+      if (!bar.bar.section) return null;
+      const { text } = sectionBoxes(bar.bar.section);
+      return box(s, rows.section, x0, x0 + text.x + text.width, SECTION_BOX_HEIGHT + 6);
+    }
+    return bar.bar.tempo ? box(s, rows.tempo, x0, x0 + tempoParts(bar.bar.tempo).width) : null;
+  }
+  return null;
 }
 
 /** How far from a time signature's centre a press is on it. */

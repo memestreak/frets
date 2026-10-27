@@ -5,9 +5,9 @@
  * it so marks that join a note to the one before it stay true.
  */
 import {
-  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
+  barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, MAX_BPM, MIN_BPM, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
-  type TremoloValue,
+  type Tempo, type TremoloValue,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
 
@@ -561,10 +561,29 @@ export function setSection(clip: Clip, bar: number, text: string): Clip {
   return replaceBar(clip, bar, t ? { ...rest, section: { ...section, text: t } } : rest);
 }
 
-/** The tempo from a bar on; null clears it. A tempo's word ("Slowly") stays when only the number changes. */
-export function setTempo(clip: Clip, bar: number, bpm: number | null): Clip {
-  const { tempo, ...rest } = clip.bars[bar];
-  return replaceBar(clip, bar, bpm === null ? rest : { ...rest, tempo: { ...tempo, bpm } });
+/** The tempo from a bar on, with its label if any ("Slowly"); null clears it. */
+export function setTempo(clip: Clip, bar: number, tempo: Tempo | null): Clip {
+  const rest = without(clip.bars[bar], 'tempo');
+  return replaceBar(clip, bar, tempo === null ? rest : { ...rest, tempo });
+}
+
+/**
+ * A tempo as typed in its field: bpm, then an optional label ("100 A little faster"; Jeremy,
+ * 2026-10-27), the bpm kept within MIN_BPM to MAX_BPM. Nothing typed is null, no tempo; text that
+ * doesn't start with a number is undefined, so the tempo stays as it was.
+ */
+export function readTempo(typed: string): Tempo | null | undefined {
+  const t = typed.trim();
+  if (t === '') return null;
+  const match = /^(\d+)\s*(.*)$/.exec(t);
+  if (!match) return undefined;
+  const bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Number(match[1])));
+  return match[2] ? { bpm, label: match[2] } : { bpm };
+}
+
+/** A tempo as its field shows it: bpm, then the label. */
+export function tempoText(tempo: Tempo | undefined): string {
+  return tempo ? [tempo.bpm, tempo.label].filter(Boolean).join(' ') : '';
 }
 
 /** The capo's fret; null for none. */

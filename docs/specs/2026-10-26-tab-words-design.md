@@ -19,7 +19,8 @@ at the spot each is drawn, and the capo beside the time signature.
 
 Each gets its own row over the staff, only when the clip uses it (`rowsFor`).
 From the top, the rows are: tempo, section, endings, chord names, then the note
-marks' rows.
+marks' rows. The section row has 5px more room above and below than the
+others, so its box stands clear of the words beside it (Jeremy, 2026-10-27).
 
 A chord name's column is at least as wide as the name. A section's box and a
 tempo's hit area are sized by guessing the text's width from its length, since
@@ -36,12 +37,25 @@ nothing then has to be placed after text whose width is unknown.
   - Enter, or leaving the field, sets what was typed. An empty field clears
     it. Esc leaves it as it was.
   - After Enter or Esc, the keys go back to the tab.
-- **Click to edit:** a press on a drawn chord name, section or tempo moves the
-  cursor to its column or bar and opens its field. This follows his P.M. ask:
-  a press on a drawn mark selects what it belongs to.
-- **Tempo:** a whole number from 20 to 400, clamped. Its word ("Slowly") and a
-  section's rehearsal mark are kept when the number or the name changes. They
-  are set only in the text, for now.
+- **Click to pick:** a press on a drawn chord name, text, section, tempo or
+  capo moves the cursor to its column or bar and picks the word (Jeremy,
+  2026-10-27; a press had opened its field at once): it is outlined like the
+  cursor, with two small buttons to its right, Edit (a pencil) and Delete (a
+  bin) (Jeremy picked the right over the left after trying both); at the
+  tab's right edge they go on its left. Enter edits it and Delete or Backspace takes it away; Esc,
+  any other key, a press elsewhere or the tab losing the focus lets it go.
+  While a word is picked the column cursor isn't drawn, and only the palette tool that sets it is lit (Jeremy, 2026-10-27). A time signature
+  still opens its panel at once.
+- **Tempo:** bpm, a whole number from 20 to 400, clamped, and an optional
+  label such as "A little faster" (Jeremy, 2026-10-27; before, the label could
+  be set only in the text), and a press on the label picks it too. The field
+  has two boxes (Jeremy, 2026-10-27; it had been one box taking "100 A little
+  faster"): "Tempo (bpm)", digits only, and "Label (optional)". Tab moves
+  between them; Enter in either, or leaving both, sets the tempo. An empty
+  label drops the label; an empty bpm clears the tempo. A number's box (bpm,
+  capo) is 7 digits wide (Jeremy, 2026-10-27), and the capo's field fits round
+  it. A section's rehearsal mark is kept when its
+  name changes; it is set only in the text, for now.
 - **Capo:** first a raised button beside the time signature. Jeremy found it
   "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in
   the Text group opening the same field as a tempo (1 to 12; empty or 0 takes
