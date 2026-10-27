@@ -605,9 +605,10 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   if (onStaff && system.timeX !== null && Math.abs(x - system.timeX) <= TIME_REACH) return { kind: 'time', bar: 0 };
   const changed = system.bars.find(b => b.timeX !== null && Math.abs(x - b.timeX) <= TIME_REACH);
   if (onStaff && changed) return { kind: 'time', bar: changed.index };
-  // The key signature on the staff, after the clef (the line's own) or inside a bar that changes it.
+  // The clef and the key signature after it (the line's own; a press on the clef opens it even when the
+  // key has no sharps or flats, Jeremy 2026-10-27), or the key inside a bar that changes it.
   if (rows.score && onStaff) {
-    if (x >= system.keyX - 4 && x < system.staffStart) return { kind: 'key', bar: system.bars[0].index };
+    if (x >= system.lineStart && x < system.staffStart) return { kind: 'key', bar: system.bars[0].index };
     const keyed = system.bars.find(b => b.keyX !== null && x >= b.keyX - 4 && x < b.columns[0]?.x - 6);
     if (keyed) return { kind: 'key', bar: keyed.index };
   }

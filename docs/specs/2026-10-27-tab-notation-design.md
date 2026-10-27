@@ -41,6 +41,8 @@ answers are Jeremy's, 2026-10-27, one question at a time.
 
 Like the time signature: a press on a drawn key signature, or the Bars
 palette's ♯♭ button, opens a panel over the clip with the key from that bar on.
+So does a press on a line's clef, for that line's first bar, so a key with no
+sharps or flats can be opened too (Jeremy, 2026-10-27).
 Major | Minor keeps the signature (G major becomes E minor). Bars after the
 first have "Remove the change". A change that starts a line is drawn once, as
 that line's own key signature.
