@@ -130,17 +130,11 @@ export default function TabPage() {
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
   const showPlayback = playbackSettings.shown;
-  // The playback line: put on a column by a press above or below the staff, or by a pause (Jeremy,
+  // The playback line: put on a column by a press above or below the staff (Jeremy,
   // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
   // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
-  // A pause leaves the playback line where it stopped, so Play goes on from there; no string is
-  // picked (Jeremy, 2026-10-27), so the tab gives up the focus and its cursor.
-  const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, column => {
-    setSelection(null);
-    setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
-    editorRef.current?.blur();
-  });
+  const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume);
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
     setPlaybackSettings(s => ({ ...s, shown }));
@@ -219,7 +213,7 @@ export default function TabPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  // While the footer shows, Space anywhere on the page plays and pauses (Jeremy, 2026-10-26), but not
+  // While the footer shows, Space anywhere on the page plays and stops (Jeremy, 2026-10-26), but not
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
 
