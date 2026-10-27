@@ -48,7 +48,7 @@ const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 type View = 'tab' | 'alphatex' | 'ascii';
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'tab', label: 'Tab' }, { id: 'ascii', label: 'ASCII' }, { id: 'alphatex', label: 'alphaTex' },
+  { id: 'tab', label: 'Standard' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
 ];
 
 /** How long after one digit a second one joins it into a two-digit fret. */
