@@ -67,8 +67,8 @@ export interface Playback {
   seek: (index: number) => boolean;
   /** Stops, leaving the cursor where it is: when the footer is hidden. */
   stop: () => void;
-  /** Sounds a column alone once the edit that put a note there has drawn: "Hear notes as you enter them". */
-  hear: (bar: number, column: number) => void;
+  /** Sounds a note alone once the edit that put it there has drawn: "Hear notes as you enter them". */
+  hear: (bar: number, column: number, string: number) => void;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
@@ -117,13 +117,13 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     return making.current;
   };
 
-  // A column to hear, asked for by an edit: heard after the edit's own clip has drawn (and stopped
+  // A note to hear, asked for by an edit: heard after the edit's own clip has drawn (and stopped
   // any playing), and again for each ask, even when the edit changed nothing.
-  const [heard, setHeard] = useState<{ bar: number; column: number; n: number } | null>(null);
+  const [heard, setHeard] = useState<{ bar: number; column: number; string: number; n: number } | null>(null);
   const hearing = useRef(0);
   useEffect(() => {
     if (!heard) return;
-    playerNow().then(p => p.hear(clip, heard.bar, heard.column, sound)).catch(() => undefined);
+    playerNow().then(p => p.hear(clip, heard.bar, heard.column, heard.string, sound)).catch(() => undefined);
     // Only a new ask sounds; the clip and sound are the ones it was asked with.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heard]);
@@ -168,7 +168,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       return true;
     },
     stop: () => player.current?.stop(),
-    hear: (bar, column) => setHeard({ bar, column, n: ++hearing.current }),
+    hear: (bar, column, string) => setHeard({ bar, column, string, n: ++hearing.current }),
   };
 }
 

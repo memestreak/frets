@@ -188,9 +188,9 @@ export default function TabPage() {
       if (playbackSettings.stopAtPlayhead) setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: selectionAsSet });
     },
   });
-  /** A note just entered at a place: its column sounds, with "Hear notes as you enter them" on and the controls showing. */
-  const hearColumn = (at: { bar: number; column: number }) => {
-    if (playbackSettings.hearNotes && showPlayback) playback.hear(at.bar, at.column);
+  /** A note just entered: it sounds, alone, with "Hear notes as you enter them" on and the controls showing. */
+  const hearNote = (at: { bar: number; column: number; string: number }) => {
+    if (playbackSettings.hearNotes && showPlayback) playback.hear(at.bar, at.column, at.string);
   };
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
@@ -506,7 +506,7 @@ export default function TabPage() {
         lastDigit.current = { spot, digit, at: e.timeStamp };
         commit(setFret(clip, cursor, digit));
       }
-      hearColumn(cursor);
+      hearNote(cursor);
       return;
     }
     lastDigit.current = null;
@@ -664,7 +664,7 @@ export default function TabPage() {
     if (key === 'Enter' && !e.altKey && !e.shiftKey) {
       const edit = toggleStaffNote(clip, cursor, pitch);
       toPitch(edit.clip, cursor, pitch, selection);
-      if (edit.string !== null) hearColumn(cursor);
+      if (edit.string !== null) hearNote({ ...cursor, string: edit.string });
       if (edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
       return true;
     }

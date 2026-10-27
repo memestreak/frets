@@ -112,17 +112,19 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
 const HEARD_BPM = 120;
 
 /**
- * A clip of one column, to hear it alone: its notes as plain picked notes (no ties, slides or bends,
- * which need the notes round them), with the clip's tuning and capo. Null for a column with no notes.
+ * A clip of one note, to hear it alone (Jeremy, 2026-10-27: "just play the note added"): the note on a
+ * string of a column as a plain picked note (no tie, slide or bend, which need the notes round it),
+ * with the clip's tuning and capo. Null where there is no note.
  */
-export function columnAlone(clip: Clip, bar: number, column: number): Clip | null {
+export function noteAlone(clip: Clip, bar: number, column: number, string: number): Clip | null {
   const placed = clip.bars[bar]?.columns[column];
-  if (!placed || placed.notes.every(n => n === null)) return null;
-  const notes = placed.notes.map(n => n && {
-    fret: n.fret,
-    ...(n.harmonic && { harmonic: n.harmonic }),
-    ...(n.palmMute && { palmMute: true }),
-    ...(n.ghost && { ghost: true }),
+  if (!placed?.notes[string]) return null;
+  const note = placed.notes[string]!;
+  const notes = placed.notes.map((_, s) => s !== string ? null : {
+    fret: note.fret,
+    ...(note.harmonic && { harmonic: note.harmonic }),
+    ...(note.palmMute && { palmMute: true }),
+    ...(note.ghost && { ghost: true }),
   });
   return {
     ...clip,
@@ -601,19 +603,19 @@ export class TabPlayer {
   }
 
   /**
-   * Sounds one column of a clip on its own, as a note is entered (Jeremy, 2026-10-27): its notes for a
-   * quarter note at 120 bpm, then ringing out. Not while the clip plays. The column is loaded as the
+   * Sounds one note of a clip on its own, as it is entered (Jeremy, 2026-10-27): for a quarter note at
+   * 120 bpm, then ringing out. Not while the clip plays. The note is loaded as the
    * synthesizer's MIDI in place of the clip's (alphaTab's one-time MIDI files play no notes here), so
    * the next Play loads the clip again.
    */
-  async hear(clip: Clip, bar: number, column: number, sound: Sound) {
+  async hear(clip: Clip, bar: number, column: number, string: number, sound: Sound) {
     if (!this.ended) return;
-    const alone = columnAlone(clip, bar, column);
+    const alone = noteAlone(clip, bar, column, string);
     if (!alone) return;
     // A sound's own soundfont shows Loading on Play while it loads; heard, it goes back to Play.
     if (await this.loadFont(sound)) this.onView({ state: 'idle' });
     if (!this.ended) return;
-    // A column still sounding fades out (the output's own fade) before this one starts.
+    // A note still sounding fades out (the output's own fade) before this one starts.
     this.synth.stop();
     this.sound = sound;
     this.clip = null;

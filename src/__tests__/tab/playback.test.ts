@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAlone, columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
+import { noteAlone, columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -69,15 +69,17 @@ describe('playback sounds', () => {
 });
 
 describe('playback', () => {
-  it('hears a column alone: its notes plain, for a quarter at 120 bpm, then ringing out', () => {
+  it('hears one note alone, plain, for a quarter at 120 bpm, then ringing out', () => {
     const clip = clipOf('\\tempo 60 0.6.4 (3.5{h} 5.4{b (0 4)}).2 |');
-    expect(columnAlone(clip, 0, 5)).toBeNull();
-    const alone = columnAlone(clip, 0, 1)!;
+    expect(noteAlone(clip, 0, 5, 0)).toBeNull();
+    expect(noteAlone(clip, 0, 1, 0)).toBeNull();
+    // The 5 on the D string (the fourth from the high e), without its bend or the chord's other note.
+    const alone = noteAlone(clip, 0, 1, 3)!;
     expect(alone.bars).toHaveLength(1);
     expect(alone.bars[0].tempo).toEqual({ bpm: 120 });
     const [notes] = alone.bars[0].columns;
     expect(notes.duration).toEqual({ value: 4, dots: 0 });
-    expect(notes.notes.filter(Boolean)).toEqual([{ fret: 5 }, { fret: 3 }]);
+    expect(notes.notes).toEqual([null, null, null, { fret: 5 }, null, null]);
     const played = perform(alphaTab, alone);
     expect(played.endTick).toBe(Q);
   });
