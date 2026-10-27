@@ -133,8 +133,20 @@ export default function TabPage() {
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
   const playFrom = markAt ?? (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
-  const pickColumn = (index: number) => {
-    if (!playback.seek(index)) setPlayMark({ index, clip, cursor: cursorAsSet, selection: selectionAsSet });
+  /**
+   * A press above or below the staff: the playback line goes there (while playing, playback jumps
+   * there), and any selection goes. With Shift, the columns from the line (else the selection's
+   * anchor, else the cursor) to there are selected, with no string picked (Jeremy, 2026-10-27).
+   */
+  const pickColumn = (index: number, extend: boolean) => {
+    const anchor = markAt ?? selection?.anchor ?? (editing ? indexOf(clip, cursor.bar, cursor.column) : null);
+    if (extend && anchor !== null) {
+      setSelection({ anchor, focus: index });
+      return;
+    }
+    if (playback.seek(index)) return;
+    setSelection(null);
+    setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
   // While the footer shows, Space anywhere on the page plays and pauses (Jeremy, 2026-10-26), but not
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
