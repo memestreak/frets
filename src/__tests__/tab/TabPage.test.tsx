@@ -566,6 +566,18 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('100');
   });
 
+  it('takes a press just above or below the drawing as one on its column', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    act(() => editor.blur());
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    // jsdom puts the drawing at 0, 0: 10 px above it, over the first bar.
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+  });
+
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
     renderAt();
     fireEvent.click(toggle());

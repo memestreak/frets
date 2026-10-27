@@ -49,3 +49,10 @@ off but the loop range stays set, so the synth finishes at the range end; on
   (within a head's half width, 8 px, right of its centre), else on the first
   note after the press, not the nearest one. Past a bar's last note, the
   next bar's first; past the clip's last, the last (`columnAt`).
+- **More room to press above and below** (Jeremy, 2026-10-27: "more
+  clickable area above and below the tab and staff to move the cursor"):
+  presses up to 16 px above and below the drawn clip, in the card's margin,
+  count as presses on the column there (`columnReach` on `TabClip`, a
+  transparent rect). In Both, the staff reaches one ledger line down (not
+  two) and the tab 6 px up (not 10), so the gap between them moves the
+  cursor or the playback line too.

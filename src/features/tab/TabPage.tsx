@@ -60,6 +60,8 @@ const VIEWS: { id: View; label: string }[] = [
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
+/** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
+const COLUMN_REACH = 16;
 
 /**
  * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
@@ -994,7 +996,7 @@ export default function TabPage() {
                     clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                     onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
+                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly} columnReach={COLUMN_REACH}
                     highlight={{
                       cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
                       staffPitch: staffKeys ? staffPitch : null,

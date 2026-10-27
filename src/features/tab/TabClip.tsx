@@ -50,7 +50,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
   clip: Clip;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -83,6 +83,11 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   onPickStaff?: (hit: StaffHit, extend: boolean) => void;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
+  /**
+   * How far above and below the drawing a press still picks a column with `onPickColumn` (Jeremy,
+   * 2026-10-27: "more clickable area above and below"), in pixels; the page's margin round the clip.
+   */
+  columnReach?: number;
 }) {
   const layout = layoutClip(clip, width, parts);
   const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
@@ -91,6 +96,12 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     const box = e.currentTarget.getBoundingClientRect();
     const px = e.clientX - box.left;
     const py = e.clientY - box.top;
+    // Above or below the drawing: only a column, as on the blank band at the edge of the first or last line.
+    if (py < 0 || py >= layout.height) {
+      const edge = py < 0 ? 0 : layout.height - 1;
+      const column = onPickColumn ? columnAt(layout, px, edge) : null;
+      return { run: null, text: null, mark: null, staff: null, hit: null, column, px, py };
+    }
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
     const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
     const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
@@ -129,7 +140,12 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
       x={x} y={y} width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      style={columnReach ? { overflow: 'visible' } : undefined}
     >
+      {columnReach > 0 && (
+        // Takes the presses just above and below the drawing; nothing is drawn.
+        <rect x={0} y={-columnReach} width={width} height={layout.height + 2 * columnReach} fill="transparent" data-testid="column-reach" />
+      )}
       {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
       {pickedBox && (
         <rect
