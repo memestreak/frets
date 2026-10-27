@@ -1,6 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
 import {
   fewestRests, clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
@@ -16,7 +16,7 @@ function clipOf(text: string): Clip {
 
 /** The clip's bars as alphaTex, without the header. */
 function bars(clip: Clip): string {
-  return writeAlphaTex(clip).split('\n').filter(l => l.endsWith('|')).join('\n');
+  return writeBars(clip).join('\n');
 }
 
 const at = (bar: number, column: number, string: number): Cursor => ({ bar, column, string });
@@ -265,7 +265,7 @@ describe('cut, copy and paste', () => {
 
   it('copies the selected columns as alphaTex that reads back', () => {
     const text = copyText(clip, [1, 3]);
-    expect(text).toBe('\\ts (2 4)\n7.3{h}.8 9.3.8 |\n0.6.2 |\n');
+    expect(text).toBe('\\ts (2 4)\n7.3{h}.8 9.3.8 | 0.6.2 |\n');
     expect(bars(clipOf(text))).toBe('7.3{h}.8 9.3.8 |\n0.6.2 |');
   });
 

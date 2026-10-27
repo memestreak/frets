@@ -114,6 +114,16 @@ describe('TabPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
+  it('imports an alphaTex file opened from the dialog', async () => {
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
+    const dialog = screen.getByRole('dialog');
+    const file = new File(['\\title "From file"\n5.3.4 7.3.4 5.3.2 |'], 'riff.atex', { type: '' });
+    fireEvent.change(within(dialog).getByLabelText('Tab file'), { target: { files: [file] } });
+    await screen.findByRole('heading', { name: 'From file' }, SLOW);
+    await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
+  });
+
   it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
     renderAt();
     await paste(RIFF);
@@ -176,7 +186,9 @@ describe('TabPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
       const text = screen.getByTestId('tab-ascii').textContent ?? '';
       fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
-      return text.split('\n').filter(l => l.endsWith('|')).join('\n');
+      // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
+      const body = text.split('\n').filter(l => l.includes('|') || !/^\\(title|ts|tuning|capo) /.test(l)).join(' ');
+      return (body.match(/[^|]*\|/g) ?? []).map(b => b.trim().replace(/\s+/g, ' ')).join('\n');
     };
 
     it('types frets, two digits making one, and moves on with the arrows', () => {
@@ -310,6 +322,17 @@ describe('TabPage', () => {
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
       expect(alphaTex()).toBe('5.1.4 r.4 |');
+    });
+
+    it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
+      // On string 3, under a column whose notes are on strings 1 and 2.
+      keys('ArrowLeft', 'Delete');
+      expect(alphaTex()).toBe('r.4 3.2.4 r.2 |');
+      keys('Delete');
+      expect(alphaTex()).toBe('3.2.4 r.2 |');
     });
 
     it('sets the time signature from the palette, each change one undo step', () => {

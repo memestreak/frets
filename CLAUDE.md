@@ -276,7 +276,7 @@ binds a local port).
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
   helpers), and `TabPage.tsx` (the editor: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
-  by dialog, drop or a `#tab=` link replaces the clip, read on load or
+  by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
   Tab | ASCII | alphaTex, each with a copy button (the Tab view copies the PNG); Export options,
   the Export dialog, which also downloads the clip as alphaTex or ASCII). The clip's own format is alphaTex

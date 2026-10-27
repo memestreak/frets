@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import * as alphaTab from '@coderline/alphatab';
 import { readAscii } from '@/features/tab/ascii';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { LINE_WIDTH, writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { looksLikeAscii } from '@/features/tab/readTab';
 import type { Clip } from '@/features/tab/clip';
@@ -219,5 +219,22 @@ describe('looksLikeAscii', () => {
     ['5.3{h}.8 7.3.8 -.3.4 |', false],
   ])('%j is ASCII: %s', (text, ascii) => {
     expect(looksLikeAscii(text)).toBe(ascii);
+  });
+});
+
+describe('line length', () => {
+  it('puts whole bars on a line while they fit, and starts a section on a new line', () => {
+    const text = writeAlphaTex(clipOf('0.6.1 |\n3.6.1 |\n5.6.1 |\n\\section "B" 7.6.1 |\n'));
+    expect(text).toBe('\\ts (4 4)\n0.6.1 | 3.6.1 | 5.6.1 |\n\\section "B" 7.6.1 |\n');
+  });
+
+  it('breaks a bar too long for a line between beats, indented, the bar line with its last beat', () => {
+    const tex = `${Array.from({ length: 16 }, () => '(12.2 10.5).16').join(' ')} |\n`;
+    const lines = writeAlphaTex(clipOf(tex)).trimEnd().split('\n').slice(1);
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines) expect(line.length).toBeLessThanOrEqual(LINE_WIDTH);
+    expect(lines.slice(1).every(l => l.startsWith('  ('))).toBe(true);
+    expect(lines.at(-1)).toMatch(/\(12\.2 10\.5\)\.16 \|$/);
+    expect(clipOf(lines.join('\n'))).toEqual(clipOf(tex));
   });
 });

@@ -4,7 +4,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
   barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, tupletGroups, unevenMessage, WHOLE, type Clip,
@@ -21,7 +21,7 @@ function clipOf(text: string): Clip {
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return result.clip;
 }
-const bars = (clip: Clip) => writeAlphaTex(clip).split('\n').filter(l => l.endsWith('|')).join('\n');
+const bars = (clip: Clip) => writeBars(clip).join('\n');
 const at = (bar: number, column: number, string: number): Cursor => ({ bar, column, string });
 const only = (cursor: Cursor) => ({ cursor, selection: null });
 const all = (cursor: Cursor, to: number) => ({ cursor, selection: { anchor: 0, focus: to } });
@@ -219,7 +219,8 @@ describe('tremolo picking', () => {
 });
 
 describe('time signature changes', () => {
-  const tex = '\\ts (4 4)\n0.6.1 |\n\\ts (3 4) 0.5.2{d} |\n0.5.2{d} |\n\\ts (4 4) 0.6.1 |\n';
+  // Short bars share a line, as Frets writes them.
+  const tex = '\\ts (4 4)\n0.6.1 | \\ts (3 4) 0.5.2{d} | 0.5.2{d} | \\ts (4 4) 0.6.1 |\n';
 
   it('are read from a later bar\'s \\ts, written back, and say which time each bar is in', () => {
     const result = read(tex);
@@ -268,7 +269,7 @@ describe('time signature changes', () => {
   it('go with copied columns, which take the time they were in', () => {
     const clip = clipOf(tex);
     expect(sliceClip(clip, [2, 3]).time).toEqual({ beats: 3, value: 4 });
-    expect(copyText(clip, [2, 3])).toBe('\\ts (3 4)\n0.5.2{d} |\n\\ts (4 4) 0.6.1 |\n');
+    expect(copyText(clip, [2, 3])).toBe('\\ts (3 4)\n0.5.2{d} | \\ts (4 4) 0.6.1 |\n');
     const pasted = pasteAt(clipOf('\\ts (4 4)\n0.6.1 |\n'), at(0, 1, 0), clipOf('\\ts (4 4)\n0.6.1 |\n\\ts (3 4) 0.5.2{d} |\n'));
     expect(pasted.clip.bars[1].time).toEqual({ beats: 3, value: 4 });
   });
