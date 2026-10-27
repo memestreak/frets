@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnWidth, hitTest, layoutClip, rowsFor, runAt, textAt } from '@/features/tab/layout';
+import { columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, textAt } from '@/features/tab/layout';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
@@ -117,6 +117,12 @@ describe('pressing the drawing', () => {
     expect(hitTest(layout, first.x, rows.palmMute!)).toBeNull();
     expect(hitTest(layout, first.x, rows.stemBottom)).toBeNull();
     expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();
+  });
+
+  it('finds the column nearest a press above or below the staff, for the playback line', () => {
+    expect(columnAt(layout, second.x + 2, rows.stemBottom)).toBe(1);
+    expect(columnAt(layout, first.x, 0)).toBe(0);
+    expect(columnAt(layout, layout.systems[0].bars[0].x1 + 20, rows.stemBottom)).toBeNull();
   });
 
   it('finds the P.M. run under a press on its label or line', () => {

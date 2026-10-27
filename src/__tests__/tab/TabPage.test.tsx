@@ -445,6 +445,44 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('150');
   });
 
+  it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    expect(screen.queryByRole('slider', { name: 'Position' })).toBeNull();
+    const loop = () => screen.getByRole('button', { name: 'Loop' });
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7', 'ArrowRight', '9']) fireEvent.keyDown(editor, { key });
+    // No selection: the whole clip; pressed again, cleared.
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    // A selection: its notes; the same selection again clears them, another moves them.
+    fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(loop());
+    fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
+    expect(loop()).toHaveAttribute('data-tip', 'Loop the selected notes');
+    fireEvent.click(loop());
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('plays on Space anywhere on the page while the footer shows, but not in a field', () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    fireEvent.click(toggle());
+    act(() => screen.getByRole('spinbutton', { name: 'Speed (percent)' }).focus());
+    fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (percent)' }), { key: ' ' });
+    expect(screen.queryByRole('button', { name: /Loading the sound|Pause/ })).toBeNull();
+    act(() => (document.activeElement as HTMLElement).blur());
+    fireEvent.keyDown(document.body, { key: ' ' });
+    expect(screen.getByRole('button', { name: /Loading the sound|Pause/ })).toBeInTheDocument();
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });

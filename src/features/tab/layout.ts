@@ -412,6 +412,20 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   return { bar: bar.index, column, string };
 }
 
+/**
+ * The column (its place in the whole clip) nearest a press anywhere in a bar's height, above or
+ * below the staff included: where the playback line goes. Null beside the bars or in an empty bar.
+ */
+export function columnAt(layout: Layout, x: number, y: number): number | null {
+  const system = layout.systems[Math.floor(y / layout.rows.height)];
+  if (!system || y < 0) return null;
+  const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
+  if (!bar || bar.columns.length === 0) return null;
+  let nearest = bar.columns[0];
+  for (const c of bar.columns) if (Math.abs(c.x - x) < Math.abs(nearest.x - x)) nearest = c;
+  return nearest.index;
+}
+
 /** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */
 export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; width: number } | null {
   for (let s = 0; s < layout.systems.length; s++) {

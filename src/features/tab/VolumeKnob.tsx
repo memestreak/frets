@@ -65,6 +65,8 @@ export function VolumeKnob({ value, onChange, labelledBy }: {
       ref={ref} className="tab-knob" role="slider" tabIndex={0} aria-labelledby={labelledBy}
       aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%`}
       data-tip={`Volume ${percent}%`}
+      // A press leaves the focus (and so the cursor) on the tab; the keys still reach the knob by Tab.
+      onMouseDown={e => e.preventDefault()}
       onPointerDown={e => {
         e.currentTarget.setPointerCapture(e.pointerId);
         drag.current = { y: e.clientY, value };

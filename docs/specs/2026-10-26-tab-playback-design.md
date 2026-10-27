@@ -19,24 +19,28 @@ them while the clip plays stops it.
 
 The controls sit under that line:
 
-- **Play / Pause.** A round button; Space does the same while the controls show and the tab has
-  the focus. Play starts at the selection's first column, else at the
-  cursor's. Pause stops and puts the cursor on the column it stopped on,
-  with the playhead gone, so the next Play goes on from there (Jeremy,
-  2026-10-26: a paused playhead had stayed on the tab with no way to clear
-  it). The first Play
+- **Play / Pause.** A round button; Space does the same while the controls
+  show, anywhere on the page but in a field or a dialog (Jeremy,
+  2026-10-26: after clicking off the tab, Space did nothing). The tab keeps
+  the focus, and its cursor, when Space plays from it. Play starts at the selection's first column, else at the
+  cursor's; with no cursor on the tab, from the beginning (Jeremy,
+  2026-10-26). A press on Play, Loop or the Volume knob leaves the cursor
+  on the tab. Pause stops and leaves the playback line (below) on the
+  column it stopped on, so the next Play goes on from there; the band goes,
+  no string is picked and the tab gives up the focus (Jeremy, 2026-10-27:
+  pausing had put the cursor on a string). A press on a note or Esc takes
+  the line away. The first Play
   loads alphaTab and the soundfont, about 1 MB, and shows a spinner until
   they are ready.
-- **The progress line.** It is the clip as written, split at each bar,
-  every bar as long as its time. A repeat goes back along it, as the
-  playhead does on the tab. Pressing it while the clip plays jumps there;
-  otherwise the cursor goes there. A press up to 16px above or below the
-  line counts as a press on it (Jeremy, 2026-10-26). While nothing plays, the line fills up to
-  where Play will start (the cursor, the selection's start, or a loop's
-  start), as it fills to the playhead while playing (Jeremy, 2026-10-26).
-- **Loop.** It is a toggle button. Turned on with notes selected, it
-  repeats those notes, and a bracket under their stems marks them.
-  Otherwise it repeats the whole clip.
+- **Loop.** It sets the loop points (Jeremy, 2026-10-26, replacing a
+  progress line and a Loop that jumped to the loop's start). Pressed with
+  notes selected, the loop points go round them, and a bracket under their
+  stems marks them; pressed again on the same notes, they go. Pressed with
+  nothing selected, they go round the whole clip, or go when there are
+  some. The button stays lit while there are loop points. When playback
+  reaches the end point it goes on from the start point. Play from before
+  the loop plays up to it and then loops; Play from after it plays on to
+  the end. There is no progress line: Play starts from the cursor.
 - **Speed.** A number field, 25% to 150% of the clip's own tempo, with
   stacked up and down buttons (5% a press, as are ↑ ↓ in the field) and
   "92 bpm" beside it: the tempo where the playhead is, times the speed
@@ -64,6 +68,15 @@ The controls sit under that line:
   not part of the clip: the program is set on alphaTab's track and on the
   instrument change its reader puts on the first beat.
 
+While the controls show, a press above or below the staff (off a chord
+name, a label or a P.M. or let ring line) puts the playback line, the
+playhead's red line, on the nearest column, without moving the cursor or
+picking a string (Jeremy, 2026-10-26: "set where the cursor is without
+selecting a specific string"). Play and Space then start from it. While the
+clip plays, such a press jumps playback there. The line goes when the
+cursor or the selection moves, the clip changes, on Esc, or on a press
+beside the bars.
+
 While the clip plays, a playhead (a line and a soft band) marks the column
 sounding. It is drawn under the notes, so it tints the paper and not the
 numbers. Any edit stops playback, so the next Play plays what is drawn.
@@ -77,6 +90,10 @@ numbers. Any edit stops playback, so the next Play plays what is drawn.
   turns the score into MIDI with a tick lookup, so bends, slides, ties,
   repeats, endings, tempo changes and the capo sound as alphaTab plays them.
 - `columnAtTick` and `ticksOf` map between ticks and the clip's columns.
+- Loop points are the synthesizer's playback range, set straight on its
+  sequencer (`rangeWithoutSeek`): alphaTab's own setter moves the playhead
+  to the range's start, so a Play from before the loop could not reach it.
+  A range already behind the playhead is not set, so it plays on.
   The score's bars and beats are the clip's bars and columns, grace notes
   included.
 - `TabPlayer` runs alphaTab's `AlphaSynth` on the page's own thread, with a
@@ -110,9 +127,16 @@ In Chromium, with the sound's peak measured at the audio node:
 - Play and Space start playback from the cursor or the selection, and
   pause and resume.
 - An edit stops playback.
-- Loop repeats the selected notes and the whole clip.
+- Loop points: Play from before them plays up to them and then repeats
+  them, from inside them repeats them, from after them plays to the end;
+  round the whole clip, the end comes round to the start. A change of
+  sound on the way into the loop keeps it.
 - Speed 50% halves the tempo shown and the pace.
-- Pressing the progress line jumps when playing, and moves the cursor when
-  not.
+- With no cursor on the tab, Play starts from the beginning.
+- A press above or below the staff puts the line there and Play starts
+  from it; while playing it jumps there; a chord name still opens its
+  field; a note press or Esc takes the line away.
+- Space plays and pauses with the focus off the tab, but not in the Speed
+  field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.
 - Checked in light and dark, at 1200 px and on a 390 px phone.

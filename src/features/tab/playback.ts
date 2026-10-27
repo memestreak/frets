@@ -9,7 +9,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writeAlphaTex } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { ticks, type Clip } from './clip';
+import type { Clip } from './clip';
 import { indexOf, placeOf } from './editing';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -126,24 +126,6 @@ export function ticksOf(clip: Clip, performance: Performance, [from, to]: [numbe
 export function tickOf(clip: Clip, performance: Performance, index: number): number {
   const beat = beatOf(performance, clip, index);
   return beat ? performance.lookup.getBeatStart(beat) : 0;
-}
-
-/**
- * Where each column and bar starts in the clip as written, in ticks, repeats not played twice: the
- * progress line under the tab is the clip, so a repeat goes back along it as the playhead does.
- */
-export function timeline(clip: Clip): { columns: number[]; bars: number[]; total: number } {
-  const columns: number[] = [];
-  const bars: number[] = [];
-  let at = 0;
-  for (const bar of clip.bars) {
-    bars.push(at);
-    for (const column of bar.columns) {
-      columns.push(at);
-      if (!column.grace) at += ticks(column.duration);
-    }
-  }
-  return { columns, bars, total: at };
 }
 
 /* — sound: a Web Audio output for the synthesizer — */
@@ -315,6 +297,16 @@ export interface PlayerView {
 }
 
 /**
+ * Sets the synthesizer's loop points without moving the playhead. alphaTab's own `playbackRange`
+ * setter jumps to the range's start, so a Play from before the loop could never reach it; its
+ * sequencer (not in alphaTab's types; checked against the pinned 1.8.4) takes the range as is, and
+ * the synthesizer goes back to the start when the playhead passes the end.
+ */
+function rangeWithoutSeek(synth: AlphaTabModule.synth.AlphaSynth, range: AlphaTabModule.synth.PlaybackRange | null) {
+  (synth as unknown as { sequencer: { mainPlaybackRange: AlphaTabModule.synth.PlaybackRange | null } }).sequencer.mainPlaybackRange = range;
+}
+
+/**
  * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Created on the first Play,
  * since an AudioContext may only start after a press.
  */
@@ -359,9 +351,9 @@ export class TabPlayer {
   }
 
   /**
-   * Plays the clip from a column (a pause leaves the cursor where it stopped, so Play resumes). With
-   * a loop of some columns, from the column when it is in the loop, else from the loop's start.
-   * `loop` repeats those columns, or with `whole` the whole clip; null plays once.
+   * Plays the clip from a column (a pause leaves the cursor where it stopped, so Play resumes).
+   * With loop points, playing past the end one goes back to the start one; a start before them
+   * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    */
   play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
@@ -370,13 +362,12 @@ export class TabPlayer {
       this.performance = perform(this.at, clip, sound);
       this.synth.loadMidiFile(this.performance.midi);
     }
-    this.setLoop(loop);
     this.setSpeed(speed);
-    const start = Array.isArray(loop) && (from < loop[0] || from > loop[1]) ? loop[0] : from;
-    this.synth.tickPosition = tickOf(clip, this.performance, start);
+    this.moveTo(tickOf(clip, this.performance, from));
+    this.setLoop(loop);
     this.ended = false;
     this.synth.play();
-    this.onView({ state: 'playing', column: start });
+    this.onView({ state: 'playing', column: from });
   }
 
   /** Stops where it is; the view hears the state go idle and the playhead go. */
@@ -395,22 +386,32 @@ export class TabPlayer {
     this.onView({ state: 'idle', column: null });
   }
 
-  /** Repeats these columns, or the whole clip; null plays once. */
+  /**
+   * Sets the loop points: these columns, or the whole clip; null plays once. Only a loop still
+   * ahead of the playhead (or round it) takes effect, so the playhead never jumps back to it.
+   */
   setLoop(loop: [number, number] | 'whole' | null) {
     this.loop = loop;
-    this.synth.isLooping = loop !== null;
     // The whole clip loops without its ring-out, so the downbeat comes round on time.
     const range = !this.clip || !this.performance || loop === null ? null
       : loop === 'whole' ? { startTick: 0, endTick: this.performance.endTick }
       : ticksOf(this.clip, this.performance, loop);
-    if (range) {
+    const ahead = range !== null && this.synth.tickPosition < range.endTick;
+    this.synth.isLooping = ahead;
+    if (ahead) {
       const playbackRange = new this.at.synth.PlaybackRange();
       playbackRange.startTick = range.startTick;
       playbackRange.endTick = range.endTick;
-      this.synth.playbackRange = playbackRange;
+      rangeWithoutSeek(this.synth, playbackRange);
     } else {
-      this.synth.playbackRange = null;
+      rangeWithoutSeek(this.synth, null);
     }
+  }
+
+  /** Puts the playhead on a tick, with no loop points to hold it in. */
+  private moveTo(tick: number) {
+    rangeWithoutSeek(this.synth, null);
+    this.synth.tickPosition = tick;
   }
 
   setSpeed(speed: number) {
@@ -431,15 +432,16 @@ export class TabPlayer {
     const tick = this.synth.tickPosition;
     this.performance = perform(this.at, this.clip, sound);
     this.synth.loadMidiFile(this.performance.midi);
+    this.moveTo(tick);
     this.setLoop(this.loop);
-    this.synth.tickPosition = tick;
     if (playing) this.synth.play();
   }
 
-  /** Moves the playing clip to a column (its first time through). */
+  /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */
   seek(index: number) {
     if (!this.clip || !this.performance) return;
-    this.synth.tickPosition = tickOf(this.clip, this.performance, index);
+    this.moveTo(tickOf(this.clip, this.performance, index));
+    this.setLoop(this.loop);
   }
 
   destroy() {

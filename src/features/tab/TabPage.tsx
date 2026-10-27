@@ -10,6 +10,7 @@ import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng } from '@/components/chords/export/exportImage';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
+import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
@@ -112,18 +113,32 @@ export default function TabPage() {
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
   const showPlayback = playbackSettings.shown;
-  // Playback starts at the selection's first column, else the cursor's; a Loop takes the selection.
+  // The playback line: put on a column by a press above or below the staff, or by a pause (Jeremy,
+  // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
+  // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
+  const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
+  // A pause leaves the playback line where it stopped, so Play goes on from there; no string is
+  // picked (Jeremy, 2026-10-27), so the tab gives up the focus and its cursor.
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, column => {
     setSelection(null);
-    setCursor(c => ({ ...placeOf(clip, column), string: c.string }));
-    editorRef.current?.focus();
+    setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
+    editorRef.current?.blur();
   });
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
     setPlaybackSettings(s => ({ ...s, shown }));
   };
   const selectedColumns = selection ? selectedRange(selection) : null;
-  const playFrom = selectedColumns ? selectedColumns[0] : indexOf(clip, cursor.bar, cursor.column);
+  const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
+    ? playMark.index : null;
+  // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
+  const playFrom = markAt ?? (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
+  const pickColumn = (index: number) => {
+    if (!playback.seek(index)) setPlayMark({ index, clip, cursor: cursorAsSet, selection: selectionAsSet });
+  };
+  // While the footer shows, Space anywhere on the page plays and pauses (Jeremy, 2026-10-26), but not
+  // in a field or a dialog; the tab keeps the focus, so its cursor stays.
+  useSpaceKey(() => playback.toggle(playFrom), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -202,9 +217,8 @@ export default function TabPage() {
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
     if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      // Space plays only while the footer shows; hidden, it does nothing (not even scroll the page).
+      // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
       e.preventDefault();
-      if (showPlayback) playback.toggle(playFrom);
       return;
     }
     if (e.ctrlKey || e.metaKey) {
@@ -289,6 +303,7 @@ export default function TabPage() {
     if (key === 'Escape') {
       handled();
       setSelection(null);
+      setPlayMark(null);
       editorRef.current?.blur();
       return;
     }
@@ -561,7 +576,7 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} />}
+          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} mark={markAt} />}
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -576,7 +591,8 @@ export default function TabPage() {
                 <HoverTips>
                   <TabClip
                     clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                    onMiss={() => { setSelection(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    onMiss={() => { setSelection(null); setPlayMark(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    onPickColumn={showPlayback ? pickColumn : undefined}
                     highlight={{ cursor: editing ? cursor : null, range: selection ? selectedRange(selection) : null }}
                     errors={barErrors(clip)}
                   />
@@ -609,7 +625,6 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
-            onPlace={index => { setSelection(null); setCursor({ ...placeOf(clip, index), string: cursor.string }); editorRef.current?.focus(); }}
           />
         </HoverTips>
       </section>

@@ -293,7 +293,7 @@ binds a local port).
   `playback.ts` plays a clip: alphaTab's MIDI generator and synthesizer
   (loaded on the first Play) with the SONiVOX soundfont in
   `public/soundfont/`, through a small Web Audio output; `PlaybackFooter.tsx`
-  is the footer under the tab (Play, progress through the bars, Loop,
+  is the footer under the tab (Play from the cursor, Loop setting loop points,
   Speed, a number field in `SpeedField.tsx`, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`).
   Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
