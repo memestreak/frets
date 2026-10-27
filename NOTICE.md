@@ -61,6 +61,14 @@ Samples, as edited in [tonejs-instruments](https://github.com/nbrosowsky/tonejs-
 Nicholaus P. Brosowsky, samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 Changed: shortened with a fade and compressed (`scripts/build-soundfonts.py`).
 
+## Electric guitar: Karoryfer Samples, via tonejs-instruments
+
+`public/soundfont/guitar-electric-karoryfer.sf3` is a clean electric guitar from
+[Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples), as edited in
+[tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus P. Brosowsky,
+samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Changed: compressed
+(`scripts/build-soundfonts.py`).
+
 ## Notation symbols: Bravura, via VexFlow
 
 `src/features/tab/smufl.ts` holds the outlines of a few music symbols (the
