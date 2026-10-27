@@ -4,6 +4,7 @@
  * new one (the page keeps the old one for undo), and `normalize` runs after
  * it so marks that join a note to the one before it stay true.
  */
+import type { MarkHit } from './marks';
 import {
   barLength, barTicks, BEND_QUARTERS, ticks, emptyClip, MAX_BPM, MIN_BPM, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
   type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type Slide, type TimeSignature,
@@ -438,6 +439,32 @@ export function cycleMark<K extends MarkName>(clip: Clip, target: Target, mark: 
   if (!note) return clip;
   const next = kinds[kinds.indexOf(note[mark] as NoteMarks[K]) + 1];
   return changeNotes(clip, target, n => withMark(n, mark, next));
+}
+
+/**
+ * The clip without one drawn mark (a picked mark's Delete, issue #128): from its note, or from every
+ * note of its column for a mark drawn over the column; a tuplet's whole group goes plain. The notes stay.
+ */
+export function removeMark(clip: Clip, hit: MarkHit): Clip {
+  const { bar, column } = placeOf(clip, hit.index);
+  const cursor = { bar, column, string: hit.string ?? 0 };
+  const note: Target = { cursor, selection: null };
+  const wholeColumn: Target = { cursor, selection: { anchor: hit.index, focus: hit.to ?? hit.index } };
+  switch (hit.mark) {
+    case 'bend': return changeNotes(clip, note, n => without(n, 'bend'));
+    case 'slideOut': return changeNotes(clip, note, n => without(n, 'slideOut'));
+    case 'tap': return changeNotes(clip, note, n => without(n, 'tap'));
+    case 'legato': return changeNotes(clip, note, n => without(n, 'legato'));
+    case 'slide': return changeNotes(clip, note, n => without(n, 'slide'));
+    case 'tie': return changeNotes(clip, note, n => without(n, 'tie'));
+    case 'vibrato': return changeNotes(clip, wholeColumn, n => without(n, 'vibrato'));
+    case 'pinch': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'pinch' ? without(n, 'harmonic') : n));
+    case 'accent': return changeNotes(clip, wholeColumn, n => without(n, 'accent'));
+    case 'staccato': return changeNotes(clip, wholeColumn, n => without(n, 'staccato'));
+    case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
+    case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
+    case 'tuplet': return setTuplet(clip, wholeColumn, null);
+  }
 }
 
 /** A hammer-on or pull-off from the note before (named by the frets), or off again. */

@@ -20,10 +20,11 @@ import {
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  fillBar, isEmpty, makeRest, removeMark, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, textBox, type RunMark, type TextHit, type WordHit } from './layout';
+import { markBox, markTool, type MarkHit } from './marks';
 import { BarTimePanel } from './BarTimePanel';
 import { WordField } from './WordField';
 import { TabClip } from './TabClip';
@@ -118,12 +119,15 @@ export default function TabPage() {
   const [columnOnly, setColumnOnly] = useState(false);
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
-  /** The chord name, text, section, tempo or capo picked by a press: outlined, with Edit and Delete beside it. */
-  const [picked, setPicked] = useState<WordHit | null>(null);
+  /**
+   * The chord name, text, section, tempo or capo picked by a press, outlined with Edit and Delete beside
+   * it; or a technique mark (issue #128), outlined with Delete beside it.
+   */
+  const [picked, setPicked] = useState<WordHit | MarkHit | null>(null);
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
-  /** The palette tool that sets the picked word, lit while it is picked. */
-  const pickedTool = editing && picked ? WORD_TOOL[picked.kind] : null;
+  /** The palette tool that sets the picked word or mark, lit while it is picked. */
+  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : WORD_TOOL[picked.kind];
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -131,6 +135,15 @@ export default function TabPage() {
   const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
   // An undo can take away the columns the cursor or the selection were on.
   const cursor = clampCursor(clip, cursorAsSet);
+  /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
+  const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
+  const paletteKinds = lit ? cursorKinds : {
+    bend: pickedTool === 'bend' || pickedTool === 'preBend' ? cursorKinds.bend : null,
+    // A vibrato is over the whole column: wide if any of its notes' is.
+    vibrato: pickedTool !== 'vibrato' ? null
+      : columnAt(clip, cursor)?.notes.some(n => n?.vibrato === 'wide') ? 'wide' as const : 'slight' as const,
+    tuplet: pickedTool === 'tuplet' ? cursorKinds.tuplet : null,
+  };
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
   // With no string picked, the tools work on the cursor's whole column, as on a one-column selection.
@@ -277,7 +290,15 @@ export default function TabPage() {
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
     // A dead note goes on one string; with none picked there is nothing to mark.
-    else if (!(columnOnly && id === 'dead')) commit(applyTool(clip, target, id));
+    else if (!(columnOnly && id === 'dead')) {
+      commitKeepingMark(applyTool(clip, target, id));
+    }
+  };
+
+  /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
+  const commitKeepingMark = (next: Clip) => {
+    commit(next);
+    if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
   };
 
   const closeTimeBar = useCallback((byKey: boolean) => {
@@ -323,6 +344,23 @@ export default function TabPage() {
     editorRef.current?.focus();
   };
 
+  /**
+   * A press on a technique mark picks it (Jeremy, 2026-10-27, issue #128): outlined, with Delete beside
+   * it, its palette tool lit, and the cursor on its note; a mark over the whole column puts the cursor
+   * on the column with no string, and a tuplet's number selects its group. A join (hammer-on, slide,
+   * tie) belongs to the note it arrives at.
+   */
+  const onPickMark = (hit: MarkHit) => {
+    const { bar, column } = placeOf(clip, hit.index);
+    const at = { bar, column, string: hit.string ?? cursor.string };
+    lastDigit.current = null;
+    const left = editing && bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+    commit(left, at, hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
+    setColumnOnly(hit.string === null);
+    setPicked(hit);
+    editorRef.current?.focus();
+  };
+
   /** Opens the picked word's field. */
   const editPicked = (hit: WordHit) => {
     const at = wordPlace(hit);
@@ -350,8 +388,21 @@ export default function TabPage() {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const { key } = e;
+    // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
+    if (picked?.kind === 'mark') {
+      if (key === 'Delete' || key === 'Backspace') {
+        e.preventDefault();
+        commit(removeMark(clip, picked));
+        return;
+      }
+      setPicked(null);
+      if (key === 'Escape') {
+        e.preventDefault();
+        return;
+      }
+    }
     // A picked word: Delete takes it away, Enter edits it, Esc lets it go; any other key lets it go and does what it does.
-    if (picked) {
+    if (picked && picked.kind !== 'mark') {
       if (key === 'Delete' || key === 'Backspace') {
         e.preventDefault();
         deletePicked(picked);
@@ -785,9 +836,9 @@ export default function TabPage() {
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={noteKinds(clip, lit ? cursor : null)}
-          onTool={onTool} onBend={quarters => commit(setBend(clip, target, quarters))}
-          onTuplet={n => commit(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
+          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
+          onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
+          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -819,7 +870,7 @@ export default function TabPage() {
                 <HoverTips>
                   <TabClip
                     clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
-                    onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText}
+                    onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                     onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
                     highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly }}
                     picked={editing ? picked : null}
@@ -840,7 +891,8 @@ export default function TabPage() {
           {view === 'tab' && editing && picked && clipWidth > 0 && (
             <WordTools
               clip={clip} width={clipWidth} hit={picked}
-              onEdit={() => editPicked(picked)} onDelete={() => deletePicked(picked)}
+              onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
+              onDelete={() => (picked.kind === 'mark' ? commit(removeMark(clip, picked)) : deletePicked(picked))}
             />
           )}
           {view === 'tab' && word && clipWidth > 0 && (
@@ -950,17 +1002,21 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
   return { x: FIELD_WIDTH / 2, y: 0 };
 }
 
-/** Edit and Delete for a picked word, to its right (Jeremy, 2026-10-27), or its left at the tab's right edge. */
+/**
+ * Edit and Delete for a picked word, to its right (Jeremy, 2026-10-27), or its left at the tab's right
+ * edge; Delete alone for a picked mark, whose palette tool does the editing.
+ */
 function WordTools({ clip, width, hit, onEdit, onDelete }: {
   clip: Clip;
   width: number;
-  hit: WordHit;
-  onEdit: () => void;
+  hit: WordHit | MarkHit;
+  onEdit: (() => void) | null;
   onDelete: () => void;
 }) {
-  const box = textBox(layoutClip(clip, width), hit, clip.capo ?? null);
+  const layout = layoutClip(clip, width);
+  const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit, clip.capo ?? null);
   if (!box) return null;
-  const TOOLS_WIDTH = 58;
+  const TOOLS_WIDTH = onEdit ? 58 : 30;
   const GAP = 4;
   const right = box.x + box.width + GAP;
   const left = right + TOOLS_WIDTH <= width ? right : box.x - GAP - TOOLS_WIDTH;
@@ -968,9 +1024,11 @@ function WordTools({ clip, width, hit, onEdit, onDelete }: {
   const keep = (e: React.MouseEvent) => e.preventDefault();
   return (
     <span className="tab-word-tools" style={{ left, top: box.y + box.height / 2 - 13 }} data-testid="word-tools">
-      <button type="button" className="tab-word-tool" aria-label="Edit" data-tip="Edit (Enter)" onMouseDown={keep} onClick={onEdit}>
-        <PencilIcon />
-      </button>
+      {onEdit && (
+        <button type="button" className="tab-word-tool" aria-label="Edit" data-tip="Edit (Enter)" onMouseDown={keep} onClick={onEdit}>
+          <PencilIcon />
+        </button>
+      )}
       <button type="button" className="tab-word-tool" aria-label="Delete" data-tip="Delete" onMouseDown={keep} onClick={onDelete}>
         <TrashIcon />
       </button>

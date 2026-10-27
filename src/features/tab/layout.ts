@@ -4,7 +4,7 @@
  * draws what this returns, so the page and the exported images agree.
  */
 import {
-  changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
+  STRING_COUNT, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, ticks, WHOLE,
   type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
 
@@ -434,6 +434,31 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const changed = system.bars.find(b => b.timeX !== null && Math.abs(x - b.timeX) <= TIME_REACH);
   if (onStaff && changed) return { kind: 'time', bar: changed.index };
   return null;
+}
+
+/** Where a note was drawn: its line of tab and its column's centre. */
+export interface Spot {
+  system: number;
+  x: number;
+}
+
+/** For every note, where the note before it on the same string was drawn. */
+export function previousSpots(systems: System[]): Map<Note, Spot> {
+  const out = new Map<Note, Spot>();
+  const last: (Spot | null)[] = Array(STRING_COUNT).fill(null);
+  systems.forEach((system, si) => {
+    for (const bar of system.bars) {
+      for (const placed of bar.columns) {
+        placed.column.notes.forEach((note, s) => {
+          if (!note) return;
+          const before = last[s];
+          if (before) out.set(note, before);
+          last[s] = { system: si, x: placed.x };
+        });
+      }
+    }
+  });
+  return out;
 }
 
 /* — the cursor — */

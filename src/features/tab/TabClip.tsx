@@ -6,8 +6,9 @@ import {
 import {
   barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
-  type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
+  type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
+import { markAt, markBox, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
 export interface TabLook {
@@ -27,10 +28,6 @@ export const PAGE_LOOK: TabLook = {
 const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
 
 /** Where a note was drawn, so the next note on its string can join it. */
-interface Spot {
-  system: number;
-  x: number;
-}
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -47,7 +44,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickColumn, onMiss, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -57,8 +54,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
   highlight?: Highlight;
-  /** On the page only: the picked chord name, text, section, tempo or capo, outlined. */
-  picked?: WordHit | null;
+  /** On the page only: the picked chord name, text, section, tempo or capo, or technique mark, outlined. */
+  picked?: WordHit | MarkHit | null;
   /** On the page only: bars with something wrong, and what, drawn as a warning under the bar's start with the words as its tip. */
   errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
@@ -67,6 +64,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo. */
   onPickText?: (hit: TextHit) => void;
+  /** A press on a technique mark: a bend, slide, tie, vibrato, accent… (`marks.ts`). */
+  onPickMark?: (hit: MarkHit) => void;
   /**
    * A press above or below the staff, off any mark or label: the column there (for the playback
    * line); `extend` when Shift was held, to select up to it.
@@ -76,7 +75,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   onMiss?: () => void;
 }) {
   const layout = layoutClip(clip, width);
-  const pickedBox = picked ? textBox(layout, picked, clip.capo ?? null) : null;
+  const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
   /** What a press at a point in the drawing is on. */
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
@@ -84,15 +83,17 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
     const py = e.clientY - box.top;
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
     const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
-    const hit = run || text ? null : hitTest(layout, px, py);
-    const column = run || text || hit || !onPickColumn ? null : columnAt(layout, px, py);
-    return { run, text, hit, column };
+    const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
+    const hit = run || text || mark ? null : hitTest(layout, px, py);
+    const column = run || text || mark || hit || !onPickColumn ? null : columnAt(layout, px, py);
+    return { run, text, mark, hit, column };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, hit, column } = target(e);
+    const { run, text, mark, hit, column } = target(e);
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text);
+    else if (mark) onPickMark!(mark);
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
@@ -100,8 +101,8 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, text, hit } = target(e);
-    if (text || (!run && !hit)) e.preventDefault();
+    const { run, text, mark, hit } = target(e);
+    if (text || (!run && !mark && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -120,7 +121,7 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, picke
       {pickedBox && (
         <rect
           x={pickedBox.x} y={pickedBox.y} width={pickedBox.width} height={pickedBox.height} rx={4}
-          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid="picked-word"
+          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid={picked?.kind === 'mark' ? 'picked-mark' : 'picked-word'}
         />
       )}
       {spot && highlight?.cursor && (
@@ -193,25 +194,6 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
       })}
     </g>
   );
-}
-
-/** For every note, where the note before it on the same string was drawn. */
-function previousSpots(systems: System[]): Map<Note, Spot> {
-  const out = new Map<Note, Spot>();
-  const last: (Spot | null)[] = Array(STRING_COUNT).fill(null);
-  systems.forEach((system, si) => {
-    for (const bar of system.bars) {
-      for (const placed of bar.columns) {
-        placed.column.notes.forEach((note, s) => {
-          if (!note) return;
-          const before = last[s];
-          if (before) out.set(note, before);
-          last[s] = { system: si, x: placed.x };
-        });
-      }
-    }
-  });
-  return out;
 }
 
 function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, lastBar, maskId }: {
