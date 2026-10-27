@@ -4,7 +4,7 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit,
   type Hit, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type System,
 } from './layout';
@@ -45,7 +45,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, errors, onPick, onPickRun, onPickText, onMiss, x, y }: {
+export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, errors, onPick, onPickRun, onPickText, onPickColumn, onMiss, x, y }: {
   clip: Clip;
   width: number;
   /** Where it sits inside a larger drawing (an exported image). */
@@ -63,7 +63,9 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, error
   onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo. */
   onPickText?: (hit: TextHit) => void;
-  /** A press on neither the staff nor a P.M. or let ring line. */
+  /** A press above or below the staff, off any mark or label: the column there (for the playback line). */
+  onPickColumn?: (index: number) => void;
+  /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
 }) {
   const layout = layoutClip(clip, width);
@@ -74,18 +76,21 @@ export function TabClip({ clip, width, look = PAGE_LOOK, title, highlight, error
     const py = e.clientY - box.top;
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
     const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
-    return { run, text, hit: run || text ? null : hitTest(layout, px, py) };
+    const hit = run || text ? null : hitTest(layout, px, py);
+    const column = run || text || hit || !onPickColumn ? null : columnAt(layout, px, py);
+    return { run, text, hit, column };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, hit } = target(e);
+    const { run, text, hit, column } = target(e);
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text);
     else if (hit) onPick(hit, e.shiftKey);
+    else if (column !== null) onPickColumn!(column);
     else onMiss?.();
   };
-  // A press on blank space doesn't take the focus, so no cursor appears there; nor does one on a
-  // chord name, section or tempo, whose field has just taken it.
+  // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
+  // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
     const { run, text, hit } = target(e);
     if (text || (!run && !hit)) e.preventDefault();

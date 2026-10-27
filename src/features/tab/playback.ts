@@ -437,10 +437,11 @@ export class TabPlayer {
     if (playing) this.synth.play();
   }
 
-  /** Moves the playing clip to a column (its first time through). */
+  /** Moves the playing clip to a column (its first time through); the loop points hold as from a Play there. */
   seek(index: number) {
     if (!this.clip || !this.performance) return;
-    this.synth.tickPosition = tickOf(this.clip, this.performance, index);
+    this.moveTo(tickOf(this.clip, this.performance, index));
+    this.setLoop(this.loop);
   }
 
   destroy() {

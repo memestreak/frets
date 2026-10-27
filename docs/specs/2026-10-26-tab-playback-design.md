@@ -67,6 +67,15 @@ The controls sit under that line:
   not part of the clip: the program is set on alphaTab's track and on the
   instrument change its reader puts on the first beat.
 
+While the controls show, a press above or below the staff (off a chord
+name, a label or a P.M. or let ring line) puts the playback line, the
+playhead's red line, on the nearest column, without moving the cursor or
+picking a string (Jeremy, 2026-10-26: "set where the cursor is without
+selecting a specific string"). Play and Space then start from it. While the
+clip plays, such a press jumps playback there. The line goes when the
+cursor or the selection moves, the clip changes, on Esc, or on a press
+beside the bars.
+
 While the clip plays, a playhead (a line and a soft band) marks the column
 sounding. It is drawn under the notes, so it tints the paper and not the
 numbers. Any edit stops playback, so the next Play plays what is drawn.
@@ -123,6 +132,9 @@ In Chromium, with the sound's peak measured at the audio node:
   sound on the way into the loop keeps it.
 - Speed 50% halves the tempo shown and the pace.
 - With no cursor on the tab, Play starts from the beginning.
+- A press above or below the staff puts the line there and Play starts
+  from it; while playing it jumps there; a chord name still opens its
+  field; a note press or Esc takes the line away.
 - Space plays and pauses with the focus off the tab, but not in the Speed
   field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.

@@ -53,6 +53,8 @@ export interface Playback {
    */
   toggleLoop: (selection: [number, number] | null) => void;
   setSpeed: (speed: number) => void;
+  /** Moves the playing clip to a column; false when nothing is playing. */
+  seek: (index: number) => boolean;
   /** Stops, leaving the cursor where it is: when the footer is hidden. */
   stop: () => void;
 }
@@ -115,6 +117,11 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (
     setSpeed: s => {
       setSpeedState(s);
       player.current?.setSpeed(s);
+    },
+    seek: index => {
+      if (view.state !== 'playing') return false;
+      player.current?.seek(index);
+      return true;
     },
     stop: () => player.current?.stop(),
   };
@@ -222,11 +229,16 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   );
 }
 
-/** The playhead on the column sounding and, while a selection loops, a bracket under it, drawn over the tab. */
-export function Playhead({ clip, width, playback }: { clip: Clip; width: number; playback: Playback }) {
+/**
+ * Drawn over the tab: the playhead on the column sounding; while nothing plays, a plain line where
+ * Play will start when that was set by a press above or below the staff (`mark`); and under loop
+ * points, a bracket.
+ */
+export function Playhead({ clip, width, playback, mark }: { clip: Clip; width: number; playback: Playback; mark: number | null }) {
   const { column } = playback.view;
   const loop = Array.isArray(playback.loop) ? playback.loop : null;
-  if (column === null && !loop) return null;
+  const idleMark = playback.view.state === 'playing' ? null : mark;
+  if (column === null && !loop && idleMark === null) return null;
   const layout = layoutClip(clip, width);
   const { rows } = layout;
   const parts: ReactNode[] = [];
@@ -242,6 +254,16 @@ export function Playhead({ clip, width, playback }: { clip: Clip; width: number;
         const ly = y + rows.stemBottom + 8;
         parts.push(<path key={`loop-${si}`} d={`M${x0} ${ly - 3} V${ly} H${x1} V${ly - 3}`} fill="none" stroke="var(--primary)" strokeWidth={2} />);
       }
+    }
+    const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
+    if (marked) {
+      const x = marked.x - marked.width / 2;
+      parts.push(
+        <line
+          key={`mark-${si}`} data-testid="play-mark" x1={x} x2={x} y1={y + rows.staffTop - 12} y2={y + rows.staffBottom + 12}
+          stroke="var(--primary)" strokeWidth={2}
+        />,
+      );
     }
     const head = cols.find(c => c.index === column);
     if (head) {
