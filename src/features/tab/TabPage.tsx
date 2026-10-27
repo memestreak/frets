@@ -30,6 +30,7 @@ import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
+import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
@@ -87,8 +88,14 @@ export default function TabPage() {
   const [widthRef, boxWidth] = useWidth();
   // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
   const clipWidth = boxWidth;
-  // What the text views show; the Tab view's copy writes alphaTex too, the clip's own format.
-  const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
+  /**
+   * The AlphaTex view's text as typed, and the clip it was typed against: kept until the view is
+   * left, or until an edit elsewhere (an undo, an import) changes the clip; then the clip is written out again.
+   */
+  const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
+  const alphaTexText = draft && draft.clip === clip ? draft.text : writeAlphaTex(clip);
+  // What the text views show and copy.
+  const shownText = view === 'ascii' ? writeAscii(clip) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
@@ -142,7 +149,14 @@ export default function TabPage() {
       setEditing(false);
       setPicked(null);
     }
+    // Back in the AlphaTex view, the clip is written out in Frets' own layout, without comments.
+    if (next !== view) setDraft(null);
     setView(next);
+  };
+  /** A clip read from the AlphaTex view's text: one undo step, and the text stays as typed. */
+  const applyAlphaTex = (next: Clip, text: string) => {
+    dispatch({ type: 'replace', clip: next });
+    setDraft(d => (d && d.text === text ? { text, clip: next } : d));
   };
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
@@ -768,9 +782,13 @@ export default function TabPage() {
                 </HoverTips>
               </div>
             )
-            : (
-              <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
-            )}
+            : view === 'alphatex'
+              ? (
+                <HoverTips>
+                  <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} />
+                </HoverTips>
+              )
+              : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
           {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab' && editing && picked && clipWidth > 0 && (

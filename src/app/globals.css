@@ -693,6 +693,36 @@ button {
     /* Tab must show "|-" and "->" as typed, not as joined glyphs. */
     font-variant-ligatures: none;
   }
+  /* The AlphaTex view's editor (AlphaTexEditor.tsx): a textarea over a copy of its lines, which draws the
+     line numbers and ⚠ in the margin and the red underlines under the text. Both wrap the same way, so the
+     marks stay under their characters. */
+  .tab-text-editor {
+    --gutter: calc(var(--gutter-digits) * 1ch + 36px);
+    --text-pad: 8px 10px 8px 0;
+    position: relative;
+    font: 13px/1.4 var(--font-mono); font-variant-ligatures: none;
+    background: var(--surface-raised);
+    border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
+  }
+  .tab-text-mirror { padding: var(--text-pad); color: transparent; }
+  .tab-text-line, .tab-text-input { white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+  .tab-text-line { position: relative; padding-left: var(--gutter); min-height: 1.4em; }
+  .tab-text-margin {
+    position: absolute; left: 0; top: 0; width: var(--gutter); height: 1.4em;
+    display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding-right: 10px;
+    color: var(--ink-muted); user-select: none;
+  }
+  .tab-text-mark { display: inline-flex; cursor: help; }
+  .tab-text-mark-error { color: var(--danger); }
+  .tab-text-mark-note { color: var(--ink-muted); }
+  .tab-text-error {
+    text-decoration: underline wavy var(--danger) 1.5px; text-decoration-skip-ink: none; text-underline-offset: 3px;
+  }
+  .tab-text-input {
+    position: absolute; top: 0; bottom: 0; left: var(--gutter); right: 0; width: calc(100% - var(--gutter));
+    margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
+    font: inherit; font-variant-ligatures: none; color: var(--ink); caret-color: var(--ink); background: transparent;
+  }
   /* Over the clip: the copy button at the left, the view switch at the right, pulled 8px into the
      card's padding so they sit close to its top corners (Jeremy, 2026-10-27). */
   .tab-card-bar {

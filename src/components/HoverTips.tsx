@@ -37,14 +37,17 @@ export function HoverTips({ children }: { children: ReactNode }) {
       current = null;
       setTip(null);
     };
+    // Its text too: an element may change its tip as the mouse moves over it (the AlphaTex editor's underlines).
+    let currentText: string | null = null;
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return;
       const el = tipOf(e.target);
-      if (el === current) return;
+      const text = el?.getAttribute('data-tip') ?? null;
+      if (el === current && text === currentText) return;
       hide();
-      const text = el?.getAttribute('data-tip');
       if (!el || !text) return;
       current = el;
+      currentText = text;
       const { clientX: x, clientY: y } = e;
       timer = window.setTimeout(() => setTip({ text, x: x + 14, y: y + 18 }), TIP_DELAY_MS);
     };
@@ -53,6 +56,7 @@ export function HoverTips({ children }: { children: ReactNode }) {
       const text = el?.getAttribute('data-tip');
       if (!el || !text || !(e.target as Element).matches(':focus-visible')) return hide();
       current = el;
+      currentText = text;
       const r = el.getBoundingClientRect();
       setTip({ text, x: r.left, y: r.bottom + 6 });
     };

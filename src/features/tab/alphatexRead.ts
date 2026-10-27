@@ -6,7 +6,7 @@
  * clip back loses nothing. `public/tab-alphatex.txt` is the agents' guide.
  */
 import type * as AlphaTabModule from '@coderline/alphatab';
-import type { ReadResult } from './ascii';
+import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
@@ -175,11 +175,24 @@ function joinToNext(bars: Bar[], origins: Map<Note, AtNote>, at: AlphaTab, warn:
   }
 }
 
-function errorLines(importer: AlphaTabModule.importer.AlphaTexImporter): string[] {
-  const all = [...importer.lexerDiagnostics.items, ...importer.parserDiagnostics.items, ...importer.semanticDiagnostics.items];
-  return all
-    .filter(d => d.severity === 2)
-    .map(d => (d.start ? `Line ${d.start.line}, column ${d.start.col}: ${d.message}` : d.message));
+/** alphaTab's errors, each as a line for Import and, where it has one, a spot in the text for the AlphaTex editor. */
+function errorsOf(importer: AlphaTabModule.importer.AlphaTexImporter, text: string): { errors: string[]; spots: TextSpot[] } {
+  const all = [...importer.lexerDiagnostics.items, ...importer.parserDiagnostics.items, ...importer.semanticDiagnostics.items]
+    .filter(d => d.severity === 2);
+  const errors = all.map(d => (d.start ? `Line ${d.start.line}, column ${d.start.col}: ${d.message}` : d.message));
+  const spots = all.flatMap(d => {
+    if (!d.start) return [];
+    const from = stringIndex(text, d.start.offset);
+    return [{ from, to: Math.max(from, stringIndex(text, d.end?.offset ?? d.start.offset)), message: d.message }];
+  });
+  return { errors, spots };
+}
+
+/** alphaTab counts characters (code points); a JavaScript string counts UTF-16 units, two for some symbols. */
+function stringIndex(text: string, codePoints: number): number {
+  let index = 0;
+  for (let n = 0; n < codePoints && index < text.length; n++) index += text.codePointAt(index)! > 0xffff ? 2 : 1;
+  return index;
 }
 
 /** Reads alphaTex with an already loaded alphaTab (tests pass it in; the page uses `readAlphaTex`). */
@@ -191,8 +204,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   try {
     score = importer.readScore();
   } catch {
-    const errors = errorLines(importer);
-    return { ok: false, errors: errors.length > 0 ? errors : ['This is not alphaTex Frets can read.'] };
+    const { errors, spots } = errorsOf(importer, text);
+    return { ok: false, errors: errors.length > 0 ? errors : ['This is not alphaTex Frets can read.'], spots };
   }
   const tree = importer.scoreNode as unknown as ScoreNode | undefined;
   const track = score.tracks[0];
