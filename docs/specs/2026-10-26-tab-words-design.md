@@ -39,9 +39,13 @@ nothing then has to be placed after text whose width is unknown.
 - **Click to edit:** a press on a drawn chord name, section or tempo moves the
   cursor to its column or bar and opens its field. This follows his P.M. ask:
   a press on a drawn mark selects what it belongs to.
-- **Tempo:** a whole number from 20 to 400, clamped. Its word ("Slowly") and a
-  section's rehearsal mark are kept when the number or the name changes. They
-  are set only in the text, for now.
+- **Tempo:** bpm, a whole number from 20 to 400, clamped, then an optional
+  label: the field shows and takes "100 A little faster" (Jeremy, 2026-10-27;
+  before, the label could be set only in the text), and a press on the label
+  opens it too. Just a number drops the label; text that doesn't start with a
+  number leaves the tempo as it was; empty clears it. The field's caption is
+  "Tempo in bpm, then a label". A section's rehearsal mark is kept when its
+  name changes; it is set only in the text, for now.
 - **Capo:** first a raised button beside the time signature. Jeremy found it
   "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in
   the Text group opening the same field as a tempo (1 to 12; empty or 0 takes

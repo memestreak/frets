@@ -137,8 +137,8 @@ Put these at the start of a bar, before its beats:
                                the one in the header holds until then
     \section "Verse"           a section starts here, drawn in a box;
     \section ("A" "Chorus")    with a rehearsal mark, "A"
-    \tempo 90                  the tempo from this bar on, in quarter
-    \tempo (90 "Slowly")       notes a minute (20 to 400), with a word
+    \tempo 90                  the tempo from this bar on, in bpm
+    \tempo (90 "Slowly")       (20 to 400), with a label
     \ro        the bar starts a repeat
     \rc 2      the bar ends a repeat played twice (\rc 4: four times)
     \ae 1      the bar is under the 1st-time ending (\ae 2: 2nd ending)

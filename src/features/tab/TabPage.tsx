@@ -13,14 +13,14 @@ import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, isRest, isStandardTuning, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import {
   clipReducer, initClipState, STORAGE_KEY,
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, START, stepDuration, type Cursor, type Selection,
+  fillBar, isEmpty, makeRest, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, RUN_MARKS, type RunMark, type TextHit } from './layout';
 import { BarTimePanel } from './BarTimePanel';
@@ -236,8 +236,9 @@ export default function TabPage() {
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     if (w.kind === 'tempo') {
-      const typed = Number(value);
-      commit(setTempo(clip, w.bar, value === '' ? null : Math.min(MAX_BPM, Math.max(MIN_BPM, typed))));
+      // Text that isn't a tempo leaves it as it was.
+      const tempo = readTempo(value);
+      if (tempo !== undefined) commit(setTempo(clip, w.bar, tempo));
     }
     // A capo of 0 is no capo.
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
@@ -746,7 +747,7 @@ function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: numbe
   if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
   if (kind === 'capo') return clip.capo ? String(clip.capo) : '';
-  return b?.tempo ? String(b.tempo.bpm) : '';
+  return tempoText(b?.tempo);
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */

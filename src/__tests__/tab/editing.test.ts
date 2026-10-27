@@ -5,7 +5,7 @@ import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
 import {
   fewestRests, clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
   deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
-  stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, type Cursor,
+  stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, readTempo, tempoText, type Cursor,
 } from '@/features/tab/editing';
 
 function clipOf(text: string): Clip {
@@ -330,7 +330,7 @@ describe('words over the tab', () => {
     let clip = clipOf('5.3.2 7.3.2 |');
     clip = setChordName(clip, at(0, 1, 2), ' Am7 ');
     clip = setSection(clip, 0, 'Intro');
-    clip = setTempo(clip, 0, 80);
+    clip = setTempo(clip, 0, { bpm: 80 });
     clip = setCapo(clip, 2);
     expect(writeAlphaTex(clip)).toBe('\\ts (4 4)\n\\capo 2\n\\section "Intro" \\tempo 80 5.3.2 7.3.2{ch "Am7"} |\n');
     clip = setChordName(clip, at(0, 1, 2), '');
@@ -340,10 +340,20 @@ describe('words over the tab', () => {
     expect(writeAlphaTex(clip)).toBe('\\ts (4 4)\n5.3.2 7.3.2 |\n');
   });
 
-  it('keeps a tempo\'s word and a rehearsal mark when only the number or name changes', () => {
+  it('keeps a rehearsal mark when only the section name changes', () => {
     let clip = clipOf('\\section ("A" "Verse") \\tempo (60 "Slowly") 5.3.1 |');
-    clip = setTempo(clip, 0, 66);
     clip = setSection(clip, 0, 'Bridge');
-    expect(bars(clip)).toBe('\\section ("A" "Bridge") \\tempo (66 "Slowly") 5.3.1 |');
+    expect(bars(clip)).toBe('\\section ("A" "Bridge") \\tempo (60 "Slowly") 5.3.1 |');
+  });
+
+  it('reads a typed tempo as bpm then a label, and shows it the same way', () => {
+    expect(readTempo('100 A little faster')).toEqual({ bpm: 100, label: 'A little faster' });
+    expect(readTempo(' 66 ')).toEqual({ bpm: 66 });
+    expect(readTempo('9999')).toEqual({ bpm: 400 });
+    expect(readTempo('')).toBeNull();
+    expect(readTempo('Slowly')).toBeUndefined();
+    expect(tempoText({ bpm: 100, label: 'A little faster' })).toBe('100 A little faster');
+    const clip = setTempo(clipOf('\\tempo (60 "Slowly") 5.3.1 |'), 0, readTempo('66')!);
+    expect(bars(clip)).toBe('\\tempo 66 5.3.1 |');
   });
 });

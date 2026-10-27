@@ -129,7 +129,7 @@ export interface Bar {
   repeatEnd?: number;
   /** Under a 1st, 2nd … ending bracket. */
   ending?: number;
-  /** A tempo from this bar on, in quarter notes a minute, with an optional word ("Slowly"). */
+  /** A tempo from this bar on, in bpm (quarter notes), with an optional label ("Slowly"). */
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
@@ -141,7 +141,7 @@ export interface Tempo {
   bpm: number;
   label?: string;
 }
-/** The tempos Frets offers, in quarter notes a minute. */
+/** The tempos Frets offers, in bpm. */
 export const MIN_BPM = 20;
 export const MAX_BPM = 400;
 
