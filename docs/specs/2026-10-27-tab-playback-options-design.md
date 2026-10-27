@@ -32,3 +32,15 @@ Both are saved with the other playback settings in `frets.tab.playback`.
 off but the loop range stays set, so the synth finishes at the range end; on
 `finished` the player rests and then moves to the range start and plays.
 `SpeedField` became the generic `NumberField`, shared by Speed and the pause.
+
+## Also in this change
+
+- **Speed resets on a double-click** (Jeremy, 2026-10-27): a double-click on
+  the Speed label, its number or the bpm beside it puts the speed back to
+  100%. Not on the step buttons, so two quick presses still step twice. From
+  the keyboard, type 100.
+- **The title renames the clip** (Jeremy, 2026-10-27): a click on the page's
+  title turns it into a field (`ClipTitle.tsx`); Enter or leaving it keeps
+  the text, trimmed, as one undo step; Esc keeps the old title. Empty is
+  "Untitled clip". The Export dialog's Name already starts on the clip's
+  name, so it follows the title.

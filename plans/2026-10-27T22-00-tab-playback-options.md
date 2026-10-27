@@ -7,3 +7,4 @@
 5. `TabPage.tsx`: Stop at playhead sets the playback line.
 6. Tests: settings parsing, the menu's toggles and field, persistence.
 7. Verify in Chromium: both options on and off, rest timing, light and dark.
+8. Double-click on Speed resets to 100%; ClipTitle renames the clip from the page title.

@@ -76,6 +76,25 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
   });
 
+  it('renames the clip from its title, which the export Name starts on', () => {
+    renderAt();
+    fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled clip' }));
+    const field = screen.getByRole('textbox', { name: 'Clip title' });
+    expect(field).toHaveValue('');
+    fireEvent.change(field, { target: { value: '  Riff  ' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(heading()).toHaveTextContent('Riff');
+    expect(screen.queryByRole('textbox', { name: 'Clip title' })).toBeNull();
+    // Esc keeps the old title.
+    fireEvent.click(within(heading()).getByRole('button', { name: 'Riff' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Clip title' }), { target: { value: 'Other' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Clip title' }), { key: 'Escape' });
+    expect(heading()).toHaveTextContent('Riff');
+    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
+    expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    expect(JSON.parse(JSON.stringify(localStorage.getItem('frets.tab.clip')))).toContain('Riff');
+  });
+
   it('imports the tab in a #tab= link, then clears the link', async () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     await settle();
@@ -524,6 +543,27 @@ describe('TabPage playback', () => {
     fireEvent.change(field, { target: { value: '70' } });
     fireEvent.keyDown(field, { key: 'Escape' });
     expect(field).toHaveValue('150');
+  });
+
+  it('resets the speed to 100% on a double-click on its label, number or bpm, not its step buttons', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    const faster = screen.getByRole('button', { name: 'Faster' });
+    fireEvent.click(faster);
+    fireEvent.click(faster);
+    fireEvent.doubleClick(faster);
+    expect(field).toHaveValue('110');
+    fireEvent.doubleClick(screen.getByText('Speed'));
+    expect(field).toHaveValue('100');
+    fireEvent.click(faster);
+    fireEvent.doubleClick(screen.getByText(/bpm$/));
+    expect(field).toHaveValue('100');
+    fireEvent.click(faster);
+    act(() => field.focus());
+    fireEvent.change(field, { target: { value: '60' } });
+    fireEvent.doubleClick(field);
+    expect(field).toHaveValue('100');
   });
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {

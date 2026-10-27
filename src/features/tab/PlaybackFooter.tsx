@@ -5,7 +5,7 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
@@ -202,6 +202,13 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   const playing = view.state === 'playing';
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
+  const resetSpeed = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest('button')) return;
+    // A number being typed is settled first, so the reset is what stays.
+    const typing = e.currentTarget.querySelector('input');
+    if (typing && document.activeElement === typing) typing.blur();
+    playback.setSpeed(1);
+  };
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes'
@@ -242,7 +249,10 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
           >
             <LoopIcon />
           </button>
-          <div className="tab-speed">
+          {/* A double-click on the label, the number or the bpm resets the speed (Jeremy, 2026-10-27);
+              not on the step buttons, so pressing one quickly twice still steps twice. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
+          <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={resetSpeed}>
             <span className="text-(--ink-muted)">Speed</span>
             <NumberField
               value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"

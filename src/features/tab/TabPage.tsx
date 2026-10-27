@@ -39,6 +39,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
+import { ClipTitle, UNTITLED } from './ClipTitle';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -913,7 +914,9 @@ export default function TabPage() {
     </button>
   );
 
-  const name = clip.name.trim() || 'Untitled clip';
+  const name = clip.name.trim() || UNTITLED;
+  /** A new title: one undo step, as any edit. */
+  const rename = (next: string) => dispatch({ type: 'replace', clip: { ...clip, name: next } });
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
@@ -922,7 +925,7 @@ export default function TabPage() {
     <div className="grid gap-4">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="grid gap-1">
-          <h1 className="m-0">{name}</h1>
+          <ClipTitle name={clip.name} onRename={rename} />
           {/* The time signature and capo are drawn on the tab, and set there; this line says only what the tab doesn't. */}
           <p className="m-0 min-h-[1.5em] text-(--ink-muted)" data-testid="clip-facts">
             {[
