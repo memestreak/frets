@@ -500,10 +500,10 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     act(() => screen.getByRole('spinbutton', { name: 'Speed (percent)' }).focus());
     fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (percent)' }), { key: ' ' });
-    expect(screen.queryByRole('button', { name: /Loading the sound|Pause/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Loading the sound|Stop/ })).toBeNull();
     act(() => (document.activeElement as HTMLElement).blur());
     fireEvent.keyDown(document.body, { key: ' ' });
-    expect(screen.getByRole('button', { name: /Loading the sound|Pause/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
   });
 
   it("doesn't play on Space while the footer is hidden", () => {
@@ -511,8 +511,8 @@ describe('TabPage playback', () => {
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: ' ' });
-    // Nothing plays, so no spinner and no Pause.
-    expect(screen.queryByRole('button', { name: /Loading the sound|Pause/ })).toBeNull();
+    // Nothing plays, so no spinner and no Stop.
+    expect(screen.queryByRole('button', { name: /Loading the sound|Stop/ })).toBeNull();
   });
 });
 

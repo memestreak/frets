@@ -15,24 +15,31 @@ button {
 }
 
 /* App tokens beyond Fretwood's. --lit: the tuner's in-tune green, brighter
-   than --success so it reads as lighting up; --lit-glow its halo. Light,
+   than --success so it reads as lighting up; --lit-glow its halo. --stop:
+   the tab's Play button while playing, red with a black square (--on-stop). Light,
    then dark as fretwood.css switches it (system, or data-theme). */
 :root {
   --lit: #23a03a;
   --on-lit: #ffffff;
   --lit-glow: rgb(35 160 58 / 0.45);
+  --stop: #d24a36;
+  --on-stop: #1b1410;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --lit: #5ee26f;
     --on-lit: #0f2412;
     --lit-glow: rgb(94 226 111 / 0.5);
+    --stop: #e2604c;
+    --on-stop: #120d0a;
   }
 }
 :root[data-theme='dark'] {
   --lit: #5ee26f;
   --on-lit: #0f2412;
   --lit-glow: rgb(94 226 111 / 0.5);
+  --stop: #e2604c;
+  --on-stop: #120d0a;
 }
 
 /* App components, alongside the design system so utilities still win. */
@@ -697,16 +704,18 @@ button {
   .tab-playback-toggle {
     display: grid; place-items: center; flex: none; width: 18px; height: 18px;
     padding: 0; padding-left: 1px; border-radius: 999px; cursor: pointer;
-    border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--lit);
+    border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--ink-muted);
   }
-  .tab-playback-toggle:hover { border-color: var(--lit); }
-  /* Shown, it is a plain minus in the ink's muted colour, not green. */
-  .tab-playback-toggle[aria-pressed='true'] { padding-left: 0; color: var(--ink-muted); }
-  .tab-playback-toggle[aria-pressed='true']:hover { border-color: var(--ink-muted); color: var(--ink); }
+  /* Not green (Jeremy, 2026-10-27): a muted triangle, or with the controls shown a muted minus. */
+  .tab-playback-toggle:hover { border-color: var(--ink-muted); color: var(--ink); }
+  .tab-playback-toggle[aria-pressed='true'] { padding-left: 0; }
   .tab-playback-toggle:focus { outline: none; }
   .tab-playback-toggle:focus-visible { box-shadow: 0 0 0 2px var(--lit-glow); }
   .tab-playback { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 12px; }
-  .tab-play { border-radius: 999px; }
+  /* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
+  .tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
+  .tab-play:hover { filter: brightness(1.1); }
+  .tab-play[aria-pressed='true'] { background: var(--stop); color: var(--on-stop); }
   .tab-play-spinner {
     width: 14px; height: 14px; border-radius: 999px;
     border: 2px solid currentColor; border-right-color: transparent;

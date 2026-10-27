@@ -316,7 +316,7 @@ export class TabPlayer {
   private sound: Sound = DEFAULT_SOUND;
   private loop: [number, number] | 'whole' | null = null;
   /**
-   * Whether the clip has stopped (paused, edited or played to its end) since the last Play. The
+   * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
    */
   private ended = true;
@@ -351,7 +351,7 @@ export class TabPlayer {
   }
 
   /**
-   * Plays the clip from a column (a pause leaves the cursor where it stopped, so Play resumes).
+   * Plays the clip from a column.
    * With loop points, playing past the end one goes back to the start one; a start before them
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    */
@@ -370,8 +370,8 @@ export class TabPlayer {
     this.onView({ state: 'playing', column: from });
   }
 
-  /** Stops where it is; the view hears the state go idle and the playhead go. */
-  pause() {
+  /** Stops, keeping the clip ready for the next Play; the view hears the state go idle and the playhead go. */
+  halt() {
     this.ended = true;
     this.synth.pause();
     this.onView({ state: 'idle', column: null });

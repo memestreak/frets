@@ -6,7 +6,7 @@
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
-import { PauseIcon, PlayIcon } from '@/components/icons';
+import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
 import { columnAt, layoutClip, type Layout } from './layout';
@@ -45,7 +45,7 @@ export interface Playback {
   bpm: number;
   loop: Loop | null;
   speed: number;
-  /** Plays from `from` (a column), or pauses. */
+  /** Plays from `from` (a column), or stops. */
   toggle: (from: number) => void;
   /**
    * Loop pressed: with notes selected, the loop points go round them (pressed again on the same
@@ -64,10 +64,11 @@ export interface Playback {
 const IDLE: PlayerView = { state: 'idle', column: null };
 
 /**
- * Playback of a clip; any edit stops it, so the next Play plays what is drawn. A pause hands
- * `onPause` the column it stopped on, for the cursor: Play starts from the cursor, so it resumes.
+ * Playback of a clip; any edit stops it, so the next Play plays what is drawn. Stop leaves the cursor,
+ * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
+ * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (column: number) => void): Playback {
+export function usePlayback(clip: Clip, sound: Sound, volume: number): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
@@ -92,11 +93,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, onPause: (
     loop,
     speed,
     toggle: from => {
-      if (view.state === 'playing') {
-        // The cursor goes where it stopped, so the next Play goes on from there.
-        if (view.column !== null) onPause(view.column);
-        return player.current?.pause();
-      }
+      if (view.state === 'playing') return player.current?.halt();
       if (view.state === 'loading') return;
       const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound);
       if (player.current) return start(player.current);
@@ -141,6 +138,15 @@ function tempoAt(clip: Clip, index: number): number {
   return bpm;
 }
 
+/** The stop square on the Play button while playing. */
+function StopIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden="true">
+      <rect x={1.5} y={1.5} width={9} height={9} rx={1} fill="currentColor" />
+    </svg>
+  );
+}
+
 function LoopIcon() {
   return (
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -150,7 +156,7 @@ function LoopIcon() {
 }
 
 /**
- * The row under the tab: a very small round button with a green play triangle (Jeremy, 2026-10-26)
+ * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
 export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume }: {
@@ -177,7 +183,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes'
     : loop ? 'Clear the loop points' : 'Loop the whole clip (select notes to loop just those)';
-  const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Pause' : 'Play';
+  const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Stop' : 'Play';
   return (
     <div className="tab-playback-row">
       {/* The divider: the button at its left end, the line (only with the controls) just short of it. */}
@@ -186,7 +192,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
           type="button" className="tab-playback-toggle" aria-label="Playback controls" aria-pressed={shown}
           data-tip={shown ? 'Hide playback' : 'Show playback'} onClick={() => onShow(!shown)}
         >
-          {/* Hidden: a green play triangle. Shown: a plain minus, to put them away. */}
+          {/* Hidden: a play triangle. Shown: a plain minus, to put them away. */}
           {shown
             ? <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1 4h6" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" /></svg>
             : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
@@ -196,12 +202,12 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
       {shown && (
         <div className="tab-playback" aria-label="Playback" role="group">
           <button
-            type="button" className="btn btn-primary btn-icon tab-play" aria-label={playLabel} data-tip={`${playLabel} (Space)`}
+            type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space)`}
             disabled={total === 0}
             // A press leaves the focus (and so the cursor) on the tab.
             onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from)}
           >
-            {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <PauseIcon /> : <PlayIcon />}
+            {view.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <StopIcon /> : <PlayIcon />}
           </button>
           <button
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}

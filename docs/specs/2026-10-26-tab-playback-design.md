@@ -7,7 +7,8 @@ and Play in the header. He picked the footer in the card.
 
 ## What the page shows
 
-A very small round button with a green play triangle, at the bottom left
+A very small round button with a play triangle in the muted ink colour
+(Jeremy, 2026-10-27: it had been green), at the bottom left
 of the clip's card under the tab, shows or hides the playback controls
 beside it (Jeremy, 2026-10-26). While they show, the button holds a plain
 minus in the muted ink colour instead. It sits at the left end of the
@@ -19,17 +20,19 @@ them while the clip plays stops it.
 
 The controls sit under that line:
 
-- **Play / Pause.** A round button; Space does the same while the controls
+- **Play / Stop.** A round button in the design's muted green
+  (`--secondary`); while playing it is Stop, red with a black square
+  (`--stop`, `--on-stop`; Jeremy, 2026-10-27). Space does the same while the controls
   show, anywhere on the page but in a field or a dialog (Jeremy,
   2026-10-26: after clicking off the tab, Space did nothing). The tab keeps
   the focus, and its cursor, when Space plays from it. Play starts at the selection's first column, else at the
   cursor's; with no cursor on the tab, from the beginning (Jeremy,
   2026-10-26). A press on Play, Loop or the Volume knob leaves the cursor
-  on the tab. Pause stops and leaves the playback line (below) on the
-  column it stopped on, so the next Play goes on from there; the band goes,
-  no string is picked and the tab gives up the focus (Jeremy, 2026-10-27:
-  pausing had put the cursor on a string). A press on a note or Esc takes
-  the line away. The first Play
+  on the tab. Stop leaves the cursor, the selection and the playback line
+  (below) as they were before Play, so with no cursor (played from the
+  beginning) nothing shows (Jeremy, 2026-10-27; it had been a Pause that
+  left the line where it stopped). A press on a note or Esc takes the line
+  away. The first Play
   loads alphaTab and the soundfont, about 1 MB, and shows a spinner until
   they are ready.
 - **Loop.** It sets the loop points (Jeremy, 2026-10-26, replacing a
@@ -135,7 +138,7 @@ clip's end, not the ring-out's.
 In Chromium, with the sound's peak measured at the audio node:
 
 - Play and Space start playback from the cursor or the selection, and
-  pause and resume.
+  stop it with the cursor (or the playback line) back where it was.
 - An edit stops playback.
 - Loop points: Play from before them plays up to them and then repeats
   them, from inside them repeats them, from after them plays to the end;
@@ -151,7 +154,7 @@ In Chromium, with the sound's peak measured at the audio node:
 - Dragging the bracket's ends moves the loop points, each stopping at the
   other; dragging the end in behind the playhead while it loops sends it
   round to the start.
-- Space plays and pauses with the focus off the tab, but not in the Speed
+- Space plays and stops with the focus off the tab, but not in the Speed
   field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.
 - Checked in light and dark, at 1200 px and on a 390 px phone.
