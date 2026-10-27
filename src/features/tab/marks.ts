@@ -3,7 +3,7 @@
  * `docs/specs/2026-10-27-tab-pick-marks-design.md`): where each one is, which palette tool sets it,
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
-import { columnAccent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
+import { bendCarries, columnAccent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
 import { previousSpots, SPACE, stepY, stringY, type Layout } from './layout';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
@@ -48,6 +48,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const { rows } = layout;
   const out: { hit: MarkHit; box: Box }[] = [];
   const previous = previousSpots(layout.systems);
+  const carries = bendCarries({ bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) });
   const onStaff = staffMarks(layout);
   layout.systems.forEach((system, si) => {
     const top = si * rows.height;
@@ -87,7 +88,14 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           const y = stringY(rows, s);
           const before = previous.get(note);
           const fromX = before && before.system === si ? before.x : system.staffStart;
-          if (note.bend) {
+          const carry = carries.get(note);
+          if (carry) {
+            // A held bend's dashed line, or a release's arrow down to the string.
+            const peak = rows.staffTop - 10;
+            const from = (before && before.system === si ? fromX : system.staffStart - 14) + 14;
+            if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + 14, peak + THIN_REACH);
+            else add('bend', index, s, Math.min(from, x - 10), peak - THIN_REACH, x + 6, y + 2);
+          } else if (note.bend) {
             const peak = rows.staffTop - 10;
             const { pre, release } = note.bend;
             // The arrow and its label over the staff; a pre-bend's stands straight up from the number.

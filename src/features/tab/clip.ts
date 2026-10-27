@@ -459,6 +459,35 @@ export function slideDirections(clip: Clip): Map<Note, 'up' | 'down'> {
   return out;
 }
 
+/**
+ * Tied notes that carry on the bend of the note before them on their string: 'hold' keeps it bent
+ * (alphaTex b (4 4) on the tie), 'release' lets it down (b (4 0)). A tied note's "pre-bend" can only
+ * be that, as a note still sounding can't be bent before it is picked. The note before must end bent:
+ * a bend up, or a hold.
+ */
+export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'release'> {
+  const out = new Map<Note, 'hold' | 'release'>();
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        const before = last[s];
+        const endsBent = !!before?.bend && !before.bend.release;
+        if (note.tie && note.bend?.pre && endsBent) out.set(note, note.bend.release ? 'release' : 'hold');
+        last[s] = note;
+      });
+    }
+  }
+  return out;
+}
+
+/** How many semitones a tied note sounds above its fret: the bend it reaches, held or not yet let down. */
+export function bentSemitones(note: Note): number {
+  if (!note.tie || !note.bend || note.bend.release) return 0;
+  return Math.floor(note.bend.quarters / 2);
+}
+
 export function isStandardTuning(tuning: readonly string[]): boolean {
   return tuning.every((n, i) => n === STANDARD_TUNING[i]);
 }

@@ -257,8 +257,10 @@ export interface Layout {
 /** A column's width: longer notes take more room, and its widest note must fit; a grace note takes little. */
 export function columnWidth(column: Column): number {
   const byTime = column.grace ? 16 : 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
-  // A bend's arrow and label stand right of the number; a release needs more.
-  const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
+  // A bend's arrow and label stand right of the number; a release needs more. A tied note carrying a
+  // bend on (`bendCarries`) needs none: its line comes from the note before.
+  const own = column.notes.filter(n => n?.bend && !(n.tie && n.bend.pre));
+  const bend = own.some(n => n?.bend?.release) ? 30 : own.length > 0 ? 18 : 0;
   const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
   return Math.max(byTime, minColumnWidth(column)) + bend + slideOut;
 }

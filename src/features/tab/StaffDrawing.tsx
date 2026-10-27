@@ -177,11 +177,11 @@ function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look
         parts.push(<line key={`ledger-${key}-${k}-${ls}`} x1={xs[k] - 3} x2={xs[k] + width + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke={look.ink} strokeWidth={1} />);
       }
       parts.push(<g key={`head-${key}-${k}`} data-testid="staff-head"><Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} /></g>);
-      // A ghost note's head in brackets.
-      if (note?.ghost) {
+      // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
+      if (note?.ghost || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;
         parts.push(
-          <g key={`ghost-${key}-${k}`} data-testid="staff-ghost">
+          <g key={`ghost-${key}-${k}`} data-testid={note?.ghost ? 'staff-ghost' : 'staff-bent'}>
             <Glyph name="noteheadParenthesisLeft" x={xs[k] - open - 1} y={y} look={look} scale={grace} />
             <Glyph name="noteheadParenthesisRight" x={xs[k] + GLYPHS[head].width * SPACE * grace + 1} y={y} look={look} scale={grace} />
           </g>,

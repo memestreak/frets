@@ -95,6 +95,17 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'held-bends',
+    title: 'Held bends',
+    shows: 'A bend held over tied notes and let down, and a grace note tied into a bend',
+    text: [
+      '\\title "Held bends"',
+      '\\ts (4 4)',
+      '7.3{b (0 4)}.4 -.3{b (4 4)}.4 -.3{b (4 4)}.4 -.3{b (4 0)}.4 |',
+      '17.1.8{gr} -.1{b (0 4) v}.2 -.1{b (4 4) v}.4 -.1{b (4 0)}.8 15.1.8 |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'techniques',
     title: 'Palm mute, dead notes, harmonics, tap',
     shows: 'Palm-muted and dead notes, natural harmonics and a tapped note',

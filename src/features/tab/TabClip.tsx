@@ -1,6 +1,6 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
+  beatTicks, bendCarries, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
@@ -131,6 +131,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   const previous = previousSpots(layout.systems);
   const onStaff = layout.rows.score ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
+  const carries = bendCarries(clip);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
@@ -170,7 +171,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
         <g key={si} transform={`translate(0 ${si * rows.height})`} data-testid="tab-system">
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
-            previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            previous={previous} carries={carries} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
@@ -234,7 +235,7 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, carries, lastBar, maskId }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -245,6 +246,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   names: string[] | null;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
+  carries: Map<Note, 'hold' | 'release'>;
   lastBar: number;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
@@ -261,7 +263,8 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        const lw = labelWidth(note, placed.column);
+        // A released bend's note has no number: its arrow comes down to the string.
+        const lw = carries.get(note) === 'release' ? 0 : labelWidth(note, placed.column);
         return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
     </mask>,
@@ -306,7 +309,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
-          previous={previous} slides={slides} staffStart={system.staffStart}
+          previous={previous} slides={slides} carries={carries} staffStart={system.staffStart}
         />,
       );
     }
@@ -490,13 +493,14 @@ function labelWidth(note: Note, column: Column): number {
   return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
 }
 
-function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStart }: {
+function ColumnDrawing({ placed, rows, system, look, previous, slides, carries, staffStart }: {
   placed: PlacedColumn;
   rows: Rows;
   system: number;
   look: TabLook;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
+  carries: Map<Note, 'hold' | 'release'>;
   staffStart: number;
 }) {
   const { column, x } = placed;
@@ -544,11 +548,16 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
         <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
       );
     }
-    // A grace note's number is drawn small.
-    parts.push(column.grace
+    const carry = carries.get(note);
+    // A grace note's number is drawn small; a released bend's note shows none, as Guitar Pro prints it.
+    if (carry !== 'release') parts.push(column.grace
       ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
       : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
-    if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    if (carry) {
+      parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    } else if (note.bend) {
+      parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    }
     if (note.slideOut) {
       // A short line away from the number, down or up, to no fret in particular.
       const down = note.slideOut === 'down';
@@ -596,6 +605,28 @@ function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): Reac
     if (staccato) parts.push(<circle key="staccato" cx={x} cy={accent ? y + 6 : y} r={1.8} fill={look.ink} data-testid="staccato" />);
   }
   return parts;
+}
+
+/**
+ * A bend carried on over a tied note, from the arrow's top over the note before: a dashed line held at
+ * the bend's height, then for a release a curved arrow down to the string, where the note's number would be.
+ */
+function BendCarry({ carry, fromX, x, y, staffTop, look }: {
+  carry: 'hold' | 'release'; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
+}) {
+  const top = staffTop - 10;
+  const from = fromX + 14;
+  if (carry === 'hold') {
+    return <line x1={from} x2={x + 14} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
+  }
+  const down = x - 8;
+  return (
+    <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend-release">
+      {down > from && <line x1={from} x2={down} y1={top} y2={top} strokeDasharray="4 3" />}
+      <path d={`M${down} ${top} Q${x} ${top} ${x} ${y - 6}`} />
+      <path d={`M${x - 4} ${y - 7} L${x} ${y} L${x + 4} ${y - 7}`} fill={look.ink} stroke="none" />
+    </g>
+  );
 }
 
 /** A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend. */

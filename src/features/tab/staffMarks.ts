@@ -114,7 +114,11 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           const fromX = joined ? before.x + c.width : system.staffStart;
           const fromY = joined ? stepY(score, before.step) : y;
 
-          if (note.tie && joined) {
+          if (note.tie && joined && before.step !== h.step) {
+            // A tie into a bend, or out of one, joins heads at two pitches: a straight line between them.
+            const line = { x0: fromX + 3, y0: fromY, x1: headLeft - 6, y1: y };
+            add({ mark: 'tie', index, string: s }, around(line.x0, line.y0, line.x1, line.y1), { kind: 'line', ...line });
+          } else if (note.tie && joined) {
             // Alone, away from the stem; in a chord, the upper half's ties curve up and the lower half's down.
             const bend = heads.length > 1 ? (k >= heads.length / 2 ? -1 : 1) : c.up ? 1 : -1;
             const ty = y + bend * 5;
@@ -143,7 +147,8 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             add({ mark: 'slideOut', index, string: s }, around(line.x0, line.y0, line.x1, line.y1), { kind: 'line', ...line });
           }
           // Under a staff the tab draws bends and taps; with the staff alone, they go on it.
-          if (staffAlone && note.bend) {
+          // A tied note carrying a bend on shows it by its bracketed head alone.
+          if (staffAlone && note.bend && !(note.tie && note.bend.pre)) {
             const top = Math.min(score.top, topY) - 14;
             add({ mark: 'bend', index, string: s }, around(x - 4, top - 10, x + (note.bend.release ? 26 : 18), y), { kind: 'bend', x: headRight, y, top, bend: note.bend });
           }

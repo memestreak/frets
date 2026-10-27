@@ -38,8 +38,12 @@ function withOctave(name: string, string: number): string {
   return `${name}${best}`;
 }
 
-/** The points of a bend in quarter-tones: (0 4) a full bend, (4 4 0) a pre-bend let down. */
-function bendPoints({ quarters, pre, release }: Bend): string {
+/**
+ * The points of a bend in quarter-tones: (0 4) a full bend, (4 4 0) a pre-bend let down. On a tied
+ * note a "pre-bend" carries on the bend before: (4 4) holds it and (4 0) lets it down.
+ */
+function bendPoints({ quarters, pre, release }: Bend, tied: boolean): string {
+  if (tied && pre && release) return `${quarters} 0`;
   const points = pre ? [quarters, quarters] : [0, quarters];
   if (release) points.push(0);
   return points.join(' ');
@@ -68,7 +72,7 @@ function noteTex(note: Note, at: At, marks: string[]): string {
   const effects = [...marks];
   if (note.slide === 'below') effects.push('sib');
   if (note.slide === 'above') effects.push('sia');
-  if (note.bend) effects.push(`b (${bendPoints(note.bend)})`);
+  if (note.bend) effects.push(`b (${bendPoints(note.bend, !!note.tie)})`);
   if (note.slideOut) effects.push(note.slideOut === 'down' ? 'sod' : 'sou');
   if (note.vibrato) effects.push(note.vibrato === 'wide' ? 'vw' : 'v');
   if (note.harmonic) effects.push(note.harmonic === 'pinch' ? 'ph' : 'nh');
