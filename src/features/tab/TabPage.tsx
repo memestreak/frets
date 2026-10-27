@@ -48,11 +48,8 @@ const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 type View = 'tab' | 'alphatex' | 'ascii';
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'tab', label: 'Tab' }, { id: 'ascii', label: 'ASCII' }, { id: 'alphatex', label: 'alphaTex' },
+  { id: 'tab', label: 'Standard' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
 ];
-
-/** The copy button's width and a gap: the drawing stops short of it. */
-const COPY_BUTTON_ROOM = 48;
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
@@ -88,8 +85,8 @@ export default function TabPage() {
   /** Whether the ASCII view's copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
   const [widthRef, boxWidth] = useWidth();
-  // The tab is drawn clear of the copy button in the card's top right corner.
-  const clipWidth = Math.max(0, boxWidth - COPY_BUTTON_ROOM);
+  // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
+  const clipWidth = boxWidth;
   // What the text views show; the Tab view's copy writes alphaTex too, the clip's own format.
   const shownText = view === 'ascii' ? writeAscii(clip) : writeAlphaTex(clip);
 
@@ -135,6 +132,18 @@ export default function TabPage() {
   // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume);
+  /**
+   * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
+   * view without a blur, so it is no longer being edited.
+   */
+  const chooseView = (next: View) => {
+    if (next !== 'tab') {
+      playback.stop();
+      setEditing(false);
+      setPicked(null);
+    }
+    setView(next);
+  };
   const showPlaybackControls = (shown: boolean) => {
     if (!shown) playback.stop();
     setPlaybackSettings(s => ({ ...s, shown }));
@@ -670,16 +679,16 @@ export default function TabPage() {
     if (view === 'tab') return copyPng();
     try {
       await navigator.clipboard.writeText(shownText);
-      setNotice({ tone: 'info', lines: [view === 'ascii' ? 'ASCII copied.' : 'alphaTex copied.'] });
+      setNotice({ tone: 'info', lines: ['Copied as text.'] });
       showCopied();
     } catch {
       setNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
     }
   };
-  const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy ASCII', alphatex: 'Copy alphaTex' }[view];
+  const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy as text', alphatex: 'Copy as text' }[view];
   const copyButton = (
     <button
-      type="button" className="btn btn-secondary btn-icon tab-ascii-copy"
+      type="button" className="btn btn-secondary btn-icon"
       aria-label={copyLabel} title={copyLabel} onClick={() => void copy()}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
@@ -705,13 +714,6 @@ export default function TabPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="seg" role="group" aria-label="View">
-            {VIEWS.map(v => (
-              <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => setView(v.id)}>
-                {v.label}
-              </button>
-            ))}
-          </div>
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
@@ -729,6 +731,17 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
+        {/* Over the clip: the copy button at the top left, the view switch at the top right (Jeremy, 2026-10-27; the switch had been in the header). */}
+        <div className="tab-card-bar">
+          {copyButton}
+          <div className="seg" role="group" aria-label="View">
+            {VIEWS.map(v => (
+              <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} mark={markAt} />}
@@ -756,12 +769,8 @@ export default function TabPage() {
               </div>
             )
             : (
-              <div className="relative">
-                <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
-                {copyButton}
-              </div>
+              <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>
             )}
-          {view === 'tab' && clipWidth > 0 && copyButton}
           {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab' && editing && picked && clipWidth > 0 && (
@@ -783,6 +792,8 @@ export default function TabPage() {
             />
           )}
         </div>
+        {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}
+        {view === 'tab' && (
         <HoverTips>
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
@@ -791,6 +802,7 @@ export default function TabPage() {
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
           />
         </HoverTips>
+        )}
       </section>
 
       <p

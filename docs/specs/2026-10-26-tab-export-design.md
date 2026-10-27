@@ -12,11 +12,15 @@ options…**. Once the copy button and the header button did both, Jeremy
 dropped them from it (2026-10-26); the menu now only inserts bars
 (`2026-10-25-tab-editing-design.md`).
 
-Every view has a copy button at its top right: the ASCII and alphaTex views
-copy their text, and the Tab view copies the PNG, with the saved choices
+Every view has a copy button at its top left (Jeremy, 2026-10-27; it had been at the top right): the ASCII and alphaTex views
+copy their text (tip "Copy as text", and the line under the clip says "Copied as text."; Jeremy, 2026-10-27), and the Tab view copies the PNG, with the saved choices
 (the line under the clip says "Copied as PNG.") (Jeremy, 2026-10-26: "a copy to clipboard button
-(like the ASCII view has) for the primary view"). The tab is drawn 48px
-narrower than the card so the button never covers it.
+(like the ASCII view has) for the primary view"). The view switch, Standard |
+ASCII Tab | AlphaTex (Jeremy's names, 2026-10-27; they had been Tab | ASCII | alphaTex), sits at the other end of the same strip, the card's top right,
+above the clip (Jeremy, 2026-10-27, issue #127; the switch had been in the
+page header, and the tab had been drawn 48px narrower to clear the button).
+The playback toggle and controls show only on the Tab view; leaving it stops
+playback.
 
 ## The Export options button
 

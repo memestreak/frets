@@ -149,9 +149,9 @@ describe('TabPage', () => {
   it('shows the clip as alphaTex and as ASCII', async () => {
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
-    fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(screen.getByTestId('tab-ascii').textContent).toContain('\\title "Riff"');
-    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.getByTestId('tab-ascii').textContent).toContain('Title: Riff');
     expect(screen.queryByTestId('tab-column')).toBeNull();
   });
@@ -161,11 +161,10 @@ describe('TabPage', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
-    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
-    const view = screen.getByTestId('tab-ascii').parentElement!;
-    await act(async () => { fireEvent.click(within(view).getByRole('button', { name: 'Copy ASCII' })); });
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy as text' })); });
     expect(writeText).toHaveBeenCalledWith(screen.getByTestId('tab-ascii').textContent);
-    expect(notice()).toHaveTextContent('ASCII copied.');
+    expect(notice()).toHaveTextContent('Copied as text.');
   });
 
   it('saves the clip and opens on it next time', async () => {
@@ -183,9 +182,11 @@ describe('TabPage', () => {
       for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
     };
     const alphaTex = () => {
-      fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       const text = screen.getByTestId('tab-ascii').textContent ?? '';
-      fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      // The editor went away with the Tab view; back on it, the keys go to the tab again, the cursor where it was.
+      act(() => editor().focus());
       // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
       const body = text.split('\n').filter(l => l.includes('|') || !/^\\(title|ts|tuning|capo) /.test(l)).join(' ');
       return (body.match(/[^|]*\|/g) ?? []).map(b => b.trim().replace(/\s+/g, ' ')).join('\n');
@@ -297,9 +298,9 @@ describe('TabPage', () => {
       fireEvent.keyDown(capo, { key: 'Enter' });
       expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
       expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
-      fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(screen.getByTestId('tab-ascii').textContent).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
-      fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
       // An empty field, or 0, takes the capo off.
       fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
       const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
@@ -416,6 +417,16 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toEqual({ shown: false, sound: 25, volume: 1 });
+  });
+
+  it('shows neither the toggle nor the controls in the text views', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(screen.queryByRole('button', { name: 'Playback controls' })).toBeNull();
+    expect(footer()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+    expect(footer()).not.toBeNull();
   });
 
   it('picks the sound at the end of the controls, and remembers it', () => {
@@ -600,11 +611,11 @@ describe('TabPage export', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt();
     expect(screen.getByRole('button', { name: 'Copy as PNG' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'ASCII' }));
-    expect(screen.getByRole('button', { name: 'Copy ASCII' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy as PNG' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'alphaTex' }));
-    expect(screen.getByRole('button', { name: 'Copy alphaTex' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
   });
 
   it('opens Export options from the Export options button, which also downloads the clip as text', () => {

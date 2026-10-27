@@ -693,7 +693,12 @@ button {
     /* Tab must show "|-" and "->" as typed, not as joined glyphs. */
     font-variant-ligatures: none;
   }
-  .tab-ascii-copy { position: absolute; top: 0; right: 0; }
+  /* Over the clip: the copy button at the left, the view switch at the right, pulled 8px into the
+     card's padding so they sit close to its top corners (Jeremy, 2026-10-27). */
+  .tab-card-bar {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+    margin: -8px -8px 12px;
+  }
   /* Playback, a footer in the clip's card: Play, Loop, Speed, Volume and Sound. */
   /* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
      controls, stops 6px short of it), then the controls. The toggle never moves. */
