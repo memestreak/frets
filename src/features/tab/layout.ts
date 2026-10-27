@@ -176,6 +176,9 @@ export interface StaffReach {
 const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
 const TIME_WIDTH = 30;
+/** The notation staff's room for the first line's time signature, after the key signature, and the margin before its lines. */
+const STAFF_TIME_WIDTH = 26;
+const STAFF_MARGIN = 2;
 /** Room for a time signature change, just inside the bar it starts. */
 const BAR_TIME_WIDTH = 24;
 const BAR_PAD_START = 14;
@@ -350,10 +353,15 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
   // room, so the lines start one under another), then the string names. On the notation staff the
   // clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
-  const lineStart = TIME_WIDTH + (names ? NAMES_WIDTH : 0);
+  // With the notation staff, the first line's time signature goes after the clef and key signature
+  // instead, as printed music has it (Jeremy, 2026-10-27).
+  const lineStart = staff ? STAFF_MARGIN : TIME_WIDTH + (names ? NAMES_WIDTH : 0);
   const widestKey = staff ? Math.max(0, ...clip.bars.map((_, b) => keyWidth(keyAt(clip, b).fifths))) : 0;
   const keyStart = lineStart + CLEF_WIDTH;
   const head = keyStart + widestKey;
+  const firstKey = staff ? keyWidth(keyAt(clip, 0).fifths) : 0;
+  const firstTimeX = staff ? keyStart + firstKey + STAFF_TIME_WIDTH / 2 - 2 : TIME_WIDTH / 2 - 2;
+  const firstHead = staff ? Math.max(head, keyStart + firstKey + STAFF_TIME_WIDTH) : head;
   const open = openStrings(clip.tuning);
   const heads = staff ? clip.bars.map((_, b) => barHeads(clip, b, open)) : clip.bars.map(bar => bar.columns.map(() => []));
   const widthOf = (column: Column, b: number, c: number) => (staff ? staffWidth(column, heads[b][c]) : columnWidth(column));
@@ -361,11 +369,11 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
-  let x = head;
+  let x = firstHead;
   const finish = () => {
     const first = systems.length === 0;
     systems.push({
-      bars: current, timeX: first ? TIME_WIDTH / 2 - 2 : null, lineStart, staffStart: head, keyX: keyStart, first,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first,
     });
     current = [];
     x = head;
@@ -387,8 +395,10 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
     const squeeze = bar.columns.length > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
     // A time signature change stands just inside the bar, after a repeat's dots; a key change after it.
-    const timeX = timeChange ? x0 + (bar.repeatStart ? REPEAT_PAD : 0) + 14 : null;
-    const keyX = keyChange ? x0 + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0) + 8 : null;
+    // On the notation staff the key change comes first, then the time signature.
+    const inside = x0 + (bar.repeatStart ? REPEAT_PAD : 0);
+    const timeX = timeChange ? inside + (staff ? keyChange : 0) + 14 : null;
+    const keyX = keyChange ? inside + (staff ? 0 : timeChange ? BAR_TIME_WIDTH : 0) + 8 : null;
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
       const columnHeads = heads[index][k];

@@ -126,7 +126,10 @@ describe('time signatures with the staff shown', () => {
     const score = both.rows.score!;
     expect(textAt(both, x, (score.top + score.bottom) / 2)).toEqual({ kind: 'time', bar: 0 });
     expect(textAt(both, x, stringY(both.rows, 2))).toBeNull();
+    // After the clef, not in front of the lines as on the tab alone.
+    expect(x).toBeGreaterThan(both.systems[0].keyX);
     const tab = layoutClip(read.clip, 900, 'tab');
-    expect(textAt(tab, x, stringY(tab.rows, 2))).toEqual({ kind: 'time', bar: 0 });
+    expect(tab.systems[0].timeX!).toBeLessThan(tab.systems[0].lineStart);
+    expect(textAt(tab, tab.systems[0].timeX!, stringY(tab.rows, 2))).toEqual({ kind: 'time', bar: 0 });
   });
 });

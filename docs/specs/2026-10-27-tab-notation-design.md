@@ -15,8 +15,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
   tuplet numbers, ties) and the tab drops its own stems. **Tab** alone is drawn
   as before.
 - With the staff shown, the time signatures (the first line's and every
-  change) are drawn on the staff only, and pressed there; the tab keeps their
-  room so the bars line up.
+  change) are drawn on the staff only, and pressed there. As in printed music,
+  the first comes after the clef and the key signature, and a change inside a
+  bar comes after that bar's key change. The tab lines up under the staff.
 - Export (PNG, SVG, copy), the playhead and the loop follow the parts shown.
 
 ## Pitch and spelling
