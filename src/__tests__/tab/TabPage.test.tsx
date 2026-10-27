@@ -583,12 +583,22 @@ describe('TabPage examples', () => {
 });
 
 describe('TabPage export', () => {
-  it('offers only bar insertion on a right-click on the tab', () => {
+  it('inserts bars and saves the clip from a right-click, in each view its own formats', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify((readAscii(RIFF) as { clip: unknown }).clip));
     renderAt();
+    const items = (name: string) => within(screen.getByRole('menu', { name })).getAllByRole('menuitem').map(i => i.textContent);
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
-    const menu = screen.getByRole('menu', { name: 'Tab' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
+    expect(items('Tab')).toEqual([
+      'Insert bar before', 'Insert bar after', 'Save as PNG…', 'Save as SVG…', 'Save as ASCII tab…', 'Save as alphaTex…',
+    ]);
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Tab' }), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    fireEvent.contextMenu(screen.getByTestId('tab-ascii'));
+    expect(items('ASCII tab')).toEqual(['Save as text file…']);
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'ASCII tab' }), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    fireEvent.contextMenu(alphaTexBox());
+    expect(items('alphaTex')).toEqual(['Save as alphaTex file…']);
   });
 
   it('opens Export options from the header, and remembers its choices', async () => {

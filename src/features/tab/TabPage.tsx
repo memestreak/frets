@@ -6,8 +6,9 @@ import {
 import { HoverTips } from '@/components/HoverTips';
 import { CheckIcon, CopyIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
-import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
-import { copySvgAsPng } from '@/components/chords/export/exportImage';
+import { DIVIDER, ShapeMenu, type MenuEntry, type MenuItem } from '@/components/chords/export/ShapeMenu';
+import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
+import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
@@ -79,7 +80,10 @@ export default function TabPage() {
   // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
   const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
   usePersist(TAB_EXPORT_KEY, exportStyle);
-  const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
+  /** The right-click menu, where it opened and over which view: inserting bars and Save as in Standard, Save as in the text views. */
+  const [menu, setMenu] = useState<{ x: number; y: number; view: View } | null>(null);
+  /** Which mock of the Save as items the menu shows (?mock=a, b or c; a without one). */
+  const [mock] = useState(() => new URLSearchParams(window.location.search).get('mock') ?? 'a');
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -708,6 +712,38 @@ export default function TabPage() {
     </button>
   );
 
+  /** Saves the clip in one format, through the browser's Save As dialog where it has one. */
+  const save = (kind: SaveKind, make: () => Blob | Promise<Blob>) => {
+    saveFile(clip.name.trim() || 'tab', kind, make).then(
+      line => { if (line) setNotice({ tone: 'info', lines: [line] }); },
+      (e: unknown) => setNotice({ tone: 'error', lines: [`Couldn't save: ${e instanceof Error ? e.message : String(e)}`] }),
+    );
+  };
+  const text = (s: string) => new Blob([s], { type: 'text/plain' });
+  /** The picture as the Export dialog makes it, with its saved choices. */
+  const picture = () => tabSvg(clip, exportStyle, clip.name);
+  /** The Standard view's Save as formats, labelled for each mock. */
+  const saveItems = (prefix: string): MenuItem[] => [
+    { label: `${prefix}PNG…`, onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
+    { label: `${prefix}SVG…`, onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
+    { label: `${prefix}ASCII tab…`, onSelect: () => save(SAVE_KINDS.ascii, () => text(writeAscii(clip))) },
+    { label: `${prefix}alphaTex…`, onSelect: () => save(SAVE_KINDS.alphatex, () => text(writeAlphaTex(clip))) },
+  ];
+  const menuItems = (over: View): MenuEntry[] => {
+    if (over === 'ascii') return [{ label: 'Save as text file…', onSelect: () => save(SAVE_KINDS.ascii, () => text(writeAscii(clip))) }];
+    // The text as typed, comments and all.
+    if (over === 'alphatex') return [{ label: 'Save as alphaTex file…', onSelect: () => save(SAVE_KINDS.alphatex, () => text(alphaTexText)) }];
+    const bars: MenuEntry[] = [
+      // The bar under a right-click already has the cursor: the press put it there.
+      { label: 'Insert bar before', onSelect: () => addBar('before') },
+      { label: 'Insert bar after', onSelect: () => addBar('after') },
+      DIVIDER,
+    ];
+    if (mock === 'b') return [...bars, { label: 'Save as', items: saveItems('') }];
+    if (mock === 'c') return [...bars, { heading: 'Save as' }, ...saveItems('')];
+    return [...bars, ...saveItems('Save as ')];
+  };
+
   const name = clip.name.trim() || 'Untitled clip';
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
@@ -766,7 +802,7 @@ export default function TabPage() {
                 aria-label="Tab editor: type frets, arrows move, Shift+arrows select; Shift+F10 to insert a bar"
                 onKeyDown={onKeyDown} onFocus={() => setEditing(true)} onBlur={onEditorBlur}
                 // Right-click, a long press or Shift+F10: insert a bar before or after.
-                {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
+                {...menuTrigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), view: 'tab' }))}
               >
                 {/* A bar's warning explains itself on hover. */}
                 <HoverTips>
@@ -784,10 +820,19 @@ export default function TabPage() {
             : view === 'alphatex'
               ? (
                 <HoverTips>
-                  <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} />
+                  <div {...menuTrigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), view: 'alphatex' }))}>
+                    <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} />
+                  </div>
                 </HoverTips>
               )
-              : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
+              : (
+                <pre
+                  className="tab-ascii" data-testid="tab-ascii"
+                  {...menuTrigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), view: 'ascii' }))}
+                >
+                  {shownText}
+                </pre>
+              )}
           {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
           {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
           {view === 'tab' && editing && picked && clipWidth > 0 && (
@@ -838,18 +883,14 @@ export default function TabPage() {
           if (error) setNotice({ tone: 'error', lines: [error] });
         }}
       />
-      {barMenu && (
+      {menu && (
         <ShapeMenu
-          x={barMenu.x} y={barMenu.y} label="Tab"
+          x={menu.x} y={menu.y} label={{ tab: 'Tab', ascii: 'ASCII tab', alphatex: 'alphaTex' }[menu.view]}
           onClose={refocus => {
-            if (refocus) editorRef.current?.focus();
-            setBarMenu(null);
+            if (refocus && menu.view === 'tab') editorRef.current?.focus();
+            setMenu(null);
           }}
-          items={[
-            // The bar under a right-click already has the cursor: the press put it there.
-            { label: 'Insert bar before', onSelect: () => addBar('before') },
-            { label: 'Insert bar after', onSelect: () => addBar('after') },
-          ]}
+          items={menuItems(menu.view)}
         />
       )}
       <TabExportDialog
