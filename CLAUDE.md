@@ -280,7 +280,7 @@ binds a local port).
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
-  Standard | ASCII Tab | AlphaTex, each with a copy button at the top left of the clip (Standard copies the PNG) and a save button at its bottom right (`saveFile.ts`; Standard lists PNG, SVG, ASCII tab and alphaTex); the AlphaTex view is editable, `AlphaTexEditor.tsx` (`docs/specs/2026-10-27-tab-alphatex-editing-design.md`: read half a second after typing, errors marked ⚠ and underlined, text as typed until an edit elsewhere changes the clip); Export options,
+  Notation | ASCII Tab | AlphaTex, each with a copy button at the top left of the clip (Notation copies the PNG) and a save button at its bottom right (`saveFile.ts`; Notation lists PNG, SVG, ASCII tab and alphaTex); Notation shows Staff, Tab or Both (`docs/specs/2026-10-27-tab-notation-design.md`): `notation.ts` (pure: pitch, spelling in the key, staff steps, accidentals), `StaffDrawing.tsx` (the treble staff an octave up, carrying the rhythm in Both, where the tab drops its stems and a press on a head puts the cursor on its tab note; Staff alone is read-only), `smufl.ts` (Bravura's glyph outlines, from `scripts/smufl-glyphs.mjs`), and `BarKeyPanel.tsx` (the key signature from a bar on, `\ks`, opened like the time signature's panel); the AlphaTex view is editable, `AlphaTexEditor.tsx` (`docs/specs/2026-10-27-tab-alphatex-editing-design.md`: read half a second after typing, errors marked ⚠ and underlined, text as typed until an edit elsewhere changes the clip); Export options,
   the Export dialog, which also downloads the clip as alphaTex or ASCII). The clip's own format is alphaTex
   (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
   `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
@@ -334,7 +334,7 @@ hold `{ set, stats }` (the Note trainer's set includes the mic choice);
 `["frets.tuner.settings"]` holds the tuner's meter and reference sound,
 for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.playback"]` whether its playback controls show, their sound and volume; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
+and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.parts"]` whether Notation shows the staff, the tab or both; `["frets.tab.playback"]` whether its playback controls show, their sound and volume; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
 each key validate every field; keep them in step with settings changes.
 
 ## Testing

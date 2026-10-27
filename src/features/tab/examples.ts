@@ -201,6 +201,17 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'key-signatures',
+    title: 'Key signatures',
+    shows: 'A scale in G major, then the same in F major from bar 3, spelled from each key on the staff',
+    text: [
+      '\\title "Key signatures"',
+      '\\ts (4 4)',
+      '\\ks G 0.3.8 2.3.8 4.3.8 5.3.8 3.2.8 5.2.8 7.2.8 8.2.8 | 7.2.4 5.2.4 3.2.2 |',
+      '\\ks F 3.4.8 0.3.8 2.3.8 3.3.8 5.3.8 3.2.8 5.2.8 6.2.8 | 5.2.4 4.2.4 3.2.2 |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'drop-d',
     title: 'Drop D',
     shows: 'A tuning other than standard, its string names left of the lines',

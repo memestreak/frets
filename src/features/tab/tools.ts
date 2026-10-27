@@ -18,7 +18,7 @@ export type ToolId =
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
-  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'repeatStart' | 'repeatEnd' | 'ending'
+  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'ending'
   | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
@@ -105,6 +105,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'insertBarBefore', label: 'Insert a bar of rests before this bar', key: 'Ctrl+Shift+Enter' },
       { id: 'insertBar', label: 'Insert a bar of rests after this bar', key: 'Ctrl+Enter' },
       { id: 'barTime', label: 'Time signature from this bar', key: '' },
+      { id: 'barKey', label: 'Key signature from this bar', key: '' },
       { id: 'repeatStart', label: 'Repeat starts at this bar', key: '[' },
       { id: 'repeatEnd', label: 'Repeat ends at this bar (again: ×3, ×4)', key: ']' },
       { id: 'ending', label: 'Ending 1., then 2.', key: 'E' },

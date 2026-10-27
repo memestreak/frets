@@ -234,6 +234,8 @@ const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet'>, ReactNode> =
   insertBarBefore: <><line x1={8} y1={8} x2={8} y2={16} strokeWidth={2} /><line x1={4} y1={12} x2={12} y2={12} strokeWidth={2} /><line x1={17} y1={5} x2={17} y2={19} /></>,
   insertBar: <><line x1={7} y1={5} x2={7} y2={19} /><line x1={16} y1={8} x2={16} y2={16} strokeWidth={2} /><line x1={12} y1={12} x2={20} y2={12} strokeWidth={2} /></>,
   barTime: <><Label y={11} size={10}>4</Label><Label y={21} size={10}>4</Label></>,
+  // A sharp and a flat, as a key signature has.
+  barKey: <><Label x={8} y={15} size={12}>♯</Label><Label x={16} y={17} size={12}>♭</Label></>,
   repeatStart: <><line x1={6} y1={4} x2={6} y2={20} strokeWidth={3} /><line x1={10} y1={4} x2={10} y2={20} /><circle cx={15} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={15} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,

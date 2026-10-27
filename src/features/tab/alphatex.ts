@@ -8,7 +8,7 @@
  * (a clip's `header`, and `extra` on bars, columns and notes) is written
  * back as it was read. Reading is `alphatexRead.ts`.
  */
-import { isRest, isStandardTuning, type Bend, type Clip, type Column, type Note } from './clip';
+import { isRest, isStandardTuning, keyTex, type Bend, type Clip, type Column, type Note } from './clip';
 
 /** A string in alphaTex quotes. */
 function quoted(text: string): string {
@@ -145,6 +145,7 @@ function barTokens(clip: Clip): string[][] {
   return clip.bars.map((bar, b) => {
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
+    if (bar.key) meta.push(`\\ks ${keyTex(bar.key)}`);
     if (bar.section) {
       const { text, marker } = bar.section;
       meta.push(marker ? `\\section (${quoted(marker)} ${quoted(text)})` : `\\section ${quoted(text)}`);

@@ -41,5 +41,9 @@ check on every pull request and every push to `main`.
   [MPL 2.0](https://mozilla.org/MPL/2.0/).
 - Playback sounds from the SONiVOX EAS soundfont, Sonic Network Inc.,
   [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+- Notation symbols from the [Bravura](https://github.com/steinbergmedia/bravura)
+  font, Steinberg Media Technologies GmbH,
+  [SIL OFL 1.1](https://openfontlicense.org), as packaged in
+  [VexFlow](https://github.com/vexflow/vexflow), [MIT](https://opensource.org/licenses/MIT).
 
 See `NOTICE.md` for the details and the changes made.

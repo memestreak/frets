@@ -124,6 +124,8 @@ export interface Bar {
   columns: Column[];
   /** A new time signature from this bar on; the clip's own `time` holds until the first one. */
   time?: TimeSignature;
+  /** A key signature from this bar on (the first bar's is the clip's own); C major until the first one. */
+  key?: Key;
   repeatStart?: boolean;
   /** Ends a repeat played this many times (2 unless written). */
   repeatEnd?: number;
@@ -171,6 +173,55 @@ export const COMMON_TIME: TimeSignature = { beats: 4, value: 4 };
 export function isTimeSignature(beats: unknown, value: unknown): boolean {
   return Number.isInteger(beats) && (beats as number) >= 1 && (beats as number) <= MAX_BEATS
     && TIME_VALUES.includes(value as TimeValue);
+}
+
+/**
+ * A key signature: how many sharps (1 to 7) or flats (-1 to -7) it has, and whether it names the
+ * minor key with them (E minor, one sharp) rather than the major (G major).
+ */
+export interface Key {
+  fifths: number;
+  minor?: true;
+}
+export const C_MAJOR: Key = { fifths: 0 };
+export const MAX_FIFTHS = 7;
+
+export function isKey(v: unknown): v is Key {
+  return isObj(v) && Number.isInteger(v.fifths) && Math.abs(v.fifths as number) <= MAX_FIFTHS
+    && (v.minor === undefined || v.minor === true);
+}
+
+export function sameKey(a: Key, b: Key): boolean {
+  return a.fifths === b.fifths && !a.minor === !b.minor;
+}
+
+export const MAJOR_NAMES = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
+export const MINOR_NAMES = ['Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#'];
+
+/** The key's tonic as alphaTex and Frets spell it, "F#" or "Bb", without major or minor. */
+export function keyTonic(key: Key): string {
+  return (key.minor ? MINOR_NAMES : MAJOR_NAMES)[key.fifths + MAX_FIFTHS];
+}
+
+/** The key as alphaTex writes it after \ks: "G", "Bb", "Eminor". */
+export function keyTex(key: Key): string {
+  return `${keyTonic(key)}${key.minor ? 'minor' : ''}`;
+}
+
+/** The key signature in force in a bar: the latest one at or before it. */
+export function keyAt(clip: Pick<Clip, 'bars'>, index: number): Key {
+  for (let b = Math.min(index, clip.bars.length - 1); b >= 0; b--) {
+    const key = clip.bars[b].key;
+    if (key) return key;
+  }
+  return C_MAJOR;
+}
+
+/** Whether a bar starts a key signature different from the one before it (the first bar: any but C major). */
+export function changesKey(clip: Pick<Clip, 'bars'>, index: number): boolean {
+  const key = clip.bars[index]?.key;
+  if (!key) return false;
+  return !sameKey(key, index === 0 ? C_MAJOR : keyAt(clip, index - 1));
 }
 
 export const STANDARD_TUNING: readonly string[] = ['E', 'A', 'D', 'G', 'B', 'E'];
@@ -493,6 +544,7 @@ function isColumn(v: unknown): v is Column {
 function isBar(v: unknown): v is Bar {
   return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn)
     && (v.time === undefined || (isObj(v.time) && isTimeSignature(v.time.beats, v.time.value)))
+    && (v.key === undefined || isKey(v.key))
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))

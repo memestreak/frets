@@ -192,7 +192,7 @@ describe('TabPage', () => {
     const alphaTex = () => {
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       const text = alphaTexText();
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       // The editor went away with the Tab view; back on it, the keys go to the tab again, the cursor where it was.
       act(() => editor().focus());
       // One bar per line, as the writer wraps several to a line: the header lines go, then each "|" ends a bar.
@@ -308,7 +308,7 @@ describe('TabPage', () => {
       expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       // An empty field, or 0, takes the capo off.
       fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
       const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
@@ -433,7 +433,7 @@ describe('TabPage playback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.queryByRole('button', { name: 'Playback controls' })).toBeNull();
     expect(footer()).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
     expect(footer()).not.toBeNull();
   });
 
@@ -677,7 +677,7 @@ describe('TabPage export', () => {
       await settle();
       const typed = '// kept\n\\title "Quick"\n:4 5.6 |';
       type(typed);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       expect(heading()).toHaveTextContent('Quick');
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toBe(typed);
@@ -690,10 +690,10 @@ describe('TabPage export', () => {
       const typed = '// kept\n\\title "Mine"\n:4 5.6 |';
       type(typed);
       await waitFor(() => expect(heading()).toHaveTextContent('Mine'), SLOW);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toBe(typed);
-      fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
       const editor = screen.getByRole('textbox', { name: /Tab editor/ });
       act(() => editor.focus());
       fireEvent.keyDown(editor, { key: '7' });

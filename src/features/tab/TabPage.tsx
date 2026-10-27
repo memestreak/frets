@@ -20,11 +20,12 @@ import {
 } from './clipState';
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
-  fillBar, isEmpty, makeRest, removeMark, MAX_FRET, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
+  fillBar, isEmpty, makeRest, removeMark, MAX_FRET, setBarKey, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
   setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
-import { layoutClip, RUN_MARKS, textBox, type RunMark, type TextHit, type WordHit } from './layout';
+import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type TextHit, type WordHit } from './layout';
 import { markBox, markTool, type MarkHit } from './marks';
+import { BarKeyPanel, type KeyPanelMock } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { WordField } from './WordField';
 import { TabClip } from './TabClip';
@@ -51,7 +52,7 @@ const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 type View = 'tab' | 'alphatex' | 'ascii';
 const VIEWS: { id: View; label: string }[] = [
-  { id: 'tab', label: 'Standard' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
+  { id: 'tab', label: 'Notation' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
 ];
 
 /** How long after one digit a second one joins it into a two-digit fret. */
@@ -81,6 +82,10 @@ export default function TabPage() {
   // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
   const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
   usePersist(TAB_EXPORT_KEY, exportStyle);
+  /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27); the staff alone is for reading. */
+  const [parts, setParts] = useState<Parts>(() => parseParts(loadJson(PARTS_KEY)));
+  usePersist(PARTS_KEY, parts);
+  const editable = parts !== 'staff';
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   /** The Standard view's save button's list of formats, open under it (its right edge at x). */
   const [saveMenu, setSaveMenu] = useState<{ x: number; y: number } | null>(null);
@@ -130,6 +135,13 @@ export default function TabPage() {
   const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : WORD_TOOL[picked.kind];
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
+  /** The bar whose key signature panel is open. */
+  const [keyBar, setKeyBar] = useState<number | null>(null);
+  /** Which mocked key picker the panel shows (`?mock=a|b|c`), until one is chosen. */
+  const [keyMock] = useState<KeyPanelMock>(() => {
+    const m = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('mock');
+    return m === 'b' || m === 'c' ? m : 'a';
+  });
   const editorRef = useRef<HTMLDivElement>(null);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<{ spot: string; digit: number; at: number } | null>(null);
@@ -287,6 +299,7 @@ export default function TabPage() {
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') setTimeBar(cursor.bar);
+    else if (id === 'barKey') setKeyBar(cursor.bar);
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
     // A dead note goes on one string; with none picked there is nothing to mark.
@@ -303,6 +316,10 @@ export default function TabPage() {
 
   const closeTimeBar = useCallback((byKey: boolean) => {
     setTimeBar(null);
+    if (byKey) editorRef.current?.focus();
+  }, []);
+  const closeKeyBar = useCallback((byKey: boolean) => {
+    setKeyBar(null);
     if (byKey) editorRef.current?.focus();
   }, []);
 
@@ -336,8 +353,9 @@ export default function TabPage() {
   const onPickText = (hit: TextHit) => {
     const at = wordPlace(hit);
     commit(clip, at, null);
-    if (hit.kind === 'time') {
-      setTimeBar(hit.bar);
+    // A time or key signature opens its bar's panel.
+    if (hit.kind === 'time' || hit.kind === 'key') {
+      (hit.kind === 'time' ? setTimeBar : setKeyBar)(hit.bar);
       return;
     }
     setPicked(hit);
@@ -748,7 +766,7 @@ export default function TabPage() {
   /** Copies the tab as the Export dialog's PNG: the Tab view's copy button. */
   const copyPng = async () => {
     try {
-      const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name));
+      const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name, parts));
       setNotice({ tone: 'info', lines: [`${line}.`] });
       showCopied();
     } catch (e) {
@@ -786,7 +804,7 @@ export default function TabPage() {
   };
   const asText = (text: string) => new Blob([text], { type: 'text/plain' });
   /** The picture as the Export dialog makes it, with its saved choices. */
-  const picture = () => tabSvg(clip, exportStyle, clip.name);
+  const picture = () => tabSvg(clip, exportStyle, clip.name, parts);
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
@@ -848,13 +866,22 @@ export default function TabPage() {
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
           isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
           onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
-          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
+          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab' || !editable} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: the copy button at the top left, the view switch at the top right (Jeremy, 2026-10-27; the switch had been in the header). */}
         <div className="tab-card-bar">
           {copyButton}
+          {view === 'tab' && (
+            <div className="seg tab-parts" role="group" aria-label="Show">
+              {PARTS.map(p => (
+                <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
+                  {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="seg" role="group" aria-label="View">
             {VIEWS.map(v => (
               <button key={v.id} type="button" className="seg-opt" aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
@@ -865,8 +892,13 @@ export default function TabPage() {
         </div>
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} playback={playback} mark={markAt} />}
-          {view === 'tab'
+          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} />}
+          {view === 'tab' && !editable
+            ? clipWidth > 0 && (
+              // The staff alone is for reading (Jeremy, 2026-10-27): no cursor, no keys.
+              <TabClip clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as a staff`} errors={barErrors(clip)} />
+            )
+            : view === 'tab'
             ? clipWidth > 0 && (
               <div
                 // A textbox, so screen readers pass the keys through to it as they do to a text field.
@@ -879,7 +911,7 @@ export default function TabPage() {
                 {/* A bar's warning explains itself on hover. */}
                 <HoverTips>
                   <TabClip
-                    clip={clip} width={clipWidth} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
+                    clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as tab`} onPick={onPick} onPickRun={onPickRun}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                     onPickColumn={showPlayback ? pickColumn : pickColumnOnly}
                     highlight={{ cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly }}
@@ -897,23 +929,29 @@ export default function TabPage() {
               )
               : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
           {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} playback={playback} />}
+          {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
           {view === 'tab' && editing && picked && clipWidth > 0 && (
             <WordTools
-              clip={clip} width={clipWidth} hit={picked}
+              clip={clip} width={clipWidth} parts={parts} hit={picked}
               onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
               onDelete={() => deletePicked(picked)}
             />
           )}
           {view === 'tab' && word && clipWidth > 0 && (
             <WordField
-              key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, word)}
+              key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, parts, word)}
               initial={wordNow(clip, word)} onDone={finishWord}
+            />
+          )}
+          {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
+            <BarKeyPanel
+              clip={clip} bar={keyBar} {...barTimeSpot(clip, clipWidth, parts, keyBar)} mock={keyMock}
+              onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
             />
           )}
           {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
             <BarTimePanel
-              clip={clip} bar={timeBar} {...barTimeSpot(clip, clipWidth, timeBar)}
+              clip={clip} bar={timeBar} {...barTimeSpot(clip, clipWidth, parts, timeBar)}
               onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
             />
           )}
@@ -975,7 +1013,7 @@ export default function TabPage() {
         />
       )}
       <TabExportDialog
-        clip={clip} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        clip={clip} parts={parts} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
       />
     </div>
@@ -993,8 +1031,8 @@ function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: numbe
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
-function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
-  const layout = layoutClip(clip, width);
+function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
+  const layout = layoutClip(clip, width, parts);
   const { rows } = layout;
   // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
   const FIELD_WIDTH = kind === 'capo' ? 150 : 180;
@@ -1016,14 +1054,15 @@ function wordSpot(clip: Clip, width: number, { kind, bar, column }: { kind: Word
  * Edit and Delete for a picked word, to its right (Jeremy, 2026-10-27), or its left at the tab's right
  * edge; Delete alone for a picked mark, whose palette tool does the editing.
  */
-function WordTools({ clip, width, hit, onEdit, onDelete }: {
+function WordTools({ clip, width, parts, hit, onEdit, onDelete }: {
   clip: Clip;
   width: number;
+  parts: Parts;
   hit: WordHit | MarkHit;
   onEdit: (() => void) | null;
   onDelete: () => void;
 }) {
-  const layout = layoutClip(clip, width);
+  const layout = layoutClip(clip, width, parts);
   const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit, clip.capo ?? null);
   if (!box) return null;
   const TOOLS_WIDTH = onEdit ? 58 : 30;
@@ -1047,8 +1086,8 @@ function WordTools({ clip, width, hit, onEdit, onDelete }: {
 }
 
 /** Where a bar's time signature panel goes: under the staff of the line the bar is on, from the bar's start, inside the tab's width. */
-function barTimeSpot(clip: Clip, width: number, bar: number): { x: number; y: number } {
-  const layout = layoutClip(clip, width);
+function barTimeSpot(clip: Clip, width: number, parts: Parts, bar: number): { x: number; y: number } {
+  const layout = layoutClip(clip, width, parts);
   const PANEL_WIDTH = 230;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
