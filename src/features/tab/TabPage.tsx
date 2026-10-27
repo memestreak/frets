@@ -256,6 +256,9 @@ export default function TabPage() {
       commit(left, at, null);
     }
     setColumnOnly(true);
+    // The staff's cursor goes, else its pitch would show as a ghost head on the column (Jeremy, 2026-10-27);
+    // with the staff alone it is the only cursor, so it stays.
+    if (parts !== 'staff') setStaffPitch(null);
     editorRef.current?.focus();
   };
   /**

@@ -59,6 +59,10 @@ off but the loop range stays set, so the synth finishes at the range end; on
 - **Moving the playhead lets the selection go** (Jeremy, 2026-10-27): a
   press above or below the staff while playing jumps the playhead there and
   clears the selection, as it already did while stopped. Loop points stay.
+- With the controls hidden, such a press (the column cursor, no string)
+  also drops the staff's cursor in Both, which otherwise stayed as a ghost
+  head over the column (Jeremy, 2026-10-27). With the staff alone it is the
+  only cursor, so it stays.
 
 ## Transpose
 
