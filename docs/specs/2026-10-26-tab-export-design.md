@@ -22,6 +22,23 @@ page header, and the tab had been drawn 48px narrower to clear the button).
 The playback toggle and controls show only on the Tab view; leaving it stops
 playback.
 
+## Saving
+
+A save button sits at the clip's bottom right in every view, in the
+playback row's right end on Standard and in a row of its own under the text
+views (Jeremy, 2026-10-27). He first asked for Save as in the right-click
+menus; after trying three mocks he chose a button instead.
+
+- **Standard:** the button opens a list of PNG image…, SVG image…, ASCII
+  tab… and alphaTex…. PNG and SVG use the Export dialog's saved choices.
+- **ASCII Tab:** the button saves the text, `<name>.txt`.
+- **AlphaTex:** the button saves the text as typed, comments included,
+  `<name>.alphatex.txt`.
+
+Chrome and Edge open their own Save As dialog (`showSaveFilePicker`), so the
+name and folder can be chosen. Other browsers download the file
+(`saveFile.ts`). The line under the clip says what happened.
+
 ## The Export options button
 
 The header's **Download** button became **Export options** (first written
