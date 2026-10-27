@@ -4,7 +4,7 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, SPACE, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
@@ -745,13 +745,15 @@ function StaffJoin({ x, top, bottom, look }: { x: number; top: number; bottom: n
   return (
     <g data-testid="staff-join">
       <rect x={bar} y={top} width={BRACKET_THICKNESS} height={bottom - top} fill={look.ink} />
-      <path d={GLYPHS.bracketTop.d} transform={`translate(${bar} ${top}) scale(${SPACE})`} fill={look.ink} />
-      <path d={GLYPHS.bracketBottom.d} transform={`translate(${bar} ${bottom}) scale(${SPACE})`} fill={look.ink} />
+      <path d={GLYPHS.bracketTop.d} transform={`translate(${bar} ${top}) scale(${BRACKET_SCALE})`} fill={look.ink} />
+      <path d={GLYPHS.bracketBottom.d} transform={`translate(${bar} ${bottom}) scale(${BRACKET_SCALE})`} fill={look.ink} />
       <line x1={x} x2={x} y1={top} y2={bottom} stroke={look.ink} strokeWidth={1.5} />
     </g>
   );
 }
 
-/** The bracket's bar: half a staff space thick, as Bravura draws its ends, and its gap before the lines. */
-const BRACKET_THICKNESS = SPACE / 2;
+/** The bracket's bar, a little thinner than Bravura's half a staff space (Jeremy), and its gap before the lines. */
+const BRACKET_THICKNESS = 3.5;
 const BRACKET_GAP = 4;
+/** Bravura draws the ends for a bar half a space thick; they are scaled to meet this one. */
+const BRACKET_SCALE = BRACKET_THICKNESS * 2;
