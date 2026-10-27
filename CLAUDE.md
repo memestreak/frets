@@ -297,7 +297,7 @@ binds a local port).
   `public/soundfont/` (Acoustic Grand Piano is the Salamander Grand and Steel Guitar the Iowa
   acoustic and Clean Electric Guitar Karoryfer's, each its own soundfont loaded when used, `OWN_FONTS`, built by `scripts/build-soundfonts.py`; `docs/specs/2026-10-27-tab-instruments-design.md`), through a small Web Audio output; `PlaybackFooter.tsx`
   is the footer under the tab (Play from the cursor, Loop setting loop points,
-  Speed, a number field in `NumberField.tsx`, Transpose, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`); a right-click on Play opens `PlaybackOptions.tsx`, Stop leaves the cursor where it stopped, and a pause between loops (`docs/specs/2026-10-27-tab-playback-options-design.md`). `ClipTitle.tsx` is the page's title, a click renaming the clip. The ear toggle after Loop sounds each note, alone, as it is entered (`docs/specs/2026-10-27-tab-hear-notes-design.md`).
+  Speed, a number field in `NumberField.tsx`, Transpose, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`); a right-click on Play opens `PlaybackOptions.tsx`, Stop leaves the cursor where it stopped, and a pause between loops (`docs/specs/2026-10-27-tab-playback-options-design.md`). `ClipTitle.tsx` is the page's title, a click renaming the clip. The note toggle after Loop (a music note with sound waves) sounds each note, alone, as it is entered (`docs/specs/2026-10-27-tab-hear-notes-design.md`).
   Images and dragging are PR 3 in the spec.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.

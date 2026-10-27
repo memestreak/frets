@@ -202,11 +202,14 @@ function StopIcon() {
 }
 
 /** An ear: each note entered is heard. */
-function EarIcon() {
+/** A music note sounding: an eighth note with two sound waves to its right, like a speaker's. */
+function NoteSoundIcon() {
   return (
-    <svg width={14} height={14} viewBox="4 1.5 16 19" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 8.5a6 6 0 0 1 12 0c0 3.5-2.5 4.5-3.5 6.5-.8 1.6-.6 4.5-3.5 4.5a3 3 0 0 1-3-2.5" />
-      <path d="M9 9a3 3 0 0 1 6 0c0 1.5-1.5 2-1.5 3.5" />
+    <svg width={14} height={14} viewBox="1.5 2 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx={5.5} cy={17.5} rx={3} ry={2.3} transform="rotate(-20 5.5 17.5)" fill="currentColor" stroke="none" />
+      <path d="M8.3 16.8V4c.4 1.8 2.9 2.6 3.4 4.8" />
+      <path d="M15 9a4.5 4.5 0 0 1 0 6" />
+      <path d="M18 6a8.5 8.5 0 0 1 0 12" />
     </svg>
   );
 }
@@ -298,7 +301,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Hear notes as you enter them" aria-pressed={hearNotes}
             data-tip="Hear notes as you enter them" onMouseDown={e => e.preventDefault()} onClick={() => onHearNotes(!hearNotes)}
           >
-            <EarIcon />
+            <NoteSoundIcon />
           </button>
           {/* A double-click on the label, the number or the bpm resets the speed to 100%. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
