@@ -151,6 +151,39 @@ const NODE_SIZE = 4096;
 const ANSWER_SIZE = 4096;
 /** How long the end of playback fades, so it doesn't click. */
 const FADE_SECONDS = 0.03;
+/** How long Stop fades the sound out (Jeremy, 2026-10-27: "the notes stop with a glitch"). */
+const STOP_FADE_SECONDS = 0.06;
+
+/** Interleaved stereo samples waiting to be played. */
+class SampleQueue {
+  chunks: Float32Array[] = [];
+  /** How many samples (both channels) are queued. */
+  size = 0;
+  push(samples: Float32Array) {
+    this.chunks.push(samples);
+    this.size += samples.length;
+  }
+  /** Moves queued samples into the two channels from their start; returns how many frames it filled. */
+  drainInto(left: Float32Array, right: Float32Array): number {
+    let i = 0;
+    while (i < left.length && this.chunks.length > 0) {
+      const chunk = this.chunks[0];
+      let s = 0;
+      while (i < left.length && s + 1 < chunk.length) {
+        left[i] = chunk[s];
+        right[i] = chunk[s + 1];
+        i++;
+        s += 2;
+      }
+      this.size -= s;
+      if (s >= chunk.length - 1) this.chunks.shift();
+      else this.chunks[0] = chunk.subarray(s);
+    }
+    left.fill(0, i);
+    right.fill(0, i);
+    return i;
+  }
+}
 
 /**
  * The synthesizer's samples played through a ScriptProcessorNode (alphaTab's own fallback; an
@@ -163,9 +196,9 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   readonly sampleRequest = new Emitter();
   private context: AudioContext | null = null;
   private node: ScriptProcessorNode | null = null;
-  /** Interleaved stereo samples waiting to be played. */
-  private queue: Float32Array[] = [];
-  private queued = 0;
+  /** Between the node and the speakers, so Stop can fade the sound out. */
+  private gain: GainNode | null = null;
+  private samples = new SampleQueue();
   /** Requests made and not yet answered by `addSamples`. */
   private pending = 0;
   /** How many samples (both channels) to keep ready. */
@@ -190,17 +223,39 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.activate();
     this.resetSamples();
     const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
+    const gain = context.createGain();
     node.onaudioprocess = e => this.fill(e.outputBuffer);
-    node.connect(context.destination);
+    node.connect(gain).connect(context.destination);
     this.node = node;
+    this.gain = gain;
     this.request();
   }
+  /**
+   * Stops asking for samples. Cut off at once the sound would click, so the node plays on a moment
+   * from what was queued, alone, while its gain fades to nothing; then it is disconnected.
+   */
   pause() {
-    if (this.node) {
-      this.node.onaudioprocess = null;
-      this.node.disconnect();
-    }
+    const { context, node, gain } = this;
     this.node = null;
+    this.gain = null;
+    if (!node || !gain) return;
+    if (!context || context.state !== 'running') {
+      node.onaudioprocess = null;
+      node.disconnect();
+      return;
+    }
+    const tail = this.samples;
+    this.samples = new SampleQueue();
+    node.onaudioprocess = e => tail.drainInto(e.outputBuffer.getChannelData(0), e.outputBuffer.getChannelData(1));
+    const now = context.currentTime;
+    gain.gain.setValueAtTime(1, now);
+    gain.gain.linearRampToValueAtTime(0, now + STOP_FADE_SECONDS);
+    // Long enough for the fade to reach the speakers through the node's own buffer.
+    setTimeout(() => {
+      node.onaudioprocess = null;
+      node.disconnect();
+      gain.disconnect();
+    }, (STOP_FADE_SECONDS + (2 * NODE_SIZE) / context.sampleRate) * 1000);
   }
   destroy() {
     this.pause();
@@ -212,14 +267,10 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     // The synthesizer has stopped: fade what is left to nothing, so it ends without a click.
     if (samples.length === 0 && !this.answeredEmpty) this.fadeQueueOut();
     this.answeredEmpty = samples.length === 0;
-    if (samples.length > 0) {
-      this.queue.push(samples);
-      this.queued += samples.length;
-    }
+    if (samples.length > 0) this.samples.push(samples);
   }
   resetSamples() {
-    this.queue = [];
-    this.queued = 0;
+    this.samples = new SampleQueue();
     this.pending = 0;
   }
   enumerateOutputDevices() {
@@ -237,7 +288,7 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
    * this thread, and with nothing once the clip has ended; then asking stops until the next fill.
    */
   private request() {
-    while (this.queued + this.pending * ANSWER_SIZE < this.target) {
+    while (this.samples.size + this.pending * ANSWER_SIZE < this.target) {
       this.pending++;
       this.answeredEmpty = false;
       this.sampleRequest.trigger();
@@ -249,38 +300,22 @@ class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private fadeQueueOut() {
     let left = Math.floor(FADE_SECONDS * this.sampleRate) * 2;
     const total = left;
-    for (let c = this.queue.length - 1; c >= 0 && left > 0; c--) {
+    const chunks = this.samples.chunks;
+    for (let c = chunks.length - 1; c >= 0 && left > 0; c--) {
       // Copied: the synthesizer may reuse the array it handed over.
-      const chunk = this.queue[c].slice();
+      const chunk = chunks[c].slice();
       for (let i = chunk.length - 1; i >= 0 && left > 0; i--, left--) {
         // Interleaved stereo: both samples of a frame get the same gain.
         const frameFromEnd = Math.floor((total - left) / 2);
         chunk[i] *= frameFromEnd / (total / 2);
       }
-      this.queue[c] = chunk;
+      chunks[c] = chunk;
     }
   }
 
   private fill(buffer: AudioBuffer) {
-    const left = buffer.getChannelData(0);
-    const right = buffer.getChannelData(1);
-    let i = 0;
-    while (i < left.length && this.queue.length > 0) {
-      const chunk = this.queue[0];
-      let s = 0;
-      while (i < left.length && s + 1 < chunk.length) {
-        left[i] = chunk[s];
-        right[i] = chunk[s + 1];
-        i++;
-        s += 2;
-      }
-      this.queued -= s;
-      if (s >= chunk.length - 1) this.queue.shift();
-      else this.queue[0] = chunk.subarray(s);
-    }
-    left.fill(0, i);
-    right.fill(0, i);
-    this.samplesPlayed.trigger(i);
+    const frames = this.samples.drainInto(buffer.getChannelData(0), buffer.getChannelData(1));
+    this.samplesPlayed.trigger(frames);
     this.request();
   }
 }

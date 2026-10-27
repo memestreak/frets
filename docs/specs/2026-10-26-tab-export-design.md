@@ -12,7 +12,7 @@ options…**. Once the copy button and the header button did both, Jeremy
 dropped them from it (2026-10-26); the menu now only inserts bars
 (`2026-10-25-tab-editing-design.md`).
 
-Every view has a copy button at its top left (Jeremy, 2026-10-27; it had been at the top right): the ASCII and alphaTex views
+Every view has a copy button and then a save button at its top right, after the view switch (Jeremy, 2026-10-27; copy had been at the top left, which Staff | Tab | Both now takes, and save at the bottom right): the ASCII and alphaTex views
 copy their text (tip "Copy as text", and the line under the clip says "Copied as text."; Jeremy, 2026-10-27), and the Tab view copies the PNG, with the saved choices
 (the line under the clip says "Copied as PNG.") (Jeremy, 2026-10-26: "a copy to clipboard button
 (like the ASCII view has) for the primary view"). The view switch, Standard |
@@ -24,9 +24,8 @@ playback.
 
 ## Saving
 
-A save button sits at the clip's bottom right in every view, in the
-playback row's right end on Standard and in a row of its own under the text
-views (Jeremy, 2026-10-27). He first asked for Save as in the right-click
+A save button sits at the clip's top right in every view, after the copy
+button (Jeremy, 2026-10-27; it had been at the bottom right). He first asked for Save as in the right-click
 menus; after trying three mocks he chose a button instead.
 
 - **Standard:** the button opens a list of PNG image…, SVG image…, ASCII

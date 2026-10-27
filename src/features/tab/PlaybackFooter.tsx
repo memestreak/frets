@@ -159,7 +159,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, end }: {
+export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -174,8 +174,6 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
   selection: [number, number] | null;
-  /** What sits at the row's right end: the page's save button. */
-  end?: ReactNode;
 }) {
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
@@ -200,7 +198,6 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             : <svg width={8} height={8} viewBox="0 0 8 8" aria-hidden="true"><path d="M1.5 0.5v7l6-3.5Z" fill="currentColor" /></svg>}
         </button>
         {shown ? <span className="tab-playback-line" aria-hidden="true" /> : <span className="flex-1" />}
-        {end}
       </div>
       {shown && (
         <div className="tab-playback" aria-label="Playback" role="group">

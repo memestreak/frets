@@ -4,7 +4,8 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { columnAccent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { previousSpots, stringY, type Layout } from './layout';
+import { previousSpots, SPACE, stepY, stringY, type Layout } from './layout';
+import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
@@ -20,6 +21,8 @@ export interface MarkHit {
   string: number | null;
   /** A tuplet's last column: a tuplet mark covers its whole group. */
   to?: number;
+  /** Pressed where the notation staff draws it, not on the tab: its outline goes there. */
+  on?: 'staff';
 }
 
 export interface Box {
@@ -27,6 +30,14 @@ export interface Box {
   y: number;
   width: number;
   height: number;
+}
+
+/** A vibrato's wave from just right of `x`: a wide one is taller and longer, in fewer turns. */
+export function vibratoWave(x: number, y: number, wide: boolean): { d: string; width: number; strokeWidth: number } {
+  const [width, height, turns] = wide ? [8, 8, 3] : [6, 4, 4];
+  let d = `M${x + 4} ${y}`;
+  for (let k = 0; k < turns; k++) d += ` q${width / 2} -${height} ${width} 0 q${width / 2} ${height} ${width} 0`;
+  return { d, width: 2 * width * turns, strokeWidth: wide ? 2 : 1.2 };
 }
 
 /** A thin mark's hit area reaches this far above and below it, so the mouse finds it. */
@@ -37,6 +48,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const { rows } = layout;
   const out: { hit: MarkHit; box: Box }[] = [];
   const previous = previousSpots(layout.systems);
+  const onStaff = staffMarks(layout);
   layout.systems.forEach((system, si) => {
     const top = si * rows.height;
     const add = (mark: DrawnMark, index: number, string: number | null, x0: number, y0: number, x1: number, y1: number, to?: number) => {
@@ -63,14 +75,15 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           if (accent) add('accent', index, null, x - 7, y - 2 - THIN_REACH, x + 7, staccato ? y + 3 : y + THIN_REACH);
           if (staccato) add('staccato', index, null, x - 6, accent ? y + 3 : y - THIN_REACH, x + 6, (accent ? y + 6 : y) + THIN_REACH);
         }
-        if (column.tremolo && !isRest(column) && !column.grace) {
+        // Under a staff the tab has no stems: the staff carries tremolo slashes and tuplet numbers.
+        if (column.tremolo && !isRest(column) && !column.grace && rows.tabStems) {
           const value = column.duration.value;
           const slashes = TREMOLO_VALUES.indexOf(column.tremolo) + 1;
           const y0 = value === 2 ? rows.stemBottom - 12 : rows.stemTop + (value === 1 ? 2 : 0);
           add('tremolo', index, null, x - 7, y0, x + 7, y0 + 6 + slashes * 4);
         }
         column.notes.forEach((note, s) => {
-          if (!note) return;
+          if (!note || !rows.tab) return;
           const y = stringY(rows, s);
           const before = previous.get(note);
           const fromX = before && before.system === si ? before.x : system.staffStart;
@@ -94,11 +107,12 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
         });
       }
       // A tuplet's number (and bracket) under its group.
-      const cols = bar.columns.filter(p => !p.column.grace);
+      const cols = rows.tabStems ? bar.columns.filter(p => !p.column.grace) : [];
       for (const { from, to } of tupletGroups(cols.map(p => p.column))) {
         add('tuplet', cols[from].index, null, cols[from].x - 6, rows.tuplet - 12, cols[to].x + 6, rows.tuplet + 4, cols[to].index);
       }
     }
+    for (const { hit, box } of onStaff[si]) out.push({ hit, box: { ...box, y: top + box.y } });
   });
   return out;
 }
@@ -116,9 +130,13 @@ export function markAt(layout: Layout, x: number, y: number): MarkHit | null {
   const system = layout.systems[si];
   if (!system || y < 0) return null;
   const localY = y - si * rows.height;
-  const onNumber = system.bars.some(bar => bar.columns.some(c => Math.abs(c.x - x) <= NUMBER_REACH.x
+  const onNumber = rows.tab && system.bars.some(bar => bar.columns.some(c => Math.abs(c.x - x) <= NUMBER_REACH.x
     && c.column.notes.some((n, s) => n && Math.abs(stringY(rows, s) - localY) <= NUMBER_REACH.y)));
-  if (onNumber) return null;
+  // A note head on the staff is the note too.
+  const score = rows.score;
+  const onHead = score !== null && system.bars.some(bar => bar.columns.some(c => Math.abs(c.x - x) <= NUMBER_REACH.x
+    && c.heads.some(h => Math.abs(stepY(score, h.step) - localY) <= SPACE / 2 + 1)));
+  if (onNumber || onHead) return null;
   let best: { hit: MarkHit; area: number } | null = null;
   for (const { hit, box } of markBoxes(layout)) {
     if (x < box.x || x > box.x + box.width || y < box.y || y > box.y + box.height) continue;
@@ -135,7 +153,9 @@ export function sameMark(a: MarkHit, b: MarkHit): boolean {
 
 /** The box a picked mark is outlined with, and its Delete button goes beside; null when it isn't drawn now. */
 export function markBox(layout: Layout, hit: MarkHit): Box | null {
-  return markBoxes(layout).find(m => sameMark(m.hit, hit))?.box ?? null;
+  const found = markBoxes(layout).filter(m => sameMark(m.hit, hit));
+  // Drawn on both the staff and the tab: outlined where it was pressed.
+  return (found.find(m => m.hit.on === hit.on) ?? found[0])?.box ?? null;
 }
 
 /** The note a mark is on, or the column's notes for a mark over the whole column. */

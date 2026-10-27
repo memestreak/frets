@@ -134,6 +134,19 @@ describe('time signatures with the staff shown', () => {
   });
 });
 
+describe('the clef', () => {
+  it('opens the key signature, even with none drawn', async () => {
+    const alphaTab = await import('@coderline/alphatab');
+    const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
+    const { layoutClip, textAt } = await import('@/features/tab/layout');
+    const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const both = layoutClip(read.clip, 900, 'both');
+    const score = both.rows.score!;
+    expect(textAt(both, both.systems[0].lineStart + 12, (score.top + score.bottom) / 2)).toEqual({ kind: 'key', bar: 0 });
+  });
+});
+
 describe('the bracket joining the staff and the tab', () => {
   it('has room in front of the lines in Both only', async () => {
     const alphaTab = await import('@coderline/alphatab');
