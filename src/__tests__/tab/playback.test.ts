@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
+import { columnAlone, columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -59,16 +59,29 @@ describe('playback sounds', () => {
   });
 
   it('reads the saved settings, each field checked', () => {
-    const options = { stopAtPlayhead: false, loopPause: false, loopPauseSeconds: 1 };
+    const options = { hearNotes: false, stopAtPlayhead: false, loopPause: false, loopPauseSeconds: 1 };
     expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
-    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 }))
-      .toEqual({ shown: true, sound: 0, volume: 0.4, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 });
-    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, stopAtPlayhead: 1, loopPause: 'on', loopPauseSeconds: 60 }))
+    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 }))
+      .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.5 });
+    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, loopPause: 'on', loopPauseSeconds: 60 }))
       .toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
   });
 });
 
 describe('playback', () => {
+  it('hears a column alone: its notes plain, for a quarter at 120 bpm, then ringing out', () => {
+    const clip = clipOf('\\tempo 60 0.6.4 (3.5{h} 5.4{b (0 4)}).2 |');
+    expect(columnAlone(clip, 0, 5)).toBeNull();
+    const alone = columnAlone(clip, 0, 1)!;
+    expect(alone.bars).toHaveLength(1);
+    expect(alone.bars[0].tempo).toEqual({ bpm: 120 });
+    const [notes] = alone.bars[0].columns;
+    expect(notes.duration).toEqual({ value: 4, dots: 0 });
+    expect(notes.notes.filter(Boolean)).toEqual([{ fret: 5 }, { fret: 3 }]);
+    const played = perform(alphaTab, alone);
+    expect(played.endTick).toBe(Q);
+  });
+
   it('plays each column at its tick, and finds the column sounding at any tick', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     const played = perform(alphaTab, clip);

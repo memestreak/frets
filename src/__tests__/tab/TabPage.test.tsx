@@ -545,6 +545,18 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('150');
   });
 
+  it('turns "Hear notes as you enter them" on and off, and remembers it', () => {
+    renderAt();
+    fireEvent.click(toggle());
+    const ear = screen.getByRole('button', { name: 'Hear notes as you enter them' });
+    expect(ear).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(ear);
+    expect(ear).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ hearNotes: true });
+    fireEvent.click(ear);
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ hearNotes: false });
+  });
+
   it('resets the speed to 100% on a double-click on its label, number or bpm, not its step buttons', () => {
     renderAt();
     fireEvent.click(toggle());

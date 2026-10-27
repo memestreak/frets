@@ -188,6 +188,10 @@ export default function TabPage() {
       if (playbackSettings.stopAtPlayhead) setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: selectionAsSet });
     },
   });
+  /** A note just entered at a place: its column sounds, with "Hear notes as you enter them" on and the controls showing. */
+  const hearColumn = (at: { bar: number; column: number }) => {
+    if (playbackSettings.hearNotes && showPlayback) playback.hear(at.bar, at.column);
+  };
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
    * view without a blur, so it is no longer being edited.
@@ -502,6 +506,7 @@ export default function TabPage() {
         lastDigit.current = { spot, digit, at: e.timeStamp };
         commit(setFret(clip, cursor, digit));
       }
+      hearColumn(cursor);
       return;
     }
     lastDigit.current = null;
@@ -659,6 +664,7 @@ export default function TabPage() {
     if (key === 'Enter' && !e.altKey && !e.shiftKey) {
       const edit = toggleStaffNote(clip, cursor, pitch);
       toPitch(edit.clip, cursor, pitch, selection);
+      if (edit.string !== null) hearColumn(cursor);
       if (edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
       return true;
     }
@@ -1050,6 +1056,7 @@ export default function TabPage() {
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
+            hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
           />
         </HoverTips>
