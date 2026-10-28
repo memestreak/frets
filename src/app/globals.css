@@ -874,6 +874,7 @@ button {
   /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */
   .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }
   .tab-examples { list-style: none; display: grid; gap: 4px; }
+  .tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
   .tab-example {
     display: grid; gap: 2px; width: 100%; padding: 8px 12px; text-align: left;
     border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--ink); cursor: pointer;

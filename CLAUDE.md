@@ -288,7 +288,7 @@ binds a local port).
   its renderer is not used) and keeps what Frets doesn't draw as written
   (`extra` and `header` in the clip), `alphatex.ts` writes it, and
   `readTab.ts` tells ASCII from alphaTex. `examples.ts` is the library of
-  example clips (Examples…, or `/tab#example=<id>`), shown in place of the
+  example clips (Examples…, or `/tab#example=<id>`; any `.atex` or `.txt` dropped into `samples/` is listed there too, under Samples, via `samples.ts` and the route `src/app/tab/samples.json/`), shown in place of the
   clip and never saved (`clipState.ts` sets the clip aside;
   `docs/specs/2026-10-26-tab-examples-design.md`); each must read with no
   warnings and write back exactly, and every newly drawn feature gets one.
