@@ -25,7 +25,8 @@ export interface PlaybackOptionValues {
   loopPauseSeconds: number;
 }
 
-function Check({ on }: { on: boolean }) {
+/** A menu item's tick, there while it is on. */
+export function OptionCheck({ on }: { on: boolean }) {
   return (
     <span className="tab-options-check" aria-hidden="true">
       {on && <svg width={12} height={12} viewBox="0 0 12 12"><path d="m2 6.5 2.5 2.5L10 3" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -58,14 +59,14 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
         type="button" role="menuitemcheckbox" aria-checked={values.stopAtPlayhead} className="shape-menu-item tab-options-item"
         onClick={() => onChange({ ...values, stopAtPlayhead: !values.stopAtPlayhead })}
       >
-        <Check on={values.stopAtPlayhead} />
+        <OptionCheck on={values.stopAtPlayhead} />
         Stop leaves the cursor where it stopped
       </button>
       <button
         type="button" role="menuitemcheckbox" aria-checked={values.stopAtRegionEnd} className="shape-menu-item tab-options-item"
         onClick={() => onChange({ ...values, stopAtRegionEnd: !values.stopAtRegionEnd })}
       >
-        <Check on={values.stopAtRegionEnd} />
+        <OptionCheck on={values.stopAtRegionEnd} />
         Stop playback at region end
       </button>
       <div className="tab-options-row">
@@ -73,7 +74,7 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
           type="button" role="menuitemcheckbox" aria-checked={values.loopPause} className="shape-menu-item tab-options-item"
           onClick={() => onChange({ ...values, loopPause: !values.loopPause })}
         >
-          <Check on={values.loopPause} />
+          <OptionCheck on={values.loopPause} />
           Pause between loops
         </button>
         <NumberField

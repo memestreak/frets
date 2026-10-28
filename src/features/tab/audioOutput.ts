@@ -32,6 +32,8 @@ const ANSWER_SIZE = 4096;
 const FADE_SECONDS = 0.03;
 /** How long Stop fades the sound out (Jeremy, 2026-10-27: "the notes stop with a glitch"). */
 const STOP_FADE_SECONDS = 0.06;
+/** How quickly the volume follows the knob, in seconds (to about two thirds): quick, without a click. */
+const VOLUME_GLIDE_SECONDS = 0.015;
 
 /** Interleaved stereo samples waiting to be played. */
 class SampleQueue {
@@ -77,8 +79,14 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   readonly sampleRequest = new Emitter();
   private context: AudioContext | null = null;
   private node: ScriptProcessorNode | null = null;
-  /** Between the node and the speakers, so Stop can fade the sound out. */
+  /** Between the node and the speakers: the volume, and Stop's fade. */
   private gain: GainNode | null = null;
+  /**
+   * The volume, 0 to 1, set here rather than in the synthesizer: the synthesizer renders half a
+   * second ahead, so a change there was heard late (Jeremy, 2026-10-28: the knob's changes didn't
+   * apply until it was let go).
+   */
+  private volume = 1;
   private samples = new SampleQueue();
   /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
   private lastBlock: { playbackTime: number; seconds: number } | null = null;
@@ -107,6 +115,7 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.resetSamples();
     const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
     const gain = context.createGain();
+    gain.gain.value = this.volume;
     node.onaudioprocess = e => this.fill(e.outputBuffer, e.playbackTime);
     node.connect(gain).connect(context.destination);
     this.node = node;
@@ -131,7 +140,8 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.samples = new SampleQueue();
     node.onaudioprocess = e => tail.drainInto(e.outputBuffer.getChannelData(0), e.outputBuffer.getChannelData(1));
     const now = context.currentTime;
-    gain.gain.setValueAtTime(1, now);
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.linearRampToValueAtTime(0, now + STOP_FADE_SECONDS);
     // Long enough for the fade to reach the speakers through the node's own buffer.
     setTimeout(() => {
@@ -140,6 +150,13 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
       gain.disconnect();
     }, (STOP_FADE_SECONDS + (2 * NODE_SIZE) / context.sampleRate) * 1000);
   }
+  /** Sets the volume, 0 to 1; what is playing follows at once. */
+  setVolume(volume: number) {
+    this.volume = volume;
+    const { context, gain } = this;
+    if (context && gain) gain.gain.setTargetAtTime(volume, context.currentTime, VOLUME_GLIDE_SECONDS);
+  }
+
   destroy() {
     this.pause();
     void this.context?.close();

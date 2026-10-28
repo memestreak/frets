@@ -373,6 +373,8 @@ button {
   .tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
   .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
   .tab-options-row .tab-options-item { flex: 1; }
+  .tab-options-unit { min-width: 30px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+  .tab-click-volume { gap: 12px; padding: 6px 6px 6px 10px; font: 400 14px/20px var(--font-sans); }
   /* The View options panel: each option's name 6px from its switch. */
   .tab-view-options { padding: 10px 12px; }
   .tab-view-options { min-width: 0; }
@@ -876,6 +878,7 @@ button {
   .tab-speed-value { width: 60px; flex: none; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
   /* The volume: a small knob, captioned like Speed. */
   .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+  .tab-volume-end { margin-left: auto; }
   .tab-knob { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; cursor: ns-resize; touch-action: none; }
   .tab-knob:focus { outline: none; }
   .tab-knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
