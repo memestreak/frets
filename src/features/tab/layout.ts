@@ -5,6 +5,7 @@
  */
 import { beatTicks, changesKey, changesTime, isRest, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Clip, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
+import { staffInk } from './staffMarks';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -515,15 +516,25 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     }
   }
   // Each line gets the rows its own bars use, and the lines stack one under another.
-  let top = 0;
-  const systems = drafts.map((draft): System => {
-    const indices = draft.bars.map(b => b.index);
-    const rows = rowsFor(lineClip(clip, indices, draft.first), parts, staffReach(clip, heads, staff, indices));
-    const system = { ...draft, rows, top };
-    top += rows.height;
-    return system;
-  });
-  return { parts, systems, height: top, names };
+  const stack = (reaches: StaffReach[]): Layout => {
+    let top = 0;
+    const systems = drafts.map((draft, si): System => {
+      const rows = rowsFor(lineClip(clip, draft.bars.map(b => b.index), draft.first), parts, reaches[si]);
+      const system = { ...draft, rows, top };
+      top += rows.height;
+      return system;
+    });
+    return { parts, systems, height: top, names };
+  };
+  const reaches = drafts.map(draft => staffReach(clip, heads, staff, draft.bars.map(b => b.index)));
+  const layout = stack(reaches);
+  if (!staff) return layout;
+  // A bend's arrow and label on the staff, and an octave line over them, reach as far as they are
+  // drawn, past what `staffReach` makes room for. The marks sit relative to the staff, so one more
+  // pass with room for them places everything.
+  const drawn = staffInk(layout);
+  const wider = reaches.map((r, si) => ({ high: Math.max(r.high, drawn[si].high), low: Math.min(r.low, drawn[si].low) }));
+  return wider.some((r, si) => r.high !== reaches[si].high || r.low !== reaches[si].low) ? stack(wider) : layout;
 }
 
 /** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only on the first line. */

@@ -87,3 +87,19 @@ describe('picking a mark on the staff', () => {
     expect(markAt(layout, placed.x, stepY(layout.systems[0].rows.score!, placed.heads[0].step))).toBeNull();
   });
 });
+
+describe('room over the staff for its bends and octave lines', () => {
+  // The octave-lines example's first bar: a chord name, an 8va line, vibrato and a bend.
+  const clip = clipOf('\\ks G 17.1.8{gr ch "Em" ot 8va} -.1{b (0 4) v}.2{ot 8va} -.1{b (4 4) v}.4{ot 8va} -.1{b (4 0)}.8{ot 8va} 15.1.8{ot 8va} |');
+
+  it.each(['staff', 'both'] as Parts[])('keeps the 8va clear of the chord names (%s)', parts => {
+    const layout = layoutClip(clip, WIDTH, parts);
+    const { rows } = layout.systems[0];
+    const marks = staffMarks(layout)[0];
+    const ottava = marks.find(m => m.kind === 'ottava')!;
+    // The chord name's letters reach about 7 under its row; the 8va's box (with its 2 of reach) starts under them.
+    expect(ottava.box.y + 2).toBeGreaterThan(rows.chords! + 7);
+    // Nothing on the staff reaches over the 8va.
+    for (const m of marks) expect(m.box.y).toBeGreaterThanOrEqual(ottava.box.y - 1);
+  });
+});

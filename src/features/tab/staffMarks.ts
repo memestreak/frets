@@ -7,7 +7,7 @@
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
 import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Note, type Ottava } from './clip';
-import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, TAP_RADIUS, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
+import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, TAP_RADIUS, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout, type StaffReach } from './layout';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
@@ -267,6 +267,25 @@ export function staffMarks(layout: Layout): StaffMark[][] {
       }
     }
     return out;
+  });
+}
+
+/** The staff's marks that `staffReach` in `layout.ts` doesn't foresee: they stand over everything else. */
+const FAR_MARKS: ReadonlySet<StaffMark['kind']> = new Set(['bend', 'tap', 'ottava']);
+
+/**
+ * How far each line's bends, taps and octave lines reach over and under the staff, in steps from its
+ * bottom line, as drawn: `layoutClip` makes room for them, so the words over the staff stay clear of
+ * them (an "8va" ran into the chord names over bends on the staff alone, Jeremy 2026-10-28).
+ */
+export function staffInk(layout: Layout): StaffReach[] {
+  const half = SPACE / 2;
+  return staffMarks(layout).map((all, si) => {
+    const marks = all.filter(m => FAR_MARKS.has(m.kind));
+    const score = layout.systems[si].rows.score!;
+    const top = Math.min(score.top, ...marks.map(m => ink(m).top));
+    const bottom = Math.max(score.bottom, ...marks.map(m => ink(m).bottom));
+    return { high: Math.ceil((score.bottom - top) / half), low: Math.floor((score.bottom - bottom) / half) };
   });
 }
 
