@@ -112,7 +112,7 @@ function Swatch({ label, value, onChange }: { label: string; value: string; onCh
 }
 
 /** An option that is on or off: a check box and its name, the whole row pressable. */
-function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+export function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={on} className="tab-view-toggle" onClick={() => onChange(!on)}>
       <span className="tab-view-box" aria-hidden="true">

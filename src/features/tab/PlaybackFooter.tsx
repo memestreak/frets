@@ -17,8 +17,8 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
-import { DECAY_SECONDS, NO_EFFECTS, type EffectSettings } from './effects';
-import { EffectsControls, useEffectsMock } from './EffectsControls';
+import { DECAY_SECONDS, DEFAULT_FX, heardEffects, type FxSettings } from './effects';
+import { FxButton } from './FxButton';
 
 /** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -41,22 +41,28 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   countInBars: number;
   /** How loud the clicks are, 0 to 1, under the Volume knob; set from the same menu. */
   clickVolume: number;
-  /** Distortion and reverb (issue #199), from the controls after Sound. */
-  effects: EffectSettings;
+  /** Distortion and reverb (issue #199), from the FX button after Sound. */
+  effects: FxSettings;
 }
 
 /** A saved number in a range, else its default. */
 const numberIn = (value: unknown, min: number, max: number, fallback: number) =>
   typeof value === 'number' && value >= min && value <= max ? value : fallback;
 
-/** The saved effects, each field checked on its own. */
-function parseEffects(saved: unknown): EffectSettings {
+/** A saved switch, else its default. */
+const switchOr = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
+
+/** The saved FX, each field checked on its own. */
+function parseEffects(saved: unknown): FxSettings {
   const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
   return {
-    drive: numberIn(fields.drive, 0, 1, NO_EFFECTS.drive),
-    tone: numberIn(fields.tone, 0, 1, NO_EFFECTS.tone),
-    reverb: numberIn(fields.reverb, 0, 1, NO_EFFECTS.reverb),
-    decay: numberIn(fields.decay, DECAY_SECONDS.min, DECAY_SECONDS.max, NO_EFFECTS.decay),
+    on: switchOr(fields.on, DEFAULT_FX.on),
+    distortionOn: switchOr(fields.distortionOn, DEFAULT_FX.distortionOn),
+    drive: numberIn(fields.drive, 0, 1, DEFAULT_FX.drive),
+    tone: numberIn(fields.tone, 0, 1, DEFAULT_FX.tone),
+    reverbOn: switchOr(fields.reverbOn, DEFAULT_FX.reverbOn),
+    reverb: numberIn(fields.reverb, 0, 1, DEFAULT_FX.reverb),
+    decay: numberIn(fields.decay, DECAY_SECONDS.min, DECAY_SECONDS.max, DEFAULT_FX.decay),
   };
 }
 
@@ -135,8 +141,8 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   countIn: boolean;
   countInBars: number;
   clickVolume: number;
-  /** Distortion and reverb, heard at once. */
-  effects: EffectSettings;
+  /** Distortion and reverb as set, heard at once. */
+  effects: FxSettings;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -174,9 +180,11 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setClickVolume(clickVolume);
   }, [clickVolume]);
+  // What the FX switches leave heard.
+  const heardFx = useMemo(() => heardEffects(effects), [effects]);
   useEffect(() => {
-    player.current?.setEffects(effects);
-  }, [effects]);
+    player.current?.setEffects(heardFx);
+  }, [heardFx]);
 
   /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -189,7 +197,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       p.setMetronome(metronome);
       p.setCountIn(countIn, countInBars);
       p.setClickVolume(clickVolume);
-      p.setEffects(effects);
+      p.setEffects(heardFx);
       return p;
     });
     return making.current;
@@ -339,9 +347,9 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   /** Semitones playback is moved by, the field after Speed. */
   transpose: number;
   onTranspose: (semitones: number) => void;
-  /** Distortion and reverb, set after Sound. */
-  effects: EffectSettings;
-  onEffects: (effects: EffectSettings) => void;
+  /** Distortion and reverb, from the FX button after Sound. */
+  effects: FxSettings;
+  onEffects: (effects: FxSettings) => void;
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
@@ -363,7 +371,6 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
     setClickOptionsAt({ x: e.clientX, y: e.clientY });
   };
   const row = useRef<HTMLDivElement>(null);
-  const mock = useEffectsMock();
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
   const total = columnCount(clip);
@@ -456,7 +463,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
               ))}
             </select>
           </label>
-          <EffectsControls mock={mock} effects={effects} onEffects={onEffects} />
+          <FxButton fx={effects} onFx={onEffects} />
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
           {/* At the row's far right (Jeremy, 2026-10-28). */}
           <div className="tab-volume tab-volume-end">

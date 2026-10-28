@@ -30,15 +30,13 @@ function arc(from: number, to: number, radius: number): string {
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume', valueText }: {
+export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
   /** 0 to 1. */
   value: number;
   onChange: (value: number) => void;
   labelledBy: string;
-  /** What it turns, named in its tip; the effects' knobs share it (Drive, Tone, Reverb). */
+  /** What it turns, named in its tip; the FX dialog's knobs share it (Drive, Tone, Amount). */
   name?: string;
-  /** What the value reads as, in the tip and to a screen reader; a percentage unless given. */
-  valueText?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; value: number } | null>(null);
@@ -62,7 +60,7 @@ export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume', value
   }, []);
 
   const percent = Math.round(value * 100);
-  const text = valueText ?? `${percent}%`;
+  const text = `${percent}%`;
   const [dotX, dotY] = pointAt(value, 9);
   const [tipX, tipY] = pointAt(value, 4);
   return (

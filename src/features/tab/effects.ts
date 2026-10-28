@@ -23,17 +23,32 @@ export interface EffectSettings {
 /** The reverb's ring: its shortest, longest and first, in seconds (fmlab's default, 1.5 s). */
 export const DECAY_SECONDS = { min: 0.3, max: 5, start: 1.5 };
 
+export const NO_EFFECTS: EffectSettings = { drive: 0, tone: 0.5, reverb: 0, decay: DECAY_SECONDS.start };
+
 /**
- * The ring for a Reverb knob that sets its length too (mocks a and c): a short room at low
- * settings, a long plate at full (Jeremy, 2026-10-28: "significantly shorter on low settings").
- * 0.3 s at the bottom, about 1 s halfway, 3 s at full, evenly in time's ratio; to a tenth of a
- * second, so turning the knob makes a new ring only every so often.
+ * The FX as saved and set in the FX dialog (Jeremy, 2026-10-28): each effect's own switch and
+ * knobs, and `on`, the light switch on the FX button that turns them all on or off together.
  */
-export function reverbDecay(amount: number): number {
-  return Math.round(3 * 10 ** (amount - 1) * 10) / 10;
+export interface FxSettings extends EffectSettings {
+  on: boolean;
+  distortionOn: boolean;
+  reverbOn: boolean;
 }
 
-export const NO_EFFECTS: EffectSettings = { drive: 0, tone: 0.5, reverb: 0, decay: DECAY_SECONDS.start };
+/** The FX at first: all off by the FX button, each effect ready at a middling setting. */
+export const DEFAULT_FX: FxSettings = {
+  on: false, distortionOn: true, drive: 0.5, tone: 0.5, reverbOn: true, reverb: 0.3, decay: DECAY_SECONDS.start,
+};
+
+/** What is heard from the FX: an effect switched off, or every one by the FX button, is at 0. */
+export function heardEffects(fx: FxSettings): EffectSettings {
+  return {
+    drive: fx.on && fx.distortionOn ? fx.drive : 0,
+    tone: fx.tone,
+    reverb: fx.on && fx.reverbOn ? fx.reverb : 0,
+    decay: fx.decay,
+  };
+}
 
 /** The plate's tone, 0 (darkest) to 100: fmlab's default. */
 const PLATE_TONE = 70;

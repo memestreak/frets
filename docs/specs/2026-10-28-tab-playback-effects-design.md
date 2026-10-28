@@ -71,33 +71,45 @@ after it, made once with the AudioContext (`EffectsChain` in `effects.ts`):
   The dry sound stays full.
 - **Decay** is 0.3 to 5 s, starting at fmlab's 1.5 s. 0.3 s measures
   about 25% long, as the plate's diffusers ring that long themselves.
-- **In mocks a and c, the Reverb knob sets the decay too** (Jeremy,
-  2026-10-28: "significantly shorter on low settings"; `reverbDecay`). It
-  runs from 0.3 s at the bottom, through 0.9 s halfway, to 3 s at full,
-  evenly in ratio and rounded to a tenth of a second. So the ring is made
-  again only every few steps of the knob. Measured on a riff, the sound lasts
-  about 0.2 s past its last note at 10%, 0.5 s at 50% and 1.8 s at full.
 
-## Controls: three mocks
+## Controls: the FX button
 
-They come after Sound in the playback row, before Volume at its far right. Pick one by address:
+Jeremy, 2026-10-28: "put the FX behind an FX button labeled FX. The button
+will open a dialog showing the knobs and customizations and individual
+enablement. The button should include a small sub-button on the right side
+that toggles all effects on/off. The sub-button will have a light on it
+indicating its status." This replaces the three mocks (two knobs, an
+Effects panel, Amp presets).
 
-- **`?mock=a`** (the default): two knobs, **Drive** and **Reverb**, like
-  Volume. A knob at 0 reads "Off" in its tip. Tone stays at 50%, and
-  Reverb sets the decay as above.
-- **`?mock=b`**: an **Effects** button. It is lit while either effect is on,
-  and opens a small panel at the button with **Distortion** (Drive and Tone
-  knobs) and **Reverb** (an Amount knob and a Decay field in seconds).
-- **`?mock=c`**: an **Amp** list of presets (Clean, Crunch, Lead, High gain)
-  that set Drive and Tone, and a **Reverb** knob, as in mock a. A setting no preset
-  matches shows as Custom.
-
-Once Jeremy picks a mock, the other two go.
+- **The FX button** comes after Sound, before Volume at the row's far right.
+  It is one outlined control in two parts:
+  - **FX** opens the FX dialog. A second press, a press elsewhere or Esc
+    closes it.
+  - **The light switch**, past a thin line on its right, turns every effect
+    on or off together (`on`). Its round light is green while on and the
+    line colour while off.
+- **The FX dialog** opens at the press, under the button, or over it when
+  there is no room under it, so FX and the switch stay in reach.
+  - **Distortion:** a switch (`distortionOn`), and Drive and Tone knobs.
+  - **Reverb:** a switch (`reverbOn`), an Amount knob, and a Decay field
+    (0.3 to 5 s, in tenths).
+  - The dialog itself takes the focus, so no control shows a focus ring
+    when it opens.
+- **What is heard** (`heardEffects`): an effect sounds only while its own
+  switch and the light switch are both on.
+- **Switching an effect on while the light switch is off** turns the light
+  switch on too, so the change is heard.
+- **At first** the light switch is off. Both effects are switched on and
+  ready, with Drive 50%, Tone 50%, Amount 30% and Decay 1.5 s, so the first
+  press of the light switch is heard.
+- **Earlier reading, replaced:** the Reverb knob of mocks a and c also set
+  the decay, short at low settings. With a Decay field of its own, Amount
+  and Decay are now set apart.
 
 ## Saved
 
 The settings are saved per viewer in `frets.tab.playback` as
-`effects: { drive, tone, reverb, decay }`. Each field is checked on its own
+`effects: { on, distortionOn, drive, tone, reverbOn, reverb, decay }`. Each field is checked on its own
 (`parseEffects`). They aren't stored in the clip.
 
 ## Not done yet

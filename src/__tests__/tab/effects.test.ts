@@ -1,5 +1,5 @@
 import {
-  CURVE_SLOPE, DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbDecay, reverbWet, secondStage, toneFrequency,
+  CURVE_SLOPE, DEFAULT_FX, heardEffects, DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbWet, secondStage, toneFrequency,
 } from '@/features/tab/effects';
 
 // The playback effects' numbers (issue #199): what each knob does, and the plate's ring.
@@ -60,15 +60,14 @@ describe('the playback effects', () => {
     expect((curve[mid + 1] - curve[mid - 1]) / (4 / (curve.length - 1))).toBeCloseTo(CURVE_SLOPE, 2);
   });
 
-  it('make the Reverb knob ring short at low settings and long at full', () => {
-    expect(reverbDecay(0)).toBe(0.3);
-    expect(reverbDecay(0.05)).toBe(0.3);
-    expect(reverbDecay(0.5)).toBe(0.9);
-    expect(reverbDecay(1)).toBe(3);
-    for (let a = 0; a <= 1; a += 0.05) {
-      expect(reverbDecay(a)).toBeGreaterThanOrEqual(DECAY_SECONDS.min);
-      expect(reverbDecay(a)).toBeLessThanOrEqual(DECAY_SECONDS.max);
-    }
+  it('are heard only with their own switch and the FX button both on', () => {
+    const fx = { ...DEFAULT_FX, on: true, drive: 0.7, reverb: 0.4 };
+    expect(heardEffects(fx)).toEqual({ drive: 0.7, tone: fx.tone, reverb: 0.4, decay: fx.decay });
+    expect(heardEffects({ ...fx, on: false })).toMatchObject({ drive: 0, reverb: 0 });
+    expect(heardEffects({ ...fx, distortionOn: false })).toMatchObject({ drive: 0, reverb: 0.4 });
+    expect(heardEffects({ ...fx, reverbOn: false })).toMatchObject({ drive: 0.7, reverb: 0 });
+    // At first the FX button has them all off.
+    expect(heardEffects(DEFAULT_FX)).toMatchObject({ drive: 0, reverb: 0 });
   });
 
   it('turn the tone from dark to bright, evenly in pitch', () => {
@@ -95,12 +94,3 @@ describe('the playback effects', () => {
   });
 });
 
-describe('the effects mocks', () => {
-  it('come from the address, a unless b or c', async () => {
-    const { effectsMockFrom } = await import('@/features/tab/EffectsControls');
-    expect(effectsMockFrom('')).toBe('a');
-    expect(effectsMockFrom('?mock=b')).toBe('b');
-    expect(effectsMockFrom('?mock=c')).toBe('c');
-    expect(effectsMockFrom('?mock=z')).toBe('a');
-  });
-});
