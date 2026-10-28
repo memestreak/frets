@@ -3,15 +3,16 @@
  * `docs/specs/2026-10-27-tab-pick-marks-design.md`): where each one is, which palette tool sets it,
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
-import { bendCarries, columnAccent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
+import { bendCarries, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
 import { BEND_RISE, previousSpots, SPACE, stepY, stringY, vibratoRuns, type Layout } from './layout';
+import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'tremolo' | 'tuplet' | 'ottava';
+  | 'vibrato' | 'mordent' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'tremolo' | 'tuplet' | 'ottava';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -44,6 +45,27 @@ export function vibratoWave(x: number, y: number, wide: boolean, end: number): {
   return { d, width: 2 * width * turns, strokeWidth: wide ? 2.2 : 1.2 };
 }
 
+/**
+ * A mordent's sign centred on (x, y), as Guitar Pro prints it over the staff and the tab: an upper
+ * mordent the short wavy line, a lower one with a stroke through it (Bravura's ornamentShortTrill and
+ * ornamentMordent), about a note head and a half wide.
+ */
+export function mordentSign(x: number, y: number, kind: 'upper' | 'lower'): { d: string; transform: string; box: Box } {
+  const glyph = GLYPHS[kind === 'upper' ? 'ornamentShortTrill' : 'ornamentMordent'];
+  const scale = SPACE * MORDENT_SCALE;
+  const width = glyph.width * scale;
+  // The upper sign sits on its baseline, 0.98 spaces tall; the lower one's stroke reaches 0.29 under it.
+  const left = x - width / 2;
+  const base = y + 0.49 * scale;
+  return {
+    d: glyph.d,
+    transform: `translate(${left} ${base}) scale(${scale})`,
+    box: { x: left, y: base - 1.3 * scale, width, height: 1.6 * scale },
+  };
+}
+/** A mordent's size against the staff's glyphs. */
+const MORDENT_SCALE = 0.55;
+
 /** A thin mark's hit area reaches this far above and below it, so the mouse finds it. */
 const THIN_REACH = 8;
 
@@ -72,6 +94,11 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
     for (const bar of system.bars) {
       for (const { column, x, index } of bar.columns) {
         const notes = column.notes.filter((n): n is Note => n !== null);
+        const mordent = columnMordent(column);
+        if (mordent && rows.vibrato !== null) {
+          const { box } = mordentSign(x, rows.vibrato, mordent);
+          add('mordent', index, null, box.x - 2, rows.vibrato - THIN_REACH, box.x + box.width + 2, rows.vibrato + THIN_REACH);
+        }
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
         const accent = columnAccent(column);
@@ -215,6 +242,10 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
       return accent === 'heavy' ? 'heavyAccent' : accent === 'normal' ? 'accent' : null;
     }
     case 'staccato': return notes.some(n => n.staccato) ? 'staccato' : null;
+    case 'mordent': {
+      const mordent = column ? columnMordent(column) : undefined;
+      return mordent === 'upper' ? 'mordent' : mordent === 'lower' ? 'lowerMordent' : null;
+    }
     case 'stroke': return column?.stroke === 'down' ? 'strokeDown' : column?.stroke === 'up' ? 'strokeUp' : null;
     case 'tremolo': {
       const tools = { 8: 'tremolo8', 16: 'tremolo16', 32: 'tremolo32' } as const;

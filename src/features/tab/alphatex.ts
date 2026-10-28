@@ -81,6 +81,7 @@ function noteTex(note: Note, at: At, marks: string[]): string {
   if (note.ghost) effects.push('g');
   if (note.accent) effects.push(note.accent === 'heavy' ? 'hac' : 'ac');
   if (note.staccato) effects.push('st');
+  if (note.mordent) effects.push(note.mordent === 'upper' ? 'umordent' : 'lmordent');
   effects.push(...(note.extra ?? []));
   return `${fret}.${at.string + 1}${effects.length ? `{${effects.join(' ')}}` : ''}`;
 }

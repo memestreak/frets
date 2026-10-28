@@ -6,9 +6,9 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note, type Ottava } from './clip';
+import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note, type Ottava } from './clip';
 import { columnRuns, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, vibratoRuns, type Layout } from './layout';
-import { vibratoWave, type Box, type MarkHit } from './marks';
+import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
 
 type Hit = Omit<MarkHit, 'kind' | 'on'>;
@@ -23,6 +23,7 @@ export type StaffShape =
   | { kind: 'accent'; heavy: boolean; x: number; y: number; above: boolean }
   | { kind: 'staccato'; x: number; y: number }
   | { kind: 'vibrato'; x: number; y: number; wide: boolean; end: number }
+  | { kind: 'mordent'; x: number; y: number; lower: boolean }
   /** An octave line: its label at `x`, a dashed line to `end`, and a hook there when the line ends on this line of music. */
   | { kind: 'ottava'; label: Ottava; x: number; y: number; end: number; hook: boolean; below: boolean }
   | { kind: 'tremolo'; x: number; y: number; slashes: number }
@@ -211,13 +212,23 @@ export function staffMarks(layout: Layout): StaffMark[][] {
     // A vibrato over neighbouring notes is one wave over the staff, clear of every one of them.
     const placed = system.bars.flatMap(b => b.columns);
     const span = (from: number, to: number) => placed.filter(p => p.index >= from && p.index <= to);
-    // Every wave on a line at one height, clear of the notes and marks under each of them.
+    // Every wave and mordent on a line at one height, clear of the notes and marks under each of them.
     const runs = vibratoRuns(system);
-    const waveY = Math.min(score.top - VIBRATO_CLEAR, ...runs.flatMap(run => {
-      const tops = span(run.from.index, run.to.index).map(p => (highest.get(p.index) ?? score.top) - VIBRATO_CLEAR);
-      const marksUnder = out.filter(m => m.box.x < run.end && m.box.x + m.box.width > run.from.x).map(m => ink(m).top - VIBRATO_OVER_MARKS);
-      return [...tops, ...marksUnder];
-    }));
+    const mordents = placed.filter(p => columnMordent(p.column));
+    const clearOf = (from: number, to: number, x0: number, x1: number) => [
+      ...span(from, to).map(p => (highest.get(p.index) ?? score.top) - VIBRATO_CLEAR),
+      ...out.filter(m => m.box.x < x1 && m.box.x + m.box.width > x0).map(m => ink(m).top - VIBRATO_OVER_MARKS),
+    ];
+    const waveY = Math.min(
+      score.top - VIBRATO_CLEAR,
+      ...runs.flatMap(run => clearOf(run.from.index, run.to.index, run.from.x, run.end)),
+      ...mordents.flatMap(p => clearOf(p.index, p.index, p.x - 8, p.x + 8)),
+    );
+    for (const p of mordents) {
+      const kind = columnMordent(p.column)!;
+      const { box } = mordentSign(p.x, waveY, kind);
+      add({ mark: 'mordent', index: p.index, string: null }, around(box.x, box.y, box.x + box.width, box.y + box.height, 3), { kind: 'mordent', x: p.x, y: waveY, lower: kind === 'lower' });
+    }
     for (const run of runs) {
       const wide = run.kind === 'wide';
       const { width } = vibratoWave(run.from.x, waveY, wide, run.end);

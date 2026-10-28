@@ -106,6 +106,8 @@ then "." and its duration:
     g          ghost note, drawn in brackets: 5.3{g}
     ac  hac    accent (>) / heavy accent (^)
     st         staccato (a dot over the note)
+    umordent   mordent: the note, the one above, and back: 7.3{umordent}
+    lmordent   lower mordent: the note, the one below, and back
 
 
 4. BEAT EFFECTS FRETS DRAWS

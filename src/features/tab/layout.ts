@@ -113,8 +113,9 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
     harmonics: notes.some(n => n.harmonic === 'pinch'),
-    // Vibrato goes over the tab too when the staff is shown, as Guitar Pro prints it (Jeremy, 2026-10-27).
-    vibrato: tab && notes.some(n => n.vibrato),
+    // Vibrato goes over the tab too when the staff is shown, as Guitar Pro prints it (Jeremy, 2026-10-27),
+    // and so does a mordent, in the same row (Sweet Child O' Mine, bar 93).
+    vibrato: tab && notes.some(n => n.vibrato || n.mordent),
     accents: parts === 'tab' && notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
@@ -652,7 +653,7 @@ function staffReach(clip: Clip, heads: Head[][][], marks: boolean): StaffReach {
       if (up) low = Math.min(low, bottom - 6);
       else high = Math.max(high, top + 6);
     }
-    if (notes.some(n => n.vibrato)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
+    if (notes.some(n => n.vibrato || n.mordent)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
     if (c.ottava === '8va' || c.ottava === '15ma') ottavaAbove = true;
     if (c.ottava === '8vb' || c.ottava === '15mb') ottavaBelow = true;
   }));

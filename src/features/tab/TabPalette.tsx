@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
+import { mordentSign } from './marks';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
 
 /**
@@ -73,6 +74,11 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, di
 }
 
 /** Small text inside an icon. */
+function MordentIcon({ kind }: { kind: 'upper' | 'lower' }) {
+  const { d, transform } = mordentSign(12, 7, kind);
+  return <><path d={d} transform={`translate(-2.4 -1.4) scale(1.2) ${transform}`} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>;
+}
+
 function Label({ x = 12, y = 16, size = 10, children }: { x?: number; y?: number; size?: number; children: ReactNode }) {
   return <text x={x} y={y} fontSize={size} fontWeight={700} fill="currentColor" stroke="none" textAnchor="middle">{children}</text>;
 }
@@ -251,6 +257,9 @@ const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet'>, ReactNode> =
   // A staccato dot over a note, so it can't pass for the duration dot.
   // Drawn by its panel's button (OttavaGlyph).
   ottava: null,
+  // The mordent's own sign over a note, as the staff and tab draw it.
+  mordent: <MordentIcon kind="upper" />,
+  lowerMordent: <MordentIcon kind="lower" />,
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
   // A plus before or after a bar line: where the new bar goes.
   insertBarBefore: <><line x1={8} y1={8} x2={8} y2={16} strokeWidth={2} /><line x1={4} y1={12} x2={12} y2={12} strokeWidth={2} /><line x1={17} y1={5} x2={17} y2={19} /></>,

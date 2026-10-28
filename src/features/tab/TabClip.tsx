@@ -1,6 +1,6 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, bendCarries, columnAccent, isRest, legatoStarts, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
+  beatTicks, bendCarries, columnAccent, columnMordent, isRest, legatoStarts, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
@@ -13,7 +13,7 @@ import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
-import { markAt, markBox, vibratoWave, type MarkHit } from './marks';
+import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
 export interface TabLook {
@@ -388,6 +388,11 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
 
   for (const bar of system.bars) {
     for (const { column, x, index } of bar.columns) {
+      const mordent = columnMordent(column);
+      if (mordent && rows.vibrato !== null) {
+        const { d, transform } = mordentSign(x, rows.vibrato, mordent);
+        parts.push(<path key={`mordent-${index}`} d={d} transform={transform} fill={look.ink} data-testid="mordent" />);
+      }
       if (column.stroke && rows.strokes !== null) {
         const sy = rows.strokes;
         parts.push(column.stroke === 'down'
@@ -541,15 +546,17 @@ function labelWidth(note: Note, column: Column): number {
 
 /**
  * Whether a note's number is left out, as Guitar Pro prints Sweet Child O' Mine. A released bend's note
- * has none (its arrow comes down to the string) unless a hammer-on or pull-off leaves from it, which
- * needs a number to start from. Under the staff, a tied note's number shows only at the start of a bar,
- * in brackets: within the bar the staff's tie says it all, and a held bend's dashed line. A tied note
- * that bends up keeps its number, under its bend's arrow.
+ * has none (its arrow comes down to the string) unless it starts a bar or a hammer-on, pull-off or legato
+ * slide leaves from it, which needs a number to start from. Under the staff, a tied note's number shows
+ * only at the start of a bar, in brackets: within the bar the staff's tie says it all, and a held bend's
+ * dashed line. A tied note keeps its number when it bends up (under its bend's arrow), when a legato
+ * leaves from it, or under a mordent.
  */
 function hiddenNumber(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, joins: Joins): boolean {
+  const barStart = placed === bar.columns[0];
   const carry = joins.carries.get(note);
-  if (carry === 'release') return !joins.legatoStarts.has(note);
-  if (!note.tie || !rows.score || placed === bar.columns[0]) return false;
+  if (carry === 'release') return !barStart && !joins.legatoStarts.has(note);
+  if (!note.tie || !rows.score || barStart || joins.legatoStarts.has(note) || note.mordent) return false;
   return !note.bend || carry === 'hold';
 }
 
