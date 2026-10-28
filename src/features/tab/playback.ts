@@ -819,7 +819,9 @@ export class TabPlayer {
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
   setVolume(volume: number) {
     this.volume = volume;
-    this.synth.masterVolume = volume * this.level();
+    // The volume at the output, heard at once; the sound's level in the synthesizer.
+    this.output.setVolume(volume);
+    this.synth.masterVolume = this.level();
     this.applyClicks();
   }
 
