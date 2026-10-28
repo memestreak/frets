@@ -3,6 +3,7 @@
  * the samples it makes, queued and played by a ScriptProcessorNode.
  */
 import type * as AlphaTabModule from '@coderline/alphatab';
+import { EffectsChain, NO_EFFECTS, type EffectSettings } from './effects';
 
 /** A list of listeners, as alphaTab's outputs report events. */
 class Emitter<T = void> {
@@ -32,8 +33,6 @@ const ANSWER_SIZE = 4096;
 const FADE_SECONDS = 0.03;
 /** How long Stop fades the sound out (Jeremy, 2026-10-27: "the notes stop with a glitch"). */
 const STOP_FADE_SECONDS = 0.06;
-/** How quickly the volume follows the knob, in seconds (to about two thirds): quick, without a click. */
-const VOLUME_GLIDE_SECONDS = 0.015;
 
 /** Interleaved stereo samples waiting to be played. */
 class SampleQueue {
@@ -79,13 +78,11 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   readonly sampleRequest = new Emitter();
   private context: AudioContext | null = null;
   private node: ScriptProcessorNode | null = null;
-  /** Between the node and the speakers: the volume, and Stop's fade. */
+  /** Between the node and the effects, so Stop can fade the sound out (and a reverb rings on). */
   private gain: GainNode | null = null;
-  /**
-   * The volume, 0 to 1, set here rather than in the synthesizer: the synthesizer renders half a
-   * second ahead, so a change there was heard late (Jeremy, 2026-10-28: the knob's changes didn't
-   * apply until it was let go).
-   */
+  /** The effects and the volume, between the fade and the speakers; made with the AudioContext. */
+  private effects: EffectsChain | null = null;
+  private effectSettings: EffectSettings = NO_EFFECTS;
   private volume = 1;
   private samples = new SampleQueue();
   /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
@@ -105,19 +102,24 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.ready.trigger();
   }
   activate() {
-    this.context ??= new AudioContext({ sampleRate: SAMPLE_RATE });
+    if (!this.context) {
+      this.context = new AudioContext({ sampleRate: SAMPLE_RATE });
+      this.effects = new EffectsChain(this.context);
+      this.effects.set(this.effectSettings);
+      this.effects.setVolume(this.volume);
+      this.effects.output.connect(this.context.destination);
+    }
     if (this.context.state === 'suspended') void this.context.resume();
   }
   play() {
     this.activate();
-    const context = this.context;
-    if (!context) return;
+    const { context, effects } = this;
+    if (!context || !effects) return;
     this.resetSamples();
     const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
     const gain = context.createGain();
-    gain.gain.value = this.volume;
     node.onaudioprocess = e => this.fill(e.outputBuffer, e.playbackTime);
-    node.connect(gain).connect(context.destination);
+    node.connect(gain).connect(effects.input);
     this.node = node;
     this.gain = gain;
     this.request();
@@ -150,17 +152,24 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
       gain.disconnect();
     }, (STOP_FADE_SECONDS + (2 * NODE_SIZE) / context.sampleRate) * 1000);
   }
-  /** Sets the volume, 0 to 1; what is playing follows at once. */
+  /** Sets the effects (`effects.ts`); what is playing follows at once. */
+  setEffects(settings: EffectSettings) {
+    this.effectSettings = settings;
+    this.effects?.set(settings);
+  }
+  /**
+   * Sets the volume, 0 to 1, after the effects: turned down, a distorted sound is quieter, not
+   * cleaner. Set here rather than in the synthesizer, it is heard at once.
+   */
   setVolume(volume: number) {
     this.volume = volume;
-    const { context, gain } = this;
-    if (context && gain) gain.gain.setTargetAtTime(volume, context.currentTime, VOLUME_GLIDE_SECONDS);
+    this.effects?.setVolume(volume);
   }
-
   destroy() {
     this.pause();
     void this.context?.close();
     this.context = null;
+    this.effects = null;
   }
   addSamples(samples: Float32Array) {
     this.pending = Math.max(0, this.pending - 1);

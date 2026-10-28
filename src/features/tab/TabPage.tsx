@@ -185,6 +185,7 @@ export default function TabPage() {
     countIn: playbackSettings.countIn,
     countInBars: playbackSettings.countInBars,
     clickVolume: playbackSettings.clickVolume,
+    effects: playbackSettings.effects,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
@@ -823,6 +824,7 @@ export default function TabPage() {
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
+            effects={playbackSettings.effects} onEffects={effects => setPlaybackSettings(s => ({ ...s, effects }))}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={playbackSettings.metronome} onMetronome={metronome => setPlaybackSettings(s => ({ ...s, metronome }))}
             countIn={playbackSettings.countIn} onCountIn={countIn => setPlaybackSettings(s => ({ ...s, countIn }))}

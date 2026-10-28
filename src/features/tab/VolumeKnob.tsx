@@ -30,11 +30,13 @@ function arc(from: number, to: number, radius: number): string {
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-export function VolumeKnob({ value, onChange, labelledBy }: {
+export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
   /** 0 to 1. */
   value: number;
   onChange: (value: number) => void;
   labelledBy: string;
+  /** What it turns, named in its tip; the FX dialog's knobs share it (Drive, Tone, Amount). */
+  name?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; value: number } | null>(null);
@@ -58,13 +60,14 @@ export function VolumeKnob({ value, onChange, labelledBy }: {
   }, []);
 
   const percent = Math.round(value * 100);
+  const text = `${percent}%`;
   const [dotX, dotY] = pointAt(value, 9);
   const [tipX, tipY] = pointAt(value, 4);
   return (
     <div
       ref={ref} className="tab-knob" role="slider" tabIndex={0} aria-labelledby={labelledBy}
-      aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%`}
-      data-tip={`Volume ${percent}%`}
+      aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={text}
+      data-tip={`${name} ${text}`}
       // A press leaves the focus (and so the cursor) on the tab; the keys still reach the knob by Tab.
       onMouseDown={e => e.preventDefault()}
       onPointerDown={e => {

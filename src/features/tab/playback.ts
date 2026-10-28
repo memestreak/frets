@@ -14,6 +14,7 @@ import { STRING_COUNT, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
+import type { EffectSettings } from './effects';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -835,13 +836,20 @@ export class TabPlayer {
     this.synth.applyTranspositionPitches(pitches);
   }
 
-  /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
+  /**
+   * The loudness, 0 (silent) to 1 (the soundfont's own level). The sound's level is set in the
+   * synthesizer, so every sound drives the effects alike; the volume at the output, after them.
+   */
   setVolume(volume: number) {
     this.volume = volume;
-    // The volume at the output, heard at once; the sound's level in the synthesizer.
     this.output.setVolume(volume);
     this.synth.masterVolume = this.level();
     this.applyClicks();
+  }
+
+  /** Sets the distortion and reverb (`effects.ts`), heard at once, clicks too. */
+  setEffects(settings: EffectSettings) {
+    this.output.setEffects(settings);
   }
 
   /** The sound's own level, which the volume is scaled by (`OWN_FONTS`). */
