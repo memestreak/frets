@@ -957,13 +957,13 @@ describe('the notation staff (issue #122)', () => {
     await screen.findAllByTestId('tab-system');
     const count = (id: string) => screen.queryAllByTestId(id).length;
     expect(count('staff')).toBe(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Both' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Show' }), { target: { value: 'both' } });
     expect(count('staff')).toBeGreaterThan(0);
     expect(count('staff-join')).toBe(count('tab-system'));
     // With the staff shown, the time signature is on it and not on the tab.
     expect(count('staff-time-signature')).toBe(1);
     expect(count('time-signature')).toBe(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Show' }), { target: { value: 'staff' } });
     expect(count('staff-join')).toBe(0);
     // The staff alone is edited too (issue #136), so its palette stays on.
     expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeEnabled();

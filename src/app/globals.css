@@ -735,6 +735,8 @@ button {
   /* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
      (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
      (Jeremy, 2026-10-27). */
+  /* Wide enough for its longest choice, so picking one never resizes it. */
+  .tab-parts { width: 9.5rem; }
   .tab-card-bar {
     display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
     margin: -8px -8px 12px;
