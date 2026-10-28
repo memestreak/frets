@@ -749,18 +749,22 @@ button {
     margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
     font: inherit; font-variant-ligatures: none; color: var(--ink); caret-color: var(--ink); background: transparent;
   }
-  /* Under the clip's title, as a score prints them: the artist, the writers, then the tuning in two
-     columns of three strings. */
-  .score-credits { display: grid; gap: 2px; color: var(--ink-muted); }
-  .score-credits p { margin: 0; }
-  .score-credits .score-artist { color: var(--ink); font-weight: 600; }
-  .score-tuning { margin-top: 6px; font-size: 14px; }
+  /* The head of the drawn score, as a printed score's first page has it: the title, artist and
+     credits centred, the tuning indented from the left in two columns of three strings. Black ink
+     and the drawing's font, as the exported image prints it; sizes from HEAD in credits.ts. */
+  .score-head { display: grid; justify-items: center; padding: 4px 0 var(--head-gap, 12px); color: var(--ink); font-family: var(--font-sans); }
+  .score-head p { margin: 0; }
+  .score-head h1 { font: 400 var(--title-size)/1.33 var(--font-sans); margin: 0; text-align: center; }
+  .score-head .tab-title-text, .score-head .tab-title-input { text-align: center; }
+  .score-head .score-artist { font-size: var(--artist-size); line-height: 1.375; font-weight: 700; }
+  .score-head .score-credit { font-size: var(--credit-size); line-height: 1.385; }
+  .score-tuning { justify-self: stretch; margin-top: 12px; font-size: var(--credit-size); line-height: 1.385; text-align: left; }
   /* A string's number in a small circle, as tuning notes print ① to ⑥ (the font's own are too big). */
   .score-string {
-    display: inline-grid; place-items: center; width: 16px; height: 16px; border: 1px solid currentColor;
-    border-radius: 999px; font-size: 10px; line-height: 1; vertical-align: 1px;
+    display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid currentColor;
+    border-radius: 999px; font-size: 9px; line-height: 1; vertical-align: 1px;
   }
-  .score-tuning ul { display: grid; grid-auto-flow: column; justify-content: start; column-gap: 20px; margin: 0; padding: 0; list-style: none; }
+  .score-tuning ul { display: grid; grid-auto-flow: column; justify-content: start; margin: 0; padding: 0; list-style: none; }
   /* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
      (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
      (Jeremy, 2026-10-27). */

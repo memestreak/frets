@@ -40,10 +40,10 @@ import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { exampleById, TAB_EXAMPLES, type TabExample } from './examples';
 import { loadSamples, SAMPLE_PREFIX } from './samples';
-import { ScoreCredits } from './ScoreCredits';
+import { ScoreHead } from './ScoreHead';
 import { parseView, VIEW_KEY, type TabView } from './viewOptions';
 import { ViewOptions } from './ViewOptions';
-import { ClipTitle, UNTITLED } from './ClipTitle';
+import { UNTITLED } from './ClipTitle';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
@@ -969,17 +969,14 @@ export default function TabPage() {
   /** A new title: one undo step, as any edit. */
   const rename = (next: string) => dispatch({ type: 'replace', clip: { ...clip, name: next } });
   const empty = isEmpty(clip);
+  const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
 
   return (
     <div className="grid gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="grid gap-1">
-          <ClipTitle name={clip.name} onRename={rename} />
-          {example && <p className="m-0 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>}
-          <ScoreCredits clip={clip} />
-        </div>
+      {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
+      <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
@@ -1036,8 +1033,17 @@ export default function TabPage() {
           </div>
         </div>
         <div ref={widthRef} className="min-w-0">
-          {/* The View options' Size zooms the drawing and everything over it: presses, fields and panels alike. */}
-          <div className="relative" style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
+          {/* The View options' Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
+          <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
+          {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
+          {view === 'tab'
+            ? <ScoreHead clip={clip} onRename={rename} note={example && exampleNote} />
+            : <>
+              {/* The page keeps its heading for screen readers. */}
+              <h1 className="sr-only">{name}</h1>
+              {example && exampleNote}
+            </>}
+          <div className="relative">
             {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
@@ -1103,6 +1109,7 @@ export default function TabPage() {
                 onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
               />
             )}
+          </div>
           </div>
         </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}

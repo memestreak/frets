@@ -16,6 +16,26 @@ export function headerValue(clip: Clip, tag: string): string | null {
   return null;
 }
 
+/**
+ * The score's head, as both the page (`ScoreHead.tsx`) and the exported image draw it, in the
+ * drawing's units (zoomed with it): the title, then the artist and credits, centred; then the tuning,
+ * indented from the left, in two columns.
+ */
+export const HEAD = {
+  titleSize: 30,
+  titleLine: 40,
+  artistSize: 16,
+  artistLine: 22,
+  creditSize: 13,
+  creditLine: 18,
+  /** Room between the credits and the tuning, and after the tuning. */
+  gap: 12,
+  tuningIndent: 40,
+  /** From one tuning column's start to the next, and each column's own width. */
+  tuningColumn: 72,
+  tuningColumnWidth: 60,
+} as const;
+
 export interface Credits {
   artist: string | null;
   /** "Words & Music by …" when one set of people wrote both; otherwise "Words by …" and "Music by …". */
@@ -31,9 +51,6 @@ export function creditsOf(clip: Clip): Credits {
       : [words && `Words by ${words}`, music && `Music by ${music}`].filter((l): l is string => !!l);
   return { artist: headerValue(clip, 'artist'), lines };
 }
-
-/** ① to ⑥, a string's number as tuning notes print it. */
-export const circled = (n: number) => String.fromCharCode(0x2460 + n - 1);
 
 const FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
