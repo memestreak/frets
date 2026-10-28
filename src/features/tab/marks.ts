@@ -33,15 +33,15 @@ export interface Box {
 }
 
 /**
- * A vibrato's wave from just right of `x` to about `end`, in whole turns (at least one); a wide one
- * is taller and its turns longer.
+ * A vibrato's wave from just right of `x` to about `end`, in whole turns (at least one). A wide one is
+ * heavier, its turns short and close as Guitar Pro prints it (Sweet Child O' Mine, bar 25).
  */
 export function vibratoWave(x: number, y: number, wide: boolean, end: number): { d: string; width: number; strokeWidth: number } {
-  const [width, height] = wide ? [8, 8] : [6, 4];
+  const [width, height] = wide ? [3.6, 5] : [6, 4];
   const turns = Math.max(1, Math.round((end - x - 4) / (2 * width)));
   let d = `M${x + 4} ${y}`;
   for (let k = 0; k < turns; k++) d += ` q${width / 2} -${height} ${width} 0 q${width / 2} ${height} ${width} 0`;
-  return { d, width: 2 * width * turns, strokeWidth: wide ? 2 : 1.2 };
+  return { d, width: 2 * width * turns, strokeWidth: wide ? 2.2 : 1.2 };
 }
 
 /** A thin mark's hit area reaches this far above and below it, so the mouse finds it. */
