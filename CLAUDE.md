@@ -3,80 +3,38 @@
 # Frets
 
 Guitar fretboard app whose pages fall in two groups
-(`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools, holding the
-Scale lab, Triads, the Circle of fifths, Chords, one page that looks a chord
-up by name and names the notes tapped on the neck, and the Tuner, one page
-with a dial or a strobe, and Practice, holding two quiz trainers
-(Intervals, Notes) (`docs/specs/2026-10-17-tuner-page-design.md`; see
-`docs/specs/2026-10-04-practice-restructure-design.md`,
-`docs/specs/2026-10-04-scale-lab-design.md`,
-`docs/specs/2026-10-05-chord-library-design.md`,
-`docs/specs/2026-10-05-chord-lab-design.md`,
-`docs/specs/2026-10-06-simpler-chord-diagrams-design.md`,
-`docs/specs/2026-10-06-chord-arpeggio-design.md`,
-`docs/specs/2026-10-09-chord-lab-arpeggio-design.md`,
-`docs/specs/2026-10-07-scale-lab-position-shapes-design.md`,
-`docs/specs/2026-10-19-scale-lab-header-design.md` (its header: the pickers
-in the scale strip's row),
-`docs/specs/2026-10-13-one-diatonic-chords-card-design.md`,
-`docs/specs/2026-10-07-circle-of-fifths-design.md`,
-`docs/specs/2026-10-09-published-chord-shapes-design.md`,
-`docs/specs/2026-10-15-copy-chord-diagram-design.md`,
-`docs/specs/2026-10-17-move-shape-design.md` (‹ › slide the shape and
-its chord along the neck; ← → step through the shapes),
-`docs/specs/2026-10-18-triads-design.md` (every inversion of a triad on
-one string set, each grip joined by a faint band; tap one to name it) and
-`docs/specs/2026-10-15-one-chords-page-design.md`, which merged the Chord
-library and the Chord lab into it). The Scale lab, Triads and the Chords page
-pick their root from `KeyPicker`, tiles laid out like a piano's keys
-(`docs/specs/2026-10-16-key-picker-design.md`; the sharps and flats a
-shade darker, `docs/specs/2026-10-19-key-picker-two-tone-design.md`), and label their neck's dots
-with `DotLabelsPicker`, Interval, Note or None
-(`docs/specs/2026-10-17-chord-neck-labels-design.md`); on the Chords page a
-magnifier beside Type also finds a chord by its typed or pasted name
-(`docs/specs/2026-10-16-chord-search-design.md`; its header's layout:
-`docs/specs/2026-10-19-chords-header-design.md`), and its Export options
-choose the image's size and whether it is transparent
-(`docs/specs/2026-10-17-export-size-design.md`). In the Scale lab every
-chord's tile cycles its shapes, and its menu opens the chord in Chords
-(`docs/specs/2026-10-18-every-tile-shapes-design.md`). The app has no users
-yet: don't keep old URLs, storage keys or saved state working after a change.
-Next.js 16 App Router with
-static export (`out/`), React 19, TypeScript strict, Tailwind 4, Vitest,
-tonal (pinned to 6.4.3: 6.5.0 can't be imported under Node).
-Spec and prototypes: `design_handoff/README.md` and
-`design_handoff/prototypes/*.dc.html`. The prototypes' `<script
-data-dc-script>` logic is where the quiz rules started, and is still the
-reference for anything the specs in `docs/specs/` do not cover. Where a spec
-and a prototype disagree, the spec wins; the departures are listed below.
-The prototypes are not a reference for the look: the shipped styling is the
-Fretwood design system, applied as `docs/specs/2026-10-04-fretwood-design-system.md`
-describes. `docs/pedagogy/` holds research on what to teach next (ideas,
-sizes and open questions, not specs); some of it is already built.
+(`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools (the Scale lab,
+Triads, the Circle of fifths, Chords, the Tuner) and Practice (the Interval
+and Note trainers). Tab, `/tab`, is still being built and is in no menu yet.
+Next.js 16 App Router with static export (`out/`), React 19, TypeScript
+strict, Tailwind 4, Vitest, tonal (pinned to 6.4.3: 6.5.0 can't be imported
+under Node).
 
-One quiz rule deliberately differs: the prototype names a note below the
-root by its distance down, while `intervalClass` names it by its function
-against the root (G below C is a P5).
+The app has no users yet: don't keep old URLs, storage keys or saved state
+working after a change.
 
-The Interval trainer also departs from the prototype's String pairs setting,
-fixed four-fret reach and "repeats allowed" rule: `vRange` / `hRange` define
-a box around the root (`inBox` in `features/practice/intervals/intervals.ts`) that drives question
-generation and Find-it judging. Neither the board nor the hint shows the box;
-tapping the right interval outside it is explained, not scored. The generator
-enumerates every valid question, so each possible interval is asked equally
-often and the same question never comes up twice running. See
-`docs/specs/2026-10-01-interval-ranges-design.md`.
+Every feature has a design spec in `docs/specs/`, named by date and topic;
+it rides in the same PR as the code. Where a spec and the prototypes in
+`design_handoff/prototypes/*.dc.html` disagree, the spec wins. The
+prototypes are not a reference for the look: the shipped styling is the
+Fretwood design system (`docs/specs/2026-10-04-fretwood-design-system.md`).
+`docs/pedagogy/` holds research on what to teach next (ideas, not specs).
 
-The Note trainer departs from the prototype's three modes: it has Name it
-and Find it, and both settings (Strings in scope, Fret range) apply to both.
-Find it names one string; the right note on that string outside the range is
-explained, not scored, and the board never draws the range. Its generator
-also enumerates every valid question. See
-`docs/specs/2026-10-01-notes-modes-design.md`. Find it can also be answered
-by playing the note into the microphone, beside tapping (the Mic button;
-`docs/specs/2026-10-17-note-trainer-mic-design.md`). T or its Tuner button
-opens the tuner over the page (`docs/specs/2026-10-17-tuner-design.md`), the
-Tuner page's panel in a dialog.
+## Keeping this file stable
+
+Several threads work on this repo at once, and edits to this file conflict
+with each other. Don't edit CLAUDE.md in a feature PR unless a rule,
+convention or command changes. What a folder's files do is described in that
+folder's `README.md`; update that instead:
+
+- `src/lib/README.md` — shared pure logic, and every storage key
+- `src/components/README.md` — shared components, hooks and the app's map
+- `src/components/tuner/README.md` — the mic and the tuner
+- `src/features/practice/README.md` — the trainers, and where their quiz
+  rules depart from the prototypes
+- `src/features/explore/README.md` — the Scale lab, Triads, the Circle of fifths
+- `src/features/chords/README.md` — the Chords page and chord export
+- `src/features/tab/README.md` — the Tab editor
 
 ## Commands
 
@@ -100,206 +58,10 @@ binds a local port).
 
 ## Layout
 
-- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`. `/`
-  and `/practice` are index pages; the trainers are
-  `/practice/intervals` and `/practice/notes`, the Scale lab
-  `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
-  for its Advanced view, the modes), the Chords page `/chords`, the Tuner
-  `/tuner`. Tab, `/tab`, is still being built: reachable by its URL only,
-  it is in no menu and has no home page card yet.
-- `src/app/manifest.ts` and `public/icons/` make the app installable (home
-  screen, "Install app"); no service worker yet, so no offline use. See
-  `docs/specs/2026-10-06-installable-app-design.md`.
-- `src/components/sections.ts` — the app's map: the two groups, Tools and
-  Practice, each with its pages (href, title, summary). A group is not a
-  path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home
-  page and the Practice page (`PageList`) are drawn from it, in its order,
-  so a new page is an entry here, a route and its icon in `PageIcon.tsx`
-  (a pictogram on a rosewood tile beside the card's title; a test checks
-  every card has one, see `docs/specs/2026-10-15-page-icons-design.md`).
-- `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
-  `BrandMark` and wordmark home, then the group and the page as one
-  button opening a panel of every page with the current one marked; then
-  `ThemeSwitch`, one button cycling Auto, Light, Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
-  `<main>` and `AppFooter` (source link and the build's commit hash, from
-  `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
-  was unavailable).
-- Shared by every feature: `src/lib/` (pure logic, no React: `music.ts`
-  with tuning, names, `intervalClass` and
-  `positionsOnNeck`; `notation.ts` with `prettyNote`;
-  `fretWindow.ts`, `fretboardGeometry.ts`, `storage.ts`; `chords/` with
-  `chordTypes.ts`, the only tonal import outside the Scale lab: tonal's
-  chord types (plus add11, add9(add11) and m(maj7)♯11, which it lacks;
-  `docs/specs/2026-10-17-add11-chords-design.md`) with our groups and
-  symbols, roots, `withBass` (a chord over a bass outside it;
-  `docs/specs/2026-10-18-bass-outside-chord-design.md`), `chordOf` (spelled
-  notes, tone labels, which tones a voicing may leave out) and
-  `chordFromTones` (a type, or an unnamed chord, from a set of tones);
-  `publishedShapes.ts`, the shapes guitarists play, from Haus of Chords
-  (`data/haus-of-chords.json`, CC BY 4.0, credited in `NOTICE.md`;
-  re-import with `scripts/import-haus-of-chords.py`, see `data/README.md`);
-  `voicings.ts`, which shows those first and otherwise searches the neck
-  for playable shapes (each rule a named constant), splits them into open,
-  the best few moveable and all moveable, and picks the shapes in a
-  five-fret position (`shapesInPosition`); `chordUrls.ts`, the Chord
-  library's URLs),
-  `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard
-  fill, roving-focus tap cells and arrow keys, an optional `box`
-  outlining a fret range, and `mutedStrings`, faded and marked × beside
-  the nut; `theme.ts` holds the board
-  and dot colours as tokens, and `DEGREES`, the colour per degree number),
-  `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
-  `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
-  for the neck; `export/`, the shapes' menu, Export dialog and PNG export),
-  `src/components/controls.tsx` and `icons.tsx`, `src/components/HoverTips.tsx`
-  (the one-second tip for any `data-tip`; the Circle of fifths and the Tab
-  palette), `src/components/DotLabels.tsx`
-  (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
-  (the root picker: a radio group of seventeen tiles, each sharp over its
-  flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
-  Arpeggio, on the Chords and Triads pages).
-- `src/components/tuner/` — the mic and the tuner, shared by the Note
-  trainer and the Tuner page: `pitch.ts` (pure YIN detector, note names),
-  `hold.ts` (pure: a note held since its onset, and how long counts),
-  `listener.ts` (`MicListener`: getUserMedia, an analyser and a loop
-  publishing readings outside React; `MicStatus` and the error words),
-  `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts` (the
-  simulated string), `sounds.ts` (the recorded sets in `public/sounds/`
-  and each one's measured tuning), `reference.ts` (plays a reference
-  note; `referenceSounding` so the mic ignores it), `useTunerPitch.ts`,
-  `settings.ts` (meter and sound, saved), `Dial.tsx`, `Strobe.tsx` and
-  `TunerPanel.tsx` (switch, meter, reading, strings). The page itself is
-  `src/features/tuner/TunerPage.tsx`, with its own mic.
-- `src/features/<section>/` — everything only one section uses. For
-  `practice/`:
-  - `intervals/` and `notes/` — each trainer's pure logic (`intervals.ts` /
-    `notes.ts`: settings, question generators taking an injectable `rng`,
-    settings parsing, storage key), its rules (`intervalState.ts` /
-    `noteState.ts`: answer key, Name-it or Find-it, correct, out of range,
-    handed to the shared reducer) and its component, which keeps what
-    differs: dots, prompt and settings fields. Random questions are
-    generated outside the reducer and passed in actions, so it stays pure.
-  - `quiz/` — what both trainers share: `trainerState.ts` (state, actions,
-    reducer, init from storage), `quizFlow.ts` (miss/solve/pause scoring),
-    `stats.ts`, `attempt.ts` (miss and out-of-range dots, answer-button
-    state, feedback text), the header, answer card/grid, board frame with
-    hint toggle, `SettingsDialog` and its field parts,
-    `Modal` (the native modal `<dialog>` shell it and the tuner share), `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
-    to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
-    and settings-dialog flags, and suspends the first two while the dialog
-    is open.
-  - `mic/` — answering by playing, on the mic in `src/components/tuner/`:
-    `useMic.ts` (status, toggle, remembered choice, each held note judged
-    once), `MicButton.tsx` (fixed-size toggle with the live note and level)
-    and `TunerDialog.tsx` (`TunerPanel` in a `Modal`; it borrows the
-    trainer's mic, `useMic`'s `borrowed`). The shared reducer's
-    `answerPitch` places a played pitch with the trainer's optional
-    `placePitch` / `rightPitch` rules; only the Note trainer has them yet.
-    The mic needs a secure context: https or localhost.
-  - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
-    because their initial state reads localStorage and draws a random
-    question.
-- `src/features/explore/` — the Scale lab (`scales/`), Triads
-  (`triads/`: `triads.ts` finds every grip of a triad on a string set,
-  `Triads.tsx` draws them with `Fretboard`'s `links`), the Circle of
-  fifths (`circle/`) and their client-only loaders. `theory.ts` is the only file that imports tonal: root and scale
-  tables, spelled scales, mode rotation, diatonic chords (symbols and
-  numerals from its own table) and the notes on the neck. `settings.ts` holds the saved
-  settings and their parser; `ScaleLab.tsx` and `ScalePanel.tsx` draw the
-  page. `DiatonicChords.tsx` is the one "Diatonic chords" card
-  (`docs/specs/2026-10-13-one-diatonic-chords-card-design.md`): Triads /
-  Sevenths, the Arpeggio toggle, the position's ‹ › and its two halves.
-  `PositionShapes.tsx` (logic in `positions.ts`) draws every diatonic
-  chord's shape in the same five frets, the only chord row, with ‹ n of m ›
-  under every tile to cycle its chord's shapes, selected or not, and the
-  shapes' export menu with Open in Chords on top.
-  `ChordOverScale.tsx` places `ChordLadder.tsx` / `ChordClock.tsx`
-  (shared parts in `chordDiagram.tsx`), which draw a selected chord against
-  the scale (`docs/specs/2026-10-04-chord-diagrams-design.md`). Selecting a
-  chord must move nothing. With a chord selected, a click on anything but a
-  control, or Esc, goes back to the scale.
-  `circle/` is the Circle of fifths, its Circle (keys) and Advanced (modes)
-  views on one wheel:
-  `circle.ts` (pure: spokes, cells, key signatures, numerals, and the
-  `keyWheel` / `modeWheel` models saying what every cell, ring note, chip
-  and tip shows; a mode is spelled from its parent key, `parentKey`;
-  spelling from `theory.ts`), `CircleWheel.tsx` (draws a model, with the
-  ring of notes round it; knows no theory), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
-  table) and the page,
-  `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
-- `src/features/chords/` — the Chords page (`ChordsPage.tsx`, the only
-  stateful component, with its client-only loader), built on
-  `src/lib/chords/` and `src/components/chords/`. The frets on the neck are
-  the source of truth: picking a chord in `ChordPickers` puts its first
-  shape there and keeps that chord, tapping names the notes afresh
-  (`naming.ts`, every name for a set of notes, listed by `NameList`).
-  `ChordPickers` also swaps the Type dropdown for a search box (the
-  magnifier, or `/`); `chordSearch.ts` reads the name typed there.
-  `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
-  are its parts (space toggles the Arpeggio, `src/hooks/useSpaceKey.ts`); it also
-  uses `src/components/chords/export/`, shared with the Scale lab:
-  right-click, a long press or Shift+F10 on a shape diagram (or the
-  neck; `useShapeExport`, once per page) opens a menu
-  (the page's own items, then Copy as PNG, Export options…) and the Export dialog, whose Name
-  starts on the deduced name; with a mouse a shape diagram (not the neck)
-  also drags out as that PNG, drawn on hover; the image is
-  `ChordDiagram` drawn with a concrete `look` (`exportStyle.ts`, whose
-  palettes a test checks against `fretwood.css`), serialized and rasterized
-  in `exportImage.ts`. The chord and the frets are in the URL, not storage:
-  `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
-  in the menus adds a history entry, everything else replaces it; slugs in
-  `src/lib/chords/chordUrls.ts`.
-- `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
-  not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
-  columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
-  thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
-  tu 3 … 12, or any ratio `tu (n d)`) are whole numbers too; grace notes take no time; a bar may change the time signature, `timeAt`;
-  `parseClip`; `docs/specs/2026-10-26-tab-rhythm-design.md`),
-  `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
-  and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
-  format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
-  golden input and output pairs for the spellings it forgives, see its
-  README), `layout.ts` (pure: where systems,
-  bars and columns go at a width, and `rowsFor`, the rows over the staff,
-  each there only when the clip uses it;
-  `docs/specs/2026-10-26-tab-note-marks-design.md`) and `TabClip.tsx` (draws a layout as
-  SVG, with the editor's cursor and selection), `marks.ts` (pure: where each
-  drawn technique mark is, so a press picks it, and its palette tool;
-  `docs/specs/2026-10-27-tab-pick-marks-design.md`), `clipState.ts` (the clip
-  with undo and redo), `editing.ts` (pure: the cursor, selection and every
-  edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
-  and paste at the cursor), `tools.ts` (the symbol palette's table, shared
-  with the keys) and `TabPalette.tsx`, `BarTimePanel.tsx` with
-  `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
-  press on a drawn one or the palette; nothing in the header sets it),
-  `WordField.tsx` (the field over the tab for a chord name, section, tempo or
-  the capo, "Capo 3" over the first line;
-  `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
-  `TabExportDialog.tsx` (the Export options button; the Tab view's copy button copies the PNG;
-  `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
-  helpers), and `TabPage.tsx` (the editor: keys
-  on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
-  by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` link replaces the clip, read on load or
-  hashchange and then cleared, while a paste goes in at the cursor;
-  Notation | ASCII Tab | AlphaTex, each with copy and save buttons at the top right of the clip, after the view switch (Notation copies the PNG; Staff | Tab | Both takes the top left) (`saveFile.ts`; Notation lists PNG, SVG, ASCII tab and alphaTex); Notation shows Staff, Tab or Both (`docs/specs/2026-10-27-tab-notation-design.md`): `notation.ts` (pure: pitch, spelling in the key, staff steps, accidentals), `StaffDrawing.tsx` (the treble staff an octave up, carrying the rhythm in Both, where the tab drops its stems), `staffEntry.ts` (pure: the staff cursor's pitch, the string and fret Frets picks for a note entered on the staff, Enter and Alt+↑ ↓; `docs/specs/2026-10-27-tab-staff-entry-design.md`; a press on the staff puts its own cursor there and hands it the keys, a press on the tab hands them back; Staff alone is edited the same way), `staffGeometry.ts` (pure: heads, stems and beams across a bar) and `staffMarks.ts` (pure: the technique marks on the staff and their boxes, which `marks.ts` picks), `smufl.ts` (Bravura's glyph outlines, from `scripts/smufl-glyphs.mjs`), and `BarKeyPanel.tsx` (the key signature from a bar on, `\ks`, opened like the time signature's panel); the AlphaTex view is editable (the × in its text box's top right clears it), `AlphaTexEditor.tsx` (`docs/specs/2026-10-27-tab-alphatex-editing-design.md`: read half a second after typing, errors marked ⚠ and underlined, text as typed until an edit elsewhere changes the clip); Export options,
-  the Export dialog, which also downloads the clip as alphaTex or ASCII). The clip's own format is alphaTex
-  (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
-  `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
-  parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
-  its renderer is not used) and keeps what Frets doesn't draw as written
-  (`extra` and `header` in the clip), `alphatex.ts` writes it, and
-  `readTab.ts` tells ASCII from alphaTex. `examples.ts` is the library of
-  example clips (Examples…, or `/tab#example=<id>`; any `.atex` or `.txt` dropped into `samples/` is listed there too, under Samples, via `samples.ts` and the route `src/app/tab/samples.json/`), shown in place of the
-  clip and never saved (`clipState.ts` sets the clip aside;
-  `docs/specs/2026-10-26-tab-examples-design.md`); each must read with no
-  warnings and write back exactly, and every newly drawn feature gets one.
-  `playback.ts` plays a clip: alphaTab's MIDI generator and synthesizer
-  (loaded on the first Play) with the SONiVOX soundfont in
-  `public/soundfont/` (Acoustic Grand Piano is the Salamander Grand and Steel Guitar the Iowa
-  acoustic and Clean Electric Guitar Karoryfer's, each its own soundfont loaded when used, `OWN_FONTS`, built by `scripts/build-soundfonts.py`; `docs/specs/2026-10-27-tab-instruments-design.md`), through a small Web Audio output; `PlaybackFooter.tsx`
-  is the footer under the tab (shown, it sticks to the window's bottom inside the card, `PinnedPlayback.tsx`; `docs/specs/2026-10-28-tab-pinned-playback-design.md`) (Play from the cursor, Loop setting loop points,
-  Speed, a number field in `NumberField.tsx`, Transpose, the Volume knob in `VolumeKnob.tsx`, Sound) and the playhead (`docs/specs/2026-10-26-tab-playback-design.md`); a right-click on Play opens `PlaybackOptions.tsx`, Stop leaves the cursor where it stopped, and a pause between loops (`docs/specs/2026-10-27-tab-playback-options-design.md`). `ScoreHead.tsx` is the score's head, drawn in the clip's card over the drawing (Notation only) as a printed score's first page has it (`docs/specs/2026-10-28-tab-score-head-design.md`): the title (`ClipTitle.tsx`, the page's h1, a click renaming the clip), the artist and "Words & Music by" centred, then the tuning ("Tune down 1/2 step") on the left, from `credits.ts` (pure, with the sizes in `HEAD` that the exported image's head shares); a guitar with all six strings tuned alike is written on the staff as fingered (`writtenStrings` in `notation.ts`). The eye button before copy, in every view, opens `ViewOptions.tsx`, each view's options under its name (`viewOptions.ts`: Notation's bar numbers on every bar, each line's first or none, and Size 50–200%, CSS zoom on the drawing and all over it, laid out at the width over the zoom; ASCII Tab's Rhythm line; AlphaTex's Line numbers), which the views, copies and exports follow; lines run to the full width but the last, and 4/4 beams plain eighths four together (`docs/specs/2026-10-28-tab-sweet-child-intro-design.md`). A double bar is `\db`; with `\multiBarRest` bars of rest in a row draw as one with their count (`multiRests` in `layout.ts`, each bar keeping its slice so the cursor steps through); under a staff the tab names a tied note only where a bar starts; the last line runs full when it has as many bars as the one before (`docs/specs/2026-10-28-tab-sweet-child-verse-design.md`). Under a staff a held bend's note, too, is named only where a bar starts, and a let-down note is named when a pull-off leaves it (`legatoStarts`; `docs/specs/2026-10-28-tab-sweet-child-solo-design.md`). `usePopover.ts` places and closes the small panels. The note toggle after Loop (a music note with sound waves) sounds each note, alone, as it is entered (`docs/specs/2026-10-27-tab-hear-notes-design.md`).
-  Images and dragging are PR 3 in the spec.
+- `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`.
+- `src/lib/`, `src/components/`, `src/hooks/` — shared by more than one
+  section.
+- `src/features/<section>/` — everything only one section uses.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -331,13 +93,9 @@ both for anything new.
 
 ## Storage
 
-`localStorage["frets.practice.intervals"]` and `["frets.practice.notes"]`
-hold `{ set, stats }` (the Note trainer's set includes the mic choice);
-`["frets.tuner.settings"]` holds the tuner's meter and reference sound,
-for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the Scale lab's
-settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
-and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; `["frets.tab.clip"]` the Tab page's clip; `["frets.tab.export"]` its Export dialog's choices; `["frets.tab.parts"]` whether Notation shows the staff, the tab or both; `["frets.tab.view"]` its View options (bar numbers, size, ASCII rhythm, alphaTex line numbers); `["frets.tab.playback"]` whether its playback controls show, their sound, volume and options; `["frets.theme"]` holds the theme choice. Keys are `frets.<section>.<page>`. The parsers next to
-each key validate every field; keep them in step with settings changes.
+Saved state lives in `localStorage` under keys named
+`frets.<section>.<page>`, listed in `src/lib/README.md`. The parser next to
+each key validates every field; keep it in step with settings changes.
 
 ## Testing
 
