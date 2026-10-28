@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { noteAlone, columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
+import { midiUntil, noteAlone, columnAtTick, DEFAULT_SOUND, isSound, perform, OWN_FONTS, SOUND_FAMILIES, tickOf, ticksOf } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
@@ -140,6 +140,22 @@ describe('playback', () => {
   it('gives a loop the ticks from its first column to the end of its last', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     expect(ticksOf(clip, perform(alphaTab, clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });
+  });
+
+  it('stops at a region\'s end in the MIDI, so its last note still sounds and rings out', () => {
+    const clip = clipOf('5.3.8{d} 7.3.16 5.2.4 7.2.4 8.2.4 |');
+    const played = perform(alphaTab, clip);
+    const end = ticksOf(clip, played, [1, 1])!.endTick;
+    const midi = midiUntil(alphaTab, played, end);
+    const onsAt = (m: alphaTab.midi.MidiFile) => m.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent).map(e => e.tick);
+    // Both notes of the region start, nothing after it does.
+    expect(onsAt(midi)).toEqual(onsAt(played.midi).filter(t => t < end));
+    expect(onsAt(midi)).toHaveLength(2);
+    // The second note is ended by its own note-off, then rings two beats as the clip's end does.
+    expect(midi.events.some(e => e instanceof alphaTab.midi.NoteOffEvent && e.tick === end)).toBe(true);
+    const last = midi.events[midi.events.length - 1];
+    expect(last).toBeInstanceOf(alphaTab.midi.EndOfTrackEvent);
+    expect(last.tick).toBe(end + 2 * Q);
   });
 
 });

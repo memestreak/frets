@@ -22,7 +22,12 @@ press outside, scrolling or resizing closes it. Play's tip says
   2026-10-28). On, with a region selected, Play stops once the region's last
   column has sounded instead of playing on to the clip's end. A Play that
   starts past the region plays on, and loop points still go round. Off, or
-  with nothing selected, Play goes to the end as before.
+  with nothing selected, Play goes to the end as before. The region's last
+  note plays its full length and rings out as the clip's last note does
+  (Jeremy, 2026-10-28: it was cut off): nothing after the region starts, but
+  nothing is stopped dead either. The stop is in the MIDI the synthesizer
+  plays (`midiUntil` in `playback.ts`), since alphaTab silences every note at
+  once at a playback range's end.
 - **Pause between loops** (a checkbox, off by default) with a seconds field
   beside it (0.5–10 s, steps of 0.5, default 1; the same number field as
   Speed: type, ↑ ↓, the arrows, or press and drag). On, when the loop reaches

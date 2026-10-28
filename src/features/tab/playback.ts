@@ -117,6 +117,26 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   return performance;
 }
 
+/**
+ * The clip's MIDI stopping at a tick, as it stops at its own end: nothing starts from that tick
+ * on, and the notes already sounding ring out as the last ones do (Jeremy, 2026-10-28: stopping at
+ * a region's end cut its last note off). The synthesizer stops dead at a playback range's end, so
+ * the stop is in the MIDI instead.
+ */
+export function midiUntil(at: AlphaTab, performance: Performance, end: number): AlphaTabModule.midi.MidiFile {
+  const midi = new at.midi.MidiFile();
+  midi.format = performance.midi.format;
+  midi.division = performance.midi.division;
+  midi.tickShift = performance.midi.tickShift;
+  for (const event of performance.midi.events) {
+    if (event instanceof at.midi.EndOfTrackEvent) continue;
+    // Note-offs of the notes sounding at the end still end them while they ring.
+    if (event.tick < end || (event instanceof at.midi.NoteOffEvent && event.tick <= end + RING_OUT_TICKS)) midi.addEvent(event);
+  }
+  midi.addEvent(new at.midi.EndOfTrackEvent(0, end + RING_OUT_TICKS));
+  return midi;
+}
+
 /** alphaTab's pitch-bend range: 16 semitones either way of 8192 (the RPN it sends at the start). */
 const BEND_PER_SEMITONE = 8192 / 16;
 
@@ -458,6 +478,8 @@ export class TabPlayer {
    * region selected (Jeremy, 2026-10-28). Null plays on to the clip's end.
    */
   private until: number | null = null;
+  /** The MIDI in the synthesizer: the clip's (`end` null), or the clip's stopping at `end` (see `midiUntil`). */
+  private loaded: { end: number | null } | null = null;
   /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
@@ -486,7 +508,7 @@ export class TabPlayer {
       if (!this.clip || !this.performance || this.ended) return;
       if (this.looping && this.range && e.currentTick >= this.range.endTick) this.loopEndAt ??= performance.now();
       // While the last notes ring out, the playhead stays on the last column.
-      if (e.currentTick >= this.performance.endTick) return;
+      if (e.currentTick >= (this.loaded?.end ?? this.performance.endTick)) return;
       onView({ column: columnAtTick(this.clip, this.performance, e.currentTick) });
     });
     synth.finished.on(() => {
@@ -525,7 +547,7 @@ export class TabPlayer {
       this.sound = sound;
       this.setVolume(this.volume);
       this.performance = perform(this.at, clip, sound);
-      this.synth.loadMidiFile(this.performance.midi);
+      this.load(this.performance.midi, null);
     }
     this.setSpeed(speed);
     this.moveTo(tickOf(clip, this.performance, from));
@@ -574,24 +596,38 @@ export class TabPlayer {
     this.range = ahead ? range : null;
     this.synth.isLooping = ahead && this.loopPause === 0;
     if (ahead && range) {
+      this.useMidi(null);
       const playbackRange = new this.at.synth.PlaybackRange();
       playbackRange.startTick = range.startTick;
       playbackRange.endTick = range.endTick;
       rangeWithoutSeek(this.synth, playbackRange);
     } else {
-      // With no loop, the region's end (when the playhead is before it) stops playback there: the
-      // sequencer stops at a range's end when it isn't looping, as a loop with a rest does.
+      // With no loop, the region's end (when the playhead is before it) stops playback there, as the
+      // clip's end does.
       const end = this.until === null || !this.clip || !this.performance ? null
         : ticksOf(this.clip, this.performance, [this.until, this.until])?.endTick ?? null;
-      if (end !== null && this.synth.tickPosition < end) {
-        const playbackRange = new this.at.synth.PlaybackRange();
-        playbackRange.startTick = 0;
-        playbackRange.endTick = end;
-        rangeWithoutSeek(this.synth, playbackRange);
-      } else {
-        rangeWithoutSeek(this.synth, null);
-      }
+      this.useMidi(end !== null && this.synth.tickPosition < end ? end : null);
+      rangeWithoutSeek(this.synth, null);
     }
+  }
+
+  /** Puts a MIDI file in the synthesizer: the clip's, or the clip's stopping at `end`. */
+  private load(midi: AlphaTabModule.midi.MidiFile, end: number | null) {
+    this.synth.loadMidiFile(midi);
+    this.loaded = { end };
+  }
+
+  /**
+   * Swaps in the clip's MIDI stopping at a tick, or the whole clip's for null, unless it is in already.
+   * The playhead stays where it is, and a clip playing plays on.
+   */
+  private useMidi(end: number | null) {
+    if (!this.performance || this.loaded?.end === end) return;
+    const playing = !this.ended && this.resting === null;
+    const tick = this.synth.tickPosition;
+    this.load(end === null ? this.performance.midi : midiUntil(this.at, this.performance, end), end);
+    this.moveTo(tick);
+    if (playing) this.synth.play();
   }
 
   /** The rest between loops, in seconds; 0 loops straight round. */
@@ -682,7 +718,7 @@ export class TabPlayer {
       return;
     }
     this.performance = perform(this.at, this.clip, sound);
-    this.synth.loadMidiFile(this.performance.midi);
+    this.load(this.performance.midi, null);
     this.moveTo(tick);
     this.setLoop(this.loop);
     if (playing) this.synth.play();
@@ -708,7 +744,7 @@ export class TabPlayer {
     this.clip = null;
     this.performance = null;
     this.setVolume(this.volume);
-    this.synth.loadMidiFile(perform(this.at, alone, sound).midi);
+    this.load(perform(this.at, alone, sound).midi, null);
     this.synth.playbackSpeed = 1;
     this.synth.isLooping = false;
     this.moveTo(0);
