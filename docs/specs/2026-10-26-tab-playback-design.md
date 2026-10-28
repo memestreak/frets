@@ -113,6 +113,13 @@ only when the column sounding changes.
   score, the same parse as reading alphaTex. alphaTab's MIDI generator then
   turns the score into MIDI with a tick lookup, so bends, slides, ties,
   repeats, endings, tempo changes and the capo sound as alphaTab plays them.
+- `keepSlidPitch` mends alphaTab's MIDI for notes reached by legato slides.
+  A run of legato slides sounds on its first, picked note's key and
+  channel, but alphaTab writes a reached note's bend or vibrato from its own
+  fret and on the channel it would be picked on (a second one for a bent
+  note, where nothing sounds). Those pitch bends move to the run's key and
+  channel: 12 sl 14 sl 12 bent half a step sounds G bent to G♯, not a flat
+  F (Jeremy, 2026-10-28).
 - `columnAtTick` and `ticksOf` map between ticks and the clip's columns.
 - Loop points are the synthesizer's playback range, set straight on its
   sequencer (`rangeWithoutSeek`): alphaTab's own setter moves the playhead
