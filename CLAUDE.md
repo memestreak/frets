@@ -51,7 +51,8 @@ reference for anything the specs in `docs/specs/` do not cover. Where a spec
 and a prototype disagree, the spec wins; the departures are listed below.
 The prototypes are not a reference for the look: the shipped styling is the
 Fretwood design system, applied as `docs/specs/2026-10-04-fretwood-design-system.md`
-describes.
+describes. `docs/pedagogy/` holds research on what to teach next (ideas,
+sizes and open questions, not specs); some of it is already built.
 
 One quiz rule deliberately differs: the prototype names a note below the
 root by its distance down, while `intervalClass` names it by its function
