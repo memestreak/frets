@@ -1,7 +1,7 @@
-import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffHit } from './hitTest';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { StaffCursor, StaffDrawing } from './StaffDrawing';
@@ -31,7 +31,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, x, y }: {
   clip: Clip;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -66,6 +66,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   onPickColumn?: (index: number, extend: boolean) => void;
   /** A press on the notation staff: the column and line or space (and string, on a head); `extend` with Shift. */
   onPickStaff?: (hit: StaffHit, extend: boolean) => void;
+  /**
+   * A note head on the staff dragged up or down (issue #174). A press on a head that doesn't move is
+   * still `onPickStaff`, when the pointer lets go.
+   */
+  onDragStaff?: (drag: StaffDrag) => void;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -100,6 +105,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
     const { run, text, mark, staff, hit, column, px, py } = target(e);
+    if (staff && staff.string !== null && onDragStaff && e.button === 0) {
+      // A head: a drag or a press, told apart when the pointer moves or lets go.
+      headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, last: null };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      return;
+    }
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
@@ -107,6 +118,30 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
+  };
+  /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
+  const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; last: StaffDrag | null } | null>(null);
+  const dragHead = (e: PointerEvent<SVGSVGElement>) => {
+    const press = headPress.current;
+    if (!press) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    // A line or space for each half a staff space the pointer goes up or down.
+    const steps = Math.round(((press.y - e.clientY) * scale) / (SPACE / 2));
+    if (!press.last && steps === 0) return;
+    const drag: StaffDrag = { hit: press.hit, steps, semitones: e.shiftKey, chord: e.metaKey || e.ctrlKey, done: false };
+    const last = press.last;
+    press.last = drag;
+    if (last && last.steps === steps && last.semitones === drag.semitones && last.chord === drag.chord) return;
+    onDragStaff!(drag);
+  };
+  const dropHead = (e: PointerEvent<SVGSVGElement>, cancelled: boolean) => {
+    const press = headPress.current;
+    if (!press) return;
+    headPress.current = null;
+    if (press.last) onDragStaff!({ ...press.last, steps: cancelled ? 0 : press.last.steps, done: true });
+    else if (!cancelled) onPickStaff!(press.hit, press.shift);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
@@ -128,7 +163,9 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     <svg
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined}
+      onPointerMove={onDragStaff ? dragHead : undefined} onPointerUp={onDragStaff ? e => dropHead(e, false) : undefined}
+      onPointerCancel={onDragStaff ? e => dropHead(e, true) : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (

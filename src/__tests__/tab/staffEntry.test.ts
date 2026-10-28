@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { choosePlace, moveToString, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
+import { choosePlace, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
 
 function clipOf(body: string): Clip {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
@@ -63,7 +63,7 @@ describe('Enter on the staff', () => {
   });
 });
 
-describe('Alt+arrows on the staff', () => {
+describe('Alt+arrows on the tab', () => {
   it('move the note to the next string that can play it, keeping its marks and pitch', () => {
     const clip = clipOf('0.1{ac}.1 |');
     const down = moveToString(clip, at(0), E4, 1);
@@ -73,5 +73,54 @@ describe('Alt+arrows on the staff', () => {
     expect(moveToString(down.clip, at(0), E4, -1).string).toBe(0);
     // Nowhere higher than the high e: it stays.
     expect(moveToString(clip, at(0), E4, -1)).toEqual({ clip, string: 0 });
+  });
+});
+
+describe('moving notes on the staff (issue #174)', () => {
+  it('steps a line or space in the key, or a semitone', () => {
+    const g = clipOf('\\ks G r.1 |');
+    expect(movedPitch(g, 0, E4, { steps: 1, semitones: false })).toBe(66);
+    expect(movedPitch(g, 0, E4, { steps: 2, semitones: false })).toBe(67);
+    expect(movedPitch(g, 0, E4, { steps: -1, semitones: true })).toBe(63);
+  });
+
+  it('moves one note of a chord, keeping its marks and its string', () => {
+    // An A minor shape at the fifth fret: A on the low E, E on the A string, A on the D string.
+    const clip = clipOf('(5.6 7.5 7.4{ac}).1 |');
+    const places = notesToMove(clip, at(0), 57, null, false);
+    expect(places).toEqual([{ bar: 0, column: 0, string: 3 }]);
+    const up = moveNotes(clip, places, { steps: 1, semitones: false });
+    expect(frets(up.clip, 0)).toEqual([null, null, null, 9, 7, 5]);
+    expect(up.clip.bars[0].columns[0].notes[3]!.accent).toBeTruthy();
+    expect(up.moved).toEqual([{ bar: 0, column: 0, string: 3 }]);
+  });
+
+  it('moves the whole chord, or every note of the selection', () => {
+    const clip = clipOf('(5.6 7.5).4 (3.6 5.5).4 r.2 |');
+    const chord = notesToMove(clip, at(0), 45, null, true);
+    expect(chord).toHaveLength(2);
+    expect(frets(moveNotes(clip, chord, { steps: 2, semitones: true }).clip, 0)).toEqual([null, null, null, null, 9, 7]);
+    const selected = notesToMove(clip, at(0), 45, { anchor: 0, focus: 1 }, false);
+    const moved = moveNotes(clip, selected, { steps: -1, semitones: true }).clip;
+    expect(frets(moved, 0)).toEqual([null, null, null, null, 6, 4]);
+    expect(frets(moved, 1)).toEqual([null, null, null, null, 4, 2]);
+  });
+
+  it('moves a note off the end of its string to another one', () => {
+    const clip = clipOf('2.5.1 |');
+    expect(frets(moveNotes(clip, [{ bar: 0, column: 0, string: 4 }], { steps: -3, semitones: true }).clip, 0)).toEqual([null, null, null, null, null, 4]);
+  });
+
+  it('moves nothing when a note would fall off the neck', () => {
+    const clip = clipOf('0.6.1 |');
+    const edit = moveNotes(clip, notesToMove(clip, at(0), 40, null, false), { steps: -1, semitones: true });
+    expect(edit.clip).toBe(clip);
+    expect(edit.problem).toBeTruthy();
+  });
+
+  it('carries nothing off a note, unless the chord is asked for', () => {
+    const clip = clipOf('0.1.1 |');
+    expect(notesToMove(clip, at(0), 60, null, false)).toEqual([]);
+    expect(notesToMove(clip, at(0), 60, null, true)).toHaveLength(1);
   });
 });

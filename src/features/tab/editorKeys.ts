@@ -10,7 +10,7 @@ import { makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
-import { moveToString, stepPitch, toggleStaffNote } from './staffEntry';
+import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tools';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
@@ -31,6 +31,8 @@ export interface EditorKeys {
   picked: WordHit | MarkHit | null;
   /** The staff cursor's pitch while it has the keys, else null. */
   staffPitch: number | null;
+  /** The notation staff is drawn (Staff or Both), so Alt+↑ ↓ on a selection move its notes' pitch. */
+  staffShown: boolean;
   lastDigit: RefObject<LastDigit>;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Clip, cursor?: Cursor, selection?: Selection | null) => void;
@@ -94,6 +96,15 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     e.preventDefault();
     return;
   }
+  const handled = () => e.preventDefault();
+  if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
+    handled();
+    return;
+  }
+  if (moveKeyDown(e, editor)) {
+    handled();
+    return;
+  }
   if (e.ctrlKey || e.metaKey) {
     if (key === 'Enter') {
       e.preventDefault();
@@ -106,11 +117,6 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       editor.startRegion();
     }
     // Copy, cut and paste arrive as clipboard events; undo is the page's.
-    return;
-  }
-  const handled = () => e.preventDefault();
-  if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
-    handled();
     return;
   }
   // With Alt, a digit is a tuplet (Alt+3 a triplet), not a fret.
@@ -227,35 +233,72 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
 }
 
 /**
- * The keys the staff cursor takes (issue #136): ↑ ↓ a line or space in the key, # and b a semitone,
- * Enter adds or takes away the note at its pitch, Alt+↑ ↓ move that note to another string. True
- * when the key was one of them.
+ * The keys the staff cursor takes (issue #136, #174): ↑ ↓ a line or space in the key, Shift+↑ ↓ (or #
+ * and b) a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
+ * space, with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the cursor goes with it. True when
+ * the key was one of them.
  */
 function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
-  const { clip, cursor, selection, toPitch } = editor;
+  const { clip, cursor, toPitch } = editor;
   const { key } = e;
-  if ((key === 'ArrowUp' || key === 'ArrowDown') && !e.shiftKey) {
+  const chord = e.ctrlKey || e.metaKey;
+  if (key === 'ArrowUp' || key === 'ArrowDown') {
+    const up = key === 'ArrowUp';
     if (e.altKey) {
-      const moved = moveToString(clip, cursor, pitch, key === 'ArrowUp' ? -1 : 1);
-      toPitch(moved.clip, cursor, pitch, selection);
-    } else {
-      // Moving the cursor lets any selection go (Jeremy, 2026-10-28); Alt's move above is an edit and keeps it.
-      toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), null);
+      const move = { steps: up ? 1 : -1, semitones: e.shiftKey };
+      const edit = moveNotes(clip, notesToMove(clip, cursor, pitch, null, chord), move);
+      if (edit.problem) {
+        editor.onNotice({ tone: 'error', lines: [edit.problem] });
+        return true;
+      }
+      if (!edit.moved.length) return true;
+      const moved = movedPitch(clip, cursor.bar, pitch, move);
+      toPitch(edit.clip, cursor, moved, null);
+      const string = stringAtPitch(edit.clip, cursor, moved);
+      if (string !== null) editor.hearNote({ ...cursor, string });
+      return true;
     }
+    if (chord) return false;
+    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
+    toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
     return true;
   }
+  if (chord) return false;
   if ((key === '#' || key === 'b') && !e.altKey) {
     toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), null);
     return true;
   }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {
     const edit = toggleStaffNote(clip, cursor, pitch);
-    toPitch(edit.clip, cursor, pitch, selection);
+    toPitch(edit.clip, cursor, pitch, editor.selection);
     if (edit.string !== null) editor.hearNote({ ...cursor, string: edit.string });
     if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
     return true;
   }
   return false;
+}
+
+/**
+ * Alt+↑ ↓ off the staff cursor (issue #174): on a selection, with the staff drawn, every selected note
+ * moves a line or space (with Shift a semitone) and the selection stays; on the tab's note, the note
+ * moves to the next string up or down that plays the same pitch. True when the key was one of them.
+ */
+function moveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  const { clip, cursor, selection, columnOnly, commit } = editor;
+  if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return false;
+  const up = e.key === 'ArrowUp';
+  if (selection) {
+    if (!editor.staffShown) return true;
+    const edit = moveNotes(clip, notesToMove(clip, cursor, 0, selection, false), { steps: up ? 1 : -1, semitones: e.shiftKey });
+    if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
+    else commit(edit.clip);
+    return true;
+  }
+  const note = columnOnly ? null : noteAt(clip, cursor);
+  if (!note || note.fret === null || e.shiftKey || e.ctrlKey || e.metaKey) return true;
+  const moved = moveToString(clip, cursor, pitchOf(clip, cursor.string, note.fret), up ? -1 : 1);
+  if (moved.string !== null) commit(moved.clip, { ...cursor, string: moved.string });
+  return true;
 }
 
 /** The playback line as the keys off the tab find it, and how they move it. */

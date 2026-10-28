@@ -25,9 +25,9 @@ answers, 2026-10-27.
 - **Enter** adds a note at the cursor's pitch, or takes away the column's note at that pitch. Several
   Enters in one column build a chord. On a rest the note takes the last note's length and the rest
   keeps what is left, as typing a fret there does.
-- **Alt+Up / Alt+Down** move the note at the cursor's pitch to the next higher or lower string that
-  can play it, skipping strings the column already uses. The pitch never changes; the note keeps its
-  marks.
+- **Alt+Up / Alt+Down** move the note at the cursor's pitch a line or space (issue #174,
+  `2026-10-28-tab-staff-drag-design.md`). Moving a note to another string, at the same pitch, is now
+  Alt+Up / Alt+Down on the tab.
 - Every other key does what it does on the tab: the palette's keys, lengths, undo, copy and paste.
 
 ## The string and fret Frets picks

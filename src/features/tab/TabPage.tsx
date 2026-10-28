@@ -15,12 +15,12 @@ import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, s
 import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { parseParts, PARTS, PARTS_KEY, type Parts } from './layout';
-import { type StaffHit } from './hitTest';
+import { type StaffDrag, type StaffHit } from './hitTest';
 import { type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
-import { pitchAtStep, stringAtPitch } from './staffEntry';
+import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
@@ -429,7 +429,7 @@ export default function TabPage() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, lastDigit,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -490,6 +490,56 @@ export default function TabPage() {
     }
     const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
     toPitch(left, at, pitch);
+  };
+
+  /**
+   * A drag of a note head on the staff (issue #174): the clip it started from, the selection it carries
+   * (when the head pressed is in one), and the last move that worked, shown while the drag goes on.
+   */
+  const dragFrom = useRef<{ clip: Clip; selection: Selection | null; good: { clip: Clip; pitch: number } | null } | null>(null);
+
+  /**
+   * A note head dragged up or down: the note moves with the pointer (with ⌘ or Ctrl its whole chord,
+   * in a selection every selected note), a line or space in the key at a time, with Shift a semitone.
+   * Each new pitch sounds (with Hear notes on); letting go makes it one undo step, and the staff cursor
+   * stays on the note, or the selection stays selected.
+   */
+  const onDragStaff = (drag: StaffDrag) => {
+    const { hit } = drag;
+    const at = { bar: hit.bar, column: hit.column, string: hit.string };
+    if (!dragFrom.current) {
+      const index = indexOf(clip, hit.bar, hit.column);
+      const range = selection ? selectedRange(selection) : null;
+      const carried = range && index >= range[0] && index <= range[1] ? selection : null;
+      dragFrom.current = { clip, selection: carried, good: null };
+      lastDigit.current = null;
+    }
+    const from = dragFrom.current;
+    const note = noteAt(from.clip, at);
+    if (!note || note.fret === null) return;
+    const pitch = pitchOf(from.clip, hit.string, note.fret);
+    const move = { steps: drag.steps, semitones: drag.semitones };
+    const edit = moveNotes(from.clip, notesToMove(from.clip, at, pitch, from.selection, drag.chord), move);
+    const heardBefore = from.good?.pitch ?? pitch;
+    if (!edit.problem) from.good = { clip: edit.clip, pitch: movedPitch(from.clip, hit.bar, pitch, move) };
+    const shown = from.good ?? { clip: from.clip, pitch };
+    const string = stringAtPitch(shown.clip, at, shown.pitch) ?? hit.string;
+    if (drag.done) {
+      dragFrom.current = null;
+      if (shown.clip !== from.clip) dispatch({ type: 'replace', clip: shown.clip, from: from.clip });
+      else dispatch({ type: 'preview', clip: from.clip });
+    } else dispatch({ type: 'preview', clip: shown.clip });
+    setPicked(null);
+    setNotice(null);
+    if (from.selection) {
+      setSelection(from.selection);
+    } else {
+      setCursor({ ...at, string });
+      setSelection(null);
+      setColumnOnly(false);
+      setStaffPitch(shown.pitch);
+    }
+    if (!drag.done && shown.pitch !== heardBefore) hearNote({ ...at, string });
   };
 
   /**
@@ -679,7 +729,7 @@ export default function TabPage() {
                   <HoverTips>
                     <TabClip
                       clip={clip} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
+                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                       highlight={{
