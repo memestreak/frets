@@ -1,9 +1,11 @@
 /**
  * The Tab page's view options (Jeremy, 2026-10-28): how each view shows things that are the reader's
- * choice, not the music's. Notation: bar numbers and the drawing's size; ASCII Tab: the rhythm line;
+ * choice, not the music's. Notation: bar numbers, the drawing's size and the clip's own line breaks; ASCII Tab: the rhythm line;
  * AlphaTex: line numbers; and for every view, the colours. Saved per viewer, not in the clip; exports
  * and copies follow them.
  */
+
+import type { Clip } from './clip';
 
 export const VIEW_KEY = 'frets.tab.view';
 
@@ -42,6 +44,11 @@ export interface TabView {
   barNumbers: BarNumbers;
   /** How big the clip is drawn, in percent; a smaller drawing fits more bars to a line. */
   size: number;
+  /**
+   * Notation: lines break where the clip says (`\systemsLayout`), as the book it came from does; off,
+   * they fill the width (Jeremy, 2026-10-28: an option, off by default).
+   */
+  lineBreaks: boolean;
   /** ASCII Tab: the rhythm line over the strings (w h q e s…). */
   asciiRhythm: boolean;
   /** AlphaTex: each line's number in the margin. */
@@ -53,7 +60,7 @@ export interface TabView {
 
 /** Bar numbers on every bar, as Guitar Pro prints them, at full size; the rhythm line and line numbers shown; the theme's colours. */
 export const DEFAULT_VIEW: TabView = {
-  barNumbers: 'every', size: 100, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
+  barNumbers: 'every', size: 100, lineBreaks: false, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
 };
 
 /** A size as offered: a whole step from 50% to 200%. */
@@ -67,6 +74,7 @@ export function parseView(raw: unknown): TabView {
   return {
     barNumbers: BAR_NUMBERS.find(b => b === o.barNumbers) ?? DEFAULT_VIEW.barNumbers,
     size: isSize(o.size) ? o.size : DEFAULT_VIEW.size,
+    lineBreaks: typeof o.lineBreaks === 'boolean' ? o.lineBreaks : DEFAULT_VIEW.lineBreaks,
     asciiRhythm: typeof o.asciiRhythm === 'boolean' ? o.asciiRhythm : DEFAULT_VIEW.asciiRhythm,
     lineNumbers: typeof o.lineNumbers === 'boolean' ? o.lineNumbers : DEFAULT_VIEW.lineNumbers,
     colours: COLOURS.find(c => c === o.colours) ?? DEFAULT_VIEW.colours,
@@ -111,4 +119,10 @@ export function mix(a: string, b: string, t: number): string {
 /** Whether a bar shows its number: every bar, or only the first on its line. */
 export function showsBarNumber(barNumbers: BarNumbers, firstOnLine: boolean): boolean {
   return barNumbers === 'every' || (barNumbers === 'lines' && firstOnLine);
+}
+
+/** The clip as the view lays it out: without its own line breaks unless the view keeps them. */
+export function laidOut(clip: Clip, view: TabView): Clip {
+  if (view.lineBreaks || (clip.systemsLayout === undefined && clip.defaultSystemsLayout === undefined)) return clip;
+  return { ...clip, systemsLayout: undefined, defaultSystemsLayout: undefined };
 }

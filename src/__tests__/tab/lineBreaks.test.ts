@@ -4,6 +4,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { layoutClip } from '@/features/tab/layout';
 import { barsPerLine, parseClip, type Clip } from '@/features/tab/clip';
+import { DEFAULT_VIEW, laidOut, parseView } from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -131,5 +132,26 @@ describe('laying out the clip’s own lines', () => {
     expect(last[0]).toBeCloseTo(full[1]);
     const one = layoutClip(clipOf(`\\defaultSystemsLayout 3\n${bars(1)}`), 1200);
     expect(one.systems[0].bars[0].x1).toBeLessThan(1200);
+  });
+});
+
+describe('the Clip\'s line breaks view option', () => {
+  it('is off by default and kept when saved', () => {
+    expect(DEFAULT_VIEW.lineBreaks).toBe(false);
+    expect(parseView({}).lineBreaks).toBe(false);
+    expect(parseView({ lineBreaks: true }).lineBreaks).toBe(true);
+    expect(parseView({ lineBreaks: 'yes' }).lineBreaks).toBe(false);
+  });
+
+  it('lays the clip out filling the width when off, and at its own breaks when on', () => {
+    const clip = clipOf(`\\systemsLayout (1 2)\n${bars(4)}`);
+    const off = laidOut(clip, DEFAULT_VIEW);
+    expect(off.systemsLayout).toBeUndefined();
+    expect(lineCounts(off, 1200)).toEqual([3, 1]);
+    expect(lineCounts(laidOut(clip, { ...DEFAULT_VIEW, lineBreaks: true }), 1200)).toEqual([1, 2, 1]);
+    // The clip itself keeps them, so they are still written.
+    expect(writeAlphaTex(clip)).toContain('\\systemsLayout (1 2)');
+    const plain = clipOf(BAR);
+    expect(laidOut(plain, DEFAULT_VIEW)).toBe(plain);
   });
 });

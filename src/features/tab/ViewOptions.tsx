@@ -70,6 +70,7 @@ export function ViewOptions({ x, y, values, onChange, onClose }: {
           onChange={size => onChange({ ...values, size: Math.round(size / SIZE_STEP) * SIZE_STEP })}
         />
       </div>
+      <Toggle label="Clip's line breaks" on={values.lineBreaks} onChange={lineBreaks => onChange({ ...values, lineBreaks })} />
       <h3 className="tab-view-heading">ASCII Tab</h3>
       <Toggle label="Rhythm" on={values.asciiRhythm} onChange={asciiRhythm => onChange({ ...values, asciiRhythm })} />
       <h3 className="tab-view-heading">AlphaTex</h3>

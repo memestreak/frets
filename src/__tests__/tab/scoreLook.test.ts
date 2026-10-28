@@ -81,11 +81,11 @@ describe('the staff for a tuned-down guitar', () => {
 
 describe('view options', () => {
   it('start on bar numbers over every bar at 100%, the rhythm line and line numbers shown, and keep only a valid saved choice', () => {
-    const shown = { asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: { text: '#000000', background: '#ffffff' } };
+    const shown = { lineBreaks: false, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: { text: '#000000', background: '#ffffff' } };
     expect(parseView(null)).toEqual({ barNumbers: 'every', size: 100, ...shown });
     const custom = { text: '#7a1f1f', background: '#f4ecd8' };
-    expect(parseView({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom }))
-      .toEqual({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom });
+    expect(parseView({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom, lineBreaks: true }))
+      .toEqual({ barNumbers: 'lines', size: 70, lineBreaks: true, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom });
     expect(parseView({ colours: 'pink', custom: { text: 'red', background: '#fff' } })).toEqual({ barNumbers: 'every', size: 100, ...shown });
     expect(parseView({ barNumbers: 'odd', size: 75, asciiRhythm: 'no', lineNumbers: 0 })).toEqual({ barNumbers: 'every', size: 100, ...shown });
     expect([parseView({ size: 50 }).size, parseView({ size: 200 }).size, parseView({ size: 40 }).size, parseView({ size: 210 }).size])

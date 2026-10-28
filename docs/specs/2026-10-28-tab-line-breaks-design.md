@@ -24,8 +24,12 @@ renderer, so it counts as one bar of a line and takes its first bar's scale.
 - The clip model holds `systemsLayout` and `defaultSystemsLayout`. They are read from alphaTex when
   their values are good (whole numbers from 1) and written back after `\multiBarRest`. A bad value is
   kept as written, with a warning.
-- With neither tag, lines fill by width as before.
-- With either, each line holds as many bars as asked (`barsPerLine` in `clip.ts`); lines past the list
+- The clip's breaks are a view option (Jeremy, 2026-10-28: "Can we optionally use the book's line
+  breaks (perhaps a view option that defaults to false)?"): View options → Notation → "Clip's line
+  breaks", off by default and saved per viewer (`lineBreaks` in `frets.tab.view`). Off, or with
+  neither tag, lines fill by width as before; the clip keeps its tags either way and writes them back.
+  `laidOut` in `viewOptions.ts` gives the page and the exported images the clip as laid out.
+- With the option on and either tag, each line holds as many bars as asked (`barsPerLine` in `clip.ts`); lines past the list
   take `\defaultSystemsLayout`, or 3 when only the list is written, as alphaTab does. A multi-bar rest
   counts as one bar.
 - A listed line too full for the width is squeezed, no column below what its numbers (and on the staff

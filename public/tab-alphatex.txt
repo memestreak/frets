@@ -50,7 +50,8 @@ frets are frets in any tuning. With all six tuned alike (E-flat tuning is
 \tuning (D#4 A#3 F#3 C#3 G#2 D#2)) the staff is written as fingered, as if
 in standard tuning, as guitar books print it; otherwise as it sounds.
 
-With \systemsLayout or \defaultSystemsLayout the lines break as written:
+With \systemsLayout or \defaultSystemsLayout, and the viewer's View options
+set to "Clip's line breaks" (off by default), the lines break as written:
 a line too full is squeezed, and wraps only when even that doesn't fit the
 screen (the next line in the list starts after it). A multi-bar rest counts
 as one bar. Bars are spaced by their notes; \scale and \width are kept but
