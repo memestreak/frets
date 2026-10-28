@@ -30,3 +30,14 @@ The notation staff did the same with its room for high notes and ledger lines.
 Lines of one clip no longer line up row for row; printed guitar books and
 Guitar Pro space each line by what it carries, too. This replaces "every line
 of tab in a clip has the same rows" in the note marks spec.
+
+## Room for bends and octave lines on the staff
+
+On the staff alone, a bend's arrow and label stand over the heads, and an
+octave line goes over everything on the staff. The room over the staff was
+worked out from the heads, stems, accents and vibrato only, so the "8va" ran
+into the chord names over a bend (the octave-lines example, Staff view).
+`layoutClip` now measures how far each line's bends, taps and octave lines
+reach as drawn (`staffInk` in `staffMarks.ts`) and, where they reach further
+than the room it left, lays the line out again with that room. The marks sit
+relative to the staff, so the second pass is the last.
