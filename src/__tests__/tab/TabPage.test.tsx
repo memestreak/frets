@@ -1010,6 +1010,27 @@ describe('TabPage arrangements', () => {
     expect(loadLibrary().items).toEqual([]);
   });
 
+  it('says when each kept arrangement last changed, so two of one name can be told apart', async () => {
+    const riff = (readAscii(RIFF) as { clip: { name: string } }).clip;
+    localStorage.setItem(arrangementKey('old'), JSON.stringify(riff));
+    localStorage.setItem(arrangementKey('new'), JSON.stringify(riff));
+    const today = new Date();
+    today.setHours(9, 5);
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify({ open: 'new', folders: [], items: [
+      { id: 'new', name: 'Riff', changed: today.getTime() },
+      { id: 'old', name: 'Riff', changed: new Date(2025, 2, 14, 18, 30).getTime() },
+    ] }));
+    renderAt();
+    const dialog = openDialog();
+    expect(mine(dialog).getAllByTestId('changed').map(c => c.textContent)).toEqual([
+      today.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+      `${new Date(2025, 2, 14).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}, ${new Date(2025, 2, 14, 18, 30).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`,
+    ]);
+    // The built-in ones say nothing of the kind.
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Rhythm' }));
+    expect(within(within(dialog).getByRole('list', { name: 'Rhythm' })).queryAllByTestId('changed')).toEqual([]);
+  });
+
   it('keeps arrangements in folders, one level deep, and deletes a folder with what is in it', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
@@ -1030,7 +1051,7 @@ describe('TabPage arrangements', () => {
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Riffs']);
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Riffs' }));
     const inFolder = within(within(dialog).getByRole('list', { name: 'Riffs' }));
-    expect(inFolder.getByRole('button', { name: 'Riff' })).toBeInTheDocument();
+    expect(inFolder.getByRole('button', { name: /^Riff / })).toBeInTheDocument();
     expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBe(loadLibrary().folders[0].id);
     // Back out to the top level.
     fireEvent.click(inFolder.getByRole('button', { name: 'Move Riff' }));
@@ -1052,7 +1073,7 @@ describe('TabPage arrangements', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
     expect(loadLibrary().folders.map(f => f.name)).toEqual(['Riffs']);
     expect(loadLibrary().items.map(i => i.name).sort()).toEqual(['Riff', 'Tex riff']);
-    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getAllByRole('button', { name: /^(Riff|Tex riff)$/ })).toHaveLength(2);
+    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getAllByRole('button', { name: /^(Riff|Tex riff) / })).toHaveLength(2);
   });
 
   it('lists the built-in arrangements in their folders, the samples among them, one line each by name', async () => {

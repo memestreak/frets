@@ -69,12 +69,34 @@ function FolderRow({ name, expanded, onToggle, tools, children }: {
   );
 }
 
-/** An arrangement's line: a press opens it. */
-function ItemRow({ name, current, onOpen, tools }: { name: string; current: boolean; onOpen: () => void; tools?: ReactNode }) {
+/**
+ * When a kept arrangement last changed, short enough for the end of its line and exact enough to
+ * tell two of one name apart: the time today, else the day and time (and the year, from another).
+ */
+export function changedText(ms: number, now = Date.now()): string {
+  const date = new Date(ms);
+  const today = new Date(now);
+  const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (date.toDateString() === today.toDateString()) return time;
+  const year = date.getFullYear() === today.getFullYear() ? undefined : 'numeric';
+  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year })}, ${time}`;
+}
+
+/** An arrangement's line: a press opens it; a kept one says when it last changed. */
+function ItemRow({ name, changed, current, onOpen, tools }: {
+  name: string;
+  changed?: number;
+  current: boolean;
+  onOpen: () => void;
+  tools?: ReactNode;
+}) {
   return (
     <li className="tab-row">
       <button type="button" className="tab-row-main" aria-current={current || undefined} onClick={onOpen}>
         <span className="tab-row-text">{name}</span>
+        {/* The space keeps the name and the time apart where they are read as one, e.g. by a screen reader. */}
+        {changed !== undefined && ' '}
+        {changed !== undefined && <span className="tab-row-changed" data-testid="changed">{changedText(changed)}</span>}
       </button>
       {tools}
     </li>
@@ -169,7 +191,7 @@ export function ArrangementsDialog({
     }
     return (
       <ItemRow
-        key={info.id} name={name} current={exampleId === null && info.id === openId} onOpen={() => onOpen(info.id)}
+        key={info.id} name={name} changed={info.changed} current={exampleId === null && info.id === openId} onOpen={() => onOpen(info.id)}
         tools={(
           <>
             {folders.length > 0 && (

@@ -24,6 +24,9 @@ folder of their own, the built-ins as files in the repository.
   A press on a folder opens or closes it (closed by default; the one holding
   what is shown opens with the dialog); an empty one says "Empty". A press on
   an arrangement opens it; the open one is filled.
+- A kept arrangement's line ends, muted, with when it last changed, so two of
+  one name can be told apart (Jeremy, 2026-10-28): the time today, else the
+  day and time, with the year when it isn't this one. Built-ins have none.
 - Each arrangement's line ends with Move (when there are folders: a menu of
   the other folders, and Top level when it is in one), Rename (the name
   typed in place: Enter or leaving keeps it, Esc cancels) and Delete. Its
