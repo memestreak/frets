@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, staffAt, textAt } from '@/features/tab/layout';
+import { boundaryAt, columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, staffAt, textAt } from '@/features/tab/layout';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
@@ -176,3 +176,28 @@ describe('words over the tab', () => {
     expect(textAt(layout, bar.x0 + 10, rows.staffTop)).toBeNull();
   });
 });
+
+describe('ending brackets and gaps', () => {
+  const tex = (t: string) => {
+    const r = readAlphaTexWith(alphaTab, t);
+    if (!r.ok) throw new Error(r.errors.join('\n'));
+    return r.clip;
+  };
+
+  it('picks a drawn ending bracket by its line, as its run\'s first bar on that line', () => {
+    const layout = layoutClip(tex('\\ro 0.6.1 | \\ae 1 \\rc 2 3.6.1 | \\ae 2 3.6.1 | \\ae 2 5.6.1 |'), 900);
+    const { rows } = layout;
+    const [, b1, b2, b3] = layout.systems[0].bars;
+    expect(textAt(layout, b1.x0 + 20, rows.endings!)).toEqual({ kind: 'ending', bar: 1 });
+    expect(textAt(layout, b3.x0 + 20, rows.endings!)).toEqual({ kind: 'ending', bar: 2 });
+    expect(textAt(layout, b2.x0 + 20, rows.staffTop)).toBeNull();
+  });
+
+  it('gives the gap after the clip\'s last column as the column count', () => {
+    const layout = layoutClip(tex('0.6.4 2.6.4 |'), 600);
+    const bar = layout.systems[0].bars[0];
+    expect(boundaryAt(layout, bar.x1 - 1, 0)).toBe(2);
+    expect(columnAt(layout, bar.x1 - 1, 0)).toBe(1);
+  });
+});
+

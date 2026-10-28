@@ -521,7 +521,20 @@ export function capoText(capo: number): string {
 }
 
 /** A word over the staff that can be picked: a chord name, free text, a section, a tempo or the capo. */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo'; bar: number };
+export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending'; bar: number };
+
+/** Each ending bracket drawn on a line: its first bar (on this line), number and ends. */
+export function endingSpans(system: System): { bar: number; n: number; x0: number; x1: number }[] {
+  const out: { bar: number; n: number; x0: number; x1: number }[] = [];
+  system.bars.forEach((bar, k) => {
+    const n = bar.bar.ending;
+    if (!n || system.bars[k - 1]?.bar.ending === n) return;
+    let last = k;
+    while (system.bars[last + 1]?.bar.ending === n) last++;
+    out.push({ bar: bar.index, n, x0: bar.x0 + 4, x1: system.bars[last].x1 - 4 });
+  });
+  return out;
+}
 
 /**
  * The box round a drawn word, in the tab's units, as a press finds it (`textAt`); null when it isn't
@@ -549,6 +562,11 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
       return t ? box(s, rows.text, x0, x0 + beatTextWidth(t)) : null;
     }
     if (!('bar' in hit)) continue;
+    if (hit.kind === 'ending') {
+      const span = endingSpans(system).find(e => e.bar === hit.bar);
+      if (span && rows.endings !== null) return { x: span.x0 - 3, y: s * rows.height + rows.endings - 8, width: span.x1 - span.x0 + 6, height: 18 };
+      continue;
+    }
     const bar = system.bars.find(b => b.index === hit.bar);
     if (!bar) continue;
     const x0 = barTextX(bar);
@@ -574,6 +592,10 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;
   if (system.first && near(rows.capo) && x >= system.lineStart - 2 && x <= system.lineStart + capoText(1).length * 6.5 + 8) {
     return { kind: 'capo', bar: 0 };
+  }
+  if (near(rows.endings)) {
+    const span = endingSpans(system).find(e => x >= e.x0 - 4 && x <= e.x1 + 4);
+    if (span) return { kind: 'ending', bar: span.bar };
   }
   if (near(rows.chords)) {
     for (const placed of system.bars.flatMap(b => b.columns)) {
@@ -749,6 +771,17 @@ export const ON_COLUMN_REACH = 8;
  * the clip's last, the last. Null beside the bars or in an empty bar.
  */
 export function columnAt(layout: Layout, x: number, y: number): number | null {
+  const at = boundaryAt(layout, x, y);
+  if (at === null) return null;
+  const count = layout.systems.reduce((n, s) => s.bars.reduce((m, b) => Math.max(m, ...b.columns.map(c => c.index + 1)), n), 0);
+  return Math.min(at, count - 1);
+}
+
+/**
+ * The same as `columnAt`, but as the gap between columns a press is at: past the clip's last column,
+ * the column count. A Shift+press selects the columns between the playback line and this gap.
+ */
+export function boundaryAt(layout: Layout, x: number, y: number): number | null {
   const system = layout.systems[Math.floor(y / layout.rows.height)];
   if (!system || y < 0) return null;
   // Left of the line's first bar (over the clef, key and time signature): in front of its first column.
@@ -758,9 +791,7 @@ export function columnAt(layout: Layout, x: number, y: number): number | null {
   if (!bar || bar.columns.length === 0) return null;
   const next = bar.columns.find(c => x <= c.x + Math.min(ON_COLUMN_REACH, c.width / 2));
   if (next) return next.index;
-  const last = bar.columns[bar.columns.length - 1].index;
-  const later = layout.systems.some(s => s.bars.some(b => b.columns.some(c => c.index > last)));
-  return later ? last + 1 : last;
+  return bar.columns[bar.columns.length - 1].index + 1;
 }
 
 /** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */

@@ -3,16 +3,20 @@
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react';
 import type { WordKind } from './tools';
 
-const CAPTIONS: Record<WordKind, string> = {
+/** What a field sets: a palette word, or a picked ending bracket's number. */
+export type FieldKind = WordKind | 'ending';
+
+const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
   text: 'Text over the column',
   section: 'Section',
   tempo: 'Tempo (bpm)',
   capo: 'Capo on fret, 1 to 12',
+  ending: 'Ending number',
 };
-const PLACEHOLDERS: Record<WordKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', tempo: '120', capo: '3' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', tempo: '120', capo: '3', ending: '2' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
-const NUMBER_LENGTH: Partial<Record<WordKind, number>> = { capo: 2 };
+const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1 };
 
 /**
  * A small field over the tab for a chord name, free text, a section, a tempo or the capo, at the spot it is drawn.
@@ -23,7 +27,7 @@ export function WordField(props: WordFieldProps) {
 }
 
 interface WordFieldProps {
-  kind: WordKind;
+  kind: FieldKind;
   /** What the field starts with; a tempo's is bpm, then its label (`tempoText`). */
   initial: string;
   /** Where the field's middle and top go, in the tab's own units. */

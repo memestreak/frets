@@ -69,6 +69,10 @@ off but the loop range stays set, so the synth finishes at the range end; on
   (above, beside or below the staff and tab), puts the line in front of
   that line's first column (Jeremy, 2026-10-28). A press on a drawn time or
   key signature still opens its panel.
+- Shift with a press, or Shift+← →, from the line selects the columns
+  between the line and the gap pressed: one column for a press just past
+  the next note, not two (Jeremy, 2026-10-28). The gap past the clip's last
+  column counts, so the last column can be taken.
 
 ## Transpose
 

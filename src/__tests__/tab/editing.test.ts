@@ -5,7 +5,7 @@ import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
 import {
   fewestRests, clampCursor, copyText, cycleBend, cycleBendShape, cycleDots, cycleRepeatEnd, cycleSlide,
   deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, makeRest, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret,
-  stepDuration, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, readTempo, tempoText, type Cursor,
+  stepDuration, setEnding, setMark, cycleMark, runAround, setCapo, setChordName, setSection, setTempo, toggleLegato, toggleStroke, toggleTie, readTempo, tempoText, type Cursor,
 } from '@/features/tab/editing';
 
 function clipOf(text: string): Clip {
@@ -357,3 +357,13 @@ describe('words over the tab', () => {
     expect(bars(clip)).toBe('\\tempo 66 5.3.1 |');
   });
 });
+
+describe('setEnding', () => {
+  it('renumbers or takes away the whole run of bars under one bracket', () => {
+    const clip = clipOf('0.6.1 | \\ae 2 3.6.1 | \\ae 2 5.6.1 | 7.6.1 |');
+    expect(setEnding(clip, 2, 3).bars.map(b => b.ending)).toEqual([undefined, 3, 3, undefined]);
+    expect(setEnding(clip, 1, null).bars.map(b => b.ending)).toEqual([undefined, undefined, undefined, undefined]);
+    expect(setEnding(clip, 0, 2)).toBe(clip);
+  });
+});
+
