@@ -26,25 +26,14 @@ export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 1.5;
 
 /**
- * The sounds the footer offers, grouped by General MIDI family: every pitched sound the soundfont
- * has, by program number (Jeremy, 2026-10-26: "everything except for percussion", so the
- * Percussion family, 112 to 119, and the drum kits are left out; then "remove sound effects", 120
- * to 127, and "Synth effects as well", 96 to 103). Steel Guitar is alphaTex's default.
+ * The sounds the footer offers, grouped by General MIDI family, by program number: only the sounds
+ * with a soundfont of their own (`OWN_FONTS`; Jeremy, 2026-10-28: "remove the non-custom
+ * instruments"). It had offered every pitched General MIDI sound SONiVOX has. Steel Guitar is
+ * alphaTex's default.
  */
 export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [number, string])[]])[] = [
-  ['Piano', [[0, 'Acoustic Grand Piano'], [1, 'Bright Acoustic Piano'], [2, 'Electric Grand Piano'], [3, 'Honky-tonk Piano'], [4, 'Electric Piano 1'], [5, 'Electric Piano 2'], [6, 'Harpsichord'], [7, 'Clavinet']]],
-  ['Chromatic percussion', [[8, 'Celesta'], [9, 'Glockenspiel'], [10, 'Music Box'], [11, 'Vibraphone'], [12, 'Marimba'], [13, 'Xylophone'], [14, 'Tubular Bells'], [15, 'Dulcimer']]],
-  ['Organ', [[16, 'Drawbar Organ'], [17, 'Percussive Organ'], [18, 'Rock Organ'], [19, 'Church Organ'], [20, 'Reed Organ'], [21, 'Accordion'], [22, 'Harmonica'], [23, 'Tango Accordion']]],
-  ['Guitar', [[24, 'Nylon Guitar'], [25, 'Steel Guitar'], [26, 'Jazz Guitar'], [27, 'Clean Electric Guitar'], [28, 'Muted Electric Guitar'], [29, 'Overdriven Guitar'], [30, 'Distortion Guitar'], [31, 'Guitar Harmonics']]],
-  ['Bass', [[32, 'Acoustic Bass'], [33, 'Fingered Bass'], [34, 'Picked Bass'], [35, 'Fretless Bass'], [36, 'Slap Bass 1'], [37, 'Slap Bass 2'], [38, 'Synth Bass 1'], [39, 'Synth Bass 2']]],
-  ['Strings', [[40, 'Violin'], [41, 'Viola'], [42, 'Cello'], [43, 'Contrabass'], [44, 'Tremolo Strings'], [45, 'Pizzicato Strings'], [46, 'Orchestral Harp'], [47, 'Timpani']]],
-  ['Ensemble', [[48, 'String Ensemble 1'], [49, 'String Ensemble 2'], [50, 'Synth Strings 1'], [51, 'Synth Strings 2'], [52, 'Choir Aahs'], [53, 'Voice Oohs'], [54, 'Synth Voice'], [55, 'Orchestra Hit']]],
-  ['Brass', [[56, 'Trumpet'], [57, 'Trombone'], [58, 'Tuba'], [59, 'Muted Trumpet'], [60, 'French Horn'], [61, 'Brass Section'], [62, 'Synth Brass 1'], [63, 'Synth Brass 2']]],
-  ['Reed', [[64, 'Soprano Sax'], [65, 'Alto Sax'], [66, 'Tenor Sax'], [67, 'Baritone Sax'], [68, 'Oboe'], [69, 'English Horn'], [70, 'Bassoon'], [71, 'Clarinet']]],
-  ['Pipe', [[72, 'Piccolo'], [73, 'Flute'], [74, 'Recorder'], [75, 'Pan Flute'], [76, 'Blown Bottle'], [77, 'Shakuhachi'], [78, 'Whistle'], [79, 'Ocarina']]],
-  ['Synth lead', [[80, 'Square Lead'], [81, 'Sawtooth Lead'], [82, 'Calliope Lead'], [83, 'Chiff Lead'], [84, 'Charang Lead'], [85, 'Voice Lead'], [86, 'Fifths Lead'], [87, 'Bass and Lead']]],
-  ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
-  ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
+  ['Piano', [[0, 'Acoustic Grand Piano']]],
+  ['Guitar', [[25, 'Steel Guitar'], [27, 'Clean Electric Guitar']]],
 ];
 /**
  * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by
@@ -294,8 +283,32 @@ function rangeWithoutSeek(synth: AlphaTabModule.synth.AlphaSynth, range: AlphaTa
 }
 
 /**
- * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Created on the first Play,
- * since an AudioContext may only start after a press.
+ * The samples of a soundfont the synthesizer holds, decoded one at a time with a pause between, so
+ * the page stays responsive (a sound's samples take seconds to decode in all: the piano's about 4).
+ * alphaTab decodes a sound's samples when a clip first uses it and keeps them, so a clip played
+ * after this finds them ready. The soundfont is the last one loaded; the synthesizer's list of them
+ * and the soundfont's own decoding are not in alphaTab's types (checked against the pinned 1.8.4).
+ */
+async function decodeLastSoundFont(synth: AlphaTabModule.synth.AlphaSynth) {
+  interface Soundfont {
+    sHdrs: { start: number; end: number; sampleType: number }[];
+    decodeSamples(startByte: number, endByte: number, decompressVorbis: boolean): Float32Array;
+  }
+  const fonts = (synth as unknown as { _loadedSoundFonts: Soundfont[] })._loadedSoundFonts;
+  const font = fonts[fonts.length - 1];
+  /** The sample type's bit for an Ogg Vorbis sample (an .sf3's), the only kind slow to decode. */
+  const VORBIS = 16;
+  for (const sample of font.sHdrs) {
+    if ((sample.sampleType & VORBIS) === 0) continue;
+    // The same arguments alphaTab decodes with, so it finds the samples under the same key.
+    font.decodeSamples(sample.start, sample.end, true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+
+/**
+ * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Made when the page opens,
+ * to load the sound in the background; its AudioContext starts on the first Play.
  */
 export class TabPlayer {
   private performance: Performance | null = null;
@@ -304,6 +317,8 @@ export class TabPlayer {
   private volume = 1;
   /** The sounds' own soundfonts loaded so far, by URL. */
   private readonly fonts = new Set<string>();
+  /** The sounds' own soundfonts loading, by URL: whoever wants one meanwhile waits for the same load. */
+  private readonly loading = new Map<string, Promise<void>>();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * The last column to play when no loop holds the playhead: "Stop playback at region end" with a
@@ -567,21 +582,49 @@ export class TabPlayer {
   }
 
   /**
-   * Fetches and loads a sound's own soundfont the first time it is wanted, alongside SONiVOX's. The
-   * view shows Loading meanwhile; loading pauses the synthesizer.
+   * Starts loading a sound's own soundfont in the background (Jeremy, 2026-10-28: the page shouldn't
+   * make you wait for the instrument), so a Play finds it ready. The view stays as it is.
+   */
+  preload(sound: Sound) {
+    const font = OWN_FONTS.find(f => f.program === sound);
+    if (font && !this.fonts.has(font.url)) this.fetchFont(font.url).catch(() => undefined);
+  }
+
+  /**
+   * Waits for a sound's own soundfont, loading it the first time it is wanted, alongside SONiVOX's.
+   * Any other soundfont still loading in the background is waited for too, since one landing pauses
+   * the synthesizer. The view shows Loading meanwhile. Whether it had to wait.
    */
   private async loadFont(sound: Sound): Promise<boolean> {
     const font = OWN_FONTS.find(f => f.program === sound);
-    if (!font || this.fonts.has(font.url)) return false;
+    const own = font && !this.fonts.has(font.url) ? this.fetchFont(font.url) : null;
+    const waiting = [...this.loading.values()];
+    if (waiting.length === 0) return false;
     this.onView({ state: 'loading' });
-    const response = await fetch(font.url);
-    if (!response.ok) {
-      this.onView({ state: 'error' });
-      throw new Error(`the sound didn't load (${response.status})`);
+    await Promise.allSettled(waiting);
+    if (own) {
+      await own.catch(error => {
+        this.onView({ state: 'error' });
+        throw error;
+      });
     }
-    this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
-    this.fonts.add(font.url);
     return true;
+  }
+
+  /** Fetches, loads and decodes a soundfont, unless it is loading already. */
+  private fetchFont(url: string): Promise<void> {
+    let loading = this.loading.get(url);
+    if (!loading) {
+      loading = (async () => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`the sound didn't load (${response.status})`);
+        this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
+        await decodeLastSoundFont(this.synth);
+        this.fonts.add(url);
+      })().finally(() => this.loading.delete(url));
+      this.loading.set(url, loading);
+    }
+    return loading;
   }
 
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */

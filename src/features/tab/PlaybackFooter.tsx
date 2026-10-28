@@ -122,7 +122,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     player.current?.setTranspose(transpose);
   }, [transpose]);
 
-  /** The player, made on first use: an AudioContext may only start after a press or a key. */
+  /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
   const playerNow = () => {
     making.current ??= TabPlayer.create(update).then(p => {
@@ -134,6 +134,19 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     });
     return making.current;
   };
+
+  // The sound loads in the background once the page has drawn, and again whenever it changes, so a
+  // Play finds it ready. A player that fails to load is made again on the next Play.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      playerNow().then(p => p.preload(sound), () => {
+        making.current = null;
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+    // Only the sound starts a load; the player picks up the other settings when it is made.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sound]);
 
   // A note to hear, asked for by an edit: heard after the edit's own clip has drawn (and stopped
   // any playing), and again for each ask, even when the edit changed nothing.
