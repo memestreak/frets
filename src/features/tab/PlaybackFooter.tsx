@@ -353,9 +353,13 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, width, parts, playback, mark }: { clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null }) {
-  const { column } = playback.view;
-  const loop = Array.isArray(playback.loop) ? playback.loop : null;
+export function Playhead({ clip, width, parts, playback, mark, markOnly = false }: {
+  clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null;
+  /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
+  markOnly?: boolean;
+}) {
+  const column = markOnly ? null : playback.view.column;
+  const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
   if (column === null && !loop && idleMark === null) return null;
   const layout = layoutClip(clip, width, parts);
@@ -375,9 +379,12 @@ export function Playhead({ clip, width, parts, playback, mark }: { clip: Clip; w
         );
       }
     }
+    // The line goes before its column, or after the clip's last column when it is past the end.
     const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
-    if (marked) {
-      const x = marked.x - marked.width / 2;
+    const total = clip.bars.reduce((n, b) => n + b.columns.length, 0);
+    const end = idleMark === total ? cols.find(c => c.index === total - 1) : undefined;
+    if (marked || end) {
+      const x = marked ? marked.x - marked.width / 2 : end!.x + end!.width / 2;
       out.push(
         <line
           key={`mark-${si}`} data-testid="play-mark" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}

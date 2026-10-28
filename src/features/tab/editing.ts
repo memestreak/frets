@@ -645,6 +645,26 @@ export function cycleEnding(clip: Clip, cursor: Cursor): Clip {
 }
 
 /**
+ * The ending bracket over bar `bar` and the bars round it under the same one: set to `n`, or taken away
+ * with null (a press picks a drawn bracket, Jeremy 2026-10-28).
+ */
+export function setEnding(clip: Clip, bar: number, n: number | null): Clip {
+  const was = clip.bars[bar]?.ending;
+  if (was === undefined) return clip;
+  let first = bar;
+  while (first > 0 && clip.bars[first - 1].ending === was) first--;
+  let last = bar;
+  while (last + 1 < clip.bars.length && clip.bars[last + 1].ending === was) last++;
+  let next = clip;
+  for (let i = first; i <= last; i++) {
+    const rest = { ...next.bars[i] };
+    delete rest.ending;
+    next = replaceBar(next, i, n ? { ...rest, ending: n } : rest);
+  }
+  return next;
+}
+
+/**
  * The time signature from bar `index` on. On the first bar it is the clip's own; on a later bar it
  * starts a change, and null (or the time signature already in force) takes the change away.
  */

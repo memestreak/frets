@@ -4,7 +4,7 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, columnAt, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
 } from './layout';
@@ -75,8 +75,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   /** A press on a technique mark: a bend, slide, tie, vibrato, accent… (`marks.ts`). */
   onPickMark?: (hit: MarkHit) => void;
   /**
-   * A press above or below the staff, off any mark or label: the column there (for the playback
-   * line); `extend` when Shift was held, to select up to it.
+   * A press above or below the staff, off any mark or label: the gap between columns there, as the
+   * index of the column after it (the column count past the last); `extend` when Shift was held.
    */
   onPickColumn?: (index: number, extend: boolean) => void;
   /** A press on the notation staff: the column and line or space (and string, on a head); `extend` with Shift. */
@@ -99,7 +99,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     // Above or below the drawing: only a column, as on the blank band at the edge of the first or last line.
     if (py < 0 || py >= layout.height) {
       const edge = py < 0 ? 0 : layout.height - 1;
-      const column = onPickColumn ? columnAt(layout, px, edge) : null;
+      const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
       return { run: null, text: null, mark: null, staff: null, hit: null, column, px, py };
     }
     const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
@@ -107,7 +107,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
     const staff = run || text || mark || !onPickStaff ? null : staffAt(layout, px, py);
     const hit = run || text || mark || staff ? null : hitTest(layout, px, py);
-    const column = run || text || mark || staff || hit || !onPickColumn ? null : columnAt(layout, px, py);
+    const column = run || text || mark || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
     return { run, text, mark, staff, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
@@ -357,16 +357,10 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
 function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Clip; look: TabLook }) {
   const parts: ReactNode[] = [];
   // Endings: one bracket over each run of bars with the same ending.
-  system.bars.forEach((bar, k) => {
-    const n = bar.bar.ending;
-    if (!n || system.bars[k - 1]?.bar.ending === n) return;
-    let last = k;
-    while (system.bars[last + 1]?.bar.ending === n) last++;
-    const x0 = bar.x0 + 4;
-    const x1 = system.bars[last].x1 - 4;
+  endingSpans(system).forEach(({ bar, n, x0, x1 }) => {
     const y = rows.endings!;
     parts.push(
-      <g key={`ending-${bar.index}`} stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="ending">
+      <g key={`ending-${bar}`} stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="ending">
         <polyline points={`${x0},${y + 8} ${x0},${y - 4} ${x1},${y - 4}`} />
         <text x={x0 + 4} y={y + 6} fontSize={11} fontWeight={700} fill={look.ink} stroke="none">{n}.</text>
       </g>,

@@ -21,7 +21,7 @@ import {
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
   fillBar, isEmpty, makeRest, removeMark, MAX_FRET, setBarKey, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setBeatText, setBend, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
+  setBeatText, setBend, setEnding, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type StaffHit, type TextHit, type WordHit } from './layout';
 import { openStrings } from './notation';
@@ -29,7 +29,7 @@ import { moveToString, pitchAtStep, stepPitch, stringAtPitch, toggleStaffNote } 
 import { markBox, markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
-import { WordField } from './WordField';
+import { WordField, type FieldKind } from './WordField';
 import { TabClip } from './TabClip';
 import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
@@ -37,7 +37,7 @@ import { parseTabExportStyle, TAB_EXPORT_KEY, tabSvg } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
-import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId, type WordKind } from './tools';
+import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { exampleById, TAB_EXAMPLES } from './examples';
 import { ClipTitle, UNTITLED } from './ClipTitle';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
@@ -134,7 +134,7 @@ export default function TabPage() {
    */
   const [columnOnly, setColumnOnly] = useState(false);
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
-  const [word, setWord] = useState<{ kind: WordKind; bar: number; column: number } | null>(null);
+  const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
   /**
    * The chord name, text, section, tempo or capo picked by a press, outlined with Edit and Delete beside
    * it; or a technique mark (issue #128), outlined with Delete beside it.
@@ -143,7 +143,7 @@ export default function TabPage() {
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : WORD_TOOL[picked.kind];
+  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** Where a press opened the time or key signature panel; null when the palette did. */
@@ -224,62 +224,62 @@ export default function TabPage() {
   const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
-  const playFrom = markAt ?? (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
+  // A line past the clip's end plays its last column.
+  const playFrom = markAt !== null ? Math.min(markAt, count - 1) : (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
   /**
    * A press above or below the staff: the playback line goes there (while playing, playback jumps
    * there), and any selection goes. With Shift, the columns from the line (else the selection's
    * anchor, else the cursor) to there are selected, with no string picked (Jeremy, 2026-10-27).
    */
-  const pickColumn = (index: number, extend: boolean) => {
-    const anchor = markAt ?? selection?.anchor ?? (editing ? indexOf(clip, cursor.bar, cursor.column) : null);
-    if (extend && anchor !== null) {
-      setSelection({ anchor, focus: index });
-      return;
+  const pickColumn = (gap: number, extend: boolean) => {
+    if (extend) {
+      // From the line, the columns between it and the gap pressed (Jeremy, 2026-10-28: one column, not two);
+      // from a selection or the cursor, that column to the gap.
+      if (markAt !== null) {
+        if (gap !== markAt) setSelection(gap > markAt ? { anchor: markAt, focus: gap - 1 } : { anchor: markAt - 1, focus: gap });
+        return;
+      }
+      const anchor = selection?.anchor ?? (editing && columnAt(clip, cursor) ? indexOf(clip, cursor.bar, cursor.column) : null);
+      if (anchor !== null) {
+        setSelection({ anchor, focus: gap > anchor ? gap - 1 : gap });
+        return;
+      }
     }
+    const index = Math.min(gap, count);
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
     if (playback.seek(index)) return;
     setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
   /**
-   * A press above or below the staff while the playback controls are hidden: the cursor goes to that
-   * column with no string picked (Jeremy, 2026-10-27). With Shift, the columns from the cursor to there are selected.
-   */
-  const pickColumnOnly = (index: number, extend: boolean) => {
-    lastDigit.current = null;
-    const place = placeOf(clip, index);
-    const at = { ...cursor, bar: place.bar, column: place.column };
-    if (extend && editing && columnAt(clip, cursor)) {
-      commit(clip, at, { anchor: selection?.anchor ?? cursorIndex, focus: index });
-    } else {
-      const left = editing && at.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
-      commit(left, at, null);
-    }
-    setColumnOnly(true);
-    // The staff's cursor goes, else its pitch would show as a ghost head on the column (Jeremy, 2026-10-27);
-    // with the staff alone it is the only cursor, so it stays.
-    if (parts !== 'staff') setStaffPitch(null);
-    editorRef.current?.focus();
-  };
-  /**
-   * Off the tab (no string picked), the arrow keys work on the playback line while the footer shows
-   * (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
+   * Off the tab (no string picked), the arrow keys work on the playback line, the footer shown or
+   * not (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
    * made so), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
    */
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
-    if (!showPlayback || view !== 'tab' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (view !== 'tab' || e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target as Element | null;
     if (target?.closest?.('input, select, textarea, dialog, [role="menu"], [role="slider"], .tab-editor')) return;
     if (e.key === 'Escape') {
       if (markAt === null && !selection) return;
-      setPlayMark(null);
-      setSelection(null);
+      // A selection goes first, leaving the line after its last column (Jeremy, 2026-10-28); then the line goes.
+      if (selection) {
+        setSelection(null);
+        setPlayMark({ index: selectedRange(selection)[1] + 1, clip, cursor: cursorAsSet, selection: null });
+      } else setPlayMark(null);
       e.preventDefault();
       return;
     }
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const step = e.key === 'ArrowRight' ? 1 : -1;
-    const within = (i: number) => Math.min(count - 1, Math.max(0, i));
+    const within = (i: number) => Math.min(count, Math.max(0, i));
+    if (e.shiftKey && markAt !== null && !selection) {
+      // The first step from the line takes the one column beside it.
+      const one = step > 0 ? markAt : markAt - 1;
+      if (one >= 0 && one < count) setSelection({ anchor: one, focus: one });
+      e.preventDefault();
+      return;
+    }
     if (e.shiftKey) {
       const anchor = markAt ?? selection?.anchor;
       const from = selection ? selection.focus : markAt;
@@ -311,7 +311,7 @@ export default function TabPage() {
     setNotice(null);
   };
 
-  const openWord = (kind: WordKind, at: Cursor = cursor) => {
+  const openWord = (kind: FieldKind, at: Cursor = cursor) => {
     // A chord name or text belongs to a column; an empty bar has none yet.
     if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
     // The capo belongs to the whole clip, written over its first line.
@@ -369,6 +369,8 @@ export default function TabPage() {
       if (tempo !== undefined) commit(setTempo(clip, w.bar, tempo));
     }
     // A capo of 0 is no capo.
+    // An ending of 0, or none, takes the bracket away.
+    if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
@@ -431,6 +433,7 @@ export default function TabPage() {
       if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
       if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
       if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);
+      if (hit.kind === 'ending') commit(setEnding(clip, at.bar, null), at, null);
     }
     setColumnOnly(false);
     // After the clip above is drawn: the blur fills the cursor's bar, and must start from the clip without the mark.
@@ -577,7 +580,13 @@ export default function TabPage() {
     }
     if (key === 'Escape') {
       handled();
-      setSelection(null);
+      // A selection goes first, leaving the cursor on its last column (Jeremy, 2026-10-28).
+      if (selection) {
+        const end = placeOf(clip, selectedRange(selection)[1]);
+        commit(clip, { ...cursor, bar: end.bar, column: end.column }, null);
+        setPlayMark(null);
+        return;
+      }
       setPlayMark(null);
       // On a string, Esc first drops the string and keeps the column (Jeremy, 2026-10-27); then it leaves the tab.
       if (!columnOnly && !selection && columnAt(clip, cursor)) setColumnOnly(true);
@@ -1001,7 +1010,7 @@ export default function TabPage() {
         </div>
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} />}
+          {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -1018,7 +1027,7 @@ export default function TabPage() {
                     clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                     onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly} columnReach={COLUMN_REACH}
+                    onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                     highlight={{
                       cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
                       staffPitch: staffKeys ? staffPitch : null,
@@ -1129,8 +1138,9 @@ export default function TabPage() {
 }
 
 /** What a word's field starts with: what is there now. */
-function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): string {
+function wordNow(clip: Clip, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): string {
   const b = clip.bars[bar];
+  if (kind === 'ending') return b?.ending ? String(b.ending) : '';
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
   if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
@@ -1139,17 +1149,17 @@ function wordNow(clip: Clip, { kind, bar, column }: { kind: WordKind; bar: numbe
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
-function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, column }: { kind: WordKind; bar: number; column: number }): { x: number; y: number } {
+function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
   const { rows } = layout;
   // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
-  const FIELD_WIDTH = kind === 'capo' ? 150 : 180;
+  const FIELD_WIDTH = kind === 'capo' || kind === 'ending' ? 150 : 180;
   // A tempo's field has two boxes, bpm and a label.
   const FIELD_HEIGHT = kind === 'tempo' ? 120 : 64;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
-    const row = { chord: rows.chords, text: rows.text, section: rows.section, tempo: rows.tempo, capo: rows.capo }[kind];
+    const row = { chord: rows.chords, text: rows.text, section: rows.section, tempo: rows.tempo, capo: rows.capo, ending: rows.endings }[kind];
     const y = s * rows.height + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
     // The capo is written at the start of the first line, over the time signature.
     const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0 : placed.x0 + FIELD_WIDTH / 2;

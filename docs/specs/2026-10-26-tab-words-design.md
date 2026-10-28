@@ -83,3 +83,16 @@ column and running right; it does not widen the column. The Text group's
 "Text over this column" button (no key; T is tap) opens the same field as
 a chord name, and a press on drawn text opens it there. Empty clears it.
 The song-form example has one.
+
+## Ending brackets (2026-10-28)
+
+Jeremy: "I should be able to click on this and edit/delete like other
+annotations", of a drawn "2." bracket.
+
+- A press on a drawn ending bracket picks it like a word: outlined, with
+  Edit and Delete beside it, the palette's Ending tool lit, the cursor on
+  the bracket's first bar. Enter or Edit opens a small "Ending number"
+  field (one digit; empty or 0 takes the bracket away); Delete or the
+  trash takes it away.
+- Both act on the whole run of bars under that bracket (`setEnding`), not
+  only the bar pressed.

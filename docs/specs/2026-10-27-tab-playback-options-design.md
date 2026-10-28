@@ -59,10 +59,26 @@ off but the loop range stays set, so the synth finishes at the range end; on
 - **Moving the playhead lets the selection go** (Jeremy, 2026-10-27): a
   press above or below the staff while playing jumps the playhead there and
   clears the selection, as it already did while stopped. Loop points stay.
-- With the controls hidden, such a press (the column cursor, no string)
-  also drops the staff's cursor in Both, which otherwise stayed as a ghost
-  head over the column (Jeremy, 2026-10-27). With the staff alone it is the
-  only cursor, so it stays.
+- With the controls hidden, such a press does the same (Jeremy, 2026-10-28:
+  "Can we have the non-playback mode click/cursor behavior behave the same
+  way?"): the line between columns, moved with ← →, Shift to select from
+  it, Esc to drop it. It used to put a column cursor there, the shaded
+  column, which left the staff's cursor drawn as a ghost head in Both. Esc
+  on a note still gives the column cursor.
+- A press left of a line's first bar, over the clef, key or time signature
+  (above, beside or below the staff and tab), puts the line in front of
+  that line's first column (Jeremy, 2026-10-28). A press on a drawn time or
+  key signature still opens its panel.
+- Shift with a press, or Shift+← →, from the line selects the columns
+  between the line and the gap pressed: one column for a press just past
+  the next note, not two (Jeremy, 2026-10-28). The gap past the clip's last
+  column counts, so the last column can be taken.
+- Esc with a selection first drops the selection only (Jeremy, 2026-10-28):
+  on the tab the cursor goes to its last column; from the line, the line
+  goes after its last column. The next Esc does what it did (on the tab:
+  the string, then the tab; off it: the line).
+- The line can stand after the clip's last column (drawn at its right
+  edge); Play from there plays the last column.
 
 ## Transpose
 
