@@ -141,6 +141,8 @@ export default function TabPage() {
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
+  const quietBlur = useRef(false);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<LastDigit>(null);
   // An undo can take away the columns the cursor or the selection were on.
@@ -242,11 +244,25 @@ export default function TabPage() {
         return;
       }
     }
-    const index = Math.min(gap, count);
+    let index = Math.min(gap, count);
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
+    // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
+    let left = clip;
+    if (editing) {
+      // Leaving fills the cursor's bar (as `onEditorBlur` would), but not while playing, as an edit stops playback;
+      // a line past that bar moves on by the rests added.
+      const playing = playback.view.state === 'playing';
+      left = playing ? clip : fillBar(clip, cursor.bar);
+      const barEnd = clip.bars.slice(0, cursor.bar + 1).reduce((n, b) => n + b.columns.length, 0);
+      if (gap >= barEnd) index += columnCount(left) - count;
+      if (left !== clip) dispatch({ type: 'replace', clip: left });
+      quietBlur.current = true;
+      editorRef.current?.blur();
+      quietBlur.current = false;
+    }
     if (playback.seek(index)) return;
-    setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
+    setPlayMark({ index, clip: left, cursor: cursorAsSet, selection: null });
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
   const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip, cursor: cursorAsSet, selection: null });
@@ -470,6 +486,8 @@ export default function TabPage() {
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
+    // Placing the playback line has filled the bar already, or left it alone while playing.
+    if (quietBlur.current) return;
     const to = e.relatedTarget;
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;

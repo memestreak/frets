@@ -736,6 +736,23 @@ describe('TabPage playback', () => {
     expect(screen.queryByTestId('play-mark')).toBeNull();
   });
 
+  it('lets the tab cursor go when the line is placed, filling its bar', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    expect(editor).not.toHaveFocus();
+    // The keys now move the line, and Esc drops it.
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByTestId('play-mark')).toBeNull();
+  });
+
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
     renderAt();
     fireEvent.click(toggle());

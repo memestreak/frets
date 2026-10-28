@@ -29,6 +29,14 @@ still be able to create regions with shift arrow."
   or mark. Edits that keep the cursor where it is (Alt+↑ ↓ moving a note
   to another string, Enter on the staff, the palette) leave the selection,
   so they still work on it.
+- **Placing the playback line lets go of the tab** (Jeremy, 2026-10-28:
+  "I selected a fret, then I placed the play cursor, and the fret remained
+  selected"): a press above or below the staff takes the keys from the tab,
+  as a press beside the bars does, so the string's box goes and the arrow
+  keys move the line. Leaving fills the cursor's bar as usual (not while
+  playing, as an edit stops playback), and a line past that bar moves on by
+  the rests added, so it stays before the same note. Shift+press still
+  selects from the cursor.
 
 ## Reading
 
