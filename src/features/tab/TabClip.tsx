@@ -1,6 +1,6 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, bendCarries, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
+  beatTicks, bendCarries, columnAccent, isRest, legatoStarts, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
@@ -138,7 +138,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const previous = previousSpots(layout.systems);
   const onStaff = layout.rows.score ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
-  const carries = bendCarries(clip);
+  const joins: Joins = { carries: bendCarries(clip), legatoStarts: legatoStarts(clip) };
   const arcs = legatoArcs(layout.systems);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;
@@ -179,7 +179,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         <g key={si} transform={`translate(0 ${si * rows.height})`} data-testid="tab-system">
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
-            previous={previous} carries={carries} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
@@ -256,7 +256,7 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, carries, legato, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, joins, legato, lastBar, maskId }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -267,7 +267,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   names: string[] | null;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
-  carries: Map<Note, 'hold' | 'release'>;
+  joins: Joins;
   /** This line's arcs over hammer-ons, pull-offs and legato slides. */
   legato: LegatoArc[];
   lastBar: number;
@@ -286,8 +286,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        // A released bend's note has no number: its arrow comes down to the string. Nor has a tied note within a bar, under a staff.
-        const hidden = carries.get(note) === 'release' || hiddenTie(note, placed, bar, rows, carries);
+        const hidden = hiddenNumber(note, placed, bar, rows, joins);
         const lw = hidden ? 0 : labelWidth(note, placed.column);
         return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
@@ -346,7 +345,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index} look={look}
-          previous={previous} slides={slides} carries={carries} staffStart={system.staffStart}
+          previous={previous} slides={slides} joins={joins} staffStart={system.staffStart}
         />,
       );
     }
@@ -541,15 +540,26 @@ function labelWidth(note: Note, column: Column): number {
 }
 
 /**
- * Under the staff, a tied note's number shows only at the start of a bar, in brackets, as Guitar Pro
- * prints it (Sweet Child O' Mine, Jeremy 2026-10-28): within the bar the staff's tie says it all. A tied
- * note that bends keeps its number, under its bend's arrow.
+ * Whether a note's number is left out, as Guitar Pro prints Sweet Child O' Mine. A released bend's note
+ * has none (its arrow comes down to the string) unless a hammer-on or pull-off leaves from it, which
+ * needs a number to start from. Under the staff, a tied note's number shows only at the start of a bar,
+ * in brackets: within the bar the staff's tie says it all, and a held bend's dashed line. A tied note
+ * that bends up keeps its number, under its bend's arrow.
  */
-function hiddenTie(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, carries: Map<Note, 'hold' | 'release'>): boolean {
-  return !!note.tie && !note.bend && !!rows.score && placed !== bar.columns[0] && !carries.has(note);
+function hiddenNumber(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, joins: Joins): boolean {
+  const carry = joins.carries.get(note);
+  if (carry === 'release') return !joins.legatoStarts.has(note);
+  if (!note.tie || !rows.score || placed === bar.columns[0]) return false;
+  return !note.bend || carry === 'hold';
 }
 
-function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, carries, staffStart }: {
+/** How notes join the ones before and after them on a string, for drawing their numbers. */
+interface Joins {
+  carries: Map<Note, 'hold' | 'release'>;
+  legatoStarts: Set<Note>;
+}
+
+function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, joins, staffStart }: {
   placed: PlacedColumn;
   bar: PlacedBar;
   rows: Rows;
@@ -557,7 +567,7 @@ function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, carr
   look: TabLook;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
-  carries: Map<Note, 'hold' | 'release'>;
+  joins: Joins;
   staffStart: number;
 }) {
   const { column, x } = placed;
@@ -589,13 +599,14 @@ function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, carr
         <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
       );
     }
-    const carry = carries.get(note);
-    // A grace note's number is drawn small; a released bend's note shows none, as Guitar Pro prints it.
-    if (carry !== 'release' && !hiddenTie(note, placed, bar, rows, carries)) parts.push(column.grace
+    const carry = joins.carries.get(note);
+    const shown = !hiddenNumber(note, placed, bar, rows, joins);
+    // A grace note's number is drawn small.
+    if (shown) parts.push(column.grace
       ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
       : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
     if (carry) {
-      parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+      parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look} />);
     } else if (note.bend) {
       parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
     }
@@ -644,7 +655,8 @@ function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): Reac
 
 /**
  * A bend carried on over a tied note, from the arrow's top over the note before: a dashed line held at
- * the bend's height, then for a release a curved arrow down to the string, where the note's number would be.
+ * the bend's height, then for a release a curved arrow down to the string, where the note's number would be
+ * (or down to the number, `y` raised over it, when one is drawn).
  */
 function BendCarry({ carry, fromX, x, y, staffTop, look }: {
   carry: 'hold' | 'release'; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
