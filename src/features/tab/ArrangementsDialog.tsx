@@ -5,16 +5,26 @@
  * (one level), then the built-in ones in their folders (`builtin_arrangements/`), which open in place
  * of the open arrangement and are never saved. One line each, by name.
  */
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { Modal } from '@/features/practice/quiz/Modal';
-import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
-import { ChevronDownIcon, ChevronRightIcon, FolderIcon, FolderMoveIcon, PencilIcon, TrashIcon } from '@/components/icons';
+import { ChevronDownIcon, ChevronRightIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import type { ArrangementInfo, Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
 import { UNTITLED } from './ClipTitle';
 import type { Deleted } from './useArrangements';
 
 const NEW_FOLDER = 'New folder';
+/** `dropAt` for the top level of My arrangements. */
+const TOP = '';
+/** What a dragged arrangement carries: its id, under a type of Frets' own (a drop elsewhere imports text). */
+export const DRAG_TYPE = 'application/x-frets-arrangement';
+
+/** A place an arrangement can be dropped: a folder's line and what it holds, or the list for the top level. */
+interface DropTarget {
+  onDragOver: (e: DragEvent) => void;
+  onDragLeave: (e: DragEvent) => void;
+  onDrop: (e: DragEvent) => void;
+}
 const byName = <T,>(name: (t: T) => string) => (a: T, b: T) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' });
 
 /** A name typed in place of a row: Enter or leaving keeps it, Esc gives it up (and leaves the dialog open). */
@@ -47,15 +57,18 @@ function IconButton({ label, onClick, children }: { label: string; onClick: (e: 
 }
 
 /** A folder's line: a press opens or closes it; a kept folder can be renamed and deleted. */
-function FolderRow({ name, expanded, onToggle, tools, children }: {
+function FolderRow({ name, expanded, onToggle, tools, drop, dropping = false, children }: {
   name: string;
   expanded: boolean;
   onToggle: () => void;
   tools?: ReactNode;
+  /** A kept folder takes arrangements dropped on it; `dropping` while one is held over it. */
+  drop?: DropTarget;
+  dropping?: boolean;
   children: ReactNode;
 }) {
   return (
-    <li>
+    <li className={dropping ? 'tab-drop' : undefined} {...drop}>
       <div className="tab-row">
         <button type="button" className="tab-row-main tab-folder" aria-expanded={expanded} onClick={onToggle}>
           {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
@@ -83,15 +96,26 @@ export function changedText(ms: number, now = Date.now()): string {
 }
 
 /** An arrangement's line: a press opens it; a kept one says when it last changed. */
-function ItemRow({ name, changed, current, onOpen, tools }: {
+function ItemRow({ name, changed, current, onOpen, tools, dragId, onDragEnd }: {
   name: string;
   changed?: number;
   current: boolean;
   onOpen: () => void;
   tools?: ReactNode;
+  /** A kept arrangement can be dragged into a folder, or out to the top level. */
+  dragId?: string;
+  onDragEnd?: () => void;
 }) {
+  const drag = dragId === undefined ? {} : {
+    draggable: true,
+    onDragStart: (e: DragEvent) => {
+      e.dataTransfer.setData(DRAG_TYPE, dragId);
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    onDragEnd,
+  };
   return (
-    <li className="tab-row">
+    <li className="tab-row" {...drag}>
       <button type="button" className="tab-row-main" aria-current={current || undefined} onClick={onOpen}>
         <span className="tab-row-text">{name}</span>
         {/* The space keeps the name and the time apart where they are read as one, e.g. by a screen reader. */}
@@ -149,19 +173,17 @@ export function ArrangementsDialog({
     return folder === undefined ? [] : [`mine:${folder}`];
   };
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(shownFolder()));
-  // The row whose name is being typed (an arrangement's or a folder's id), and the open Move menu.
+  // The row whose name is being typed (an arrangement's or a folder's id).
   const [renaming, setRenaming] = useState<string | null>(null);
-  const [moving, setMoving] = useState<{ id: string; x: number; y: number } | null>(null);
+  // Where a dragged arrangement would land: a folder's id, TOP for the top level; null while none is held.
+  const [dropAt, setDropAt] = useState<string | null>(null);
   // Reset on opening, and open the shown one's folder once the built-ins have come.
   const [seen, setSeen] = useState({ open, builtins });
   if (open !== seen.open || builtins !== seen.builtins) {
     const reopened = open !== seen.open;
     setSeen({ open, builtins });
     setExpanded(new Set([...(reopened ? [] : expanded), ...shownFolder()]));
-    if (reopened) {
-      setRenaming(null);
-      setMoving(null);
-    }
+    if (reopened) setRenaming(null);
   }
   const toggle = (key: string) => setExpanded(now => {
     const next = new Set(now);
@@ -176,6 +198,36 @@ export function ArrangementsDialog({
   };
 
   const folders = [...library.folders].sort(byName(f => f.name));
+
+  /** Drops into `folder`, or to the top level with none; a folder dropped into opens. */
+  const dropTarget = (folder: string | undefined): DropTarget => {
+    const at = folder ?? TOP;
+    const carries = (e: DragEvent) => e.dataTransfer.types.includes(DRAG_TYPE);
+    return {
+      onDragOver: e => {
+        if (!carries(e)) return;
+        e.preventDefault();
+        // A folder's line is inside the list: the innermost place takes it.
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        if (dropAt !== at) setDropAt(at);
+      },
+      onDragLeave: e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropAt(now => (now === at ? null : now));
+      },
+      onDrop: e => {
+        if (!carries(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDropAt(null);
+        const id = e.dataTransfer.getData(DRAG_TYPE);
+        const info = library.items.find(i => i.id === id);
+        if (!info || info.folder === folder) return;
+        onMove(id, folder);
+        if (folder !== undefined) setExpanded(now => new Set([...now, `mine:${folder}`]));
+      },
+    };
+  };
 
   const arrangement = (info: ArrangementInfo) => {
     const name = info.name.trim() || UNTITLED;
@@ -192,16 +244,9 @@ export function ArrangementsDialog({
     return (
       <ItemRow
         key={info.id} name={name} changed={info.changed} current={exampleId === null && info.id === openId} onOpen={() => onOpen(info.id)}
+        dragId={info.id} onDragEnd={() => setDropAt(null)}
         tools={(
           <>
-            {folders.length > 0 && (
-              <IconButton label={`Move ${name}`} onClick={e => {
-                const box = e.currentTarget.getBoundingClientRect();
-                setMoving({ id: info.id, x: box.right, y: box.bottom });
-              }}>
-                <FolderMoveIcon />
-              </IconButton>
-            )}
             <IconButton label={`Rename ${name}`} onClick={() => setRenaming(info.id)}><PencilIcon /></IconButton>
             <IconButton label={`Delete ${name}`} onClick={() => onDelete(info.id)}><TrashIcon /></IconButton>
           </>
@@ -214,7 +259,6 @@ export function ArrangementsDialog({
   const topLevel = library.items.filter(i => i.folder === undefined).sort(byTitle);
   const builtinFolders = [...new Set(builtins.map(b => b.folder))].sort(byName(folderTitle));
   const listed = library.items.some(i => i.id === openId);
-  const movingInfo = moving && library.items.find(i => i.id === moving.id);
 
   return (
     <Modal open={open} onClose={onClose} title="Arrangements" className="tab-examples-dialog">
@@ -238,7 +282,7 @@ export function ArrangementsDialog({
         {folders.length === 0 && topLevel.length === 0 ? (
           <p className="m-0 px-3 tab-examples-note">Nothing kept yet: what you write is kept here as you go.</p>
         ) : (
-          <ul className="tab-rows m-0 p-0" aria-label="My arrangements">
+          <ul className={`tab-rows m-0 p-0${dropAt === TOP ? ' tab-drop' : ''}`} aria-label="My arrangements" {...dropTarget(undefined)}>
             {folders.map(folder => {
               const key = `mine:${folder.id}`;
               if (renaming === folder.id) {
@@ -255,6 +299,7 @@ export function ArrangementsDialog({
               return (
                 <FolderRow
                   key={folder.id} name={folder.name} expanded={expanded.has(key)} onToggle={() => toggle(key)}
+                  drop={dropTarget(folder.id)} dropping={dropAt === folder.id}
                   tools={(
                     <>
                       <IconButton label={`Rename ${folder.name}`} onClick={() => setRenaming(folder.id)}><PencilIcon /></IconButton>
@@ -290,16 +335,6 @@ export function ArrangementsDialog({
           </>
         )}
       </div>
-      {moving && movingInfo && (
-        <ShapeMenu
-          x={moving.x} y={moving.y} align="end" label="Move to"
-          onClose={() => setMoving(null)}
-          items={[
-            ...(movingInfo.folder === undefined ? [] : [{ label: 'Top level', onSelect: () => onMove(moving.id, undefined) }]),
-            ...folders.filter(f => f.id !== movingInfo.folder).map(f => ({ label: f.name, onSelect: () => onMove(moving.id, f.id) })),
-          ]}
-        />
-      )}
     </Modal>
   );
 }

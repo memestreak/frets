@@ -994,6 +994,8 @@ button {
   .tab-folder-empty { padding-left: 12px; }
   .tab-row-name { flex: 1; min-width: 0; }
   .tab-row-tool { color: var(--ink-muted); }
+  /* Where a dragged arrangement would land: a folder with what it holds, or the whole list for the top level. */
+  .tab-drop { border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1px dashed var(--line-strong); }
   .tab-row-tool:hover { color: var(--ink); background: var(--surface-sunken); }
   .tab-examples-note { color: var(--ink-muted); font-size: 0.875rem; }
   .tab-undo-delete { min-height: 0; padding-block: 0; }

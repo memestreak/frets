@@ -27,9 +27,11 @@ folder of their own, the built-ins as files in the repository.
 - A kept arrangement's line ends, muted, with when it last changed, so two of
   one name can be told apart (Jeremy, 2026-10-28): the time today, else the
   day and time, with the year when it isn't this one. Built-ins have none.
-- Each arrangement's line ends with Move (when there are folders: a menu of
-  the other folders, and Top level when it is in one), Rename (the name
-  typed in place: Enter or leaving keeps it, Esc cancels) and Delete. Its
+- An arrangement is moved by dragging its line onto a folder (the folder's
+  line or what it holds, outlined while it is over one), or onto the list
+  outside the folders for the top level (Jeremy, 2026-10-28: drag and drop
+  in place of a Move button). Its line ends with Rename (the name typed in
+  place: Enter or leaving keeps it, Esc cancels) and Delete. Its
   name is the clip's own `\title`, so renaming one renames the other.
 - A folder's line has Rename and Delete; deleting a folder deletes what is in
   it. Every delete has Undo in the dialog until it closes. Deleting the open

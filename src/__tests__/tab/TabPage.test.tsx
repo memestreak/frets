@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { arrangementKey, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
+import { DRAG_TYPE } from '@/features/tab/ArrangementsDialog';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import * as alphaTab from '@coderline/alphatab';
@@ -903,7 +904,21 @@ describe('TabPage arrangements', () => {
     return screen.getByRole('dialog', { name: 'Arrangements' });
   };
   const mine = (dialog: HTMLElement) => within(within(dialog).getByRole('list', { name: 'My arrangements' }));
-  const names = (dialog: HTMLElement) => mine(dialog).getAllByRole('button', { name: /^(?!Rename|Delete|Move)/ }).map(b => b.firstChild?.textContent);
+  const names = (dialog: HTMLElement) => mine(dialog).getAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.firstChild?.textContent);
+  /** A drag's data, as the browser carries it. */
+  const dataTransfer = (data: Record<string, string>) => ({
+    get types() { return Object.keys(data); },
+    getData: (type: string) => data[type] ?? '', setData: (type: string, value: string) => { data[type] = value; },
+    effectAllowed: 'all', dropEffect: 'none',
+  });
+  /** Drags `from` (an arrangement's line) and drops it on `to`. */
+  const drag = (from: Element, to: Element) => {
+    const carried = dataTransfer({});
+    fireEvent.dragStart(from, { dataTransfer: carried });
+    fireEvent.dragOver(to, { dataTransfer: carried });
+    fireEvent.drop(to, { dataTransfer: carried });
+    fireEvent.dragEnd(from, { dataTransfer: carried });
+  };
   const importTab = async (text: string, title: string) => {
     fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
     fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: text } });
@@ -1036,8 +1051,6 @@ describe('TabPage arrangements', () => {
     renderAt();
     await importTab(TEX, 'Tex riff');
     const dialog = openDialog();
-    // No folders yet, so nothing to move into.
-    expect(mine(dialog).queryByRole('button', { name: 'Move Riff' })).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
     const field = within(dialog).getByRole('textbox', { name: 'Folder name' });
     expect(field).toHaveValue('New folder');
@@ -1046,24 +1059,29 @@ describe('TabPage arrangements', () => {
     const folder = mine(dialog).getByRole('button', { name: 'Riffs' });
     expect(folder).toHaveAttribute('aria-expanded', 'true');
     expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getByText('Empty')).toBeInTheDocument();
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Move Riff' }));
-    const menu = within(dialog).getByRole('menu', { name: 'Move to' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Riffs']);
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Riffs' }));
+    // Dragged onto the folder's line, Riff goes in.
+    const row = (name: RegExp) => mine(dialog).getByRole('button', { name }).closest('li')!;
+    drag(row(/^Riff /), folder);
     const inFolder = within(within(dialog).getByRole('list', { name: 'Riffs' }));
     expect(inFolder.getByRole('button', { name: /^Riff / })).toBeInTheDocument();
     expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBe(loadLibrary().folders[0].id);
-    // Back out to the top level.
-    fireEvent.click(inFolder.getByRole('button', { name: 'Move Riff' }));
-    expect(within(within(dialog).getByRole('menu', { name: 'Move to' })).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Top level']);
-    fireEvent.keyDown(within(dialog).getByRole('menu'), { key: 'Escape' });
+    // Dragged onto the list outside any folder, it comes back out to the top level.
+    drag(row(/^Riff /), within(dialog).getByRole('list', { name: 'My arrangements' }));
+    expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBeUndefined();
+    // A drag that carries no arrangement (text from elsewhere) lights no folder.
+    fireEvent.dragOver(folder, { dataTransfer: dataTransfer({ 'text/plain': 'e|-5-|' }) });
+    expect(folder.closest('li')).not.toHaveClass('tab-drop');
+    fireEvent.dragOver(folder, { dataTransfer: dataTransfer({ [DRAG_TYPE]: 'x' }) });
+    expect(folder.closest('li')).toHaveClass('tab-drop');
+    fireEvent.dragLeave(folder.closest('li')!, { relatedTarget: document.body });
+    expect(folder.closest('li')).not.toHaveClass('tab-drop');
     // A folder closes and opens with a press.
     fireEvent.click(folder);
     expect(within(dialog).queryByRole('list', { name: 'Riffs' })).toBeNull();
     fireEvent.click(folder);
     // Moving the open one in, then deleting the folder, opens the other.
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Move Tex riff' }));
-    fireEvent.click(within(within(dialog).getByRole('menu', { name: 'Move to' })).getByRole('menuitem', { name: 'Riffs' }));
+    drag(row(/^Tex riff /), folder);
+    drag(row(/^Riff /), folder);
     fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Riffs' }));
     await settle();
     expect(loadLibrary().folders).toEqual([]);
