@@ -116,7 +116,7 @@ describe('mordents', () => {
   });
 
   it('are played: the note, the one above it, and back', () => {
-    const { midi } = perform(alphaTab, clipOf('7.3{umordent}.4 r.4 r.2 |'));
+    const { midi } = perform(alphaTab, clipOf('7.3{umordent}.4 r.4 r.2 |'), undefined, { clicks: false });
     const ons = midi.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent) as alphaTab.midi.NoteOnEvent[];
     expect(ons.map(e => e.noteKey)).toEqual([62, 64, 62]);
   });

@@ -55,7 +55,7 @@ describe('a held bend', () => {
   });
 
   it('plays as one picked note, bent up, held and let down', () => {
-    const { midi } = perform(alphaTab, clipOf(TEXT));
+    const { midi } = perform(alphaTab, clipOf(TEXT), undefined, { clicks: false });
     const ons = midi.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent) as alphaTab.midi.NoteOnEvent[];
     expect(ons.map(e => e.noteKey)).toEqual([81, 79]);
     const bends = (midi.events.filter(e => e instanceof alphaTab.midi.PitchBendEvent) as alphaTab.midi.PitchBendEvent[])

@@ -2,10 +2,11 @@
 
 /**
  * Playback, in a footer under the tab (Jeremy picked it from three mocks, 2026-10-26): a round Play
- * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
+ * (from the cursor, else from the start), Loop (sets the loop points), Hear notes, Metronome (its
+ * right-click menu: count-in and click volume), Speed, Transpose, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
@@ -13,8 +14,9 @@ import { layoutClip, type Layout, type Parts } from './layout';
 import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from './NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
+import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
-import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
 
 /** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -30,7 +32,17 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   hearNotes: boolean;
   /** Semitones playback is moved by, up or down, from the field after Speed; 0 plays as written. The tab is unchanged. */
   transpose: number;
+  /** The metronome clicks while the clip plays (issue #148), from its toggle after Hear notes. */
+  metronome: boolean;
+  /** Play counts in first, `countInBars` bars (1 to 4) of clicks, from the Metronome toggle's right-click menu. */
+  countIn: boolean;
+  countInBars: number;
+  /** How loud the clicks are, 0 to 1, under the Volume knob; set from the same menu. */
+  clickVolume: number;
 }
+
+/** The clicks' volume at first. */
+export const DEFAULT_CLICK_VOLUME = 0.8;
 
 /** How far playback may be transposed, in semitones either way: an octave. */
 export const MAX_TRANSPOSE = 12;
@@ -49,6 +61,11 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
       && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
     transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : 0,
+    metronome: fields.metronome === true,
+    countIn: fields.countIn === true,
+    countInBars: Number.isInteger(fields.countInBars) && (fields.countInBars as number) >= 1 && (fields.countInBars as number) <= MAX_COUNT_IN_BARS
+      ? fields.countInBars as number : 1,
+    clickVolume: typeof fields.clickVolume === 'number' && fields.clickVolume >= 0 && fields.clickVolume <= 1 ? fields.clickVolume : DEFAULT_CLICK_VOLUME,
   };
 }
 
@@ -88,11 +105,16 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, onStopAt }: {
+export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
   transpose: number;
+  /** The metronome's clicks, the count-in before Play (and its bars), and their volume (0 to 1). */
+  metronome: boolean;
+  countIn: boolean;
+  countInBars: number;
+  clickVolume: number;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -121,6 +143,15 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setTranspose(transpose);
   }, [transpose]);
+  useEffect(() => {
+    player.current?.setMetronome(metronome);
+  }, [metronome]);
+  useEffect(() => {
+    player.current?.setCountIn(countIn, countInBars);
+  }, [countIn, countInBars]);
+  useEffect(() => {
+    player.current?.setClickVolume(clickVolume);
+  }, [clickVolume]);
 
   /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -130,6 +161,9 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       p.setVolume(volume);
       p.setLoopPause(loopPause);
       p.setTranspose(transpose);
+      p.setMetronome(metronome);
+      p.setCountIn(countIn, countInBars);
+      p.setClickVolume(clickVolume);
       return p;
     });
     return making.current;
@@ -235,6 +269,15 @@ function NoteSoundIcon() {
   );
 }
 
+/** A metronome: its body, and the pendulum swung to one side. */
+function MetronomeIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.5 3h5l4.5 18h-14Z" /><path d="M7 16h10" /><path d="m12 16 5.5-10" />
+    </svg>
+  );
+}
+
 function LoopIcon() {
   return (
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -247,7 +290,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -273,9 +316,23 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
+  /** The metronome toggle after Hear notes; its right-click menu sets the count-in and the clicks' volume. */
+  metronome: boolean;
+  onMetronome: (on: boolean) => void;
+  countIn: boolean;
+  onCountIn: (on: boolean) => void;
+  countInBars: number;
+  onCountInBars: (bars: number) => void;
+  clickVolume: number;
+  onClickVolume: (volume: number) => void;
 }) {
-  // Where the options menu opened; null while it is shut.
+  // Where the options menu opened; null while it is shut. Likewise the clicks' menu.
   const [optionsAt, setOptionsAt] = useState<{ x: number; y: number } | null>(null);
+  const [clickOptionsAt, setClickOptionsAt] = useState<{ x: number; y: number } | null>(null);
+  const openClickOptions = (e: ReactMouseEvent) => {
+    e.preventDefault();
+    setClickOptionsAt({ x: e.clientX, y: e.clientY });
+  };
   const row = useRef<HTMLDivElement>(null);
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
@@ -328,6 +385,13 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           >
             <NoteSoundIcon />
           </button>
+          <button
+            type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Metronome" aria-pressed={metronome}
+            data-tip="Metronome. Right-click for count-in and click volume" onMouseDown={e => e.preventDefault()} onClick={() => onMetronome(!metronome)}
+            onContextMenu={openClickOptions}
+          >
+            <MetronomeIcon />
+          </button>
           {/* A double-click on the label, the number or the bpm resets the speed to 100%. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
           <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
@@ -348,10 +412,6 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
             />
             <span className="text-(--ink-muted)">semitones</span>
           </div>
-          <div className="tab-volume">
-            <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
-            <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
-          </div>
           <label className="tab-sound">
             <span className="text-(--ink-muted)">Sound</span>
             <select className="input" aria-label="Sound" value={sound} onChange={e => {
@@ -367,10 +427,18 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
             </select>
           </label>
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
+          {/* At the row's far right (Jeremy, 2026-10-28). */}
+          <div className="tab-volume tab-volume-end">
+            <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
+            <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
+          </div>
         </div>
       )}
       {optionsAt && (
         <PlaybackOptions x={optionsAt.x} y={optionsAt.y} values={options} onChange={onOptions} onClose={() => setOptionsAt(null)} />
+      )}
+      {clickOptionsAt && (
+        <ClickOptions x={clickOptionsAt.x} y={clickOptionsAt.y} countIn={countIn} onCountIn={onCountIn} bars={countInBars} onBars={onCountInBars} volume={clickVolume} onVolume={onClickVolume} onClose={() => setClickOptionsAt(null)} />
       )}
     </div>
   );
