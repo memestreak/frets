@@ -91,7 +91,7 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
     const label = tupletLabel(duration);
     const members = cols.slice(from, to + 1);
     const beam = grouped.get(members[0].column);
-    const beamed = members.length > 1 && members.every(p => grouped.get(p.column) === beam);
+    const beamed = members.length > 1 && beam !== undefined && members.every(p => grouped.get(p.column) === beam);
     const x0 = cols[from].x - 5;
     const x1 = cols[to].x + 5;
     const mid = (x0 + x1) / 2;

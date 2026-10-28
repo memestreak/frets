@@ -33,7 +33,11 @@ export type StaffShape =
   | { kind: 'line'; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'bend'; x: number; y: number; top: number; bend: Bend }
   | { kind: 'tap'; x: number; y: number }
-  | { kind: 'tuplet'; x: number; y: number; label: string };
+  /**
+   * A tuplet's number at (x, y). Where one beam doesn't join the whole group, a bracket from `x0` to
+   * `x1` too, its ends hooking toward the notes (up when the number is under them).
+   */
+  | { kind: 'tuplet'; x: number; y: number; label: string; bracket: { x0: number; x1: number; up: boolean } | null };
 
 export type StaffMark = Placed & StaffShape;
 
@@ -202,10 +206,14 @@ export function staffMarks(layout: Layout): StaffMark[][] {
         });
         const y = up ? Math.min(stepY(score, 9), ...reach) - 5 : Math.max(stepY(score, -1), ...reach) + 13;
         const mid = (members[0].x + members[members.length - 1].x) / 2;
+        // A bracket as the tab draws one (a rest in the group, quarter notes): the book's bar 115.
+        const group = placedMembers[0]?.group;
+        const beamed = members.length > 1 && group != null && members.every(p => geometry.columns.get(p)?.group === group);
+        const bracket = beamed ? null : { x0: members[0].x - HEAD_WIDTH / 2 - 1, x1: members[members.length - 1].x + HEAD_WIDTH / 2 + 1, up: !up };
         add(
           { mark: 'tuplet', index: members[0].index, string: null, to: members[members.length - 1].index },
           around(members[0].x - 6, y - 10, members[members.length - 1].x + 6, y + 2, 2),
-          { kind: 'tuplet', x: mid, y, label: tupletLabel(duration) },
+          { kind: 'tuplet', x: mid, y, label: tupletLabel(duration), bracket },
         );
       }
     }
