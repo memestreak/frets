@@ -5,8 +5,8 @@
 
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
-import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_RISE, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
-import { type Spot } from './runs';
+import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { type NoteSpot } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type TabLook } from './tabLook';
 import { TapSign } from './TapSign';
@@ -48,7 +48,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
   rows: Rows;
   system: number;
   look: TabLook;
-  previous: Map<Note, Spot>;
+  previous: Map<Note, NoteSpot>;
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
   staffStart: number;
@@ -95,6 +95,8 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       parts.push(
         <BendCarry
           key={`bend-${s}`} carry={carry} level={level} rise={rise} bend={note.bend} landed={joins.landings.has(note)} fromX={before && before.system === system ? fromX : staffStart - 14}
+          fromPeak={before && before.system === system ? before.peak : staffStart}
+          peakX={x + bendShape(placed, { pre: false, release: false }).peak}
           x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look}
         />,
       );
@@ -103,7 +105,10 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       // from, its arrow rising right by that number as the book prints bars 131 and 132.
       const from = !shown && note.tie && !note.bend.pre && before && before.system === system ? fromX : undefined;
       parts.push(
-        <BendDrawing key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} from={from} y={y} staffTop={rows.staffTop} look={look} />,
+        <BendDrawing
+          key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} from={from} y={y} staffTop={rows.staffTop} look={look}
+          shape={bendShape(placed, note.bend)}
+        />,
       );
     }
     if (note.slideOut) {
@@ -161,12 +166,13 @@ export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook
  * the dashed line in a curved arrow to a line higher, `BEND_LABEL_STEP` a step, labelled with its new
  * height; `level` is how many steps up it stands.
  */
-function BendCarry({ carry, level, rise, bend, landed, fromX, x, y, staffTop, look }: {
-  carry: 'hold' | 'release'; level: number; rise?: Bend; bend?: Bend; landed: boolean; fromX: number; x: number; y: number;
+function BendCarry({ carry, level, rise, bend, landed, fromX, fromPeak, x, peakX, y, staffTop, look }: {
+  carry: 'hold' | 'release'; level: number; rise?: Bend; bend?: Bend; landed: boolean; fromX: number; fromPeak: number; x: number; peakX: number; y: number;
   staffTop: number; look: TabLook;
 }) {
   const top = staffTop - BEND_RISE - level * BEND_LABEL_STEP;
-  const from = fromX + 14;
+  // From the peak of the arrow over the note before.
+  const from = fromPeak;
   if (rise) {
     const below = top + BEND_LABEL_STEP;
     // From where the note before let it down, the arrow rises straight from its arrowhead, as the book
@@ -186,7 +192,7 @@ function BendCarry({ carry, level, rise, bend, landed, fromX, x, y, staffTop, lo
     );
   }
   if (carry === 'hold') {
-    return <line x1={from} x2={x + 14} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
+    return <line x1={from} x2={peakX} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
   }
   const down = x - 8;
   // Down to the string, or, let down part of the way, to a step under the bend's line.
@@ -221,17 +227,21 @@ function ReleaseLabel({ bend, x, top, look }: { bend: Bend; x: number; top: numb
  * `line` is the label's line in a stacked pair (`bendLabelLines`), -1 for none. With `from`, the arrow
  * rises by the number there instead, and a held bend's dashed line runs on over the note at `x`.
  */
-function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
-  bend: Bend; line: number; x: number; from?: number; y: number; staffTop: number; look: TabLook;
+function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look, shape }: {
+  bend: Bend; line: number; x: number; from?: number; y: number; staffTop: number; look: TabLook; shape: { peak: number; drop: number };
 }) {
   const top = staffTop - BEND_RISE;
   const x = from ?? noteX;
+  // The arrow down, a held bend's dashed line and the rise of a note's own bend run its length; one rising
+  // by the number it is tied from peaks just past that number, as the book's bars 131 and 132 draw it.
+  const peak = from === undefined ? shape.peak : BEND_PEAK;
+  const drop = Math.max(peak + 10, noteX + shape.drop - x);
   const head = (tx: number, ty: number, down = false) => (
     <path d={down ? `M${tx - 4} ${ty - 7} L${tx} ${ty} L${tx + 4} ${ty - 7}` : `M${tx - 4} ${ty + 7} L${tx} ${ty} L${tx + 4} ${ty + 7}`} fill={look.ink} />
   );
   const label = line >= 0 && (
     <text
-      x={bend.pre ? x : x + 14} y={top - BEND_LABEL_RAISE - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink}
+      x={x + peak} y={top - BEND_LABEL_RAISE - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink}
       stroke="none" textAnchor="middle" data-testid="bend-label"
     >
       {bendLabel(bend)}
@@ -242,21 +252,21 @@ function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
       <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend">
         <line x1={x} x2={x} y1={y - 8} y2={top + 2} />
         {head(x, top)}
-        {bend.release && <path d={`M${x + 2} ${top} Q${x + 14} ${top} ${x + 14} ${releaseEnd(bend, top, y)}`} />}
-        {bend.release && head(x + 14, releaseEnd(bend, top, y), true)}
-        {bend.release && <ReleaseLabel bend={bend} x={x + 14} top={top} look={look} />}
+        {bend.release && <path d={`M${x + 2} ${top} Q${x + drop} ${top} ${x + drop} ${releaseEnd(bend, top, y)}`} />}
+        {bend.release && head(x + drop, releaseEnd(bend, top, y), true)}
+        {bend.release && <ReleaseLabel bend={bend} x={x + drop} top={top} look={look} />}
         {label}
       </g>
     );
   }
   return (
     <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend">
-      <path d={`M${x + 7} ${y - 2} Q${x + 14} ${y - 2} ${x + 14} ${top + 2}`} />
-      {head(x + 14, top)}
-      {bend.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${releaseEnd(bend, top, y)}`} />}
-      {bend.release && head(x + 24, releaseEnd(bend, top, y), true)}
-      {bend.release && <ReleaseLabel bend={bend} x={x + 24} top={top} look={look} />}
-      {!bend.release && from !== undefined && <line x1={x + 18} x2={noteX + 14} y1={top} y2={top} strokeDasharray="4 3" />}
+      <path d={`M${x + 7} ${y - 2} Q${x + peak} ${y - 2} ${x + peak} ${top + 2}`} />
+      {head(x + peak, top)}
+      {bend.release && <path d={`M${x + peak + 1} ${top} Q${x + drop} ${top} ${x + drop} ${releaseEnd(bend, top, y)}`} />}
+      {bend.release && head(x + drop, releaseEnd(bend, top, y), true)}
+      {bend.release && <ReleaseLabel bend={bend} x={x + drop} top={top} look={look} />}
+      {!bend.release && from !== undefined && x + peak + 4 < noteX + shape.peak && <line x1={x + peak + 4} x2={noteX + shape.peak} y1={top} y2={top} strokeDasharray="4 3" />}
       {label}
     </g>
   );

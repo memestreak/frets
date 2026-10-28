@@ -144,6 +144,8 @@ export interface Column {
    * draw one hairpin under the staff, as the book prints bar 157 of Sweet Child O' Mine. Drawn only.
    */
   hairpin?: 'crescendo' | 'decrescendo';
+  /** A fermata over the column (alphaTex `fermata`): held longer than written. Drawn only. */
+  fermata?: Fermata;
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
@@ -158,6 +160,10 @@ export const OTTAVA_SHIFT: Record<Ottava, number> = { '8va': 12, '8vb': -12, '15
 export type TremoloValue = 8 | 16 | 32;
 export const TREMOLO_VALUES: readonly TremoloValue[] = [8, 16, 32];
 
+/** A fermata's shape: short (pointed), medium (the usual arc) or long (square). */
+export type Fermata = 'short' | 'medium' | 'long';
+export const FERMATAS: readonly Fermata[] = ['short', 'medium', 'long'];
+
 export interface Bar {
   columns: Column[];
   /** A new time signature from this bar on; the clip's own `time` holds until the first one. */
@@ -169,6 +175,11 @@ export interface Bar {
   repeatEnd?: number;
   /** Ends with a double bar line, as a section's last bar does (alphaTex's `\db`); a repeat's end draws its own. */
   doubleBar?: boolean;
+  /**
+   * Played in free time, without a beat (alphaTex `\ft`): its closing bar line is dashed, and the first
+   * bar of a run of them says "Free time" with the time signature in brackets, as Guitar Pro prints it.
+   */
+  freeTime?: boolean;
   /** Under a 1st, 2nd … ending bracket. */
   ending?: number;
   /** A tempo from this bar on, in bpm (quarter notes), with an optional label ("Slowly"). */
@@ -332,6 +343,11 @@ export function changesTime(clip: Clip, index: number): boolean {
   if (index === 0 || !time) return false;
   const before = timeAt(clip, index - 1);
   return time.beats !== before.beats || time.value !== before.value;
+}
+
+/** Whether a bar starts a run of free-time bars, so it says "Free time" with its time signature in brackets. */
+export function startsFreeTime(clip: Pick<Clip, 'bars'>, index: number): boolean {
+  return !!clip.bars[index]?.freeTime && !clip.bars[index - 1]?.freeTime;
 }
 
 /**
@@ -685,6 +701,7 @@ function isColumn(v: unknown): v is Column {
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optOneOf(v.wah, ['open', 'closed']) && optOneOf(v.hairpin, ['crescendo', 'decrescendo'])
+    && optOneOf(v.fermata, FERMATAS)
     && optStrings(v.extra);
 }
 
@@ -695,6 +712,7 @@ function isBar(v: unknown): v is Bar {
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
     && optBool(v.doubleBar)
+    && optBool(v.freeTime)
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))

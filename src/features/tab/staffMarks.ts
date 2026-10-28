@@ -6,7 +6,7 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Note, type Ottava } from './clip';
+import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava } from './clip';
 import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, TAP_RADIUS, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout, type StaffReach } from './layout';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
@@ -33,10 +33,19 @@ export type StaffShape =
   | { kind: 'line'; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'bend'; x: number; y: number; top: number; bend: Bend; line: number }
   | { kind: 'tap'; x: number; y: number }
+  /** A fermata centred over x, its foot at y. */
+  | { kind: 'fermata'; x: number; y: number; fermata: Fermata }
   /** A tuplet's number at (x, y) in its bracket from `x0` to `x1`, the ends hooking toward the notes (up when it is under them). */
   | { kind: 'tuplet'; x: number; y: number; label: string; bracket: { x0: number; x1: number; up: boolean } };
 
 export type StaffMark = Placed & StaffShape;
+
+/** A fermata's half width and height (Bravura's, at the staff's size), and its gap over what it stands on. */
+export const FERMATA_HALF = 11;
+export const FERMATA_HEIGHT = 12;
+const FERMATA_CLEAR = 3;
+/** The bar number's room over the staff's top line, which a fermata over a bar's first note stands over. */
+const BAR_NUMBER_ROOM = 10;
 
 /** How far a thin mark's box reaches past it, so the mouse finds it. */
 const REACH = 6;
@@ -120,6 +129,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
         }
 
         const labelLines = bendLabelLines(column, carriedBend);
+        let tapTop = Infinity;
         heads.forEach((h, k) => {
           const note = column.notes[h.string];
           if (!note) return;
@@ -195,8 +205,19 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             const highestPoint = Math.min(score.top, topY - SPACE / 2, marksTop, c.up && c.tip !== null ? c.tip : Infinity);
             const ty = highestPoint - TAP_RADIUS - 6;
             add({ mark: 'tap', index, string: s }, around(x, ty, x, ty, TAP_RADIUS + 1), { kind: 'tap', x, y: ty });
+            tapTop = Math.min(tapTop, ty - TAP_RADIUS);
           }
         });
+
+        // A fermata over everything else in the column, as a book prints it over the staff, clear of the bar number.
+        if (column.fermata) {
+          const under = Math.min(score.top - BAR_NUMBER_ROOM, topY - SPACE / 2, marksTop, tapTop, c.up && c.tip !== null ? c.tip : Infinity);
+          const fy = under - FERMATA_CLEAR;
+          add(
+            { mark: 'fermata', index, string: null }, around(x - FERMATA_HALF, fy - FERMATA_HEIGHT, x + FERMATA_HALF, fy, 3),
+            { kind: 'fermata', x, y: fy, fermata: column.fermata },
+          );
+        }
       }
 
       // Each tuplet's number over (or under) its group, past the beam or the heads.
@@ -271,7 +292,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
 }
 
 /** The staff's marks that `staffReach` in `layout.ts` doesn't foresee: they stand over everything else. */
-const FAR_MARKS: ReadonlySet<StaffMark['kind']> = new Set(['bend', 'tap', 'ottava']);
+const FAR_MARKS: ReadonlySet<StaffMark['kind']> = new Set(['bend', 'tap', 'ottava', 'fermata']);
 
 /**
  * How far each line's bends, taps and octave lines reach over and under the staff, in steps from its

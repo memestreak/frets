@@ -4,7 +4,7 @@
  */
 
 import { STRING_COUNT, isLetRing, isPalmMuted, type Column, type Note } from './clip';
-import { type Layout, lineAt, type PlacedColumn, type System } from './layout';
+import { BEND_PEAK, bendShape, type Layout, lineAt, type PlacedColumn, type System } from './layout';
 
 /** The vibrato waves of a line: one over each run of neighbouring columns with vibrato, wide where any note's is. */
 export function vibratoRuns(system: System) {
@@ -99,6 +99,11 @@ export interface Spot {
   x: number;
 }
 
+/** Where a note was drawn, and where a bend held on from it starts its dashed line: its arrow's peak (`bendShape`), or BEND_PEAK right of it. */
+export interface NoteSpot extends Spot {
+  peak: number;
+}
+
 /** One arc over a run of notes on a string joined by hammer-ons, pull-offs and legato slides, on one line. */
 export interface LegatoArc {
   system: number;
@@ -149,9 +154,9 @@ export function legatoArcs(systems: System[]): LegatoArc[] {
 }
 
 /** For every note, where the note before it on the same string was drawn. */
-export function previousSpots(systems: System[]): Map<Note, Spot> {
-  const out = new Map<Note, Spot>();
-  const last: (Spot | null)[] = Array(STRING_COUNT).fill(null);
+export function previousSpots(systems: System[]): Map<Note, NoteSpot> {
+  const out = new Map<Note, NoteSpot>();
+  const last: (NoteSpot | null)[] = Array(STRING_COUNT).fill(null);
   systems.forEach((system, si) => {
     for (const bar of system.bars) {
       for (const placed of bar.columns) {
@@ -159,7 +164,10 @@ export function previousSpots(systems: System[]): Map<Note, Spot> {
           if (!note) return;
           const before = last[s];
           if (before) out.set(note, before);
-          last[s] = { system: si, x: placed.x };
+          // A bent or held note's arrow or dashed line runs to where `bendShape` puts its peak; a pre-bend's,
+          // or a bend pushed on up's, stands BEND_PEAK on (`BendDrawing`, `BendCarry`).
+          const own = note.bend && !note.bend.pre && note.bend.from === undefined;
+          last[s] = { system: si, x: placed.x, peak: placed.x + (own ? bendShape(placed, note.bend!).peak : BEND_PEAK) };
         });
       }
     }

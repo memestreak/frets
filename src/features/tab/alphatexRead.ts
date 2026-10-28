@@ -10,7 +10,7 @@ import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue,
+  type NoteValue, type Fermata,
 } from './clip';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -32,11 +32,14 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'ah', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata']);
 /** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars and multi-bar rests. */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'multibarrest']);
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
 const CREDIT_TAGS = new Set(['artist', 'words', 'music']);
+/** Frets's fermata for each of alphaTab's FermataType values (Short, Medium, Long). */
+const FERMATA_OF: Fermata[] = ['short', 'medium', 'long'];
+
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
 const BAR_TAGS = new Set([
   'ts', 'ro', 'rc', 'ae', 'ks', 'clef', 'ottava', 'tempo', 'tf', 'ac', 'section', 'jump', 'ft',
@@ -51,7 +54,7 @@ const KEPT_NAMES: Record<string, string> = {
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
   tp: 'tremolo picking', tb: 'whammy bar',
   psu: 'pick slide up', psd: 'pick slide down',
-  fermata: 'fermata', rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
+  rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
   au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
   rf: 'right-hand fingering', ten: 'tenuto', tu: 'tuplet',
 };
@@ -274,6 +277,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     if (master?.isRepeatStart) bar.repeatStart = true;
     if (master && master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
     if (master?.isDoubleBar) bar.doubleBar = true;
+    if (master?.isFreeTime) bar.freeTime = true;
     if (master && master.alternateEndings > 0) bar.ending = Math.log2(master.alternateEndings & -master.alternateEndings) + 1;
     const tags = barNode.metaData.map(m => m.tag.tag.text.toLowerCase());
     if (master && tags.includes('section') && master.section) {
@@ -322,6 +326,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       if (beat.wahPedal === at.model.WahPedal.Closed) column.wah = 'closed';
       if (beat.crescendo === at.model.CrescendoType.Crescendo) column.hairpin = 'crescendo';
       if (beat.crescendo === at.model.CrescendoType.Decrescendo) column.hairpin = 'decrescendo';
+      if (beat.fermata) column.fermata = FERMATA_OF[beat.fermata.type as number];
       const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
       if (chord?.name) column.chord = chord.name;
       if (beat.text) column.text = beat.text;
