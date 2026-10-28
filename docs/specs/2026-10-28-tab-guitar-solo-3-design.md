@@ -22,3 +22,7 @@ The excerpt is the example `octave-lines` ("Guitar Solo 3").
 In staff spaces, scaled so the two staves are the same size: a vibrato's wave 24 px over the notes
 (17 over a tie or slur), the 8va line 33 over everything else, the tab's first row 26 under the
 staff, and a bend's arrow 26 over the tab's top string with its label 9 over that.
+
+Along the line (Jeremy's pick, 2026-10-28): each note stands at the start of its room, its number
+starting the room, and twice as long takes √2 as much room (a quarter 56, a sixteenth 28, as before).
+The cursor, selection, loop and playhead cover a note's room from its start.

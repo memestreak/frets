@@ -214,8 +214,10 @@ export interface PlacedColumn {
   column: Column;
   /** The column's place in the whole clip, counting from 0 (as `editing.ts` counts). */
   index: number;
-  /** The column's centre. */
+  /** Where its note (number, heads) is drawn: near the start of its room, as printed music has it. */
   x: number;
+  /** Its room along the line: from `start`, `width` long. */
+  start: number;
   width: number;
   /** On the staff: its note heads, low to high, and which way its stem goes. */
   heads: Head[];
@@ -262,13 +264,22 @@ export interface Layout {
 
 /** A column's width: longer notes take more room, and its widest note must fit; a grace note takes little. */
 export function columnWidth(column: Column): number {
-  const byTime = column.grace ? 16 : 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
+  // Twice as long takes √2 as much room, as Guitar Pro spaces it (Jeremy, 2026-10-28).
+  const byTime = column.grace ? 16 : QUARTER_ROOM * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
   // A bend's arrow and label stand right of the number; a release needs more. A tied note carrying a
   // bend on (`bendCarries`) needs none: its line comes from the note before.
   const own = column.notes.filter(n => n?.bend && !(n.tie && n.bend.pre));
   const bend = own.some(n => n?.bend?.release) ? 30 : own.length > 0 ? 18 : 0;
   const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
   return Math.max(byTime, minColumnWidth(column)) + bend + slideOut;
+}
+
+/** A quarter note's room along the line: a sixteenth keeps the room it had, 28, so its numbers stay apart. */
+const QUARTER_ROOM = 56;
+
+/** How far into its room a column's note stands: past half its widest number, so the number starts the room. */
+export function noteInset(column: Column): number {
+  return minColumnWidth(column) / 2;
 }
 
 /** The least room a column's widest note needs. */
@@ -420,7 +431,8 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       const cw = Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
-      const placed = { column, index: place++, x: cx + cw / 2 + signs * Math.min(1, squeeze), width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
+      const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
+      const placed = { column, index: place++, x, start: cx, width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
       cx += cw;
       return placed;
     });
@@ -908,13 +920,14 @@ export function boundaryAt(layout: Layout, x: number, y: number): number | null 
 }
 
 /** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */
-export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; width: number } | null {
+export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; start: number; width: number } | null {
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
     const c = placed.columns[column];
-    if (c) return { system: s, x: c.x, width: c.width };
-    return { system: s, x: (placed.x0 + placed.x1) / 2, width: 28 };
+    if (c) return { system: s, x: c.x, start: c.start, width: c.width };
+    const middle = (placed.x0 + placed.x1) / 2;
+    return { system: s, x: middle, start: middle - 14, width: 28 };
   }
   return null;
 }

@@ -158,7 +158,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
       {spot && highlight?.cursor && (
         <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
           {!highlight.range && (
-            <rect x={spot.x - spot.width / 2} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
+            <rect x={spot.start} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
           )}
           {!highlight.columnOnly && rows.tab && (
             <rect
@@ -224,10 +224,10 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
         if (chosen.length === 0) return null;
         const first = chosen[0];
         const last = chosen[chosen.length - 1];
-        const x0 = first.x - first.width / 2;
+        const x0 = first.start;
         return (
           <rect
-            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.x + last.width / 2 - x0}
+            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.start + last.width - x0}
             height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)"
           />
         );

@@ -384,7 +384,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     const total = clip.bars.reduce((n, b) => n + b.columns.length, 0);
     const end = idleMark === total ? cols.find(c => c.index === total - 1) : undefined;
     if (marked || end) {
-      const x = marked ? marked.x - marked.width / 2 : end!.x + end!.width / 2;
+      const x = marked ? marked.start : end!.start + end!.width;
       out.push(
         <line
           key={`mark-${si}`} data-testid="play-mark" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}
@@ -394,7 +394,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     }
     const head = cols.find(c => c.index === column);
     if (head) {
-      const x = head.x - head.width / 2;
+      const x = head.start;
       out.push(
         <g key={`head-${si}`} data-testid="playhead">
           <rect x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
@@ -421,8 +421,8 @@ function loopBracket(layout: Layout, loop: [number, number]): { system: number; 
     const last = inLoop[inLoop.length - 1];
     out.push({
       system: si,
-      x0: first.x - first.width / 2,
-      x1: last.x + last.width / 2,
+      x0: first.start,
+      x1: last.start + last.width,
       y: si * rows.height + rows.loopY,
       start: first.index === loop[0],
       end: last.index === loop[1],

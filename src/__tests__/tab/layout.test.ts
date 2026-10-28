@@ -127,7 +127,7 @@ describe('pressing the drawing', () => {
     expect(columnAt(layout, 2, 0)).toBe(0);
     expect(columnAt(layout, 2, rows.stemBottom)).toBe(0);
     // Past a note: the next one, even nearer the note just passed.
-    expect(columnAt(layout, first.x + (second.x - first.x) / 4, 0)).toBe(1);
+    expect(columnAt(layout, first.x + (second.x - first.x) / 3, 0)).toBe(1);
     // Past the last column of the clip: the last.
     const bar = layout.systems[0].bars[0];
     expect(columnAt(layout, bar.x1 - 1, 0)).toBe(bar.columns[bar.columns.length - 1].index);
