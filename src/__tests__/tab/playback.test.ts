@@ -109,6 +109,21 @@ describe('playback', () => {
     expect(columnAtTick(clip, played, 8 * Q + 10)).toBe(2);
   });
 
+  it('counts in the MIDI\'s ticks when a grace note comes before the first beat', () => {
+    // alphaTab moves the whole MIDI later to make room for the grace note, but not its lookup:
+    // the end must be the MIDI's, or the player never sees the clip end (Jeremy, 2026-10-28).
+    const clip = clipOf('17.1.8{gr} 15.1.4 r.4 r.2 |');
+    const played = perform(alphaTab, clip);
+    const shift = played.shift;
+    expect(shift).toBeGreaterThan(0);
+    expect(tickOf(clip, played, 0)).toBe(0);
+    expect(tickOf(clip, played, 1)).toBe(shift);
+    expect(played.endTick).toBe(4 * Q + shift);
+    expect(columnAtTick(clip, played, shift + 10)).toBe(1);
+    const lastTick = Math.max(...played.midi.events.map(e => e.tick));
+    expect(lastTick).toBe(played.endTick + 2 * Q);
+  });
+
   it('gives a loop the ticks from its first column to the end of its last', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     expect(ticksOf(clip, perform(alphaTab, clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });

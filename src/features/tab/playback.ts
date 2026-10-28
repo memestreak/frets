@@ -76,6 +76,12 @@ export interface Performance {
   score: Score;
   midi: AlphaTabModule.midi.MidiFile;
   lookup: TickLookup;
+  /**
+   * How far the MIDI is shifted from the score: grace notes before the clip's first beat start
+   * before tick 0, so alphaTab moves the whole MIDI later by that much, but not its lookup. Every
+   * tick here and in the player is the MIDI's (the synthesizer's); `lookup` alone takes the score's.
+   */
+  shift: number;
   /** The tick the clip ends on, repeats played. */
   endTick: number;
 }
@@ -101,11 +107,12 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
-  const endTick = masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0;
+  const shift = midi.tickShift;
+  const endTick = (masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0) + shift;
   // The synthesizer stops dead at the MIDI's last event, cutting the last note off with a click
   // (Jeremy, 2026-10-26: "a glitch at the end of playback"). An event a little later lets it ring.
   midi.addEvent(new at.midi.EndOfTrackEvent(0, endTick + RING_OUT_TICKS));
-  return { score, midi, lookup: generator.tickLookup, endTick };
+  return { score, midi, lookup: generator.tickLookup, shift, endTick };
 }
 
 /** How long a column heard on its own sounds: a quarter note at 120 bpm, before it rings out. */
@@ -143,7 +150,7 @@ export function columnOfBeat(clip: Clip, beat: Beat): number | null {
 
 /** The column sounding at a tick, or null. */
 export function columnAtTick(clip: Clip, performance: Performance, tick: number): number | null {
-  const found = performance.lookup.findBeat(new Set([0]), tick);
+  const found = performance.lookup.findBeat(new Set([0]), tick - performance.shift);
   return found ? columnOfBeat(clip, found.beat) : null;
 }
 
@@ -158,15 +165,15 @@ export function ticksOf(clip: Clip, performance: Performance, [from, to]: [numbe
   const first = beatOf(performance, clip, from);
   const last = beatOf(performance, clip, to);
   if (!first || !last) return null;
-  const startTick = performance.lookup.getBeatStart(first);
-  const endTick = performance.lookup.getBeatStart(last) + last.playbackDuration;
+  const startTick = performance.lookup.getBeatStart(first) + performance.shift;
+  const endTick = performance.lookup.getBeatStart(last) + last.playbackDuration + performance.shift;
   return endTick > startTick ? { startTick, endTick } : null;
 }
 
 /** The tick a column first starts on. */
 export function tickOf(clip: Clip, performance: Performance, index: number): number {
   const beat = beatOf(performance, clip, index);
-  return beat ? performance.lookup.getBeatStart(beat) : 0;
+  return (beat ? performance.lookup.getBeatStart(beat) : 0) + performance.shift;
 }
 
 /* — sound: a Web Audio output for the synthesizer — */
