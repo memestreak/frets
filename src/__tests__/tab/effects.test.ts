@@ -1,4 +1,6 @@
-import { DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbWet, toneFrequency } from '@/features/tab/effects';
+import {
+  CURVE_SLOPE, DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbDecay, reverbWet, secondStage, toneFrequency,
+} from '@/features/tab/effects';
 
 // The playback effects' numbers (issue #199): what each knob does, and the plate's ring.
 
@@ -41,16 +43,44 @@ describe('the playback effects', () => {
     expect(driveMakeup(1)).toBeLessThan(driveMakeup(0.1));
   });
 
+  it('add a second stage from halfway up Drive, left alone below that', () => {
+    // Below halfway its push and its level out undo each other where the curve is a straight line.
+    for (const drive of [0, 0.25, 0.5]) {
+      const { gain, back } = secondStage(drive);
+      expect(gain * CURVE_SLOPE * back).toBeCloseTo(1);
+      expect(gain * CURVE_SLOPE).toBeLessThan(0.3);
+    }
+    // At full it pushes hard into the second shaper, 12 dB.
+    expect(20 * Math.log10(secondStage(1).gain)).toBeCloseTo(12);
+    expect(secondStage(1).back).toBe(1);
+    expect(secondStage(0.75).gain).toBeGreaterThan(secondStage(0.5).gain);
+    // The curve's slope at silence, measured.
+    const curve = distortionCurve();
+    const mid = (curve.length - 1) / 2;
+    expect((curve[mid + 1] - curve[mid - 1]) / (4 / (curve.length - 1))).toBeCloseTo(CURVE_SLOPE, 2);
+  });
+
+  it('make the Reverb knob ring short at low settings and long at full', () => {
+    expect(reverbDecay(0)).toBe(0.3);
+    expect(reverbDecay(0.05)).toBe(0.3);
+    expect(reverbDecay(0.5)).toBe(0.9);
+    expect(reverbDecay(1)).toBe(3);
+    for (let a = 0; a <= 1; a += 0.05) {
+      expect(reverbDecay(a)).toBeGreaterThanOrEqual(DECAY_SECONDS.min);
+      expect(reverbDecay(a)).toBeLessThanOrEqual(DECAY_SECONDS.max);
+    }
+  });
+
   it('turn the tone from dark to bright, evenly in pitch', () => {
     expect(toneFrequency(0)).toBeCloseTo(1200);
     expect(toneFrequency(1)).toBeCloseTo(6000);
     expect(toneFrequency(0.5)).toBeCloseTo(Math.sqrt(1200 * 6000));
   });
 
-  it('ring with the plate for the decay asked, within 15%', () => {
-    for (const seconds of [DECAY_SECONDS.min, DECAY_SECONDS.start, DECAY_SECONDS.max]) {
+  it('ring with the plate for the decay asked, within 15% (0.3 s within 25%: the plate\'s diffusers ring that long themselves)', () => {
+    for (const [seconds, within] of [[DECAY_SECONDS.min, 0.25], [DECAY_SECONDS.start, 0.15], [DECAY_SECONDS.max, 0.15]]) {
       const [left, right] = plateImpulse(RATE, seconds);
-      expect(Math.abs(rt60(left, right) / seconds - 1)).toBeLessThan(0.15);
+      expect(Math.abs(rt60(left, right) / seconds - 1)).toBeLessThan(within);
     }
   }, 60_000);
 

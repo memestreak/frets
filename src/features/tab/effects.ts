@@ -21,7 +21,17 @@ export interface EffectSettings {
 }
 
 /** The reverb's ring: its shortest, longest and first, in seconds (fmlab's default, 1.5 s). */
-export const DECAY_SECONDS = { min: 0.5, max: 5, start: 1.5 };
+export const DECAY_SECONDS = { min: 0.3, max: 5, start: 1.5 };
+
+/**
+ * The ring for a Reverb knob that sets its length too (mocks a and c): a short room at low
+ * settings, a long plate at full (Jeremy, 2026-10-28: "significantly shorter on low settings").
+ * 0.3 s at the bottom, about 1 s halfway, 3 s at full, evenly in time's ratio; to a tenth of a
+ * second, so turning the knob makes a new ring only every so often.
+ */
+export function reverbDecay(amount: number): number {
+  return Math.round(3 * 10 ** (amount - 1) * 10) / 10;
+}
 
 export const NO_EFFECTS: EffectSettings = { drive: 0, tone: 0.5, reverb: 0, decay: DECAY_SECONDS.start };
 
@@ -31,15 +41,35 @@ const PLATE_TONE = 70;
 /** How quickly a knob's change is heard, in seconds (to about two thirds): quick, without a click. */
 const GLIDE_SECONDS = 0.02;
 
-/** The gain into the shaper at the lowest Drive above 0 and at full Drive, in dB. */
+/** The gain into the first shaper at the lowest Drive above 0 and at full Drive, in dB. */
 const DRIVE_DB = { min: 6, max: 46 };
 
 /**
- * The gain into the distortion's shaper for a Drive: 6 dB at the lowest, rising evenly in dB to
- * 46 dB at full, so each turn of the knob sounds like the same step.
+ * The gain into the distortion's first shaper for a Drive: 6 dB at the lowest, rising evenly in dB
+ * to 46 dB at full, so each turn of the knob sounds like the same step.
  */
 export function driveGain(drive: number): number {
   return 10 ** ((DRIVE_DB.min + drive * (DRIVE_DB.max - DRIVE_DB.min)) / 20);
+}
+
+/**
+ * The second stage's drive, in dB: so quiet below halfway that its shaper barely bends the sound,
+ * then rising to a hard push at full.
+ */
+const SECOND_STAGE = { from: 0.5, quietDB: -20, fullDB: 12 };
+
+/**
+ * The second stage, as a high-gain amp's next valve (Jeremy, 2026-10-28: "more distortion effect
+ * at 100%"): the first shaper's sound goes on into a second one. Below halfway up the knob it goes
+ * in so quietly the shaper leaves it alone; from there its drive rises to full. `gain` is the push
+ * in, `back` the level out that undoes it while the shaper is still gentle.
+ */
+export function secondStage(drive: number): { gain: number; back: number } {
+  const t = Math.min(1, Math.max(0, (drive - SECOND_STAGE.from) / (1 - SECOND_STAGE.from)));
+  const gain = 10 ** ((SECOND_STAGE.quietDB + t * (SECOND_STAGE.fullDB - SECOND_STAGE.quietDB)) / 20);
+  // While the push is gentle the shaper is nearly a straight line of slope CURVE_SLOPE; undo it.
+  const push = gain * CURVE_SLOPE;
+  return { gain, back: push < 1 ? 1 / push : 1 };
 }
 
 /**
@@ -72,17 +102,23 @@ export function reverbWet(amount: number): number {
  */
 export function distortionCurve(points = 2049): Float32Array<ArrayBuffer> {
   const curve = new Float32Array(points);
-  const bias = 0.25;
-  const hardness = 2.5;
-  const shift = Math.tanh(bias);
-  // Scaled so the curve's ends are at ±1 for the larger side.
-  const scale = Math.max(Math.tanh(hardness + bias) - shift, shift - Math.tanh(-hardness + bias));
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * 2 - 1;
-    curve[i] = (Math.tanh(hardness * x + bias) - shift) / scale;
-  }
+  for (let i = 0; i < points; i++) curve[i] = shape((i / (points - 1)) * 2 - 1);
   return curve;
 }
+
+/** The curve's lean and hardness. */
+const BIAS = 0.25;
+const HARDNESS = 2.5;
+/** Scaled so the curve's ends are at ±1 for the larger side. */
+const CURVE_SCALE = Math.max(Math.tanh(HARDNESS + BIAS) - Math.tanh(BIAS), Math.tanh(BIAS) - Math.tanh(-HARDNESS + BIAS));
+
+/** The curve at one point, -1 to 1. */
+function shape(x: number): number {
+  return (Math.tanh(HARDNESS * x + BIAS) - Math.tanh(BIAS)) / CURVE_SCALE;
+}
+
+/** How steep the curve is at silence: how much it boosts a quiet sound. */
+export const CURVE_SLOPE = (HARDNESS * (1 - Math.tanh(BIAS) ** 2)) / CURVE_SCALE;
 
 /**
  * The plate's impulse response, one per ear: fmlab's plate (`plateReverb.ts`, Dattorro's) struck
@@ -112,7 +148,7 @@ export function plateImpulse(sampleRate: number, seconds: number): [Float32Array
  * board. Each effect is always connected and faded in or out by gains, so a change never clicks.
  *
  *   input ─┬─────────────── clean ────────────────┬─┬─────────────┬─ volume → limiter → output
- *          └ drive → tighten → shaper → tone → cab ┘ └ plate → wet ┘
+ *          └ drive → tighten → shaper → shaper → tone → cab ┘ └ plate → wet ┘
  */
 export class EffectsChain {
   readonly input: GainNode;
@@ -123,6 +159,9 @@ export class EffectsChain {
   private readonly clean: GainNode;
   private readonly drive: GainNode;
   private readonly makeup: GainNode;
+  /** The second stage's push in and level out. */
+  private readonly secondDrive: GainNode;
+  private readonly secondBack: GainNode;
   private readonly tone: BiquadFilterNode;
   private readonly wet: GainNode;
   private readonly ring: ConvolverNode;
@@ -156,6 +195,8 @@ export class EffectsChain {
     this.clean = gain(1);
     this.drive = gain(driveGain(0));
     this.makeup = gain(0);
+    this.secondDrive = gain(secondStage(0).gain);
+    this.secondBack = gain(secondStage(0).back);
     this.tone = filter('lowpass', toneFrequency(NO_EFFECTS.tone));
     this.wet = gain(0);
     this.ring = context.createConvolver();
@@ -163,14 +204,22 @@ export class EffectsChain {
     // Distortion: lows thinned before the shaper so chords don't turn to mud, and a push in the
     // mids, as an overdrive pedal has; after it, the tone and a speaker cabinet's shape (no deep
     // lows, a bump at 110 Hz, a dip at 400 Hz, presence at 2.2 kHz, little past 6.5 kHz).
-    const shaper = context.createWaveShaper();
-    shaper.curve = distortionCurve();
-    shaper.oversample = '4x';
+    const shaper = () => {
+      const node = context.createWaveShaper();
+      node.curve = distortionCurve();
+      node.oversample = '4x';
+      return node;
+    };
     const distorted = chain([
       this.drive,
       filter('highpass', 140),
       filter('peaking', 900, 0.8, 5),
-      shaper,
+      shaper(),
+      // The second stage, the lows thinned a little again between the two, as amps do.
+      filter('highpass', 100),
+      this.secondDrive,
+      shaper(),
+      this.secondBack,
       this.tone,
       filter('highpass', 80),
       filter('peaking', 110, 1, 3),
@@ -198,6 +247,9 @@ export class EffectsChain {
     glide(this.clean.gain, on ? 0 : 1);
     glide(this.makeup.gain, on ? driveMakeup(settings.drive) : 0);
     glide(this.drive.gain, driveGain(settings.drive));
+    const second = secondStage(settings.drive);
+    glide(this.secondDrive.gain, second.gain);
+    glide(this.secondBack.gain, second.back);
     glide(this.tone.frequency, toneFrequency(settings.tone));
     if (settings.reverb > 0 && settings.decay !== this.ringSeconds) {
       // The ring is made only once a reverb is wanted, and again when its decay changes.

@@ -32,16 +32,26 @@ after it, made once with the AudioContext (`EffectsChain` in `effects.ts`):
 
 - **Path:** drive gain → high-pass at 140 Hz (so chords don't turn to mud) →
   a mid push at 900 Hz, as an overdrive pedal has → a `WaveShaperNode`
-  (oversampled 4x) → the Tone low-pass → a speaker cabinet made of filters (no
+  (oversampled 4x) → a high-pass at 100 Hz → the second stage's push → a
+  second shaper → its level out → the Tone low-pass → a speaker cabinet made of filters (no
   deep lows, a bump at 110 Hz, a dip at 400 Hz, presence at 2.2 kHz, little
   past 6.5 kHz) → a make-up gain.
 - **The curve** is a soft clip (tanh) that leans a little to one side, as a
   valve does, which adds even harmonics.
 - **Drive** 0 to 1. At 0 the distortion is off and the clean sound passes.
-  Above 0, it drives the shaper from 6 dB to 46 dB, evenly in dB.
+  Above 0, it drives the first shaper from 6 dB to 46 dB, evenly in dB.
+- **The second stage** (Jeremy, 2026-10-28: "more distortion effect at
+  100%"), as a high-gain amp's next valve:
+  - Below halfway, the sound goes into the second shaper so quietly (-20 dB)
+    that it stays a straight line, and its level out undoes the push.
+  - From halfway up, the push rises to +12 dB at full.
+  - Measured on a decaying chord, the ring 2.5–3.5 s after the strike is
+    0.2 dB under the strike at full Drive, where one stage left it 5.9 dB
+    under. What one stage gave at full, two give at about 80%.
 - **Loudness:** the make-up gain keeps a distorted sound about as loud as the
   clean one. Measured in Chromium on the clean electric riff, the RMS level
-  is 0.093 clean, and 0.096, 0.104 and 0.089 at Drive 30%, 60% and 100%.
+  is 0.093 clean, and 0.103, 0.104, 0.083 and 0.085 at Drive 30%, 60%, 80%
+  and 100%.
 - **Tone** 0 to 1 sets the low-pass from 1.2 kHz to 6 kHz, evenly in pitch.
 - **No recorded cabinet impulse response is used**, so there is nothing to
   license.
@@ -59,20 +69,27 @@ after it, made once with the AudioContext (`EffectsChain` in `effects.ts`):
   wanted, and again when Decay changes. A 5 s ring takes a few milliseconds.
 - **Reverb** (the amount) 0 to 1 sets the wet level, 0 to 0.45, linearly.
   The dry sound stays full.
-- **Decay** is 0.5 to 5 s, starting at fmlab's 1.5 s.
+- **Decay** is 0.3 to 5 s, starting at fmlab's 1.5 s. 0.3 s measures
+  about 25% long, as the plate's diffusers ring that long themselves.
+- **In mocks a and c, the Reverb knob sets the decay too** (Jeremy,
+  2026-10-28: "significantly shorter on low settings"; `reverbDecay`). It
+  runs from 0.3 s at the bottom, through 0.9 s halfway, to 3 s at full,
+  evenly in ratio and rounded to a tenth of a second. So the ring is made
+  again only every few steps of the knob. Measured on a riff, the sound lasts
+  about 0.2 s past its last note at 10%, 0.5 s at 50% and 1.8 s at full.
 
 ## Controls: three mocks
 
 They come after Sound in the playback row, before Volume at its far right. Pick one by address:
 
 - **`?mock=a`** (the default): two knobs, **Drive** and **Reverb**, like
-  Volume. A knob at 0 reads "Off" in its tip. Tone stays at 50% and Decay
-  at 1.5 s.
+  Volume. A knob at 0 reads "Off" in its tip. Tone stays at 50%, and
+  Reverb sets the decay as above.
 - **`?mock=b`**: an **Effects** button. It is lit while either effect is on,
   and opens a small panel at the button with **Distortion** (Drive and Tone
   knobs) and **Reverb** (an Amount knob and a Decay field in seconds).
 - **`?mock=c`**: an **Amp** list of presets (Clean, Crunch, Lead, High gain)
-  that set Drive and Tone, and a **Reverb** knob. A setting no preset
+  that set Drive and Tone, and a **Reverb** knob, as in mock a. A setting no preset
   matches shows as Custom.
 
 Once Jeremy picks a mock, the other two go.

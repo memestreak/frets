@@ -3,12 +3,13 @@
 /**
  * The playback effects' controls (issue #199), after Sound in the playback row: distortion and
  * reverb (`effects.ts`). Three mocks to pick from, behind `?mock=`:
- *   a (the default) — two knobs, Drive and Reverb, like the Volume knob;
+ *   a (the default) — two knobs, Drive and Reverb, like the Volume knob; Reverb sets the ring's
+ *     length too, short at low settings (`reverbDecay`);
  *   b — an Effects button that opens a small panel: Drive and Tone, Reverb and Decay;
- *   c — an Amp list of presets (Clean, Crunch, Lead, High gain) and a Reverb knob.
+ *   c — an Amp list of presets (Clean, Crunch, Lead, High gain) and a Reverb knob, as a's.
  */
 import { useState, useSyncExternalStore } from 'react';
-import { DECAY_SECONDS, type EffectSettings } from './effects';
+import { DECAY_SECONDS, reverbDecay, type EffectSettings } from './effects';
 import { NumberField } from './NumberField';
 import { usePopover } from './usePopover';
 import { VolumeKnob } from './VolumeKnob';
@@ -57,14 +58,14 @@ export function EffectsControls({ mock, effects, onEffects }: {
             {AMPS.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}
           </select>
         </label>
-        <Knob name="Reverb" value={effects.reverb} onChange={reverb => set({ reverb })} />
+        <Knob name="Reverb" value={effects.reverb} onChange={reverb => set({ reverb, decay: reverbDecay(reverb) })} />
       </>
     );
   }
   return (
     <>
       <Knob name="Drive" value={effects.drive} onChange={drive => set({ drive })} />
-      <Knob name="Reverb" value={effects.reverb} onChange={reverb => set({ reverb })} />
+      <Knob name="Reverb" value={effects.reverb} onChange={reverb => set({ reverb, decay: reverbDecay(reverb) })} />
     </>
   );
 }
