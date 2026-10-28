@@ -494,6 +494,23 @@ export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'relea
   return out;
 }
 
+/** Notes a hammer-on, pull-off or legato slide leaves from: the note before one on its string. */
+export function legatoStarts(clip: Pick<Clip, 'bars'>): Set<Note> {
+  const out = new Set<Note>();
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        const before = last[s];
+        if (before && (note.legato || note.slide === 'legato')) out.add(before);
+        last[s] = note;
+      });
+    }
+  }
+  return out;
+}
+
 /** How many semitones a tied note sounds above its fret: the bend it reaches, held or not yet let down. */
 export function bentSemitones(note: Note): number {
   if (!note.tie || !note.bend || note.bend.release) return 0;

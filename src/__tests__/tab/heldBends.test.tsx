@@ -71,8 +71,15 @@ describe('a held bend', () => {
     expect(container.querySelectorAll('[data-testid="bend-hold"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-testid="bend-release"]')).toHaveLength(1);
     const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent);
-    // The grace 17, the bent (17), the held (17), then 15: the let-down note has no number.
-    expect(numbers.filter(n => /\d/.test(n ?? ''))).toEqual(['17', '(17)', '(17)', '15']);
+    // The grace 17, the bent (17), then 15: under the staff the held note's number is left out within
+    // the bar (its dashed line says it), and the let-down note has none.
+    expect(numbers.filter(n => /\d/.test(n ?? ''))).toEqual(['17', '(17)', '15']);
     expect(container.querySelectorAll('[data-testid="staff-bent"]')).toHaveLength(3);
+  });
+
+  it('names the held note on the tab alone', () => {
+    const { container } = render(<TabClip clip={clipOf(TEXT)} width={800} parts="tab" title="Held bends" />);
+    const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent);
+    expect(numbers.filter(n => /\d/.test(n ?? ''))).toEqual(['17', '(17)', '(17)', '15']);
   });
 });
