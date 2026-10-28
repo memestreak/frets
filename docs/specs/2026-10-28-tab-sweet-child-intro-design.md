@@ -36,15 +36,20 @@ intro, bars 1–24.
 Jeremy asked for a place to choose what the drawing shows that is the reader's choice rather than
 the music's. An eye button on the clip's top row, before copy and save (Notation view only), opens a
 small panel under it. Its first option is **Bar numbers: Every bar | Each line | None**, starting on
-Every bar (his choice: every bar, as the PDF shows). A choice applies at once; a press elsewhere, Esc,
+Every bar (his choice: every bar, as the PDF shows). The second is **Size**, 50% to 200% in steps of
+10% (his ask), starting at 100%: a small number field with up and down buttons (a typed size goes to
+the nearest step; a double-click on its row puts it back to 100%, as Speed's does). The drawing and
+everything over it (the playhead, fields, panels, presses) is zoomed, and laid out that much wider or
+narrower, so at 70% the intro fits four bars to a line as the book does. The text views keep their
+size. A choice applies at once; a press elsewhere, Esc,
 a scroll or the button again closes the panel. The options are saved per viewer
 (`localStorage["frets.tab.view"]`), not in the clip, like Staff | Tab | Both, and copies and exports
 follow them.
 
 ## Not yet (listed for later rounds or a question)
 
-- Guitar Pro fits four bars of the intro to a line; Frets fits two at a laptop's width, its notes
-  being drawn larger. A size option in View options could match it.
+- Spacing of the drawing's parts, vertical and horizontal, set by the reader: its own feature
+  request, issue #153.
 - The tempo is printed "Medium Rock ♩ = 122" (the words first, bold), and the section as a boxed
   letter and bold name without a box; Frets keeps its own drawing of both until Jeremy chooses.
 - Beams slant with the notes in the book; Frets draws them flat.

@@ -79,10 +79,12 @@ describe('the staff for a tuned-down guitar', () => {
 });
 
 describe('view options', () => {
-  it('start on bar numbers over every bar, and keep only a valid saved choice', () => {
-    expect(parseView(null)).toEqual({ barNumbers: 'every' });
-    expect(parseView({ barNumbers: 'lines' })).toEqual({ barNumbers: 'lines' });
-    expect(parseView({ barNumbers: 'odd' })).toEqual({ barNumbers: 'every' });
+  it('start on bar numbers over every bar at 100%, and keep only a valid saved choice', () => {
+    expect(parseView(null)).toEqual({ barNumbers: 'every', size: 100 });
+    expect(parseView({ barNumbers: 'lines', size: 70 })).toEqual({ barNumbers: 'lines', size: 70 });
+    expect(parseView({ barNumbers: 'odd', size: 75 })).toEqual({ barNumbers: 'every', size: 100 });
+    expect([parseView({ size: 50 }).size, parseView({ size: 200 }).size, parseView({ size: 40 }).size, parseView({ size: 210 }).size])
+      .toEqual([50, 200, 100, 100]);
   });
 
   it('number every bar, the first of each line, or none', () => {

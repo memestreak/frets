@@ -14,5 +14,7 @@ Spec: `docs/specs/2026-10-28-tab-sweet-child-intro-design.md`.
 6. `layout.ts`: beams by the half bar in 4/4 (`halfBars` on a placed bar), `justify` the lines.
 7. Example `tuned-down`; tests in `scoreLook.test.ts` and the page test; docs (CLAUDE.md, the agent
    guide).
-8. Check in a browser: the panel's three choices, Esc, a press away, the button again, a reload, the
+8. Size in View options (50–200%): zoom the drawing's container, lay out at width / zoom, presses
+   scaled by the drawing's own width over its box; exports draw `TabClip` with `zoom`.
+9. Check in a browser: the panel's three choices, Esc, a press away, the button again, a reload, the
    Export dialog's preview.

@@ -84,10 +84,19 @@ describe('TabPage', () => {
     const panel = screen.getByRole('dialog', { name: 'View options' });
     fireEvent.click(within(panel).getByRole('button', { name: 'None' }));
     expect(numbers()).toEqual([]);
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none' });
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none', size: 100 });
     fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
     expect(numbers().length).toBeGreaterThan(0);
     expect(numbers()[0]).toBe('1');
+    // Size: the drawing is laid out narrower and zoomed, so it fits more to a line; it steps by 10% and stops at 50%.
+    const drawing = () => screen.getByRole('img', { name: /drawn as/ });
+    const fullWidth = Number(drawing().getAttribute('width'));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
+    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '90');
+    expect(Number(drawing().getAttribute('width'))).toBeCloseTo(fullWidth / 0.9, 3);
+    for (let i = 0; i < 6; i++) fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
+    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '50');
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!).size).toBe(50);
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'View options' })).toBeNull();
   });

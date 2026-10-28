@@ -124,7 +124,9 @@ export default function TabPage() {
   const [copied, setCopied] = useState(false);
   const [widthRef, boxWidth] = useWidth();
   // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
-  const clipWidth = boxWidth;
+  // At a View options size the drawing (and all over it) is zoomed, so it is laid out that much narrower or wider.
+  const zoom = shown.size / 100;
+  const clipWidth = boxWidth / zoom;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
    * view, until an edit elsewhere (on the Standard view, an undo, an import) changes the clip; then the
@@ -888,7 +890,7 @@ export default function TabPage() {
   /** Copies the tab as the Export dialog's PNG: the Tab view's copy button. */
   const copyPng = async () => {
     try {
-      const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name, parts, shown.barNumbers));
+      const line = await copySvgAsPng(tabSvg(clip, exportStyle, clip.name, parts, shown));
       setNotice({ tone: 'info', lines: [`${line}.`] });
       showCopied();
     } catch (e) {
@@ -926,7 +928,7 @@ export default function TabPage() {
   };
   const asText = (text: string) => new Blob([text], { type: 'text/plain' });
   /** The picture as the Export dialog makes it, with its saved choices. */
-  const picture = () => tabSvg(clip, exportStyle, clip.name, parts, shown.barNumbers);
+  const picture = () => tabSvg(clip, exportStyle, clip.name, parts, shown);
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
@@ -1027,70 +1029,73 @@ export default function TabPage() {
             {saveButton}
           </div>
         </div>
-        <div ref={widthRef} className="relative min-w-0">
-          {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
-          {view === 'tab'
-            ? clipWidth > 0 && (
-              <div
-                // A textbox, so screen readers pass the keys through to it as they do to a text field.
-                ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                aria-label="Tab editor: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Shift+F10 to insert a bar"
-                onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
-                // Right-click, a long press or Shift+F10: insert a bar before or after.
-                {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
-              >
-                {/* A bar's warning explains itself on hover. */}
-                <HoverTips>
-                  <TabClip
-                    clip={clip} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                    onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
-                    onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                    onPickColumn={pickColumn} columnReach={COLUMN_REACH}
-                    highlight={{
-                      cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
-                      staffPitch: staffKeys ? staffPitch : null,
-                    }}
-                    picked={editing ? picked : null}
-                    errors={barErrors(clip)}
-                  />
-                </HoverTips>
-              </div>
-            )
-            : view === 'alphatex'
-              ? (
-                <HoverTips>
-                  <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} />
-                </HoverTips>
+        <div ref={widthRef} className="min-w-0">
+          {/* The View options' Size zooms the drawing and everything over it: presses, fields and panels alike. */}
+          <div className="relative" style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
+            {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
+            {view === 'tab'
+              ? clipWidth > 0 && (
+                <div
+                  // A textbox, so screen readers pass the keys through to it as they do to a text field.
+                  ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
+                  aria-label="Tab editor: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Shift+F10 to insert a bar"
+                  onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
+                  // Right-click, a long press or Shift+F10: insert a bar before or after.
+                  {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
+                >
+                  {/* A bar's warning explains itself on hover. */}
+                  <HoverTips>
+                    <TabClip
+                      clip={clip} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
+                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
+                      onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
+                      onPickColumn={pickColumn} columnReach={COLUMN_REACH}
+                      highlight={{
+                        cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
+                        staffPitch: staffKeys ? staffPitch : null,
+                      }}
+                      picked={editing ? picked : null}
+                      errors={barErrors(clip)}
+                    />
+                  </HoverTips>
+                </div>
               )
-              : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
-          {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
-          {view === 'tab' && editing && picked && clipWidth > 0 && (
-            <WordTools
-              clip={clip} width={clipWidth} parts={parts} hit={picked}
-              onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
-              onDelete={() => deletePicked(picked)}
-            />
-          )}
-          {view === 'tab' && word && clipWidth > 0 && (
-            <WordField
-              key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, parts, word)}
-              initial={wordNow(clip, word)} onDone={finishWord}
-            />
-          )}
-          {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
-            <BarKeyPanel
-              clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, keyBar))}
-              onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
-            />
-          )}
-          {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
-            <BarTimePanel
-              clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, timeBar))}
-              onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
-            />
-          )}
+              : view === 'alphatex'
+                ? (
+                  <HoverTips>
+                    <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} />
+                  </HoverTips>
+                )
+                : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
+            {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
+            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
+            {view === 'tab' && editing && picked && clipWidth > 0 && (
+              <WordTools
+                clip={clip} width={clipWidth} parts={parts} hit={picked}
+                onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
+                onDelete={() => deletePicked(picked)}
+              />
+            )}
+            {view === 'tab' && word && clipWidth > 0 && (
+              <WordField
+                key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, parts, word)}
+                initial={wordNow(clip, word)} onDone={finishWord}
+              />
+            )}
+            {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
+              <BarKeyPanel
+                clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, keyBar))}
+                onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
+              />
+            )}
+            {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
+              <BarTimePanel
+                clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, timeBar))}
+                onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
+              />
+            )}
+          </div>
         </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}
         {view === 'tab' && (
@@ -1158,7 +1163,7 @@ export default function TabPage() {
         />
       )}
       <TabExportDialog
-        clip={clip} parts={parts} barNumbers={shown.barNumbers} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        clip={clip} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
       />
     </div>

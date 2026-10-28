@@ -51,13 +51,15 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
   clip: Clip;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
   parts?: Parts;
   /** Which bars show their number (the View options). */
   barNumbers?: BarNumbers;
+  /** Drawn this many times its size (an exported image at a View options size); `width` is in the drawing's own units. */
+  zoom?: number;
   /** Where it sits inside a larger drawing (an exported image). */
   x?: number;
   y?: number;
@@ -97,8 +99,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', look 
   /** What a press at a point in the drawing is on. */
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - box.left;
-    const py = e.clientY - box.top;
+    // From screen pixels to the drawing's units, at any size the page draws it (View options' Size).
+    const scale = box.width > 0 ? width / box.width : 1;
+    const px = (e.clientX - box.left) * scale;
+    const py = (e.clientY - box.top) * scale;
     // Above or below the drawing: only a column, as on the blank band at the edge of the first or last line.
     if (py < 0 || py >= layout.height) {
       const edge = py < 0 ? 0 : layout.height - 1;
@@ -142,7 +146,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', look 
   const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
   return (
     <svg
-      x={x} y={y} width={width} height={layout.height} viewBox={`0 0 ${width} ${layout.height}`}
+      x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}

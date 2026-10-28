@@ -9,7 +9,7 @@ import type { Clip } from './clip';
 import { circled, creditsOf, tuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { TabClip, type TabLook } from './TabClip';
-import type { BarNumbers } from './viewOptions';
+import { DEFAULT_VIEW, type TabView } from './viewOptions';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
 
@@ -84,9 +84,10 @@ function headHeight(head: { title: string; lines: HeadLine[] }): number {
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab'): { width: number; height: number } {
-  const tab = layoutClip(clip, style.width - 2 * PAD, parts);
-  return { width: style.width, height: tab.height + 2 * PAD + headHeight(headLines(clip, style, title)) - 8 };
+export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
+  const zoom = view.size / 100;
+  const tab = layoutClip(clip, (style.width - 2 * PAD) / zoom, parts);
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headHeight(headLines(clip, style, title)) - 8 };
 }
 
 /**
@@ -94,8 +95,10 @@ export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, p
  * above it if the style shows it, on white unless transparent; the staff, the
  * tab or both, as the page shows them. The Export dialog's preview draws the same.
  */
-export function TabImage({ clip, style, title, parts = 'tab', barNumbers = 'none' }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts; barNumbers?: BarNumbers }) {
-  const { width, height } = tabImageSize(clip, style, title, parts);
+export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
+  const { width, height } = tabImageSize(clip, style, title, parts, view);
+  // At a View options size the tab is drawn bigger or smaller, so as many bars fit a line as on the page.
+  const zoom = view.size / 100;
   const head = headLines(clip, style, title);
   const linesTop = PAD + (head.title ? TITLE_HEIGHT : 0);
   return (
@@ -114,7 +117,7 @@ export function TabImage({ clip, style, title, parts = 'tab', barNumbers = 'none
         </text>
       ))}
       <TabClip
-        clip={clip} width={width - 2 * PAD} parts={parts} barNumbers={barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
+        clip={clip} width={(width - 2 * PAD) / zoom} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
         x={PAD} y={PAD + headHeight(head) - 8}
       />
     </svg>
@@ -122,10 +125,10 @@ export function TabImage({ clip, style, title, parts = 'tab', barNumbers = 'none
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', barNumbers: BarNumbers = 'none'): string {
+export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, barNumbers })));
+  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view })));
   const svg = host.querySelector('svg')!;
   root.unmount();
   svg.removeAttribute('class');
