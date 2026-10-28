@@ -200,8 +200,11 @@ export default function TabPage() {
     transpose: playbackSettings.transpose,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
+    // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
     onStopAt: column => {
-      if (playbackSettings.stopAtPlayhead) setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: selectionAsSet });
+      if (!playbackSettings.stopAtPlayhead) return;
+      setSelection(null);
+      setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
     },
   });
   /** A note just entered: it sounds, alone, with "Hear notes as you enter them" on and the controls showing. */
@@ -241,6 +244,9 @@ export default function TabPage() {
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
   // A line past the clip's end plays its last column.
   const playFrom = markAt !== null ? Math.min(markAt, count - 1) : (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
+  // "Stop playback at region end" (Jeremy, 2026-10-28): with a region selected, Play stops after its
+  // last column, unless it starts past it. A loop still goes round instead.
+  const playUntil = playbackSettings.stopAtRegionEnd && selectedColumns && playFrom <= selectedColumns[1] ? selectedColumns[1] : null;
   /**
    * A press above or below the staff: the playback line goes there (while playing, playback jumps
    * there), and any selection goes. With Shift, the columns from the line (else the selection's
@@ -315,7 +321,7 @@ export default function TabPage() {
   }, []);
   // While the footer shows, Space anywhere on the page plays and stops (Jeremy, 2026-10-26), but not
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
-  useSpaceKey(() => playback.toggle(playFrom), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
+  useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -1033,7 +1039,7 @@ export default function TabPage() {
           {/* The View options' Size zooms the drawing and everything over it: presses, fields and panels alike. */}
           <div className="relative" style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
             {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (
                 <div
@@ -1069,6 +1075,8 @@ export default function TabPage() {
                 )
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
+            {/* The playhead's and the playback line's lines, over the selection's band. */}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
             {view === 'tab' && editing && picked && clipWidth > 0 && (
               <WordTools
@@ -1101,7 +1109,7 @@ export default function TabPage() {
         {view === 'tab' && (
         <HoverTips>
           <PlaybackFooter
-            clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
+            clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
             shown={showPlayback} onShow={showPlaybackControls}
             sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}

@@ -546,8 +546,12 @@ describe('TabPage playback', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Play' }), { clientX: 40, clientY: 40 });
     const stop = screen.getByRole('menuitemcheckbox', { name: 'Stop leaves the cursor where it stopped' });
     const pause = screen.getByRole('menuitemcheckbox', { name: 'Pause between loops' });
+    const regionEnd = screen.getByRole('menuitemcheckbox', { name: 'Stop playback at region end' });
     expect(stop).toHaveAttribute('aria-checked', 'false');
+    expect(regionEnd).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(stop);
+    fireEvent.click(regionEnd);
+    expect(regionEnd).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(pause);
     // The menu stays open while its options change.
     expect(stop).toHaveAttribute('aria-checked', 'true');
@@ -559,7 +563,7 @@ describe('TabPage playback', () => {
     fireEvent.change(seconds, { target: { value: '2.25' } });
     fireEvent.keyDown(seconds, { key: 'Enter' });
     expect(seconds).toHaveValue('2.3');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, loopPause: true, loopPauseSeconds: 2.3 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.3 });
     expect(within(screen.getByRole('menu', { name: 'Playback options' })).queryByRole('spinbutton', { name: 'Transpose (semitones)' })).toBeNull();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menu', { name: 'Playback options' })).toBeNull();
