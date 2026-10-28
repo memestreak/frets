@@ -454,6 +454,11 @@ export class TabPlayer {
   private readonly fonts = new Set<string>();
   private loop: [number, number] | 'whole' | null = null;
   /**
+   * The last column to play when no loop holds the playhead: "Stop playback at region end" with a
+   * region selected (Jeremy, 2026-10-28). Null plays on to the clip's end.
+   */
+  private until: number | null = null;
+  /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
    */
@@ -510,8 +515,9 @@ export class TabPlayer {
    * Plays the clip from a column.
    * With loop points, playing past the end one goes back to the start one; a start before them
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
+   * With no loop ahead, `until` (a column) is where playback stops: at the end of that column's note.
    */
-  async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound) {
+  async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound, until: number | null = null) {
     await this.loadFont(sound);
     this.endRest();
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
@@ -523,6 +529,7 @@ export class TabPlayer {
     }
     this.setSpeed(speed);
     this.moveTo(tickOf(clip, this.performance, from));
+    this.until = until;
     this.setLoop(loop);
     this.ended = false;
     this.synth.play();
@@ -572,7 +579,18 @@ export class TabPlayer {
       playbackRange.endTick = range.endTick;
       rangeWithoutSeek(this.synth, playbackRange);
     } else {
-      rangeWithoutSeek(this.synth, null);
+      // With no loop, the region's end (when the playhead is before it) stops playback there: the
+      // sequencer stops at a range's end when it isn't looping, as a loop with a rest does.
+      const end = this.until === null || !this.clip || !this.performance ? null
+        : ticksOf(this.clip, this.performance, [this.until, this.until])?.endTick ?? null;
+      if (end !== null && this.synth.tickPosition < end) {
+        const playbackRange = new this.at.synth.PlaybackRange();
+        playbackRange.startTick = 0;
+        playbackRange.endTick = end;
+        rangeWithoutSeek(this.synth, playbackRange);
+      } else {
+        rangeWithoutSeek(this.synth, null);
+      }
     }
   }
 

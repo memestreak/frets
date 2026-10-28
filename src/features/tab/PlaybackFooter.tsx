@@ -43,6 +43,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
     hearNotes: fields.hearNotes === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
+    stopAtRegionEnd: fields.stopAtRegionEnd === true,
     loopPause: fields.loopPause === true,
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
       && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
@@ -59,8 +60,8 @@ export interface Playback {
   bpm: number;
   loop: Loop | null;
   speed: number;
-  /** Plays from `from` (a column), or stops. */
-  toggle: (from: number) => void;
+  /** Plays from `from` (a column), or stops; `until`, a column, stops playback at its end. */
+  toggle: (from: number, until?: number | null) => void;
   /**
    * Loop pressed: with notes selected, the loop points go round them (pressed again on the same
    * notes, they go); with none, round the whole clip, or off when there are some.
@@ -145,14 +146,14 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     bpm: tempoAt(clip, view.column ?? 0),
     loop,
     speed,
-    toggle: from => {
+    toggle: (from, until = null) => {
       if (view.state === 'playing') {
         player.current?.halt();
         if (view.column !== null) onStopAt(view.column);
         return;
       }
       if (view.state === 'loading') return;
-      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound).catch(() => update({ state: 'error' }));
+      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound, until).catch(() => update({ state: 'error' }));
       if (player.current) return start(player.current);
       update({ state: 'loading' });
       playerNow().then(start, () => {
@@ -227,7 +228,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -241,6 +242,8 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   onShow: (shown: boolean) => void;
   /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
+  /** The column a Play stops at the end of, or null to play on: "Stop playback at region end". */
+  until: number | null;
   selection: [number, number] | null;
   /** Whether each note entered sounds, the toggle after Loop. */
   hearNotes: boolean;
@@ -284,7 +287,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space). Right-click for options`}
             disabled={total === 0}
             // A press leaves the focus (and so the cursor) on the tab.
-            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from)}
+            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from, until)}
             onContextMenu={e => {
               e.preventDefault();
               setOptionsAt({ x: e.clientX, y: e.clientY });

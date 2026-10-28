@@ -18,6 +18,11 @@ press outside, scrolling or resizing closes it. Play's tip says
   where it was; the selection goes, since the line moved (Jeremy, 2026-10-28:
   "moving the playhead deselects any selected region"). Off, Stop returns the playhead to the cursor as
   before.
+- **Stop playback at region end** (a checkbox, off by default; Jeremy,
+  2026-10-28). On, with a region selected, Play stops once the region's last
+  column has sounded instead of playing on to the clip's end. A Play that
+  starts past the region plays on, and loop points still go round. Off, or
+  with nothing selected, Play goes to the end as before.
 - **Pause between loops** (a checkbox, off by default) with a seconds field
   beside it (0.5–10 s, steps of 0.5, default 1; the same number field as
   Speed: type, ↑ ↓, the arrows, or press and drag). On, when the loop reaches
