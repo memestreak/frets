@@ -87,7 +87,12 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
     if (carry) {
       parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look} />);
     } else if (note.bend) {
-      parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+      // A tied note bent with no number of its own (after a grace note) bends from the note it is tied
+      // from, its arrow rising right by that number as the book prints bars 131 and 132.
+      const from = !shown && note.tie && !note.bend.pre && before && before.system === system ? fromX : undefined;
+      parts.push(
+        <BendDrawing key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} from={from} y={y} staffTop={rows.staffTop} look={look} />,
+      );
     }
     if (note.slideOut) {
       // A short line away from the number, down or up, to no fret in particular.
@@ -157,12 +162,14 @@ function BendCarry({ carry, fromX, x, y, staffTop, look }: {
 
 /**
  * A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend.
- * `line` is the label's line in a stacked pair (`bendLabelLines`), -1 for none.
+ * `line` is the label's line in a stacked pair (`bendLabelLines`), -1 for none. With `from`, the arrow
+ * rises by the number there instead, and a held bend's dashed line runs on over the note at `x`.
  */
-function BendDrawing({ bend, line, x, y, staffTop, look }: {
-  bend: Bend; line: number; x: number; y: number; staffTop: number; look: TabLook;
+function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
+  bend: Bend; line: number; x: number; from?: number; y: number; staffTop: number; look: TabLook;
 }) {
   const top = staffTop - BEND_RISE;
+  const x = from ?? noteX;
   const head = (tx: number, ty: number, down = false) => (
     <path d={down ? `M${tx - 4} ${ty - 7} L${tx} ${ty} L${tx + 4} ${ty - 7}` : `M${tx - 4} ${ty + 7} L${tx} ${ty} L${tx + 4} ${ty + 7}`} fill={look.ink} />
   );
@@ -191,6 +198,7 @@ function BendDrawing({ bend, line, x, y, staffTop, look }: {
       {head(x + 14, top)}
       {bend.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${y - 8}`} />}
       {bend.release && head(x + 24, y - 8, true)}
+      {!bend.release && from !== undefined && <line x1={x + 18} x2={noteX + 14} y1={top} y2={top} strokeDasharray="4 3" />}
       {label}
     </g>
   );

@@ -21,6 +21,12 @@ once, bends held over the bar line into double stops, quarter-step bends and dea
   endings, chord names, text, then the wah, nearest the music; nothing over the chord names is a mark
   on the notes.
 
+- **A bend after a grace note starts at the grace note's number.** A tied note that bends up after a
+  grace note has no number of its own (round 5), so its arrow rose from the string at its own column,
+  far from the number it bends (bars 131–133). Jeremy, 2026-10-28: a bend's arrow always starts close
+  to its note. It now rises right by the grace note's number, as the book prints it, and a held bend's
+  dashed line runs on over the tied note.
+
 Everything else on the page Frets already draws: the wah's signs (round 6), grace notes bent up and
 let down, held bends over tied notes and the bar line, a pre-bend, quarter-step bends, dead notes in
 pairs, hammer-on and pull-off runs, vibrato and accents.

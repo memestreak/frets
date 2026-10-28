@@ -9,7 +9,8 @@
  * (docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md): every tuplet is bracketed, a let-down
  * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
  * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
- * their heights' labels, and the wah's row goes under the chord names.
+ * their heights' labels, the wah's row goes under the chord names, and a bend after a grace note rises
+ * by the grace note's number.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -213,5 +214,17 @@ describe('two strings bent at once (round 7, the book\'s bar 132)', () => {
 
   it('label one height once when both strings bend as far', () => {
     expect(labelsOf('\\ts (4 4)\n(15.1{b (0 4)} 15.2{b (0 4)}).4 r.4 r.2 |\n', 'tab').map(([text]) => text)).toEqual(['full']);
+  });
+});
+
+describe('a tied note bent up after a grace note, with no number of its own (round 7)', () => {
+  it('bends from the grace note\'s number, its dashed line running on over the tied note', () => {
+    const text = '\\ts (4 4)\n17.2.8{gr} -.2{b (0 4)}.4 r.4 r.2 |\n';
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Grace bend" />);
+    const grace = Number(container.querySelector('[data-testid="grace"]')!.getAttribute('x'));
+    const bend = container.querySelector('[data-testid="bend"] path')!.getAttribute('d')!;
+    const start = Number(/^M([\d.]+)/.exec(bend)![1]);
+    expect(start - grace).toBeLessThan(10);
+    expect(container.querySelector('[data-testid="bend"] line[stroke-dasharray]')).not.toBeNull();
   });
 });
