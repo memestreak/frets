@@ -94,6 +94,19 @@ While the clip plays, a playhead (a line and a soft band) marks the column
 sounding. It is drawn under the notes, so it tints the paper and not the
 numbers. Any edit stops playback, so the next Play plays what is drawn.
 
+The playhead's line glides (issue #167, Jeremy, 2026-10-28: "move
+continuously instead of jump"): it moves through each note's room as the
+note sounds, reaching the next column on the line as that note starts, and
+past a line's last column to the end of its room. The band stays on the
+column sounding. The line follows what is heard, not what the synthesizer
+has worked out ahead: `TabPlayer.heardPosition` takes the synthesizer's last
+position, less the audio queued ahead of the speakers (`aheadMs`), and moves
+it on at the tempo times the speed. It is read once a frame, and the line
+eases toward each new position over about 150 ms rather than jumping to it,
+so its speed stays steady; more than 300 ms off (a seek, the loop coming
+round) it jumps. Only the playhead draws each frame; the page draws again
+only when the column sounding changes.
+
 ## How it works
 
 `playback.ts`:

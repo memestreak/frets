@@ -73,6 +73,8 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   /** Between the node and the speakers, so Stop can fade the sound out. */
   private gain: GainNode | null = null;
   private samples = new SampleQueue();
+  /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
+  private lastBlock: { playbackTime: number; seconds: number } | null = null;
   /** Requests made and not yet answered by `addSamples`. */
   private pending = 0;
   /** How many samples (both channels) to keep ready. */
@@ -98,7 +100,7 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.resetSamples();
     const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
     const gain = context.createGain();
-    node.onaudioprocess = e => this.fill(e.outputBuffer);
+    node.onaudioprocess = e => this.fill(e.outputBuffer, e.playbackTime);
     node.connect(gain).connect(context.destination);
     this.node = node;
     this.gain = gain;
@@ -187,8 +189,21 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     }
   }
 
-  private fill(buffer: AudioBuffer) {
+  /**
+   * How far, in milliseconds, the synthesizer's position is ahead of what is heard now. It counts a
+   * block of samples as played once handed over, but the block sounds a little later and over its
+   * own length, and the speakers add their own delay.
+   */
+  aheadMs(): number {
+    const context = this.context;
+    if (!context || !this.lastBlock) return 0;
+    const delay = context.outputLatency || context.baseLatency || 0;
+    return (this.lastBlock.playbackTime + this.lastBlock.seconds - context.currentTime + delay) * 1000;
+  }
+
+  private fill(buffer: AudioBuffer, playbackTime: number) {
     const frames = this.samples.drainInto(buffer.getChannelData(0), buffer.getChannelData(1));
+    this.lastBlock = { playbackTime, seconds: frames / buffer.sampleRate };
     this.samplesPlayed.trigger(frames);
     this.request();
   }
