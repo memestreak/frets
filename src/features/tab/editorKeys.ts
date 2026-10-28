@@ -197,19 +197,14 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   }
   if (key === 'Escape') {
     handled();
-    // A selection goes, the cursor on its last column (Jeremy, 2026-10-28), and the tab lets the keys
-    // go, so nothing stays drawn (Jeremy, 2026-10-28: no box round the column).
+    // Esc leaves the tab, so nothing stays drawn: no box round the note or its column (Jeremy, 2026-10-28).
+    // A selection goes first, the cursor on its last column.
     if (selection) {
       const end = placeOf(clip, selectedRange(selection)[1]);
       commit(clip, { ...cursor, bar: end.bar, column: end.column }, null);
-      editor.dropLine();
-      editor.leave();
-      return;
     }
     editor.dropLine();
-    // On a string, Esc first drops the string and keeps the column (Jeremy, 2026-10-27); then it leaves the tab.
-    if (!columnOnly && columnAt(clip, cursor)) editor.setColumnOnly(true);
-    else editor.leave();
+    editor.leave();
     return;
   }
   // B (the bend's shape) and / (the slide's kind) step one string's note; with none picked they do nothing.
