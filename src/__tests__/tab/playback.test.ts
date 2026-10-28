@@ -25,6 +25,17 @@ function programsOf(midi: alphaTab.midi.MidiFile): number[] {
     .map(e => (e as alphaTab.midi.ProgramChangeEvent).program);
 }
 
+function noteOns(midi: alphaTab.midi.MidiFile): alphaTab.midi.NoteOnEvent[] {
+  return midi.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent);
+}
+
+/** The pitch bends on one MIDI channel, which bend only the notes sounding on it. */
+function pitchBendsOn(midi: alphaTab.midi.MidiFile, channel: number): alphaTab.midi.PitchBendEvent[] {
+  return midi.events
+    .filter((e): e is alphaTab.midi.PitchBendEvent => e.type === alphaTab.midi.MidiEventType.PitchBend)
+    .filter(e => e.channel === channel);
+}
+
 describe('playback sounds', () => {
   it('offers only the sounds with a soundfont of their own', () => {
     const programs = SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program));
@@ -124,17 +135,39 @@ describe('playback', () => {
     expect(lastTick).toBe(played.endTick + 2 * Q);
   });
 
-  it('keeps a note reached by a legato slide at its pitch under vibrato, tied notes too', () => {
+  it('keeps a note reached by a legato slide at its pitch under a vibrato it hears, tied notes too', () => {
     // alphaTab's vibrato wobbles round the pitch the slide left, so the 12 sounded as the 14.
     const clip = clipOf('14.1.4 15.1.16 14.1{sl}.16 12.1{v}.8 -.1{v}.4{d} 15.1.8 |');
     const played = perform(alphaTab, clip);
     const [from, to] = [tickOf(clip, played, 3), tickOf(clip, played, 5)];
-    const bends = played.midi.events
-      .filter((e): e is alphaTab.midi.PitchBendEvent => e.type === alphaTab.midi.MidiEventType.PitchBend)
+    const bends = pitchBendsOn(played.midi, noteOns(played.midi)[0].channel)
       .filter(e => e.tick >= from && e.tick < to);
     expect(bends.length).toBeGreaterThan(10);
     // Two semitones down is 8192 - 1024; the vibrato wobbles a little either side of it.
     for (const e of bends) expect(Math.abs(e.value - (8192 - 1024))).toBeLessThan(200);
+    // ...and does wobble, on the channel the note sounds on.
+    const values = bends.map(e => e.value);
+    expect(Math.max(...values) - Math.min(...values)).toBeGreaterThan(50);
+  });
+
+  it.each([
+    ['back to the fret it started on', '12.3{sl}.16 14.3{sl}.16 12.3{b (0 2)}.16 -.3{b (2 2)}.16 r.2{d} |', 0],
+    ['on to a third fret', '12.3{sl}.16 14.3{sl}.16 15.3{b (0 2)}.16 -.3{b (2 2)}.16 r.2{d} |', 3],
+  ])('bends a note reached by a run of legato slides from its own pitch: %s', (_, text, semitones) => {
+    // alphaTab plays a whole run of legato slides on its first, picked note's MIDI key, so the
+    // bent note is moved from that fret, not from the one just left (Hey Joe's 12 sl 14 sl 12 bent F).
+    const clip = clipOf(text);
+    const played = perform(alphaTab, clip);
+    const [from, to] = [tickOf(clip, played, 2), tickOf(clip, played, 4)];
+    // One picked G, which the slides and the bend move; the bend goes on the channel it sounds on,
+    // not on alphaTab's second channel for bent notes, where nothing sounds.
+    const ons = noteOns(played.midi);
+    expect(ons.map(e => e.noteKey)).toEqual([67]);
+    const sounded = pitchBendsOn(played.midi, ons[0].channel)
+      .filter(e => e.tick >= from && e.tick < to)
+      .map(e => (e.value - 8192) / 512);
+    expect(Math.min(...sounded)).toBeCloseTo(semitones, 0);
+    expect(Math.max(...sounded)).toBeCloseTo(semitones + 1, 0);
   });
 
   it('gives a loop the ticks from its first column to the end of its last', () => {

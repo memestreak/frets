@@ -131,16 +131,37 @@ export function midiUntil(at: AlphaTab, performance: Performance, end: number): 
 /** alphaTab's pitch-bend range: 16 semitones either way of 8192 (the RPN it sends at the start). */
 const BEND_PER_SEMITONE = 8192 / 16;
 
+/** A note reached by a legato slide (and the notes tied to it). */
+interface Span {
+  /** The ticks it sounds. */
+  start: number;
+  end: number;
+  /** The MIDI channel alphaTab writes its pitch bends on, and the one its run's note sounds on. */
+  channel: number;
+  to: number;
+  /** How far its pitch bends are moved: from the fret of the run's MIDI key to its own. */
+  by: number;
+  /** The slide's last step, which alphaTab writes at the note's start from the fret just left. */
+  step: number;
+}
+
 /**
- * A legato slide reaches its note by bending the note it left, and alphaTab's vibrato on the note
- * reached (and the notes tied to it) then wobbles round the unbent pitch: the slide's 12 sounded as
- * its 14 (Jeremy, 2026-10-28). Those pitch bends are moved by the slide, so the note keeps its pitch.
+ * A legato slide reaches its note by bending the note it left, so a run of legato slides sounds on
+ * the MIDI key and channel of its first, picked note. alphaTab writes the pitch bends of a note the
+ * run reaches (its own bend or vibrato, and the notes tied to it) as if it had a key of its own:
+ * - from its own fret, so its vibrato wobbled round the pitch the slide left (the slide's 12 sounded
+ *   as its 14, Jeremy, 2026-10-28);
+ * - on the channel it would be picked on, which is alphaTab's second one for a note with a bend or
+ *   vibrato, where nothing sounds, so 12 sl 14 sl 12 bent half a step never bent (Jeremy, 2026-10-28).
+ * Those pitch bends are moved to the run's key and channel, so the note sounds as written.
  */
 function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
-  const spans: { start: number; end: number; by: number }[] = [];
+  const spans: Span[] = [];
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  // Each string's picked note sounding (the start of a run of legato slides): its fret and channel.
+  const sounding: ({ fret: number; channel: number } | null)[] = Array(STRING_COUNT).fill(null);
   // Each string's slide still sounding: the span it covers so far.
-  const open: ({ start: number; end: number; by: number } | null)[] = Array(STRING_COUNT).fill(null);
+  const open: (Span | null)[] = Array(STRING_COUNT).fill(null);
   let index = 0;
   for (const bar of clip.bars) {
     for (const column of bar.columns) {
@@ -156,8 +177,24 @@ function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
           return;
         }
         open[s] = null;
-        if (note.slide !== 'legato' || before?.fret == null || note.fret === null || note.fret === before.fret) return;
-        const span = { start, end, by: (note.fret - before.fret) * BEND_PER_SEMITONE };
+        // alphaTab numbers strings from the highest, 1 up.
+        const played = beat?.notes.find(n => n.string === STRING_COUNT - s);
+        if (!played || note.fret === null) return;
+        const slid = note.slide === 'legato' && before?.fret != null && note.fret !== before.fret;
+        if (!slid) {
+          // A tie sounds on what it is tied to; any other note is picked on a key of its own.
+          if (!note.tie) sounding[s] = { fret: note.fret, channel: channelOf(at, played) };
+          return;
+        }
+        const run = sounding[s] ?? { fret: before.fret!, channel: channelOf(at, played) };
+        const span = {
+          start,
+          end,
+          channel: channelOf(at, played),
+          to: run.channel,
+          by: (note.fret - run.fret) * BEND_PER_SEMITONE,
+          step: (note.fret - before.fret!) * BEND_PER_SEMITONE,
+        };
         spans.push(span);
         open[s] = span;
       });
@@ -169,10 +206,32 @@ function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
     if (event.type !== at.midi.MidiEventType.PitchBend) continue;
     const bend = event as AlphaTabModule.midi.PitchBendEvent;
     const span = spans.find(sp => bend.tick >= sp.start && bend.tick < sp.end);
-    // The slide's own last step already stands at the note reached.
-    if (!span || bend.value === 8192 + span.by) continue;
-    bend.value = Math.max(0, Math.min(16383, bend.value + span.by));
+    if (!span) continue;
+    if (bend.channel === span.to && bend.tick === span.start && bend.value === 8192 + span.step) {
+      // The slide's own last step, landing on the note reached.
+      bend.value = 8192 + span.by;
+    } else if (bend.channel === span.channel) {
+      bend.value = Math.max(0, Math.min(16383, bend.value + span.by));
+      bend.channel = span.to;
+    }
   }
+}
+
+/**
+ * The MIDI channel alphaTab plays a note on (its MidiFileGenerator's `_determineChannel`): the
+ * track's second channel for a note, or a note tied to it, with a bend, whammy bar or vibrato.
+ */
+function channelOf(at: AlphaTab, note: AlphaTabModule.model.Note): number {
+  const { primaryChannel, secondaryChannel } = note.beat.voice.bar.staff.track.playbackInfo;
+  const needsSecond = (n: AlphaTabModule.model.Note) =>
+    n.hasBend || n.beat.hasWhammyBar || n.beat.vibrato !== at.model.VibratoType.None;
+  for (let n: AlphaTabModule.model.Note | null = note; n; n = n.isTieDestination ? n.tieOrigin : null) {
+    if (needsSecond(n)) return secondaryChannel;
+  }
+  for (let n: AlphaTabModule.model.Note | null = note; n; n = n.isTieOrigin ? n.tieDestination : null) {
+    if (needsSecond(n)) return secondaryChannel;
+  }
+  return primaryChannel;
 }
 
 /** How long a column heard on its own sounds: a quarter note at 120 bpm, before it rings out. */
