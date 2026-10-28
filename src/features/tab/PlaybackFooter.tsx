@@ -380,8 +380,8 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
   markOnly?: boolean;
   /**
-   * Drawn twice: `under` the tab, the playhead's band and the loop bracket, so the band tints the
-   * paper, not the numbers; `over` it, the lines, so a selection's band never hides them (Jeremy, 2026-10-28).
+   * Drawn twice: `under` the tab, the loop bracket; `over` it, the lines, so a selection's band never
+   * hides them (Jeremy, 2026-10-28).
    */
   layer: 'under' | 'over';
 }) {
@@ -425,18 +425,17 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
     const head = at < 0 ? undefined : cols[at];
     if (head && heard) {
       // The line glides through the note's room as it sounds, to the next note's on the same line
-      // (issue #167); the band stays on the note.
+      // (issue #167); it is all playback draws, with no band on the note (Jeremy, 2026-10-28).
       const next = cols[at + 1];
       const x = head.start + heard.through * ((next ? next.start : head.start + head.width) - head.start);
-      out.push(
-        under
-          ? <rect key={`head-${si}`} data-testid="playhead-band" x={head.start} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
-          : (
-            <g key={`head-${si}`} data-testid="playhead">
-              <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
-            </g>
-          ),
-      );
+      if (!under) {
+        out.push(
+          <line
+            key={`head-${si}`} data-testid="playhead" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}
+            stroke="var(--primary)" strokeWidth={2}
+          />,
+        );
+      }
     }
   });
   return (

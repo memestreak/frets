@@ -88,8 +88,6 @@ export default function TabPage() {
    * null and hands them back. With the staff alone it is always there.
    */
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
-  /** The staff cursor's pitch while it has the keys: never with the tab alone. */
-  const staffCursor = parts !== 'tab' ? staffPitch : null;
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
@@ -141,10 +139,17 @@ export default function TabPage() {
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
+  const quietBlur = useRef(false);
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   const lastDigit = useRef<LastDigit>(null);
   // An undo can take away the columns the cursor or the selection were on.
   const cursor = clampCursor(clip, cursorAsSet);
+  /**
+   * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
+   * always there but in a selection; after one, on the middle line until a key or press moves it.
+   */
+  const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && editing && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
   /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
   const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
   const paletteKinds = lit ? cursorKinds : {
@@ -239,14 +244,29 @@ export default function TabPage() {
       const anchor = selection?.anchor ?? (editing && columnAt(clip, cursor) ? indexOf(clip, cursor.bar, cursor.column) : null);
       if (anchor !== null) {
         setSelection({ anchor, focus: gap > anchor ? gap - 1 : gap });
+        startRegion();
         return;
       }
     }
-    const index = Math.min(gap, count);
+    let index = Math.min(gap, count);
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
+    // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
+    let left = clip;
+    if (editing) {
+      // Leaving fills the cursor's bar (as `onEditorBlur` would), but not while playing, as an edit stops playback;
+      // a line past that bar moves on by the rests added.
+      const playing = playback.view.state === 'playing';
+      left = playing ? clip : fillBar(clip, cursor.bar);
+      const barEnd = clip.bars.slice(0, cursor.bar + 1).reduce((n, b) => n + b.columns.length, 0);
+      if (gap >= barEnd) index += columnCount(left) - count;
+      if (left !== clip) dispatch({ type: 'replace', clip: left });
+      quietBlur.current = true;
+      editorRef.current?.blur();
+      quietBlur.current = false;
+    }
     if (playback.seek(index)) return;
-    setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
+    setPlayMark({ index, clip: left, cursor: cursorAsSet, selection: null });
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
   const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip, cursor: cursorAsSet, selection: null });
@@ -410,9 +430,18 @@ export default function TabPage() {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, lastDigit,
-    commit, toPitch, setColumnOnly, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
+    commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
+
+  /**
+   * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
+   * string is picked and the staff's cursor goes, as after Esc, so nothing stays lit when the run does.
+   */
+  const startRegion = () => {
+    setColumnOnly(true);
+    setStaffPitch(null);
+  };
 
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
@@ -422,6 +451,7 @@ export default function TabPage() {
     if (extend && hasColumn && columnAt(clip, cursor)) {
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
       commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      startRegion();
     } else {
       // A press in another bar leaves the cursor's bar, which fills up; the rests go after its last
       // column, so the bar pressed keeps its columns.
@@ -454,7 +484,8 @@ export default function TabPage() {
     const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
     if (extend && clip.bars[hit.bar].columns.length > 0 && columnAt(clip, cursor)) {
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      toPitch(clip, at, pitch, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      commit(clip, at, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      startRegion();
       return;
     }
     const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
@@ -470,6 +501,8 @@ export default function TabPage() {
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
+    // Placing the playback line has filled the bar already, or left it alone while playing.
+    if (quietBlur.current) return;
     const to = e.relatedTarget;
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;
@@ -630,7 +663,7 @@ export default function TabPage() {
               {example && exampleNote}
             </>}
           <div className="relative">
-            {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
+            {/* Under the editor: the loop bracket. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (

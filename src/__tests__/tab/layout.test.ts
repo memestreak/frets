@@ -1,5 +1,5 @@
 import { readAscii } from '@/features/tab/ascii';
-import { columnWidth, layoutClip, rowsFor } from '@/features/tab/layout';
+import { columnWidth, layoutClip, rowsFor, stepY } from '@/features/tab/layout';
 import { boundaryAt, columnAt, hitTest, staffAt } from '@/features/tab/hitTest';
 import { textAt } from '@/features/tab/layoutText';
 import { runAt } from '@/features/tab/runs';
@@ -138,12 +138,16 @@ describe('pressing the drawing', () => {
   });
 
   it('in Both, leaves the gap between the staff and the tab to the playback line', () => {
-    const both = layoutClip(clipOf('0.6.4 2.6.4 |'), 800, 'both');
+    const both = layoutClip(clipOf('0.1.4 2.1.4 |'), 800, 'both');
     const x = both.systems[0].bars[0].columns[0].x;
     const gap = (both.rows.score!.bottom + both.rows.staffTop) / 2;
     expect(staffAt(both, x, gap)).toBeNull();
     expect(hitTest(both, x, gap)).toBeNull();
     expect(columnAt(both, x, gap)).toBe(0);
+    // But a head drawn down there, on ledger lines (the open low E), is still pressed (Jeremy, 2026-10-28).
+    const low = layoutClip(clipOf('0.6.4 2.6.4 |'), 800, 'both');
+    const head = low.systems[0].bars[0].columns[0].heads[0];
+    expect(staffAt(low, x, stepY(low.rows.score!, head.step))).toMatchObject({ bar: 0, column: 0, string: 5 });
   });
 
   it('finds the P.M. run under a press on its label or line', () => {

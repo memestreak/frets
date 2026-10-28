@@ -37,6 +37,8 @@ export interface EditorKeys {
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
   toPitch: (next: Clip, at: Cursor, pitch: number, selection: Selection | null) => void;
   setColumnOnly: (columnOnly: boolean) => void;
+  /** A selection starts: the string and the staff's cursor let go. */
+  startRegion: () => void;
   setPicked: (picked: null) => void;
   deletePicked: (hit: WordHit | MarkHit) => void;
   editPicked: (hit: WordHit) => void;
@@ -101,6 +103,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       e.preventDefault();
       const last = placeOfLast(clip);
       commit(clip, { ...cursor, ...last }, { anchor: 0, focus: count - 1 });
+      editor.startRegion();
     }
     // Copy, cut and paste arrive as clipboard events; undo is the page's.
     return;
@@ -134,7 +137,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     // With no string picked, ↑ ↓ pick back the string the cursor was last on.
     const string = columnOnly ? cursor.string : Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
-    commit(clip, { ...cursor, string });
+    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
+    commit(clip, { ...cursor, string }, null);
     editor.setColumnOnly(false);
     return;
   }
@@ -146,6 +150,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       const moved = moveColumn(clip, cursor, step, false).cursor;
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
       commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
+      editor.startRegion();
     } else {
       const moved = moveColumn(clip, cursor, step);
       commit(moved.clip, moved.cursor, null);
@@ -186,11 +191,13 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   }
   if (key === 'Escape') {
     handled();
-    // A selection goes first, leaving the cursor on its last column (Jeremy, 2026-10-28).
+    // A selection goes, the cursor on its last column (Jeremy, 2026-10-28), and the tab lets the keys
+    // go, so nothing stays drawn (Jeremy, 2026-10-28: no box round the column).
     if (selection) {
       const end = placeOf(clip, selectedRange(selection)[1]);
       commit(clip, { ...cursor, bar: end.bar, column: end.column }, null);
       editor.dropLine();
+      editor.leave();
       return;
     }
     editor.dropLine();
@@ -232,12 +239,13 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
       const moved = moveToString(clip, cursor, pitch, key === 'ArrowUp' ? -1 : 1);
       toPitch(moved.clip, cursor, pitch, selection);
     } else {
-      toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), selection);
+      // Moving the cursor lets any selection go (Jeremy, 2026-10-28); Alt's move above is an edit and keeps it.
+      toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), null);
     }
     return true;
   }
   if ((key === '#' || key === 'b') && !e.altKey) {
-    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), selection);
+    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), null);
     return true;
   }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {

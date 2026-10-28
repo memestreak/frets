@@ -64,14 +64,16 @@ export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
   const system = layout.systems[Math.floor(y / rows.height)];
   if (!score || !system || y < 0) return null;
   const localY = y - Math.floor(y / rows.height) * rows.height;
-  const step = Math.round((score.bottom - localY) / (SPACE / 2));
-  const below = rows.tab ? STAFF_PRESS_STEPS_OVER_TAB : STAFF_PRESS_STEPS;
-  if (step < -below || step > 8 + STAFF_PRESS_STEPS) return null;
+  // A drawn head is pressed wherever it is, on ledger lines far under the staff too (Jeremy, 2026-10-28):
+  // the gap left for the playback line is only the blank space there.
   const head = staffHeadAt(system, score, x, localY);
   if (head) {
     const placed = system.bars.find(b => b.index === head.bar)!.columns[head.column];
     return { bar: head.bar, column: head.column, step: placed.heads.find(h => h.string === head.string)!.step, string: head.string };
   }
+  const step = Math.round((score.bottom - localY) / (SPACE / 2));
+  const below = rows.tab ? STAFF_PRESS_STEPS_OVER_TAB : STAFF_PRESS_STEPS;
+  if (step < -below || step > 8 + STAFF_PRESS_STEPS) return null;
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
   if (!bar) return null;
   let column = 0;

@@ -310,6 +310,33 @@ describe('TabPage', () => {
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     });
 
+    it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7');
+      const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
+      expect(band()).toBeNull();
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      // With no string picked, a box round the whole column, still no band.
+      keys('Escape');
+      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      expect(band()).toBeNull();
+      keys({ key: 'ArrowLeft', shiftKey: true });
+      expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+      // Starting it let the note go: no box follows the cursor through it, and none is picked after.
+      expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
+      keys('ArrowRight');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      // Moving the cursor, any way, lets the selection go.
+      keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowRight');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+    });
+
     it('marks notes and columns from the keys and from the palette', () => {
       renderAt();
       act(() => editor().focus());
@@ -434,16 +461,14 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 r.4 |');
     });
 
-    it('Esc first drops a selection and leaves the cursor on its last column', () => {
+    it('Esc drops a selection and leaves the tab, with nothing drawn', () => {
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
       keys('Escape');
       expect(screen.queryByTestId('tab-selection')).toBeNull();
-      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
-      // The cursor is on the selection's last column, where the 9 was.
-      keys('3');
-      expect(alphaTex()).toBe('5.1.4 7.1.4 3.1.4 r.4 |');
+      expect(screen.queryByTestId('tab-cursor')).toBeNull();
+      expect(editor()).not.toHaveFocus();
     });
 
     it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
@@ -708,6 +733,23 @@ describe('TabPage playback', () => {
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     // → moves it, Esc drops it.
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByTestId('play-mark')).toBeNull();
+  });
+
+  it('lets the tab cursor go when the line is placed, filling its bar', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    expect(editor).not.toHaveFocus();
+    // The keys now move the line, and Esc drops it.
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: 'Escape' });
