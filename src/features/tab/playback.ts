@@ -9,7 +9,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writeAlphaTex } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import type { Clip } from './clip';
+import { STRING_COUNT, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -112,7 +112,56 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   // The synthesizer stops dead at the MIDI's last event, cutting the last note off with a click
   // (Jeremy, 2026-10-26: "a glitch at the end of playback"). An event a little later lets it ring.
   midi.addEvent(new at.midi.EndOfTrackEvent(0, endTick + RING_OUT_TICKS));
-  return { score, midi, lookup: generator.tickLookup, shift, endTick };
+  const performance = { score, midi, lookup: generator.tickLookup, shift, endTick };
+  keepSlidPitch(at, clip, performance);
+  return performance;
+}
+
+/** alphaTab's pitch-bend range: 16 semitones either way of 8192 (the RPN it sends at the start). */
+const BEND_PER_SEMITONE = 8192 / 16;
+
+/**
+ * A legato slide reaches its note by bending the note it left, and alphaTab's vibrato on the note
+ * reached (and the notes tied to it) then wobbles round the unbent pitch: the slide's 12 sounded as
+ * its 14 (Jeremy, 2026-10-28). Those pitch bends are moved by the slide, so the note keeps its pitch.
+ */
+function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
+  const spans: { start: number; end: number; by: number }[] = [];
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  // Each string's slide still sounding: the span it covers so far.
+  const open: ({ start: number; end: number; by: number } | null)[] = Array(STRING_COUNT).fill(null);
+  let index = 0;
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      const start = tickOf(clip, performance, index);
+      const beat = beatOf(performance, clip, index);
+      const end = start + (beat?.playbackDuration ?? 0);
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        const before = last[s];
+        last[s] = note;
+        if (note.tie && open[s]) {
+          open[s]!.end = end;
+          return;
+        }
+        open[s] = null;
+        if (note.slide !== 'legato' || before?.fret == null || note.fret === null || note.fret === before.fret) return;
+        const span = { start, end, by: (note.fret - before.fret) * BEND_PER_SEMITONE };
+        spans.push(span);
+        open[s] = span;
+      });
+      index++;
+    }
+  }
+  if (spans.length === 0) return;
+  for (const event of performance.midi.events) {
+    if (event.type !== at.midi.MidiEventType.PitchBend) continue;
+    const bend = event as AlphaTabModule.midi.PitchBendEvent;
+    const span = spans.find(sp => bend.tick >= sp.start && bend.tick < sp.end);
+    // The slide's own last step already stands at the note reached.
+    if (!span || bend.value === 8192 + span.by) continue;
+    bend.value = Math.max(0, Math.min(16383, bend.value + span.by));
+  }
 }
 
 /** How long a column heard on its own sounds: a quarter note at 120 bpm, before it rings out. */

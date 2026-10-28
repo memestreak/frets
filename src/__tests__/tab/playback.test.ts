@@ -124,6 +124,19 @@ describe('playback', () => {
     expect(lastTick).toBe(played.endTick + 2 * Q);
   });
 
+  it('keeps a note reached by a legato slide at its pitch under vibrato, tied notes too', () => {
+    // alphaTab's vibrato wobbles round the pitch the slide left, so the 12 sounded as the 14.
+    const clip = clipOf('14.1.4 15.1.16 14.1{sl}.16 12.1{v}.8 -.1{v}.4{d} 15.1.8 |');
+    const played = perform(alphaTab, clip);
+    const [from, to] = [tickOf(clip, played, 3), tickOf(clip, played, 5)];
+    const bends = played.midi.events
+      .filter((e): e is alphaTab.midi.PitchBendEvent => e.type === alphaTab.midi.MidiEventType.PitchBend)
+      .filter(e => e.tick >= from && e.tick < to);
+    expect(bends.length).toBeGreaterThan(10);
+    // Two semitones down is 8192 - 1024; the vibrato wobbles a little either side of it.
+    for (const e of bends) expect(Math.abs(e.value - (8192 - 1024))).toBeLessThan(200);
+  });
+
   it('gives a loop the ticks from its first column to the end of its last', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     expect(ticksOf(clip, perform(alphaTab, clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });
