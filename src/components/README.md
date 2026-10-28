@@ -7,8 +7,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords`, the Tuner
-  `/tuner`. Tab, `/tab`, is still being built: reachable by its URL only,
-  it is in no menu and has no home page card yet.
+  `/tuner`, the Tab editor `/tab`.
 - `src/components/sections.ts` — the app's map: the two groups, Tools and
   Practice, each with its pages (href, title, summary). A group is not a
   path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home

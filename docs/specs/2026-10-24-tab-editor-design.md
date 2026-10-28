@@ -253,7 +253,8 @@ screenshots, through an agent, on PR 1's preview.
 Each its own PR; this spec and `tab-ascii.txt` ride in the first (PR #90).
 
 1. **View:** the `/tab` page, by URL only (Jeremy, 2026-10-25: no Tools
-   entry or home card while it is still baking); `tab-ascii.txt`;
+   entry or home card while it is still baking; listed under Tools, last,
+   with a tab-staff icon, on 2026-10-28, issue #198); `tab-ascii.txt`;
    reading and writing ASCII; import (dialog, paste, drop, link) with undo;
    drawing everything the format carries, the
    Tab | ASCII switch; Copy and Download ASCII; storage.

@@ -4,8 +4,8 @@
 
 Guitar fretboard app whose pages fall in two groups
 (`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools (the Scale lab,
-Triads, the Circle of fifths, Chords, the Tuner) and Practice (the Interval
-and Note trainers). Tab, `/tab`, is still being built and is in no menu yet.
+Triads, the Circle of fifths, Chords, the Tuner, Tab) and Practice (the
+Interval and Note trainers).
 Next.js 16 App Router with static export (`out/`), React 19, TypeScript
 strict, Tailwind 4, Vitest, tonal (pinned to 6.4.3: 6.5.0 can't be imported
 under Node).

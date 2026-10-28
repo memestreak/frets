@@ -24,6 +24,21 @@ const PENTATONIC: readonly [number, number, Degree][] = [
   [38, 31, 'fifth'], [78, 31, 'seventh'], [38, 20, 'root'], [78, 20, 'third'],
 ];
 
+/** A fret number on a tab line, on a patch of board that breaks the line behind it. */
+function TabNumber({ x, y, n }: { x: number; y: number; n: number }) {
+  return (
+    <>
+      <rect x={x - 6} y={y - 6} width="12" height="12" fill="var(--fretboard)" />
+      <text
+        x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="700"
+        fill="var(--string)" fontFamily="var(--font-sans)"
+      >
+        {n}
+      </text>
+    </>
+  );
+}
+
 /** The i-th of twelve points round the circle, clockwise from the top, rounded so server and client agree. */
 function onCircle(i: number) {
   const a = (i * 30 - 90) * (Math.PI / 180);
@@ -112,6 +127,23 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       <path d="M43.6 36.3 A36 36 0 0 1 52.4 36.3" fill="none" stroke="var(--degree-fifth)" strokeWidth="8" />
       <line x1="48" y1="72" x2="40.5" y2="41.9" stroke="var(--degree-root)" strokeWidth="4" strokeLinecap="round" />
       <circle cx="48" cy="72" r="6" fill="var(--nut)" />
+    </>
+  ),
+  '/tab': (
+    <>
+      {/* A tab staff: T A B stacked at its opening line, then a three-note run. */}
+      <g stroke="var(--string)" strokeWidth="1.5">
+        {[24, 34, 44, 54, 64, 74].map(y => <line key={y} x1="26" y1={y} x2="84" y2={y} />)}
+      </g>
+      <line x1="26" y1="24" x2="26" y2="74" stroke="var(--nut)" strokeWidth="2" />
+      <g textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="700" fill="var(--nut)" fontFamily="var(--font-sans)">
+        <text x="17" y="34">T</text>
+        <text x="17" y="49">A</text>
+        <text x="17" y="64">B</text>
+      </g>
+      <TabNumber x={44} y={54} n={5} />
+      <TabNumber x={60} y={44} n={7} />
+      <TabNumber x={76} y={34} n={8} />
     </>
   ),
 };

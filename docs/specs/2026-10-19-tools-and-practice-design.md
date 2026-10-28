@@ -14,7 +14,7 @@ Tools, everything else.
 
 | Group | Pages |
 | --- | --- |
-| Tools | Scale lab, Chords, Triads, Circle of fifths, Tuner |
+| Tools | Scale lab, Chords, Triads, Circle of fifths, Tuner, Tab |
 | Practice | Interval trainer, Note trainer |
 
 - `sections.ts` holds the two groups, Tools first. Every entry is a page

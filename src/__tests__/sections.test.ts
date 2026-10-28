@@ -4,7 +4,7 @@ describe('SECTIONS', () => {
   it('groups the pages as Tools, then Practice', () => {
     expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice']);
     expect(TOOLS.pages.map(p => p.href)).toEqual(
-      ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner'],
+      ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab'],
     );
     expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
   });
@@ -22,6 +22,7 @@ describe('locate', () => {
     expect(locate('/explore/scales')).toEqual({ section: TOOLS, page: TOOLS.pages[0] });
     expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[1] });
     expect(locate('/tuner')).toEqual({ section: TOOLS, page: TOOLS.pages[4] });
+    expect(locate('/tab')).toEqual({ section: TOOLS, page: TOOLS.pages[5] });
   });
 
   it('finds the group but no page on its index page', () => {
