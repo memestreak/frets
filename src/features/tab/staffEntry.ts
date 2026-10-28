@@ -7,7 +7,7 @@
  */
 import { keyAt, STRING_COUNT, type Clip, type Column, type Note } from './clip';
 import { clearNote, columnAt, MAX_FRET, normalize, setFret, type Cursor } from './editing';
-import { keyAccidentals, openStrings, spell, staffStep, WRITTEN_OCTAVE } from './notation';
+import { keyAccidentals, writtenStrings, spell, staffStep, WRITTEN_OCTAVE } from './notation';
 
 const PITCH_CLASS = [0, 2, 4, 5, 7, 9, 11];
 /** `staffStep` counts from E4, the bottom line: letter 2 of octave 4. */
@@ -44,9 +44,9 @@ export function pitchAtStep(clip: Clip, bar: number, step: number): number {
   return pitchOfStep(clip, bar, Math.max(LOWEST_STEP, Math.min(HIGHEST_STEP, step)));
 }
 
-/** Each note's sounding pitch in a column, by string; null for none or a dead note. */
+/** Each note's pitch in a column, as the staff writes it, by string; null for none or a dead note. */
 function pitches(clip: Clip, column: Column | null): (number | null)[] {
-  const open = openStrings(clip.tuning);
+  const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   return Array.from({ length: STRING_COUNT }, (_, s) => {
     const note = column?.notes[s];
@@ -84,7 +84,7 @@ const OPEN_REACH = 5;
  * with nothing around, the lowest fret. Null when no free string can play it.
  */
 export function choosePlace(clip: Clip, at: Place, pitch: number): { string: number; fret: number } | null {
-  const open = openStrings(clip.tuning);
+  const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   const column = columnAt(clip, { ...at, string: 0 });
   const aim = aimFret(clip, at);
@@ -128,7 +128,7 @@ export function toggleStaffNote(clip: Clip, at: Place, pitch: number): StaffEdit
 export function moveToString(clip: Clip, at: Place, pitch: number, direction: -1 | 1): StaffEdit {
   const from = stringAtPitch(clip, at, pitch);
   if (from === null) return { clip, string: null };
-  const open = openStrings(clip.tuning);
+  const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   const column = columnAt(clip, { ...at, string: 0 })!;
   for (let s = from + direction; s >= 0 && s < STRING_COUNT; s += direction) {

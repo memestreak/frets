@@ -35,6 +35,8 @@ const NOTE_EFFECTS = new Set([
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot']);
 /** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats and endings. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae']);
+/** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
+const CREDIT_TAGS = new Set(['artist', 'words', 'music']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
 const BAR_TAGS = new Set([
   'ts', 'ro', 'rc', 'ae', 'ks', 'clef', 'ottava', 'tempo', 'tf', 'ac', 'section', 'jump', 'ft',
@@ -65,12 +67,25 @@ interface BeatNode { notes?: { notes: NoteNode[] }; beatEffects?: PropertiesNode
 interface BarNode { metaData: MetaNode[]; beats: BeatNode[] }
 interface ScoreNode { bars: BarNode[] }
 
-/** A node's text as written. alphaTab's end offset stops short of a closing quote, so close it. */
+/** A node's text as written. alphaTab's end offset stops short of a closing quote (double or single), so close it. */
 function written(text: string, node: Located): string {
   let raw = text.slice(node.start?.offset ?? 0, node.end?.offset ?? 0).trim();
-  if ((raw.match(/(?<!\\)"/g) ?? []).length % 2 === 1) raw += '"';
-  const open = (raw.match(/\(/g) ?? []).length - (raw.match(/\)/g) ?? []).length;
-  return raw + ')'.repeat(Math.max(0, open));
+  const open = openQuote(raw);
+  if (open) raw += open;
+  const brackets = (raw.match(/\(/g) ?? []).length - (raw.match(/\)/g) ?? []).length;
+  return raw + ')'.repeat(Math.max(0, brackets));
+}
+
+/** The quote a string left open at the end of some alphaTex is in ('"' or "'"), or null; a backslash escapes. */
+function openQuote(raw: string): string | null {
+  let quote: string | null = null;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (quote && c === '\\') i++;
+    else if (quote && c === quote) quote = null;
+    else if (!quote && (c === '"' || c === "'")) quote = c;
+  }
+  return quote;
 }
 
 /** The effects Frets doesn't read, as written, counting each keyword in `kept`. */
@@ -270,6 +285,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();
       if (TAGS.has(tag)) continue;
+      if (b === 0 && CREDIT_TAGS.has(tag)) {
+        header.push(written(text, meta));
+        continue;
+      }
       kept.set(`\\${tag}`, (kept.get(`\\${tag}`) ?? 0) + 1);
       if (b === 0 && !BAR_TAGS.has(tag)) header.push(written(text, meta));
       else (bar.extra ??= []).push(written(text, meta));

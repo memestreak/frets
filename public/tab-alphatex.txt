@@ -21,6 +21,10 @@ chords fit; fingerstyle with a bass line held under moving notes does not
 -----------------
 
     \title "<name of the clip>"       optional
+    \artist "<band or player>"        optional; printed under the title
+    \words "<lyricist>"               optional; "Words by ..."
+    \music "<composer>"               optional; "Music by ...", or one
+                                      "Words & Music by ..." when the same
     \ts (<beats> <note>)              optional; (4 4) if left out
                                       (beats 1 to 32; note 2, 4, 8, 16 or 32)
     \tuning (<six notes, HIGH to low, with octaves>)
@@ -32,8 +36,11 @@ End each bar with "|". A line break is just a space: a bar may go on over
 several lines and several bars may share one. Frets writes lines of at most
 80 characters, as many whole bars to a line as fit and a section on a new
 line; a longer bar goes on over indented lines. Drop D is
-\tuning (E4 B3 G3 D3 A2 D2). The tuning is recorded and shown; frets are
-frets in any tuning.
+\tuning (E4 B3 G3 D3 A2 D2). The tuning is printed under the title ("Tune
+down 1/2 step" and each string when all six are tuned alike) and played;
+frets are frets in any tuning. With all six tuned alike (E-flat tuning is
+\tuning (D#4 A#3 F#3 C#3 G#2 D#2)) the staff is written as fingered, as if
+in standard tuning, as guitar books print it; otherwise as it sounds.
 
 
 2. BEATS AND NOTES
@@ -260,8 +267,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 9. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
 ----------------------------------------------
 
-1. Header: write \ts always; \title, \tuning and \capo only when the
-   picture shows them ("Capo 3rd fret" is \capo 3). A tuning like "D A D G B E" (low to high) is written high
+1. Header: write \ts always; \title, \artist, \words, \music, \tuning and
+   \capo only when the picture shows them ("Capo 3rd fret" is \capo 3). A tuning like "D A D G B E" (low to high) is written high
    to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the
    octave nearest its standard note (E4 B3 G3 D3 A2 E2): DADGAD is
    \tuning (D4 A3 G3 D3 A2 D2).

@@ -6,8 +6,8 @@
  * A small menu at the press, like the shapes' menu; it stays open while its options are changed, and
  * a press elsewhere, a scroll or Esc closes it.
  */
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import { NumberField } from './NumberField';
+import { usePopover } from './usePopover';
 
 /** The rest between loops, in seconds: its range and step. */
 export const MIN_LOOP_PAUSE = 0.5;
@@ -38,48 +38,11 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
   onChange: (values: PlaybackOptionValues) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ left: x, top: y });
-  // On screen, above the press when there is no room under it (the footer is low on the page).
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const { width, height } = el.getBoundingClientRect();
-    const margin = 8;
-    setPos({
-      left: Math.max(margin, Math.min(x, window.innerWidth - width - margin)),
-      top: y + height + margin > window.innerHeight ? Math.max(margin, y - height) : y,
-    });
-    el.querySelector<HTMLElement>('[role="menuitemcheckbox"]')?.focus();
-  }, [x, y]);
-
-  const close = useEffectEvent(onClose);
-  useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) close();
-    };
-    const { scrollX, scrollY } = window;
-    const onScroll = () => {
-      if (window.scrollX !== scrollX || window.scrollY !== scrollY) close();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-    };
-    window.addEventListener('pointerdown', onPointerDown, { capture: true });
-    window.addEventListener('scroll', onScroll, { capture: true });
-    window.addEventListener('resize', close);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown, { capture: true });
-      window.removeEventListener('scroll', onScroll, { capture: true });
-      window.removeEventListener('resize', close);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, []);
+  const { ref, style } = usePopover({ x, y, focus: '[role="menuitemcheckbox"]', onClose: () => onClose() });
 
   return (
     <div
-      ref={ref} role="menu" aria-label="Playback options" className="shape-menu tab-options" style={pos}
+      ref={ref} role="menu" aria-label="Playback options" className="shape-menu tab-options" style={style}
       tabIndex={-1}
       onContextMenu={e => e.preventDefault()}
       // The page's keys (Space plays) stay out while the menu has the focus; Esc closes it.

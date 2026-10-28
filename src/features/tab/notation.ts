@@ -32,6 +32,26 @@ export function openStrings(tuning: readonly string[]): number[] {
   });
 }
 
+/**
+ * How far every string is tuned from standard when all are tuned alike, in semitones (E♭ tuning,
+ * "tune down 1/2 step", is -1); 0 for standard tuning or one with strings tuned apart (drop D).
+ */
+export function tuningShift(tuning: readonly string[]): number {
+  const open = openStrings(tuning);
+  const shift = open[0] - STANDARD_MIDI[STRING_COUNT - 1];
+  return open.every((p, s) => p - STANDARD_MIDI[STRING_COUNT - 1 - s] === shift) ? shift : 0;
+}
+
+/**
+ * Each string's open pitch as the staff writes it, high e first. With every string tuned alike the
+ * staff is written as if in standard tuning, as guitar books print music for a guitar tuned down
+ * (a "tune down 1/2 step" score reads in the fingered key); otherwise as it sounds.
+ */
+export function writtenStrings(tuning: readonly string[]): number[] {
+  const shift = tuningShift(tuning);
+  return openStrings(tuning).map(p => p - shift);
+}
+
 /** A note's sounding pitch: open string, capo and fret; null for a dead note, which has none. */
 export function soundingPitch(open: number[], capo: number, s: number, note: Note): number | null {
   return note.fret === null ? null : open[s] + capo + note.fret;
@@ -139,7 +159,7 @@ export interface Head {
  * bar must show. An accidental holds for the rest of the bar on its line or space (not in other
  * octaves); a tied note takes its sign from the note before and shows none.
  */
-export function barHeads(clip: Clip, barIndex: number, open = openStrings(clip.tuning)): Head[][] {
+export function barHeads(clip: Clip, barIndex: number, open = writtenStrings(clip.tuning)): Head[][] {
   const key = keyAt(clip, barIndex);
   const inKey = keyAccidentals(key);
   const now = new Map<number, Accidental>();

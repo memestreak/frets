@@ -7,7 +7,7 @@ import {
   STRING_COUNT, beatTicks, changesKey, changesTime, isLetRing, isPalmMuted, isRest, isStandardTuning, keyAt, ticks, timeAt, WHOLE,
   type Bar, type Clip, type Column, type Note, type Section, type Tempo,
 } from './clip';
-import { accidentalLanes, barHeads, MIDDLE_STEP, openStrings, type Head } from './notation';
+import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -237,6 +237,8 @@ export interface PlacedBar {
   keyX: number | null;
   /** Ticks in one of its beats: eighths and shorter are beamed within one. */
   beat: number;
+  /** In 4/4: plain eighths are beamed by the half bar, four together. */
+  halfBars: boolean;
   columns: PlacedColumn[];
 }
 
@@ -388,7 +390,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   const firstKey = staff ? keyWidth(keyAt(clip, 0).fifths) : 0;
   const firstTimeX = staff ? keyStart + firstKey + STAFF_TIME_WIDTH / 2 - 2 : TIME_WIDTH / 2 - 2;
   const firstHead = staff ? Math.max(head, keyStart + firstKey + STAFF_TIME_WIDTH) : head;
-  const open = openStrings(clip.tuning);
+  const open = writtenStrings(clip.tuning);
   const heads = staff ? clip.bars.map((_, b) => barHeads(clip, b, open)) : clip.bars.map(bar => bar.columns.map(() => []));
   const widthOf = (column: Column, b: number, c: number) => (staff ? staffWidth(column, heads[b][c]) : columnWidth(column));
 
@@ -438,12 +440,45 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     });
     if (squeeze < 1) w = cx - x0 + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     x = x0 + w;
-    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(timeAt(clip, index)), columns });
+    const time = timeAt(clip, index);
+    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns });
   });
   finish();
+  justify(systems, width);
   const reach = staffReach(clip, heads, staff);
   const rows = rowsFor(clip, parts, reach);
   return { parts, systems, rows, height: systems.length * rows.height, names };
+}
+
+/**
+ * Every line but the last runs to the full width, as printed music is set (Guitar Pro's Sweet Child
+ * O' Mine, Jeremy 2026-10-28): the room left over goes to the columns, in proportion to their room,
+ * each note keeping its place near the start of its room. The last line is spread as much as the line
+ * before it, so its bars match theirs, and never past the width. Changes the systems in place.
+ */
+function justify(systems: System[], width: number): void {
+  let previous = 1;
+  systems.forEach((system, si) => {
+    const last = system.bars[system.bars.length - 1];
+    const rooms = system.bars.reduce((sum, bar) => sum + bar.columns.reduce((t, c) => t + c.width, 0), 0);
+    if (!last || rooms === 0) return;
+    const full = Math.max(1, 1 + (width - last.x1) / rooms);
+    const k = si < systems.length - 1 ? full : Math.min(full, previous);
+    previous = full;
+    let shift = 0;
+    for (const bar of system.bars) {
+      bar.x0 += shift;
+      if (bar.timeX !== null) bar.timeX += shift;
+      if (bar.keyX !== null) bar.keyX += shift;
+      for (const placed of bar.columns) {
+        placed.start += shift;
+        placed.x += shift;
+        shift += placed.width * (k - 1);
+        placed.width *= k;
+      }
+      bar.x1 += shift;
+    }
+  });
 }
 
 /*
@@ -932,20 +967,34 @@ export function cursorSpot(layout: Layout, bar: number, column: number): { syste
   return null;
 }
 
-/* — beams: eighths and shorter within one beat are joined — */
+/* — beams: eighths and shorter within one beat are joined; in 4/4, plain eighths by the half bar — */
 
 export interface BeamGroup {
   columns: PlacedColumn[];
 }
 
-/** Runs of beamable columns (eighth or shorter, not rests) within each beat of a bar. */
+/** A beat's run of beamable columns, and whether it is two plain eighths filling the beat. */
+interface BeatRun {
+  columns: PlacedColumn[];
+  beat: number;
+  eighths: boolean;
+}
+
+/**
+ * Runs of beamable columns (eighth or shorter, not rests) within each beat of a bar. In 4/4, two
+ * beats of plain eighths in the same half of the bar are one group of four, as printed music beams
+ * them (`halfBars`; Guitar Pro's Sweet Child O' Mine, Jeremy 2026-10-28); sixteenths stay by the beat.
+ */
 export function beamGroups(bar: PlacedBar, beat: number): BeamGroup[] {
-  const groups: BeamGroup[] = [];
+  const runs: BeatRun[] = [];
   let at = 0;
   let current: PlacedColumn[] = [];
   let currentBeat = -1;
   const close = () => {
-    if (current.length > 0) groups.push({ columns: current });
+    if (current.length > 0) {
+      const eighths = current.length === 2 && current.every(p => isPlainEighth(p.column)) && ticks(current[0].column.duration) * 2 === beat;
+      runs.push({ columns: current, beat: currentBeat, eighths });
+    }
     current = [];
   };
   for (const placed of bar.columns) {
@@ -965,5 +1014,22 @@ export function beamGroups(bar: PlacedBar, beat: number): BeamGroup[] {
     at += ticks(placed.column.duration);
   }
   close();
+  const groups: BeamGroup[] = [];
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    const next = runs[i + 1];
+    const joined = bar.halfBars && next && run.eighths && next.eighths && run.beat % 2 === 0 && next.beat === run.beat + 1
+      && run.columns[1].index + 1 === next.columns[0].index;
+    if (joined) {
+      groups.push({ columns: [...run.columns, ...next.columns] });
+      i++;
+    } else groups.push({ columns: run.columns });
+  }
   return groups;
+}
+
+/** An eighth with no dot and in no tuplet. */
+function isPlainEighth(column: Column): boolean {
+  const { value, dots, tuplet } = column.duration;
+  return value === 8 && dots === 0 && !tuplet;
 }

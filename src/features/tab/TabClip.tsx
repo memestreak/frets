@@ -12,6 +12,7 @@ import { StaffCursor, StaffDrawing } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
+import { showsBarNumber, type BarNumbers } from './viewOptions';
 import { markAt, markBox, vibratoWave, type MarkHit } from './marks';
 
 /** The colours a clip is drawn in: tokens on the page, concrete colours in an export. */
@@ -50,11 +51,13 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onMiss, columnReach = 0, x, y }: {
   clip: Clip;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
   parts?: Parts;
+  /** Which bars show their number (the View options). */
+  barNumbers?: BarNumbers;
   /** Where it sits inside a larger drawing (an exported image). */
   x?: number;
   y?: number;
@@ -181,6 +184,15 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
             <StaffCursor x={spot.x} score={rows.score} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
+          {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (
+            // Over the top line at the bar's start, small, as Guitar Pro prints it.
+            <text
+              key={`bar-number-${bar.index}`} x={bar.x0 + BAR_NUMBER_INSET} y={(rows.score ? rows.score.top : rows.staffTop) - 4}
+              fontSize={BAR_NUMBER_SIZE} fill={look.ink} fillOpacity={0.7} data-testid="bar-number"
+            >
+              {bar.index + 1}
+            </text>
+          ))}
           {errors && system.bars.map(bar => {
             const error = errors.get(bar.index);
             // Under the rhythm: the tab's stems, or the tab or the staff when it has none.
@@ -192,6 +204,10 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
     </svg>
   );
 }
+
+/** A bar's number: its size, and how far in from the bar's opening line it starts. */
+const BAR_NUMBER_SIZE = 9;
+const BAR_NUMBER_INSET = 2;
 
 /** How far in from a bar's start its warning's middle is drawn: clear of the bar line and the first stem. */
 const WARNING_INSET = 9;

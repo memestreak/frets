@@ -373,6 +373,11 @@ button {
   .tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
   .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
   .tab-options-row .tab-options-item { flex: 1; }
+  /* The View options panel: each option's name 6px from its switch. */
+  .tab-view-options { padding: 10px 12px; }
+  .tab-view-options { min-width: 0; }
+  .tab-view-option { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tab-view-option .seg { flex-wrap: nowrap; }
 
   /* The Export dialog: the image on white, as it comes out. The colour is
      BACKDROP in exportStyle.ts; a test keeps them in step. */
@@ -732,6 +737,18 @@ button {
     margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
     font: inherit; font-variant-ligatures: none; color: var(--ink); caret-color: var(--ink); background: transparent;
   }
+  /* Under the clip's title, as a score prints them: the artist, the writers, then the tuning in two
+     columns of three strings. */
+  .score-credits { display: grid; gap: 2px; color: var(--ink-muted); }
+  .score-credits p { margin: 0; }
+  .score-credits .score-artist { color: var(--ink); font-weight: 600; }
+  .score-tuning { margin-top: 6px; font-size: 14px; }
+  /* A string's number in a small circle, as tuning notes print ① to ⑥ (the font's own are too big). */
+  .score-string {
+    display: inline-grid; place-items: center; width: 16px; height: 16px; border: 1px solid currentColor;
+    border-radius: 999px; font-size: 10px; line-height: 1; vertical-align: 1px;
+  }
+  .score-tuning ul { display: grid; grid-auto-flow: column; justify-content: start; column-gap: 20px; margin: 0; padding: 0; list-style: none; }
   /* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
      (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
      (Jeremy, 2026-10-27). */
