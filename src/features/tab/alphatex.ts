@@ -170,7 +170,6 @@ function barTokens(clip: Clip): string[][] {
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
     if (bar.doubleBar) meta.push('\\db');
     if (bar.freeTime) meta.push('\\ft');
-    if (bar.scale !== undefined) meta.push(`\\scale ${bar.scale}`);
     meta.push(...(bar.extra ?? []));
     const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
     // The bar line goes with the last beat, so a wrapped bar never leaves it alone on a line.

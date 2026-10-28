@@ -186,11 +186,6 @@ export interface Bar {
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
-  /**
-   * The bar's share of its line's room, against the other bars' (alphaTex `\scale`; 1 when unset), used
-   * when the clip sets its own line breaks (`systemsLayout`), as alphaTab and Guitar Pro use it.
-   */
-  scale?: number;
   /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\section "Chorus"'). */
   extra?: string[];
 }
@@ -728,18 +723,12 @@ function isBar(v: unknown): v is Bar {
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
-    && (v.scale === undefined || isBarScale(v.scale))
     && optStrings(v.extra);
 }
 
 /** A line's bar count, as `systemsLayout` holds it: a whole number from 1. */
 export function isBarsPerLine(v: unknown): v is number {
   return Number.isInteger(v) && (v as number) >= 1;
-}
-
-/** A bar's `scale`: any number above 0. */
-export function isBarScale(v: unknown): v is number {
-  return typeof v === 'number' && Number.isFinite(v) && v > 0;
 }
 
 /** alphaTab's bars per line past `systemsLayout` when `\defaultSystemsLayout` isn't written. */

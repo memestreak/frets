@@ -10,7 +10,7 @@ import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata, isBarScale, isBarsPerLine,
+  type NoteValue, type Fermata, isBarsPerLine,
 } from './clip';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -35,12 +35,12 @@ const NOTE_EFFECTS = new Set([
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata']);
 /**
  * Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars,
- * multi-bar rests, and the line breaks and bar shares (`systemsLayout`, `defaultSystemsLayout`, `scale`; read only
- * when their values are ones Frets offers, else kept as written).
+ * multi-bar rests, and the line breaks (`systemsLayout`, `defaultSystemsLayout`; read only when their values are
+ * ones Frets offers, else kept as written).
  */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest']);
-/** The layout tags, read when `layoutReads` says their values are good. */
-const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout', 'scale']);
+/** The line-break tags, read when their values are good. */
+const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
 const CREDIT_TAGS = new Set(['artist', 'words', 'music']);
 /** Frets's fermata for each of alphaTab's FermataType values (Short, Medium, Long). */
@@ -319,14 +319,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       bar.key = { fifths: atBar.keySignature as number };
       if ((atBar.keySignatureType as number) === 1) bar.key.minor = true;
     }
-    if (master && tags.includes('scale')) {
-      if (isBarScale(master.displayScale)) bar.scale = master.displayScale;
-      else warn(`\\scale takes a number above 0; bar ${b + 1} keeps it as written but doesn't use it.`);
-    }
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();
       if (TAGS.has(tag)) continue;
-      if (LAYOUT_TAGS.has(tag) && (tag === 'scale' ? bar.scale !== undefined : b === 0 && layoutOk.has(tag))) continue;
+      if (LAYOUT_TAGS.has(tag) && b === 0 && layoutOk.has(tag)) continue;
       if (b === 0 && CREDIT_TAGS.has(tag)) {
         header.push(written(text, meta));
         continue;

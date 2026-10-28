@@ -15,7 +15,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   README), `layout.ts` (pure: where systems,
   bars and columns go at a width, and `rowsFor`, the rows over the staff,
   each there only when that line uses it, each system with its own `rows` and `top`, `lineAt` finding the line under a y
-  (`docs/specs/2026-10-28-tab-line-spacing-design.md`); a clip with `\systemsLayout` / `\defaultSystemsLayout` (`barsPerLine` in `clip.ts`) breaks its lines there and shares each line by its bars' `\scale` (`shareByScale`; `docs/specs/2026-10-28-tab-line-breaks-design.md`);
+  (`docs/specs/2026-10-28-tab-line-spacing-design.md`); a clip with `\systemsLayout` / `\defaultSystemsLayout` (`barsPerLine` in `clip.ts`) breaks its lines there, squeezing before it wraps, and spreads each line by its notes (`spreadLines`; `docs/specs/2026-10-28-tab-line-breaks-design.md`);
   `docs/specs/2026-10-26-tab-note-marks-design.md`; with it, all pure on its layout: `layoutText.ts`,
   the words over the tab and the signatures, their boxes and presses on them; `hitTest.ts`, what
   any other press is on and where the cursor is drawn; `runs.ts`, marks over runs of columns and

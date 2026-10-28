@@ -555,7 +555,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     const lead = inRun && !count ? 0 : barLead(bar, timeChange, keyChange, freeStart);
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
-    // On a line of the clip's own breaks only a bar alone on its line is; `shareByScale` fits the rest.
+    // On a line of the clip's own breaks only a bar alone on its line is; `spreadLines` fits the rest.
     const alone = !modelled || current.length === 0;
     const squeeze = bar.columns.length > 0 && alone ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
     // A time signature change stands just inside the bar, after a repeat's dots; a key change after it.
@@ -585,7 +585,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   });
   finish();
   complete[complete.length - 1] = wanted <= 0;
-  if (modelled) shareByScale(drafts, complete, width, staff);
+  if (modelled) spreadLines(drafts, complete, width, staff);
   else justify(drafts, width);
   // Each multi-bar rest's room, once the lines are spread.
   for (const system of drafts) {
@@ -676,23 +676,20 @@ function justify(systems: LineDraft[], width: number): void {
 }
 
 /**
- * The lines of a clip that sets its own line breaks (`\systemsLayout`), shared out as alphaTab and Guitar
- * Pro share them: each line's room after its fixed parts (clef, signatures, bar lines) goes to its bars by
- * their `scale` (1 when unset; a multi-bar rest's bars split its first bar's), none below what its notes need,
- * and within a bar to its columns in proportion to their room. A line holding fewer bars than it asks
- * for (the last) gives each its share at the line before's rate, and never runs past the width.
- * Changes the systems in place.
+ * The lines of a clip that sets its own line breaks (`\systemsLayout`), run to the width with Frets' own
+ * spacing: each line's room after its fixed parts (clef, signatures, bar lines) goes to its bars in
+ * proportion to the room their notes take, as `justify` spreads a line, and a line too full is squeezed
+ * the same way, no bar below what its notes need (Jeremy, 2026-10-28: Frets' spacing over Guitar Pro's
+ * even shares by `\scale`, which is kept but not used). Within a bar, columns keep their proportions. A
+ * line holding fewer bars than it asks for (the last) is spread at the line before's rate, and never
+ * runs past the width. Changes the systems in place.
  */
-function shareByScale(systems: LineDraft[], complete: boolean[], width: number, staff: boolean): void {
+function spreadLines(systems: LineDraft[], complete: boolean[], width: number, staff: boolean): void {
   let previousRate = Infinity;
   systems.forEach((system, si) => {
     const bars = system.bars;
     // A clip of one short line keeps its bars' own room, as a short last line of filled lines does.
     if (bars.length === 0 || (!complete[si] && previousRate === Infinity)) return;
-    // A multi-bar rest is one bar of the line: its first bar's scale, split between its bars.
-    const scales: number[] = [];
-    bars.forEach((bar, b) => scales.push(bar.restRun && !bar.restRun.first && b > 0 ? scales[b - 1] : (bar.bar.scale ?? 1)));
-    const weights = bars.map((bar, b) => scales[b] / (bar.restRun?.count ?? 1));
     const natural = bars.map(bar => (bar.columns.length > 0 ? bar.columns.reduce((t, c) => t + c.width, 0) : EMPTY_BAR));
     const least = bars.map((bar, b) => (bar.restRun || bar.columns.length === 0 ? natural[b] : bar.columns.reduce((t, c) => t + Math.min(c.width, leastWidth(c.column, c.heads, staff)), 0)));
     const fixed = bars.reduce((t, bar, b) => t + (bar.x1 - bar.x0) - natural[b], 0);
@@ -703,13 +700,13 @@ function shareByScale(systems: LineDraft[], complete: boolean[], width: number, 
     let rate = 0;
     for (let pass = 0; pass <= bars.length; pass++) {
       const free = room - bars.reduce((t, _, b) => t + (held[b] ? least[b] : 0), 0);
-      const shares = bars.reduce((t, _, b) => t + (held[b] ? 0 : weights[b]), 0);
+      const shares = bars.reduce((t, _, b) => t + (held[b] ? 0 : natural[b]), 0);
       rate = shares > 0 ? free / shares : 0;
       if (!complete[si]) rate = Math.min(rate, previousRate);
       let changed = false;
       bars.forEach((_, b) => {
         if (held[b]) return;
-        target[b] = rate * weights[b];
+        target[b] = rate * natural[b];
         if (target[b] < least[b]) { held[b] = true; target[b] = least[b]; changed = true; }
       });
       if (!changed) break;
