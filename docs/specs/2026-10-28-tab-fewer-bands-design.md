@@ -51,3 +51,11 @@ still be able to create regions with shift arrow."
 whose cursor used to draw a band. Shift+press is kept as a way to select,
 alongside Shift+arrows, since it is the same gesture as in a text editor;
 dropping it is a one-line change if wanted.
+
+## Pressing low notes in Both
+
+The gap between the staff and the tab is left to the playback line, and a
+press there reached the staff only one ledger line down, so a head drawn
+lower (the open low E, on three ledger lines) couldn't be pressed (Jeremy,
+2026-10-28). A drawn head is now pressed wherever it is, before that limit
+is checked; the blank space round it still places the playback line.
