@@ -200,6 +200,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'tie': return changeNotes(clip, note, n => without(n, 'tie'));
     case 'vibrato': return changeNotes(clip, wholeColumn, n => without(n, 'vibrato'));
     case 'pinch': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'pinch' ? without(n, 'harmonic') : n));
+    case 'artificial': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'artificial' ? without(without(n, 'harmonic'), 'harmonicFret') : n));
     case 'accent': return changeNotes(clip, wholeColumn, n => without(n, 'accent'));
     case 'staccato': return changeNotes(clip, wholeColumn, n => without(n, 'staccato'));
     case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));

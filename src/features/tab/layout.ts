@@ -44,10 +44,12 @@ export interface Rows {
   chords: number | null;
   /** Free text over its column (alphaTex txt). */
   text: number | null;
+  /** Hairpins (crescendo, decrescendo), right under the staff or over the tab's other marks. */
+  hairpins: number | null;
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
-  /** "P.H." over pinch harmonics. */
+  /** "P.H." over pinch harmonics, "AH" over artificial ones. */
   harmonics: number | null;
   vibrato: number | null;
   /** Accents and staccato dots. */
@@ -120,10 +122,11 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     wah: columns.some(c => c.wah),
     // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
     // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
+    hairpins: columns.some(c => c.hairpin),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
-    harmonics: notes.some(n => n.harmonic === 'pinch'),
+    harmonics: notes.some(n => n.harmonic === 'pinch' || n.harmonic === 'artificial'),
     // Vibrato goes over the tab too when the staff is shown, as Guitar Pro prints it (Jeremy, 2026-10-27),
     // and so does a mordent, in the same row (Sweet Child O' Mine, bar 93).
     vibrato: tab && notes.some(n => n.vibrato || n.mordent),
@@ -159,6 +162,7 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) + 2;
   }
   const marks = {
+    hairpins: row(used.hairpins),
     strokes: row(used.strokes),
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
@@ -284,7 +288,7 @@ export const MULTI_REST_WIDTH = 300;
 function plainRest(bar: Bar): boolean {
   if (bar.columns.length !== 1 || bar.ending !== undefined || bar.extra?.length) return false;
   const c = bar.columns[0];
-  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.extra?.length;
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.extra?.length;
 }
 
 /**

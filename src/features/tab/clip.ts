@@ -63,6 +63,11 @@ export interface Bend {
    * and pushed on up to `quarters`, as "full" then "1½" in bar 144 of Sweet Child O' Mine.
    */
   from?: BendQuarters;
+  /**
+   * A release's landing height when it isn't let all the way down: "full" let down to "½" in bar 165 of
+   * Sweet Child O' Mine, where a tied note then pushes it back up (`from`).
+   */
+  to?: BendQuarters;
 }
 
 export type Slide = 'legato' | 'shift' | 'below' | 'above';
@@ -85,7 +90,12 @@ export interface Note {
   vibrato?: 'slight' | 'wide';
   /** Keeps sounding from the previous note on the string; not played again. */
   tie?: boolean;
-  harmonic?: 'natural' | 'pinch';
+  harmonic?: 'natural' | 'pinch' | 'artificial';
+  /**
+   * An artificial harmonic's touch point, in frets above the fretted note (alphaTex ah 12); left out when not
+   * given. Written only while the note is an artificial harmonic.
+   */
+  harmonicFret?: number;
   tap?: boolean;
   palmMute?: boolean;
   /** Left to ring over the notes after it. */
@@ -129,6 +139,11 @@ export interface Column {
    * waho), as Guitar Pro prints Sweet Child O' Mine's solo. Drawn only; playback doesn't sound it.
    */
   wah?: 'open' | 'closed';
+  /**
+   * Getting louder (alphaTex cre) or softer (dec) from this column: neighbouring columns that share it
+   * draw one hairpin under the staff, as the book prints bar 157 of Sweet Child O' Mine. Drawn only.
+   */
+  hairpin?: 'crescendo' | 'decrescendo';
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
@@ -506,7 +521,8 @@ export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'relea
       column.notes.forEach((note, s) => {
         if (!note) return;
         const before = last[s];
-        const endsBent = !!before?.bend && !before.bend.release;
+        // A bend let down only part of the way (`to`) is still bent for the note after it.
+        const endsBent = !!before?.bend && (!before.bend.release || before.bend.to !== undefined);
         if (note.tie && note.bend?.pre && endsBent) out.set(note, note.bend.release ? 'release' : 'hold');
         last[s] = note;
       });
@@ -516,20 +532,44 @@ export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'relea
 }
 
 /**
- * How many times a held bend has been pushed on up (`Bend.from`) by each tied note that carries it on:
- * 1 from the note that rises ("full" then "1½") and every note holding or letting it down after.
- * Notes not raised are left out.
+ * The line, in steps over a bend's usual height, at which each tied note carrying a held bend draws it:
+ * a push on up (`Bend.from`) stands a step higher than the line before ("full" then "1½"), and a
+ * release that stops part of the way down (`Bend.to`) lands a step lower, where the note after it goes
+ * on ("full", down to "½", back up to "full"). Notes on the usual line are left out.
  */
 export function bendRaises(clip: Pick<Clip, 'bars'>): Map<Note, number> {
   const carries = bendCarries(clip);
   const out = new Map<Note, number>();
-  const level: number[] = Array(STRING_COUNT).fill(0);
+  // The line the next tied note on each string starts from.
+  const base: number[] = Array(STRING_COUNT).fill(0);
   for (const bar of clip.bars) {
     for (const column of bar.columns) {
       column.notes.forEach((note, s) => {
         if (!note) return;
-        level[s] = carries.has(note) ? level[s] + (note.bend!.from !== undefined ? 1 : 0) : 0;
-        if (level[s] > 0) out.set(note, level[s]);
+        if (!carries.has(note)) {
+          base[s] = note.bend?.to !== undefined ? -1 : 0;
+          return;
+        }
+        const level = base[s] + (note.bend!.from !== undefined ? 1 : 0);
+        if (level !== 0) out.set(note, level);
+        base[s] = level - (note.bend!.to !== undefined ? 1 : 0);
+      });
+    }
+  }
+  return out;
+}
+
+/** Tied notes that carry on a bend from where the note before let it down part of the way (`Bend.to`). */
+export function bendLandings(clip: Pick<Clip, 'bars'>): Set<Note> {
+  const carries = bendCarries(clip);
+  const out = new Set<Note>();
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        if (carries.has(note) && last[s]?.bend?.to !== undefined) out.add(note);
+        last[s] = note;
       });
     }
   }
@@ -621,12 +661,15 @@ function isNote(v: unknown): v is Note {
     && BEND_QUARTERS.includes(v.bend.quarters as BendQuarters)
     && typeof v.bend.pre === 'boolean' && typeof v.bend.release === 'boolean'
     && (v.bend.from === undefined || (v.bend.pre === true && BEND_QUARTERS.includes(v.bend.from as BendQuarters)
-      && (v.bend.from as number) < (v.bend.quarters as number))));
+      && (v.bend.from as number) < (v.bend.quarters as number)))
+    && (v.bend.to === undefined || (v.bend.release === true && BEND_QUARTERS.includes(v.bend.to as BendQuarters)
+      && (v.bend.to as number) < (v.bend.quarters as number))));
   return fretOk && bendOk
     && (v.legato === undefined || v.legato === 'h' || v.legato === 'p')
     && (v.slide === undefined || SLIDES.includes(v.slide as Slide))
     && optOneOf(v.slideOut, ['down', 'up']) && optOneOf(v.vibrato, ['slight', 'wide'])
-    && optOneOf(v.harmonic, ['natural', 'pinch']) && optOneOf(v.accent, ['normal', 'heavy']) && optOneOf(v.mordent, ['upper', 'lower'])
+    && optOneOf(v.harmonic, ['natural', 'pinch', 'artificial'])
+    && (v.harmonicFret === undefined || (Number.isInteger(v.harmonicFret) && (v.harmonicFret as number) > 0 && (v.harmonicFret as number) <= 24)) && optOneOf(v.accent, ['normal', 'heavy']) && optOneOf(v.mordent, ['upper', 'lower'])
     && optBool(v.tie) && optBool(v.tap) && optBool(v.palmMute) && optBool(v.letRing) && optBool(v.ghost) && optBool(v.staccato)
     && optStrings(v.extra);
 }
@@ -641,7 +684,7 @@ function isColumn(v: unknown): v is Column {
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
-    && optOneOf(v.wah, ['open', 'closed'])
+    && optOneOf(v.wah, ['open', 'closed']) && optOneOf(v.hairpin, ['crescendo', 'decrescendo'])
     && optStrings(v.extra);
 }
 
