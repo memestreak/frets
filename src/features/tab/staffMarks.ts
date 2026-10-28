@@ -183,7 +183,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             const line = labelLines.get(note) ?? 0;
             add(
               { mark: 'bend', index, string: s }, around(x - 4, top - 10 - Math.max(line, 0) * BEND_LABEL_STEP, x + (note.bend.release ? 26 : 18), y),
-              { kind: 'bend', x: headRight, y, top, bend: note.bend, line },
+              { kind: 'bend', x: headRight, y, top, bend: note.bend.from === undefined ? note.bend : { ...note.bend, pre: false }, line },
             );
           }
           if (staffAlone && note.tap) {
@@ -269,9 +269,12 @@ export function bendLabel(bend: Bend): string {
   return bend.pre ? `PB ${BEND_LABEL[bend.quarters]}` : BEND_LABEL[bend.quarters];
 }
 
-/** A tied note carrying a bend on, which the staff shows by its bracketed head alone. */
+/**
+ * A tied note carrying a bend on, which the staff shows by its bracketed head alone; one that pushes
+ * the bend on up (`Bend.from`) draws its arrow to the new height.
+ */
 function carriedBend(note: Note): boolean {
-  return note.tie === true && note.bend?.pre === true;
+  return note.tie === true && note.bend?.pre === true && note.bend.from === undefined;
 }
 
 /**

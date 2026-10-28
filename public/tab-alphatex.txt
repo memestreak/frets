@@ -94,7 +94,9 @@ then "." and its duration:
                it sets every point that isn't 0, so "PB ½" is b (2 2).
                A bend held over tied notes carries on on each tie:
                  -.3{b (4 4)} holds it (drawn as a dashed line),
-                 -.3{b (4 0)} lets it down (an arrow down, no number).
+                 -.3{b (4 0)} lets it down (an arrow down, no number),
+                 -.3{b (4 6)} pushes it on up, full to 1½ (an arrow up
+                 from the dashed line, no number).
                A grace note tied into a bend: 17.1.8{gr} -.1{b (0 4)}.2
     sod  sou   slide out of this note, down / up, to no fret in particular
     v          vibrato

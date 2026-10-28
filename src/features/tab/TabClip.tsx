@@ -1,5 +1,5 @@
 import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { beatTicks, bendCarries, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
+import { beatTicks, bendCarries, bendRaises, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
@@ -153,7 +153,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const previous = previousSpots(layout.systems);
   const onStaff = layout.rows.score ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
-  const joins: Joins = { carries: bendCarries(clip), legatoStarts: legatoStarts(clip) };
+  const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), legatoStarts: legatoStarts(clip) };
   const arcs = legatoArcs(layout.systems);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;

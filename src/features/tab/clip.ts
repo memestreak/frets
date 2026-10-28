@@ -58,6 +58,11 @@ export interface Bend {
   pre: boolean;
   /** Let back down to the fret afterwards. */
   release: boolean;
+  /**
+   * A pre-bend's starting height when lower than its peak: on a tied note, a bend held at `from`
+   * and pushed on up to `quarters`, as "full" then "1½" in bar 144 of Sweet Child O' Mine.
+   */
+  from?: BendQuarters;
 }
 
 export type Slide = 'legato' | 'shift' | 'below' | 'above';
@@ -510,6 +515,27 @@ export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'relea
   return out;
 }
 
+/**
+ * How many times a held bend has been pushed on up (`Bend.from`) by each tied note that carries it on:
+ * 1 from the note that rises ("full" then "1½") and every note holding or letting it down after.
+ * Notes not raised are left out.
+ */
+export function bendRaises(clip: Pick<Clip, 'bars'>): Map<Note, number> {
+  const carries = bendCarries(clip);
+  const out = new Map<Note, number>();
+  const level: number[] = Array(STRING_COUNT).fill(0);
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        level[s] = carries.has(note) ? level[s] + (note.bend!.from !== undefined ? 1 : 0) : 0;
+        if (level[s] > 0) out.set(note, level[s]);
+      });
+    }
+  }
+  return out;
+}
+
 /** Notes a hammer-on, pull-off or legato slide leaves from: the note before one on its string. */
 export function legatoStarts(clip: Pick<Clip, 'bars'>): Set<Note> {
   const out = new Set<Note>();
@@ -593,7 +619,9 @@ function isNote(v: unknown): v is Note {
   const fretOk = v.fret === null || (Number.isInteger(v.fret) && (v.fret as number) >= 0 && (v.fret as number) <= 24);
   const bendOk = v.bend === undefined || (isObj(v.bend)
     && BEND_QUARTERS.includes(v.bend.quarters as BendQuarters)
-    && typeof v.bend.pre === 'boolean' && typeof v.bend.release === 'boolean');
+    && typeof v.bend.pre === 'boolean' && typeof v.bend.release === 'boolean'
+    && (v.bend.from === undefined || (v.bend.pre === true && BEND_QUARTERS.includes(v.bend.from as BendQuarters)
+      && (v.bend.from as number) < (v.bend.quarters as number))));
   return fretOk && bendOk
     && (v.legato === undefined || v.legato === 'h' || v.legato === 'p')
     && (v.slide === undefined || SLIDES.includes(v.slide as Slide))
