@@ -180,6 +180,10 @@ export default function TabPage() {
   const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, {
     loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
     transpose: playbackSettings.transpose,
+    metronome: playbackSettings.metronome,
+    countIn: playbackSettings.countIn,
+    countInBars: playbackSettings.countInBars,
+    clickVolume: playbackSettings.clickVolume,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
@@ -795,6 +799,10 @@ export default function TabPage() {
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
+            metronome={playbackSettings.metronome} onMetronome={metronome => setPlaybackSettings(s => ({ ...s, metronome }))}
+            countIn={playbackSettings.countIn} onCountIn={countIn => setPlaybackSettings(s => ({ ...s, countIn }))}
+            countInBars={playbackSettings.countInBars} onCountInBars={countInBars => setPlaybackSettings(s => ({ ...s, countInBars }))}
+            clickVolume={playbackSettings.clickVolume} onClickVolume={clickVolume => setPlaybackSettings(s => ({ ...s, clickVolume }))}
           />
         </HoverTips>
         </PinnedPlayback>

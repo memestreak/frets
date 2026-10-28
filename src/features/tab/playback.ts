@@ -13,6 +13,7 @@ import { loadAlphaTab } from './alphatexRead';
 import { STRING_COUNT, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
+import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -63,6 +64,51 @@ export function isSound(value: unknown): value is Sound {
 /** How long the last notes ring after the clip ends, in alphaTab's ticks: two quarter notes. */
 const RING_OUT_TICKS = 2 * 960;
 
+/**
+ * The channels the metronome's clicks and the count-in's play on (issue #148), each with its own
+ * volume and mute. alphaTab plays the clip on channels 0 and 1, and keeps 9 for drums.
+ */
+export const METRONOME_CHANNEL = 10;
+export const COUNT_IN_CHANNEL = 11;
+/**
+ * How hard a click is struck, out of 127: beat one (its own, higher click), the start of each group
+ * of three in compound time (the 4 in 6/8), and every other click.
+ */
+const ACCENT_VELOCITY = 110;
+const GROUP_VELOCITY = 120;
+const CLICK_VELOCITY = 80;
+/** How long a click's note is held, in ticks; the click itself has died away by then. */
+const CLICK_TICKS = 120;
+
+/**
+ * How the metronome counts a bar: how far apart its clicks are (ticks), how many there are, and
+ * every how many clicks a group starts (marked louder), or 0 for no groups.
+ */
+export interface Count {
+  ticks: number;
+  clicks: number;
+  group: number;
+}
+
+/**
+ * How the metronome counts a time signature: a click per beat, the bottom number's note. Compound
+ * time (6/8, 9/8, 12/8, or the same over 16) marks each group of three a little louder, so 6/8
+ * clicks six eighths with the 1 and the 4 standing out (Jeremy, 2026-10-28: two clicks a bar of 6/8
+ * was too few).
+ */
+export function countOf(beats: number, value: number): Count {
+  const note = (4 / value) * 960;
+  return { ticks: note, clicks: beats, group: value >= 8 && beats > 3 && beats % 3 === 0 ? 3 : 0 };
+}
+
+/** How a bar's click `k` (from 0) sounds: beat one, a group's start, or plain. */
+function clickKind(count: Count, k: number): ClickKind {
+  const n = k % count.clicks;
+  return n === 0 ? 'one' : count.group > 0 && n % count.group === 0 ? 'group' : 'plain';
+}
+
+type ClickKind = 'one' | 'group' | 'plain';
+
 export interface Performance {
   score: Score;
   midi: AlphaTabModule.midi.MidiFile;
@@ -75,10 +121,22 @@ export interface Performance {
   shift: number;
   /** The tick the clip ends on, repeats played. */
   endTick: number;
+  /**
+   * The tick the clip starts on: past a bar of silence (`PREROLL`), room for a count-in before
+   * the first bar.
+   */
+  start: number;
+  /** Each bar as played (repeats played again), in MIDI ticks, with how the metronome counts it. */
+  bars: { start: number; end: number; count: Count }[];
 }
 
-/** The clip as alphaTab's score and MIDI in a sound, with the lookup from a tick to the beat sounding then. */
-export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND): Performance {
+/**
+ * The clip as alphaTab's score and MIDI in a sound, with the lookup from a tick to the beat sounding
+ * then. With `clicks`, the metronome's clicks are in the MIDI too, on their own channel, muted while
+ * the metronome is off; so they keep time with the notes whatever the speed, the loop or the time
+ * signature.
+ */
+export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
   const settings = new at.Settings();
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
@@ -98,14 +156,106 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
-  const shift = midi.tickShift;
-  const endTick = (masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0) + shift;
+  const bars = masterBars.map(b => ({
+    start: b.start + midi.tickShift,
+    end: b.end + midi.tickShift,
+    count: countOf(b.masterBar.timeSignatureNumerator, b.masterBar.timeSignatureDenominator),
+  }));
+  // Room before the first bar for the longest count-in before any bar: a bar's count-in comes before it.
+  const preroll = clicks ? Math.max(0, ...bars.map(b => MAX_COUNT_IN_BARS * b.count.ticks * b.count.clicks - b.start)) : 0;
+  for (const event of midi.events) event.tick += preroll;
+  for (const bar of bars) {
+    bar.start += preroll;
+    bar.end += preroll;
+  }
+  const shift = midi.tickShift + preroll;
+  const endTick = (bars.length > 0 ? bars[bars.length - 1].end : 0) || shift;
   // The synthesizer stops dead at the MIDI's last event, cutting the last note off with a click
   // (Jeremy, 2026-10-26: "a glitch at the end of playback"). An event a little later lets it ring.
   midi.addEvent(new at.midi.EndOfTrackEvent(0, endTick + RING_OUT_TICKS));
-  const performance = { score, midi, lookup: generator.tickLookup, shift, endTick };
+  if (clicks) {
+    for (const channel of [METRONOME_CHANNEL, COUNT_IN_CHANNEL]) clickSound(at, midi, channel);
+    for (const bar of bars) {
+      for (let k = 0; k < bar.count.clicks; k++) {
+        const tick = bar.start + k * bar.count.ticks;
+        if (tick >= bar.end) break;
+        addClick(at, midi, METRONOME_CHANNEL, tick, clickKind(bar.count, k));
+      }
+    }
+  }
+  const performance = { score, midi, lookup: generator.tickLookup, shift, endTick, start: preroll, bars };
   keepSlidPitch(at, clip, performance);
   return performance;
+}
+
+/** Sets a channel to the click's sound at the MIDI's start. */
+function clickSound(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number) {
+  midi.addEvent(new at.midi.ControlChangeEvent(0, 0, channel, at.midi.ControllerType.BankSelectCoarse, CLICK_BANK));
+  midi.addEvent(new at.midi.ProgramChangeEvent(0, 0, channel, CLICK_PROGRAM));
+}
+
+/** A click: beat one's higher click, or the other click, louder at a group's start. */
+function addClick(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number, tick: number, kind: ClickKind) {
+  const key = kind === 'one' ? ACCENT_KEY : BEAT_KEY;
+  const velocity = kind === 'one' ? ACCENT_VELOCITY : kind === 'group' ? GROUP_VELOCITY : CLICK_VELOCITY;
+  midi.addEvent(new at.midi.NoteOnEvent(0, tick, channel, key, velocity));
+  midi.addEvent(new at.midi.NoteOffEvent(0, tick + CLICK_TICKS, channel, key, 0));
+}
+
+/** How many bars a count-in may be (Jeremy, 2026-10-28: "adjustable from 1 to 4"). */
+export const MAX_COUNT_IN_BARS = 4;
+
+/** Where a count-in is: `bars` bars of clicks from `start`, ending on the tick Play starts from. */
+export interface CountIn {
+  start: number;
+  end: number;
+  count: Count;
+  bars: number;
+}
+
+/**
+ * The count-in before a tick (issue #148): one to four bars, each counted as the bar Play starts in
+ * is (six clicks in 6/8), at the tempo there. Null when the clip has no bars.
+ */
+export function countInBefore(performance: Performance, tick: number, bars = 1): CountIn | null {
+  const bar = performance.bars.find(b => tick >= b.start && tick < b.end) ?? performance.bars[performance.bars.length - 1];
+  if (!bar) return null;
+  return { start: tick - bars * bar.count.ticks * bar.count.clicks, end: tick, count: bar.count, bars };
+}
+
+/** A copy of a MIDI event at another tick; the performance's own events are left as they are. */
+function cloneAt<E extends AlphaTabModule.midi.MidiEvent>(event: E, tick: number): E {
+  const copy = Object.assign(Object.create(Object.getPrototypeOf(event)), event) as E;
+  copy.tick = tick;
+  return copy;
+}
+
+/**
+ * A MIDI file with a count-in: the bar before it is cleared of notes (and the metronome's clicks)
+ * and holds the count-in's clicks instead, so playing from its start counts in and plays on from its
+ * end with every tick where it was. Tempo and other changes in that bar, or where it ends, take
+ * effect from its start, so it counts at the tempo Play starts in.
+ */
+export function withCountIn(at: AlphaTab, source: AlphaTabModule.midi.MidiFile, countIn: CountIn): AlphaTabModule.midi.MidiFile {
+  const { count, bars } = countIn;
+  const midi = new at.midi.MidiFile();
+  midi.format = source.format;
+  midi.division = source.division;
+  midi.tickShift = source.tickShift;
+  for (const event of source.events) {
+    if (event.tick >= countIn.start && event.tick <= countIn.end) {
+      // Note-offs stay, so a note sounding into the count-in still ends.
+      if (event instanceof at.midi.NoteOnEvent) {
+        if (event.tick < countIn.end) continue;
+      } else if (!(event instanceof at.midi.NoteOffEvent)) {
+        midi.addEvent(cloneAt(event, countIn.start));
+        continue;
+      }
+    }
+    midi.addEvent(event);
+  }
+  for (let k = 0; k < bars * count.clicks; k++) addClick(at, midi, COUNT_IN_CHANNEL, countIn.start + k * count.ticks, clickKind(count, k));
+  return midi;
 }
 
 /**
@@ -384,8 +534,22 @@ export class TabPlayer {
    * region selected (Jeremy, 2026-10-28). Null plays on to the clip's end.
    */
   private until: number | null = null;
-  /** The MIDI in the synthesizer: the clip's (`end` null), or the clip's stopping at `end` (see `midiUntil`). */
-  private loaded: { end: number | null } | null = null;
+  /**
+   * The MIDI in the synthesizer: the clip's (`end` null), or the clip's stopping at `end` (see
+   * `midiUntil`); with the count-in it was made with, if any.
+   */
+  private loaded: { end: number | null; counted: CountIn | null } | null = null;
+  /** Whether the metronome clicks, a count-in comes before Play, and how loud their clicks are (0 to 1). */
+  private metronome = false;
+  private countIn = false;
+  private countInBars = 1;
+  private clickVolume = 1;
+  /**
+   * The count-in of the Play under way, until it has been heard and the playhead goes back (a loop
+   * coming round, or a press on the tab): then the clip's own MIDI takes over, since the count-in
+   * took the place of the bar before. `column` is where Play started, where the playhead waits.
+   */
+  private counted: (CountIn & { column: number }) | null = null;
   /**
    * Whether the clip has stopped (Stop, an edit or the end) since the last Play. The
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
@@ -431,10 +595,16 @@ export class TabPlayer {
       if (this.looping && this.range && e.currentTick >= this.range.endTick) this.loopEndAt ??= performance.now();
       // While the last notes ring out, the playhead stays on the last column.
       if (e.currentTick >= (this.loaded?.end ?? this.performance.endTick)) return;
-      onView({ column: columnAtTick(this.clip, this.performance, e.currentTick) });
+      // During the count-in it waits where Play started.
+      const counting = this.counted && e.currentTick < this.counted.end;
+      onView({ column: counting ? this.counted!.column : columnAtTick(this.clip, this.performance, e.currentTick) });
     });
     synth.finished.on(() => {
-      if (synth.isLooping) return;
+      // Round the loop (alphaTab goes back to its start right after this): the clip's own MIDI.
+      if (synth.isLooping) {
+        this.dropCountIn();
+        return;
+      }
       if (this.looping && !this.ended) {
         this.rest();
         return;
@@ -453,6 +623,7 @@ export class TabPlayer {
     const output = new WebAudioOutput();
     const synth = new at.synth.AlphaSynth(output, 500);
     synth.loadSoundFont(soundfont, false);
+    synth.loadSoundFont(clickSoundFont(), true);
     return new TabPlayer(at, synth, output, onView);
   }
 
@@ -470,10 +641,14 @@ export class TabPlayer {
       this.sound = sound;
       this.setVolume(this.volume);
       this.performance = perform(this.at, clip, sound);
-      this.load(this.performance.midi, null);
+      this.loaded = null;
     }
     this.setSpeed(speed);
-    this.moveTo(tickOf(clip, this.performance, from));
+    const tick = tickOf(clip, this.performance, from);
+    const countIn = this.countIn ? countInBefore(this.performance, tick, this.countInBars) : null;
+    this.counted = countIn && { ...countIn, column: from };
+    this.useMidi(this.loaded?.end ?? null);
+    this.moveTo(countIn?.start ?? tick);
     this.until = until;
     this.setLoop(loop);
     this.ended = false;
@@ -507,7 +682,7 @@ export class TabPlayer {
     this.loop = loop;
     // The whole clip loops without its ring-out, so the downbeat comes round on time.
     const range = !this.clip || !this.performance || loop === null ? null
-      : loop === 'whole' ? { startTick: 0, endTick: this.performance.endTick }
+      : loop === 'whole' ? { startTick: this.performance.start, endTick: this.performance.endTick }
       : ticksOf(this.clip, this.performance, loop);
     let ahead = range !== null && this.synth.tickPosition < range.endTick;
     // Loop points dragged back behind the playhead while it loops: it goes round to their start.
@@ -534,10 +709,17 @@ export class TabPlayer {
     }
   }
 
-  /** Puts a MIDI file in the synthesizer: the clip's, or the clip's stopping at `end`. */
-  private load(midi: AlphaTabModule.midi.MidiFile, end: number | null) {
-    this.synth.loadMidiFile(midi);
-    this.loaded = { end };
+  /** The clip's MIDI stopping at a tick (or not, for null), with the count-in under way if any. */
+  private midiFor(performance: Performance, end: number | null): AlphaTabModule.midi.MidiFile {
+    const midi = end === null ? performance.midi : midiUntil(this.at, performance, end);
+    return this.counted ? withCountIn(this.at, midi, this.counted) : midi;
+  }
+
+  /** Puts the clip's MIDI in the synthesizer, stopping at `end` or not, with the count-in if any. */
+  private load(performance: Performance, end: number | null) {
+    this.synth.loadMidiFile(this.midiFor(performance, end));
+    this.loaded = { end, counted: this.counted };
+    this.applyClicks();
   }
 
   /**
@@ -545,12 +727,27 @@ export class TabPlayer {
    * The playhead stays where it is, and a clip playing plays on.
    */
   private useMidi(end: number | null) {
-    if (!this.performance || this.loaded?.end === end) return;
+    if (!this.performance || (this.loaded?.end === end && this.loaded.counted === this.counted)) return;
     const playing = !this.ended && this.resting === null;
     const tick = this.synth.tickPosition;
-    this.load(end === null ? this.performance.midi : midiUntil(this.at, this.performance, end), end);
+    this.load(this.performance, end);
     this.moveTo(tick);
     if (playing) this.synth.play();
+  }
+
+  /**
+   * The count-in has been heard and the loop comes round: the clip's own MIDI goes in place of the
+   * one with the count-in, without stopping (alphaTab goes on to the loop's start in it). Its ticks
+   * are the same, so the loop points hold.
+   */
+  private dropCountIn() {
+    if (!this.counted || !this.performance || !this.loaded) return;
+    this.counted = null;
+    const sequencer = (this.synth as unknown as { sequencer: { loadMidi(midi: AlphaTabModule.midi.MidiFile): void; mainPlaybackRange: AlphaTabModule.synth.PlaybackRange | null } }).sequencer;
+    const range = sequencer.mainPlaybackRange;
+    sequencer.loadMidi(this.midiFor(this.performance, this.loaded.end));
+    this.loaded = { end: this.loaded.end, counted: null };
+    rangeWithoutSeek(this.synth, range);
   }
 
   /** The rest between loops, in seconds; 0 loops straight round. */
@@ -571,6 +768,7 @@ export class TabPlayer {
       this.resting = null;
       this.loopEndAt = null;
       if (this.ended || !this.range) return;
+      this.counted = null;
       this.moveTo(this.range.startTick);
       this.setLoop(this.loop);
       this.synth.play();
@@ -613,6 +811,8 @@ export class TabPlayer {
     }
     now = Math.min(now, end - 1);
     this.shown = { tick: now, at: time };
+    // During the count-in the playhead waits where Play started.
+    if (this.counted && now < this.counted.end) return { column: this.counted.column, through: 0 };
     const found = perf.lookup.findBeat(new Set([0]), now - perf.shift);
     const column = found ? columnOfBeat(clip, found.beat) : null;
     if (!found || column === null) return null;
@@ -630,14 +830,52 @@ export class TabPlayer {
    */
   setTranspose(semitones: number) {
     const pitches = new Map<number, number>();
-    if (semitones !== 0) for (let channel = 0; channel < 16; channel++) if (channel !== DRUM_CHANNEL) pitches.set(channel, semitones);
+    const unpitched = [DRUM_CHANNEL, METRONOME_CHANNEL, COUNT_IN_CHANNEL];
+    if (semitones !== 0) for (let channel = 0; channel < 16; channel++) if (!unpitched.includes(channel)) pitches.set(channel, semitones);
     this.synth.applyTranspositionPitches(pitches);
   }
 
   /** The loudness, 0 (silent) to 1 (the soundfont's own level). */
   setVolume(volume: number) {
     this.volume = volume;
-    this.synth.masterVolume = volume * (OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1);
+    // The volume at the output, heard at once; the sound's level in the synthesizer.
+    this.output.setVolume(volume);
+    this.synth.masterVolume = this.level();
+    this.applyClicks();
+  }
+
+  /** The sound's own level, which the volume is scaled by (`OWN_FONTS`). */
+  private level(): number {
+    return OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1;
+  }
+
+  /** The metronome on or off; a clip playing clicks (or stops clicking) at once. */
+  setMetronome(on: boolean) {
+    this.metronome = on;
+    this.applyClicks();
+  }
+
+  /** Whether the next Play counts in first, and for how many bars (1 to 4). */
+  setCountIn(on: boolean, bars: number) {
+    this.countIn = on;
+    this.countInBars = Math.max(1, Math.min(MAX_COUNT_IN_BARS, Math.round(bars)));
+  }
+
+  /** How loud the clicks are, 0 to 1, under the Volume knob (which turns everything down). */
+  setClickVolume(volume: number) {
+    this.clickVolume = volume;
+    this.applyClicks();
+  }
+
+  /**
+   * The click channels' volume and the metronome's mute. The sound's own level scales everything
+   * heard, so the clicks are set against it, to sound alike in every sound.
+   */
+  private applyClicks() {
+    const volume = this.clickVolume / this.level();
+    this.synth.setChannelVolume(METRONOME_CHANNEL, volume);
+    this.synth.setChannelVolume(COUNT_IN_CHANNEL, volume);
+    this.synth.setChannelMute(METRONOME_CHANNEL, !this.metronome);
   }
 
   /**
@@ -700,7 +938,7 @@ export class TabPlayer {
       return;
     }
     this.performance = perform(this.at, this.clip, sound);
-    this.load(this.performance.midi, null);
+    this.load(this.performance, null);
     this.moveTo(tick);
     this.setLoop(this.loop);
     if (playing) this.synth.play();
@@ -725,8 +963,11 @@ export class TabPlayer {
     this.sound = sound;
     this.clip = null;
     this.performance = null;
+    this.counted = null;
     this.setVolume(this.volume);
-    this.load(perform(this.at, alone, sound).midi, null);
+    this.load(perform(this.at, alone, sound, { clicks: false }), null);
+    // Not the clip's MIDI: the next Play loads that.
+    this.loaded = null;
     this.synth.playbackSpeed = 1;
     this.synth.isLooping = false;
     this.moveTo(0);
@@ -738,6 +979,7 @@ export class TabPlayer {
     if (!this.clip || !this.performance) return;
     const resting = this.resting !== null;
     this.endRest();
+    this.counted = null;
     this.moveTo(tickOf(this.clip, this.performance, index));
     this.setLoop(this.loop);
     if (resting) this.synth.play();
