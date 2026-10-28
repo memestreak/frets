@@ -26,12 +26,11 @@ function programsOf(midi: alphaTab.midi.MidiFile): number[] {
 }
 
 describe('playback sounds', () => {
-  it('offers the General MIDI sounds but the synth effects, percussion and sound effects families', () => {
+  it('offers only the sounds with a soundfont of their own', () => {
     const programs = SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program));
-    expect(programs).toHaveLength(104);
-    expect(programs.some(p => p >= 112 || (p >= 96 && p <= 103))).toBe(false);
-    expect(isSound(25) && isSound(0) && isSound(111)).toBe(true);
-    expect(isSound(100) || isSound(115) || isSound(127) || isSound('25')).toBe(false);
+    expect(new Set(programs)).toEqual(new Set(OWN_FONTS.map(f => f.program)));
+    expect(isSound(DEFAULT_SOUND)).toBe(true);
+    expect(isSound(24) || isSound(111) || isSound('25')).toBe(false);
   });
 
   it('plays a sound from its own soundfont, which alphaTab reads with sound in it', () => {

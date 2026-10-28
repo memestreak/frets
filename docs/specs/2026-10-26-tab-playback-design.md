@@ -64,11 +64,11 @@ The controls sit under that line:
   End go to the ends). Hovering shows the level. Saved with the other
   playback settings, starting at 100%.
 - **Sound.** A dropdown at the end of the row (Jeremy, 2026-10-26) with
-  the soundfont's General MIDI sounds, 104 of them, grouped by family:
-  everything but the Percussion family (programs 112 to 119), the drum kits
-  (his "everything except for percussion"), the Sound effects family
-  (120 to 127, his "remove sound effects") and the Synth effects family
-  (96 to 103, "and remove Synth effects as well"). Steel Guitar
+  only the sounds that have a soundfont of their own, grouped by family:
+  Acoustic Grand Piano, Steel Guitar and Clean Electric Guitar (Jeremy,
+  2026-10-28: "remove the non-custom instruments"; it had offered SONiVOX's
+  104 pitched General MIDI sounds). A saved sound no longer offered goes
+  back to the default. Steel Guitar
   is the default, as in alphaTex. A change while the clip plays takes over
   at once, from where it is. The sound is a playback setting, saved with
   whether the controls show and the volume (`frets.tab.playback`,

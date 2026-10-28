@@ -26,25 +26,14 @@ export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 1.5;
 
 /**
- * The sounds the footer offers, grouped by General MIDI family: every pitched sound the soundfont
- * has, by program number (Jeremy, 2026-10-26: "everything except for percussion", so the
- * Percussion family, 112 to 119, and the drum kits are left out; then "remove sound effects", 120
- * to 127, and "Synth effects as well", 96 to 103). Steel Guitar is alphaTex's default.
+ * The sounds the footer offers, grouped by General MIDI family, by program number: only the sounds
+ * with a soundfont of their own (`OWN_FONTS`; Jeremy, 2026-10-28: "remove the non-custom
+ * instruments"). It had offered every pitched General MIDI sound SONiVOX has. Steel Guitar is
+ * alphaTex's default.
  */
 export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [number, string])[]])[] = [
-  ['Piano', [[0, 'Acoustic Grand Piano'], [1, 'Bright Acoustic Piano'], [2, 'Electric Grand Piano'], [3, 'Honky-tonk Piano'], [4, 'Electric Piano 1'], [5, 'Electric Piano 2'], [6, 'Harpsichord'], [7, 'Clavinet']]],
-  ['Chromatic percussion', [[8, 'Celesta'], [9, 'Glockenspiel'], [10, 'Music Box'], [11, 'Vibraphone'], [12, 'Marimba'], [13, 'Xylophone'], [14, 'Tubular Bells'], [15, 'Dulcimer']]],
-  ['Organ', [[16, 'Drawbar Organ'], [17, 'Percussive Organ'], [18, 'Rock Organ'], [19, 'Church Organ'], [20, 'Reed Organ'], [21, 'Accordion'], [22, 'Harmonica'], [23, 'Tango Accordion']]],
-  ['Guitar', [[24, 'Nylon Guitar'], [25, 'Steel Guitar'], [26, 'Jazz Guitar'], [27, 'Clean Electric Guitar'], [28, 'Muted Electric Guitar'], [29, 'Overdriven Guitar'], [30, 'Distortion Guitar'], [31, 'Guitar Harmonics']]],
-  ['Bass', [[32, 'Acoustic Bass'], [33, 'Fingered Bass'], [34, 'Picked Bass'], [35, 'Fretless Bass'], [36, 'Slap Bass 1'], [37, 'Slap Bass 2'], [38, 'Synth Bass 1'], [39, 'Synth Bass 2']]],
-  ['Strings', [[40, 'Violin'], [41, 'Viola'], [42, 'Cello'], [43, 'Contrabass'], [44, 'Tremolo Strings'], [45, 'Pizzicato Strings'], [46, 'Orchestral Harp'], [47, 'Timpani']]],
-  ['Ensemble', [[48, 'String Ensemble 1'], [49, 'String Ensemble 2'], [50, 'Synth Strings 1'], [51, 'Synth Strings 2'], [52, 'Choir Aahs'], [53, 'Voice Oohs'], [54, 'Synth Voice'], [55, 'Orchestra Hit']]],
-  ['Brass', [[56, 'Trumpet'], [57, 'Trombone'], [58, 'Tuba'], [59, 'Muted Trumpet'], [60, 'French Horn'], [61, 'Brass Section'], [62, 'Synth Brass 1'], [63, 'Synth Brass 2']]],
-  ['Reed', [[64, 'Soprano Sax'], [65, 'Alto Sax'], [66, 'Tenor Sax'], [67, 'Baritone Sax'], [68, 'Oboe'], [69, 'English Horn'], [70, 'Bassoon'], [71, 'Clarinet']]],
-  ['Pipe', [[72, 'Piccolo'], [73, 'Flute'], [74, 'Recorder'], [75, 'Pan Flute'], [76, 'Blown Bottle'], [77, 'Shakuhachi'], [78, 'Whistle'], [79, 'Ocarina']]],
-  ['Synth lead', [[80, 'Square Lead'], [81, 'Sawtooth Lead'], [82, 'Calliope Lead'], [83, 'Chiff Lead'], [84, 'Charang Lead'], [85, 'Voice Lead'], [86, 'Fifths Lead'], [87, 'Bass and Lead']]],
-  ['Synth pad', [[88, 'New Age Pad'], [89, 'Warm Pad'], [90, 'Polysynth Pad'], [91, 'Choir Pad'], [92, 'Bowed Pad'], [93, 'Metallic Pad'], [94, 'Halo Pad'], [95, 'Sweep Pad']]],
-  ['Ethnic', [[104, 'Sitar'], [105, 'Banjo'], [106, 'Shamisen'], [107, 'Koto'], [108, 'Kalimba'], [109, 'Bagpipe'], [110, 'Fiddle'], [111, 'Shanai']]],
+  ['Piano', [[0, 'Acoustic Grand Piano']]],
+  ['Guitar', [[25, 'Steel Guitar'], [27, 'Clean Electric Guitar']]],
 ];
 /**
  * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by
