@@ -17,6 +17,8 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { DECAY_SECONDS, NO_EFFECTS, type EffectSettings } from './effects';
+import { EffectsControls, useEffectsMock } from './EffectsControls';
 
 /** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -39,6 +41,23 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   countInBars: number;
   /** How loud the clicks are, 0 to 1, under the Volume knob; set from the same menu. */
   clickVolume: number;
+  /** Distortion and reverb (issue #199), from the controls after Sound. */
+  effects: EffectSettings;
+}
+
+/** A saved number in a range, else its default. */
+const numberIn = (value: unknown, min: number, max: number, fallback: number) =>
+  typeof value === 'number' && value >= min && value <= max ? value : fallback;
+
+/** The saved effects, each field checked on its own. */
+function parseEffects(saved: unknown): EffectSettings {
+  const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
+  return {
+    drive: numberIn(fields.drive, 0, 1, NO_EFFECTS.drive),
+    tone: numberIn(fields.tone, 0, 1, NO_EFFECTS.tone),
+    reverb: numberIn(fields.reverb, 0, 1, NO_EFFECTS.reverb),
+    decay: numberIn(fields.decay, DECAY_SECONDS.min, DECAY_SECONDS.max, NO_EFFECTS.decay),
+  };
 }
 
 /** The clicks' volume at first. */
@@ -66,6 +85,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     countInBars: Number.isInteger(fields.countInBars) && (fields.countInBars as number) >= 1 && (fields.countInBars as number) <= MAX_COUNT_IN_BARS
       ? fields.countInBars as number : 1,
     clickVolume: typeof fields.clickVolume === 'number' && fields.clickVolume >= 0 && fields.clickVolume <= 1 ? fields.clickVolume : DEFAULT_CLICK_VOLUME,
+    effects: parseEffects(fields.effects),
   };
 }
 
@@ -105,7 +125,7 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, onStopAt }: {
+export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
@@ -115,6 +135,8 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   countIn: boolean;
   countInBars: number;
   clickVolume: number;
+  /** Distortion and reverb, heard at once. */
+  effects: EffectSettings;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -152,6 +174,9 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setClickVolume(clickVolume);
   }, [clickVolume]);
+  useEffect(() => {
+    player.current?.setEffects(effects);
+  }, [effects]);
 
   /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -164,6 +189,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
       p.setMetronome(metronome);
       p.setCountIn(countIn, countInBars);
       p.setClickVolume(clickVolume);
+      p.setEffects(effects);
       return p;
     });
     return making.current;
@@ -290,7 +316,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -313,6 +339,9 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   /** Semitones playback is moved by, the field after Speed. */
   transpose: number;
   onTranspose: (semitones: number) => void;
+  /** Distortion and reverb, set after Sound. */
+  effects: EffectSettings;
+  onEffects: (effects: EffectSettings) => void;
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
@@ -334,6 +363,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
     setClickOptionsAt({ x: e.clientX, y: e.clientY });
   };
   const row = useRef<HTMLDivElement>(null);
+  const mock = useEffectsMock();
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
   const total = columnCount(clip);
@@ -426,6 +456,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
               ))}
             </select>
           </label>
+          <EffectsControls mock={mock} effects={effects} onEffects={onEffects} />
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
           {/* At the row's far right (Jeremy, 2026-10-28). */}
           <div className="tab-volume tab-volume-end">

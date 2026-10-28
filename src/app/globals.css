@@ -885,6 +885,12 @@ button {
   /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
   .tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
+  .tab-sound select.tab-amp { width: 130px; }
+  /* The Effects panel (mock b): each effect's name over its controls. */
+  .tab-effects { display: flex; flex-direction: column; gap: 12px; padding: 10px 12px; min-width: 0; }
+  .tab-effects-group { display: flex; flex-direction: column; gap: 6px; }
+  .tab-effects-name { font: 600 13px/16px var(--font-sans); color: var(--ink); }
+  .tab-effects-row { display: flex; align-items: center; gap: 18px; white-space: nowrap; }
   /* The cursor shows where the keys go, so the editor has no focus outline. */
   .tab-editor:focus { outline: none; }
   .tab-editor { position: relative; cursor: text; }
