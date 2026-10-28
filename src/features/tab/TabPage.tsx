@@ -44,6 +44,7 @@ import { ScoreCredits } from './ScoreCredits';
 import { parseView, VIEW_KEY, type TabView } from './viewOptions';
 import { ViewOptions } from './ViewOptions';
 import { ClipTitle, UNTITLED } from './ClipTitle';
+import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -1107,6 +1108,7 @@ export default function TabPage() {
         </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}
         {view === 'tab' && (
+        <PinnedPlayback shown={showPlayback}>
         <HoverTips>
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
@@ -1118,6 +1120,7 @@ export default function TabPage() {
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
           />
         </HoverTips>
+        </PinnedPlayback>
         )}
       </section>
 
