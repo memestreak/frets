@@ -30,7 +30,11 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
   `TabExportDialog.tsx` (the Export options button; the Tab view's copy button copies the PNG;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
-  helpers), and `TabPage.tsx` (the editor: keys
+  helpers), and `TabPage.tsx` (the editor, with its parts in `editorKeys.ts` (the keys on the
+  tab, the staff cursor and the playback line), `useClipImport.ts` (import, examples, links and
+  drops), `TabDialogs.tsx` (the Import and Examples dialogs), `ClipActions.tsx` (View options,
+  copy and save), `WordTools.tsx` (a picked word's Edit and Delete, where fields and panels go),
+  `views.ts`, `notice.ts` and `useWidth.ts`: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;
