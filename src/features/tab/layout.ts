@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Clip, type Column, type Note } from './clip';
+import { beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 
@@ -101,6 +101,31 @@ const STAFF_HEADROOM = 30;
 export const BEND_RISE = 26;
 /** How far a bend's label stands above the arrow's top, per line of a stacked pair. */
 export const BEND_LABEL_STEP = 11;
+/** The shortest rise of a bend's arrow, right of its number; and a bend let down's shortest run to its arrowhead down. */
+export const BEND_PEAK = 14;
+export const BEND_DROP = 24;
+/** How far short of the next note a bend's arrows stop; short of a pre-bend's, its wider "PB" label clear of theirs. */
+const BEND_END_GAP = 16;
+const PRE_BEND_CLEAR = 36;
+
+function preBent(column: Column): boolean {
+  return column.notes.some(n => n?.bend?.pre && !n.tie);
+}
+
+/**
+ * How far right of its number a bend's arrow peaks and, let down, where its arrow down lands: over the
+ * note's whole length, to just before the next note, as Guitar Pro draws them (Sweet Child O' Mine,
+ * bar 170: a bend over a dotted half), never shorter than BEND_PEAK and BEND_DROP. A pre-bend stands
+ * straight up from its number (a peak of 0) and lets down by the next note. A bend let down peaks halfway.
+ */
+export function bendShape(placed: Pick<PlacedColumn, 'bendRoom' | 'bendPeakRoom'>, bend: Pick<Bend, 'pre' | 'release'>): { peak: number; drop: number } {
+  const room = placed.bendRoom;
+  if (bend.pre) return { peak: 0, drop: Math.max(BEND_PEAK, room) };
+  if (bend.release) return { peak: Math.max(BEND_PEAK, Math.min(room / 2, placed.bendPeakRoom)), drop: Math.max(BEND_DROP, room) };
+  const peak = Math.max(BEND_PEAK, placed.bendPeakRoom);
+  return { peak, drop: peak };
+}
+
 /** The radius of a tap's circled T, over the staff and over its number on the tab. */
 export const TAP_RADIUS = 5.5;
 /** From the top of a bend's arrow down to its label's baseline: the label stands this far over the arrow. */
@@ -253,6 +278,10 @@ export interface PlacedColumn {
   /** Its room along the line: from `start`, `width` long. */
   start: number;
   width: number;
+  /** How far right of `x` a bend's arrows may run: to just before the next note on the line (`bendShape`). */
+  bendRoom: number;
+  /** How far its arrow may peak: as far, unless the next note is a pre-bend, whose wider label it keeps clear of. */
+  bendPeakRoom: number;
   /** On the staff: its note heads, low to high, and which way its stem goes. */
   heads: Head[];
   stemUp: boolean;
@@ -512,7 +541,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
-      const placed = { column, index: place++, x, start: cx, width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
+      const placed = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
       cx += cw;
       return placed;
     });
@@ -531,6 +560,16 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       if (bar.restRun?.first) bar.restRun.span.x0 = bar.x0;
       if (bar.restRun?.last) bar.restRun.span.x1 = bar.x1;
     }
+  }
+  // How far right of each note its bend's arrows may run: to just before the next note on the line.
+  for (const system of drafts) {
+    const placed = system.bars.flatMap(b => b.columns);
+    placed.forEach((column, k) => {
+      const next = placed[k + 1];
+      const lineEnd = system.bars[system.bars.length - 1].x1;
+      column.bendRoom = (next ? next.x : lineEnd) - column.x - BEND_END_GAP;
+      column.bendPeakRoom = next && preBent(next.column) ? next.x - column.x - PRE_BEND_CLEAR : column.bendRoom;
+    });
   }
   // Each line gets the rows its own bars use, and the lines stack one under another.
   const stack = (reaches: StaffReach[]): Layout => {

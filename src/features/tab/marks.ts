@@ -4,7 +4,7 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { BEND_LABEL_STEP, BEND_RISE, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
+import { BEND_LABEL_STEP, BEND_RISE, bendShape, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
 import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
@@ -94,7 +94,8 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
       }
     }
     for (const bar of system.bars) {
-      for (const { column, x, index } of bar.columns) {
+      for (const placed of bar.columns) {
+        const { column, x, index } = placed;
         const notes = column.notes.filter((n): n is Note => n !== null);
         const mordent = columnMordent(column);
         if (mordent && rows.vibrato !== null) {
@@ -131,17 +132,19 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
             // A held bend's dashed line, or a release's arrow down to the string.
             // A bend pushed on up stands a line higher, its label over it (`BendCarry`).
             const peak = rows.staffTop - BEND_RISE - (raises.get(note) ?? 0) * BEND_LABEL_STEP;
-            const from = (before && before.system === si ? fromX : system.staffStart - 14) + 14;
+            const from = before && before.system === si ? before.peak : system.staffStart;
             if (note.bend?.from !== undefined) add('bend', index, s, from, peak - 19, x + 20, peak + BEND_LABEL_STEP + THIN_REACH);
-            else if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + 14, peak + THIN_REACH);
+            else if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + bendShape(placed, { pre: false, release: false }).peak, peak + THIN_REACH);
             else add('bend', index, s, Math.min(from, x - 10), peak - THIN_REACH, x + 6, y + 2);
           } else if (note.bend) {
             const peak = rows.staffTop - BEND_RISE;
             const { pre, release } = note.bend;
             // The arrow and its label over the staff; a pre-bend's stands straight up from the number.
-            if (pre) add('bend', index, s, x - 15, peak - 19, release ? x + 20 : x + 15, y - 8);
-            // A tied note's arrow may rise by the number it is tied from (`BendDrawing`).
-            else add('bend', index, s, (note.tie && before?.system === si ? fromX : x) + 6, peak - 19, release ? x + 29 : x + 23, y - 1);
+            // It runs the note's length (`bendShape`), unless it rises by the number a tied note is tied from (`BendDrawing`).
+            const tiedFrom = note.tie && before?.system === si;
+            const { drop } = bendShape(placed, note.bend);
+            if (pre) add('bend', index, s, x - 15, peak - 19, x + Math.max(15, release ? drop + 6 : 15), y - 8);
+            else add('bend', index, s, (tiedFrom ? fromX : x) + 6, peak - 19, x + drop + (release ? 5 : 9), y - 1);
           }
           if (note.slideOut) add('slideOut', index, s, x + 7, y - 7, x + 20, y + 7);
           if (note.tap) add('tap', index, s, x - TAP_RADIUS, y - 6 - 2 * TAP_RADIUS, x + TAP_RADIUS, y - 6);

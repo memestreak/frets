@@ -13,6 +13,9 @@ Spec: `docs/specs/2026-10-28-tab-sweet-child-ending-design.md`.
    `smufl.ts` (with the brackets) by `scripts/smufl-glyphs.mjs`; `FermataSign` over the staff
    (`staffMarks.ts`, room in `staffReach`) and in a `fermatas` row over the tab alone; its mark box,
    `markTool` (none) and `removeMark`.
-6. Example `song-ending` (bars 173–181); tests in `soloLook.test.tsx`; the Tab README and
+6. Jeremy asked to fix item 5 too: `bendRoom` and `bendPeakRoom` on each placed column after `justify`;
+   `bendShape` used by `BendDrawing`, `BendCarry`'s held line, `previousSpots` (a spot's `peak`) and the
+   bend's mark boxes.
+7. Example `song-ending` (bars 173–181); tests in `soloLook.test.tsx`; the Tab README and
    `public/tab-alphatex.txt`.
-7. Check in a browser: the example in Both, Staff and Tab; pick and delete a fermata.
+8. Check in a browser: the example in Both, Staff and Tab; pick and delete a fermata.

@@ -469,3 +469,52 @@ describe('a fermata (round 10, the book\'s bars 180 and 181)', () => {
     }
   });
 });
+
+describe('a bend\'s arrows run its note\'s length (round 10, the book\'s bar 170)', () => {
+  const arrowTips = (text: string) => {
+    const clip = clipOf(text);
+    const layout = layoutClip(clip, 1200, 'tab');
+    const columns = layout.systems[0].bars.flatMap(b => b.columns);
+    const container = render(<TabClip clip={clip} width={1200} parts="tab" title="Bends" />).container;
+    const bends = [...container.querySelectorAll('[data-testid="bend"]')];
+    // Each bend's first curve ends at its peak: "M x y Q cx cy px py".
+    const peaks = bends.map(b => Number(b.querySelector('path')!.getAttribute('d')!.match(/-?[\d.]+/g)![4]));
+    return { columns, peaks, bends };
+  };
+
+  it('peaks just before the next note, over a long note as over a short one', () => {
+    const { columns, peaks } = arrowTips('\\ts (4 4)\n14.3{b (0 4)}.2{d} 12.3.16 14.3{b (0 4)}.32 12.3.32 r.16 |\n');
+    expect(peaks[0]).toBeGreaterThan(columns[1].x - 20);
+    expect(peaks[0]).toBeLessThan(columns[1].x - 10);
+    // A thirty-second's rise is as short as its room.
+    expect(peaks[1]).toBeLessThan(columns[3].x);
+    expect(peaks[1] - columns[2].x).toBeLessThan(30);
+  });
+
+  it('lets down by the next note, peaking halfway, and a pre-bend lets down by the next note too', () => {
+    const { columns, bends } = arrowTips('\\ts (4 4)\n14.3{b (0 4 0)}.2 14.3{b (4 0)}.2 | 12.3.1 |\n');
+    // The release is the last curve: "M x y Q cx cy ex ey", from the peak to its arrowhead.
+    const release = (k: number) => [...bends[k].querySelectorAll('path')].filter(p => p.getAttribute('d')!.includes('Q')).pop()!
+      .getAttribute('d')!.match(/-?[\d.]+/g)!.map(Number);
+    expect(release(0)[4]).toBeGreaterThan(columns[1].x - 20);
+    expect(release(0)[0]).toBeLessThan((columns[0].x + columns[1].x) / 2 + 2);
+    expect(release(1)[4]).toBeGreaterThan(columns[2].x - 20);
+  });
+
+  it('stops clear of a pre-bend\'s label on the next note', () => {
+    const { columns, peaks } = arrowTips('\\ts (4 4)\n14.3{b (0 4)}.2 14.3{b (4 4)}.2 |\n');
+    expect(peaks[0]).toBeLessThan(columns[1].x - 30);
+  });
+
+  it('holds a bend\'s dashed line on to just before the next note', () => {
+    const clip = clipOf('\\ts (4 4)\n14.3{b (0 4)}.4 -.3{b (4 4)}.2{d} | 12.3.1 |\n');
+    const columns = layoutClip(clip, 1200, 'tab').systems[0].bars.flatMap(b => b.columns);
+    const container = render(<TabClip clip={clip} width={1200} parts="tab" title="Hold" />).container;
+    const hold = container.querySelector('[data-testid="bend-hold"]')!;
+    expect(Number(hold.getAttribute('x1'))).toBeGreaterThan(columns[1].x - 20);
+    expect(Number(hold.getAttribute('x2'))).toBeGreaterThan(columns[2].x - 20);
+    expect(Number(hold.getAttribute('x2'))).toBeLessThan(columns[2].x);
+    const box = markBoxes(layoutClip(clip, 1200, 'tab')).find(m => m.hit.mark === 'bend' && m.hit.index === 1)!.box;
+    expect(box.x + box.width).toBeGreaterThan(columns[2].x - 20);
+  });
+});

@@ -28,6 +28,17 @@ time, a slide down the A string to a low E held under fermatas.
   else in its column and clear of the bar number, and over the tab in a row of its own when the tab is
   alone. A press picks it and Delete removes it; no palette button sets it. Playback ignores it.
 
+- **A bend's arrows run its note's length.** In bar 170 the book's bend over a dotted half rises the
+  whole length of the note, its arrow peaking just before the next note; a bend let down peaks halfway
+  and lands its arrow there; a held bend's dashed line runs on to the next note too. Frets drew every
+  rise the same 14 units long. Now each column's room (`PlacedColumn.bendRoom`, set once the lines are
+  spread) runs to 16 units short of the next note on the line, and `bendShape` in `layout.ts` peaks a
+  bend there (at least 14 on), a bend let down halfway, lands a release, a pre-bend's let-down and a
+  held bend's dashed line there too. An arrow stops 36 short of a pre-bend on the next note, so its
+  label stays clear of the wider "PB" label (`bendPeakRoom`). A tied note bent after a grace note still
+  peaks just past the grace note's number (bars 131 and 132), its dashed line or let-down running on.
+  The staff alone keeps its short bends.
+
 Everything else on the page Frets already draws: bends with vibrato, held and let down onto pull-offs
 (bars 170–171), quarter-note triplets, a tied bend let down onto a note on the next string (bar 172),
 grace notes bent and let down (bar 173), pre-bends let down (bar 174), a held pre-bend with vibrato
@@ -37,8 +48,6 @@ a slide in from below with an accent (bar 179), a held half bend pulled off to t
 
 ## Not the same as the book, for later
 
-- **A bend's curve** runs the whole length of a long note in the book (bar 170's dotted half);
-  Frets draws every bend's rise the same short length.
 - **A pre-bend's label** is "PB full" / "PB ½" in Frets, "full" / "½" in the book (bars 170, 174, 175).
 - **A held half bend's pitch** on the staff: the book brackets the fretted pitch, Frets the bent one
   (bar 179; issue #176).

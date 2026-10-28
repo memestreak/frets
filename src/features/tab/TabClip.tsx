@@ -3,7 +3,7 @@ import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legato
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
-import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
+import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
@@ -292,7 +292,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   clip: Clip;
   look: TabLook;
   names: string[] | null;
-  previous: Map<Note, Spot>;
+  previous: Map<Note, NoteSpot>;
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
   /** This line's arcs over hammer-ons, pull-offs and legato slides. */
