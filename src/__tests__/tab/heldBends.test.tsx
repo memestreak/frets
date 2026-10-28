@@ -71,9 +71,9 @@ describe('a held bend', () => {
     expect(container.querySelectorAll('[data-testid="bend-hold"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-testid="bend-release"]')).toHaveLength(1);
     const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent);
-    // The grace 17, the bent (17), then 15: under the staff the held note's number is left out within
-    // the bar (its dashed line says it), and the let-down note has none.
-    expect(numbers.filter(n => /\d/.test(n ?? ''))).toEqual(['17', '(17)', '15']);
+    // The grace 17, the bent (17), the held (17), then 15: under the staff a held note is named within
+    // the bar only under vibrato, as here (the book's bar 113), and the let-down note has none.
+    expect(numbers.filter(n => /\d/.test(n ?? ''))).toEqual(['17', '(17)', '(17)', '15']);
     expect(container.querySelectorAll('[data-testid="staff-bent"]')).toHaveLength(3);
   });
 

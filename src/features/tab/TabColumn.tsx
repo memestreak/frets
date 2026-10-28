@@ -21,15 +21,15 @@ export function labelWidth(note: Note, column: Column): number {
  * has none (its arrow comes down to the string) unless it starts a bar or a hammer-on, pull-off or legato
  * slide leaves from it, which needs a number to start from. Under the staff, a tied note's number shows
  * only at the start of a bar, in brackets: within the bar the staff's tie says it all, and a held bend's
- * dashed line. A tied note keeps its number when it bends up (under its bend's arrow), when a legato
- * leaves from it, or under a mordent.
+ * dashed line. A tied note keeps its number when a legato leaves from it, under a mordent, or under
+ * vibrato (bars 113, 114, 117 and 118 of the book); a tied note that bends up after a grace note has
+ * none unless it has vibrato too, its arrow rising from the string (bar 118 against bar 113).
  */
 export function hiddenNumber(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, joins: Joins): boolean {
   const barStart = placed === bar.columns[0];
   const carry = joins.carries.get(note);
   if (carry === 'release') return !barStart && !joins.legatoStarts.has(note);
-  if (!note.tie || !rows.score || barStart || joins.legatoStarts.has(note) || note.mordent) return false;
-  return !note.bend || carry === 'hold';
+  return note.tie === true && rows.score !== null && !barStart && !joins.legatoStarts.has(note) && !note.mordent && !note.vibrato;
 }
 
 /** How notes join the ones before and after them on a string, for drawing their numbers. */

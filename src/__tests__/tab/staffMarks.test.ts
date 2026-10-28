@@ -34,6 +34,19 @@ describe('staffMarks', () => {
     ]);
   });
 
+  it('brackets a tuplet one beam doesn\'t join, and leaves a beamed one its number alone', () => {
+    // Quarter-note triplets (the book's bar 115), then eighth-note triplets under one beam (bar 117).
+    const clip = clipOf('11.1.4{tu 3} 12.1.4{tu 3} 14.1.4{tu 3} r.4 11.3.8{tu 3} 12.3.8{tu 3} 14.3.8{tu 3} |');
+    const layout = layoutClip(clip, WIDTH, 'both');
+    const tuplets = staffMarks(layout)[0].filter(m => m.kind === 'tuplet');
+    expect(tuplets.map(m => m.kind === 'tuplet' && m.bracket !== null)).toEqual([true, false]);
+    const [quarters] = tuplets;
+    const columns = layout.systems[0].bars[0].columns;
+    if (quarters.kind !== 'tuplet' || !quarters.bracket) throw new Error('no bracket');
+    expect(quarters.bracket.x0).toBeLessThan(columns[0].x);
+    expect(quarters.bracket.x1).toBeGreaterThan(columns[2].x);
+  });
+
   it('puts bends and taps on the staff only when it is alone', () => {
     const clip = clipOf('7.3{b (0 4)}.4 12.1.4{tt} r.2 |');
     expect(kinds(clip, 'both')).toEqual([]);

@@ -3,7 +3,9 @@
  * docs/specs/2026-10-28-tab-sweet-child-solo-two-design.md): a bend held over tied notes is named on the
  * tab, under a staff, only where a bar starts; a let-down note is named where a bar starts or when a
  * pull-off leaves from it; a tied note is named when a slide leaves from it or under a mordent; and
- * mordents are read, written, drawn, set from the palette and played.
+ * mordents are read, written, drawn, set from the palette and played. Round 5
+ * (docs/specs/2026-10-28-tab-sweet-child-solo-three-design.md): a tied note is named under vibrato, a
+ * grace note bent up has no second number, and a tuplet no beam joins is bracketed.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -107,5 +109,35 @@ describe('mordents', () => {
     const { midi } = perform(alphaTab, clipOf('7.3{umordent}.4 r.4 r.2 |'));
     const ons = midi.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent) as alphaTab.midi.NoteOnEvent[];
     expect(ons.map(e => e.noteKey)).toEqual([62, 64, 62]);
+  });
+});
+
+describe('a tied note under a staff', () => {
+  const numbersOf = (text: string) => {
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Ties" />);
+    return [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent).filter(n => /\d/.test(n ?? ''));
+  };
+
+  it('is named within the bar under vibrato, as the book prints bars 114 and 117', () => {
+    expect(numbersOf('\\ts (4 4)\n12.1{v}.4 -.1{v}.4 12.1.4 -.1.4 |\n')).toEqual(['12', '(12)', '12']);
+  });
+
+  it('has no number when it bends up after a grace note without vibrato (the book\'s bar 118)', () => {
+    expect(numbersOf('\\ts (4 4)\nr.2 13.2.8{gr} -.2{b (0 4)}.4 -.2{b (4 4)}.4 |\n')).toEqual(['13']);
+  });
+});
+
+describe('a tuplet\'s bracket on the tab alone', () => {
+  const brackets = (text: string) => {
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="tab" title="Tuplets" />);
+    return container.querySelectorAll('[data-testid="tuplet-bracket"]').length;
+  };
+
+  it('is drawn under quarter-note triplets, which no beam joins (the book\'s bar 115)', () => {
+    expect(brackets('\\ts (4 4)\n11.1.4{tu 3} 12.1.4{tu 3} 14.1.4{tu 3} r.2 |\n')).toBe(1);
+  });
+
+  it('is left out under eighth-note triplets one beam joins', () => {
+    expect(brackets('\\ts (4 4)\n11.3.8{tu 3} 12.3.8{tu 3} 14.3.8{tu 3} r.4 r.2 |\n')).toBe(0);
   });
 });
