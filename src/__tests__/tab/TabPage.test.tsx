@@ -91,7 +91,7 @@ describe('TabPage', () => {
     const panel = screen.getByRole('dialog', { name: 'View options' });
     fireEvent.click(within(panel).getByRole('button', { name: 'None' }));
     expect(numbers()).toEqual([]);
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none', size: 100, asciiRhythm: true, lineNumbers: true });
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ barNumbers: 'none', size: 100, asciiRhythm: true, lineNumbers: true, colours: 'theme' });
     fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
     expect(numbers().length).toBeGreaterThan(0);
     expect(numbers()[0]).toBe('1');
@@ -229,6 +229,30 @@ describe('TabPage', () => {
     fireEvent.click(within(panel).getByRole('switch', { name: 'Line numbers' }));
     expect(numbers()).toBe(0);
     expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ asciiRhythm: false, lineNumbers: false });
+  });
+
+  it('shows every view in the colours chosen, on a sheet of the background, and Custom with its two swatches', async () => {
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
+    const paper = () => screen.getByTestId('tab-paper');
+    expect(paper().getAttribute('style') ?? '').toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    const panel = screen.getByRole('dialog', { name: 'View options' });
+    const colours = within(panel).getByRole('group', { name: 'Colours' });
+    fireEvent.click(within(colours).getByRole('button', { name: 'Night' }));
+    expect(paper().style.getPropertyValue('--ink')).toBe('#e8e2d6');
+    expect(paper().style.getPropertyValue('--surface-raised')).toBe('#1c1a17');
+    expect(within(panel).queryByLabelText('Text')).toBeNull();
+    // Custom starts from the scheme shown, then keeps its own.
+    fireEvent.click(within(colours).getByRole('button', { name: 'Custom' }));
+    const text = within(panel).getByLabelText('Text') as HTMLInputElement;
+    expect(text.value).toBe('#e8e2d6');
+    fireEvent.change(text, { target: { value: '#7a1f1f' } });
+    expect(paper().style.getPropertyValue('--ink')).toBe('#7a1f1f');
+    // The text views take the same sheet.
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(paper()).toContainElement(screen.getByTestId('tab-ascii'));
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ colours: 'custom', custom: { text: '#7a1f1f', background: '#1c1a17' } });
   });
 
   it('shows the clip as alphaTex and as ASCII', async () => {
