@@ -10,7 +10,7 @@ import { loadJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import { useArrangements } from './useArrangements';
-import { ArrangementsDialog, type ArrangementsLayout } from './ArrangementsDialog';
+import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
 import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
@@ -70,8 +70,6 @@ export default function TabPage() {
   // The example or sample shown in place of the clip (only its id is needed here); its edits are never saved.
   const example = state.example;
   const [choosing, setChoosing] = useState(false);
-  // Which layout of the Arrangements dialog to show (?mock=a or b), while the two are compared.
-  const [layout] = useState<ArrangementsLayout>(() => (new URLSearchParams(window.location.search).get('mock') === 'b' ? 'tabs' : 'list'));
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
@@ -658,6 +656,15 @@ export default function TabPage() {
   const name = clip.name.trim() || UNTITLED;
   /** A new title: one undo step, as any edit. */
   const rename = (next: string) => dispatch({ type: 'rename', name: next });
+  /** Deletes from the Arrangements dialog, which stays open; when `ids` hold the open one, another is shown. */
+  const removing = (ids: string[], remove: () => void) => {
+    if (!ids.includes(state.id)) {
+      remove();
+      return;
+    }
+    replaceShown(() => { remove(); clearExampleHash(); });
+    setChoosing(true);
+  };
   /** What is shown in place of the open arrangement, from the Arrangements dialog. */
   const replaceShown = (open: () => void) => {
     open();
@@ -836,7 +843,7 @@ export default function TabPage() {
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
       <ArrangementsDialog
-        open={choosing} layout={layout} items={arrangements.library.items} openId={state.id} exampleId={example?.id ?? null}
+        open={choosing} library={arrangements.library} openId={state.id} exampleId={example?.id ?? null}
         deleted={arrangements.deleted} onClose={() => setChoosing(false)}
         onOpen={id => replaceShown(() => {
           if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
@@ -845,12 +852,14 @@ export default function TabPage() {
         onNew={() => replaceShown(() => { arrangements.openNew(); clearExampleHash(); })}
         onDuplicate={() => replaceShown(() => arrangements.openNew(clip))}
         onRename={arrangements.rename}
-        onDelete={id => {
-          // Deleting the open arrangement opens another, or a new clip.
-          if (id === state.id) replaceShown(() => { arrangements.remove(id); clearExampleHash(); });
-          else arrangements.remove(id);
-          setChoosing(true);
-        }}
+        onMove={arrangements.move}
+        // Deleting the open arrangement opens another, or a new clip.
+        onDelete={id => removing([id], () => arrangements.remove(id))}
+        onCreateFolder={arrangements.createFolder}
+        onRenameFolder={arrangements.renameFolder}
+        onDeleteFolder={id => removing(
+          arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
+        )}
         onUndoDelete={arrangements.undoDelete}
         onOpenExample={async id => {
           const error = await openExample(id);

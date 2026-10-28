@@ -19,7 +19,7 @@ interface History {
 export interface ClipState extends History {
   /** The arrangement the clip is saved as; while an example is shown, the one it set aside. */
   id: string;
-  /** The example being shown (its id in `examples.ts`) and the clip it set aside; null for the saved clip. */
+  /** The example being shown (a built-in arrangement's id, `builtins.ts`) and the clip it set aside; null for the saved clip. */
   example: { id: string; mine: History } | null;
 }
 

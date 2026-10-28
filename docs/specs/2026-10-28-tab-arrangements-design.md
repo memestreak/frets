@@ -16,25 +16,38 @@ dialog, **Arrangements…**, replaces Examples….
 
 ## The dialog
 
-- **My arrangements**, latest change first: each row shows the title (the
-  clip's own `\title`, so renaming one renames the other) and when it last
-  changed ("Today, 9:45 PM", else the date). A press opens it; the pencil
-  renames it in place (Enter or leaving the field keeps it, Esc cancels); the
-  bin deletes it, with Undo in the dialog until it closes. Deleting the open
-  one opens the latest other, or a new empty clip. The open one is filled.
-- **New arrangement** opens an empty clip; **Duplicate** copies the open one
-  (same title) and opens the copy.
-- **Samples** (the folder, as before) and **Examples**, opened in place of the
-  open arrangement as before: never saved, `#example=<id>` links kept, Back to
-  my clip returns. **Keep a copy**, beside Back to my clip, makes the example,
-  with any edits, a new arrangement and opens it.
-- Layout mocks while he compares: `?mock=a` (default) lists the three under
-  headings; `?mock=b` shows one at a time behind a My arrangements | Samples |
-  Examples switch.
+One list, one line per arrangement or folder, by name (A to Z, numbers in
+number order). Jeremy, 2026-10-28: folders one level deep, samples in a
+folder of their own, the built-ins as files in the repository.
+
+- **My arrangements**: folders first, then the arrangements at the top level.
+  A press on a folder opens or closes it (closed by default; the one holding
+  what is shown opens with the dialog); an empty one says "Empty". A press on
+  an arrangement opens it; the open one is filled.
+- Each arrangement's line ends with Move (when there are folders: a menu of
+  the other folders, and Top level when it is in one), Rename (the name
+  typed in place: Enter or leaving keeps it, Esc cancels) and Delete. Its
+  name is the clip's own `\title`, so renaming one renames the other.
+- A folder's line has Rename and Delete; deleting a folder deletes what is in
+  it. Every delete has Undo in the dialog until it closes. Deleting the open
+  arrangement opens the latest other, or a new empty clip.
+- **New arrangement** opens an empty clip at the top level; **New folder**
+  adds "New folder" with its name ready to type; **Duplicate** copies the
+  open one (same title) and opens the copy.
+- **Built-in**: a folder per directory of `src/features/tab/builtin_arrangements/`
+  (`song_structure` shows as "Song structure"), each file a line titled by its
+  `\title`. They open in place of the open arrangement as the examples did:
+  never saved, `#example=<file name>` links, Back to my clip returns, and
+  **Keep a copy** makes one, with its edits, a new arrangement.
+- The built-ins are files so they are managed in git: adding one is adding a
+  file. All but `samples/` are round-trip tests (read with no warnings, every
+  bar full, written back exactly); `samples/` is for trying things out.
+  The topic folders replace the `example_` names Jeremy sketched:
+  `articulations`, `rhythm`, `song_structure`, `sweet_child`, `samples`.
 
 ## Storage
 
-`frets.tab.arrangements` is the index (`{ open, items: [{ id, name, changed }] }`);
+`frets.tab.arrangements` is the index (`{ open, folders: [{ id, name }], items: [{ id, name, changed, folder? }] }`);
 each clip is under `frets.tab.arrangement.<id>`, so an edit writes only its
 own clip. `frets.tab.clip` is gone (no users yet, no migration).
 

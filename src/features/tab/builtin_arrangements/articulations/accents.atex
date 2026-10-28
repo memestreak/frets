@@ -1,0 +1,7 @@
+\title "Accents, ghost notes and staccato"
+\ts (4 4)
+0.6{ac}.8 0.6{g}.16 0.6{g}.16 3.6{st}.8 3.6{st}.8 5.5{hac}.4 x.5{g}.8
+  5.5{ac}.8 |
+(5.2{hac} 7.3{hac} 5.4{hac}).4{sd} (5.2{st} 7.3{st} 5.4{st}).8{su} r.8
+  (5.2{ac} 7.3{ac} 5.4{ac}).2{sd} |
+

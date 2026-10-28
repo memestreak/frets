@@ -1,10 +1,9 @@
 import { useEffect, useEffectEvent, type Dispatch } from 'react';
 import type { Clip } from './clip';
 import type { ClipAction } from './clipState';
-import { exampleById } from './examples';
+import { loadBuiltins } from './builtins';
 import type { Notice } from './notice';
 import { isTabFile, readTab } from './readTab';
-import { loadSamples, SAMPLE_PREFIX } from './samples';
 
 const HASH = '#tab=';
 /** An example's link, /tab#example=bends; it stays in the address while the example is shown. */
@@ -40,8 +39,8 @@ export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }:
 
   /** Shows the example with this id in place of the clip; null when it opened, else why it couldn't. */
   const openExample = async (id: string): Promise<string | null> => {
-    // A sample is fetched afresh, so one dropped into the folder a moment ago opens.
-    const chosen = id.startsWith(SAMPLE_PREFIX) ? (await loadSamples()).find(s => s.id === id) : exampleById(id);
+    // Fetched afresh, so a file dropped into the folder a moment ago opens.
+    const chosen = (await loadBuiltins()).find(b => b.id === id);
     if (!chosen) return `There is no example called "${id}".`;
     const result = await readTab(chosen.text);
     if (!result.ok) return result.errors.join(' ');

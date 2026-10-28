@@ -1,0 +1,18 @@
+\title "Sweet Child O' Mine (verse)"
+\artist "Guns N' Roses"
+\words "Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler"
+\music "Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler"
+\multiBarRest
+\ts (4 4)
+\tuning (D#4 A#3 F#3 C#3 G#2 D#2)
+\ks G \tempo (122 "Medium Rock") \db 15.1{ac}.8 14.3.8 14.1{ac}.8 14.3.8
+  12.1{ac}.8 14.3.8 15.2{ac}.8 14.3.8 |
+\section ("B" "Verse 1") (15.2{vw} 14.3{vw}).1{ch "D"} | (-.2 -.3).2{d} r.4 |
+r.1 | r.1 | r.1 | r.1 | r.1 | r.1 |
+0.4{lr}.8{ch "D"} 3.2{lr}.8 2.3{lr}.8 0.1{lr}.8 -.1{lr}.8 3.2{lr}.8 2.3{lr}.8
+  2.1{lr}.8 |
+3.2{lr}.8 2.3{lr}.8 0.4{lr}.8 2.1{lr}.8 3.1{lr}.8 2.1{lr}.8 0.1{lr}.8
+  3.2{lr}.8 |
+3.5{lr}.8{ch "Cadd9"} 0.3{lr}.8 2.4{lr}.8 3.2{lr}.8 -.2{lr}.8 0.3{lr}.8
+  2.4{lr}.8 0.1{lr}.8 |
+

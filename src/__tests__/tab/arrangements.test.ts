@@ -9,7 +9,7 @@ describe('arrangements', () => {
     expect(parseLibrary(null)).toEqual(EMPTY_LIBRARY);
     expect(parseLibrary({ open: 3, items: 'x' })).toEqual(EMPTY_LIBRARY);
     expect(parseLibrary({ open: 'a', items: [{ id: 'a', name: 'Riff', changed: 5 }, { id: '', name: 'x', changed: 1 }, { id: 'b', name: 'y' }] }))
-      .toEqual({ open: 'a', items: [{ id: 'a', name: 'Riff', changed: 5 }] });
+      .toEqual({ open: 'a', folders: [], items: [{ id: 'a', name: 'Riff', changed: 5 }] });
   });
 
   it('stores a clip under its own key, listing it by its last change', () => {
@@ -32,8 +32,8 @@ describe('arrangements', () => {
 
   it('opens the arrangement the index names, else a new empty clip', () => {
     storeArrangement(EMPTY_LIBRARY, 'a', { ...emptyClip(), name: 'Riff' }, 1);
-    expect(openOnLoad({ open: 'a', items: [] })).toMatchObject({ id: 'a', clip: { name: 'Riff' } });
-    const fresh = openOnLoad({ open: 'gone', items: [] });
+    expect(openOnLoad({ ...EMPTY_LIBRARY, open: 'a' })).toMatchObject({ id: 'a', clip: { name: 'Riff' } });
+    const fresh = openOnLoad({ ...EMPTY_LIBRARY, open: 'gone' });
     expect(fresh.id).not.toBe('gone');
     expect(fresh.clip).toEqual(emptyClip());
   });

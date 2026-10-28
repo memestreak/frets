@@ -7,7 +7,8 @@ import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { exampleById } from '@/features/tab/examples';
+import { BUILTIN_URL, builtinsFrom } from '@/features/tab/builtins';
+import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { layoutClip } from '@/features/tab/layout';
 import { markBoxes, type MarkHit } from '@/features/tab/marks';
 
@@ -32,6 +33,14 @@ const OTHER = [
   'A|--2---2---|',
   'E|--3---3---|',
 ].join('\n');
+
+// The built-in arrangements, served as the route serves them; nothing else is fetched.
+const BUILTIN_FILES = await readBuiltinFiles();
+const exampleById = (id: string) => builtinsFrom(BUILTIN_FILES).find(b => b.id === id);
+vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
+  if (String(url) !== BUILTIN_URL) throw new Error(`Not fetched in tests: ${String(url)}`);
+  return new Response(JSON.stringify(BUILTIN_FILES));
+}));
 
 /** Renders the page at /tab plus `hash`. */
 function renderAt(hash = '') {
@@ -842,7 +851,8 @@ describe('TabPage examples', () => {
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
     const dialog = screen.getByRole('dialog', { name: 'Arrangements' });
-    fireEvent.click(within(dialog).getByRole('button', { name: /Bends and vibrato/ }));
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Articulations' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Bends and vibrato' }));
     await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
     expect(screen.getByTestId('example-note')).toHaveTextContent("Example: edits aren't saved");
     expect(window.location.hash).toBe('#example=bends');
@@ -893,7 +903,7 @@ describe('TabPage arrangements', () => {
     return screen.getByRole('dialog', { name: 'Arrangements' });
   };
   const mine = (dialog: HTMLElement) => within(within(dialog).getByRole('list', { name: 'My arrangements' }));
-  const names = (dialog: HTMLElement) => mine(dialog).getAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.firstChild?.textContent);
+  const names = (dialog: HTMLElement) => mine(dialog).getAllByRole('button', { name: /^(?!Rename|Delete|Move)/ }).map(b => b.firstChild?.textContent);
   const importTab = async (text: string, title: string) => {
     fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
     fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: text } });
@@ -929,7 +939,7 @@ describe('TabPage arrangements', () => {
     renderAt();
     await importTab(TEX, 'Tex riff');
     const dialog = openDialog();
-    expect(names(dialog)).toEqual(['Tex riff', 'Riff']);
+    expect(names(dialog)).toEqual(['Riff', 'Tex riff']);
     expect(mine(dialog).getByRole('button', { name: /^Tex riff/ })).toHaveAttribute('aria-current', 'true');
     fireEvent.click(mine(dialog).getByRole('button', { name: /^Riff/ }));
     expect(heading()).toHaveTextContent('Riff');
@@ -989,7 +999,7 @@ describe('TabPage arrangements', () => {
     expect(names(dialog)).toEqual(['Tex riff']);
     expect(localStorage.getItem(arrangementKey('kept'))).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
-    expect(names(dialog)).toEqual(['Tex riff', 'Riff']);
+    expect(names(dialog)).toEqual(['Riff', 'Tex riff']);
     fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Tex riff' }));
     await settle();
     expect(heading()).toHaveTextContent('Riff');
@@ -998,6 +1008,66 @@ describe('TabPage arrangements', () => {
     await settle();
     expect(heading()).toHaveTextContent('Untitled clip');
     expect(loadLibrary().items).toEqual([]);
+  });
+
+  it('keeps arrangements in folders, one level deep, and deletes a folder with what is in it', async () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    await importTab(TEX, 'Tex riff');
+    const dialog = openDialog();
+    // No folders yet, so nothing to move into.
+    expect(mine(dialog).queryByRole('button', { name: 'Move Riff' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    const field = within(dialog).getByRole('textbox', { name: 'Folder name' });
+    expect(field).toHaveValue('New folder');
+    fireEvent.change(field, { target: { value: 'Riffs' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    const folder = mine(dialog).getByRole('button', { name: 'Riffs' });
+    expect(folder).toHaveAttribute('aria-expanded', 'true');
+    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getByText('Empty')).toBeInTheDocument();
+    fireEvent.click(mine(dialog).getByRole('button', { name: 'Move Riff' }));
+    const menu = within(dialog).getByRole('menu', { name: 'Move to' });
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Riffs']);
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Riffs' }));
+    const inFolder = within(within(dialog).getByRole('list', { name: 'Riffs' }));
+    expect(inFolder.getByRole('button', { name: 'Riff' })).toBeInTheDocument();
+    expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBe(loadLibrary().folders[0].id);
+    // Back out to the top level.
+    fireEvent.click(inFolder.getByRole('button', { name: 'Move Riff' }));
+    expect(within(within(dialog).getByRole('menu', { name: 'Move to' })).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Top level']);
+    fireEvent.keyDown(within(dialog).getByRole('menu'), { key: 'Escape' });
+    // A folder closes and opens with a press.
+    fireEvent.click(folder);
+    expect(within(dialog).queryByRole('list', { name: 'Riffs' })).toBeNull();
+    fireEvent.click(folder);
+    // Moving the open one in, then deleting the folder, opens the other.
+    fireEvent.click(mine(dialog).getByRole('button', { name: 'Move Tex riff' }));
+    fireEvent.click(within(within(dialog).getByRole('menu', { name: 'Move to' })).getByRole('menuitem', { name: 'Riffs' }));
+    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Riffs' }));
+    await settle();
+    expect(loadLibrary().folders).toEqual([]);
+    expect(loadLibrary().items).toEqual([]);
+    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Riffs.');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Riffs']);
+    expect(loadLibrary().items.map(i => i.name).sort()).toEqual(['Riff', 'Tex riff']);
+    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getAllByRole('button', { name: /^(Riff|Tex riff)$/ })).toHaveLength(2);
+  });
+
+  it('lists the built-in arrangements in their folders, the samples among them, one line each by name', async () => {
+    renderAt();
+    const dialog = openDialog();
+    const builtIn = within(await within(dialog).findByRole('list', { name: 'Built-in' }));
+    const folders = builtIn.getAllByRole('button', { expanded: false }).map(b => b.textContent);
+    expect(folders).toEqual(expect.arrayContaining(['Articulations', 'Rhythm', 'Samples', 'Song structure']));
+    fireEvent.click(builtIn.getByRole('button', { name: 'Samples' }));
+    fireEvent.click(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Hello, sample' }));
+    await screen.findByRole('heading', { name: 'Hello, sample' }, SLOW);
+    expect(window.location.hash).toBe('#example=hello-sample');
+    // Opened again, the dialog shows the folder of what is shown.
+    const again = openDialog();
+    expect(within(within(again).getByRole('list', { name: 'Built-in' })).getByRole('button', { name: 'Hello, sample' })).toHaveAttribute('aria-current', 'true');
   });
 
   it('keeps a copy of an example, with its edits, as a new arrangement', async () => {
