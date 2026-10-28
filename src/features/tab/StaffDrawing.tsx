@@ -177,11 +177,11 @@ function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look
         parts.push(<line key={`ledger-${key}-${k}-${ls}`} x1={xs[k] - 3} x2={xs[k] + width + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke={look.ink} strokeWidth={1} />);
       }
       parts.push(<g key={`head-${key}-${k}`} data-testid="staff-head"><Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} /></g>);
-      // A ghost note's head in brackets.
-      if (note?.ghost) {
+      // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
+      if (note?.ghost || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;
         parts.push(
-          <g key={`ghost-${key}-${k}`} data-testid="staff-ghost">
+          <g key={`ghost-${key}-${k}`} data-testid={note?.ghost ? 'staff-ghost' : 'staff-bent'}>
             <Glyph name="noteheadParenthesisLeft" x={xs[k] - open - 1} y={y} look={look} scale={grace} />
             <Glyph name="noteheadParenthesisRight" x={xs[k] + GLYPHS[head].width * SPACE * grace + 1} y={y} look={look} scale={grace} />
           </g>,
@@ -204,6 +204,11 @@ function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look
     parts.push(<line key={`stem-${key}`} x1={stemX} x2={stemX} y1={up ? low : high} y2={tip} stroke={look.ink} strokeWidth={1.1} />);
     if (value >= 8 && !group) {
       parts.push(<Glyph key={`flag-${key}`} name={FLAGS[value][up ? 0 : 1]} x={stemX - 0.5} y={tip} look={look} scale={grace} />);
+      // A grace note before the beat is slashed through its stem and flag, as guitar music prints it.
+      if (column.grace) {
+        const [y0, y1] = up ? [tip + 13, tip + 5] : [tip - 5, tip - 13];
+        parts.push(<line key={`slash-${key}`} data-testid="grace-slash" x1={stemX - 4} y1={y0} x2={stemX + 6} y2={y1} stroke={look.ink} strokeWidth={1} />);
+      }
     }
   }
 
@@ -247,8 +252,24 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
     case 'staccato':
       return <circle cx={mark.x} cy={mark.y} r={1.8} fill={look.ink} data-testid="staff-staccato" />;
     case 'vibrato': {
-      const { d, strokeWidth } = vibratoWave(mark.x, mark.y, mark.wide);
+      const { d, strokeWidth } = vibratoWave(mark.x, mark.y, mark.wide, mark.end);
       return <path d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="staff-vibrato" />;
+    }
+    case 'ottava': {
+      // "8va" as printed: the number in bold italics, its letters raised and small; then a dashed line, and a hook at its end.
+      const { label, x, y, end, hook, below } = mark;
+      const number = label.startsWith('15') ? '15' : '8';
+      const letters = label.slice(number.length);
+      const lineStart = x + (number.length === 2 ? 30 : 24);
+      return (
+        <g data-testid="staff-ottava">
+          <text x={x} y={y + 4} fontSize={14} fontStyle="italic" fontWeight={700} fill={look.ink}>
+            {number}<tspan fontSize={9} dy={-5}>{letters}</tspan>
+          </text>
+          {end > lineStart && <line x1={lineStart} x2={end} y1={y} y2={y} stroke={look.ink} strokeWidth={1} strokeDasharray="4 3" />}
+          {hook && end > lineStart && <line x1={end} x2={end} y1={y} y2={below ? y - 6 : y + 6} stroke={look.ink} strokeWidth={1} />}
+        </g>
+      );
     }
     case 'tremolo':
       return (

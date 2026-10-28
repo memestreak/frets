@@ -7,7 +7,7 @@
 import type { MarkHit } from './marks';
 import {
   barLength, barTicks, BEND_QUARTERS, C_MAJOR, keyAt, sameKey, ticks, emptyClip, MAX_BPM, MIN_BPM, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, TREMOLO_VALUES, WHOLE,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Key, type Note, type Slide, type TimeSignature,
+  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Key, type Note, type Ottava, type Slide, type TimeSignature,
   type Tempo, type TremoloValue,
 } from './clip';
 import { writeAlphaTex } from './alphatex';
@@ -317,6 +317,11 @@ export function cycleDots(clip: Clip, target: Target): Clip {
 }
 
 /** Puts the target columns in one kind of tuplet (3 to 12, in its usual span), or none with null. */
+/** Puts the target columns under an octave line, or takes it away with null: the Octave line button's panel. */
+export function setOttava(clip: Clip, target: Target, ottava: Ottava | null): Clip {
+  return changeColumns(clip, target, c => (ottava ? { ...c, ottava } : without(c, 'ottava')));
+}
+
 export function setTuplet(clip: Clip, target: Target, tuplet: number | null): Clip {
   return changeColumns(clip, target, column => {
     const plain = without(without(column.duration, 'tuplet'), 'tupletSpan');
@@ -464,6 +469,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
+    case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));
   }
 }
 

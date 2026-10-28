@@ -1,12 +1,12 @@
 import { useId, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import {
-  beatTicks, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
+  beatTicks, bendCarries, columnAccent, isRest, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  barTextX, beamGroups, BEND_RISE, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
   SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
-  type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots,
+  type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots, vibratoRuns, legatoArcs, type LegatoArc,
 } from './layout';
 import { StaffCursor, StaffDrawing } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
@@ -131,6 +131,8 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
   const previous = previousSpots(layout.systems);
   const onStaff = layout.rows.score ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
+  const carries = bendCarries(clip);
+  const arcs = legatoArcs(layout.systems);
   const lastBar = clip.bars.length - 1;
   const { rows } = layout;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
@@ -156,7 +158,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
       {spot && highlight?.cursor && (
         <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
           {!highlight.range && (
-            <rect x={spot.x - spot.width / 2} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
+            <rect x={spot.start} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
           )}
           {!highlight.columnOnly && rows.tab && (
             <rect
@@ -170,7 +172,7 @@ export function TabClip({ clip, width, parts = 'tab', look = PAGE_LOOK, title, h
         <g key={si} transform={`translate(0 ${si * rows.height})`} data-testid="tab-system">
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
-            previous={previous} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            previous={previous} carries={carries} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
@@ -222,10 +224,10 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
         if (chosen.length === 0) return null;
         const first = chosen[0];
         const last = chosen[chosen.length - 1];
-        const x0 = first.x - first.width / 2;
+        const x0 = first.start;
         return (
           <rect
-            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.x + last.width / 2 - x0}
+            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.start + last.width - x0}
             height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)"
           />
         );
@@ -234,7 +236,7 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, carries, legato, lastBar, maskId }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -245,6 +247,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   names: string[] | null;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
+  carries: Map<Note, 'hold' | 'release'>;
+  /** This line's arcs over hammer-ons, pull-offs and legato slides. */
+  legato: LegatoArc[];
   lastBar: number;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
@@ -261,7 +266,8 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        const lw = labelWidth(note, placed.column);
+        // A released bend's note has no number: its arrow comes down to the string.
+        const lw = carries.get(note) === 'release' ? 0 : labelWidth(note, placed.column);
         return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
     </mask>,
@@ -301,12 +307,25 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 
   parts.push(<g key="row-marks">{rowMarks}</g>);
 
+  // One arc over each legato run, rising with its length, as Guitar Pro draws it.
+  for (const arc of legato) {
+    const y = stringY(rows, arc.string) - 8;
+    const x0 = arc.continued ? arc.x0 : arc.x0 + 4;
+    const rise = Math.min(18, 10 + (arc.x1 - x0) / 20);
+    parts.push(
+      <path
+        key={`legato-${arc.string}-${arc.x0}`} d={`M${x0} ${y} Q${(x0 + arc.x1 - 4) / 2} ${y - rise} ${arc.x1 - 4} ${y}`}
+        fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="legato"
+      />,
+    );
+  }
+
   for (const bar of system.bars) {
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
-          previous={previous} slides={slides} staffStart={system.staffStart}
+          previous={previous} slides={slides} carries={carries} staffStart={system.staffStart}
         />,
       );
     }
@@ -336,6 +355,14 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
           {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
         </g>,
       );
+    }
+  }
+
+  // Vibrato: one wave over each run of neighbouring notes that have it, over the tab under a staff too.
+  if (rows.vibrato !== null) {
+    for (const run of vibratoRuns(system)) {
+      const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
+      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }
 
@@ -490,13 +517,14 @@ function labelWidth(note: Note, column: Column): number {
   return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
 }
 
-function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStart }: {
+function ColumnDrawing({ placed, rows, system, look, previous, slides, carries, staffStart }: {
   placed: PlacedColumn;
   rows: Rows;
   system: number;
   look: TabLook;
   previous: Map<Note, Spot>;
   slides: Map<Note, 'up' | 'down'>;
+  carries: Map<Note, 'hold' | 'release'>;
   staffStart: number;
 }) {
   const { column, x } = placed;
@@ -508,18 +536,9 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
     const before = previous.get(note);
     // Where the joined-from note sits on this system, or the staff's start if it was on the line before.
     const fromX = before && before.system === system ? before.x : staffStart;
-    if (note.legato) {
-      const mid = (fromX + x) / 2;
-      parts.push(
-        <g key={`legato-${s}`}>
-          <path d={`M${fromX + 4} ${y - 8} Q${mid} ${y - 18} ${x - 4} ${y - 8}`} fill="none" stroke={look.ink} strokeWidth={1.1} />
-          <text x={mid} y={y - 17} fontSize={9} fontWeight={700} fill={look.ink} textAnchor="middle">{note.legato.toUpperCase()}</text>
-        </g>,
-      );
-    }
+    // Hammer-ons, pull-offs and legato slides get one arc over their whole run (`legatoArcs`, drawn per line).
     if (note.slide) {
-      // A slide from below or above starts just before the note. A legato slide (the second note not
-      // picked) also gets a slur over both notes, as printed tab draws it; a shift slide is the line alone.
+      // A slide from below or above starts just before the note; from the note before, a line between them.
       const up = slides.get(note) === 'up';
       const fromNote = (note.slide === 'legato' || note.slide === 'shift') && before;
       const from = fromNote ? fromX + 7 : x - 16;
@@ -529,26 +548,24 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
           stroke={look.ink} strokeWidth={1.2}
         />,
       );
-      if (note.slide === 'legato' && before) {
-        parts.push(
-          <path
-            key={`slide-slur-${s}`} d={`M${fromX + 4} ${y - 10} Q${(fromX + x) / 2} ${y - 20} ${x - 4} ${y - 10}`}
-            fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="slide-slur"
-          />,
-        );
-      }
     }
-    // Every tie gets its arc, even across a held chord: a number in brackets without one is a ghost note.
-    if (note.tie && before) {
+    // A tie gets its arc on the tab alone, even across a held chord: a number in brackets without one is
+    // a ghost note. Under the staff, which draws the tie, the brackets alone say it (Jeremy, 2026-10-27).
+    if (note.tie && before && !rows.score) {
       parts.push(
         <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
       );
     }
-    // A grace note's number is drawn small.
-    parts.push(column.grace
+    const carry = carries.get(note);
+    // A grace note's number is drawn small; a released bend's note shows none, as Guitar Pro prints it.
+    if (carry !== 'release') parts.push(column.grace
       ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
       : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
-    if (note.bend) parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    if (carry) {
+      parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    } else if (note.bend) {
+      parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+    }
     if (note.slideOut) {
       // A short line away from the number, down or up, to no fret in particular.
       const down = note.slideOut === 'down';
@@ -566,16 +583,10 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, staffStar
   return <g data-testid="tab-column">{parts}</g>;
 }
 
-/** The marks drawn once over a column, each in its own row: vibrato, "P.H.", an accent and a staccato dot. */
+/** The marks drawn once over a column, each in its own row: "P.H.", an accent and a staccato dot. */
 function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): ReactNode[] {
   const notes = column.notes.filter((n): n is Note => n !== null);
   const parts: ReactNode[] = [];
-  const vibrato = notes.some(n => n.vibrato === 'wide') ? 'wide' : notes.some(n => n.vibrato) ? 'slight' : null;
-  // With the staff shown, vibrato, accents and staccato dots go on it instead (`staffMarks.ts`).
-  if (vibrato && rows.vibrato !== null) {
-    const { d, strokeWidth } = vibratoWave(x, rows.vibrato, vibrato === 'wide');
-    parts.push(<path key="vibrato" d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
-  }
   if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) {
     parts.push(
       <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
@@ -598,14 +609,36 @@ function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): Reac
   return parts;
 }
 
+/**
+ * A bend carried on over a tied note, from the arrow's top over the note before: a dashed line held at
+ * the bend's height, then for a release a curved arrow down to the string, where the note's number would be.
+ */
+function BendCarry({ carry, fromX, x, y, staffTop, look }: {
+  carry: 'hold' | 'release'; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
+}) {
+  const top = staffTop - BEND_RISE;
+  const from = fromX + 14;
+  if (carry === 'hold') {
+    return <line x1={from} x2={x + 14} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
+  }
+  const down = x - 8;
+  return (
+    <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend-release">
+      {down > from && <line x1={from} x2={down} y1={top} y2={top} strokeDasharray="4 3" />}
+      <path d={`M${down} ${top} Q${x} ${top} ${x} ${y - 6}`} />
+      <path d={`M${x - 4} ${y - 7} L${x} ${y} L${x + 4} ${y - 7}`} fill={look.ink} stroke="none" />
+    </g>
+  );
+}
+
 /** A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend. */
 function BendDrawing({ bend, x, y, staffTop, look }: { bend: Bend; x: number; y: number; staffTop: number; look: TabLook }) {
-  const top = staffTop - 10;
+  const top = staffTop - BEND_RISE;
   const head = (tx: number, ty: number, down = false) => (
     <path d={down ? `M${tx - 4} ${ty - 7} L${tx} ${ty} L${tx + 4} ${ty - 7}` : `M${tx - 4} ${ty + 7} L${tx} ${ty} L${tx + 4} ${ty + 7}`} fill={look.ink} />
   );
   const label = (
-    <text x={bend.pre ? x : x + 14} y={top - 4} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">
+    <text x={bend.pre ? x : x + 14} y={top - 9} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">
       {bend.pre ? `PB ${BEND_LABEL[bend.quarters]}` : BEND_LABEL[bend.quarters]}
     </text>
   );

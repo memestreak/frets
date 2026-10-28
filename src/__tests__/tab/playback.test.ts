@@ -109,6 +109,34 @@ describe('playback', () => {
     expect(columnAtTick(clip, played, 8 * Q + 10)).toBe(2);
   });
 
+  it('counts in the MIDI\'s ticks when a grace note comes before the first beat', () => {
+    // alphaTab moves the whole MIDI later to make room for the grace note, but not its lookup:
+    // the end must be the MIDI's, or the player never sees the clip end (Jeremy, 2026-10-28).
+    const clip = clipOf('17.1.8{gr} 15.1.4 r.4 r.2 |');
+    const played = perform(alphaTab, clip);
+    const shift = played.shift;
+    expect(shift).toBeGreaterThan(0);
+    expect(tickOf(clip, played, 0)).toBe(0);
+    expect(tickOf(clip, played, 1)).toBe(shift);
+    expect(played.endTick).toBe(4 * Q + shift);
+    expect(columnAtTick(clip, played, shift + 10)).toBe(1);
+    const lastTick = Math.max(...played.midi.events.map(e => e.tick));
+    expect(lastTick).toBe(played.endTick + 2 * Q);
+  });
+
+  it('keeps a note reached by a legato slide at its pitch under vibrato, tied notes too', () => {
+    // alphaTab's vibrato wobbles round the pitch the slide left, so the 12 sounded as the 14.
+    const clip = clipOf('14.1.4 15.1.16 14.1{sl}.16 12.1{v}.8 -.1{v}.4{d} 15.1.8 |');
+    const played = perform(alphaTab, clip);
+    const [from, to] = [tickOf(clip, played, 3), tickOf(clip, played, 5)];
+    const bends = played.midi.events
+      .filter((e): e is alphaTab.midi.PitchBendEvent => e.type === alphaTab.midi.MidiEventType.PitchBend)
+      .filter(e => e.tick >= from && e.tick < to);
+    expect(bends.length).toBeGreaterThan(10);
+    // Two semitones down is 8192 - 1024; the vibrato wobbles a little either side of it.
+    for (const e of bends) expect(Math.abs(e.value - (8192 - 1024))).toBeLessThan(200);
+  });
+
   it('gives a loop the ticks from its first column to the end of its last', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     expect(ticksOf(clip, perform(alphaTab, clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });

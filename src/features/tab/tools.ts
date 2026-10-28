@@ -4,7 +4,7 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { type BendQuarters, type Clip, type Duration, type NoteValue, type TremoloValue } from './clip';
+import { type BendQuarters, type Clip, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
 import {
   columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
   makeRest, noteAt, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
@@ -17,7 +17,7 @@ export type ToolId =
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
-  | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato'
+  | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'ending'
   | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
 
@@ -97,6 +97,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'accent', label: 'Accent', key: 'A' },
       { id: 'heavyAccent', label: 'Heavy accent', key: 'A' },
       { id: 'staccato', label: 'Staccato', key: 'S' },
+      { id: 'ottava', label: 'Octave line over the staff (8va, 8vb, 15ma, 15mb)', key: '' },
     ],
   },
   {
@@ -286,8 +287,13 @@ export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): {
   vibrato: 'slight' | 'wide' | null;
   /** The cursor column's duration while it is in a tuplet. */
   tuplet: Duration | null;
+  ottava: Ottava | null;
 } {
   const note = cursor ? noteAt(clip, cursor) : null;
   const duration = cursor ? columnAt(clip, cursor)?.duration : undefined;
-  return { bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null, tuplet: duration?.tuplet ? duration : null };
+  const column = cursor ? columnAt(clip, cursor) : undefined;
+  return {
+    bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null, tuplet: duration?.tuplet ? duration : null,
+    ottava: column?.ottava ?? null,
+  };
 }

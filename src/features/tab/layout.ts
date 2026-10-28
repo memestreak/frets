@@ -92,6 +92,8 @@ const FIRST_ROW = 12;
 const ROW_GAP = 15;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
+/** How high a bend's arrow rises over the tab's top string, as Guitar Pro draws it. */
+export const BEND_RISE = 26;
 
 /** The rows a clip needs, top to bottom: the words over everything, the staff, the tab's marks, the tab. */
 export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
@@ -111,7 +113,8 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
     harmonics: notes.some(n => n.harmonic === 'pinch'),
-    vibrato: parts === 'tab' && notes.some(n => n.vibrato),
+    // Vibrato goes over the tab too when the staff is shown, as Guitar Pro prints it (Jeremy, 2026-10-27).
+    vibrato: tab && notes.some(n => n.vibrato),
     accents: parts === 'tab' && notes.some(n => n.accent || n.staccato),
   };
   let y = FIRST_ROW - ROW_GAP;
@@ -138,7 +141,8 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     const top = Math.max(y + 12, 10) + Math.max(SPACE, (reach.high - 8) * SPACE / 2 + 4);
     const bottom = top + 4 * SPACE;
     score = { top, bottom };
-    y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) - 4;
+    // Then the tab's marks: the first row 26 under the staff, or under what reaches past its foot.
+    y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) + 2;
   }
   const marks = {
     strokes: row(used.strokes),
@@ -157,7 +161,9 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
   }
-  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + 16);
+  // A bend's arrow and label stand over the tab's top string, so the row before needs more room.
+  const bends = notes.some(n => n.bend);
+  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? BEND_RISE + 28 : 16));
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
   const tabStems = score === null;
@@ -208,8 +214,10 @@ export interface PlacedColumn {
   column: Column;
   /** The column's place in the whole clip, counting from 0 (as `editing.ts` counts). */
   index: number;
-  /** The column's centre. */
+  /** Where its note (number, heads) is drawn: near the start of its room, as printed music has it. */
   x: number;
+  /** Its room along the line: from `start`, `width` long. */
+  start: number;
   width: number;
   /** On the staff: its note heads, low to high, and which way its stem goes. */
   heads: Head[];
@@ -256,11 +264,22 @@ export interface Layout {
 
 /** A column's width: longer notes take more room, and its widest note must fit; a grace note takes little. */
 export function columnWidth(column: Column): number {
-  const byTime = column.grace ? 16 : 12 + 32 * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
-  // A bend's arrow and label stand right of the number; a release needs more.
-  const bend = column.notes.some(n => n?.bend?.release) ? 30 : column.notes.some(n => n?.bend) ? 18 : 0;
+  // Twice as long takes √2 as much room, as Guitar Pro spaces it (Jeremy, 2026-10-28).
+  const byTime = column.grace ? 16 : QUARTER_ROOM * Math.sqrt(ticks(column.duration) / (WHOLE / 4));
+  // A bend's arrow and label stand right of the number; a release needs more. A tied note carrying a
+  // bend on (`bendCarries`) needs none: its line comes from the note before.
+  const own = column.notes.filter(n => n?.bend && !(n.tie && n.bend.pre));
+  const bend = own.some(n => n?.bend?.release) ? 30 : own.length > 0 ? 18 : 0;
   const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
   return Math.max(byTime, minColumnWidth(column)) + bend + slideOut;
+}
+
+/** A quarter note's room along the line: a sixteenth keeps the room it had, 28, so its numbers stay apart. */
+const QUARTER_ROOM = 56;
+
+/** How far into its room a column's note stands: past half its widest number, so the number starts the room. */
+export function noteInset(column: Column): number {
+  return minColumnWidth(column) / 2;
 }
 
 /** The least room a column's widest note needs. */
@@ -412,7 +431,8 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       const cw = Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
-      const placed = { column, index: place++, x: cx + cw / 2 + signs * Math.min(1, squeeze), width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
+      const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
+      const placed = { column, index: place++, x, start: cx, width: cw, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
       cx += cw;
       return placed;
     });
@@ -421,34 +441,90 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(timeAt(clip, index)), columns });
   });
   finish();
-  const reach = staffReach(heads);
-  // The staff's own marks need room past its notes: a vibrato's wave over it, accents either side.
-  const extra = staff ? marksReach(clip.bars.flatMap(b => b.columns.flatMap(c => c.notes.filter((n): n is Note => n !== null)))) : { high: 0, low: 0 };
-  const rows = rowsFor(clip, parts, { high: reach.high + extra.high, low: reach.low - extra.low });
+  const reach = staffReach(clip, heads, staff);
+  const rows = rowsFor(clip, parts, reach);
   return { parts, systems, rows, height: systems.length * rows.height, names };
 }
 
-/** Room the staff's marks (`staffMarks.ts`) need past its heads and stems, in steps: over it for vibrato, both ways for accents. */
-export function marksReach(notes: Note[]): { high: number; low: number } {
-  const vibrato = notes.some(n => n.vibrato);
-  const articulated = notes.some(n => n.accent || n.staccato);
-  return { high: (vibrato ? 5 : 0) + (articulated ? 4 : 0), low: articulated ? 4 : 0 };
+/*
+ * The staff's marks over its notes, spaced as Guitar Pro prints them (measured against its drawing of
+ * bars 113–114 of "Guitar Solo 3"): `staffMarks.ts` places them, `staffReach` makes room for them.
+ */
+/** From the top of a column's heads or stem up to the middle of a vibrato's wave. */
+export const VIBRATO_CLEAR = 24;
+/** From the top of another mark (a tie, a slur, an accent) up to the middle of a vibrato's wave. */
+export const VIBRATO_OVER_MARKS = 17;
+/** From the top of everything else on the staff up to an octave line (or down, under it). */
+export const OTTAVA_CLEAR = 33;
+/** The vibrato waves of a line: one over each run of neighbouring columns with vibrato, wide where any note's is. */
+export function vibratoRuns(system: System) {
+  return columnRuns(system, c => (c.notes.some(n => n?.vibrato === 'wide') ? 'wide' : c.notes.some(n => n?.vibrato) ? 'slight' : null));
+}
+
+/** A run of columns on one line under one mark drawn across them: from its first column's centre to `end`. */
+export interface ColumnRun {
+  from: PlacedColumn;
+  to: PlacedColumn;
+  /** Where it stops: a little before the column after its last, or the end of the line. */
+  end: number;
+}
+
+/**
+ * The runs of neighbouring columns on a line that share a mark, by `kind` (null for none): a vibrato
+ * over several notes is one wave, an octave line one line. A run stops at the line's end.
+ */
+export function columnRuns<K>(system: System, kind: (column: Column) => K | null): (ColumnRun & { kind: K })[] {
+  const placed = system.bars.flatMap(b => b.columns);
+  const last = system.bars[system.bars.length - 1]?.x1 ?? 0;
+  const runs: (ColumnRun & { kind: K })[] = [];
+  placed.forEach((p, i) => {
+    const k = kind(p.column);
+    if (k === null) return;
+    const open = runs[runs.length - 1];
+    if (open && open.to === placed[i - 1] && open.kind === k) open.to = p;
+    else runs.push({ from: p, to: p, end: 0, kind: k });
+  });
+  for (const run of runs) {
+    const next = placed[placed.indexOf(run.to) + 1];
+    run.end = next ? next.x - 12 : last - 6;
+  }
+  return runs;
 }
 
 /** How far the clip's heads and stems reach above and below the staff, in steps. */
-function staffReach(heads: Head[][][]): StaffReach {
+function staffReach(clip: Clip, heads: Head[][][], marks: boolean): StaffReach {
   let high = 8;
   let low = 0;
-  for (const bar of heads) {
-    for (const column of bar) {
-      if (column.length === 0) continue;
-      const top = column[column.length - 1].step;
-      const bottom = column[0].step;
-      const up = stemUpFor(column);
-      high = Math.max(high, top + (up ? STEM_STEPS + 2 : 1));
-      low = Math.min(low, bottom - (up ? 1 : STEM_STEPS + 2));
+  // Over every column, in steps: the vibrato's band, then an octave line over all of it.
+  let vibrato = -Infinity;
+  let ottavaAbove = false;
+  let ottavaBelow = false;
+  heads.forEach((bar, i) => bar.forEach((column, k) => {
+    if (column.length === 0) return;
+    const top = column[column.length - 1].step;
+    const bottom = column[0].step;
+    const up = stemUpFor(column);
+    const reachUp = top + (up ? STEM_STEPS + 2 : 1);
+    const reachDown = bottom - (up ? 1 : STEM_STEPS + 2);
+    high = Math.max(high, reachUp);
+    low = Math.min(low, reachDown);
+    if (!marks) return;
+    const c = clip.bars[i].columns[k];
+    const notes = c.notes.filter((n): n is Note => n !== null);
+    // Accents and staccato stand at the heads, away from the stem.
+    if (notes.some(n => n.accent || n.staccato)) {
+      if (up) low = Math.min(low, bottom - 6);
+      else high = Math.max(high, top + 6);
     }
-  }
+    if (notes.some(n => n.vibrato)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
+    if (c.ottava === '8va' || c.ottava === '15ma') ottavaAbove = true;
+    if (c.ottava === '8vb' || c.ottava === '15mb') ottavaBelow = true;
+  }));
+  high = Math.max(high, vibrato);
+  // The octave line, its label reaching into the gap under the row over the staff.
+  const ottavaSteps = Math.round(OTTAVA_CLEAR * 2 / SPACE);
+  if (ottavaAbove) high += ottavaSteps;
+  if (ottavaBelow) low -= ottavaSteps;
   return { high, low };
 }
 
@@ -643,6 +719,55 @@ export interface Spot {
   x: number;
 }
 
+/** One arc over a run of notes on a string joined by hammer-ons, pull-offs and legato slides, on one line. */
+export interface LegatoArc {
+  system: number;
+  string: number;
+  /** The run's first and last notes' centres; a run from the line before starts at the line's staff. */
+  x0: number;
+  x1: number;
+  /** The run's first note was on the line before. */
+  continued: boolean;
+}
+
+/**
+ * The legato runs of a clip as Guitar Pro draws them: one arc from the first note picked to the last
+ * one sounded without picking (hammered, pulled or slid to), split where the run crosses into a new line.
+ */
+export function legatoArcs(systems: System[]): LegatoArc[] {
+  const arcs: LegatoArc[] = [];
+  const open: (LegatoArc | null)[] = Array(STRING_COUNT).fill(null);
+  const last: ({ system: number; x: number } | null)[] = Array(STRING_COUNT).fill(null);
+  systems.forEach((system, si) => {
+    for (const bar of system.bars) {
+      for (const placed of bar.columns) {
+        placed.column.notes.forEach((note, s) => {
+          if (!note) return;
+          const joined = !!(note.legato || note.slide === 'legato') && last[s] !== null;
+          if (!joined) open[s] = null;
+          else if (open[s] && open[s]!.system === si) open[s]!.x1 = placed.x;
+          else {
+            const from = last[s]!;
+            if (from.system === si) {
+              open[s] = { system: si, string: s, x0: from.x, x1: placed.x, continued: false };
+            } else {
+              // The run goes on into a new line: its part on the line before runs to that line's end.
+              const before = systems[from.system];
+              const lineEnd = before.bars[before.bars.length - 1].x1 - 4;
+              if (open[s]) open[s]!.x1 = lineEnd;
+              else arcs.push({ system: from.system, string: s, x0: from.x, x1: lineEnd, continued: false });
+              open[s] = { system: si, string: s, x0: system.staffStart, x1: placed.x, continued: true };
+            }
+            arcs.push(open[s]!);
+          }
+          last[s] = { system: si, x: placed.x };
+        });
+      }
+    }
+  });
+  return arcs;
+}
+
 /** For every note, where the note before it on the same string was drawn. */
 export function previousSpots(systems: System[]): Map<Note, Spot> {
   const out = new Map<Note, Spot>();
@@ -795,13 +920,14 @@ export function boundaryAt(layout: Layout, x: number, y: number): number | null 
 }
 
 /** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */
-export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; width: number } | null {
+export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; start: number; width: number } | null {
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
     const c = placed.columns[column];
-    if (c) return { system: s, x: c.x, width: c.width };
-    return { system: s, x: (placed.x0 + placed.x1) / 2, width: 28 };
+    if (c) return { system: s, x: c.x, start: c.start, width: c.width };
+    const middle = (placed.x0 + placed.x1) / 2;
+    return { system: s, x: middle, start: middle - 14, width: 28 };
   }
   return null;
 }

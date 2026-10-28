@@ -112,9 +112,17 @@ export interface Column {
   grace?: 'before' | 'on';
   /** Tremolo picked: picked over and over as fast as eighths, sixteenths or thirty-seconds, a slash on the stem for each beam. */
   tremolo?: TremoloValue;
+  /** Written an octave or two from where it sounds, under an "8va" line and its like (alphaTex ot). */
+  ottava?: Ottava;
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
+
+/** An octave line: play an octave (8) or two (15) above (va, ma) or below (vb, mb) where it is written. */
+export type Ottava = '8va' | '8vb' | '15ma' | '15mb';
+export const OTTAVAS: readonly Ottava[] = ['8va', '8vb', '15ma', '15mb'];
+/** How far the notes under each line sound from where they are written, in semitones. */
+export const OTTAVA_SHIFT: Record<Ottava, number> = { '8va': 12, '8vb': -12, '15ma': 24, '15mb': -24 };
 
 /** How fast a tremolo picked note is picked: as eighths, sixteenths or thirty-seconds. */
 export type TremoloValue = 8 | 16 | 32;
@@ -459,6 +467,35 @@ export function slideDirections(clip: Clip): Map<Note, 'up' | 'down'> {
   return out;
 }
 
+/**
+ * Tied notes that carry on the bend of the note before them on their string: 'hold' keeps it bent
+ * (alphaTex b (4 4) on the tie), 'release' lets it down (b (4 0)). A tied note's "pre-bend" can only
+ * be that, as a note still sounding can't be bent before it is picked. The note before must end bent:
+ * a bend up, or a hold.
+ */
+export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'release'> {
+  const out = new Map<Note, 'hold' | 'release'>();
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        const before = last[s];
+        const endsBent = !!before?.bend && !before.bend.release;
+        if (note.tie && note.bend?.pre && endsBent) out.set(note, note.bend.release ? 'release' : 'hold');
+        last[s] = note;
+      });
+    }
+  }
+  return out;
+}
+
+/** How many semitones a tied note sounds above its fret: the bend it reaches, held or not yet let down. */
+export function bentSemitones(note: Note): number {
+  if (!note.tie || !note.bend || note.bend.release) return 0;
+  return Math.floor(note.bend.quarters / 2);
+}
+
 export function isStandardTuning(tuning: readonly string[]): boolean {
   return tuning.every((n, i) => n === STANDARD_TUNING[i]);
 }
@@ -538,6 +575,7 @@ function isColumn(v: unknown): v is Column {
     && (v.text === undefined || typeof v.text === 'string')
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
+    && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optStrings(v.extra);
 }
 

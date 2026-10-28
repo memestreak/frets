@@ -32,7 +32,7 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot']);
 /** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats and endings. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
@@ -137,7 +137,7 @@ function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration']
 }
 
 /**
- * Reads a beat's grace note and tremolo picking onto its column, and says which of tu, gr and tp
+ * Reads a beat's grace note, tremolo picking and octave line onto its column, and says which of tu, gr and tp
  * Frets read; any other form (a tuplet of thirteen, a bend grace note, four tremolo slashes) is kept as written.
  */
 function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
@@ -150,6 +150,9 @@ function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
   const value = tremolo ? TREMOLO_VALUES[tremolo.marks - 1] : undefined;
   if (tremolo && value && tremolo.style === at.model.TremoloPickingStyle.Default) column.tremolo = value;
   else reads.delete('tp');
+  const ottavas = { [at.model.Ottavia._8va]: '8va', [at.model.Ottavia._8vb]: '8vb', [at.model.Ottavia._15ma]: '15ma', [at.model.Ottavia._15mb]: '15mb' } as const;
+  const ottava = ottavas[beat.ottava as keyof typeof ottavas];
+  if (ottava) column.ottava = ottava;
   return reads;
 }
 

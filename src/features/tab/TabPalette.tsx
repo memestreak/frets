@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { BEND_QUARTERS, TUPLETS, tupletLabel, type BendQuarters } from './clip';
+import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
 
 /**
@@ -14,7 +14,7 @@ import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, disabled }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, disabled }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -22,6 +22,8 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, disabled }: 
   onBend: (quarters: BendQuarters | null) => void;
   /** A tuplet picked in the Tuplet button's panel. */
   onTuplet: (n: number | null) => void;
+  /** An octave line picked in the Octave line button's panel. */
+  onOttava: (ottava: Ottava | null) => void;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -43,6 +45,11 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, disabled }: 
                 // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
                 current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
                 icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
+              />
+            ) : tool.id === 'ottava' ? (
+              <PanelTool
+                key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
+                icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
               />
             ) : (
               <button
@@ -93,6 +100,19 @@ function BendGlyph({ amount }: { amount: string }) {
   );
 }
 
+/** An octave line as printed: "8va" (or the cursor's kind) over a dashed line with a hook. */
+function OttavaGlyph({ label }: { label: string }) {
+  const number = label.startsWith('15') ? '15' : '8';
+  return (
+    <>
+      <text x={2} y={11} fontSize={9} fontStyle="italic" fontWeight={700} fill="currentColor" stroke="none">
+        {number}<tspan fontSize={6} dy={-3}>{label.slice(number.length)}</tspan>
+      </text>
+      <path d="M3 17 H20 V21" strokeDasharray="2.5 2" />
+    </>
+  );
+}
+
 /** A bend's amount as tab prints it, by quarter tones. */
 const BEND_AMOUNTS: Record<BendQuarters, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
 
@@ -108,7 +128,7 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number>({ tool, current, choices, label, icon, onPick, disabled }: {
+function PanelTool<T extends number | string>({ tool, current, choices, label, icon, onPick, disabled }: {
   tool: Tool;
   /** The cursor's choice, or null for none. */
   current: T | null;
@@ -147,7 +167,7 @@ function PanelTool<T extends number>({ tool, current, choices, label, icon, onPi
       <button
         type="button" className="btn btn-secondary btn-toggle tab-tool"
         aria-label={tool.label} aria-pressed={!disabled && current !== null} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
-        data-tip={`${tool.label} (${tool.key})`}
+        data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
       >
@@ -229,6 +249,8 @@ const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet'>, ReactNode> =
   accent: <path d="M6 7 L18 12 L6 17" strokeWidth={2} />,
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.
+  // Drawn by its panel's button (OttavaGlyph).
+  ottava: null,
   staccato: <><circle cx={12} cy={6} r={2.4} fill="currentColor" stroke="none" /><Label y={20} size={10}>5</Label></>,
   // A plus before or after a bar line: where the new bar goes.
   insertBarBefore: <><line x1={8} y1={8} x2={8} y2={16} strokeWidth={2} /><line x1={4} y1={12} x2={12} y2={12} strokeWidth={2} /><line x1={17} y1={5} x2={17} y2={19} /></>,

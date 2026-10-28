@@ -9,7 +9,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writeAlphaTex } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import type { Clip } from './clip';
+import { STRING_COUNT, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -76,6 +76,12 @@ export interface Performance {
   score: Score;
   midi: AlphaTabModule.midi.MidiFile;
   lookup: TickLookup;
+  /**
+   * How far the MIDI is shifted from the score: grace notes before the clip's first beat start
+   * before tick 0, so alphaTab moves the whole MIDI later by that much, but not its lookup. Every
+   * tick here and in the player is the MIDI's (the synthesizer's); `lookup` alone takes the score's.
+   */
+  shift: number;
   /** The tick the clip ends on, repeats played. */
   endTick: number;
 }
@@ -101,11 +107,61 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND):
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
-  const endTick = masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0;
+  const shift = midi.tickShift;
+  const endTick = (masterBars.length > 0 ? masterBars[masterBars.length - 1].end : 0) + shift;
   // The synthesizer stops dead at the MIDI's last event, cutting the last note off with a click
   // (Jeremy, 2026-10-26: "a glitch at the end of playback"). An event a little later lets it ring.
   midi.addEvent(new at.midi.EndOfTrackEvent(0, endTick + RING_OUT_TICKS));
-  return { score, midi, lookup: generator.tickLookup, endTick };
+  const performance = { score, midi, lookup: generator.tickLookup, shift, endTick };
+  keepSlidPitch(at, clip, performance);
+  return performance;
+}
+
+/** alphaTab's pitch-bend range: 16 semitones either way of 8192 (the RPN it sends at the start). */
+const BEND_PER_SEMITONE = 8192 / 16;
+
+/**
+ * A legato slide reaches its note by bending the note it left, and alphaTab's vibrato on the note
+ * reached (and the notes tied to it) then wobbles round the unbent pitch: the slide's 12 sounded as
+ * its 14 (Jeremy, 2026-10-28). Those pitch bends are moved by the slide, so the note keeps its pitch.
+ */
+function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
+  const spans: { start: number; end: number; by: number }[] = [];
+  const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
+  // Each string's slide still sounding: the span it covers so far.
+  const open: ({ start: number; end: number; by: number } | null)[] = Array(STRING_COUNT).fill(null);
+  let index = 0;
+  for (const bar of clip.bars) {
+    for (const column of bar.columns) {
+      const start = tickOf(clip, performance, index);
+      const beat = beatOf(performance, clip, index);
+      const end = start + (beat?.playbackDuration ?? 0);
+      column.notes.forEach((note, s) => {
+        if (!note) return;
+        const before = last[s];
+        last[s] = note;
+        if (note.tie && open[s]) {
+          open[s]!.end = end;
+          return;
+        }
+        open[s] = null;
+        if (note.slide !== 'legato' || before?.fret == null || note.fret === null || note.fret === before.fret) return;
+        const span = { start, end, by: (note.fret - before.fret) * BEND_PER_SEMITONE };
+        spans.push(span);
+        open[s] = span;
+      });
+      index++;
+    }
+  }
+  if (spans.length === 0) return;
+  for (const event of performance.midi.events) {
+    if (event.type !== at.midi.MidiEventType.PitchBend) continue;
+    const bend = event as AlphaTabModule.midi.PitchBendEvent;
+    const span = spans.find(sp => bend.tick >= sp.start && bend.tick < sp.end);
+    // The slide's own last step already stands at the note reached.
+    if (!span || bend.value === 8192 + span.by) continue;
+    bend.value = Math.max(0, Math.min(16383, bend.value + span.by));
+  }
 }
 
 /** How long a column heard on its own sounds: a quarter note at 120 bpm, before it rings out. */
@@ -143,7 +199,7 @@ export function columnOfBeat(clip: Clip, beat: Beat): number | null {
 
 /** The column sounding at a tick, or null. */
 export function columnAtTick(clip: Clip, performance: Performance, tick: number): number | null {
-  const found = performance.lookup.findBeat(new Set([0]), tick);
+  const found = performance.lookup.findBeat(new Set([0]), tick - performance.shift);
   return found ? columnOfBeat(clip, found.beat) : null;
 }
 
@@ -158,15 +214,15 @@ export function ticksOf(clip: Clip, performance: Performance, [from, to]: [numbe
   const first = beatOf(performance, clip, from);
   const last = beatOf(performance, clip, to);
   if (!first || !last) return null;
-  const startTick = performance.lookup.getBeatStart(first);
-  const endTick = performance.lookup.getBeatStart(last) + last.playbackDuration;
+  const startTick = performance.lookup.getBeatStart(first) + performance.shift;
+  const endTick = performance.lookup.getBeatStart(last) + last.playbackDuration + performance.shift;
   return endTick > startTick ? { startTick, endTick } : null;
 }
 
 /** The tick a column first starts on. */
 export function tickOf(clip: Clip, performance: Performance, index: number): number {
   const beat = beatOf(performance, clip, index);
-  return beat ? performance.lookup.getBeatStart(beat) : 0;
+  return (beat ? performance.lookup.getBeatStart(beat) : 0) + performance.shift;
 }
 
 /* — sound: a Web Audio output for the synthesizer — */

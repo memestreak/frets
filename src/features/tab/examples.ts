@@ -95,6 +95,31 @@ export const TAB_EXAMPLES: TabExample[] = [
     ].join('\n') + '\n',
   },
   {
+    id: 'held-bends',
+    title: 'Held bends',
+    shows: 'A bend held over tied notes and let down, and a grace note tied into a bend',
+    text: [
+      '\\title "Held bends"',
+      '\\ts (4 4)',
+      '7.3{b (0 4)}.4 -.3{b (4 4)}.4 -.3{b (4 4)}.4 -.3{b (4 0)}.4 |',
+      '17.1.8{gr} -.1{b (0 4) v}.2 -.1{b (4 4) v}.4 -.1{b (4 0)}.8 15.1.8 |',
+    ].join('\n') + '\n',
+  },
+  {
+    id: 'octave-lines',
+    title: 'Guitar Solo 3',
+    shows: 'Bars 113–114 of a Guitar Pro solo: an 8va line over two bars, one slur over a run of hammer-ons, pull-offs and a slide, and vibrato over tied notes',
+    text: [
+      '\\title "Guitar Solo 3"',
+      '\\ts (4 4)',
+      '\\ks G \\section ("I" "Guitar Solo 3") 17.1.8{gr ch "Em" ot 8va}',
+      '  -.1{b (0 4) v}.2{ot 8va} -.1{b (4 4) v}.4{ot 8va} -.1{b (4 0)}.8{ot 8va}',
+      '  15.1.8{ot 8va} |',
+      '14.1{h ac}.4{ch "C" ot 8va} 15.1{h}.16{ot 8va} 14.1{sl}.16{ot 8va}',
+      '  12.1{v}.8{ot 8va} -.1{v}.4{d ot 8va} 15.1.8{ot 8va} |',
+    ].join('\n') + '\n',
+  },
+  {
     id: 'techniques',
     title: 'Palm mute, dead notes, harmonics, tap',
     shows: 'Palm-muted and dead notes, natural harmonics and a tapped note',
