@@ -379,9 +379,12 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
         );
       }
     }
+    // The line goes before its column, or after the clip's last column when it is past the end.
     const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
-    if (marked) {
-      const x = marked.x - marked.width / 2;
+    const total = clip.bars.reduce((n, b) => n + b.columns.length, 0);
+    const end = idleMark === total ? cols.find(c => c.index === total - 1) : undefined;
+    if (marked || end) {
+      const x = marked ? marked.x - marked.width / 2 : end!.x + end!.width / 2;
       out.push(
         <line
           key={`mark-${si}`} data-testid="play-mark" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}

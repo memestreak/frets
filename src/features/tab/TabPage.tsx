@@ -224,7 +224,8 @@ export default function TabPage() {
   const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
-  const playFrom = markAt ?? (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
+  // A line past the clip's end plays its last column.
+  const playFrom = markAt !== null ? Math.min(markAt, count - 1) : (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
   /**
    * A press above or below the staff: the playback line goes there (while playing, playback jumps
    * there), and any selection goes. With Shift, the columns from the line (else the selection's
@@ -244,7 +245,7 @@ export default function TabPage() {
         return;
       }
     }
-    const index = Math.min(gap, count - 1);
+    const index = Math.min(gap, count);
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
     if (playback.seek(index)) return;
@@ -261,14 +262,17 @@ export default function TabPage() {
     if (target?.closest?.('input, select, textarea, dialog, [role="menu"], [role="slider"], .tab-editor')) return;
     if (e.key === 'Escape') {
       if (markAt === null && !selection) return;
-      setPlayMark(null);
-      setSelection(null);
+      // A selection goes first, leaving the line after its last column (Jeremy, 2026-10-28); then the line goes.
+      if (selection) {
+        setSelection(null);
+        setPlayMark({ index: selectedRange(selection)[1] + 1, clip, cursor: cursorAsSet, selection: null });
+      } else setPlayMark(null);
       e.preventDefault();
       return;
     }
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const step = e.key === 'ArrowRight' ? 1 : -1;
-    const within = (i: number) => Math.min(count - 1, Math.max(0, i));
+    const within = (i: number) => Math.min(count, Math.max(0, i));
     if (e.shiftKey && markAt !== null && !selection) {
       // The first step from the line takes the one column beside it.
       const one = step > 0 ? markAt : markAt - 1;
@@ -576,7 +580,13 @@ export default function TabPage() {
     }
     if (key === 'Escape') {
       handled();
-      setSelection(null);
+      // A selection goes first, leaving the cursor on its last column (Jeremy, 2026-10-28).
+      if (selection) {
+        const end = placeOf(clip, selectedRange(selection)[1]);
+        commit(clip, { ...cursor, bar: end.bar, column: end.column }, null);
+        setPlayMark(null);
+        return;
+      }
       setPlayMark(null);
       // On a string, Esc first drops the string and keeps the column (Jeremy, 2026-10-27); then it leaves the tab.
       if (!columnOnly && !selection && columnAt(clip, cursor)) setColumnOnly(true);

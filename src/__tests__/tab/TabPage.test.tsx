@@ -352,6 +352,18 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 r.4 |');
     });
 
+    it('Esc first drops a selection and leaves the cursor on its last column', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
+      keys('Escape');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+      // The cursor is on the selection's last column, where the 9 was.
+      keys('3');
+      expect(alphaTex()).toBe('5.1.4 7.1.4 3.1.4 r.4 |');
+    });
+
     it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
       renderAt();
       act(() => editor().focus());

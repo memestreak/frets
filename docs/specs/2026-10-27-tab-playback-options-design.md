@@ -73,6 +73,12 @@ off but the loop range stays set, so the synth finishes at the range end; on
   between the line and the gap pressed: one column for a press just past
   the next note, not two (Jeremy, 2026-10-28). The gap past the clip's last
   column counts, so the last column can be taken.
+- Esc with a selection first drops the selection only (Jeremy, 2026-10-28):
+  on the tab the cursor goes to its last column; from the line, the line
+  goes after its last column. The next Esc does what it did (on the tab:
+  the string, then the tab; off it: the line).
+- The line can stand after the clip's last column (drawn at its right
+  edge); Play from there plays the last column.
 
 ## Transpose
 
