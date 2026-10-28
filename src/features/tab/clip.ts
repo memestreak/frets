@@ -137,6 +137,8 @@ export interface Bar {
   repeatStart?: boolean;
   /** Ends a repeat played this many times (2 unless written). */
   repeatEnd?: number;
+  /** Ends with a double bar line, as a section's last bar does (alphaTex's `\db`); a repeat's end draws its own. */
+  doubleBar?: boolean;
   /** Under a 1st, 2nd … ending bracket. */
   ending?: number;
   /** A tempo from this bar on, in bpm (quarter notes), with an optional label ("Slowly"). */
@@ -244,6 +246,8 @@ export interface Clip {
   capo?: number;
   /** alphaTex score and staff metadata Frets doesn't use, kept as written ('\artist "Me"'). */
   header?: string[];
+  /** Bars of rest in a row are drawn as one, with their count over it, as printed parts have them (alphaTex's `\multiBarRest`). */
+  multiBarRests?: boolean;
 }
 
 export const STRING_COUNT = 6;
@@ -585,6 +589,7 @@ function isBar(v: unknown): v is Bar {
     && (v.key === undefined || isKey(v.key))
     && optBool(v.repeatStart)
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
+    && optBool(v.doubleBar)
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
@@ -600,5 +605,6 @@ export function parseClip(v: unknown): Clip | null {
   if (!Array.isArray(v.bars) || v.bars.length === 0 || !v.bars.every(isBar)) return null;
   if (!optStrings(v.header)) return null;
   if (v.capo !== undefined && !isCapo(v.capo)) return null;
+  if (!optBool(v.multiBarRests)) return null;
   return v as unknown as Clip;
 }

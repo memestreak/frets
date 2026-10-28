@@ -4,11 +4,11 @@ import {
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
 import {
-  barTextX, beamGroups, BEND_RISE, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
-  SECTION_BOX_HEIGHT, SECTION_PAD, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
+  barTextX, beamGroups, BEND_RISE, prettyChord, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
+  SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
   type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots, vibratoRuns, legatoArcs, type LegatoArc,
 } from './layout';
-import { StaffCursor, StaffDrawing } from './StaffDrawing';
+import { MultiRest, StaffCursor, StaffDrawing } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -188,7 +188,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             <StaffCursor x={spot.x} score={rows.score} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
-          {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (
+          {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (!bar.restRun || bar.restRun.first) && (
             // Over the top line at the bar's start, small, as Guitar Pro prints it.
             <text
               key={`bar-number-${bar.index}`} x={bar.x0 + BAR_NUMBER_INSET} y={(rows.score ? rows.score.top : rows.staffTop) - 4}
@@ -286,8 +286,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
       <rect width={end + 1} height={rows.height} fill="#fff" />
       {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        // A released bend's note has no number: its arrow comes down to the string.
-        const lw = carries.get(note) === 'release' ? 0 : labelWidth(note, placed.column);
+        // A released bend's note has no number: its arrow comes down to the string. Nor has a tied note within a bar, under a staff.
+        const hidden = carries.get(note) === 'release' || hiddenTie(note, placed, bar, rows, carries);
+        const lw = hidden ? 0 : labelWidth(note, placed.column);
         return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
       })))}
     </mask>,
@@ -344,7 +345,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} rows={rows} system={index} look={look}
+          key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index} look={look}
           previous={previous} slides={slides} carries={carries} staffStart={system.staffStart}
         />,
       );
@@ -431,28 +432,28 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
       const y = rows.section;
       const { marker, text } = sectionBoxes(section);
       parts.push(
-        <g key={`section-${bar.index}`} data-testid="section">
+        <g key={`section-${bar.index}`} data-testid="section" fill={look.ink}>
           {marker && (
             <>
-              <rect x={x0} y={y - SECTION_BOX_HEIGHT / 2} width={marker.width} height={SECTION_BOX_HEIGHT} rx={2} fill={look.ink} />
-              <text x={x0 + marker.width / 2} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.paper} textAnchor="middle">{section.marker}</text>
+              <rect x={x0 + 0.6} y={y - SECTION_BOX_HEIGHT / 2} width={marker.width - 1.2} height={SECTION_BOX_HEIGHT} fill="none" stroke={look.ink} strokeWidth={1.2} />
+              <text x={x0 + marker.width / 2} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700} textAnchor="middle">{section.marker}</text>
             </>
           )}
-          <rect x={x0 + text.x} y={y - SECTION_BOX_HEIGHT / 2} width={text.width} height={SECTION_BOX_HEIGHT} rx={2} fill="none" stroke={look.ink} strokeWidth={1.2} />
-          <text x={x0 + text.x + SECTION_PAD} y={y + 4} fontSize={SECTION_SIZE} fontWeight={700} fill={look.ink}>{section.text}</text>
+          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>{section.text}</text>
         </g>,
       );
     }
     if (tempo && rows.tempo !== null) {
       const y = rows.tempo;
-      const { numberX, labelX } = tempoParts(tempo);
+      const { noteX, numberX } = tempoParts(tempo);
+      const nx = x0 + noteX;
       parts.push(
-        <g key={`tempo-${bar.index}`} data-testid="tempo" fill={look.ink}>
+        <g key={`tempo-${bar.index}`} data-testid="tempo" fill={look.ink} fontSize={TEMPO_SIZE} fontWeight={700}>
+          {tempo.label && <text x={x0} y={y + 4}>{tempo.label}</text>}
           {/* A quarter note: its head and stem. */}
-          <ellipse cx={x0 + 2} cy={y + 2} rx={3.2} ry={2.4} transform={`rotate(-20 ${x0 + 2} ${y + 2})`} />
-          <line x1={x0 + 5} x2={x0 + 5} y1={y + 1} y2={y - 9} stroke={look.ink} strokeWidth={1.1} />
-          <text x={x0 + numberX} y={y + 4} fontSize={TEMPO_SIZE}>{` = ${tempo.bpm}`}</text>
-          {tempo.label && <text x={x0 + labelX} y={y + 4} fontSize={TEMPO_SIZE} fontWeight={700}>{tempo.label}</text>}
+          <ellipse cx={nx + 2} cy={y + 2} rx={3.2} ry={2.4} transform={`rotate(-20 ${nx + 2} ${y + 2})`} />
+          <line x1={nx + 5} x2={nx + 5} y1={y + 1} y2={y - 9} stroke={look.ink} strokeWidth={1.1} />
+          <text x={x0 + numberX} y={y + 4}>{` = ${tempo.bpm}`}</text>
         </g>,
       );
     }
@@ -464,7 +465,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
             key={`chord-${placed.index}`} x={placed.x} y={rows.chords + 4} fontSize={CHORD_SIZE} fontWeight={700} fill={look.ink}
             textAnchor="middle" data-testid="chord-name"
           >
-            {placed.column.chord}
+            {prettyChord(placed.column.chord)}
           </text>,
         );
       }
@@ -522,7 +523,9 @@ function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; lo
           {vertical(x1 - 1.5, 3)}
           {bar.bar.repeatEnd !== undefined && <g data-testid="repeat-end">{dots(x1 - 11)}</g>}
         </g>
-      ) : vertical(x1, 1)}
+      ) : bar.bar.doubleBar ? (
+        <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1)}
       {bar.bar.repeatEnd !== undefined && bar.bar.repeatEnd !== 2 && (
         <text x={x1} y={rows.endings! + 6} fontSize={11} fontWeight={700} fill={look.ink} textAnchor="end">
           ×{bar.bar.repeatEnd}
@@ -537,8 +540,18 @@ function labelWidth(note: Note, column: Column): number {
   return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
 }
 
-function ColumnDrawing({ placed, rows, system, look, previous, slides, carries, staffStart }: {
+/**
+ * Under the staff, a tied note's number shows only at the start of a bar, in brackets, as Guitar Pro
+ * prints it (Sweet Child O' Mine, Jeremy 2026-10-28): within the bar the staff's tie says it all. A tied
+ * note that bends keeps its number, under its bend's arrow.
+ */
+function hiddenTie(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, carries: Map<Note, 'hold' | 'release'>): boolean {
+  return !!note.tie && !note.bend && !!rows.score && placed !== bar.columns[0] && !carries.has(note);
+}
+
+function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, carries, staffStart }: {
   placed: PlacedColumn;
+  bar: PlacedBar;
   rows: Rows;
   system: number;
   look: TabLook;
@@ -578,7 +591,7 @@ function ColumnDrawing({ placed, rows, system, look, previous, slides, carries, 
     }
     const carry = carries.get(note);
     // A grace note's number is drawn small; a released bend's note shows none, as Guitar Pro prints it.
-    if (carry !== 'release') parts.push(column.grace
+    if (carry !== 'release' && !hiddenTie(note, placed, bar, rows, carries)) parts.push(column.grace
       ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
       : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
     if (carry) {
@@ -691,6 +704,11 @@ function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: nu
   const grouped = new Map<Column, PlacedColumn[]>();
   for (const g of groups) for (const p of g.columns) grouped.set(p.column, g.columns);
 
+  // A multi-bar rest: its thick bar where the rests go, its count over the tab.
+  if (bar.restRun) {
+    if (!bar.restRun.first) return null;
+    return <MultiRest span={bar.restRun.span} count={bar.restRun.count} y={rows.stemTop + 10} countY={rows.staffTop - 6} look={look} />;
+  }
   for (const placed of bar.columns) {
     const { column, x } = placed;
     const { value, dots } = column.duration;

@@ -30,6 +30,8 @@ chords fit; fingerstyle with a bass line held under moving notes does not
     \tuning (<six notes, HIGH to low, with octaves>)
                                       optional; standard (E4 B3 G3 D3 A2 E2)
     \capo <fret>                      optional; 1 to 12
+    \multiBarRest                     optional; bars of rest in a row
+                                      are drawn as one, with their count
     <bars>
 
 End each bar with "|". A line break is just a space: a bar may go on over
@@ -151,8 +153,8 @@ Put these at the start of a bar, before its beats:
 
     \ts (3 4)                  a new time signature from this bar on;
                                the one in the header holds until then
-    \section "Verse"           a section starts here, drawn in a box;
-    \section ("A" "Chorus")    with a rehearsal mark, "A"
+    \section "Verse"           a section starts here, its name in bold;
+    \section ("A" "Chorus")    with a rehearsal mark, "A", in a box
     \tempo 90                  the tempo from this bar on, in bpm
     \tempo (90 "Slowly")       (20 to 400), with a label
     \ks G                      the key signature from this bar on; the
@@ -160,6 +162,7 @@ Put these at the start of a bar, before its beats:
     \ro        the bar starts a repeat
     \rc 2      the bar ends a repeat played twice (\rc 4: four times)
     \ae 1      the bar is under the 1st-time ending (\ae 2: 2nd ending)
+    \db       the bar ends with a double bar line (a section's end)
 
 Without \ro, a repeat goes back to the beginning. A bar that both starts
 and ends a repeat takes both: \ro \rc 3. With 1st and 2nd endings, the
@@ -268,7 +271,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 ----------------------------------------------
 
 1. Header: write \ts always; \title, \artist, \words, \music, \tuning and
-   \capo only when the picture shows them ("Capo 3rd fret" is \capo 3). A tuning like "D A D G B E" (low to high) is written high
+   \capo only when the picture shows them ("Capo 3rd fret" is \capo 3);
+   \multiBarRest when a bar shows a thick bar across the staff with a
+   number over it, which stands for that many bars of "r.1 |". A tuning like "D A D G B E" (low to high) is written high
    to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the
    octave nearest its standard note (E4 B3 G3 D3 A2 E2): DADGAD is
    \tuning (D4 A3 G3 D3 A2 D2).
@@ -332,7 +337,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    \tempo (60 "Slowly")); other words over the tab ("rit.", "harm.")
    to txt "..." on the beat they start over. Marks from section 6 are written as shown
    there.
-5. A double or thick final bar line is just the last "|".
+5. A thick final bar line is just the last "|"; a bar ending in two thin
+   lines starts with \db.
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to
    24, each bar adds up, every bar ends with "|".
 7. Unless told to give only the text, give the user the link from section

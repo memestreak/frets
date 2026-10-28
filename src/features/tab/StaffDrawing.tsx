@@ -106,6 +106,28 @@ function StaffTime({ time, x, score, look }: { time: TimeSignature; x: number; s
   );
 }
 
+/** How far a multi-bar rest's thick bar stays clear of its bar lines. */
+const MULTI_REST_INSET = 12;
+
+/**
+ * A multi-bar rest as printed parts draw it: a thick bar across the middle, a short upright at each
+ * end, and the count over it, large and bold. Shared with the tab (`TabClip.tsx`).
+ */
+export function MultiRest({ span, count, y, countY, look, reach = 6 }: {
+  span: { x0: number; x1: number }; count: number; y: number; countY: number; look: TabLook; reach?: number;
+}) {
+  const x0 = span.x0 + MULTI_REST_INSET;
+  const x1 = span.x1 - MULTI_REST_INSET;
+  return (
+    <g data-testid="multi-rest">
+      <rect x={x0} y={y - 2.6} width={Math.max(0, x1 - x0)} height={5.2} fill={look.ink} />
+      <line x1={x0} x2={x0} y1={y - reach} y2={y + reach} stroke={look.ink} strokeWidth={1.2} />
+      <line x1={x1} x2={x1} y1={y - reach} y2={y + reach} stroke={look.ink} strokeWidth={1.2} />
+      <text x={(span.x0 + span.x1) / 2} y={countY} fontSize={20} fontWeight={800} fill={look.ink} textAnchor="middle">{count}</text>
+    </g>
+  );
+}
+
 function StaffBarLines({ bar, score, look, final }: { bar: PlacedBar; score: ScoreRows; look: TabLook; final: boolean }) {
   const { x0, x1 } = bar;
   const vertical = (x: number, w: number) => <line x1={x} x2={x} y1={score.top} y2={score.bottom} stroke={look.ink} strokeWidth={w} />;
@@ -120,7 +142,9 @@ function StaffBarLines({ bar, score, look, final }: { bar: PlacedBar; score: Sco
           {vertical(x1 - 1.5, 3)}
           {bar.bar.repeatEnd !== undefined && dots(x1 - 11)}
         </g>
-      ) : vertical(x1, 1)}
+      ) : bar.bar.doubleBar ? (
+        <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1)}
     </g>
   );
 }
@@ -144,6 +168,10 @@ const BEAM_GAP = 0.75 * SPACE;
 
 /** One bar's notes on the staff. */
 function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look: TabLook }) {
+  if (bar.restRun) {
+    const { first, span, count } = bar.restRun;
+    return first ? <MultiRest span={span} count={count} y={stepY(score, 4)} countY={score.top - 8} look={look} reach={SPACE} /> : null;
+  }
   const parts: ReactNode[] = [];
   const { columns: geometry, groups, groupUp, beamY } = staffBar(bar, score);
 
