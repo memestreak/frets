@@ -148,7 +148,7 @@ export function AlphaTexEditor({ clip, text, onText, onClip, onClear, lineNumber
       />
       <p id="alphatex-errors" className="sr-only">{errorText.join(' ')}</p>
       {/* In the box's top right corner; the text keeps clear of it (Jeremy, 2026-10-28). */}
-      <button type="button" className="btn btn-secondary btn-icon tab-text-clear" aria-label="Clear" title="Clear" onClick={onClear}>
+      <button type="button" className="tab-text-clear" aria-label="Clear" title="Clear" onClick={onClear}>
         <CloseIcon />
       </button>
     </div>
