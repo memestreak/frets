@@ -5,7 +5,7 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
@@ -14,7 +14,7 @@ import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from './NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { VolumeKnob } from './VolumeKnob';
-import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type PlayerView, type Sound } from './playback';
+import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
 
 /** The saved playback settings: whether the controls show (hidden at first), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
@@ -77,6 +77,8 @@ export interface Playback {
   stop: () => void;
   /** Sounds a note alone once the edit that put it there has drawn: "Hear notes as you enter them". */
   hear: (bar: number, column: number, string: number) => void;
+  /** Where the music heard now is, read each frame by the playhead; null when nothing plays. */
+  heardPosition: () => HeardPosition | null;
 }
 
 const IDLE: PlayerView = { state: 'idle', column: null };
@@ -98,7 +100,9 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   const [loop, setLoop] = useState<Loop | null>(null);
   const [speed, setSpeedState] = useState(1);
   const player = useRef<TabPlayer | null>(null);
-  const update = (change: Partial<PlayerView>) => setView(v => ({ ...v, ...change }));
+  // The player reports the column about ten times a second; the page draws again only when it changes.
+  const update = (change: Partial<PlayerView>) =>
+    setView(v => (Object.entries(change).every(([k, value]) => v[k as keyof PlayerView] === value) ? v : { ...v, ...change }));
 
   useEffect(() => {
     player.current?.stop();
@@ -183,6 +187,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     },
     stop: () => player.current?.stop(),
     hear: (bar, column, string) => setHeard({ bar, column, string, n: ++hearing.current }),
+    heardPosition: () => player.current?.heardPosition() ?? null,
   };
 }
 
@@ -368,11 +373,12 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
   layer: 'under' | 'over';
 }) {
   const under = layer === 'under';
-  const column = markOnly ? null : playback.view.column;
+  const heard = useHeardPosition(playback, !markOnly && playback.view.state === 'playing');
+  const layout = useMemo(() => layoutClip(clip, width, parts), [clip, width, parts]);
+  const column = heard?.column ?? null;
   const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
   if (column === null && !loop && idleMark === null) return null;
-  const layout = layoutClip(clip, width, parts);
   const { rows } = layout;
   const out: ReactNode[] = [];
   layout.systems.forEach((system, si) => {
@@ -402,12 +408,16 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
         />,
       );
     }
-    const head = cols.find(c => c.index === column);
-    if (head) {
-      const x = head.start;
+    const at = cols.findIndex(c => c.index === column);
+    const head = at < 0 ? undefined : cols[at];
+    if (head && heard) {
+      // The line glides through the note's room as it sounds, to the next note's on the same line
+      // (issue #167); the band stays on the note.
+      const next = cols[at + 1];
+      const x = head.start + heard.through * ((next ? next.start : head.start + head.width) - head.start);
       out.push(
         under
-          ? <rect key={`head-${si}`} data-testid="playhead-band" x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
+          ? <rect key={`head-${si}`} data-testid="playhead-band" x={head.start} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
           : (
             <g key={`head-${si}`} data-testid="playhead">
               <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
@@ -421,6 +431,31 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
       {out}
     </svg>
   );
+}
+
+/** Where the music heard is, read once a frame while `active` (the clip is playing); null otherwise. */
+function useHeardPosition(playback: Playback, active: boolean): HeardPosition | null {
+  const [heard, setHeard] = useState<HeardPosition | null>(null);
+  // The latest reader, so the frame loop needn't restart each time the page draws.
+  const read = useRef(playback.heardPosition);
+  useEffect(() => {
+    read.current = playback.heardPosition;
+  });
+  useEffect(() => {
+    if (!active) return;
+    let frame = 0;
+    const tick = () => {
+      const next = read.current();
+      setHeard(h => (h && next && h.column === next.column && h.through === next.through ? h : next));
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      setHeard(null);
+    };
+  }, [active]);
+  return active ? heard : null;
 }
 
 /** Where the loop bracket is drawn on a system: its two ends and its height. */

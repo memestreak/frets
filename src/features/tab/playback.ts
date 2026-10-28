@@ -261,6 +261,28 @@ export interface PlayerView {
   column: number | null;
 }
 
+/** Where the music heard now is: a column, and how far through its note (0 at its start, 1 at its end). */
+export interface HeardPosition {
+  column: number;
+  through: number;
+}
+
+/** alphaTab's ticks in a quarter note. */
+const QUARTER_TICKS = 960;
+/**
+ * How long the playhead goes on moving on its own after the synthesizer last said where it is. It
+ * says so about every tenth of a second; past this the sound has stalled, so the playhead waits.
+ */
+const MAX_GLIDE_MS = 250;
+/**
+ * How quickly the playhead catches up with where the music is heard: about two thirds of the way
+ * in this many milliseconds. Each report of the synthesizer's lands a little early or late, so
+ * following them at once makes the playhead stutter; easing toward them keeps its speed steady.
+ */
+const CATCH_UP_MS = 150;
+/** Further than this from the music heard (in milliseconds), the playhead jumps to it instead. */
+const SNAP_MS = 300;
+
 /**
  * Sets the synthesizer's loop points without moving the playhead. alphaTab's own `playbackRange`
  * setter jumps to the range's start, so a Play from before the loop could never reach it; its
@@ -308,14 +330,30 @@ export class TabPlayer {
   /** When the playhead reached the loop's end, so the rest counts from there; and the rest's timer. */
   private loopEndAt: number | null = null;
   private resting: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * The tick heard at a moment, so the playhead can glide between the synthesizer's reports (issue
+   * #167): `rate` ticks a millisecond from `at` (`performance.now()`), never before `floor`, the
+   * tick playback last started from.
+   */
+  private heard: { tick: number; at: number; rate: number; floor: number } = { tick: 0, at: 0, rate: 0, floor: 0 };
+  /** The tick the synthesizer last reported, to see it go back round a loop. */
+  private reported = 0;
+  /** The tick the playhead was last drawn on, and when. */
+  private shown: { tick: number; at: number } | null = null;
 
   private constructor(
     private readonly at: AlphaTab,
     private readonly synth: AlphaTabModule.synth.AlphaSynth,
+    private readonly output: WebAudioOutput,
     private readonly onView: (view: Partial<PlayerView>) => void,
   ) {
     synth.positionChanged.on(e => {
       if (!this.clip || !this.performance || this.ended) return;
+      const rate = (e.modifiedTempo * QUARTER_TICKS) / 60000;
+      // Gone back round the loop: the playhead starts again from the loop's start.
+      const floor = e.currentTick < this.reported && this.range ? this.range.startTick : this.heard.floor;
+      this.reported = e.currentTick;
+      this.heard = { tick: e.currentTick - this.output.aheadMs() * rate, at: performance.now(), rate, floor };
       if (this.looping && this.range && e.currentTick >= this.range.endTick) this.loopEndAt ??= performance.now();
       // While the last notes ring out, the playhead stays on the last column.
       if (e.currentTick >= (this.loaded?.end ?? this.performance.endTick)) return;
@@ -338,9 +376,10 @@ export class TabPlayer {
     const response = await fetch(SOUNDFONT_URL);
     if (!response.ok) throw new Error(`the soundfont didn't load (${response.status})`);
     const soundfont = new Uint8Array(await response.arrayBuffer());
-    const synth = new at.synth.AlphaSynth(new WebAudioOutput(), 500);
+    const output = new WebAudioOutput();
+    const synth = new at.synth.AlphaSynth(output, 500);
     synth.loadSoundFont(soundfont, false);
-    return new TabPlayer(at, synth, onView);
+    return new TabPlayer(at, synth, output, onView);
   }
 
   /**
@@ -474,6 +513,37 @@ export class TabPlayer {
   private moveTo(tick: number) {
     rangeWithoutSeek(this.synth, null);
     this.synth.tickPosition = tick;
+    this.heard = { tick, at: performance.now(), rate: 0, floor: tick };
+    this.reported = tick;
+    this.shown = null;
+  }
+
+  /**
+   * Where the music heard now is, for a playhead that glides with it (issue #167): from the
+   * synthesizer's last report, moved on by the time since at the tempo then. Null when nothing plays.
+   */
+  heardPosition(): HeardPosition | null {
+    const { clip, performance: perf } = this;
+    if (this.ended || !clip || !perf) return null;
+    const { tick, at, rate, floor } = this.heard;
+    const end = this.looping && this.range ? this.range.endTick : this.loaded?.end ?? perf.endTick;
+    const time = performance.now();
+    const heard = Math.max(tick + Math.min(time - at, MAX_GLIDE_MS) * rate, floor);
+    // From where it was drawn, the playhead moves on at the tempo and eases toward the music heard.
+    let now = heard;
+    if (this.shown && rate > 0) {
+      const elapsed = time - this.shown.at;
+      const moved = this.shown.tick + elapsed * rate;
+      const behind = heard - moved;
+      if (Math.abs(behind) < SNAP_MS * rate) now = moved + behind * (1 - Math.exp(-elapsed / CATCH_UP_MS));
+    }
+    now = Math.min(now, end - 1);
+    this.shown = { tick: now, at: time };
+    const found = perf.lookup.findBeat(new Set([0]), now - perf.shift);
+    const column = found ? columnOfBeat(clip, found.beat) : null;
+    if (!found || column === null) return null;
+    const through = found.tickDuration > 0 ? (now - perf.shift - found.start) / found.tickDuration : 0;
+    return { column, through: Math.min(1, Math.max(0, through)) };
   }
 
   setSpeed(speed: number) {
