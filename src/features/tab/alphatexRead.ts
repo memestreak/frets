@@ -119,7 +119,10 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
     const values = points.map(p => p.value);
     const peak = Math.max(...values);
     if (peak > 0) {
-      n.bend = { quarters: nearestQuarters(peak), pre: values[0] > 0, release: values[values.length - 1] < peak };
+      const quarters = nearestQuarters(peak);
+      n.bend = { quarters, pre: values[0] > 0, release: values[values.length - 1] < peak };
+      // A bend that starts bent but lower than its peak rises on from there: (4 6).
+      if (values[0] > 0 && nearestQuarters(values[0]) < quarters) n.bend.from = nearestQuarters(values[0]);
     }
   }
   if (note.slideOutType === at.model.SlideOutType.OutDown) n.slideOut = 'down';

@@ -34,6 +34,8 @@ export function hiddenNumber(note: Note, placed: PlacedColumn, bar: PlacedBar, r
 /** How notes join the ones before and after them on a string, for drawing their numbers. */
 export interface Joins {
   carries: Map<Note, 'hold' | 'release'>;
+  /** How far each carried bend has been pushed on up (`bendRaises`). */
+  raises: Map<Note, number>;
   legatoStarts: Set<Note>;
 }
 
@@ -85,7 +87,14 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       ? <text key={`fret-${s}`} x={x} y={y + 3.2} fontSize={GRACE_SIZE} fontWeight={600} fill={look.ink} textAnchor="middle" data-testid="grace">{label}</text>
       : <text key={`fret-${s}`} x={x} y={y + 4.5} fontSize={13} fontWeight={600} fill={look.ink} textAnchor="middle">{label}</text>);
     if (carry) {
-      parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look} />);
+      const level = joins.raises.get(note) ?? 0;
+      const rise = note.bend?.from !== undefined ? note.bend : undefined;
+      parts.push(
+        <BendCarry
+          key={`bend-${s}`} carry={carry} level={level} rise={rise} fromX={before && before.system === system ? fromX : staffStart - 14}
+          x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look}
+        />,
+      );
     } else if (note.bend) {
       // A tied note bent with no number of its own (after a grace note) bends from the note it is tied
       // from, its arrow rising right by that number as the book prints bars 131 and 132.
@@ -140,13 +149,30 @@ export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook
 /**
  * A bend carried on over a tied note, from the arrow's top over the note before: a dashed line held at
  * the bend's height, then for a release a curved arrow down to the string, where the note's number would be
- * (or down to the number, `y` raised over it, when one is drawn).
+ * (or down to the number, `y` raised over it, when one is drawn). A bend pushed on up (`rise`) leaves
+ * the dashed line in a curved arrow to a line higher, `BEND_LABEL_STEP` a step, labelled with its new
+ * height; `level` is how many steps up it stands.
  */
-function BendCarry({ carry, fromX, x, y, staffTop, look }: {
-  carry: 'hold' | 'release'; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
+function BendCarry({ carry, level, rise, fromX, x, y, staffTop, look }: {
+  carry: 'hold' | 'release'; level: number; rise?: Bend; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
 }) {
-  const top = staffTop - BEND_RISE;
+  const top = staffTop - BEND_RISE - level * BEND_LABEL_STEP;
   const from = fromX + 14;
+  if (rise) {
+    const below = top + BEND_LABEL_STEP;
+    const up = x + 4;
+    return (
+      <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend-rise">
+        {up > from && <line x1={from} x2={up} y1={below} y2={below} strokeDasharray="4 3" />}
+        <path d={`M${up} ${below} Q${x + 14} ${below} ${x + 14} ${top + 2}`} />
+        <path d={`M${x + 10} ${top + 7} L${x + 14} ${top} L${x + 18} ${top + 7}`} fill={look.ink} stroke="none" />
+        {rise.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${y - 8}`} />}
+        <text x={x + 14} y={top - 9} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle" data-testid="bend-label">
+          {bendLabel({ ...rise, pre: false })}
+        </text>
+      </g>
+    );
+  }
   if (carry === 'hold') {
     return <line x1={from} x2={x + 14} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
   }

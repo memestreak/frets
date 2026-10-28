@@ -168,8 +168,10 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
   }
   // A bend's arrow and label stand over the tab's top string, so the row before needs more room.
   const bends = notes.some(n => n.bend);
-  // Two strings bent in one column may stack two labels (`bendLabelLines`).
-  const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) ? BEND_LABEL_STEP : 0;
+  // Two strings bent in one column may stack two labels (`bendLabelLines`), and a bend pushed on up
+  // stands a line higher (`bendRaises`).
+  const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) || notes.some(n => n.bend?.from !== undefined)
+    ? BEND_LABEL_STEP : 0;
   const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? BEND_RISE + 28 + stacked : 16));
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.

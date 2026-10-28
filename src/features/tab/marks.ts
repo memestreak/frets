@@ -3,8 +3,8 @@
  * `docs/specs/2026-10-27-tab-pick-marks-design.md`): where each one is, which palette tool sets it,
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
-import { bendCarries, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { BEND_RISE, SPACE, stepY, stringY, type Layout } from './layout';
+import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
+import { BEND_LABEL_STEP, BEND_RISE, SPACE, stepY, stringY, type Layout } from './layout';
 import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
@@ -75,7 +75,9 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const { rows } = layout;
   const out: { hit: MarkHit; box: Box }[] = [];
   const previous = previousSpots(layout.systems);
-  const carries = bendCarries({ bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) });
+  const bars = { bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) };
+  const carries = bendCarries(bars);
+  const raises = bendRaises(bars);
   const onStaff = staffMarks(layout);
   layout.systems.forEach((system, si) => {
     const top = si * rows.height;
@@ -126,9 +128,11 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           const carry = carries.get(note);
           if (carry) {
             // A held bend's dashed line, or a release's arrow down to the string.
-            const peak = rows.staffTop - BEND_RISE;
+            // A bend pushed on up stands a line higher, its label over it (`BendCarry`).
+            const peak = rows.staffTop - BEND_RISE - (raises.get(note) ?? 0) * BEND_LABEL_STEP;
             const from = (before && before.system === si ? fromX : system.staffStart - 14) + 14;
-            if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + 14, peak + THIN_REACH);
+            if (note.bend?.from !== undefined) add('bend', index, s, from, peak - 19, x + 20, peak + BEND_LABEL_STEP + THIN_REACH);
+            else if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + 14, peak + THIN_REACH);
             else add('bend', index, s, Math.min(from, x - 10), peak - THIN_REACH, x + 6, y + 2);
           } else if (note.bend) {
             const peak = rows.staffTop - BEND_RISE;

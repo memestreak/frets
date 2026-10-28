@@ -10,13 +10,14 @@
  * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
  * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
  * their heights' labels, the wah's row goes under the chord names, and a bend after a grace note rises
- * by the grace note's number.
+ * by the grace note's number. Round 8 (docs/specs/2026-10-28-tab-sweet-child-solo-six-design.md): a held
+ * bend pushed on up is read, kept, written and drawn as an arrow rising from its dashed line.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { legatoStarts, type Clip } from '@/features/tab/clip';
+import { legatoStarts, parseClip, type Clip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip, rowsFor } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
@@ -226,5 +227,30 @@ describe('a tied note bent up after a grace note, with no number of its own (rou
     const start = Number(/^M([\d.]+)/.exec(bend)![1]);
     expect(start - grace).toBeLessThan(10);
     expect(container.querySelector('[data-testid="bend"] line[stroke-dasharray]')).not.toBeNull();
+  });
+});
+
+describe('a held bend pushed on up (round 8, the book\'s bar 144: "full" then "1½")', () => {
+  const TEXT = '\\ts (4 4)\nr.2 r.4 15.1{b (0 4)}.4 |\n-.1{b (4 6)}.2 -.1{b (6 6)}.4 -.1{b (6 0)}.4 |\n';
+
+  it('is read with the height it rises from and written back as it was', () => {
+    const result = readAlphaTexWith(alphaTab, TEXT);
+    expect(result.ok && result.warnings).toEqual([]);
+    const clip = clipOf(TEXT);
+    expect(clip.bars[1].columns[0].notes[0]!.bend).toEqual({ quarters: 6, pre: true, release: false, from: 4 });
+    expect(writeAlphaTex(clip)).toContain('-.1{b (4 6)}.2 -.1{b (6 6)}.4 -.1{b (6 0)}.4');
+    expect(parseClip(clip)).not.toBeNull();
+    expect(parseClip({ ...clip, bars: [{ ...clip.bars[1], columns: [{ ...clip.bars[1].columns[0], notes: [{ fret: 15, tie: true, bend: { quarters: 4, pre: true, release: false, from: 6 } }, null, null, null, null, null] }] }] })).toBeNull();
+  });
+
+  it('rises from the dashed line to a line higher, labelled with its new height, on the tab and on the staff alone', () => {
+    const tab = render(<TabClip clip={clipOf(TEXT)} width={900} parts="both" title="Rise" />).container;
+    expect([...tab.querySelectorAll('[data-testid="bend-rise"] text')].map(t => t.textContent)).toEqual(['1½']);
+    const hold = tab.querySelector('[data-testid="bend-hold"]')!;
+    const first = tab.querySelector('[data-testid="bend"] path')!.getAttribute('d')!;
+    // The hold after the rise stands higher than the first bend's top.
+    expect(Number(hold.getAttribute('y1'))).toBeLessThan(Number(/ ([\d.]+)$/.exec(first)![1]));
+    const staff = render(<TabClip clip={clipOf(TEXT)} width={900} parts="staff" title="Rise" />).container;
+    expect([...staff.querySelectorAll('[data-testid="staff-bend"] text')].map(t => t.textContent)).toEqual(['full', '1½']);
   });
 });

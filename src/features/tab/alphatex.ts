@@ -40,11 +40,12 @@ function withOctave(name: string, string: number): string {
 
 /**
  * The points of a bend in quarter-tones: (0 4) a full bend, (4 4 0) a pre-bend let down. On a tied
- * note a "pre-bend" carries on the bend before: (4 4) holds it and (4 0) lets it down.
+ * note a "pre-bend" carries on the bend before: (4 4) holds it, (4 0) lets it down and (4 6) pushes it
+ * on up.
  */
-function bendPoints({ quarters, pre, release }: Bend, tied: boolean): string {
-  if (tied && pre && release) return `${quarters} 0`;
-  const points = pre ? [quarters, quarters] : [0, quarters];
+function bendPoints({ quarters, pre, release, from }: Bend, tied: boolean): string {
+  if (tied && pre && release && from === undefined) return `${quarters} 0`;
+  const points = pre ? [from ?? quarters, quarters] : [0, quarters];
   if (release) points.push(0);
   return points.join(' ');
 }
