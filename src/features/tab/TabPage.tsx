@@ -38,7 +38,8 @@ import { writeAlphaTex } from './alphatex';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
-import { exampleById, TAB_EXAMPLES } from './examples';
+import { exampleById, TAB_EXAMPLES, type TabExample } from './examples';
+import { loadSamples, SAMPLE_PREFIX } from './samples';
 import { ClipTitle, UNTITLED } from './ClipTitle';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
@@ -76,7 +77,8 @@ const COLUMN_REACH = 16;
 export default function TabPage() {
   const [state, dispatch] = useReducer(clipReducer, undefined, initClipState);
   const { clip } = state;
-  const example = state.example ? exampleById(state.example.id) ?? null : null;
+  // The example or sample shown in place of the clip (only its id is needed here).
+  const example = state.example;
   // An example's edits are never saved: the saved clip waits, untouched, until the example is left.
   useEffect(() => {
     if (!example) saveJson(STORAGE_KEY, clip);
@@ -767,7 +769,8 @@ export default function TabPage() {
 
   /** Shows the example with this id in place of the clip; null when it opened, else why it couldn't. */
   const openExample = useCallback(async (id: string): Promise<string | null> => {
-    const chosen = exampleById(id);
+    // A sample is fetched afresh, so one dropped into the folder a moment ago opens.
+    const chosen = id.startsWith(SAMPLE_PREFIX) ? (await loadSamples()).find(s => s.id === id) : exampleById(id);
     if (!chosen) return `There is no example called "${id}".`;
     const result = await readTab(chosen.text);
     if (!result.ok) return result.errors.join(' ');
@@ -1334,6 +1337,21 @@ function ImportDialog({ open, onClose, onImport }: {
   );
 }
 
+function ExampleList({ examples, current, onOpen }: { examples: TabExample[]; current: string | null; onOpen: (id: string) => void }) {
+  return (
+    <ul className="tab-examples m-0 p-0">
+      {examples.map(e => (
+        <li key={e.id}>
+          <button type="button" className="tab-example" aria-current={e.id === current || undefined} onClick={() => onOpen(e.id)}>
+            <span className="tab-example-title">{e.title}</span>
+            <span className="tab-example-shows">{e.shows}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** The example clips, each with a line on what it shows; choosing one shows it in place of the clip. */
 function ExamplesDialog({ open, current, onClose, onOpen }: {
   open: boolean;
@@ -1342,20 +1360,27 @@ function ExamplesDialog({ open, current, onClose, onOpen }: {
   onClose: () => void;
   onOpen: (id: string) => void;
 }) {
+  // The samples in the folder now, read each time the dialog opens.
+  const [samples, setSamples] = useState<TabExample[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void loadSamples().then(found => { if (live) setSamples(found); });
+    return () => { live = false; };
+  }, [open]);
   return (
     <Modal open={open} onClose={onClose} title="Examples" className="tab-examples-dialog">
       <div className="settings-dialog-body grid gap-3">
         <p className="m-0 text-(--ink-muted)">Each shows what Frets draws. Edit one freely: it is never saved, and your own clip waits.</p>
-        <ul className="tab-examples m-0 p-0">
-          {TAB_EXAMPLES.map(e => (
-            <li key={e.id}>
-              <button type="button" className="tab-example" aria-current={e.id === current || undefined} onClick={() => onOpen(e.id)}>
-                <span className="tab-example-title">{e.title}</span>
-                <span className="tab-example-shows">{e.shows}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {/* The files dropped into src/features/tab/samples/, for trying things out: first, as they change most. */}
+        {samples.length > 0 && (
+          <>
+            <h3 className="tab-examples-heading m-0">Samples</h3>
+            <ExampleList examples={samples} current={current} onOpen={onOpen} />
+            <h3 className="tab-examples-heading m-0">Examples</h3>
+          </>
+        )}
+        <ExampleList examples={TAB_EXAMPLES} current={current} onOpen={onOpen} />
       </div>
     </Modal>
   );

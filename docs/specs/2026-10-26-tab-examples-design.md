@@ -60,3 +60,20 @@ checks each one:
 - it writes back exactly as written.
 
 So the library is also a test of the reader and the writer.
+
+## Samples (2026-10-28)
+
+Jeremy: "I would like a directory that I can drop sample alphatex files in
+such that they show up automatically as examples that I can load in the app
+for testing -- in the Examples... chooser."
+
+- The folder is `src/features/tab/samples/`. Every `.atex` (alphaTex) or
+  `.txt` (ASCII tab) file in it is listed in Examples… under "Samples",
+  above the examples (which then get their own "Examples" heading). Each is
+  titled by its `\title` (or ASCII `Title:`), else its file name, with the
+  file name as its line. Nothing else needs editing.
+- They open like examples (never saved; `/tab#example=sample-<name>`).
+  Unlike examples they are not tests, so a sample may read with warnings.
+- `src/app/tab/samples.json/route.ts` lists the folder: written once by
+  `next build`, read afresh by the dev server each time the dialog opens or
+  a sample is opened, so a file dropped in shows up without a restart.
