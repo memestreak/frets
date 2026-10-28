@@ -1,12 +1,12 @@
 'use client';
 
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Clip } from './clip';
-import { circled, creditsOf, tuningBlock } from './credits';
+import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { TabClip, type TabLook } from './TabClip';
 import { DEFAULT_VIEW, type TabView } from './viewOptions';
@@ -43,82 +43,102 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
 const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000', paper: '#ffffff' };
 /** Room round the tab, so it doesn't touch the image's edges. */
 const PAD = 16;
-const TITLE_SIZE = 20;
-const TITLE_HEIGHT = 34;
-/** The credits' and tuning's lines under the title: their size and the room each takes. */
-const CREDIT_SIZE = 12;
-const CREDIT_LINE = 17;
-/** The tuning's second column of strings, from its first. */
-const TUNING_COLUMN = 64;
 
-/** What the image prints over the tab, as a score does: the title and credits (if the name is shown), then the tuning. */
-interface HeadLine {
-  text: string;
-  bold?: boolean;
-  /** A second column on the line: the tuning's ④ to ⑥ beside ① to ③. */
-  second?: string;
+/** What the image prints over the tab, as the page's head (`ScoreHead.tsx`): the title and credits (if the name is shown), then the tuning. */
+interface Head {
+  title: string;
+  artist: string | null;
+  credits: string[];
+  tuning: TuningBlock | null;
 }
 
-function headLines(clip: Clip, style: TabExportStyle, title: string): { title: string; lines: HeadLine[] } {
+function headOf(clip: Clip, style: TabExportStyle, title: string): Head {
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
-  const lines: HeadLine[] = [];
-  if (shown) {
-    const { artist, lines: by } = creditsOf(clip);
-    if (artist) lines.push({ text: artist, bold: true });
-    lines.push(...by.map(text => ({ text })));
-  }
-  const tuning = tuningBlock(clip.tuning);
-  if (tuning) {
-    if (tuning.heading) lines.push({ text: tuning.heading });
-    const rows = Math.min(3, tuning.strings.length);
-    const said = tuning.strings.map(s => `${circled(s.number)} = ${s.name}`);
-    for (let r = 0; r < rows; r++) lines.push({ text: said[r], second: said[r + rows] });
-  }
-  return { title: shown, lines };
+  const { artist, lines } = creditsOf(clip);
+  return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning: tuningBlock(clip.tuning) };
 }
 
-/** How far down the tab starts: under the name and the lines under it, if any. The tab draws its own capo. */
-function headHeight(head: { title: string; lines: HeadLine[] }): number {
-  const lines = head.lines.length > 0 ? head.lines.length * CREDIT_LINE + 8 : 0;
-  return (head.title ? TITLE_HEIGHT : 0) + lines;
+/** The head's height in the drawing's units, as the page's head takes it (its room after included); 0 for none. */
+function headHeight(head: Head): number {
+  const top = (head.title ? HEAD.titleLine : 0) + (head.artist ? HEAD.artistLine : 0) + head.credits.length * HEAD.creditLine;
+  const tuning = head.tuning ? (head.tuning.heading ? 1 : 0) + Math.min(3, head.tuning.strings.length) : 0;
+  if (top === 0 && tuning === 0) return 0;
+  return 4 + top + (tuning > 0 ? (top > 0 ? HEAD.gap : 0) + tuning * HEAD.creditLine : 0) + HEAD.gap;
+}
+
+/** Where the tab starts under the head, in pixels: the tab's own room over its top line is trimmed when there is no head. */
+function headTop(head: Head, zoom: number): number {
+  const h = headHeight(head);
+  return h > 0 ? Math.ceil(h * zoom) : -8;
+}
+
+/** The head as SVG, `width` wide, in the drawing's units. */
+function HeadDrawing({ head, width }: { head: Head; width: number }) {
+  const ink = EXPORT_LOOK.ink;
+  const parts: ReactNode[] = [];
+  let y = 4;
+  // Each line's text sits on a baseline about four fifths down its line, as the page's lines do.
+  const line = (key: string, text: string, size: number, room: number, weight = 400) => {
+    parts.push(<text key={key} x={width / 2} y={y + room * 0.5 + size * 0.36} fontSize={size} fontWeight={weight} fill={ink} textAnchor="middle">{text}</text>);
+    y += room;
+  };
+  if (head.title) line('title', head.title, HEAD.titleSize, HEAD.titleLine);
+  if (head.artist) line('artist', head.artist, HEAD.artistSize, HEAD.artistLine, 700);
+  head.credits.forEach((c, i) => line(`credit-${i}`, c, HEAD.creditSize, HEAD.creditLine));
+  if (head.tuning) {
+    if (y > 4) y += HEAD.gap;
+    const { heading, strings } = head.tuning;
+    const mid = (k: number) => y + k * HEAD.creditLine + HEAD.creditLine / 2;
+    const baseline = (k: number) => mid(k) + HEAD.creditSize * 0.36;
+    let k = 0;
+    if (heading) parts.push(<text key="tuning-heading" x={HEAD.tuningIndent} y={baseline(k++)} fontSize={HEAD.creditSize} fill={ink}>{heading}</text>);
+    const rows = Math.min(3, strings.length);
+    strings.forEach((s, i) => {
+      const x = HEAD.tuningIndent + Math.floor(i / rows) * HEAD.tuningColumn;
+      const row = k + (i % rows);
+      // A string's number in a small circle, as the page draws it.
+      parts.push(
+        <g key={`string-${s.number}`}>
+          <circle cx={x + 7} cy={mid(row)} r={6.5} fill="none" stroke={ink} strokeWidth={1} />
+          <text x={x + 7} y={mid(row) + 3.2} fontSize={9} fill={ink} textAnchor="middle">{s.number}</text>
+          <text x={x + 18} y={baseline(row)} fontSize={HEAD.creditSize} fill={ink}>{`= ${s.name}`}</text>
+        </g>,
+      );
+    });
+  }
+  return <g data-testid="score-head-drawn">{parts}</g>;
 }
 
 /** The image's size in pixels. */
 export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const tab = layoutClip(clip, (style.width - 2 * PAD) / zoom, parts);
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headHeight(headLines(clip, style, title)) - 8 };
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title), zoom) };
 }
 
 /**
- * The clip as an image: the page's own `TabClip` in black, with the name
- * above it if the style shows it, on white unless transparent; the staff, the
- * tab or both, as the page shows them. The Export dialog's preview draws the same.
+ * The clip as an image: the page's own `TabClip` in black, under the score's head as the page draws
+ * it (the title only if the style shows the name), on white unless transparent; the staff, the tab or
+ * both, as the page shows them, at the View options' size. The Export dialog's preview draws the same.
  */
 export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
   const { width, height } = tabImageSize(clip, style, title, parts, view);
-  // At a View options size the tab is drawn bigger or smaller, so as many bars fit a line as on the page.
+  // At a View options size the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
-  const head = headLines(clip, style, title);
-  const linesTop = PAD + (head.title ? TITLE_HEIGHT : 0);
+  const head = headOf(clip, style, title);
+  const inner = (width - 2 * PAD) / zoom;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
       fontFamily={FONT_FAMILY} className="tab-image"
     >
       {!style.transparent && <rect width={width} height={height} fill={BACKDROP} />}
-      {head.title && (
-        <text x={PAD} y={PAD + TITLE_SIZE - 4} fontSize={TITLE_SIZE} fontWeight={700} fill={EXPORT_LOOK.ink}>{head.title}</text>
-      )}
-      {head.lines.map((line, i) => (
-        <text key={i} y={linesTop + i * CREDIT_LINE + CREDIT_SIZE - 2} fontSize={CREDIT_SIZE} fontWeight={line.bold ? 700 : 400} fill={EXPORT_LOOK.ink}>
-          <tspan x={PAD}>{line.text}</tspan>
-          {line.second && <tspan x={PAD + TUNING_COLUMN}>{line.second}</tspan>}
-        </text>
-      ))}
+      <g transform={`translate(${PAD} ${PAD}) scale(${zoom})`}>
+        <HeadDrawing head={head} width={inner} />
+      </g>
       <TabClip
-        clip={clip} width={(width - 2 * PAD) / zoom} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
-        x={PAD} y={PAD + headHeight(head) - 8}
+        clip={clip} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
+        x={PAD} y={PAD + headTop(head, zoom)}
       />
     </svg>
   );

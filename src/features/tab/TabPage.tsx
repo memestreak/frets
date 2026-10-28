@@ -40,10 +40,10 @@ import { readTab } from './readTab';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, noteKinds, toolForKey, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { exampleById, TAB_EXAMPLES, type TabExample } from './examples';
 import { loadSamples, SAMPLE_PREFIX } from './samples';
-import { ScoreCredits } from './ScoreCredits';
+import { ScoreHead } from './ScoreHead';
 import { parseView, VIEW_KEY, type TabView } from './viewOptions';
 import { ViewOptions } from './ViewOptions';
-import { ClipTitle, UNTITLED } from './ClipTitle';
+import { UNTITLED } from './ClipTitle';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
@@ -974,12 +974,8 @@ export default function TabPage() {
 
   return (
     <div className="grid gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="grid gap-1">
-          <ClipTitle name={clip.name} onRename={rename} />
-          {example && <p className="m-0 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>}
-          <ScoreCredits clip={clip} />
-        </div>
+      {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
+      <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
           <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
@@ -1036,8 +1032,13 @@ export default function TabPage() {
           </div>
         </div>
         <div ref={widthRef} className="min-w-0">
-          {/* The View options' Size zooms the drawing and everything over it: presses, fields and panels alike. */}
-          <div className="relative" style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
+          {/* The View options' Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
+          <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
+          <ScoreHead
+            clip={clip} onRename={rename}
+            note={example && <p className="m-0 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>}
+          />
+          <div className="relative">
             {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
@@ -1103,6 +1104,7 @@ export default function TabPage() {
                 onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
               />
             )}
+          </div>
           </div>
         </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}

@@ -70,10 +70,13 @@ function pressFirstTimeSignature() {
 }
 
 describe('TabPage', () => {
-  it('prints the credits and the tuning under the title, and shows bar numbers as the View options say', async () => {
+  it("draws the title, credits and tuning as the score's head, in the clip's card, and shows bar numbers as the View options say", async () => {
     renderAt('#example=tuned-down');
     await waitFor(() => expect(heading()).toHaveTextContent("Sweet Child O' Mine (intro)"), SLOW);
-    const credits = screen.getByTestId('score-credits');
+    const credits = screen.getByTestId('score-head');
+    // Over the drawing, inside the clip's card, as a printed score's first page has it.
+    expect(credits.closest('section')).toBe(screen.getByRole('region', { name: 'Clip' }));
+    expect(credits).toContainElement(heading());
     expect(credits).toHaveTextContent("Guns N' Roses");
     expect(credits).toHaveTextContent('Words & Music by Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler');
     expect(within(credits).getByLabelText('Tuning')).toHaveTextContent('Tune down 1/2 step');
