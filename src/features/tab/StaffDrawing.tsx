@@ -6,7 +6,7 @@ import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
 import { mordentSign, vibratoWave } from './marks';
-import type { TabLook } from './TabClip';
+import type { TabLook } from './tabLook';
 
 /**
  * One line of the notation staff (issue #122; `docs/specs/2026-10-27-tab-notation-design.md`): the

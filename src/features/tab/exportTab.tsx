@@ -8,7 +8,8 @@ import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Clip } from './clip';
 import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
-import { TabClip, type TabLook } from './TabClip';
+import { TabClip } from './TabClip';
+import { type TabLook } from './tabLook';
 import { DEFAULT_VIEW, paletteOf, shownColours, type TabView } from './viewOptions';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
