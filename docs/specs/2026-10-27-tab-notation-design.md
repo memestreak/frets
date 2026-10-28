@@ -6,9 +6,7 @@ answers are Jeremy's, 2026-10-27, one question at a time.
 ## What is shown
 
 - The views are **Notation | ASCII Tab | AlphaTex**. In Notation a second
-  control at the clip's top left chooses the parts: since 2026-10-28 one
-  dropdown, **Staff / Tab / Staff and Tab** (Jeremy: its width never changes
-  with the choice), first a Staff | Tab | Both switch. The choice is the
+  switch, **Staff | Tab | Both**, at the clip's top left, chooses the parts. The choice is the
   viewer's, saved in `frets.tab.parts` (Tab by default), and is not part of the
   clip.
 - The staff is a plain treble clef. Guitar is written an octave above how it

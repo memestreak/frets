@@ -55,9 +55,6 @@ const EXAMPLE_HASH = '#example=';
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 type View = 'tab' | 'alphatex' | 'ascii';
-/** The Show dropdown's words for each choice of parts. */
-const PART_LABELS: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Staff and Tab' };
-
 const VIEWS: { id: View; label: string }[] = [
   { id: 'tab', label: 'Notation' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
 ];
@@ -988,13 +985,16 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: the Staff / Tab / Staff and Tab dropdown at the top left (Notation only); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
+        {/* Over the clip: Staff | Tab | Both at the top left (Notation only); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
           {view === 'tab' && (
-            // One dropdown, its width fixed whichever is picked (Jeremy, 2026-10-28).
-            <select className="input tab-parts" aria-label="Show" value={parts} onChange={e => setParts(parseParts(e.target.value))}>
-              {PARTS.map(p => <option key={p} value={p}>{PART_LABELS[p]}</option>)}
-            </select>
+            <div className="seg tab-parts" role="group" aria-label="Show">
+              {PARTS.map(p => (
+                <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
+                  {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
+                </button>
+              ))}
+            </div>
           )}
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">
