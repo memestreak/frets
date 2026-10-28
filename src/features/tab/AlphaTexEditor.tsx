@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { CloseIcon } from '@/components/icons';
 import type { TextSpot } from './ascii';
 import type { Clip } from './clip';
 import { writeAlphaTex } from './alphatex';
@@ -39,13 +40,15 @@ function read(at: AlphaTab, typed: string, current: Clip): { clip: Clip | null; 
  * grey ⚠: Frets drops them. The page keeps the text as typed until the view is left
  * (`text` and `onText`), then shows the clip in its own layout again.
  */
-export function AlphaTexEditor({ clip, text, onText, onClip }: {
+export function AlphaTexEditor({ clip, text, onText, onClip, onClear }: {
   clip: Clip;
   /** The text as typed, or the clip written out. */
   text: string;
   onText: (text: string) => void;
   /** A clip read from the text, different from `clip`; the text that says it goes with it. */
   onClip: (clip: Clip, text: string) => void;
+  /** The × at the box's top right: empties the text and the clip. */
+  onClear: () => void;
 }) {
   const [problems, setProblems] = useState<Problems>({ text, ...NO_PROBLEMS });
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -142,6 +145,10 @@ export function AlphaTexEditor({ clip, text, onText, onClip }: {
         onChange={e => onText(e.target.value)}
       />
       <p id="alphatex-errors" className="sr-only">{errorText.join(' ')}</p>
+      {/* In the box's top right corner; the text keeps clear of it (Jeremy, 2026-10-28). */}
+      <button type="button" className="btn btn-secondary btn-icon tab-text-clear" aria-label="Clear" title="Clear" onClick={onClear}>
+        <CloseIcon />
+      </button>
     </div>
   );
 }
