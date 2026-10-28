@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { beatTicks, changesKey, changesTime, isRest, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Clip, type Column, type Note } from './clip';
+import { beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Clip, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 
@@ -44,6 +44,8 @@ export interface Rows {
   chords: number | null;
   /** Free text over its column (alphaTex txt). */
   text: number | null;
+  /** Fermatas, over the tab when there is no staff to carry them. */
+  fermatas: number | null;
   /** Hairpins (crescendo, decrescendo), right under the staff or over the tab's other marks. */
   hairpins: number | null;
   strokes: number | null;
@@ -108,13 +110,17 @@ export const BEND_LABEL_RAISE = 9;
  * The rows a clip (or one line of it, as `lineClip` makes) needs, top to bottom: the words over
  * everything, the staff, the tab's marks, the tab.
  */
-export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
+export function rowsFor(
+  clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 },
+  freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
+): Rows {
   const tab = parts !== 'staff';
   const columns = clip.bars.flatMap(b => b.columns);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
   const used = {
     capo: !!clip.capo,
-    tempo: clip.bars.some(b => b.tempo),
+    // "Free time" goes in the tempo's row, over the chord names, as Guitar Pro prints it.
+    tempo: clip.bars.some(b => b.tempo) || freeTimeLabel,
     section: clip.bars.some(b => b.section),
     chords: columns.some(c => c.chord),
     text: columns.some(c => c.text),
@@ -122,6 +128,8 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     wah: columns.some(c => c.wah),
     // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
     // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
+    // A fermata goes on the staff when there is one, over the tab only without it.
+    fermatas: parts === 'tab' && columns.some(c => c.fermata),
     hairpins: columns.some(c => c.hairpin),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
@@ -162,6 +170,7 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) + 2;
   }
   const marks = {
+    fermatas: row(used.fermatas),
     hairpins: row(used.hairpins),
     strokes: row(used.strokes),
     letRing: row(used.letRing),
@@ -215,6 +224,8 @@ export const BRACKET_WIDTH = 10;
 const BRACKET_MARGIN = BRACKET_WIDTH + 6;
 /** Room for a time signature change, just inside the bar it starts. */
 const BAR_TIME_WIDTH = 24;
+/** The room a free-time bar's brackets round its time signature take. */
+const TIME_BRACKETS_WIDTH = 14;
 const BAR_PAD_START = 14;
 const BAR_PAD_END = 6;
 const REPEAT_PAD = 12;
@@ -300,8 +311,8 @@ export function multiRests(clip: Clip): Map<number, number> {
   const runs = new Map<number, number>();
   if (!clip.multiBarRests) return runs;
   const { bars } = clip;
-  const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar;
-  const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart);
+  const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar || !!bar.freeTime;
+  const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart || bar.freeTime);
   let b = 0;
   while (b < bars.length) {
     if (!plainRest(bars[b]) || closes(bars[b])) {
@@ -406,8 +417,8 @@ export function noteLabel(note: Note): string {
 }
 
 /** The room a bar takes before its first column: padding, a repeat's dots, and a time or key signature change. */
-function barLead(bar: Bar, timeChange: boolean, keyChange: number): number {
-  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0) + keyChange;
+function barLead(bar: Bar, timeChange: boolean, keyChange: number, brackets = false): number {
+  return BAR_PAD_START + (bar.repeatStart ? REPEAT_PAD : 0) + (timeChange ? BAR_TIME_WIDTH : 0) + (brackets ? TIME_BRACKETS_WIDTH : 0) + keyChange;
 }
 
 /** A column's room on the staff too: its accidentals and a head set beside its neighbour a second away. */
@@ -465,7 +476,9 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     x = head;
   };
   clip.bars.forEach((bar, index) => {
-    const timeChange = changesTime(clip, index);
+    // A run of free-time bars shows the time signature again, in brackets, where it starts.
+    const freeStart = index > 0 && startsFreeTime(clip, index);
+    const timeChange = changesTime(clip, index) || freeStart;
     let keyChange = staff && index > 0 && changesKey(clip, index) ? keyWidth(keyAt(clip, index).fifths) : 0;
     const count = rests.get(index);
     if (count) run = { span: { x0: 0, x1: 0 }, count, end: index + count - 1, share: MULTI_REST_WIDTH / count };
@@ -473,7 +486,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     // A multi-bar rest's bars share its room: the first takes its lead, the last the closing room.
     const inner = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
     const closing = BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
-    const widthWith = (keyRoom: number) => (inRun && !count ? 0 : barLead(bar, timeChange, keyRoom)) + inner + (inRun && index < run!.end ? 0 : closing);
+    const widthWith = (keyRoom: number) => (inRun && !count ? 0 : barLead(bar, timeChange, keyRoom, freeStart)) + inner + (inRun && index < run!.end ? 0 : closing);
     let w = widthWith(keyChange);
     // A multi-bar rest goes on one line, whole: its first bar asks for the room of them all.
     const asks = count ? w + (count - 1) * run!.share + closing : inRun ? 0 : w;
@@ -483,14 +496,14 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       keyChange = 0;
       w = widthWith(0);
     }
-    const lead = inRun && !count ? 0 : barLead(bar, timeChange, keyChange);
+    const lead = inRun && !count ? 0 : barLead(bar, timeChange, keyChange, freeStart);
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
     const squeeze = bar.columns.length > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
     // A time signature change stands just inside the bar, after a repeat's dots; a key change after it.
     // On the notation staff the key change comes first, then the time signature.
     const inside = x0 + (bar.repeatStart ? REPEAT_PAD : 0);
-    const timeX = timeChange ? inside + (staff ? keyChange : 0) + 14 : null;
+    const timeX = timeChange ? inside + (staff ? keyChange : 0) + 14 + (freeStart ? TIME_BRACKETS_WIDTH / 2 : 0) : null;
     const keyX = keyChange ? inside + (staff ? 0 : timeChange ? BAR_TIME_WIDTH : 0) + 8 : null;
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
@@ -523,7 +536,8 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   const stack = (reaches: StaffReach[]): Layout => {
     let top = 0;
     const systems = drafts.map((draft, si): System => {
-      const rows = rowsFor(lineClip(clip, draft.bars.map(b => b.index), draft.first), parts, reaches[si]);
+      const indices = draft.bars.map(b => b.index);
+      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)));
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;
@@ -629,6 +643,11 @@ function staffReach(clip: Clip, heads: Head[][][], marks: boolean, bars: number[
       const marksOver = !up && notes.some(n => n.accent || n.staccato) ? top + 6 : -Infinity;
       const under = Math.max(8, up ? reachUp : top + 1, marksOver);
       high = Math.max(high, under + Math.ceil((6 + 2 * TAP_RADIUS + 2) * 2 / SPACE));
+    }
+    // A fermata over the heads, an upward stem and a tap (`staffMarks.ts`).
+    if (c.fermata) {
+      const under = Math.max(8, up ? reachUp : top + 1) + (notes.some(n => n.tap) ? Math.ceil((6 + 2 * TAP_RADIUS + 2) * 2 / SPACE) : 0);
+      high = Math.max(high, Math.max(under + Math.ceil((3 + 12 + 2) * 2 / SPACE), 8 + Math.ceil((10 + 3 + 12 + 2) * 2 / SPACE)));
     }
     if (notes.some(n => n.vibrato || n.mordent)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
     if (c.ottava === '8va' || c.ottava === '15ma') ottavaAbove = true;

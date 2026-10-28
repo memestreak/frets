@@ -13,7 +13,7 @@ import type { ToolId } from './tools';
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava';
+  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -103,6 +103,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
         }
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
         if (column.wah && rows.wah !== null) rowMark('wah', index, x - 7, x + 7, rows.wah);
+        if (column.fermata && rows.fermatas !== null) add('fermata', index, null, x - 12, rows.fermatas - 8, x + 12, rows.fermatas + 6);
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
         else if (notes.some(n => n.harmonic === 'artificial') && rows.harmonics !== null) rowMark('artificial', index, x - 9, x + 9, rows.harmonics);
         const accent = columnAccent(column);
@@ -245,6 +246,8 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
     case 'pinch': return notes.some(n => n.harmonic === 'pinch') ? 'pinchHarmonic' : null;
     // No palette button sets it (the N key's cycle does), so none lights.
     case 'artificial': return null;
+    // Nor does one set a fermata, which comes in with the music.
+    case 'fermata': return null;
     case 'accent': {
       const accent = column ? columnAccent(column) : undefined;
       return accent === 'heavy' ? 'heavyAccent' : accent === 'normal' ? 'accent' : null;

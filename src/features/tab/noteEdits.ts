@@ -206,6 +206,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
     case 'wah': return changeColumns(clip, wholeColumn, c => without(c, 'wah'));
+    case 'fermata': return changeColumns(clip, wholeColumn, c => without(c, 'fermata'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
     case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));

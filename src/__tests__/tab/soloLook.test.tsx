@@ -14,7 +14,8 @@
  * bend pushed on up is read, kept, written and drawn as an arrow rising from its dashed line, and a tap is a
  * circled T over the tab and the staff (docs/specs/2026-10-28-tab-circled-tap-design.md). Round 9
  * (docs/specs/2026-10-28-tab-sweet-child-outro-design.md): a slide from a dead note, a bend let down part of
- * the way and pushed back up, crescendo and decrescendo hairpins, and artificial harmonics.
+ * the way and pushed back up, crescendo and decrescendo hairpins, and artificial harmonics. Round 10
+ * (docs/specs/2026-10-28-tab-sweet-child-ending-design.md): free time and fermatas.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -385,5 +386,86 @@ describe('an artificial harmonic (round 9, the book\'s bar 158)', () => {
     const hit = markBoxes(layoutClip(clip, 900, 'tab')).find(m => m.hit.mark === 'artificial')!.hit;
     expect(markTool(clip, hit)).toBeNull();
     expect(removeMark(clip, hit).bars[0].columns[0].notes[1]).toEqual({ fret: 8 });
+  });
+});
+
+describe('free time (round 10, the book\'s bars 176 to 181)', () => {
+  const TEXT = '\\ts (4 4)\n0.6.1 | \\ft 0.6.1 | \\ft 0.6.1 | 0.6.1 |\n';
+
+  it('is read and written back as \\ft on each bar', () => {
+    const clip = clipOf(TEXT);
+    expect(clip.bars.map(b => b.freeTime ?? false)).toEqual([false, true, true, false]);
+    expect(writeAlphaTex(clip)).toContain('\\ft 0.6.1 | \\ft 0.6.1 |');
+    const again = readAlphaTexWith(alphaTab, writeAlphaTex(clip));
+    expect(again.ok && again.warnings).toEqual([]);
+    expect(parseClip(JSON.parse(JSON.stringify(clip)))).toEqual(clip);
+    expect(parseClip({ ...clip, bars: [{ ...clip.bars[0], freeTime: 'yes' }] })).toBeNull();
+  });
+
+  it('says "Free time" once, brackets the time signature where it starts, and dashes each free bar\'s closing line', () => {
+    const clip = clipOf(TEXT);
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const container = render(<TabClip clip={clip} width={1600} parts={parts} title="Free" />).container;
+      expect([...container.querySelectorAll('[data-testid="free-time"]')].map(t => t.textContent)).toEqual(['Free time']);
+      // The clip's own time signature at the start, then the bracketed one at bar 2.
+      expect(container.querySelectorAll('[data-testid="time-brackets"]')).toHaveLength(1);
+      // Bars 2 and 3 close dashed, on the staff and the tab alike; bar 1 and the last bar don't.
+      const dashed = container.querySelectorAll('line[stroke-dasharray="4 3"]');
+      expect(dashed).toHaveLength(parts === 'both' ? 4 : 2);
+    }
+  });
+
+  it('says "Free time" after a tempo in the same bar, and at a clip\'s start without brackets', () => {
+    const tempo = clipOf('\\ts (4 4)\n0.6.1 | \\tempo (90 "Slowly") \\ft 0.6.1 | 0.6.1 |\n');
+    const container = render(<TabClip clip={tempo} width={1600} parts="tab" title="Free" />).container;
+    const label = container.querySelector('[data-testid="tempo"] text')!;
+    const free = container.querySelector('[data-testid="free-time"]')!;
+    expect(free.getAttribute('y')).toBe(label.getAttribute('y'));
+    expect(Number(free.getAttribute('x'))).toBeGreaterThan(Number(label.getAttribute('x')) + 60);
+
+    const first = clipOf('\\ts (4 4)\n\\ft 0.6.1 | 0.6.1 |\n');
+    const drawn = render(<TabClip clip={first} width={1600} parts="both" title="Free" />).container;
+    expect(drawn.querySelectorAll('[data-testid="free-time"]')).toHaveLength(1);
+    expect(drawn.querySelectorAll('[data-testid="time-brackets"]')).toHaveLength(0);
+    expect(drawn.querySelectorAll('[data-testid="staff-time-signature"]')).toHaveLength(1);
+  });
+
+  it('leaves the last bar\'s closing line thick and starts no multi-bar rest across it', () => {
+    const clip = clipOf('\\ts (4 4)\n\\multiBarRest\nr.1 | \\ft r.1 | \\ft r.1 |\n');
+    const container = render(<TabClip clip={clip} width={1600} parts="tab" title="Free" />).container;
+    expect(container.querySelectorAll('[data-testid="multi-rest"]')).toHaveLength(0);
+    expect(container.querySelectorAll('line[stroke-dasharray="4 3"]')).toHaveLength(1);
+  });
+});
+
+describe('a fermata (round 10, the book\'s bars 180 and 181)', () => {
+  it('is read in each shape and written back', () => {
+    const clip = clipOf('\\ts (4 4)\n0.6.4{fermata short} 0.6.4{fermata (medium 2)} 0.6.4{fermata long} 0.6.4 |\n');
+    expect(clip.bars[0].columns.map(c => c.fermata ?? null)).toEqual(['short', 'medium', 'long', null]);
+    expect(writeAlphaTex(clip)).toContain('0.6.4{fermata short} 0.6.4{fermata medium} 0.6.4{fermata long} 0.6.4 |');
+    const again = readAlphaTexWith(alphaTab, writeAlphaTex(clip));
+    expect(again.ok && again.warnings).toEqual([]);
+    expect(parseClip({ ...clip, bars: [{ columns: [{ ...clip.bars[0].columns[0], fermata: 'huge' }] }] })).toBeNull();
+  });
+
+  it('stands over the staff, clear of the bar number, and over the tab only without a staff', () => {
+    const clip = clipOf('\\ts (4 4)\n0.6.1{fermata medium} |\n');
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const container = render(<TabClip clip={clip} width={900} parts={parts} title="Fermata" />).container;
+      expect(container.querySelectorAll('[data-testid="fermata"]')).toHaveLength(1);
+      const y = Number(container.querySelector('[data-testid="fermata"]')!.getAttribute('transform')!.match(/translate\([-\d.]+ ([-\d.]+)\)/)![1]);
+      const { rows } = layoutClip(clip, 900, parts).systems[0];
+      if (rows.score) expect(y).toBeLessThan(rows.score.top - 10);
+      else expect(y).toBeLessThan(rows.staffTop);
+    }
+  });
+
+  it('is picked and deleted, lighting no tool', () => {
+    const clip = clipOf('\\ts (4 4)\n0.6.1{fermata medium} |\n');
+    for (const parts of ['both', 'tab'] as const) {
+      const hit = markBoxes(layoutClip(clip, 900, parts)).find(m => m.hit.mark === 'fermata')!.hit;
+      expect(markTool(clip, hit)).toBeNull();
+      expect(removeMark(clip, hit).bars[0].columns[0].fermata).toBeUndefined();
+    }
   });
 });

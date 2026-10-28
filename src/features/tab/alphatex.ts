@@ -118,6 +118,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.ottava) effects.push(`ot ${column.ottava}`);
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
   if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
+  if (column.fermata) effects.push(`fermata ${column.fermata}`);
   effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;
@@ -166,6 +167,7 @@ function barTokens(clip: Clip): string[][] {
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
     if (bar.doubleBar) meta.push('\\db');
+    if (bar.freeTime) meta.push('\\ft');
     meta.push(...(bar.extra ?? []));
     const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
     // The bar line goes with the last beat, so a wrapped bar never leaves it alone on a line.

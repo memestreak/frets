@@ -1,10 +1,10 @@
 import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
+import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { StaffCursor, StaffDrawing } from './StaffDrawing';
+import { BAR_DASHES, FermataSign, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -343,8 +343,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   // the notation staff, only on that staff (Jeremy, 2026-10-27).
   if (!rows.score && system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
   for (const bar of rows.score ? [] : system.bars) {
-    if (bar.timeX !== null && bar.bar.time) {
-      parts.push(<TimeNumbers key={`time-${bar.index}`} time={bar.bar.time} x={bar.timeX} rows={rows} look={look} />);
+    if (bar.timeX !== null) {
+      const brackets = startsFreeTime(clip, bar.index);
+      parts.push(<TimeNumbers key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} rows={rows} look={look} brackets={brackets} />);
     }
   }
 
@@ -412,6 +413,15 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
     }
   }
 
+  // Fermatas, over the tab when there is no staff to carry them.
+  if (rows.fermatas !== null) {
+    for (const bar of system.bars) {
+      for (const { column, x, index } of bar.columns) {
+        if (column.fermata) parts.push(<FermataSign key={`fermata-${index}`} fermata={column.fermata} x={x} y={rows.fermatas + 5} look={look} />);
+      }
+    }
+  }
+
   // Hairpins: one wedge over each run of neighbouring columns getting louder (opening) or softer (closing).
   if (rows.hairpins !== null) {
     for (const run of columnRuns(system, c => c.hairpin ?? null)) {
@@ -454,6 +464,9 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
   }
   return <>{parts}</>;
 }
+
+/** The room between a tempo and "Free time" in the same bar. */
+const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
 function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Clip; look: TabLook }) {
@@ -524,6 +537,15 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
         );
       }
     }
+    // "Free time" over the bar that starts it, after the bar's tempo when it has one.
+    if (rows.tempo !== null && startsFreeTime(clip, bar.index)) {
+      const after = tempo ? tempoParts(tempo).width + FREE_TIME_GAP : 0;
+      parts.push(
+        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={look.ink} data-testid="free-time">
+          Free time
+        </text>,
+      );
+    }
     if (rows.text !== null) {
       for (const placed of bar.columns) {
         if (!placed.column.text) continue;
@@ -543,12 +565,13 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
 }
 
 /** A time signature's two numbers, close together round the staff's middle. */
-function TimeNumbers({ time, x, rows, look }: { time: TimeSignature; x: number; rows: Rows; look: TabLook }) {
+function TimeNumbers({ time, x, rows, look, brackets = false }: { time: TimeSignature; x: number; rows: Rows; look: TabLook; brackets?: boolean }) {
   const middle = (rows.staffTop + rows.staffBottom) / 2;
   return (
     <g fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="time-signature">
       <text x={x} y={middle - 2}>{time.beats}</text>
       <text x={x} y={middle + 16}>{time.value}</text>
+      {brackets && <TimeBrackets x={x} middle={middle + 2} height={44} look={look} />}
     </g>
   );
 }
@@ -558,8 +581,8 @@ function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; lo
   const dots = (x: number) => [1.5, 3.5].map(k => (
     <circle key={`${x}-${k}`} cx={x} cy={stringY(rows, k)} r={2.2} fill={look.ink} />
   ));
-  const vertical = (x: number, w: number) => (
-    <line x1={x} x2={x} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={w} />
+  const vertical = (x: number, w: number, dashed = false) => (
+    <line x1={x} x2={x} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={w} strokeDasharray={dashed ? BAR_DASHES : undefined} />
   );
   const thickEnd = final || bar.bar.repeatEnd !== undefined;
   return (
@@ -579,7 +602,7 @@ function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; lo
         </g>
       ) : bar.bar.doubleBar ? (
         <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
-      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1)}
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, bar.bar.freeTime)}
       {bar.bar.repeatEnd !== undefined && bar.bar.repeatEnd !== 2 && (
         <text x={x1} y={rows.endings! + 6} fontSize={11} fontWeight={700} fill={look.ink} textAnchor="end">
           ×{bar.bar.repeatEnd}

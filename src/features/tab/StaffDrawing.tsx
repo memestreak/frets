@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { changesKey, isRest, keyAt, type Clip, type TimeSignature } from './clip';
+import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Clip, type Fermata, type TimeSignature } from './clip';
 import { ACCIDENTAL_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { accidentalLanes, keySigns, STAFF_LINES } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
@@ -39,7 +39,10 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks }: {
   if (system.timeX !== null) parts.push(<StaffTime key="time" time={clip.time} x={system.timeX} score={score} look={look} />);
 
   for (const bar of system.bars) {
-    if (bar.timeX !== null && bar.bar.time) parts.push(<StaffTime key={`time-${bar.index}`} time={bar.bar.time} x={bar.timeX} score={score} look={look} />);
+    if (bar.timeX !== null) {
+      const free = startsFreeTime(clip, bar.index);
+      parts.push(<StaffTime key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} score={score} look={look} brackets={free} />);
+    }
     if (bar.keyX !== null && changesKey(clip, bar.index)) {
       parts.push(<KeySignature key={`key-${bar.index}`} score={score} x={bar.keyX} fifths={keyAt(clip, bar.index).fifths} look={look} />);
     }
@@ -94,12 +97,30 @@ function KeySignature({ score, x, fifths, look }: { score: ScoreRows; x: number;
   );
 }
 
-/** The time signature on the staff: its numbers fill the upper and lower halves. */
-function StaffTime({ time, x, score, look }: { time: TimeSignature; x: number; score: ScoreRows; look: TabLook }) {
+/**
+ * The time signature on the staff: its numbers fill the upper and lower halves. In brackets where a
+ * run of free-time bars starts, as Guitar Pro prints it (Sweet Child O' Mine, bar 176).
+ */
+function StaffTime({ time, x, score, look, brackets = false }: { time: TimeSignature; x: number; score: ScoreRows; look: TabLook; brackets?: boolean }) {
+  const middle = (score.top + score.bottom) / 2;
   return (
     <g fontSize={19} fontWeight={800} fill={look.ink} textAnchor="middle" data-testid="staff-time-signature">
       <text x={x} y={stepY(score, 4) - 2}>{time.beats}</text>
       <text x={x} y={stepY(score, 0) - 2}>{time.value}</text>
+      {brackets && <TimeBrackets x={x} middle={middle} height={score.bottom - score.top} look={look} />}
+    </g>
+  );
+}
+
+/** A free-time bar's brackets round its time signature, as tall as the staff they stand on. */
+export function TimeBrackets({ x, middle, height, look }: { x: number; middle: number; height: number; look: TabLook }) {
+  // Bravura's brackets are about four staff spaces tall.
+  const scale = height / 3.92;
+  const half = 12;
+  return (
+    <g data-testid="time-brackets">
+      <path d={GLYPHS.timeSigParensLeft.d} transform={`translate(${x - half - GLYPHS.timeSigParensLeft.width * scale * 0.85} ${middle}) scale(${scale})`} fill={look.ink} />
+      <path d={GLYPHS.timeSigParensRight.d} transform={`translate(${x + half} ${middle}) scale(${scale})`} fill={look.ink} />
     </g>
   );
 }
@@ -128,7 +149,9 @@ export function MultiRest({ span, count, y, countY, look, reach = 6 }: {
 
 function StaffBarLines({ bar, score, look, final }: { bar: PlacedBar; score: ScoreRows; look: TabLook; final: boolean }) {
   const { x0, x1 } = bar;
-  const vertical = (x: number, w: number) => <line x1={x} x2={x} y1={score.top} y2={score.bottom} stroke={look.ink} strokeWidth={w} />;
+  const vertical = (x: number, w: number, dashed = false) => (
+    <line x1={x} x2={x} y1={score.top} y2={score.bottom} stroke={look.ink} strokeWidth={w} strokeDasharray={dashed ? BAR_DASHES : undefined} />
+  );
   const dots = (x: number) => [3, 5].map(step => <circle key={`${x}-${step}`} cx={x} cy={stepY(score, step)} r={1.8} fill={look.ink} />);
   const thickEnd = final || bar.bar.repeatEnd !== undefined;
   return (
@@ -142,10 +165,26 @@ function StaffBarLines({ bar, score, look, final }: { bar: PlacedBar; score: Sco
         </g>
       ) : bar.bar.doubleBar ? (
         <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
-      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1)}
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, bar.bar.freeTime)}
     </g>
   );
 }
+
+const FERMATA_GLYPHS: Record<Fermata, GlyphName> = { short: 'fermataShortAbove', medium: 'fermataAbove', long: 'fermataLongAbove' };
+
+/** A fermata centred over x, its foot (the dot) at y. Shared with the tab (`TabClip.tsx`). */
+export function FermataSign({ fermata, x, y, look }: { fermata: Fermata; x: number; y: number; look: TabLook }) {
+  const name = FERMATA_GLYPHS[fermata];
+  return (
+    <path
+      d={GLYPHS[name].d} transform={`translate(${x - GLYPHS[name].width * SPACE / 2} ${y}) scale(${SPACE})`} fill={look.ink}
+      data-testid="fermata"
+    />
+  );
+}
+
+/** A free-time bar's dashed closing line, as Guitar Pro draws it: dashes of 4 with gaps of 3. */
+export const BAR_DASHES = '4 3';
 
 /** Beams (or flags) a note value has: one for an eighth, two for a sixteenth, up to four for a sixty-fourth. */
 function beamCount(value: number): number {
@@ -345,6 +384,8 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
     }
     case 'tap':
       return <TapSign x={mark.x} y={mark.y} look={look} testId="staff-tap" />;
+    case 'fermata':
+      return <FermataSign fermata={mark.fermata} x={mark.x} y={mark.y} look={look} />;
     case 'tuplet': {
       const { bracket } = mark;
       // The bracket runs through the number's middle, with a gap for it, and hooks 4px toward the notes.
