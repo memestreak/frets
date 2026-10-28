@@ -43,6 +43,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
     hearNotes: fields.hearNotes === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
+    stopAtRegionEnd: fields.stopAtRegionEnd === true,
     loopPause: fields.loopPause === true,
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
       && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
@@ -59,8 +60,8 @@ export interface Playback {
   bpm: number;
   loop: Loop | null;
   speed: number;
-  /** Plays from `from` (a column), or stops. */
-  toggle: (from: number) => void;
+  /** Plays from `from` (a column), or stops; `until`, a column, stops playback at its end. */
+  toggle: (from: number, until?: number | null) => void;
   /**
    * Loop pressed: with notes selected, the loop points go round them (pressed again on the same
    * notes, they go); with none, round the whole clip, or off when there are some.
@@ -145,14 +146,14 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
     bpm: tempoAt(clip, view.column ?? 0),
     loop,
     speed,
-    toggle: from => {
+    toggle: (from, until = null) => {
       if (view.state === 'playing') {
         player.current?.halt();
         if (view.column !== null) onStopAt(view.column);
         return;
       }
       if (view.state === 'loading') return;
-      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound).catch(() => update({ state: 'error' }));
+      const start = (p: TabPlayer) => p.play(clip, from, loop, speed, sound, until).catch(() => update({ state: 'error' }));
       if (player.current) return start(player.current);
       update({ state: 'loading' });
       playerNow().then(start, () => {
@@ -227,7 +228,7 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, options, onOptions }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
@@ -241,6 +242,8 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
   onShow: (shown: boolean) => void;
   /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
   from: number;
+  /** The column a Play stops at the end of, or null to play on: "Stop playback at region end". */
+  until: number | null;
   selection: [number, number] | null;
   /** Whether each note entered sounds, the toggle after Loop. */
   hearNotes: boolean;
@@ -284,7 +287,7 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
             type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space). Right-click for options`}
             disabled={total === 0}
             // A press leaves the focus (and so the cursor) on the tab.
-            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from)}
+            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggle(from, until)}
             onContextMenu={e => {
               e.preventDefault();
               setOptionsAt({ x: e.clientX, y: e.clientY });
@@ -353,11 +356,17 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, width, parts, playback, mark, markOnly = false }: {
+export function Playhead({ clip, width, parts, playback, mark, markOnly = false, layer }: {
   clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null;
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
   markOnly?: boolean;
+  /**
+   * Drawn twice: `under` the tab, the playhead's band and the loop bracket, so the band tints the
+   * paper, not the numbers; `over` it, the lines, so a selection's band never hides them (Jeremy, 2026-10-28).
+   */
+  layer: 'under' | 'over';
 }) {
+  const under = layer === 'under';
   const column = markOnly ? null : playback.view.column;
   const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
@@ -368,7 +377,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
   layout.systems.forEach((system, si) => {
     const y = si * rows.height;
     const cols = system.bars.flatMap(b => b.columns);
-    if (loop) {
+    if (loop && under) {
       // The bracket, its ends a little taller: they are the handles `LoopHandles` drags.
       for (const b of loopBracket(layout, loop).filter(b => b.system === si)) {
         out.push(
@@ -383,7 +392,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
     const total = clip.bars.reduce((n, b) => n + b.columns.length, 0);
     const end = idleMark === total ? cols.find(c => c.index === total - 1) : undefined;
-    if (marked || end) {
+    if ((marked || end) && !under) {
       const x = marked ? marked.start : end!.start + end!.width;
       out.push(
         <line
@@ -396,10 +405,13 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     if (head) {
       const x = head.start;
       out.push(
-        <g key={`head-${si}`} data-testid="playhead">
-          <rect x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
-          <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
-        </g>,
+        under
+          ? <rect key={`head-${si}`} data-testid="playhead-band" x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
+          : (
+            <g key={`head-${si}`} data-testid="playhead">
+              <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
+            </g>
+          ),
       );
     }
   });

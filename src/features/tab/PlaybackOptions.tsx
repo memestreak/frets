@@ -2,7 +2,8 @@
 
 /**
  * The playback options, from a right-click on Play (Jeremy, 2026-10-27): whether Stop leaves the
- * playback line where the playhead stopped, and whether loops rest between rounds and for how long.
+ * playback line where the playhead stopped, whether playback stops at a selected region's end, and
+ * whether loops rest between rounds and for how long.
  * A small menu at the press, like the shapes' menu; it stays open while its options are changed, and
  * a press elsewhere, a scroll or Esc closes it.
  */
@@ -17,6 +18,8 @@ const LOOP_PAUSE_STEP = 0.5;
 export interface PlaybackOptionValues {
   /** Stop puts the playback line where the playhead was, so the next Play goes on from there. */
   stopAtPlayhead: boolean;
+  /** With a region selected, playback stops at its end instead of playing on (Jeremy, 2026-10-28). */
+  stopAtRegionEnd: boolean;
   /** Loops rest between rounds, for `loopPauseSeconds`. */
   loopPause: boolean;
   loopPauseSeconds: number;
@@ -57,6 +60,13 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
       >
         <Check on={values.stopAtPlayhead} />
         Stop leaves the cursor where it stopped
+      </button>
+      <button
+        type="button" role="menuitemcheckbox" aria-checked={values.stopAtRegionEnd} className="shape-menu-item tab-options-item"
+        onClick={() => onChange({ ...values, stopAtRegionEnd: !values.stopAtRegionEnd })}
+      >
+        <Check on={values.stopAtRegionEnd} />
+        Stop playback at region end
       </button>
       <div className="tab-options-row">
         <button
