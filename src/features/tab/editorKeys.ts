@@ -134,7 +134,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     // With no string picked, ↑ ↓ pick back the string the cursor was last on.
     const string = columnOnly ? cursor.string : Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
-    commit(clip, { ...cursor, string });
+    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
+    commit(clip, { ...cursor, string }, null);
     editor.setColumnOnly(false);
     return;
   }
@@ -232,12 +233,13 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
       const moved = moveToString(clip, cursor, pitch, key === 'ArrowUp' ? -1 : 1);
       toPitch(moved.clip, cursor, pitch, selection);
     } else {
-      toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), selection);
+      // Moving the cursor lets any selection go (Jeremy, 2026-10-28); Alt's move above is an edit and keeps it.
+      toPitch(clip, cursor, stepPitch(clip, cursor.bar, pitch, key === 'ArrowUp' ? 1 : -1), null);
     }
     return true;
   }
   if ((key === '#' || key === 'b') && !e.altKey) {
-    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), selection);
+    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), null);
     return true;
   }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {

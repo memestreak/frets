@@ -323,6 +323,13 @@ describe('TabPage', () => {
       expect(band()).toBeNull();
       keys({ key: 'ArrowLeft', shiftKey: true });
       expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+      // Moving the cursor, any way, lets the selection go.
+      keys('ArrowUp');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowRight');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
     });
 
     it('marks notes and columns from the keys and from the palette', () => {

@@ -21,8 +21,14 @@ still be able to create regions with shift arrow."
   column, so the tab draws nothing more.
 - **Selections** keep their band: Shift+← →, Ctrl+A and Shift+press
   (on the tab, the staff, or above or below it) still select a run of
-  columns, drawn as one unbroken band per line. A plain press only moves
-  the cursor and drops any selection, as before.
+  columns, drawn as one unbroken band per line.
+- **Moving the cursor lets go** (Jeremy, 2026-10-28: "Moving the cursor
+  should deselect any selected notes or annotations"): a plain press, ← →,
+  ↑ ↓ (which kept the selection before), and on the staff ↑ ↓, # and b
+  drop any selection and any picked chord name, text, section, tempo, capo
+  or mark. Edits that keep the cursor where it is (Alt+↑ ↓ moving a note
+  to another string, Enter on the staff, the palette) leave the selection,
+  so they still work on it.
 
 ## Reading
 
