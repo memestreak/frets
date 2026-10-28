@@ -4,7 +4,7 @@ import {
   type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CloseIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
@@ -985,7 +985,7 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: Staff | Tab | Both at the top left; the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
+        {/* Over the clip: Staff | Tab | Both at the top left (Notation only); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
           {view === 'tab' && (
             <div className="seg tab-parts" role="group" aria-label="Show">
@@ -995,11 +995,6 @@ export default function TabPage() {
                 </button>
               ))}
             </div>
-          )}
-          {view === 'alphatex' && (
-            <button type="button" className="btn btn-secondary btn-icon" aria-label="Clear" title="Clear" onClick={clearAlphaTex}>
-              <CloseIcon />
-            </button>
           )}
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">
@@ -1046,7 +1041,7 @@ export default function TabPage() {
             : view === 'alphatex'
               ? (
                 <HoverTips>
-                  <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} />
+                  <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} />
                 </HoverTips>
               )
               : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}

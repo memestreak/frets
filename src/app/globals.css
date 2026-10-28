@@ -705,7 +705,8 @@ button {
      marks stay under their characters. */
   .tab-text-editor {
     --gutter: calc(var(--gutter-digits) * 1ch + 36px);
-    --text-pad: 8px 10px 8px 0;
+    /* The right side keeps clear of the Clear button in the top right corner. */
+    --text-pad: 8px calc(var(--control-height) + 12px) 8px 0;
     position: relative;
     font: 13px/1.4 var(--font-mono); font-variant-ligatures: none;
     background: var(--surface-raised);
@@ -725,6 +726,7 @@ button {
   .tab-text-error {
     text-decoration: underline wavy var(--danger) 1.5px; text-decoration-skip-ink: none; text-underline-offset: 3px;
   }
+  .tab-text-clear { position: absolute; top: 6px; right: 6px; }
   .tab-text-input {
     position: absolute; top: 0; bottom: 0; left: var(--gutter); right: 0; width: calc(100% - var(--gutter));
     margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
