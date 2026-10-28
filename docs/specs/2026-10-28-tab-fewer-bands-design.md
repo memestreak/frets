@@ -22,6 +22,13 @@ still be able to create regions with shift arrow."
 - **Selections** keep their band: Shift+← →, Ctrl+A and Shift+press
   (on the tab, the staff, or above or below it) still select a run of
   columns, drawn as one unbroken band per line.
+  Starting a run lets go of the note the cursor was on (Jeremy,
+  2026-10-28: "the highlighted note shouldn't be hidden. It should be
+  deselected"): no string stays picked and the staff's cursor goes, as
+  after Esc, so only the band shows. When the run goes (← →, Esc, a
+  press), the cursor is on its column with no string, drawn as the
+  column's box; ↑ ↓ or a press pick a string again. With the staff alone
+  its cursor comes back on the middle line.
 - **Moving the cursor lets go** (Jeremy, 2026-10-28: "Moving the cursor
   should deselect any selected notes or annotations"): a plain press, ← →,
   ↑ ↓ (which kept the selection before), and on the staff ↑ ↓, # and b

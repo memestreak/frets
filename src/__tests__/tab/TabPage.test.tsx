@@ -323,8 +323,13 @@ describe('TabPage', () => {
       expect(band()).toBeNull();
       keys({ key: 'ArrowLeft', shiftKey: true });
       expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+      // Starting it let the note go: no box follows the cursor through it, and none is picked after.
+      expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
+      keys('ArrowRight');
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
       // Moving the cursor, any way, lets the selection go.
-      keys('ArrowUp');
+      keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
       expect(screen.queryByTestId('tab-selection')).toBeNull();
       keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
       expect(screen.queryByTestId('tab-selection')).toBeNull();
@@ -463,8 +468,11 @@ describe('TabPage', () => {
       keys('Escape');
       expect(screen.queryByTestId('tab-selection')).toBeNull();
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
-      // The cursor is on the selection's last column, where the 9 was.
+      // The cursor is on the selection's last column, where the 9 was, with no string picked (the
+      // selection let it go): ↑ picks back the one it was on.
       keys('3');
+      expect(alphaTex()).toBe('5.1.4 7.1.4 9.1.4 r.4 |');
+      keys('ArrowUp', '3');
       expect(alphaTex()).toBe('5.1.4 7.1.4 3.1.4 r.4 |');
     });
 

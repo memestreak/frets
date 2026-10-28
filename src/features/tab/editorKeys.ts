@@ -37,6 +37,8 @@ export interface EditorKeys {
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
   toPitch: (next: Clip, at: Cursor, pitch: number, selection: Selection | null) => void;
   setColumnOnly: (columnOnly: boolean) => void;
+  /** A selection starts: the string and the staff's cursor let go. */
+  startRegion: () => void;
   setPicked: (picked: null) => void;
   deletePicked: (hit: WordHit | MarkHit) => void;
   editPicked: (hit: WordHit) => void;
@@ -101,6 +103,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       e.preventDefault();
       const last = placeOfLast(clip);
       commit(clip, { ...cursor, ...last }, { anchor: 0, focus: count - 1 });
+      editor.startRegion();
     }
     // Copy, cut and paste arrive as clipboard events; undo is the page's.
     return;
@@ -147,6 +150,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       const moved = moveColumn(clip, cursor, step, false).cursor;
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
       commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
+      editor.startRegion();
     } else {
       const moved = moveColumn(clip, cursor, step);
       commit(moved.clip, moved.cursor, null);
