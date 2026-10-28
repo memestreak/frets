@@ -6,8 +6,8 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note, type Ottava } from './clip';
-import { HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
+import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Note, type Ottava } from './clip';
+import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
@@ -31,7 +31,7 @@ export type StaffShape =
   /** A slur or a tie: an arc from (x0, y0) to (x1, y1), bowing `bow` pixels down (negative: up). */
   | { kind: 'arc'; x0: number; y0: number; x1: number; y1: number; bow: number; tie: boolean }
   | { kind: 'line'; x0: number; y0: number; x1: number; y1: number }
-  | { kind: 'bend'; x: number; y: number; top: number; bend: Bend }
+  | { kind: 'bend'; x: number; y: number; top: number; bend: Bend; line: number }
   | { kind: 'tap'; x: number; y: number }
   /** A tuplet's number at (x, y) in its bracket from `x0` to `x1`, the ends hooking toward the notes (up when it is under them). */
   | { kind: 'tuplet'; x: number; y: number; label: string; bracket: { x0: number; x1: number; up: boolean } };
@@ -116,6 +116,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           add({ mark: 'tremolo', index, string: null }, around(sx - 5, y - slashes * 2.5, sx + 5, y + slashes * 2.5, 3), { kind: 'tremolo', x: sx, y, slashes });
         }
 
+        const labelLines = bendLabelLines(column, carriedBend);
         heads.forEach((h, k) => {
           const note = column.notes[h.string];
           if (!note) return;
@@ -177,10 +178,13 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             add({ mark: 'slideOut', index, string: s }, around(line.x0, line.y0, line.x1, line.y1), { kind: 'line', ...line });
           }
           // Under a staff the tab draws bends and taps; with the staff alone, they go on it.
-          // A tied note carrying a bend on shows it by its bracketed head alone.
-          if (staffAlone && note.bend && !(note.tie && note.bend.pre)) {
+          if (staffAlone && note.bend && !carriedBend(note)) {
             const top = Math.min(score.top, topY) - 14;
-            add({ mark: 'bend', index, string: s }, around(x - 4, top - 10, x + (note.bend.release ? 26 : 18), y), { kind: 'bend', x: headRight, y, top, bend: note.bend });
+            const line = labelLines.get(note) ?? 0;
+            add(
+              { mark: 'bend', index, string: s }, around(x - 4, top - 10 - Math.max(line, 0) * BEND_LABEL_STEP, x + (note.bend.release ? 26 : 18), y),
+              { kind: 'bend', x: headRight, y, top, bend: note.bend, line },
+            );
           }
           if (staffAlone && note.tap) {
             const ty = Math.min(score.top, topY) - 8;
@@ -263,4 +267,28 @@ export function staffMarks(layout: Layout): StaffMark[][] {
 /** A bend's label: "full", "½", "PB ½". */
 export function bendLabel(bend: Bend): string {
   return bend.pre ? `PB ${BEND_LABEL[bend.quarters]}` : BEND_LABEL[bend.quarters];
+}
+
+/** A tied note carrying a bend on, which the staff shows by its bracketed head alone. */
+function carriedBend(note: Note): boolean {
+  return note.tie === true && note.bend?.pre === true;
+}
+
+/**
+ * Which line each bend's label goes on when a column bends more than one string: one label per height,
+ * stacked with the top string's highest, as Guitar Pro prints "full" over "½" (bar 132 of the book).
+ * 0 is the line next to the arrows; a bend whose height another string already labels gets none (-1).
+ * `carried` picks the bends carried on from the note before, which draw no label.
+ */
+export function bendLabelLines(column: Column, carried: (note: Note) => boolean): Map<Note, number> {
+  const bent = column.notes.filter((n): n is Note => n !== null && n.bend !== undefined && !carried(n));
+  const labels = [...new Set(bent.map(n => bendLabel(n.bend!)))];
+  const lines = new Map<Note, number>();
+  const seen = new Set<string>();
+  for (const note of bent) {
+    const label = bendLabel(note.bend!);
+    lines.set(note, seen.has(label) ? -1 : labels.length - 1 - labels.indexOf(label));
+    seen.add(label);
+  }
+  return lines;
 }

@@ -9,7 +9,7 @@ four bars of sixteenths under a wah pedal.
 ## What the book prints that Frets didn't
 
 - **The wah's + and o.** Bars 127–130 print a "+" (pedal closed) or an "o" (open) over many beats,
-  in a row of their own over the chord names. alphaTex writes them as the beat effects `wahc` and
+  in a row of their own over the chord names (moved under them in round 7). alphaTex writes them as the beat effects `wahc` and
   `waho`; Frets kept them as written but drew nothing. Now a column's `wah` is read and written, and
   drawn as a small "+" or circle in that row, in every view and in exports. The Techniques palette has
   a Wah button that steps the cursor's column (or the selection) through closed, open, then off, its

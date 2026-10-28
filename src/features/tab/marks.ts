@@ -135,7 +135,8 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
             const { pre, release } = note.bend;
             // The arrow and its label over the staff; a pre-bend's stands straight up from the number.
             if (pre) add('bend', index, s, x - 15, peak - 19, release ? x + 20 : x + 15, y - 8);
-            else add('bend', index, s, x + 6, peak - 19, release ? x + 29 : x + 23, y - 1);
+            // A tied note's arrow may rise by the number it is tied from (`BendDrawing`).
+            else add('bend', index, s, (note.tie && before?.system === si ? fromX : x) + 6, peak - 19, release ? x + 29 : x + 23, y - 1);
           }
           if (note.slideOut) add('slideOut', index, s, x + 7, y - 7, x + 20, y + 7);
           if (note.tap) add('tap', index, s, x - 6, y - 18, x + 6, y - 7);
