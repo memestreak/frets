@@ -437,7 +437,7 @@ export default function TabPage() {
 
   /**
    * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
-   * string is picked and the staff's cursor goes, as after Esc, so nothing stays lit when the run does.
+   * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
    */
   const startRegion = () => {
     setColumnOnly(true);

@@ -14,8 +14,8 @@ still be able to create regions with shift arrow."
   →, shows only the `--primary` box round the cursor's string; a press on
   the staff shows the staff's own cursor (the outlined head), and the tab
   boxes the string of a note at that pitch, as before.
-- **The column cursor** (no string picked: Esc on a string, or a press
-  above or below the staff with the playback controls hidden) was the band
+- **The column cursor** (no string picked: a press above or below the
+  staff with the playback controls hidden, or ← → ending a selection) was the band
   alone; it is now one `--primary` box, no fill, round the column's six
   strings. When the staff's cursor has the keys it already shows the
   column, so the tab draws nothing more.
@@ -24,10 +24,12 @@ still be able to create regions with shift arrow."
   columns, drawn as one unbroken band per line.
   Starting a run lets go of the note the cursor was on (Jeremy,
   2026-10-28: "the highlighted note shouldn't be hidden. It should be
-  deselected"): no string stays picked and the staff's cursor goes, as
-  after Esc, so only the band shows. Esc on a run drops it and leaves the
+  deselected"): no string stays picked and the staff's cursor goes,
+  so only the band shows. Esc on a run drops it and leaves the
   tab, as a press beside the bars does, so nothing stays drawn (Jeremy,
-  2026-10-28: no box round a column after Esc). When ← → end the run, the
+  2026-10-28: no box round a column after Esc). Esc on a note, on the
+  tab or the staff, leaves the tab the same way; it no longer stops at
+  the column first (Jeremy, 2026-10-28). When ← → end the run, the
   cursor is on its column with no string, drawn as the column's box; ↑ ↓ or a press pick a string again. With the staff alone
   its cursor comes back on the middle line.
 - **Moving the cursor lets go** (Jeremy, 2026-10-28: "Moving the cursor

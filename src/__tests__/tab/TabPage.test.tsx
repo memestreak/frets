@@ -317,10 +317,6 @@ describe('TabPage', () => {
       const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
       expect(band()).toBeNull();
       expect(screen.queryByTestId('tab-selection')).toBeNull();
-      // With no string picked, a box round the whole column, still no band.
-      keys('Escape');
-      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
-      expect(band()).toBeNull();
       keys({ key: 'ArrowLeft', shiftKey: true });
       expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
       // Starting it let the note go: no box follows the cursor through it, and none is picked after.
@@ -469,6 +465,18 @@ describe('TabPage', () => {
       expect(screen.queryByTestId('tab-selection')).toBeNull();
       expect(screen.queryByTestId('tab-cursor')).toBeNull();
       expect(editor()).not.toHaveFocus();
+    });
+
+    it('Esc on a note leaves the tab at once, with no box left round its column', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7');
+      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+      keys('Escape');
+      expect(screen.queryByTestId('tab-cursor')).toBeNull();
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(editor()).not.toHaveFocus();
+      expect(alphaTex()).toBe('5.1.4 7.1.4 r.2 |');
     });
 
     it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
@@ -1119,6 +1127,23 @@ describe('dragging notes on the staff (issue #174)', () => {
     return { clientX: Number(x) + 4, clientY: Number(y) };
   };
   const frets = () => alphaTexText().split('\n').find(line => line.includes('|'));
+
+  it.each(['both', 'staff'])('Esc on a note pressed on the staff (%s) leaves nothing drawn', async parts => {
+    localStorage.setItem('frets.tab.parts', JSON.stringify(parts));
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(3), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    act(() => editor().focus());
+    fireEvent.pointerDown(svg, { ...headAt(2), button: 0 });
+    fireEvent.pointerUp(svg, { ...headAt(2), button: 0 });
+    expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
+    fireEvent.keyDown(editor(), { key: 'Escape' });
+    expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.queryByTestId('column-cursor')).toBeNull();
+    expect(editor()).not.toHaveFocus();
+  });
 
   it('moves the note a line or space at a time, a semitone with Shift, and the chord with Ctrl, each one undo step', async () => {
     localStorage.setItem('frets.tab.parts', JSON.stringify('both'));

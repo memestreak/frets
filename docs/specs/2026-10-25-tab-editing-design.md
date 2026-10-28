@@ -24,8 +24,8 @@ readers pass keys through to it.
   (`2026-10-28-tab-fewer-bands-design.md`). Esc leaves the editor, and the cursor hides.
 - **Column cursor** (Jeremy, 2026-10-27, both ways in): the cursor can sit
   on a column with no string picked, drawn as one box round the whole column.
-  Esc on a string drops the string and keeps the column (a second Esc
-  leaves the editor); a press above or below the staff puts it there while
+  Esc leaves the editor from a string too, so no box stays round the
+  column (Jeremy, 2026-10-28); a press above or below the staff puts it there while
   the playback controls are hidden (shown, that press places the playback
   line, as before). Every tool and key then works on the whole column, as
   on a one-column selection, and a note's button is lit only when every
