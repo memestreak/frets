@@ -5,11 +5,10 @@
 
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
-import { BEND_RISE, charWidth, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { BEND_LABEL_STEP, BEND_RISE, charWidth, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { type Spot } from './runs';
+import { bendLabel, bendLabelLines } from './staffMarks';
 import { type TabLook } from './tabLook';
-
-const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
 
 /** How much of the string line a note's number keeps clear. */
 export function labelWidth(note: Note, column: Column): number {
@@ -51,6 +50,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
 }) {
   const { column, x } = placed;
   const parts: ReactNode[] = [];
+  const labelLines = bendLabelLines(column, note => joins.carries.has(note));
   column.notes.forEach((note, s) => {
     if (!note) return;
     const y = stringY(rows, s);
@@ -87,7 +87,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
     if (carry) {
       parts.push(<BendCarry key={`bend-${s}`} carry={carry} fromX={before && before.system === system ? fromX : staffStart - 14} x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look} />);
     } else if (note.bend) {
-      parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} x={x} y={y} staffTop={rows.staffTop} look={look} />);
+      parts.push(<BendDrawing key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} y={y} staffTop={rows.staffTop} look={look} />);
     }
     if (note.slideOut) {
       // A short line away from the number, down or up, to no fret in particular.
@@ -155,15 +155,23 @@ function BendCarry({ carry, fromX, x, y, staffTop, look }: {
   );
 }
 
-/** A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend. */
-function BendDrawing({ bend, x, y, staffTop, look }: { bend: Bend; x: number; y: number; staffTop: number; look: TabLook }) {
+/**
+ * A bend's curved arrow and label; a pre-bend is a straight arrow labelled "PB", so it can't pass for a bend.
+ * `line` is the label's line in a stacked pair (`bendLabelLines`), -1 for none.
+ */
+function BendDrawing({ bend, line, x, y, staffTop, look }: {
+  bend: Bend; line: number; x: number; y: number; staffTop: number; look: TabLook;
+}) {
   const top = staffTop - BEND_RISE;
   const head = (tx: number, ty: number, down = false) => (
     <path d={down ? `M${tx - 4} ${ty - 7} L${tx} ${ty} L${tx + 4} ${ty - 7}` : `M${tx - 4} ${ty + 7} L${tx} ${ty} L${tx + 4} ${ty + 7}`} fill={look.ink} />
   );
-  const label = (
-    <text x={bend.pre ? x : x + 14} y={top - 9} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">
-      {bend.pre ? `PB ${BEND_LABEL[bend.quarters]}` : BEND_LABEL[bend.quarters]}
+  const label = line >= 0 && (
+    <text
+      x={bend.pre ? x : x + 14} y={top - 9 - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink}
+      stroke="none" textAnchor="middle" data-testid="bend-label"
+    >
+      {bendLabel(bend)}
     </text>
   );
   if (bend.pre) {

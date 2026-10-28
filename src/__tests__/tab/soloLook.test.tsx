@@ -8,6 +8,8 @@
  * grace note bent up has no second number, and a tuplet no beam joins is bracketed. Round 6
  * (docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md): every tuplet is bracketed, a let-down
  * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
+ * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
+ * their heights' labels.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -183,5 +185,25 @@ describe('a let-down note that slides out', () => {
     const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Slide out" />);
     const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent).filter(n => /\d/.test(n ?? ''));
     expect(numbers).toEqual(['15', '(15)']);
+  });
+});
+
+describe('two strings bent at once (round 7, the book\'s bar 132)', () => {
+  const labelsOf = (text: string, parts: 'tab' | 'both' | 'staff') => {
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts={parts} title="Two bends" />);
+    const testid = parts === 'staff' ? 'staff-bend' : 'bend';
+    return [...container.querySelectorAll(`[data-testid="${testid}"] text`)].map(t => [t.textContent, Number(t.getAttribute('y'))] as const);
+  };
+
+  it('stack their heights, the top string\'s over the other\'s, on the tab and on the staff alone', () => {
+    for (const parts of ['both', 'staff'] as const) {
+      const labels = labelsOf('\\ts (4 4)\n(17.2{b (0 4)} 17.3{b (0 2)}).4 r.4 r.2 |\n', parts).sort((a, b) => a[1] - b[1]);
+      expect(labels.map(([text]) => text)).toEqual(['full', '½']);
+      expect(labels[1][1] - labels[0][1]).toBeGreaterThan(10);
+    }
+  });
+
+  it('label one height once when both strings bend as far', () => {
+    expect(labelsOf('\\ts (4 4)\n(15.1{b (0 4)} 15.2{b (0 4)}).4 r.4 r.2 |\n', 'tab').map(([text]) => text)).toEqual(['full']);
   });
 });
