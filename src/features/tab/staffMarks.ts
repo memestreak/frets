@@ -7,7 +7,7 @@
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
 import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Note, type Ottava } from './clip';
-import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
+import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, TAP_RADIUS, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
@@ -89,6 +89,8 @@ export function staffMarks(layout: Layout): StaffMark[][] {
         const accent = columnAccent(column);
         const staccato = notes.some(n => n.staccato);
         const above = c.tip === null || !c.up;
+        // The top of the accent or dot when they go over the heads, for a tap's sign over them.
+        let marksTop = Infinity;
         if (accent || staccato) {
           // In steps from the outer head: inside the staff a dot sits in a space, never on a line.
           const sign = above ? 1 : -1;
@@ -98,8 +100,10 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           if (inStaff(dotStep) && dotStep % 2 === 0) dotStep += sign;
           const dotY = stepY(score, dotStep);
           if (staccato) add({ mark: 'staccato', index, string: null }, around(x, dotY, x, dotY, 6), { kind: 'staccato', x, y: dotY });
+          if (above) marksTop = dotY - 3;
           if (accent) {
             const ay = staccato ? dotY - sign * 9 : stepY(score, outer + sign * 3);
+            if (above) marksTop = ay - 4;
             add({ mark: 'accent', index, string: null }, around(x - 5, ay - 4, x + 5, ay + 4, 3), { kind: 'accent', heavy: accent === 'heavy', x, y: ay, above });
           }
         }
@@ -177,7 +181,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             const line = { x0: headRight + 3, y0: y, x1: headRight + 15, y1: y + (note.slideOut === 'down' ? 7 : -7) };
             add({ mark: 'slideOut', index, string: s }, around(line.x0, line.y0, line.x1, line.y1), { kind: 'line', ...line });
           }
-          // Under a staff the tab draws bends and taps; with the staff alone, they go on it.
+          // Under a staff the tab draws bends; with the staff alone, they go on it.
           if (staffAlone && note.bend && !carriedBend(note)) {
             const top = Math.min(score.top, topY) - 14;
             const line = labelLines.get(note) ?? 0;
@@ -186,9 +190,12 @@ export function staffMarks(layout: Layout): StaffMark[][] {
               { kind: 'bend', x: headRight, y, top, bend: note.bend.from === undefined ? note.bend : { ...note.bend, pre: false }, line },
             );
           }
-          if (staffAlone && note.tap) {
-            const ty = Math.min(score.top, topY) - 8;
-            add({ mark: 'tap', index, string: s }, around(x, ty - 4, x, ty - 4, 6), { kind: 'tap', x, y: ty });
+          // A tap's circled T over the staff in every view, as a book prints it, clear of the heads, an upward stem and
+          // the marks over them.
+          if (note.tap) {
+            const highestPoint = Math.min(score.top, topY - SPACE / 2, marksTop, c.up && c.tip !== null ? c.tip : Infinity);
+            const ty = highestPoint - TAP_RADIUS - 6;
+            add({ mark: 'tap', index, string: s }, around(x, ty, x, ty, TAP_RADIUS + 1), { kind: 'tap', x, y: ty });
           }
         });
       }

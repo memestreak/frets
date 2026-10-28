@@ -7,6 +7,7 @@ import { GRACE_SCALE, staffBar } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
 import { mordentSign, vibratoWave } from './marks';
 import type { TabLook } from './tabLook';
+import { TapSign } from './TapSign';
 
 /**
  * One line of the notation staff (issue #122; `docs/specs/2026-10-27-tab-notation-design.md`): the
@@ -343,7 +344,7 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
       );
     }
     case 'tap':
-      return <text x={mark.x} y={mark.y} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="staff-tap">T</text>;
+      return <TapSign x={mark.x} y={mark.y} look={look} testId="staff-tap" />;
     case 'tuplet': {
       const { bracket } = mark;
       // The bracket runs through the number's middle, with a gap for it, and hooks 4px toward the notes.

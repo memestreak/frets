@@ -11,7 +11,8 @@
  * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
  * their heights' labels, the wah's row goes under the chord names, and a bend after a grace note rises
  * by the grace note's number. Round 8 (docs/specs/2026-10-28-tab-sweet-child-solo-six-design.md): a held
- * bend pushed on up is read, kept, written and drawn as an arrow rising from its dashed line.
+ * bend pushed on up is read, kept, written and drawn as an arrow rising from its dashed line, and a tap is a
+ * circled T over the tab and the staff (docs/specs/2026-10-28-tab-circled-tap-design.md).
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -252,5 +253,33 @@ describe('a held bend pushed on up (round 8, the book\'s bar 144: "full" then "1
     expect(Number(hold.getAttribute('y1'))).toBeLessThan(Number(/ ([\d.]+)$/.exec(first)![1]));
     const staff = render(<TabClip clip={clipOf(TEXT)} width={900} parts="staff" title="Rise" />).container;
     expect([...staff.querySelectorAll('[data-testid="staff-bend"] text')].map(t => t.textContent)).toEqual(['full', '1½']);
+  });
+});
+
+describe('a tap\'s circled T (round 8, the book\'s bar 141)', () => {
+  // A tapped note under an accent, stem down, so the T must clear the accent too.
+  const TEXT = '\\ts (4 4)\n14.2{ac}.4{tt} 12.1.4 r.2 |\n';
+
+  it('is circled over its number on the tab and over the heads on the staff, in Both as with the staff alone', () => {
+    const both = render(<TabClip clip={clipOf(TEXT)} width={900} parts="both" title="Tap" />).container;
+    const tabTap = both.querySelector('[data-testid="tab-tap"]')!;
+    expect(tabTap.querySelector('circle')).not.toBeNull();
+    expect(tabTap.textContent).toBe('T');
+    const staffTap = both.querySelector('[data-testid="staff-tap"]')!;
+    expect(staffTap.querySelector('circle')).not.toBeNull();
+    // Over the accent, which sits over the head.
+    const tapBottom = Number(staffTap.querySelector('circle')!.getAttribute('cy')) + 5.5;
+    const accent = both.querySelector('[data-testid="staff-accent"]')!.getAttribute('d')!;
+    const accentYs = accent.match(/-?[\d.]+/g)!.map(Number).filter((_, i) => i % 2 === 1);
+    expect(tapBottom).toBeLessThan(Math.min(...accentYs));
+    const alone = render(<TabClip clip={clipOf(TEXT)} width={900} parts="staff" title="Tap" />).container;
+    expect(alone.querySelectorAll('[data-testid="staff-tap"] circle')).toHaveLength(1);
+  });
+
+  it('gets room over the staff, so a tap on a high note stays inside the drawing', () => {
+    // A high note, its stem down: the T stands over the head, in room the staff keeps for it.
+    const both = render(<TabClip clip={clipOf('\\ts (4 4)\n12.1.8{tt} 5.1.8 r.4 r.2 |\n')} width={900} parts="both" title="Tap" />).container;
+    const circle = both.querySelector('[data-testid="staff-tap"] circle')!;
+    expect(Number(circle.getAttribute('cy')) - 5.5).toBeGreaterThanOrEqual(0);
   });
 });

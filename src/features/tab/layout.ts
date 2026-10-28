@@ -95,6 +95,8 @@ const STAFF_HEADROOM = 30;
 export const BEND_RISE = 26;
 /** How far a bend's label stands above the arrow's top, per line of a stacked pair. */
 export const BEND_LABEL_STEP = 11;
+/** The radius of a tap's circled T, over the staff and over its number on the tab. */
+export const TAP_RADIUS = 5.5;
 
 /** The rows a clip needs, top to bottom: the words over everything, the staff, the tab's marks, the tab. */
 export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
@@ -572,6 +574,12 @@ function staffReach(clip: Clip, heads: Head[][][], marks: boolean): StaffReach {
     if (notes.some(n => n.accent || n.staccato)) {
       if (up) low = Math.min(low, bottom - 6);
       else high = Math.max(high, top + 6);
+    }
+    // A tap's circled T over the heads, an upward stem and the marks over the heads (`staffMarks.ts`).
+    if (notes.some(n => n.tap)) {
+      const marksOver = !up && notes.some(n => n.accent || n.staccato) ? top + 6 : -Infinity;
+      const under = Math.max(8, up ? reachUp : top + 1, marksOver);
+      high = Math.max(high, under + Math.ceil((6 + 2 * TAP_RADIUS + 2) * 2 / SPACE));
     }
     if (notes.some(n => n.vibrato || n.mordent)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
     if (c.ottava === '8va' || c.ottava === '15ma') ottavaAbove = true;
