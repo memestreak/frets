@@ -7,7 +7,8 @@
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
 import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note, type Ottava } from './clip';
-import { columnRuns, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, vibratoRuns, type Layout } from './layout';
+import { HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
+import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
 

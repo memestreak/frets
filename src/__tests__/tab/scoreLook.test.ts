@@ -7,7 +7,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
 import { creditsOf, headerValue, tuningBlock } from '@/features/tab/credits';
-import { beamGroups, layoutClip } from '@/features/tab/layout';
+import { layoutClip } from '@/features/tab/layout';
+import { beamGroups } from '@/features/tab/beams';
 import { barHeads, openStrings, tuningShift, writtenStrings } from '@/features/tab/notation';
 import { parseView, showsBarNumber } from '@/features/tab/viewOptions';
 

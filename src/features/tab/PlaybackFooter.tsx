@@ -9,7 +9,8 @@ import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from '
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
-import { columnAt, layoutClip, type Layout, type Parts } from './layout';
+import { layoutClip, type Layout, type Parts } from './layout';
+import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from './NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { VolumeKnob } from './VolumeKnob';

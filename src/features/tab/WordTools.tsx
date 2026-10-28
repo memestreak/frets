@@ -1,8 +1,9 @@
 import type { MouseEvent } from 'react';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Clip } from './clip';
-import { tempoText } from './editing';
-import { layoutClip, textBox, type Parts, type WordHit } from './layout';
+import { tempoText } from './barEdits';
+import { layoutClip, type Parts } from './layout';
+import { textBox, type WordHit } from './layoutText';
 import { markBox, type MarkHit } from './marks';
 import type { FieldKind } from './WordField';
 

@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, type Clip, type TimeSignature } from './clip';
-import {
-  ACCIDENTAL_ROOM, HEAD_WIDTH, SPACE, stepY,
-  type PlacedBar, type PlacedColumn, type ScoreRows, type System,
-} from './layout';
+import { ACCIDENTAL_ROOM, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { accidentalLanes, keySigns, STAFF_LINES } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';

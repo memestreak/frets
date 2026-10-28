@@ -4,7 +4,9 @@
  * `staffMarks.ts` places the technique marks by it, so the two agree.
  */
 import { isRest } from './clip';
-import { beamGroups, HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type Spot, type System } from './layout';
+import { HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { beamGroups } from './beams';
+import { type Spot } from './runs';
 import type { Head } from './notation';
 
 /** A grace note's heads and stem, against a full one's. */
