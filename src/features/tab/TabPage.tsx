@@ -242,32 +242,12 @@ export default function TabPage() {
     setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
   /**
-   * A press above or below the staff while the playback controls are hidden: the cursor goes to that
-   * column with no string picked (Jeremy, 2026-10-27). With Shift, the columns from the cursor to there are selected.
-   */
-  const pickColumnOnly = (index: number, extend: boolean) => {
-    lastDigit.current = null;
-    const place = placeOf(clip, index);
-    const at = { ...cursor, bar: place.bar, column: place.column };
-    if (extend && editing && columnAt(clip, cursor)) {
-      commit(clip, at, { anchor: selection?.anchor ?? cursorIndex, focus: index });
-    } else {
-      const left = editing && at.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
-      commit(left, at, null);
-    }
-    setColumnOnly(true);
-    // The staff's cursor goes, else its pitch would show as a ghost head on the column (Jeremy, 2026-10-27);
-    // with the staff alone it is the only cursor, so it stays.
-    if (parts !== 'staff') setStaffPitch(null);
-    editorRef.current?.focus();
-  };
-  /**
-   * Off the tab (no string picked), the arrow keys work on the playback line while the footer shows
-   * (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
+   * Off the tab (no string picked), the arrow keys work on the playback line, the footer shown or
+   * not (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
    * made so), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
    */
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
-    if (!showPlayback || view !== 'tab' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (view !== 'tab' || e.ctrlKey || e.metaKey || e.altKey) return;
     const target = e.target as Element | null;
     if (target?.closest?.('input, select, textarea, dialog, [role="menu"], [role="slider"], .tab-editor')) return;
     if (e.key === 'Escape') {
@@ -1001,7 +981,7 @@ export default function TabPage() {
         </div>
         <div ref={widthRef} className="relative min-w-0">
           {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-          {view === 'tab' && showPlayback && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} />}
+          {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
           {view === 'tab'
             ? clipWidth > 0 && (
               <div
@@ -1018,7 +998,7 @@ export default function TabPage() {
                     clip={clip} width={clipWidth} parts={parts} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                     onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff}
                     onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                    onPickColumn={showPlayback ? pickColumn : pickColumnOnly} columnReach={COLUMN_REACH}
+                    onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                     highlight={{
                       cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
                       staffPitch: staffKeys ? staffPitch : null,

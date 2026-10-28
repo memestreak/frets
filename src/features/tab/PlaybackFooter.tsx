@@ -353,9 +353,13 @@ export function PlaybackFooter({ clip, playback, from, selection, shown, onShow,
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, width, parts, playback, mark }: { clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null }) {
-  const { column } = playback.view;
-  const loop = Array.isArray(playback.loop) ? playback.loop : null;
+export function Playhead({ clip, width, parts, playback, mark, markOnly = false }: {
+  clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null;
+  /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
+  markOnly?: boolean;
+}) {
+  const column = markOnly ? null : playback.view.column;
+  const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
   if (column === null && !loop && idleMark === null) return null;
   const layout = layoutClip(clip, width, parts);

@@ -597,7 +597,7 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('100');
   });
 
-  it('takes a press just above or below the drawing as one on its column', () => {
+  it('puts the line between columns at a press just above or below the drawing, with the controls hidden', () => {
     renderAt();
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
@@ -606,7 +606,14 @@ describe('TabPage playback', () => {
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     // jsdom puts the drawing at 0, 0: 10 px above it, over the first bar.
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
-    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    // The line between columns, as with the playback controls showing; no column is highlighted.
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    // → moves it, Esc drops it.
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.queryByTestId('play-mark')).toBeNull();
   });
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
