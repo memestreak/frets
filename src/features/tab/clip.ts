@@ -91,6 +91,11 @@ export interface Note {
   accent?: 'normal' | 'heavy';
   /** Cut short: a dot over the column. */
   staccato?: boolean;
+  /**
+   * A mordent over the column (alphaTex umordent, lmordent): the note, the one a step above (upper) or
+   * below (lower), and back.
+   */
+  mordent?: 'upper' | 'lower';
   /** alphaTex note effects Frets doesn't draw yet, kept as written ("ah", "tr 7 16"). */
   extra?: string[];
 }
@@ -446,6 +451,12 @@ export function columnAccent(column: Column): Note['accent'] {
   return column.notes.some(n => n?.accent === 'normal') ? 'normal' : undefined;
 }
 
+/** The mordent over the column, drawn once: any note's, an upper one first. */
+export function columnMordent(column: Column): Note['mordent'] {
+  if (column.notes.some(n => n?.mordent === 'upper')) return 'upper';
+  return column.notes.some(n => n?.mordent === 'lower') ? 'lower' : undefined;
+}
+
 /**
  * Which way every slid-into note goes. A slide from the previous note on the string goes up or down
  * as the frets do (from a dead note, or with no note before it, it counts as from below); 'below'
@@ -582,7 +593,7 @@ function isNote(v: unknown): v is Note {
     && (v.legato === undefined || v.legato === 'h' || v.legato === 'p')
     && (v.slide === undefined || SLIDES.includes(v.slide as Slide))
     && optOneOf(v.slideOut, ['down', 'up']) && optOneOf(v.vibrato, ['slight', 'wide'])
-    && optOneOf(v.harmonic, ['natural', 'pinch']) && optOneOf(v.accent, ['normal', 'heavy'])
+    && optOneOf(v.harmonic, ['natural', 'pinch']) && optOneOf(v.accent, ['normal', 'heavy']) && optOneOf(v.mordent, ['upper', 'lower'])
     && optBool(v.tie) && optBool(v.tap) && optBool(v.palmMute) && optBool(v.letRing) && optBool(v.ghost) && optBool(v.staccato)
     && optStrings(v.extra);
 }

@@ -8,7 +8,7 @@ import { accidentalLanes, keySigns, STAFF_LINES } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
-import { vibratoWave } from './marks';
+import { mordentSign, vibratoWave } from './marks';
 import type { TabLook } from './TabClip';
 
 /**
@@ -279,6 +279,10 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
     }
     case 'staccato':
       return <circle cx={mark.x} cy={mark.y} r={1.8} fill={look.ink} data-testid="staff-staccato" />;
+    case 'mordent': {
+      const { d, transform } = mordentSign(mark.x, mark.y, mark.lower ? 'lower' : 'upper');
+      return <path d={d} transform={transform} fill={look.ink} data-testid="staff-mordent" />;
+    }
     case 'vibrato': {
       const { d, strokeWidth } = vibratoWave(mark.x, mark.y, mark.wide, mark.end);
       return <path d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="staff-vibrato" />;

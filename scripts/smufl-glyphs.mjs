@@ -9,7 +9,7 @@ const names = ['gClef', 'accidentalSharp', 'accidentalFlat', 'accidentalNatural'
   'flag8thUp', 'flag8thDown', 'flag16thUp', 'flag16thDown', 'flag32ndUp', 'flag32ndDown', 'flag64thUp', 'flag64thDown',
   'bracketTop', 'bracketBottom',
   'noteheadDiamondWhole', 'noteheadDiamondHalf', 'noteheadDiamondBlack', 'noteheadXHalf', 'noteheadXWhole',
-  'noteheadParenthesisLeft', 'noteheadParenthesisRight'];
+  'noteheadParenthesisLeft', 'noteheadParenthesisRight', 'ornamentShortTrill', 'ornamentMordent'];
 const U = 360;
 const r = v => Math.round(v / U * 1000) / 1000;
 let out = '';

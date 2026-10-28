@@ -29,7 +29,7 @@ export function loadAlphaTab(): Promise<AlphaTab> {
 
 /** Note effects Frets reads. */
 const NOTE_EFFECTS = new Set([
-  'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st',
+  'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot']);
@@ -133,6 +133,8 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
   if (note.accentuated === at.model.AccentuationType.Normal) n.accent = 'normal';
   if (note.accentuated === at.model.AccentuationType.Heavy) n.accent = 'heavy';
   if (note.isStaccato) n.staccato = true;
+  if (note.ornament === at.model.NoteOrnament.UpperMordent) n.mordent = 'upper';
+  if (note.ornament === at.model.NoteOrnament.LowerMordent) n.mordent = 'lower';
   return n;
 }
 

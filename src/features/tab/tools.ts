@@ -16,7 +16,7 @@ export type ToolId =
   | 'tuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
-  | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
+  | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
   | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
@@ -80,6 +80,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     label: 'Techniques',
     tools: [
       { id: 'vibrato', label: 'Vibrato: normal, wide, then off', key: 'V' },
+      { id: 'mordent', label: 'Mordent: the note, the one above it, and back', key: '' },
+      { id: 'lowerMordent', label: 'Lower mordent: the note, the one below it, and back', key: '' },
       { id: 'palmMute', label: 'Palm mute', key: 'M' },
       { id: 'letRing', label: 'Let ring', key: 'L' },
       { id: 'dead', label: 'Dead note', key: 'X' },
@@ -140,13 +142,14 @@ const MARK: Partial<Record<ToolId, MarkKind>> = {
   slideOutDown: ['slideOut', 'down'], slideOutUp: ['slideOut', 'up'],
   palmMute: ['palmMute', true], letRing: ['letRing', true], ghost: ['ghost', true],
   staccato: ['staccato', true], tap: ['tap', true],
+  mordent: ['mordent', 'upper'], lowerMordent: ['mordent', 'lower'],
 };
 
 /**
  * Marks drawn once over a column (the P.M. and let ring lines, accents, staccato) apply to every note
  * in the column, wherever the cursor is in it: a mark half the column had would look all on.
  */
-const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato']);
+const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato', 'mordent']);
 
 /** The target as whole columns: the selection, else the cursor's column. */
 function wholeColumns(clip: Clip, target: Target): Target {

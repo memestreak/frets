@@ -418,7 +418,7 @@ function targetNotes(clip: Clip, { cursor, selection }: Target): Note[] {
 }
 
 /** Marks a note carries that are on or off (true), or one of a few kinds. */
-type NoteMarks = Required<Pick<Note, 'vibrato' | 'harmonic' | 'tap' | 'palmMute' | 'letRing' | 'ghost' | 'accent' | 'staccato' | 'slideOut'>>;
+type NoteMarks = Required<Pick<Note, 'vibrato' | 'harmonic' | 'tap' | 'palmMute' | 'letRing' | 'ghost' | 'accent' | 'staccato' | 'mordent' | 'slideOut'>>;
 export type MarkName = keyof NoteMarks;
 /** A mark and one of its kinds: ['vibrato', 'wide'], ['palmMute', true]. */
 export type MarkKind = { [K in MarkName]: [K, NoteMarks[K]] }[MarkName];
@@ -466,6 +466,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'pinch': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'pinch' ? without(n, 'harmonic') : n));
     case 'accent': return changeNotes(clip, wholeColumn, n => without(n, 'accent'));
     case 'staccato': return changeNotes(clip, wholeColumn, n => without(n, 'staccato'));
+    case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
