@@ -24,7 +24,10 @@ export interface ClipState extends History {
 }
 
 export type ClipAction =
-  | { type: 'replace'; clip: Clip }
+  /** An edit, one undo step back to `from` when given (a drag's first clip), else to the clip before. */
+  | { type: 'replace'; clip: Clip; from?: Clip }
+  /** A clip shown while a drag goes on, not an undo step of its own. */
+  | { type: 'preview'; clip: Clip }
   | { type: 'undo' }
   | { type: 'redo' }
   /** An example in place of the clip, with a history of its own. */
@@ -37,7 +40,9 @@ export type ClipAction =
 export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   switch (action.type) {
     case 'replace':
-      return { ...state, clip: action.clip, past: [...state.past, state.clip], future: [] };
+      return { ...state, clip: action.clip, past: [...state.past, action.from ?? state.clip], future: [] };
+    case 'preview':
+      return { ...state, clip: action.clip };
     case 'undo': {
       const clip = state.past[state.past.length - 1];
       if (!clip) return state;

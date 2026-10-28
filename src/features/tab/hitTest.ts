@@ -55,6 +55,19 @@ export interface StaffHit {
 }
 
 /**
+ * A note head dragged up or down on the staff (issue #174): the head pressed, how many lines and spaces
+ * the pointer has gone up (down below 0), and the keys held: Shift counts semitones instead, ⌘ or Ctrl
+ * takes the whole chord. `done` when the pointer lets go.
+ */
+export interface StaffDrag {
+  hit: StaffHit & { string: number };
+  steps: number;
+  semitones: boolean;
+  chord: boolean;
+  done: boolean;
+}
+
+/**
  * A press on the notation staff (issue #136): on a note head, that note; else the nearest column of
  * the bar and the line or space pressed, up to two ledger lines past the staff. Null anywhere else.
  */

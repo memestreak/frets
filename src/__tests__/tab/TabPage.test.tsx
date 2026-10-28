@@ -1097,3 +1097,42 @@ describe('the notation staff (issue #122)', () => {
     expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeEnabled();
   });
 });
+
+describe('dragging notes on the staff (issue #174)', () => {
+  /** Where a staff head is drawn (jsdom places the drawing at 0, 0): a little inside its left edge, on its line or space. */
+  const headAt = (k: number) => {
+    const path = screen.getAllByTestId('staff-head')[k].querySelector('path')!;
+    const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(path.getAttribute('transform')!)!;
+    return { clientX: Number(x) + 4, clientY: Number(y) };
+  };
+  const frets = () => alphaTexText().split('\n').find(line => line.includes('|'));
+
+  it('moves the note a line or space at a time, a semitone with Shift, and the chord with Ctrl, each one undo step', async () => {
+    localStorage.setItem('frets.tab.parts', JSON.stringify('both'));
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(3), SLOW);
+    const drag = (k: number, dy: number, keys: { shiftKey?: boolean; ctrlKey?: boolean } = {}) => {
+      const svg = screen.getByRole('img', { name: /drawn as/ });
+      const from = headAt(k);
+      fireEvent.pointerDown(svg, { ...from, button: 0, ...keys });
+      fireEvent.pointerMove(svg, { clientX: from.clientX, clientY: from.clientY + dy, ...keys });
+      fireEvent.pointerUp(svg, { clientX: from.clientX, clientY: from.clientY + dy, ...keys });
+    };
+    const shown = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const line = frets();
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+      return line;
+    };
+    // Up two lines and spaces: F to A, the D string's 3rd fret to its 7th.
+    drag(2, -9);
+    expect(shown()).toContain('7.4');
+    undo();
+    expect(shown()).toContain('3.4');
+    drag(2, -9, { shiftKey: true });
+    expect(shown()).toContain('5.4');
+    undo();
+    drag(0, -9, { ctrlKey: true });
+    expect(shown()).toMatch(/\(8\.6 10\.5\)|\(10\.5 8\.6\)/);
+  });
+});
