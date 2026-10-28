@@ -16,11 +16,11 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
 
-/** The saved playback settings: whether the controls show (hidden at first), the sound, the volume and the options. */
+/** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
 export interface PlaybackSettings extends PlaybackOptionValues {
-  /** Whether the controls show, from the small round button under the tab. */
+  /** Whether the controls show, from the small round button under the tab; shown until it is pressed. */
   shown: boolean;
   /** The General MIDI program the clip plays in. */
   sound: Sound;
@@ -39,7 +39,7 @@ export const MAX_TRANSPOSE = 12;
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
   const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
   return {
-    shown: fields.shown === true,
+    shown: fields.shown !== false,
     sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
     hearNotes: fields.hearNotes === true,

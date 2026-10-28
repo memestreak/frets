@@ -59,11 +59,12 @@ describe('playback sounds', () => {
 
   it('reads the saved settings, each field checked', () => {
     const options = { hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1, transpose: 0 };
-    expect(parsePlaybackSettings(null)).toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
+    expect(parsePlaybackSettings(null)).toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5 }))
       .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5 });
     expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5 }))
-      .toEqual({ shown: false, sound: DEFAULT_SOUND, volume: 1, ...options });
+      .toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
+    expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);
   });
 });
 

@@ -13,8 +13,8 @@ of the clip's card under the tab, shows or hides the playback controls
 beside it (Jeremy, 2026-10-26). While they show, the button holds a plain
 minus in the muted ink colour instead. It sits at the left end of the
 divider under the tab: the line shows only with the controls, below it, and
-stops just short of the button. The button stays in the same place either way. The controls are hidden
-at first, and the page remembers the last choice (`frets.tab.playback`).
+stops just short of the button. The button stays in the same place either way. The controls show
+at first (Jeremy, 2026-10-28; they had been hidden), and the page remembers the last choice (`frets.tab.playback`).
 While they are hidden, Space does nothing and no playhead is drawn; hiding
 them while the clip plays stops it.
 
