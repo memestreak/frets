@@ -4,7 +4,7 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { BEND_LABEL_STEP, BEND_RISE, SPACE, stepY, stringY, type Layout } from './layout';
+import { BEND_LABEL_STEP, BEND_RISE, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
 import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
@@ -143,7 +143,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
             else add('bend', index, s, (note.tie && before?.system === si ? fromX : x) + 6, peak - 19, release ? x + 29 : x + 23, y - 1);
           }
           if (note.slideOut) add('slideOut', index, s, x + 7, y - 7, x + 20, y + 7);
-          if (note.tap) add('tap', index, s, x - 6, y - 18, x + 6, y - 7);
+          if (note.tap) add('tap', index, s, x - TAP_RADIUS, y - 6 - 2 * TAP_RADIUS, x + TAP_RADIUS, y - 6);
           if (note.legato) add('legato', index, s, fromX + 4, y - 26, x - 4, y - 7);
           if (note.slide) {
             const fromNote = (note.slide === 'legato' || note.slide === 'shift') && before;

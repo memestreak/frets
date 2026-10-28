@@ -49,9 +49,9 @@ describe('staffMarks', () => {
     expect(eighths.bracket.x1).toBeGreaterThan(columns[6].x);
   });
 
-  it('puts bends and taps on the staff only when it is alone', () => {
+  it('puts bends on the staff only when it is alone, and taps in every view (as the book prints them)', () => {
     const clip = clipOf('7.3{b (0 4)}.4 12.1.4{tt} r.2 |');
-    expect(kinds(clip, 'both')).toEqual([]);
+    expect(kinds(clip, 'both')).toEqual(['tap:tap']);
     expect(kinds(clip, 'staff')).toEqual(['bend:bend', 'tap:tap']);
   });
 });

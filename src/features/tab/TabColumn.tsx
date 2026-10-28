@@ -5,10 +5,11 @@
 
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
-import { BEND_LABEL_STEP, BEND_RISE, charWidth, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { BEND_LABEL_STEP, BEND_RISE, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { type Spot } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type TabLook } from './tabLook';
+import { TapSign } from './TapSign';
 
 /** How much of the string line a note's number keeps clear. */
 export function labelWidth(note: Note, column: Column): number {
@@ -114,7 +115,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       );
     }
     if (note.tap) {
-      parts.push(<text key={`tap-${s}`} x={x} y={y - 10} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle">T</text>);
+      parts.push(<TapSign key={`tap-${s}`} x={x} y={y - 6 - TAP_RADIUS} look={look} testId="tab-tap" />);
     }
   });
   return <g data-testid="tab-column">{parts}</g>;
