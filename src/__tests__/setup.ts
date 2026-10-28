@@ -31,3 +31,13 @@ if (typeof HTMLDialogElement.prototype.showModal !== 'function') {
     this.dispatchEvent(new Event('close'));
   };
 }
+
+// jsdom has no IntersectionObserver, and alphaTab's stand-in for it (installed when it loads) has no
+// disconnect; one that never reports is enough for the playback footer's "stuck" look.
+class QuietIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() { return []; }
+}
+Object.defineProperty(globalThis, 'IntersectionObserver', { value: QuietIntersectionObserver, configurable: true, writable: true });

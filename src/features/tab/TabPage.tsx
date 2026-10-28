@@ -44,6 +44,7 @@ import { ScoreCredits } from './ScoreCredits';
 import { parseView, VIEW_KEY, type TabView } from './viewOptions';
 import { ViewOptions } from './ViewOptions';
 import { ClipTitle, UNTITLED } from './ClipTitle';
+import { PinnedPlayback, type PlaybackPin } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 
 /** What the line under the clip says: what an import guessed or ignored, why one failed, or that a copy worked. */
@@ -191,6 +192,8 @@ export default function TabPage() {
   const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
   usePersist(PLAYBACK_KEY, playbackSettings);
   const showPlayback = playbackSettings.shown;
+  // MOCK (#151): ?mock=b fixes the controls to the window's bottom; otherwise they stick inside the card.
+  const [playbackPin] = useState<PlaybackPin>(() => (new URLSearchParams(window.location.search).get('mock') === 'b' ? 'window' : 'card'));
   // The playback line: put on a column by a press above or below the staff (Jeremy,
   // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
   // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
@@ -1099,6 +1102,7 @@ export default function TabPage() {
         </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}
         {view === 'tab' && (
+        <PinnedPlayback pin={playbackPin} shown={showPlayback}>
         <HoverTips>
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} selection={selectedColumns}
@@ -1110,6 +1114,7 @@ export default function TabPage() {
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
           />
         </HoverTips>
+        </PinnedPlayback>
         )}
       </section>
 
