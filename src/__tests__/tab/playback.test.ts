@@ -12,6 +12,7 @@ import {
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
+import { DEFAULT_FX } from '@/features/tab/effects';
 
 function clipOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
@@ -80,14 +81,23 @@ describe('playback sounds', () => {
   it('reads the saved settings, each field checked', () => {
     const options = {
       hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1, transpose: 0,
-      metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8,
+      metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8, effects: DEFAULT_FX,
     };
     expect(parsePlaybackSettings(null)).toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
-      .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
+      .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35, effects: DEFAULT_FX });
     expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
       .toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);
+  });
+
+  it('reads the saved effects, each field checked on its own', () => {
+    const effects = { on: true, distortionOn: false, drive: 0.4, tone: 0.8, reverbOn: true, reverb: 0.25, decay: 3 };
+    expect(parsePlaybackSettings({ effects }).effects).toEqual(effects);
+    expect(parsePlaybackSettings({ effects: 'loud' }).effects).toEqual(DEFAULT_FX);
+    expect(parsePlaybackSettings({ effects: { on: 'yes', distortionOn: 0, drive: 2, tone: -1, reverbOn: null, reverb: '1', decay: 0.1 } }).effects)
+      .toEqual(DEFAULT_FX);
+    expect(parsePlaybackSettings({ effects: { drive: 1, decay: 9 } }).effects).toEqual({ ...DEFAULT_FX, drive: 1 });
   });
 });
 
