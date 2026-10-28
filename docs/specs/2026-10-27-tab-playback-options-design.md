@@ -14,8 +14,9 @@ press outside, scrolling or resizing closes it. Play's tip says
 
 - **Stop leaves the cursor where it stopped** (a checkbox, off by default).
   On, pressing Stop (button or Space) puts the playback line on the column the
-  playhead was on, so the next Play starts there. The editing cursor and
-  selection stay as they were. Off, Stop returns the playhead to the cursor as
+  playhead was on, so the next Play starts there. The editing cursor stays
+  where it was; the selection goes, since the line moved (Jeremy, 2026-10-28:
+  "moving the playhead deselects any selected region"). Off, Stop returns the playhead to the cursor as
   before.
 - **Pause between loops** (a checkbox, off by default) with a seconds field
   beside it (0.5–10 s, steps of 0.5, default 1; the same number field as

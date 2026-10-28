@@ -200,8 +200,11 @@ export default function TabPage() {
     transpose: playbackSettings.transpose,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
+    // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
     onStopAt: column => {
-      if (playbackSettings.stopAtPlayhead) setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: selectionAsSet });
+      if (!playbackSettings.stopAtPlayhead) return;
+      setSelection(null);
+      setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
     },
   });
   /** A note just entered: it sounds, alone, with "Hear notes as you enter them" on and the controls showing. */
