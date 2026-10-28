@@ -22,8 +22,11 @@ Issue #148. Builds on `2026-10-26-tab-playback-design.md` and
 ## Counting
 
 - A click per beat of the bar's time signature: the bottom number's note.
-- Compound time (6/8, 9/8, 12/8, and the same over 16) clicks the dotted
-  beat: two clicks in 6/8. 3/8 and odd meters (5/8, 7/8) click every eighth.
+- Compound time (6/8, 9/8, 12/8, and the same over 16) clicks every eighth
+  too, the start of each group of three struck harder: in 6/8 the 1 (its own
+  higher click) and the 4 stand out (Jeremy, 2026-10-28; two dotted-quarter
+  clicks were too few). 3/8 and odd meters (5/8, 7/8) click every eighth with
+  no groups.
 - Clicks follow time signature changes, repeats (every pass clicks), tuplets
   (they don't move the beat), tempo changes and Speed.
 
@@ -54,6 +57,5 @@ Issue #148. Builds on `2026-10-26-tab-playback-design.md` and
   When a loop first comes round, the clip's own MIDI is swapped in without
   stopping, so later passes play those bars as written. A press on the tab while
   playing does the same.
-- alphaTab's own metronome and count-in are not used: they click every eighth
-  in 6/8, have no accent, and its count-in leaves a gap before the first note
+- alphaTab's own metronome and count-in are not used: they have no accent, and its count-in leaves a gap before the first note
   with this output.

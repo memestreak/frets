@@ -70,26 +70,44 @@ const RING_OUT_TICKS = 2 * 960;
  */
 export const METRONOME_CHANNEL = 10;
 export const COUNT_IN_CHANNEL = 11;
-/** How fast a click is struck, out of 127. */
-const CLICK_VELOCITY = 110;
+/**
+ * How hard a click is struck, out of 127: beat one (its own, higher click), the start of each group
+ * of three in compound time (the 4 in 6/8), and every other click.
+ */
+const ACCENT_VELOCITY = 110;
+const GROUP_VELOCITY = 120;
+const CLICK_VELOCITY = 80;
 /** How long a click's note is held, in ticks; the click itself has died away by then. */
 const CLICK_TICKS = 120;
 
-/** How the metronome counts a bar: how far apart its clicks are (ticks) and how many there are. */
+/**
+ * How the metronome counts a bar: how far apart its clicks are (ticks), how many there are, and
+ * every how many clicks a group starts (marked louder), or 0 for no groups.
+ */
 export interface Count {
   ticks: number;
   clicks: number;
+  group: number;
 }
 
 /**
  * How the metronome counts a time signature: a click per beat, the bottom number's note. Compound
- * time (6/8, 9/8, 12/8, or the same over 16) clicks the dotted beat instead: two clicks in 6/8.
+ * time (6/8, 9/8, 12/8, or the same over 16) marks each group of three a little louder, so 6/8
+ * clicks six eighths with the 1 and the 4 standing out (Jeremy, 2026-10-28: two clicks a bar of 6/8
+ * was too few).
  */
 export function countOf(beats: number, value: number): Count {
   const note = (4 / value) * 960;
-  if (value >= 8 && beats > 3 && beats % 3 === 0) return { ticks: note * 3, clicks: beats / 3 };
-  return { ticks: note, clicks: beats };
+  return { ticks: note, clicks: beats, group: value >= 8 && beats > 3 && beats % 3 === 0 ? 3 : 0 };
 }
+
+/** How a bar's click `k` (from 0) sounds: beat one, a group's start, or plain. */
+function clickKind(count: Count, k: number): ClickKind {
+  const n = k % count.clicks;
+  return n === 0 ? 'one' : count.group > 0 && n % count.group === 0 ? 'group' : 'plain';
+}
+
+type ClickKind = 'one' | 'group' | 'plain';
 
 export interface Performance {
   score: Score;
@@ -161,7 +179,7 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, 
       for (let k = 0; k < bar.count.clicks; k++) {
         const tick = bar.start + k * bar.count.ticks;
         if (tick >= bar.end) break;
-        addClick(at, midi, METRONOME_CHANNEL, tick, k === 0);
+        addClick(at, midi, METRONOME_CHANNEL, tick, clickKind(bar.count, k));
       }
     }
   }
@@ -176,10 +194,11 @@ function clickSound(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: n
   midi.addEvent(new at.midi.ProgramChangeEvent(0, 0, channel, CLICK_PROGRAM));
 }
 
-/** A click: beat one's (`accent`) or another beat's. */
-function addClick(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number, tick: number, accent: boolean) {
-  const key = accent ? ACCENT_KEY : BEAT_KEY;
-  midi.addEvent(new at.midi.NoteOnEvent(0, tick, channel, key, CLICK_VELOCITY));
+/** A click: beat one's higher click, or the other click, louder at a group's start. */
+function addClick(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number, tick: number, kind: ClickKind) {
+  const key = kind === 'one' ? ACCENT_KEY : BEAT_KEY;
+  const velocity = kind === 'one' ? ACCENT_VELOCITY : kind === 'group' ? GROUP_VELOCITY : CLICK_VELOCITY;
+  midi.addEvent(new at.midi.NoteOnEvent(0, tick, channel, key, velocity));
   midi.addEvent(new at.midi.NoteOffEvent(0, tick + CLICK_TICKS, channel, key, 0));
 }
 
@@ -196,7 +215,7 @@ export interface CountIn {
 
 /**
  * The count-in before a tick (issue #148): one to four bars, each counted as the bar Play starts in
- * is (two clicks in 6/8), at the tempo there. Null when the clip has no bars.
+ * is (six clicks in 6/8), at the tempo there. Null when the clip has no bars.
  */
 export function countInBefore(performance: Performance, tick: number, bars = 1): CountIn | null {
   const bar = performance.bars.find(b => tick >= b.start && tick < b.end) ?? performance.bars[performance.bars.length - 1];
@@ -235,7 +254,7 @@ export function withCountIn(at: AlphaTab, source: AlphaTabModule.midi.MidiFile, 
     }
     midi.addEvent(event);
   }
-  for (let k = 0; k < bars * count.clicks; k++) addClick(at, midi, COUNT_IN_CHANNEL, countIn.start + k * count.ticks, k % count.clicks === 0);
+  for (let k = 0; k < bars * count.clicks; k++) addClick(at, midi, COUNT_IN_CHANNEL, countIn.start + k * count.ticks, clickKind(count, k));
   return midi;
 }
 

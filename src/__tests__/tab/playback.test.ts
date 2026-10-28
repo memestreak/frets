@@ -225,16 +225,17 @@ function peakOf(midi: alphaTab.midi.MidiFile, fonts: Uint8Array[]): number {
 }
 
 describe('metronome', () => {
-  it('clicks each beat, and the dotted beat in compound time', () => {
-    expect(countOf(4, 4)).toEqual({ ticks: Q, clicks: 4 });
-    expect(countOf(3, 4)).toEqual({ ticks: Q, clicks: 3 });
-    expect(countOf(2, 2)).toEqual({ ticks: 2 * Q, clicks: 2 });
-    expect(countOf(6, 8)).toEqual({ ticks: 1.5 * Q, clicks: 2 });
-    expect(countOf(9, 8)).toEqual({ ticks: 1.5 * Q, clicks: 3 });
-    expect(countOf(12, 8)).toEqual({ ticks: 1.5 * Q, clicks: 4 });
-    // Three eighths, and odd meters, click every eighth.
-    expect(countOf(3, 8)).toEqual({ ticks: Q / 2, clicks: 3 });
-    expect(countOf(7, 8)).toEqual({ ticks: Q / 2, clicks: 7 });
+  it('clicks each beat, marking each group of three in compound time', () => {
+    expect(countOf(4, 4)).toEqual({ ticks: Q, clicks: 4, group: 0 });
+    expect(countOf(3, 4)).toEqual({ ticks: Q, clicks: 3, group: 0 });
+    expect(countOf(2, 2)).toEqual({ ticks: 2 * Q, clicks: 2, group: 0 });
+    // 6/8 clicks six eighths, the 1 and the 4 marked (Jeremy, 2026-10-28).
+    expect(countOf(6, 8)).toEqual({ ticks: Q / 2, clicks: 6, group: 3 });
+    expect(countOf(9, 8)).toEqual({ ticks: Q / 2, clicks: 9, group: 3 });
+    expect(countOf(12, 8)).toEqual({ ticks: Q / 2, clicks: 12, group: 3 });
+    // Three eighths, and odd meters, click every eighth with no groups.
+    expect(countOf(3, 8)).toEqual({ ticks: Q / 2, clicks: 3, group: 0 });
+    expect(countOf(7, 8)).toEqual({ ticks: Q / 2, clicks: 7, group: 0 });
   });
 
   it('puts its clicks in the MIDI, beat one higher, following time signature changes', () => {
@@ -243,10 +244,16 @@ describe('metronome', () => {
     const at = played.start;
     expect(clicksOn(played.midi, METRONOME_CHANNEL)).toEqual([
       [at, true], [at + Q, false],
-      [at + 2 * Q, true], [at + 3.5 * Q, false],
+      ...[0, 1, 2, 3, 4, 5].map(k => [at + 2 * Q + k * Q / 2, k === 0]),
       // A tuplet doesn't move the beat, and 6/8 holds from the bar it was set in.
-      [at + 5 * Q, true], [at + 6.5 * Q, false],
+      ...[0, 1, 2, 3, 4, 5].map(k => [at + 5 * Q + k * Q / 2, k === 0]),
     ]);
+    // In 6/8 the 4 is struck harder than the other eighths.
+    const velocities = played.midi.events
+      .filter((e): e is alphaTab.midi.NoteOnEvent => e instanceof alphaTab.midi.NoteOnEvent && e.channel === METRONOME_CHANNEL)
+      .slice(2, 8).map(e => e.noteVelocity);
+    expect(velocities[3]).toBeGreaterThan(velocities[1]);
+    expect(velocities.filter((_, k) => k !== 0 && k !== 3).every(v => v === velocities[1])).toBe(true);
     // Without clicks, none.
     expect(clicksOn(plain(clip).midi, METRONOME_CHANNEL)).toEqual([]);
   });
@@ -274,10 +281,10 @@ describe('metronome', () => {
     const played = perform(alphaTab, clip);
     const from = tickOf(clip, played, 4);
     const countIn = countInBefore(played, from)!;
-    // One bar of 6/8: two dotted quarters.
-    expect(countIn).toEqual({ start: from - 3 * Q, end: from, count: { ticks: 1.5 * Q, clicks: 2 }, bars: 1 });
+    // One bar of 6/8: six eighths.
+    expect(countIn).toEqual({ start: from - 3 * Q, end: from, count: { ticks: Q / 2, clicks: 6, group: 3 }, bars: 1 });
     const midi = withCountIn(alphaTab, played.midi, countIn);
-    expect(clicksOn(midi, COUNT_IN_CHANNEL)).toEqual([[countIn.start, true], [countIn.start + 1.5 * Q, false]]);
+    expect(clicksOn(midi, COUNT_IN_CHANNEL)).toEqual([0, 1, 2, 3, 4, 5].map(k => [countIn.start + k * Q / 2, k === 0]));
     // The notes and clicks of the bar before are gone; the ones from Play on are where they were.
     const notesOn = (m: alphaTab.midi.MidiFile) => m.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent && e.channel !== COUNT_IN_CHANNEL).map(e => e.tick);
     expect(notesOn(midi).filter(t => t >= countIn.start && t < from)).toEqual([]);
@@ -306,12 +313,12 @@ describe('metronome', () => {
     );
   });
 
-  it('counts in two bars of 6/8 as four dotted beats', () => {
+  it('counts in two bars of 6/8 as twelve eighths, each bar\'s 1 higher', () => {
     const clip = clipOf('\\ts (6 8) 0.6.4{d} 0.6.4{d} |');
     const played = perform(alphaTab, clip);
     const countIn = countInBefore(played, tickOf(clip, played, 0), 2)!;
     expect(clicksOn(withCountIn(alphaTab, played.midi, countIn), COUNT_IN_CHANNEL).map(([t, accent]) => [(t - countIn.start) / Q, accent]))
-      .toEqual([[0, true], [1.5, false], [3, true], [4.5, false]]);
+      .toEqual(Array.from({ length: 12 }, (_, k) => [k / 2, k % 6 === 0]));
   });
 
   it('makes a click that starts and ends at silence, so it never pops', () => {
