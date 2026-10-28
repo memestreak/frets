@@ -34,7 +34,7 @@ intro, bars 1–24.
 ## View options
 
 Jeremy asked for a place to choose what the drawing shows that is the reader's choice rather than
-the music's. An eye button on the clip's top row, before copy and save (Notation view only), opens a
+the music's. An eye button on the clip's top row, before copy and save, opens a
 small panel under it. Its first option is **Bar numbers: Every bar | Each line | None**, starting on
 Every bar (his choice: every bar, as the PDF shows). The second is **Size**, 50% to 200% in steps of
 10% (his ask), starting at 100%: a small number field with up and down buttons (a typed size goes to
@@ -45,6 +45,16 @@ size. A choice applies at once; a press elsewhere, Esc,
 a scroll or the button again closes the panel. The options are saved per viewer
 (`localStorage["frets.tab.view"]`), not in the clip, like Staff | Tab | Both, and copies and exports
 follow them.
+
+Every view has the eye button (Jeremy, 2026-10-28: "All view options should always be available,
+but segmented by view type"). The panel always lists every view's options, each under its view's
+name, whichever view shows:
+
+- **Notation**: Bar numbers and Size, as above.
+- **ASCII Tab**: **Rhythm**, a check box, on by default. Off, the ASCII text leaves out the rhythm
+  line (w h q e s…) over the strings; its copy, its save and the Export dialog's ASCII download follow.
+- **AlphaTex**: **Line numbers**, a check box, on by default. Off, the editor's margin keeps only
+  its ⚠ marks.
 
 ## Not yet (listed for later rounds or a question)
 

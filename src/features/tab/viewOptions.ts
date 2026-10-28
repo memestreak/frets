@@ -1,6 +1,7 @@
 /**
- * The Tab page's view options (Jeremy, 2026-10-28): how the drawn clip shows things that are the
- * reader's choice, not the music's: bar numbers and the drawing's size. Saved per viewer, not in the clip; exports follow them.
+ * The Tab page's view options (Jeremy, 2026-10-28): how each view shows things that are the reader's
+ * choice, not the music's. Notation: bar numbers and the drawing's size; ASCII Tab: the rhythm line;
+ * AlphaTex: line numbers. Saved per viewer, not in the clip; exports and copies follow them.
  */
 
 export const VIEW_KEY = 'frets.tab.view';
@@ -19,10 +20,14 @@ export interface TabView {
   barNumbers: BarNumbers;
   /** How big the clip is drawn, in percent; a smaller drawing fits more bars to a line. */
   size: number;
+  /** ASCII Tab: the rhythm line over the strings (w h q e s…). */
+  asciiRhythm: boolean;
+  /** AlphaTex: each line's number in the margin. */
+  lineNumbers: boolean;
 }
 
-/** Bar numbers on every bar, as Guitar Pro prints them, at full size. */
-export const DEFAULT_VIEW: TabView = { barNumbers: 'every', size: 100 };
+/** Bar numbers on every bar, as Guitar Pro prints them, at full size; the rhythm line and line numbers shown. */
+export const DEFAULT_VIEW: TabView = { barNumbers: 'every', size: 100, asciiRhythm: true, lineNumbers: true };
 
 /** A size as offered: a whole step from 50% to 200%. */
 function isSize(n: unknown): n is number {
@@ -35,6 +40,8 @@ export function parseView(raw: unknown): TabView {
   return {
     barNumbers: BAR_NUMBERS.find(b => b === o.barNumbers) ?? DEFAULT_VIEW.barNumbers,
     size: isSize(o.size) ? o.size : DEFAULT_VIEW.size,
+    asciiRhythm: typeof o.asciiRhythm === 'boolean' ? o.asciiRhythm : DEFAULT_VIEW.asciiRhythm,
+    lineNumbers: typeof o.lineNumbers === 'boolean' ? o.lineNumbers : DEFAULT_VIEW.lineNumbers,
   };
 }
 

@@ -40,7 +40,7 @@ function read(at: AlphaTab, typed: string, current: Clip): { clip: Clip | null; 
  * grey ⚠: Frets drops them. The page keeps the text as typed until the view is left
  * (`text` and `onText`), then shows the clip in its own layout again.
  */
-export function AlphaTexEditor({ clip, text, onText, onClip, onClear }: {
+export function AlphaTexEditor({ clip, text, onText, onClip, onClear, lineNumbers = true }: {
   clip: Clip;
   /** The text as typed, or the clip written out. */
   text: string;
@@ -49,6 +49,8 @@ export function AlphaTexEditor({ clip, text, onText, onClip, onClear }: {
   onClip: (clip: Clip, text: string) => void;
   /** The × at the box's top right: empties the text and the clip. */
   onClear: () => void;
+  /** Each line's number in the margin, the View option; without them the margin keeps only the ⚠ marks. */
+  lineNumbers?: boolean;
 }) {
   const [problems, setProblems] = useState<Problems>({ text, ...NO_PROBLEMS });
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -123,7 +125,7 @@ export function AlphaTexEditor({ clip, text, onText, onClip, onClear }: {
     };
   }, []);
 
-  const gutterDigits = String(lines.length).length;
+  const gutterDigits = lineNumbers ? String(lines.length).length : 0;
   return (
     <div className="tab-text-editor" style={{ ['--gutter-digits' as string]: gutterDigits }}>
       {/* The lines as typed, under the textarea: their numbers and ⚠ in the margin, and the error underlines. */}
@@ -132,7 +134,7 @@ export function AlphaTexEditor({ clip, text, onText, onClip, onClear }: {
           <div key={i} className="tab-text-line">
             <span className="tab-text-margin" aria-hidden="true">
               {marks.has(i) && <MarginMark mark={marks.get(i)!} line={i + 1} />}
-              <span className="tab-text-number">{i + 1}</span>
+              {lineNumbers && <span className="tab-text-number">{i + 1}</span>}
             </span>
             <span aria-hidden="true">{underlined(line, lineStart(lines, i), errors)}</span>
           </div>

@@ -629,7 +629,7 @@ function columnWidth(column: Column): number {
 const MAX_LINE = 80;
 
 /** One block's lines, names first: endings, palm mute, strokes, rhythm, then the six strings. */
-function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down'>): string[] {
+function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down'>, rhythmLine: boolean): string[] {
   const strings: string[][] = names.map(() => []);
   const rhythm: string[] = [];
   const strokes: string[] = [];
@@ -697,7 +697,7 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
   const width = Math.max(...names.map(n => n.length)) + 1;
   const indent = ' '.repeat(width);
   const out: string[] = [];
-  for (const a of [endings, pm, strokes, rhythm]) {
+  for (const a of rhythmLine ? [endings, pm, strokes, rhythm] : [endings, pm, strokes]) {
     const line = a.join('');
     if (/[^\s|]/.test(line)) out.push((indent + line).trimEnd());
   }
@@ -708,8 +708,9 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
 /**
  * The clip in the canonical form of `tab-ascii.txt`. Reading it back gives the same clip, but for
  * what ASCII tab can't hold: grace notes, tremolo picking and time signature changes are left out.
+ * With `rhythm` false (the ASCII Tab view's option), the rhythm line is left out too.
  */
-export function writeAscii(clip: Clip): string {
+export function writeAscii(clip: Clip, { rhythm = true }: { rhythm?: boolean } = {}): string {
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
@@ -724,15 +725,15 @@ export function writeAscii(clip: Clip): string {
   let current: Bar[] = [];
   for (const bar of clip.bars) {
     const tried = [...current, bar];
-    const lines = writeBlock(tried, names, slides);
+    const lines = writeBlock(tried, names, slides, rhythm);
     if (current.length > 0 && lines[lines.length - 1].length > MAX_LINE) {
-      blocks.push(writeBlock(current, names, slides));
+      blocks.push(writeBlock(current, names, slides, rhythm));
       current = [bar];
     } else {
       current = tried;
     }
   }
-  if (current.length > 0) blocks.push(writeBlock(current, names, slides));
+  if (current.length > 0) blocks.push(writeBlock(current, names, slides, rhythm));
   return [head.join('\n'), ...blocks.map(b => b.join('\n'))].join('\n\n');
 }
 
