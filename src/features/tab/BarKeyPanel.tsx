@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/notation';
-import { usePanelInside } from './BarTimePanel';
+import { usePanelClose, usePanelInside } from './barPanel';
 import { changesKey, keyAt, keyTonic, MAJOR_NAMES, MAX_FIFTHS, MINOR_NAMES, type Clip, type Key } from './clip';
 
 const PITCH: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -40,20 +40,7 @@ export function BarKeyPanel({ clip, bar, x, y, onChange, onClose }: {
   const minor = !!key.minor;
   const changed = changesKey(clip, bar);
 
-  useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) onClose(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose(true);
-    };
-    document.addEventListener('pointerdown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  usePanelClose(boxRef, onClose);
 
   // Major or Minor keeps the key signature: G major becomes E minor, its relative.
   const setMinor = (m: boolean) => onChange(m ? { fifths: key.fifths, minor: true } : { fifths: key.fifths });
