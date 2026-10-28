@@ -356,11 +356,17 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, width, parts, playback, mark, markOnly = false }: {
+export function Playhead({ clip, width, parts, playback, mark, markOnly = false, layer }: {
   clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null;
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
   markOnly?: boolean;
+  /**
+   * Drawn twice: `under` the tab, the playhead's band and the loop bracket, so the band tints the
+   * paper, not the numbers; `over` it, the lines, so a selection's band never hides them (Jeremy, 2026-10-28).
+   */
+  layer: 'under' | 'over';
 }) {
+  const under = layer === 'under';
   const column = markOnly ? null : playback.view.column;
   const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
@@ -371,7 +377,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
   layout.systems.forEach((system, si) => {
     const y = si * rows.height;
     const cols = system.bars.flatMap(b => b.columns);
-    if (loop) {
+    if (loop && under) {
       // The bracket, its ends a little taller: they are the handles `LoopHandles` drags.
       for (const b of loopBracket(layout, loop).filter(b => b.system === si)) {
         out.push(
@@ -386,7 +392,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     const marked = idleMark === null ? undefined : cols.find(c => c.index === idleMark);
     const total = clip.bars.reduce((n, b) => n + b.columns.length, 0);
     const end = idleMark === total ? cols.find(c => c.index === total - 1) : undefined;
-    if (marked || end) {
+    if ((marked || end) && !under) {
       const x = marked ? marked.start : end!.start + end!.width;
       out.push(
         <line
@@ -399,10 +405,13 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false 
     if (head) {
       const x = head.start;
       out.push(
-        <g key={`head-${si}`} data-testid="playhead">
-          <rect x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
-          <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
-        </g>,
+        under
+          ? <rect key={`head-${si}`} data-testid="playhead-band" x={x} y={y + rows.bandTop} width={head.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" opacity={0.6} />
+          : (
+            <g key={`head-${si}`} data-testid="playhead">
+              <line x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2} stroke="var(--primary)" strokeWidth={2} />
+            </g>
+          ),
       );
     }
   });

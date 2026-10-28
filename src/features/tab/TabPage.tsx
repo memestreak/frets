@@ -1039,7 +1039,7 @@ export default function TabPage() {
           {/* The View options' Size zooms the drawing and everything over it: presses, fields and panels alike. */}
           <div className="relative" style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
             {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (
                 <div
@@ -1075,6 +1075,8 @@ export default function TabPage() {
                 )
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
+            {/* The playhead's and the playback line's lines, over the selection's band. */}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
             {view === 'tab' && editing && picked && clipWidth > 0 && (
               <WordTools
