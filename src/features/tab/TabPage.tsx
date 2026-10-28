@@ -136,7 +136,7 @@ export default function TabPage() {
   const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
   const alphaTexText = draft && draft.clip === clip ? draft.text : writeAlphaTex(clip);
   // What the text views show and copy.
-  const shownText = view === 'ascii' ? writeAscii(clip) : alphaTexText;
+  const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
@@ -939,7 +939,7 @@ export default function TabPage() {
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
-    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(clip))) },
+    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(clip, { rhythm: shown.asciiRhythm }))) },
     { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
   ];
   /**
@@ -954,7 +954,7 @@ export default function TabPage() {
       // Pressed, it leaves the focus (and the cursor) on the tab.
       onMouseDown={e => e.preventDefault()}
       onClick={e => {
-        if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(clip)));
+        if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(clip, { rhythm: shown.asciiRhythm })));
         if (view === 'alphatex') return save(SAVE_KINDS.alphatex, () => asText(alphaTexText));
         const r = e.currentTarget.getBoundingClientRect();
         if (Date.now() - saveMenuPressedAway.current < 500) return;
@@ -1018,20 +1018,19 @@ export default function TabPage() {
                 </button>
               ))}
             </div>
-            {view === 'tab' && (
-              <button
-                type="button" className="btn btn-secondary btn-icon" aria-label="View options" title="View options"
-                aria-haspopup="dialog" aria-expanded={viewPanelAt !== null}
-                onMouseDown={e => e.preventDefault()}
-                onClick={e => {
-                  if (Date.now() - viewPanelPressedAway.current < 500) return;
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setViewPanelAt({ x: r.right, y: r.bottom + 4 });
-                }}
-              >
-                <EyeIcon />
-              </button>
-            )}
+            {/* Every view has the View options, each view's in its own group (Jeremy, 2026-10-28). */}
+            <button
+              type="button" className="btn btn-secondary btn-icon" aria-label="View options" title="View options"
+              aria-haspopup="dialog" aria-expanded={viewPanelAt !== null}
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => {
+                if (Date.now() - viewPanelPressedAway.current < 500) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                setViewPanelAt({ x: r.right, y: r.bottom + 4 });
+              }}
+            >
+              <EyeIcon />
+            </button>
             {copyButton}
             {saveButton}
           </div>
@@ -1071,7 +1070,7 @@ export default function TabPage() {
               : view === 'alphatex'
                 ? (
                   <HoverTips>
-                    <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} />
+                    <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} lineNumbers={shown.lineNumbers} />
                   </HoverTips>
                 )
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}

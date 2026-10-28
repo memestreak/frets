@@ -31,7 +31,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
   clip: Clip;
   /** What the page shows, which the image draws too: the staff, the tab or both. */
   parts: Parts;
-  /** The View options (bar numbers, size), as the page shows them. */
+  /** The View options as the page shows them: bar numbers and size for the image, the rhythm line for ASCII. */
   view: TabView;
   open: boolean;
   style: TabExportStyle;
@@ -138,7 +138,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
             <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
               Download alphaTex
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(clip)))}>
+            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(clip, { rhythm: view.asciiRhythm })))}>
               Download ASCII
             </button>
           </div>

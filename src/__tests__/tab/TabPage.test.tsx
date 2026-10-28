@@ -84,7 +84,7 @@ describe('TabPage', () => {
     const panel = screen.getByRole('dialog', { name: 'View options' });
     fireEvent.click(within(panel).getByRole('button', { name: 'None' }));
     expect(numbers()).toEqual([]);
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none', size: 100 });
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none', size: 100, asciiRhythm: true, lineNumbers: true });
     fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
     expect(numbers().length).toBeGreaterThan(0);
     expect(numbers()[0]).toBe('1');
@@ -202,6 +202,26 @@ describe('TabPage', () => {
     await paste('just some words');
     await screen.findByText(/./, { selector: '[data-testid="tab-notice"].text-\\(--danger\\)' }, SLOW);
     expect(heading()).toHaveTextContent('Riff');
+  });
+
+  it('offers every view its options in one panel: the ASCII rhythm line and the alphaTex line numbers', async () => {
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    const ascii = () => screen.getByTestId('tab-ascii').textContent!;
+    expect(ascii()).toMatch(/^ +e/m);
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    const panel = screen.getByRole('dialog', { name: 'View options' });
+    // Every view's options are there, whichever view shows.
+    expect(within(panel).getByRole('button', { name: 'None' })).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole('switch', { name: 'Rhythm' }));
+    expect(ascii()).not.toMatch(/^ +e/m);
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    const numbers = () => screen.getByTestId('alphatex-mirror').querySelectorAll('.tab-text-number').length;
+    expect(numbers()).toBeGreaterThan(0);
+    fireEvent.click(within(panel).getByRole('switch', { name: 'Line numbers' }));
+    expect(numbers()).toBe(0);
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ asciiRhythm: false, lineNumbers: false });
   });
 
   it('shows the clip as alphaTex and as ASCII', async () => {

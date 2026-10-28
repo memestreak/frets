@@ -37,6 +37,13 @@ describe('the examples in tab-ascii.txt', () => {
     expect(writeAscii(clip)).toBe(text);
   });
 
+  it('leaves the rhythm line out when asked, and nothing else', () => {
+    const text = examples[0];
+    const rhythmLine = (l: string) => /^ +[whqestx]/.test(l);
+    expect(text.split('\n').some(rhythmLine)).toBe(true);
+    expect(writeAscii(read(text).clip, { rhythm: false })).toBe(text.split('\n').filter(l => !rhythmLine(l)).join('\n'));
+  });
+
   it('reads legato, a bend and vibrato', () => {
     const { clip } = read(examples[0]);
     expect(clip.name).toBe('Legato, a bend and vibrato');
