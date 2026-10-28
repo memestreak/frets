@@ -52,7 +52,7 @@ export const TOOLS: Section = {
     {
       href: '/tab',
       title: 'Tab',
-      summary: 'Write a riff as tab and notation, play it back, and share it as a link.',
+      summary: 'Write a riff as tab and notation, play it back, and export it as an image or text.',
     },
   ],
 };
