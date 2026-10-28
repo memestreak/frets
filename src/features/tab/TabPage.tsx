@@ -969,6 +969,7 @@ export default function TabPage() {
   /** A new title: one undo step, as any edit. */
   const rename = (next: string) => dispatch({ type: 'replace', clip: { ...clip, name: next } });
   const empty = isEmpty(clip);
+  const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
 
@@ -1034,10 +1035,14 @@ export default function TabPage() {
         <div ref={widthRef} className="min-w-0">
           {/* The View options' Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
           <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
-          <ScoreHead
-            clip={clip} onRename={rename}
-            note={example && <p className="m-0 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>}
-          />
+          {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
+          {view === 'tab'
+            ? <ScoreHead clip={clip} onRename={rename} note={example && exampleNote} />
+            : <>
+              {/* The page keeps its heading for screen readers. */}
+              <h1 className="sr-only">{name}</h1>
+              {example && exampleNote}
+            </>}
           <div className="relative">
             {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}

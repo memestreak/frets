@@ -77,6 +77,10 @@ describe('TabPage', () => {
     // Over the drawing, inside the clip's card, as a printed score's first page has it.
     expect(credits.closest('section')).toBe(screen.getByRole('region', { name: 'Clip' }));
     expect(credits).toContainElement(heading());
+    // The text views carry the same in their text, so the head is not drawn over them.
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(screen.queryByTestId('score-head')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
     expect(credits).toHaveTextContent("Guns N' Roses");
     expect(credits).toHaveTextContent('Words & Music by Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler');
     expect(within(credits).getByLabelText('Tuning')).toHaveTextContent('Tune down 1/2 step');
