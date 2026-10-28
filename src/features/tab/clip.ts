@@ -186,6 +186,11 @@ export interface Bar {
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
+  /**
+   * The bar's share of its line's room, against the other bars' (alphaTex `\scale`; 1 when unset), used
+   * when the clip sets its own line breaks (`systemsLayout`), as alphaTab and Guitar Pro use it.
+   */
+  scale?: number;
   /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\section "Chorus"'). */
   extra?: string[];
 }
@@ -287,6 +292,13 @@ export interface Clip {
   capo?: number;
   /** alphaTex score and staff metadata Frets doesn't use, kept as written ('\artist "Me"'). */
   header?: string[];
+  /**
+   * How many bars each line holds, first line first (alphaTex `\systemsLayout`); lines past the list hold
+   * `defaultSystemsLayout`. With neither, lines fill by width.
+   */
+  systemsLayout?: number[];
+  /** How many bars a line holds past `systemsLayout` (alphaTex `\defaultSystemsLayout`; 3 when only the list is set). */
+  defaultSystemsLayout?: number;
   /** Bars of rest in a row are drawn as one, with their count over it, as printed parts have them (alphaTex's `\multiBarRest`). */
   multiBarRests?: boolean;
 }
@@ -716,7 +728,31 @@ function isBar(v: unknown): v is Bar {
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
+    && (v.scale === undefined || isBarScale(v.scale))
     && optStrings(v.extra);
+}
+
+/** A line's bar count, as `systemsLayout` holds it: a whole number from 1. */
+export function isBarsPerLine(v: unknown): v is number {
+  return Number.isInteger(v) && (v as number) >= 1;
+}
+
+/** A bar's `scale`: any number above 0. */
+export function isBarScale(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
+}
+
+/** alphaTab's bars per line past `systemsLayout` when `\defaultSystemsLayout` isn't written. */
+export const DEFAULT_BARS_PER_LINE = 3;
+
+/**
+ * How many bars the clip's line `line` (from 0) holds, or null when the clip doesn't set its own line
+ * breaks and lines fill by width.
+ */
+export function barsPerLine(clip: Clip, line: number): number | null {
+  const list = clip.systemsLayout ?? [];
+  if (list.length === 0 && clip.defaultSystemsLayout === undefined) return null;
+  return line < list.length ? list[line] : (clip.defaultSystemsLayout ?? DEFAULT_BARS_PER_LINE);
 }
 
 /** A stored clip, checked field by field; null when anything is off. */
@@ -729,5 +765,7 @@ export function parseClip(v: unknown): Clip | null {
   if (!optStrings(v.header)) return null;
   if (v.capo !== undefined && !isCapo(v.capo)) return null;
   if (!optBool(v.multiBarRests)) return null;
+  if (v.systemsLayout !== undefined && !(Array.isArray(v.systemsLayout) && v.systemsLayout.every(isBarsPerLine))) return null;
+  if (v.defaultSystemsLayout !== undefined && !isBarsPerLine(v.defaultSystemsLayout)) return null;
   return v as unknown as Clip;
 }
