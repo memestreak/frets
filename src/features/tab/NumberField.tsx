@@ -63,7 +63,11 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     if (typed !== null) set(typed);
   };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') settle();
+    // Enter takes the number and leaves the field, so Space plays again.
+    if (e.key === 'Enter') {
+      settle();
+      e.currentTarget.blur();
+    }
     else if (e.key === 'Escape') setDraft(null);
     else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();

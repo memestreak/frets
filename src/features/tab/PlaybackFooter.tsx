@@ -5,7 +5,7 @@
  * (from the cursor, else from the start), Loop (sets the loop points), Speed, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Clip } from './clip';
 import { columnCount, placeOf } from './editing';
@@ -16,11 +16,11 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
 
-/** The saved playback settings: whether the controls show (hidden at first), the sound, the volume and the options. */
+/** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
 export interface PlaybackSettings extends PlaybackOptionValues {
-  /** Whether the controls show, from the small round button under the tab. */
+  /** Whether the controls show, from the small round button under the tab; shown until it is pressed. */
   shown: boolean;
   /** The General MIDI program the clip plays in. */
   sound: Sound;
@@ -39,7 +39,7 @@ export const MAX_TRANSPOSE = 12;
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
   const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
   return {
-    shown: fields.shown === true,
+    shown: fields.shown !== false,
     sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
     hearNotes: fields.hearNotes === true,
@@ -276,6 +276,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
 }) {
   // Where the options menu opened; null while it is shut.
   const [optionsAt, setOptionsAt] = useState<{ x: number; y: number } | null>(null);
+  const row = useRef<HTMLDivElement>(null);
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
   const total = columnCount(clip);
@@ -285,8 +286,9 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
     ? 'Loop the selected notes'
     : loop ? 'Clear the loop points' : 'Loop the whole clip (select notes to loop just those)';
   const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Stop' : 'Play';
+  useReleaseFocusOnPressOutside(row);
   return (
-    <div className="tab-playback-row">
+    <div className="tab-playback-row" ref={row}>
       {/* The divider: the button at its left end, the line (only with the controls) just short of it. */}
       <div className="tab-playback-rule">
         <button
@@ -352,7 +354,11 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           </div>
           <label className="tab-sound">
             <span className="text-(--ink-muted)">Sound</span>
-            <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
+            <select className="input" aria-label="Sound" value={sound} onChange={e => {
+              onSound(Number(e.target.value));
+              // A sound picked, the list lets go of the focus, so Space plays again (Jeremy, 2026-10-28).
+              e.currentTarget.blur();
+            }}>
               {SOUND_FAMILIES.map(([family, sounds]) => (
                 <optgroup key={family} label={family}>
                   {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
@@ -368,6 +374,25 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
       )}
     </div>
   );
+}
+
+/**
+ * A press outside the footer takes the focus off its field or Sound list, so Space plays again
+ * (Jeremy, 2026-10-28). The browser does this itself, except on a press the tab keeps from taking
+ * the focus (placing the playback line, or blank space), which left the list focused.
+ */
+function useReleaseFocusOnPressOutside(row: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const onPress = (e: PointerEvent) => {
+      const focused = document.activeElement;
+      const footer = row.current;
+      if (!footer || !(focused instanceof HTMLElement) || !footer.contains(focused)) return;
+      if (footer.contains(e.target as Node)) return;
+      focused.blur();
+    };
+    document.addEventListener('pointerdown', onPress, { capture: true });
+    return () => document.removeEventListener('pointerdown', onPress, { capture: true });
+  }, [row]);
 }
 
 /**
@@ -500,7 +525,7 @@ export function LoopHandles({ clip, width, parts, playback }: { clip: Clip; widt
   const loop = Array.isArray(playback.loop) ? playback.loop : null;
   if (!loop) return null;
   const layout = layoutClip(clip, width, parts);
-  const onMove = (e: PointerEvent<SVGRectElement>) => {
+  const onMove = (e: ReactPointerEvent<SVGRectElement>) => {
     if (!drag.current) return;
     const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
     // From screen pixels to the drawing's units, at any size the page draws it.

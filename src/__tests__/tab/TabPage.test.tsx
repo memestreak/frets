@@ -564,25 +564,24 @@ describe('TabPage playback', () => {
   const footer = () => screen.queryByRole('group', { name: 'Playback' });
   const toggle = () => screen.getByRole('button', { name: 'Playback controls' });
 
-  it('hides the playback footer at first, shows it on the small button under the tab, and remembers the choice', () => {
+  it('shows the playback footer at first, hides it on the small button under the tab, and remembers the choice', () => {
     renderAt();
-    expect(footer()).toBeNull();
-    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
-    cleanup();
-    renderAt();
-    expect(footer()).not.toBeNull();
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, sound: 25, volume: 1 });
+    cleanup();
+    renderAt();
+    expect(footer()).toBeNull();
+    fireEvent.click(toggle());
+    expect(footer()).not.toBeNull();
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
   });
 
   it('shows neither the toggle nor the controls in the text views', () => {
     renderAt();
-    fireEvent.click(toggle());
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.queryByRole('button', { name: 'Playback controls' })).toBeNull();
     expect(footer()).toBeNull();
@@ -592,7 +591,6 @@ describe('TabPage playback', () => {
 
   it('picks the sound at the end of the controls, and remembers it', () => {
     renderAt();
-    fireEvent.click(toggle());
     const sound = screen.getByRole('combobox', { name: 'Sound' });
     expect(sound).toHaveValue('25');
     fireEvent.change(sound, { target: { value: '0' } });
@@ -604,7 +602,6 @@ describe('TabPage playback', () => {
 
   it('turns the volume knob with the arrow keys, and remembers it', () => {
     renderAt();
-    fireEvent.click(toggle());
     const knob = screen.getByRole('slider', { name: 'Volume' });
     expect(knob).toHaveAttribute('aria-valuenow', '100');
     fireEvent.keyDown(knob, { key: 'ArrowDown' });
@@ -618,7 +615,6 @@ describe('TabPage playback', () => {
 
   it('opens the playback options on a right-click on Play, and remembers them', () => {
     renderAt();
-    fireEvent.click(toggle());
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Play' }), { clientX: 40, clientY: 40 });
     const stop = screen.getByRole('menuitemcheckbox', { name: 'Stop leaves the cursor where it stopped' });
     const pause = screen.getByRole('menuitemcheckbox', { name: 'Pause between loops' });
@@ -647,7 +643,6 @@ describe('TabPage playback', () => {
 
   it('transposes playback from the field after Speed, and a double-click puts it back to 0', () => {
     renderAt();
-    fireEvent.click(toggle());
     const transpose = screen.getByRole('spinbutton', { name: 'Transpose (semitones)' });
     expect(transpose).toHaveValue('0');
     fireEvent.click(screen.getByRole('button', { name: 'Transpose up' }));
@@ -665,7 +660,6 @@ describe('TabPage playback', () => {
 
   it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
     renderAt();
-    fireEvent.click(toggle());
     const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
     expect(field).toHaveValue('100');
     fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
@@ -689,7 +683,6 @@ describe('TabPage playback', () => {
 
   it('turns "Hear notes as you enter them" on and off, and remembers it', () => {
     renderAt();
-    fireEvent.click(toggle());
     const ear = screen.getByRole('button', { name: 'Hear notes as you enter them' });
     expect(ear).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(ear);
@@ -701,7 +694,6 @@ describe('TabPage playback', () => {
 
   it('resets the speed to 100% on a double-click on its label, number or bpm, not its step buttons', () => {
     renderAt();
-    fireEvent.click(toggle());
     const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
     const faster = screen.getByRole('button', { name: 'Faster' });
     fireEvent.click(faster);
@@ -758,7 +750,6 @@ describe('TabPage playback', () => {
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
     renderAt();
-    fireEvent.click(toggle());
     expect(screen.queryByRole('slider', { name: 'Position' })).toBeNull();
     const loop = () => screen.getByRole('button', { name: 'Loop' });
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
@@ -785,7 +776,6 @@ describe('TabPage playback', () => {
 
   it('plays on Space anywhere on the page while the footer shows, but not in a field', () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
-    fireEvent.click(toggle());
     act(() => screen.getByRole('spinbutton', { name: 'Speed (percent)' }).focus());
     fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (percent)' }), { key: ' ' });
     expect(screen.queryByRole('button', { name: /Loading the sound|Stop/ })).toBeNull();
@@ -794,8 +784,31 @@ describe('TabPage playback', () => {
     expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
   });
 
+  it('lets go of the focus after a sound is picked, after Enter in a field, and on a press on the tab', () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    const sound = screen.getByRole('combobox', { name: 'Sound' });
+    act(() => sound.focus());
+    fireEvent.change(sound, { target: { value: '0' } });
+    expect(sound).not.toHaveFocus();
+
+    const speed = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    act(() => speed.focus());
+    fireEvent.change(speed, { target: { value: '80' } });
+    fireEvent.keyDown(speed, { key: 'Enter' });
+    expect(speed).not.toHaveFocus();
+    expect(speed).toHaveValue('80');
+
+    // The tab keeps a press above the staff from taking the focus; the list still lets go of it.
+    act(() => sound.focus());
+    fireEvent.pointerDown(screen.getByRole('textbox', { name: /Tab editor/ }));
+    expect(sound).not.toHaveFocus();
+    fireEvent.keyDown(document.body, { key: ' ' });
+    expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    fireEvent.click(toggle());
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: ' ' });
