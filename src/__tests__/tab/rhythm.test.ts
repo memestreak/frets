@@ -283,7 +283,7 @@ describe('time signature changes', () => {
     expect([b0.timeX, b2.timeX]).toEqual([null, null]);
     expect(b1.timeX).not.toBeNull();
     expect(b1.x1 - b1.x0).toBeGreaterThan(b2.x1 - b2.x0);
-    const middle = (layout.rows.staffTop + layout.rows.staffBottom) / 2;
+    const middle = (layout.systems[0].rows.staffTop + layout.systems[0].rows.staffBottom) / 2;
     expect(textAt(layout, b1.timeX!, middle)).toEqual({ kind: 'time', bar: 1 });
     expect(textAt(layout, layout.systems[0].timeX!, middle)).toEqual({ kind: 'time', bar: 0 });
   });

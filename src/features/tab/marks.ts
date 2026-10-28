@@ -4,7 +4,7 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { BEND_LABEL_STEP, BEND_RISE, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
+import { BEND_LABEL_STEP, BEND_RISE, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
 import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
@@ -72,7 +72,6 @@ const THIN_REACH = 8;
 
 /** Every picked-able mark on the tab and the box round it, in the tab's units, top line first. */
 export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
-  const { rows } = layout;
   const out: { hit: MarkHit; box: Box }[] = [];
   const previous = previousSpots(layout.systems);
   const bars = { bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) };
@@ -80,7 +79,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const raises = bendRaises(bars);
   const onStaff = staffMarks(layout);
   layout.systems.forEach((system, si) => {
-    const top = si * rows.height;
+    const { rows, top } = system;
     const add = (mark: DrawnMark, index: number, string: number | null, x0: number, y0: number, x1: number, y1: number, to?: number) => {
       out.push({ hit: { kind: 'mark', mark, index, string, ...(to === undefined ? {} : { to }) }, box: { x: x0, y: top + y0, width: x1 - x0, height: y1 - y0 } });
     };
@@ -173,11 +172,10 @@ const NUMBER_REACH = { x: 7, y: 7 };
  * note wins). Where marks overlap, the smallest box wins: it is the one aimed at.
  */
 export function markAt(layout: Layout, x: number, y: number): MarkHit | null {
-  const { rows } = layout;
-  const si = Math.floor(y / rows.height);
-  const system = layout.systems[si];
-  if (!system || y < 0) return null;
-  const localY = y - si * rows.height;
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
   const onNumber = rows.tab && system.bars.some(bar => bar.columns.some(c => Math.abs(c.x - x) <= NUMBER_REACH.x
     && c.column.notes.some((n, s) => n && Math.abs(stringY(rows, s) - localY) <= NUMBER_REACH.y)));
   // A note head on the staff is the note too.

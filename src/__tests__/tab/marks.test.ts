@@ -42,7 +42,7 @@ describe('markAt', () => {
     const clip = clipOf('7.3{b (0 4)}.4 r.4 r.2 |');
     const layout = layoutClip(clip, WIDTH);
     const x = layout.systems[0].bars[0].columns[0].x;
-    expect(markAt(layout, x, stringY(layout.rows, 2))).toBeNull();
+    expect(markAt(layout, x, stringY(layout.systems[0].rows, 2))).toBeNull();
   });
 
   it('finds a join on the note it arrives at', () => {

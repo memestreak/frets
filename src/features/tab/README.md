@@ -14,7 +14,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   golden input and output pairs for the spellings it forgives, see its
   README), `layout.ts` (pure: where systems,
   bars and columns go at a width, and `rowsFor`, the rows over the staff,
-  each there only when the clip uses it;
+  each there only when that line uses it, each system with its own `rows` and `top`, `lineAt` finding the line under a y
+  (`docs/specs/2026-10-28-tab-line-spacing-design.md`);
   `docs/specs/2026-10-26-tab-note-marks-design.md`; with it, all pure on its layout: `layoutText.ts`,
   the words over the tab and the signatures, their boxes and presses on them; `hitTest.ts`, what
   any other press is on and where the cursor is drawn; `runs.ts`, marks over runs of columns and

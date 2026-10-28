@@ -20,7 +20,7 @@ describe('staffMarks', () => {
     // A low note: its stem goes up, so the marks go under it.
     const layout = layoutClip(clipOf('3.6{ac st}.4 r.4 r.2 |'), WIDTH, 'both');
     const [staccato, accent] = staffMarks(layout)[0];
-    const head = stepY(layout.rows.score!, layout.systems[0].bars[0].columns[0].heads[0].step);
+    const head = stepY(layout.systems[0].rows.score!, layout.systems[0].bars[0].columns[0].heads[0].step);
     expect(staccato.kind).toBe('staccato');
     expect(accent.kind).toBe('accent');
     expect(staccato.box.y).toBeGreaterThan(head);
@@ -60,7 +60,7 @@ describe('the tab\'s rows with the staff shown', () => {
   const clip = clipOf('3.3{v ac}.4 3.3{pm}.4 3.3{ph}.4 r.4 |');
 
   it('draw vibrato on both, leave accents to the staff, and keep P.M. and P.H. between the two', () => {
-    const { rows } = layoutClip(clip, WIDTH, 'both');
+    const { rows } = layoutClip(clip, WIDTH, 'both').systems[0];
     expect(rows.vibrato).toBeLessThan(rows.staffTop);
     expect(rows.accents).toBeNull();
     expect(rows.palmMute).toBeGreaterThan(rows.score!.bottom);
@@ -68,7 +68,7 @@ describe('the tab\'s rows with the staff shown', () => {
   });
 
   it('keep P.M. and P.H. under the staff alone', () => {
-    const { rows } = layoutClip(clip, WIDTH, 'staff');
+    const { rows } = layoutClip(clip, WIDTH, 'staff').systems[0];
     expect(rows.palmMute).toBeGreaterThan(rows.score!.bottom);
     expect(rows.harmonics).not.toBeNull();
   });
@@ -84,6 +84,6 @@ describe('picking a mark on the staff', () => {
     expect(hit).toMatchObject({ mark: 'legato', index: 1, string: 2, on: 'staff' });
     expect(markBox(layout, hit!)).toEqual(slur.box);
     const placed = layout.systems[0].bars[0].columns[1];
-    expect(markAt(layout, placed.x, stepY(layout.rows.score!, placed.heads[0].step))).toBeNull();
+    expect(markAt(layout, placed.x, stepY(layout.systems[0].rows.score!, placed.heads[0].step))).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
  * columns, and where the cursor is drawn. Pure; works on a `layoutClip` layout.
  */
 
-import { HEAD_WIDTH, type Layout, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
+import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
 export interface Hit {
@@ -72,11 +72,12 @@ export interface StaffDrag {
  * the bar and the line or space pressed, up to two ledger lines past the staff. Null anywhere else.
  */
 export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
-  const { rows } = layout;
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
   const score = rows.score;
-  const system = layout.systems[Math.floor(y / rows.height)];
-  if (!score || !system || y < 0) return null;
-  const localY = y - Math.floor(y / rows.height) * rows.height;
+  if (!score) return null;
   // A drawn head is pressed wherever it is, on ledger lines far under the staff too (Jeremy, 2026-10-28):
   // the gap left for the playback line is only the blank space there.
   const head = staffHeadAt(system, score, x, localY);
@@ -98,11 +99,11 @@ export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
 
 /** The column and string a press on the tab lands on; null anywhere else. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
-  const { rows } = layout;
-  const system = layout.systems[Math.floor(y / rows.height)];
-  if (!system || y < 0) return null;
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
   if (!rows.tab) return null;
-  const localY = y - Math.floor(y / rows.height) * rows.height;
   // Only the staff itself, as far as the cursor's band reaches: not the marks over it, the rhythm
   // under it, or the blank space beside the last bar.
   const above = rows.score ? TAB_REACH_UNDER_STAFF : STAFF_REACH;
@@ -138,8 +139,8 @@ export function columnAt(layout: Layout, x: number, y: number): number | null {
  * the column count. A Shift+press selects the columns between the playback line and this gap.
  */
 export function boundaryAt(layout: Layout, x: number, y: number): number | null {
-  const system = layout.systems[Math.floor(y / layout.rows.height)];
-  if (!system || y < 0) return null;
+  const system = lineAt(layout, y)?.system;
+  if (!system) return null;
   // Left of the line's first bar (over the clef, key and time signature): in front of its first column.
   const first = system.bars.find(b => b.columns.length > 0);
   if (first && x < system.bars[0].x0) return first.columns[0].index;

@@ -417,10 +417,9 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
   const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
   if (column === null && !loop && idleMark === null) return null;
-  const { rows } = layout;
   const out: ReactNode[] = [];
   layout.systems.forEach((system, si) => {
-    const y = si * rows.height;
+    const { rows, top: y } = system;
     const cols = system.bars.flatMap(b => b.columns);
     if (loop && under) {
       // The bracket, its ends a little taller: they are the handles `LoopHandles` drags.
@@ -497,7 +496,6 @@ function useHeardPosition(playback: Playback, active: boolean): HeardPosition | 
 
 /** Where the loop bracket is drawn on a system: its two ends and its height. */
 function loopBracket(layout: Layout, loop: [number, number]): { system: number; x0: number; x1: number; y: number; start: boolean; end: boolean }[] {
-  const { rows } = layout;
   const out: { system: number; x0: number; x1: number; y: number; start: boolean; end: boolean }[] = [];
   layout.systems.forEach((system, si) => {
     const inLoop = system.bars.flatMap(b => b.columns).filter(c => c.index >= loop[0] && c.index <= loop[1]);
@@ -508,7 +506,7 @@ function loopBracket(layout: Layout, loop: [number, number]): { system: number; 
       system: si,
       x0: first.start,
       x1: last.start + last.width,
-      y: si * rows.height + rows.loopY,
+      y: system.top + system.rows.loopY,
       start: first.index === loop[0],
       end: last.index === loop[1],
     });

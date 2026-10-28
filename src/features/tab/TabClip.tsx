@@ -151,12 +151,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
-  const onStaff = layout.rows.score ? staffMarks(layout) : null;
+  const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
   const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), legatoStarts: legatoStarts(clip) };
   const arcs = legatoArcs(layout.systems);
   const lastBar = clip.bars.length - 1;
-  const { rows } = layout;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
   const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
   return (
@@ -179,8 +178,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid={picked?.kind === 'mark' ? 'picked-mark' : 'picked-word'}
         />
       )}
-      {spot && highlight?.cursor && (
-        <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
+      {spot && highlight?.cursor && (() => {
+        const { rows, top } = layout.systems[spot.system];
+        return (
+        <g transform={`translate(0 ${top})`} data-testid="tab-cursor">
           {/* No band behind the cursor's column: only Shift's selection draws one (Jeremy, 2026-10-28). */}
           {/* While a run of columns is selected, only its band shows: no box follows the cursor (Jeremy, 2026-10-28). */}
           {!highlight.range && !highlight.columnOnly && rows.tab && (
@@ -197,9 +198,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             />
           )}
         </g>
-      )}
-      {layout.systems.map((system, si) => (
-        <g key={si} transform={`translate(0 ${si * rows.height})`} data-testid="tab-system">
+        );
+      })()}
+      {layout.systems.map((system, si) => {
+        const { rows } = system;
+        return (
+        <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
@@ -227,7 +231,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             return error ? <Warning key={`warning-${bar.index}`} x={bar.x0 + WARNING_INSET} y={y} text={error} /> : null;
           })}
         </g>
-      ))}
+        );
+      })}
     </svg>
   );
 }
@@ -259,7 +264,6 @@ function Warning({ x, y, text }: { x: number; y: number; text: string }) {
  * selected column there to the last, so it runs across the bar lines between them (Jeremy, 2026-10-26).
  */
 function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<typeof layoutClip>; range: [number, number] }) {
-  const { rows } = layout;
   return (
     <g data-testid="tab-selection">
       {layout.systems.map((system, si) => {
@@ -270,8 +274,8 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
         const x0 = first.start;
         return (
           <rect
-            key={si} x={x0} y={si * rows.height + rows.bandTop} width={last.start + last.width - x0}
-            height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)"
+            key={si} x={x0} y={system.top + system.rows.bandTop} width={last.start + last.width - x0}
+            height={system.rows.bandBottom - system.rows.bandTop} fill="var(--primary-soft)"
           />
         );
       })}

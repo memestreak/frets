@@ -4,7 +4,7 @@
  */
 
 import { STRING_COUNT, isLetRing, isPalmMuted, type Column, type Note } from './clip';
-import { type Layout, type PlacedColumn, type System } from './layout';
+import { type Layout, lineAt, type PlacedColumn, type System } from './layout';
 
 /** The vibrato waves of a line: one over each run of neighbouring columns with vibrato, wide where any note's is. */
 export function vibratoRuns(system: System) {
@@ -80,10 +80,10 @@ export function runsIn(system: System, has: (column: Column) => boolean): Run[] 
 
 /** The run under a point, label or line, with the mark it draws; null when there is none. */
 export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; run: Run } | null {
-  const { rows } = layout;
-  const system = layout.systems[Math.floor(y / rows.height)];
-  if (!system || y < 0) return null;
-  const localY = y - Math.floor(y / rows.height) * rows.height;
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
   for (const { mark, label, has } of RUN_MARKS) {
     const rowY = rows[mark];
     if (rowY === null || Math.abs(localY - rowY) > 7) continue;
