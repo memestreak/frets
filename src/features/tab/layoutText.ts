@@ -4,7 +4,7 @@
  */
 
 import { type Section, type Tempo } from './clip';
-import { type Layout, type PlacedBar, type System, chordWidth } from './layout';
+import { type Layout, lineAt, type PlacedBar, type System, chordWidth } from './layout';
 
 export const BEAT_TEXT_SIZE = 11;
 /** Free text starts a little left of its column's middle and runs right. */
@@ -89,11 +89,11 @@ export function endingSpans(system: System): { bar: number; n: number; x0: numbe
  * drawn. A picked word is outlined with it, and its Edit and Delete buttons go beside it.
  */
 export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
-  const { rows } = layout;
   const box = (s: number, rowY: number | null, x0: number, x1: number, height = 18) =>
-    rowY === null ? null : { x: x0 - 3, y: s * rows.height + rowY - height / 2, width: x1 - x0 + 6, height };
+    rowY === null ? null : { x: x0 - 3, y: layout.systems[s].top + rowY - height / 2, width: x1 - x0 + 6, height };
   for (let s = 0; s < layout.systems.length; s++) {
     const system = layout.systems[s];
+    const { rows } = system;
     if (hit.kind === 'capo') {
       if (!system.first || !capo) continue;
       return box(s, rows.capo, system.lineStart, system.lineStart + capoText(capo).length * 6.5);
@@ -112,7 +112,7 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     if (!('bar' in hit)) continue;
     if (hit.kind === 'ending') {
       const span = endingSpans(system).find(e => e.bar === hit.bar);
-      if (span && rows.endings !== null) return { x: span.x0 - 3, y: s * rows.height + rows.endings - 8, width: span.x1 - span.x0 + 6, height: 18 };
+      if (span && rows.endings !== null) return { x: span.x0 - 3, y: system.top + rows.endings - 8, width: span.x1 - span.x0 + 6, height: 18 };
       continue;
     }
     const bar = system.bars.find(b => b.index === hit.bar);
@@ -133,10 +133,10 @@ const TIME_REACH = 11;
 
 /** The chord name, section, tempo, capo or time signature under a point; null when there is none. */
 export function textAt(layout: Layout, x: number, y: number): TextHit | null {
-  const { rows } = layout;
-  const system = layout.systems[Math.floor(y / rows.height)];
-  if (!system || y < 0) return null;
-  const localY = y - Math.floor(y / rows.height) * rows.height;
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
   const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;
   if (system.first && near(rows.capo) && x >= system.lineStart - 2 && x <= system.lineStart + capoText(1).length * 6.5 + 8) {
     return { kind: 'capo', bar: 0 };

@@ -53,8 +53,8 @@ there only when the clip uses them, top to bottom:
 6. vibrato
 7. accents and staccato
 
-The staff moves down to make room. Every line of tab in a clip has the same
-rows, so the lines look alike. A clip with none of these marks is shorter
+The staff moves down to make room. Each line of tab has only the rows its
+own bars use (`docs/specs/2026-10-28-tab-line-spacing-design.md`). A clip with none of these marks is shorter
 than before, since its rows used to be there regardless. `rowsFor` in
 `layout.ts` works this out; drawing, hit testing and the exported image all
 read it. The second PR adds its rows (section, chord names) the same way.

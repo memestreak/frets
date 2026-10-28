@@ -5,7 +5,7 @@
 
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
-import { BEND_LABEL_STEP, BEND_RISE, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_RISE, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { type Spot } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type TabLook } from './tabLook';
@@ -202,7 +202,7 @@ function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
   );
   const label = line >= 0 && (
     <text
-      x={bend.pre ? x : x + 14} y={top - 9 - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink}
+      x={bend.pre ? x : x + 14} y={top - BEND_LABEL_RAISE - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink}
       stroke="none" textAnchor="middle" data-testid="bend-label"
     >
       {bendLabel(bend)}

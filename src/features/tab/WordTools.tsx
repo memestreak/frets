@@ -26,7 +26,6 @@ export function wordNow(clip: Clip, { kind, bar, column }: { kind: FieldKind; ba
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
 export function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
-  const { rows } = layout;
   // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
   const FIELD_WIDTH = kind === 'capo' || kind === 'ending' ? 150 : 180;
   // A tempo's field has two boxes, bpm and a label.
@@ -34,8 +33,9 @@ export function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, c
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
+    const { rows, top } = layout.systems[s];
     const row = { chord: rows.chords, text: rows.text, section: rows.section, tempo: rows.tempo, capo: rows.capo, ending: rows.endings }[kind];
-    const y = s * rows.height + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
+    const y = top + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
     // The capo is written at the start of the first line, over the time signature.
     const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
@@ -89,10 +89,9 @@ export const PANEL_DROP = 14;
  */
 export function barTimeSpot(clip: Clip, width: number, parts: Parts, bar: number): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
-  const bottom = layout.rows.score ? layout.rows.score.bottom : layout.rows.staffBottom;
-  for (let s = 0; s < layout.systems.length; s++) {
-    const placed = layout.systems[s].bars.find(b => b.index === bar);
-    if (placed) return { x: placed.x0, y: s * layout.rows.height + bottom + 12 };
+  for (const { bars, rows, top } of layout.systems) {
+    const placed = bars.find(b => b.index === bar);
+    if (placed) return { x: placed.x0, y: top + (rows.score ? rows.score.bottom : rows.staffBottom) + 12 };
   }
   return { x: 0, y: 0 };
 }

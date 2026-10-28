@@ -23,9 +23,10 @@ export function parseParts(saved: unknown): Parts {
 /* — vertical rows of one system, from its top — */
 
 /**
- * Where things go up and down in every system of a clip, in SVG units from the system's top. The
- * rows above the staff are there only when the clip uses them (null otherwise), each a line of its
- * own so marks never collide; the same rows go in every system, so the lines of tab look alike.
+ * Where things go up and down in one system (line) of a clip, in SVG units from the system's top. The
+ * rows above the staff are there only when the line uses them (null otherwise), each a line of its
+ * own so marks never collide. Each line has only its own rows, so a line without chord names or bends
+ * has no room left for them (Jeremy, 2026-10-28: "way too much vertical white space").
  */
 export interface Rows {
   /** "Capo 3" over the start of the first line. */
@@ -97,8 +98,13 @@ export const BEND_RISE = 26;
 export const BEND_LABEL_STEP = 11;
 /** The radius of a tap's circled T, over the staff and over its number on the tab. */
 export const TAP_RADIUS = 5.5;
+/** From the top of a bend's arrow down to its label's baseline: the label stands this far over the arrow. */
+export const BEND_LABEL_RAISE = 9;
 
-/** The rows a clip needs, top to bottom: the words over everything, the staff, the tab's marks, the tab. */
+/**
+ * The rows a clip (or one line of it, as `lineClip` makes) needs, top to bottom: the words over
+ * everything, the staff, the tab's marks, the tab.
+ */
 export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
   const tab = parts !== 'staff';
   const columns = clip.bars.flatMap(b => b.columns);
@@ -168,13 +174,14 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
   }
-  // A bend's arrow and label stand over the tab's top string, so the row before needs more room.
+  // A bend's arrow and label stand over the tab's top string: its label is a row of its own, ROW_GAP
+  // under the row before, with the arrow's rise and the label's place over the arrow under it.
   const bends = notes.some(n => n.bend);
   // Two strings bent in one column may stack two labels (`bendLabelLines`), and a bend pushed on up
   // stands a line higher (`bendRaises`).
   const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) || notes.some(n => n.bend?.from !== undefined)
     ? BEND_LABEL_STEP : 0;
-  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? BEND_RISE + 28 + stacked : 16));
+  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? ROW_GAP + BEND_RISE + BEND_LABEL_RAISE + stacked : 16));
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
   const tabStems = score === null;
@@ -309,6 +316,10 @@ export function multiRests(clip: Clip): Map<number, number> {
 
 export interface System {
   bars: PlacedBar[];
+  /** Where this line's rows are, from its own top: each line has only the rows it uses. */
+  rows: Rows;
+  /** The line's top within the whole drawing: the lines before it, one under another. */
+  top: number;
   /** Where the time signature's numbers are centred, on the first line of tab only. */
   timeX: number | null;
   /** Where the staff lines and the opening line start: after the time signature and the names, if any. "TAB" sits on the lines. */
@@ -320,10 +331,12 @@ export interface System {
   first: boolean;
 }
 
+/** A line before its rows are worked out, once the bars on it are known. */
+type LineDraft = Omit<System, 'rows' | 'top'>;
+
 export interface Layout {
   parts: Parts;
   systems: System[];
-  rows: Rows;
   height: number;
   /** Names to draw left of the strings, high string first, when the tuning isn't standard. */
   names: string[] | null;
@@ -434,13 +447,13 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   const rests = multiRests(clip);
   let run: { span: RestRun['span']; count: number; end: number; share: number } | null = null;
 
-  const systems: System[] = [];
+  const drafts: LineDraft[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
   let x = firstHead;
   const finish = () => {
-    const first = systems.length === 0;
-    systems.push({
+    const first = drafts.length === 0;
+    drafts.push({
       bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first,
     });
     current = [];
@@ -493,17 +506,38 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     if (inRun && index === run!.end) run = null;
   });
   finish();
-  justify(systems, width);
+  justify(drafts, width);
   // Each multi-bar rest's room, once the lines are spread.
-  for (const system of systems) {
+  for (const system of drafts) {
     for (const bar of system.bars) {
       if (bar.restRun?.first) bar.restRun.span.x0 = bar.x0;
       if (bar.restRun?.last) bar.restRun.span.x1 = bar.x1;
     }
   }
-  const reach = staffReach(clip, heads, staff);
-  const rows = rowsFor(clip, parts, reach);
-  return { parts, systems, rows, height: systems.length * rows.height, names };
+  // Each line gets the rows its own bars use, and the lines stack one under another.
+  let top = 0;
+  const systems = drafts.map((draft): System => {
+    const indices = draft.bars.map(b => b.index);
+    const rows = rowsFor(lineClip(clip, indices, draft.first), parts, staffReach(clip, heads, staff, indices));
+    const system = { ...draft, rows, top };
+    top += rows.height;
+    return system;
+  });
+  return { parts, systems, height: top, names };
+}
+
+/** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only on the first line. */
+export function lineClip(clip: Clip, bars: number[], first: boolean): Clip {
+  return { ...clip, capo: first ? clip.capo : undefined, bars: bars.map(i => clip.bars[i]) };
+}
+
+/** The line under a y in the whole drawing, and the y within it; null above or below the lines. */
+export function lineAt(layout: Layout, y: number): { si: number; system: System; localY: number } | null {
+  if (y < 0) return null;
+  const si = layout.systems.findIndex(s => y < s.top + s.rows.height);
+  if (si < 0) return null;
+  const system = layout.systems[si];
+  return { si, system, localY: y - system.top };
 }
 
 /**
@@ -513,7 +547,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
  * before it, so its bars match theirs, and never past the width; when it holds as many bars as that
  * line, it runs to the full width as well. Changes the systems in place.
  */
-function justify(systems: System[], width: number): void {
+function justify(systems: LineDraft[], width: number): void {
   let previous = 1;
   systems.forEach((system, si) => {
     const last = system.bars[system.bars.length - 1];
@@ -550,15 +584,15 @@ export const VIBRATO_CLEAR = 24;
 export const VIBRATO_OVER_MARKS = 17;
 /** From the top of everything else on the staff up to an octave line (or down, under it). */
 export const OTTAVA_CLEAR = 33;
-/** How far the clip's heads and stems reach above and below the staff, in steps. */
-function staffReach(clip: Clip, heads: Head[][][], marks: boolean): StaffReach {
+/** How far the heads and stems of the given bars (one line's) reach above and below the staff, in steps. */
+function staffReach(clip: Clip, heads: Head[][][], marks: boolean, bars: number[]): StaffReach {
   let high = 8;
   let low = 0;
   // Over every column, in steps: the vibrato's band, then an octave line over all of it.
   let vibrato = -Infinity;
   let ottavaAbove = false;
   let ottavaBelow = false;
-  heads.forEach((bar, i) => bar.forEach((column, k) => {
+  bars.forEach(i => heads[i].forEach((column, k) => {
     if (column.length === 0) return;
     const top = column[column.length - 1].step;
     const bottom = column[0].step;

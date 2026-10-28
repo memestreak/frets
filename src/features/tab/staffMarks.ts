@@ -60,12 +60,11 @@ function ink(mark: StaffMark): { top: number; bottom: number } {
 
 /** Every mark on the staff, line by line, in the line's own units (y from its top). */
 export function staffMarks(layout: Layout): StaffMark[][] {
-  const { rows } = layout;
-  const score = rows.score;
-  if (!score) return layout.systems.map(() => []);
-  const staffAlone = !rows.tab;
+  if (layout.parts === 'tab') return layout.systems.map(() => []);
+  const staffAlone = layout.parts === 'staff';
   const previous = previousHeads(layout.systems);
   return layout.systems.map((system, si) => {
+    const score = system.rows.score!;
     const out: StaffMark[] = [];
     const add = (hit: Hit, box: Box, mark: StaffShape) => {
       out.push({ ...mark, hit: { kind: 'mark', ...hit, on: 'staff' }, box });

@@ -92,7 +92,7 @@ describe('a press on the staff', () => {
       const layout = layoutClip(read.clip, 900, parts);
       const placed = layout.systems[0].bars[0].columns[0];
       const [low, high] = placed.heads;
-      const score = layout.rows.score!;
+      const score = layout.systems[0].rows.score!;
       expect(staffAt(layout, placed.x, stepY(score, high.step))).toEqual({ bar: 0, column: 0, step: high.step, string: 0 });
       expect(staffAt(layout, placed.x + 2, stepY(score, low.step) + 2)).toEqual({ bar: 0, column: 0, step: low.step, string: 3 });
       // The rest's column, on the top line.
@@ -100,7 +100,7 @@ describe('a press on the staff', () => {
       expect(staffAt(layout, rest.x + 1, stepY(score, 8) + 1)).toEqual({ bar: 0, column: 1, step: 8, string: null });
       // Not on the tab, and not far over the staff.
       expect(staffAt(layout, rest.x, stepY(score, 16))).toBeNull();
-      if (layout.rows.tab) expect(hitTest(layout, placed.x, stepY(score, high.step))).toBeNull();
+      if (layout.systems[0].rows.tab) expect(hitTest(layout, placed.x, stepY(score, high.step))).toBeNull();
     }
   });
 });
@@ -130,14 +130,14 @@ describe('time signatures with the staff shown', () => {
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const both = layoutClip(read.clip, 900, 'both');
     const x = both.systems[0].timeX!;
-    const score = both.rows.score!;
+    const score = both.systems[0].rows.score!;
     expect(textAt(both, x, (score.top + score.bottom) / 2)).toEqual({ kind: 'time', bar: 0 });
-    expect(textAt(both, x, stringY(both.rows, 2))).toBeNull();
+    expect(textAt(both, x, stringY(both.systems[0].rows, 2))).toBeNull();
     // After the clef, not in front of the lines as on the tab alone.
     expect(x).toBeGreaterThan(both.systems[0].keyX);
     const tab = layoutClip(read.clip, 900, 'tab');
     expect(tab.systems[0].timeX!).toBeLessThan(tab.systems[0].lineStart);
-    expect(textAt(tab, tab.systems[0].timeX!, stringY(tab.rows, 2))).toEqual({ kind: 'time', bar: 0 });
+    expect(textAt(tab, tab.systems[0].timeX!, stringY(tab.systems[0].rows, 2))).toEqual({ kind: 'time', bar: 0 });
   });
 });
 
@@ -150,7 +150,7 @@ describe('the clef', () => {
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const both = layoutClip(read.clip, 900, 'both');
-    const score = both.rows.score!;
+    const score = both.systems[0].rows.score!;
     expect(textAt(both, both.systems[0].lineStart + 12, (score.top + score.bottom) / 2)).toEqual({ kind: 'key', bar: 0 });
   });
 });
