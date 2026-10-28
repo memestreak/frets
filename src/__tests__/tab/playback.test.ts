@@ -169,7 +169,7 @@ describe('playback', () => {
     // alphaTab plays a whole run of legato slides on its first, picked note's MIDI key, so the
     // bent note is moved from that fret, not from the one just left (Hey Joe's 12 sl 14 sl 12 bent F).
     const clip = clipOf(text);
-    const played = perform(alphaTab, clip);
+    const played = plain(clip);
     const [from, to] = [tickOf(clip, played, 2), tickOf(clip, played, 4)];
     // One picked G, which the slides and the bend move; the bend goes on the channel it sounds on,
     // not on alphaTab's second channel for bent notes, where nothing sounds.
