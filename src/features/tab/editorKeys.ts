@@ -5,11 +5,9 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { isRest, type Clip } from './clip';
-import {
-  clearNote, columnAt, columnCount, deleteColumns, indexOf, insertColumn, makeRest, MAX_FRET, moveColumn, noteAt, placeOf,
-  removeEmptyBar, selectedRange, setFret, stepDuration, type Cursor, type Selection, type Target,
-} from './editing';
-import type { WordHit } from './layout';
+import { clearNote, columnAt, columnCount, deleteColumns, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { makeRest, stepDuration } from './noteEdits';
+import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
 import { moveToString, stepPitch, toggleStaffNote } from './staffEntry';

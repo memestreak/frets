@@ -5,11 +5,9 @@
  * so a tip always names the key that does the same thing. Pure; no React.
  */
 import { type BendQuarters, type Clip, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
-import {
-  columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
-  makeRest, noteAt, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
-  toggleDoubleBar, toggleRepeatStart, toggleStroke, toggleTie, toggleTuplet, type MarkKind, type Target,
-} from './editing';
+import { columnAt, indexOf, noteAt, setDead, type Target } from './editing';
+import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTie, toggleTuplet, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'

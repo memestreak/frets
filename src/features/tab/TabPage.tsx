@@ -10,13 +10,14 @@ import { loadJson, saveJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import { clipReducer, initClipState, STORAGE_KEY } from './clipState';
-import {
-  clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, removeMark, setBarKey,
-  noteAt, pasteAt, placeOf, readTempo, runAround, selectedRange, setBarTime, setCapo, setChordName, setBeatText, setBend,
-  setEnding, setOttava, setTuplet, setSection, setTempo, START, type Cursor, type Selection,
-} from './editing';
+import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
+import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
+import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
-import { parseParts, PARTS, PARTS_KEY, RUN_MARKS, type Parts, type RunMark, type StaffHit, type TextHit, type WordHit } from './layout';
+import { parseParts, PARTS, PARTS_KEY, type Parts } from './layout';
+import { type StaffHit } from './hitTest';
+import { type TextHit, type WordHit } from './layoutText';
+import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
 import { pitchAtStep, stringAtPitch } from './staffEntry';

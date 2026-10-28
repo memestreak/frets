@@ -4,7 +4,8 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { bendCarries, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { BEND_RISE, previousSpots, SPACE, stepY, stringY, vibratoRuns, type Layout } from './layout';
+import { BEND_RISE, SPACE, stepY, stringY, type Layout } from './layout';
+import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';

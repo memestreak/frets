@@ -1,5 +1,8 @@
 import { readAscii } from '@/features/tab/ascii';
-import { boundaryAt, columnAt, columnWidth, hitTest, layoutClip, rowsFor, runAt, staffAt, textAt } from '@/features/tab/layout';
+import { columnWidth, layoutClip, rowsFor } from '@/features/tab/layout';
+import { boundaryAt, columnAt, hitTest, staffAt } from '@/features/tab/hitTest';
+import { textAt } from '@/features/tab/layoutText';
+import { runAt } from '@/features/tab/runs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';

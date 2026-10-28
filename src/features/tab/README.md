@@ -15,13 +15,17 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   README), `layout.ts` (pure: where systems,
   bars and columns go at a width, and `rowsFor`, the rows over the staff,
   each there only when the clip uses it;
-  `docs/specs/2026-10-26-tab-note-marks-design.md`) and `TabClip.tsx` (draws a layout as
+  `docs/specs/2026-10-26-tab-note-marks-design.md`; with it, all pure on its layout: `layoutText.ts`,
+  the words over the tab and the signatures, their boxes and presses on them; `hitTest.ts`, what
+  any other press is on and where the cursor is drawn; `runs.ts`, marks over runs of columns and
+  legato joins; `beams.ts`, which notes a beam joins) and `TabClip.tsx` (draws a layout as
   SVG, with the editor's cursor and selection), `marks.ts` (pure: where each
   drawn technique mark is, so a press picks it, and its palette tool;
   `docs/specs/2026-10-27-tab-pick-marks-design.md`), `clipState.ts` (the clip
-  with undo and redo), `editing.ts` (pure: the cursor, selection and every
-  edit, `normalize` keeping ties, hammer-ons and slides true, cut, copy
-  and paste at the cursor), `tools.ts` (the symbol palette's table, shared
+  with undo and redo), `editing.ts` (pure: the cursor, selection, frets and
+  the edits that add, move or remove columns and bars, `normalize` keeping ties, hammer-ons and
+  slides true, cut, copy and paste at the cursor; the palette's changes to notes are in
+  `noteEdits.ts`, to words and bars in `barEdits.ts`), `tools.ts` (the symbol palette's table, shared
   with the keys) and `TabPalette.tsx`, `BarTimePanel.tsx` with
   `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
   press on a drawn one or the palette; nothing in the header sets it),

@@ -2,7 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { removeMark } from '@/features/tab/editing';
+import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { markAt, markBox, markBoxes, markTool, type MarkHit } from '@/features/tab/marks';
 

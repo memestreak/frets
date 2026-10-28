@@ -3,11 +3,11 @@ import {
   beatTicks, bendCarries, columnAccent, columnMordent, isRest, legatoStarts, slideDirections, STRING_COUNT, timeAt, TREMOLO_VALUES, tupletGroups, tupletLabel,
   type Bend, type Clip, type Column, type Note, type TimeSignature,
 } from './clip';
-import {
-  barTextX, beamGroups, BEND_RISE, prettyChord, boundaryAt, endingSpans, CAPO_SIZE, capoText, charWidth, CHORD_SIZE, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, GRACE_SIZE, cursorSpot, hitTest, layoutClip, textBox, noteLabel, RUN_MARKS, runAt, runLabelWidth, runsIn,
-  SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, stringY, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit,
-  type Hit, staffAt, type StaffHit, type Parts, type PlacedBar, type PlacedColumn, type Rows, type RunMark, type Spot, type System, previousSpots, vibratoRuns, legatoArcs, type LegatoArc,
-} from './layout';
+import { BEND_RISE, prettyChord, charWidth, CHORD_SIZE, GRACE_SIZE, layoutClip, noteLabel, stringY, type Parts, type PlacedBar, type PlacedColumn, type Rows, type System } from './layout';
+import { beamGroups } from './beams';
+import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffHit } from './hitTest';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { MultiRest, StaffCursor, StaffDrawing } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';

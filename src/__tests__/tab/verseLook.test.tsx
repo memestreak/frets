@@ -9,8 +9,9 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import type { Clip } from '@/features/tab/clip';
-import { toggleDoubleBar } from '@/features/tab/editing';
-import { layoutClip, multiRests, MULTI_REST_WIDTH, prettyChord, vibratoRuns } from '@/features/tab/layout';
+import { toggleDoubleBar } from '@/features/tab/barEdits';
+import { layoutClip, multiRests, MULTI_REST_WIDTH, prettyChord } from '@/features/tab/layout';
+import { vibratoRuns } from '@/features/tab/runs';
 import { TabClip } from '@/features/tab/TabClip';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);

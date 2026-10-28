@@ -9,10 +9,12 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
   barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, tupletGroups, unevenMessage, WHOLE, type Clip,
 } from '@/features/tab/clip';
-import {
-  copyText, cycleTremolo, moveColumn, pasteAt, setBarTime, setTremolo, setTuplet, sliceClip, toggleGrace, toggleTuplet, type Cursor,
-} from '@/features/tab/editing';
-import { beamGroups, layoutClip, textAt } from '@/features/tab/layout';
+import { copyText, moveColumn, pasteAt, sliceClip, type Cursor } from '@/features/tab/editing';
+import { setBarTime } from '@/features/tab/barEdits';
+import { cycleTremolo, setTremolo, setTuplet, toggleGrace, toggleTuplet } from '@/features/tab/noteEdits';
+import { layoutClip } from '@/features/tab/layout';
+import { beamGroups } from '@/features/tab/beams';
+import { textAt } from '@/features/tab/layoutText';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, toolForKey } from '@/features/tab/tools';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);

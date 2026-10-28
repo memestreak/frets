@@ -10,7 +10,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { legatoStarts, type Clip } from '@/features/tab/clip';
-import { removeMark } from '@/features/tab/editing';
+import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
 import { perform } from '@/features/tab/playback';
