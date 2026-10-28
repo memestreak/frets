@@ -5,7 +5,9 @@
  * pull-off leaves from it; a tied note is named when a slide leaves from it or under a mordent; and
  * mordents are read, written, drawn, set from the palette and played. Round 5
  * (docs/specs/2026-10-28-tab-sweet-child-solo-three-design.md): a tied note is named under vibrato, a
- * grace note bent up has no second number, and a tuplet no beam joins is bracketed.
+ * grace note bent up has no second number, and a tuplet no beam joins is bracketed. Round 6
+ * (docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md): every tuplet is bracketed, a let-down
+ * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -127,7 +129,7 @@ describe('a tied note under a staff', () => {
   });
 });
 
-describe('a tuplet\'s bracket on the tab alone', () => {
+describe('a tuplet\'s bracket on the tab alone (issue #179)', () => {
   const brackets = (text: string) => {
     const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="tab" title="Tuplets" />);
     return container.querySelectorAll('[data-testid="tuplet-bracket"]').length;
@@ -137,7 +139,49 @@ describe('a tuplet\'s bracket on the tab alone', () => {
     expect(brackets('\\ts (4 4)\n11.1.4{tu 3} 12.1.4{tu 3} 14.1.4{tu 3} r.2 |\n')).toBe(1);
   });
 
-  it('is left out under eighth-note triplets one beam joins', () => {
-    expect(brackets('\\ts (4 4)\n11.3.8{tu 3} 12.3.8{tu 3} 14.3.8{tu 3} r.4 r.2 |\n')).toBe(0);
+  it('is drawn under eighth-note triplets one beam joins too, as Guitar Pro prints them', () => {
+    expect(brackets('\\ts (4 4)\n11.3.8{tu 3} 12.3.8{tu 3} 14.3.8{tu 3} r.4 r.2 |\n')).toBe(1);
+  });
+});
+
+describe('the wah', () => {
+  const TEXT = '10.2.8{wahc} 8.1.8{waho} r.4 r.2 |\n';
+
+  it('is read and written back, with no warnings', () => {
+    const result = readAlphaTexWith(alphaTab, TEXT);
+    expect(result.ok && result.warnings).toEqual([]);
+    const clip = clipOf(TEXT);
+    expect(clip.bars[0].columns.slice(0, 2).map(c => c.wah)).toEqual(['closed', 'open']);
+    expect(writeAlphaTex(clip)).toContain('10.2.8{wahc} 8.1.8{waho}');
+  });
+
+  it('draws + and o over the music in every view, as the book prints bars 127–130', () => {
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const { container } = render(<TabClip clip={clipOf(TEXT)} width={900} parts={parts} title="Wah" />);
+      const signs = [...container.querySelectorAll('[data-testid="wah"]')].map(e => e.tagName.toLowerCase());
+      expect(signs).toEqual(['path', 'circle']);
+    }
+  });
+
+  it('is set from the palette (closed, open, then off) and picked to light its tool and be deleted', () => {
+    const target = { cursor: { bar: 0, column: 0, string: 1 }, selection: null };
+    const closed = applyTool(clipOf('10.2.8 r.8 r.4 r.2 |\n'), target, 'wah');
+    expect(closed.bars[0].columns[0].wah).toBe('closed');
+    expect(isOn(closed, target.cursor, 'wah')).toBe(true);
+    const open = applyTool(closed, target, 'wah');
+    expect(open.bars[0].columns[0].wah).toBe('open');
+    expect(applyTool(open, target, 'wah').bars[0].columns[0].wah).toBeUndefined();
+    const hit = markBoxes(layoutClip(open, 900, 'both')).find(m => m.hit.mark === 'wah')!.hit;
+    expect(markTool(open, hit)).toBe('wah');
+    expect(removeMark(open, hit).bars[0].columns[0].wah).toBeUndefined();
+  });
+});
+
+describe('a let-down note that slides out', () => {
+  it('is named within the bar under a staff, as the book prints bar 120\'s "(15)"', () => {
+    const text = '\\ts (4 4)\nr.4 r.8 15.1{b (0 4)}.8 -.1{b (4 4)}.8 -.1{b (4 0) sod}.8 r.4 |\n';
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Slide out" />);
+    const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent).filter(n => /\d/.test(n ?? ''));
+    expect(numbers).toEqual(['15', '(15)']);
   });
 });

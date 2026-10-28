@@ -81,6 +81,16 @@ export function cycleTremolo(clip: Clip, target: Target): Clip {
   return changeColumns(clip, target, column => (next ? { ...column, tremolo: next } : without(column, 'tremolo')));
 }
 
+/** The wah on the target columns, stepping from the cursor column's: closed, open, then off. */
+export function cycleWah(clip: Clip, target: Target): Clip {
+  const now = columnAt(clip, target.cursor)?.wah;
+  const next = now === undefined ? 'closed' : now === 'closed' ? 'open' : undefined;
+  return changeColumns(clip, target, column => {
+    const rest = without(column, 'wah');
+    return next ? { ...rest, wah: next } : rest;
+  });
+}
+
 /** A pick or strum stroke on the target columns; the same stroke again clears it. */
 export function toggleStroke(clip: Clip, target: Target, stroke: 'down' | 'up'): Clip {
   const on = columnAt(clip, target.cursor)?.stroke !== stroke;
@@ -194,6 +204,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'staccato': return changeNotes(clip, wholeColumn, n => without(n, 'staccato'));
     case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
+    case 'wah': return changeColumns(clip, wholeColumn, c => without(c, 'wah'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
     case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));

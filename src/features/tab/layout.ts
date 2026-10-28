@@ -36,6 +36,8 @@ export interface Rows {
   section: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
+  /** The wah's "+" (closed) and "o" (open), over the chord names as Guitar Pro prints them. */
+  wah: number | null;
   /** Chord names over their columns. */
   chords: number | null;
   /** Free text over its column (alphaTex txt). */
@@ -104,6 +106,7 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     chords: columns.some(c => c.chord),
     text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
+    wah: columns.some(c => c.wah),
     // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
     // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
     strokes: columns.some(c => c.stroke),
@@ -130,6 +133,7 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     tempo: row(used.tempo),
     section: row(used.section, true),
     endings: row(used.endings),
+    wah: row(used.wah),
     chords: row(used.chords),
     text: row(used.text),
   };
@@ -263,7 +267,7 @@ export const MULTI_REST_WIDTH = 300;
 function plainRest(bar: Bar): boolean {
   if (bar.columns.length !== 1 || bar.ending !== undefined || bar.extra?.length) return false;
   const c = bar.columns[0];
-  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.extra?.length;
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.extra?.length;
 }
 
 /**

@@ -32,7 +32,7 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc']);
 /** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars and multi-bar rests. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'multibarrest']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
@@ -305,6 +305,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };
       if (beat.pickStroke === at.model.PickStroke.Down) column.stroke = 'down';
       if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
+      if (beat.wahPedal === at.model.WahPedal.Open) column.wah = 'open';
+      if (beat.wahPedal === at.model.WahPedal.Closed) column.wah = 'closed';
       const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
       if (chord?.name) column.chord = chord.name;
       if (beat.text) column.text = beat.text;

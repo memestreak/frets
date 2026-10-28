@@ -34,17 +34,19 @@ describe('staffMarks', () => {
     ]);
   });
 
-  it('brackets a tuplet one beam doesn\'t join, and leaves a beamed one its number alone', () => {
+  it('brackets every tuplet, beamed or not, as Guitar Pro prints them (issue #179)', () => {
     // Quarter-note triplets (the book's bar 115), then eighth-note triplets under one beam (bar 117).
     const clip = clipOf('11.1.4{tu 3} 12.1.4{tu 3} 14.1.4{tu 3} r.4 11.3.8{tu 3} 12.3.8{tu 3} 14.3.8{tu 3} |');
     const layout = layoutClip(clip, WIDTH, 'both');
     const tuplets = staffMarks(layout)[0].filter(m => m.kind === 'tuplet');
-    expect(tuplets.map(m => m.kind === 'tuplet' && m.bracket !== null)).toEqual([true, false]);
-    const [quarters] = tuplets;
+    expect(tuplets).toHaveLength(2);
     const columns = layout.systems[0].bars[0].columns;
-    if (quarters.kind !== 'tuplet' || !quarters.bracket) throw new Error('no bracket');
+    const [quarters, eighths] = tuplets;
+    if (quarters.kind !== 'tuplet' || eighths.kind !== 'tuplet') throw new Error('not tuplets');
     expect(quarters.bracket.x0).toBeLessThan(columns[0].x);
     expect(quarters.bracket.x1).toBeGreaterThan(columns[2].x);
+    expect(eighths.bracket.x0).toBeLessThan(columns[4].x);
+    expect(eighths.bracket.x1).toBeGreaterThan(columns[6].x);
   });
 
   it('puts bends and taps on the staff only when it is alone', () => {

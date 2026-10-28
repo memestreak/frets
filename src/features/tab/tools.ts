@@ -7,7 +7,7 @@
 import { type BendQuarters, type Clip, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
 import { columnAt, indexOf, noteAt, setDead, type Target } from './editing';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTie, toggleTuplet, type MarkKind } from './noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTie, toggleTuplet, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
@@ -15,7 +15,7 @@ export type ToolId =
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
-  | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
+  | 'strokeDown' | 'strokeUp' | 'wah' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
   | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
 
@@ -89,6 +89,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'tap', label: 'Tap', key: 'T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
+      { id: 'wah', label: 'Wah: closed (+), open (o), then off', key: '' },
     ],
   },
   {
@@ -189,6 +190,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
     case 'dead': return setDead(clip, target.cursor);
     case 'strokeDown': return toggleStroke(clip, target, 'down');
     case 'strokeUp': return toggleStroke(clip, target, 'up');
+    case 'wah': return cycleWah(clip, target);
     case 'repeatStart': return toggleRepeatStart(clip, target.cursor);
     case 'repeatEnd': return cycleRepeatEnd(clip, target.cursor);
     case 'doubleBar': return toggleDoubleBar(clip, target.cursor);
@@ -272,6 +274,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'dead': return note?.fret === null;
     case 'strokeDown': return column?.stroke === 'down';
     case 'strokeUp': return column?.stroke === 'up';
+    case 'wah': return !!column?.wah;
     case 'repeatStart': return !!bar?.repeatStart;
     case 'repeatEnd': return !!bar?.repeatEnd;
     case 'doubleBar': return !!bar?.doubleBar;
@@ -292,12 +295,13 @@ export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): {
   /** The cursor column's duration while it is in a tuplet. */
   tuplet: Duration | null;
   ottava: Ottava | null;
+  wah: 'open' | 'closed' | null;
 } {
   const note = cursor ? noteAt(clip, cursor) : null;
   const duration = cursor ? columnAt(clip, cursor)?.duration : undefined;
   const column = cursor ? columnAt(clip, cursor) : undefined;
   return {
     bend: note?.bend?.quarters ?? null, vibrato: note?.vibrato ?? null, tuplet: duration?.tuplet ? duration : null,
-    ottava: column?.ottava ?? null,
+    ottava: column?.ottava ?? null, wah: column?.wah ?? null,
   };
 }
