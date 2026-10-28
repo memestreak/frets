@@ -23,7 +23,7 @@ import { pitchAtStep, stringAtPitch } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarTimePanel } from './BarTimePanel';
-import { useClipActions, type View } from './ClipActions';
+import { useClipActions } from './ClipActions';
 import { WordField, type FieldKind } from './WordField';
 import { barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
 import { TabClip } from './TabClip';
@@ -38,6 +38,7 @@ import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from '
 import { ScoreHead } from './ScoreHead';
 import { parseView, VIEW_KEY, type TabView } from './viewOptions';
 import { UNTITLED } from './ClipTitle';
+import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 import { useClipImport } from './useClipImport';
@@ -45,13 +46,9 @@ import { useWidth } from './useWidth';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
-const VIEWS: { id: View; label: string }[] = [
-  { id: 'tab', label: 'Notation' }, { id: 'ascii', label: 'ASCII Tab' }, { id: 'alphatex', label: 'AlphaTex' },
-];
 
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
-
 
 /**
  * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
@@ -90,7 +87,8 @@ export default function TabPage() {
    * null and hands them back. With the staff alone it is always there.
    */
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
-  const staffKeys = parts !== 'tab' && staffPitch !== null;
+  /** The staff cursor's pitch while it has the keys: never with the tab alone. */
+  const staffCursor = parts !== 'tab' ? staffPitch : null;
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
@@ -245,13 +243,9 @@ export default function TabPage() {
     if (playback.seek(index)) return;
     setPlayMark({ index, clip, cursor: cursorAsSet, selection: null });
   };
-  /**
-   * Off the tab (no string picked), the arrow keys work on the playback line, the footer shown or
-   * not (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
-   * made so), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
-   */
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
   const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip, cursor: cursorAsSet, selection: null });
+  // Off the tab, in the Notation view, the arrow keys and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
     if (view === 'tab') lineKeyDown(e, { count, line: markAt, selection, select: setSelection, placeLine });
   });
@@ -410,11 +404,10 @@ export default function TabPage() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffKeys ? staffPitch : null, lastDigit,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, lastDigit,
     commit, toPitch, setColumnOnly, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
-
 
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
@@ -462,12 +455,6 @@ export default function TabPage() {
     const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
     toPitch(left, at, pitch);
   };
-
-  /**
-   * The keys the staff cursor takes (issue #136): ↑ ↓ a line or space in the key, # and b a semitone,
-   * Enter adds or takes away the note at its pitch, Alt+↑ ↓ move that note to another string. True
-   * when the key was one of them.
-   */
 
   /**
    * The tab losing the focus leaves the cursor's bar, which fills up (Jeremy, 2026-10-27): a press
@@ -536,7 +523,6 @@ export default function TabPage() {
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
-
   // Paste anywhere on the page; copy and cut in the editor; undo and redo.
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
@@ -572,7 +558,6 @@ export default function TabPage() {
   const actions = useClipActions({
     clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
   });
-
 
   const name = clip.name.trim() || UNTITLED;
   /** A new title: one undo step, as any edit. */
@@ -660,7 +645,7 @@ export default function TabPage() {
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                       highlight={{
                         cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
-                        staffPitch: staffKeys ? staffPitch : null,
+                        staffPitch: staffCursor,
                       }}
                       picked={editing ? picked : null}
                       errors={barErrors(clip)}

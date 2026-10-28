@@ -10,9 +10,8 @@ import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
 import type { TabView } from './viewOptions';
+import type { View } from './views';
 import { ViewOptions } from './ViewOptions';
-
-export type View = 'tab' | 'alphatex' | 'ascii';
 
 /** How long after a press away closed a panel a click on its own button is that same press, not a new one. */
 const PRESSED_AWAY_MS = 500;

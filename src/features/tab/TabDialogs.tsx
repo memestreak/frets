@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { TAB_EXAMPLES, type TabExample } from './examples';
+import { TAB_FILE_TYPES } from './readTab';
 import { loadSamples } from './samples';
-
-/**
- * The files Import's Open file… offers, and a drop takes: text, and alphaTex's own extensions
- * (our download is `.alphatex.txt`; alphaTab's tools write `.atex` and `.alphatex`).
- */
-const TAB_FILE_TYPES = '.txt,.atex,.alphatex,.tex,text/plain';
-export const isTabFile = (f: File) => f.type.startsWith('text/') || /\.(txt|atex|alphatex|tex)$/i.test(f.name);
 
 export function ImportDialog({ open, onClose, onImport }: {
   open: boolean;

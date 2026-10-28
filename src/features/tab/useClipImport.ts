@@ -2,9 +2,8 @@ import { useEffect, useEffectEvent, type Dispatch } from 'react';
 import type { ClipAction } from './clipState';
 import { exampleById } from './examples';
 import type { Notice } from './notice';
-import { readTab } from './readTab';
+import { isTabFile, readTab } from './readTab';
 import { loadSamples, SAMPLE_PREFIX } from './samples';
-import { isTabFile } from './TabDialogs';
 
 const HASH = '#tab=';
 /** An example's link, /tab#example=bends; it stays in the address while the example is shown. */

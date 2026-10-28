@@ -19,3 +19,10 @@ export function looksLikeAscii(text: string): boolean {
 export async function readTab(text: string): Promise<ReadResult> {
   return looksLikeAscii(text) ? readAscii(text) : readAlphaTex(text);
 }
+
+/**
+ * The files Import's Open file… offers, and a drop takes: text, and alphaTex's own extensions
+ * (our download is `.alphatex.txt`; alphaTab's tools write `.atex` and `.alphatex`).
+ */
+export const TAB_FILE_TYPES = '.txt,.atex,.alphatex,.tex,text/plain';
+export const isTabFile = (f: File) => f.type.startsWith('text/') || /\.(txt|atex|alphatex|tex)$/i.test(f.name);
