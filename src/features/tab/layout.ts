@@ -36,7 +36,7 @@ export interface Rows {
   section: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
-  /** The wah's "+" (closed) and "o" (open), over the chord names as Guitar Pro prints them. */
+  /** The wah's "+" (closed) and "o" (open), under the chord names: no mark goes over them (Jeremy, 2026-10-28). */
   wah: number | null;
   /** Chord names over their columns. */
   chords: number | null;
@@ -93,6 +93,8 @@ const ROW_GAP = 15;
 const STAFF_HEADROOM = 30;
 /** How high a bend's arrow rises over the tab's top string, as Guitar Pro draws it. */
 export const BEND_RISE = 26;
+/** How far a bend's label stands above the arrow's top, per line of a stacked pair. */
+export const BEND_LABEL_STEP = 11;
 
 /** The rows a clip needs, top to bottom: the words over everything, the staff, the tab's marks, the tab. */
 export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 }): Rows {
@@ -133,9 +135,10 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     tempo: row(used.tempo),
     section: row(used.section, true),
     endings: row(used.endings),
-    wah: row(used.wah),
     chords: row(used.chords),
     text: row(used.text),
+    // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
+    wah: row(used.wah),
   };
   // The staff: room over its top line and under its bottom one for what reaches past them.
   let score: ScoreRows | null = null;
@@ -165,7 +168,9 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
   }
   // A bend's arrow and label stand over the tab's top string, so the row before needs more room.
   const bends = notes.some(n => n.bend);
-  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? BEND_RISE + 28 : 16));
+  // Two strings bent in one column may stack two labels (`bendLabelLines`).
+  const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) ? BEND_LABEL_STEP : 0;
+  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? BEND_RISE + 28 + stacked : 16));
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
   const tabStems = score === null;

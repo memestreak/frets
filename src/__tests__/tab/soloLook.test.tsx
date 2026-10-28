@@ -8,6 +8,9 @@
  * grace note bent up has no second number, and a tuplet no beam joins is bracketed. Round 6
  * (docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md): every tuplet is bracketed, a let-down
  * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
+ * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
+ * their heights' labels, the wah's row goes under the chord names, and a bend after a grace note rises
+ * by the grace note's number.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -15,7 +18,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { legatoStarts, type Clip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
-import { layoutClip } from '@/features/tab/layout';
+import { layoutClip, rowsFor } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
 import { perform } from '@/features/tab/playback';
 import { TabClip } from '@/features/tab/TabClip';
@@ -155,6 +158,14 @@ describe('the wah', () => {
     expect(writeAlphaTex(clip)).toContain('10.2.8{wahc} 8.1.8{waho}');
   });
 
+  it('goes under the chord names and every word over the music, nearest the notes (Jeremy, 2026-10-28)', () => {
+    const clip = clipOf('\\section "Solo" \\tempo 120 10.2.8{wahc ch "Em" txt "slow"} 8.1.8{waho} r.4 r.2 |\n');
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const rows = rowsFor(clip, parts);
+      expect(rows.wah).toBeGreaterThan(Math.max(rows.chords!, rows.text!, rows.section!, rows.tempo!));
+    }
+  });
+
   it('draws + and o over the music in every view, as the book prints bars 127–130', () => {
     for (const parts of ['both', 'tab', 'staff'] as const) {
       const { container } = render(<TabClip clip={clipOf(TEXT)} width={900} parts={parts} title="Wah" />);
@@ -183,5 +194,37 @@ describe('a let-down note that slides out', () => {
     const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Slide out" />);
     const numbers = [...container.querySelectorAll('[data-testid="tab-column"] text')].map(t => t.textContent).filter(n => /\d/.test(n ?? ''));
     expect(numbers).toEqual(['15', '(15)']);
+  });
+});
+
+describe('two strings bent at once (round 7, the book\'s bar 132)', () => {
+  const labelsOf = (text: string, parts: 'tab' | 'both' | 'staff') => {
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts={parts} title="Two bends" />);
+    const testid = parts === 'staff' ? 'staff-bend' : 'bend';
+    return [...container.querySelectorAll(`[data-testid="${testid}"] text`)].map(t => [t.textContent, Number(t.getAttribute('y'))] as const);
+  };
+
+  it('stack their heights, the top string\'s over the other\'s, on the tab and on the staff alone', () => {
+    for (const parts of ['both', 'staff'] as const) {
+      const labels = labelsOf('\\ts (4 4)\n(17.2{b (0 4)} 17.3{b (0 2)}).4 r.4 r.2 |\n', parts).sort((a, b) => a[1] - b[1]);
+      expect(labels.map(([text]) => text)).toEqual(['full', '½']);
+      expect(labels[1][1] - labels[0][1]).toBeGreaterThan(10);
+    }
+  });
+
+  it('label one height once when both strings bend as far', () => {
+    expect(labelsOf('\\ts (4 4)\n(15.1{b (0 4)} 15.2{b (0 4)}).4 r.4 r.2 |\n', 'tab').map(([text]) => text)).toEqual(['full']);
+  });
+});
+
+describe('a tied note bent up after a grace note, with no number of its own (round 7)', () => {
+  it('bends from the grace note\'s number, its dashed line running on over the tied note', () => {
+    const text = '\\ts (4 4)\n17.2.8{gr} -.2{b (0 4)}.4 r.4 r.2 |\n';
+    const { container } = render(<TabClip clip={clipOf(text)} width={800} parts="both" title="Grace bend" />);
+    const grace = Number(container.querySelector('[data-testid="grace"]')!.getAttribute('x'));
+    const bend = container.querySelector('[data-testid="bend"] path')!.getAttribute('d')!;
+    const start = Number(/^M([\d.]+)/.exec(bend)![1]);
+    expect(start - grace).toBeLessThan(10);
+    expect(container.querySelector('[data-testid="bend"] line[stroke-dasharray]')).not.toBeNull();
   });
 });

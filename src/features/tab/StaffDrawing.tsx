@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, type Clip, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { ACCIDENTAL_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { accidentalLanes, keySigns, STAFF_LINES } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
@@ -321,7 +321,7 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
     case 'line':
       return <line x1={mark.x0} y1={mark.y0} x2={mark.x1} y2={mark.y1} stroke={look.ink} strokeWidth={1.2} data-testid="staff-slide" />;
     case 'bend': {
-      const { x, y, top, bend } = mark;
+      const { x, y, top, bend, line } = mark;
       const head = (tx: number, ty: number, down = false) => (
         <path d={down ? `M${tx - 3.5} ${ty - 6} L${tx} ${ty} L${tx + 3.5} ${ty - 6}` : `M${tx - 3.5} ${ty + 6} L${tx} ${ty} L${tx + 3.5} ${ty + 6}`} fill={look.ink} />
       );
@@ -334,7 +334,11 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
           {head(peakX, top)}
           {bend.release && <path d={`M${peakX + 1} ${top} Q${peakX + 9} ${top} ${peakX + 9} ${y - 6}`} />}
           {bend.release && head(peakX + 9, y - 6, true)}
-          <text x={peakX} y={top - 4} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">{bendLabel(bend)}</text>
+          {line >= 0 && (
+            <text x={peakX} y={top - 4 - line * BEND_LABEL_STEP} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle">
+              {bendLabel(bend)}
+            </text>
+          )}
         </g>
       );
     }
