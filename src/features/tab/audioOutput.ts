@@ -19,6 +19,11 @@ class Emitter<T = void> {
   }
 }
 
+/**
+ * The synthesizer's sample rate. alphaTab reads it from the output before the output opens, so it
+ * is fixed; the AudioContext is made at the same rate, and the browser converts it for the speakers.
+ */
+const SAMPLE_RATE = 44100;
 /** Samples per channel the audio node asks for at a time. */
 const NODE_SIZE = 4096;
 /** About how many samples (both channels) one answer from the synthesizer holds. */
@@ -63,6 +68,8 @@ class SampleQueue {
  * The synthesizer's samples played through a ScriptProcessorNode (alphaTab's own fallback; an
  * AudioWorklet would need a script of its own served beside the page). The synthesizer fills a
  * queue of interleaved stereo samples; the node drains it and asks for more when it runs low.
+ * The AudioContext is made on the first play, not when the output opens, so the synthesizer can be
+ * made and its sounds loaded before any press (a browser only lets a context start after one).
  */
 export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   readonly ready = new Emitter();
@@ -83,20 +90,20 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private answeredEmpty = false;
 
   get sampleRate() {
-    return this.context?.sampleRate ?? 44100;
+    return SAMPLE_RATE;
   }
   open(bufferTimeInMilliseconds: number) {
-    this.context = new AudioContext();
     this.target = Math.max(NODE_SIZE * 2, Math.floor((bufferTimeInMilliseconds * this.sampleRate) / 1000)) * 2;
     this.ready.trigger();
   }
   activate() {
-    if (this.context?.state === 'suspended') void this.context.resume();
+    this.context ??= new AudioContext({ sampleRate: SAMPLE_RATE });
+    if (this.context.state === 'suspended') void this.context.resume();
   }
   play() {
+    this.activate();
     const context = this.context;
     if (!context) return;
-    this.activate();
     this.resetSamples();
     const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
     const gain = context.createGain();

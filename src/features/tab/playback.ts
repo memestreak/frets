@@ -294,8 +294,32 @@ function rangeWithoutSeek(synth: AlphaTabModule.synth.AlphaSynth, range: AlphaTa
 }
 
 /**
- * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Created on the first Play,
- * since an AudioContext may only start after a press.
+ * The samples of a soundfont the synthesizer holds, decoded one at a time with a pause between, so
+ * the page stays responsive (a sound's samples take seconds to decode in all: the piano's about 4).
+ * alphaTab decodes a sound's samples when a clip first uses it and keeps them, so a clip played
+ * after this finds them ready. The soundfont is the last one loaded; the synthesizer's list of them
+ * and the soundfont's own decoding are not in alphaTab's types (checked against the pinned 1.8.4).
+ */
+async function decodeLastSoundFont(synth: AlphaTabModule.synth.AlphaSynth) {
+  interface Soundfont {
+    sHdrs: { start: number; end: number; sampleType: number }[];
+    decodeSamples(startByte: number, endByte: number, decompressVorbis: boolean): Float32Array;
+  }
+  const fonts = (synth as unknown as { _loadedSoundFonts: Soundfont[] })._loadedSoundFonts;
+  const font = fonts[fonts.length - 1];
+  /** The sample type's bit for an Ogg Vorbis sample (an .sf3's), the only kind slow to decode. */
+  const VORBIS = 16;
+  for (const sample of font.sHdrs) {
+    if ((sample.sampleType & VORBIS) === 0) continue;
+    // The same arguments alphaTab decodes with, so it finds the samples under the same key.
+    font.decodeSamples(sample.start, sample.end, true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+
+/**
+ * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Made when the page opens,
+ * to load the sound in the background; its AudioContext starts on the first Play.
  */
 export class TabPlayer {
   private performance: Performance | null = null;
@@ -304,6 +328,8 @@ export class TabPlayer {
   private volume = 1;
   /** The sounds' own soundfonts loaded so far, by URL. */
   private readonly fonts = new Set<string>();
+  /** The sounds' own soundfonts loading, by URL: whoever wants one meanwhile waits for the same load. */
+  private readonly loading = new Map<string, Promise<void>>();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * The last column to play when no loop holds the playhead: "Stop playback at region end" with a
@@ -567,21 +593,49 @@ export class TabPlayer {
   }
 
   /**
-   * Fetches and loads a sound's own soundfont the first time it is wanted, alongside SONiVOX's. The
-   * view shows Loading meanwhile; loading pauses the synthesizer.
+   * Starts loading a sound's own soundfont in the background (Jeremy, 2026-10-28: the page shouldn't
+   * make you wait for the instrument), so a Play finds it ready. The view stays as it is.
+   */
+  preload(sound: Sound) {
+    const font = OWN_FONTS.find(f => f.program === sound);
+    if (font && !this.fonts.has(font.url)) this.fetchFont(font.url).catch(() => undefined);
+  }
+
+  /**
+   * Waits for a sound's own soundfont, loading it the first time it is wanted, alongside SONiVOX's.
+   * Any other soundfont still loading in the background is waited for too, since one landing pauses
+   * the synthesizer. The view shows Loading meanwhile. Whether it had to wait.
    */
   private async loadFont(sound: Sound): Promise<boolean> {
     const font = OWN_FONTS.find(f => f.program === sound);
-    if (!font || this.fonts.has(font.url)) return false;
+    const own = font && !this.fonts.has(font.url) ? this.fetchFont(font.url) : null;
+    const waiting = [...this.loading.values()];
+    if (waiting.length === 0) return false;
     this.onView({ state: 'loading' });
-    const response = await fetch(font.url);
-    if (!response.ok) {
-      this.onView({ state: 'error' });
-      throw new Error(`the sound didn't load (${response.status})`);
+    await Promise.allSettled(waiting);
+    if (own) {
+      await own.catch(error => {
+        this.onView({ state: 'error' });
+        throw error;
+      });
     }
-    this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
-    this.fonts.add(font.url);
     return true;
+  }
+
+  /** Fetches, loads and decodes a soundfont, unless it is loading already. */
+  private fetchFont(url: string): Promise<void> {
+    let loading = this.loading.get(url);
+    if (!loading) {
+      loading = (async () => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`the sound didn't load (${response.status})`);
+        this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
+        await decodeLastSoundFont(this.synth);
+        this.fonts.add(url);
+      })().finally(() => this.loading.delete(url));
+      this.loading.set(url, loading);
+    }
+    return loading;
   }
 
   /** Changes the sound; a clip playing goes on from where it is, in the new sound. */

@@ -32,9 +32,9 @@ The controls sit under that line:
   (below) as they were before Play, so with no cursor (played from the
   beginning) nothing shows (Jeremy, 2026-10-27; it had been a Pause that
   left the line where it stopped). A press on a note or Esc takes the line
-  away. The first Play
-  loads alphaTab and the soundfont, about 1 MB, and shows a spinner until
-  they are ready.
+  away. alphaTab, the soundfont and the chosen sound load in the background
+  when the page opens (`2026-10-28-tab-sound-preload-design.md`); a Play
+  before they are ready shows a spinner until they are.
 - **Loop.** It sets the loop points (Jeremy, 2026-10-26, replacing a
   progress line and a Loop that jumped to the loop's start). Pressed with
   notes selected, the loop points go round them, and a bracket under their
