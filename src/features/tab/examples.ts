@@ -437,12 +437,13 @@ export const TAB_EXAMPLES: TabExample[] = [
   {
     id: 'outro-solo',
     title: "Sweet Child O' Mine (outro solo)",
-    shows: 'A crescendo hairpin, an artificial harmonic, a dead note slid into a bend, pre-bends under the octave line, and a bend let down to "½" and pushed back up',
+    shows: 'The book\'s line breaks (\\systemsLayout), a crescendo hairpin, an artificial harmonic, a dead note slid into a bend, pre-bends under the octave line, and a bend let down to "½" and pushed back up',
     text: [
       '\\title "Sweet Child O\' Mine (outro solo)"',
       '\\artist "Guns N\' Roses"',
       '\\words "Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler"',
       '\\music "Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler"',
+      '\\systemsLayout (1 4 4)',
       '\\ts (4 4)',
       '\\tuning (D#4 A#3 F#3 C#3 G#2 D#2)',
       '\\ks G 7.3{h}.16{tu 6 ch "C5" wahc cre} 9.3{h}.16{tu 6 cre} 7.3{h}.16{tu 6 cre}',

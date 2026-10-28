@@ -37,7 +37,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { ScoreHead } from './ScoreHead';
-import { paletteOf, parseView, shownColours, VIEW_KEY, type ColourPair, type TabView } from './viewOptions';
+import { laidOut, paletteOf, parseView, shownColours, VIEW_KEY, type ColourPair, type TabView } from './viewOptions';
 import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
@@ -100,6 +100,8 @@ export default function TabPage() {
   // The View options' colours (Jeremy, 2026-10-28): the clip sits on a sheet of its background, and the
   // tokens the drawing and the text views use are set to its colours there. The theme's own need none.
   const colours = shownColours(shown);
+  // The clip as drawn: its own line breaks only when the view keeps them; edits still go to `clip`.
+  const drawn = laidOut(clip, shown);
   const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
@@ -719,7 +721,7 @@ export default function TabPage() {
             </>}
           <div className="relative">
             {/* Under the editor: the loop bracket. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (
                 <div
@@ -733,7 +735,7 @@ export default function TabPage() {
                   {/* A bar's warning explains itself on hover. */}
                   <HoverTips>
                     <TabClip
-                      clip={clip} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
+                      clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
@@ -756,30 +758,30 @@ export default function TabPage() {
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
             {/* The playhead's and the playback line's lines, over the selection's band. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
-            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={clip} width={clipWidth} parts={parts} playback={playback} />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
+            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={drawn} width={clipWidth} parts={parts} playback={playback} />}
             {view === 'tab' && editing && picked && clipWidth > 0 && (
               <WordTools
-                clip={clip} width={clipWidth} parts={parts} hit={picked}
+                clip={drawn} width={clipWidth} parts={parts} hit={picked}
                 onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
                 onDelete={() => deletePicked(picked)}
               />
             )}
             {view === 'tab' && word && clipWidth > 0 && (
               <WordField
-                key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(clip, clipWidth, parts, word)}
+                key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(drawn, clipWidth, parts, word)}
                 initial={wordNow(clip, word)} onDone={finishWord}
               />
             )}
             {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
               <BarKeyPanel
-                clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, keyBar))}
+                clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(drawn, clipWidth, parts, keyBar))}
                 onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
               />
             )}
             {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
               <BarTimePanel
-                clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(clip, clipWidth, parts, timeBar))}
+                clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(drawn, clipWidth, parts, timeBar))}
                 onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
               />
             )}

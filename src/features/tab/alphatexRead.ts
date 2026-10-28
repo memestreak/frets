@@ -10,7 +10,7 @@ import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata,
+  type NoteValue, type Fermata, isBarsPerLine,
 } from './clip';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -33,8 +33,14 @@ const NOTE_EFFECTS = new Set([
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata']);
-/** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars and multi-bar rests. */
+/**
+ * Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars,
+ * multi-bar rests, and the line breaks (`systemsLayout`, `defaultSystemsLayout`; read only when their values are
+ * ones Frets offers, else kept as written).
+ */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest']);
+/** The line-break tags, read when their values are good. */
+const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
 const CREDIT_TAGS = new Set(['artist', 'words', 'music']);
 /** Frets's fermata for each of alphaTab's FermataType values (Short, Medium, Long). */
@@ -268,6 +274,17 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   else warn(`Frets doesn't offer ${beats}/${value}; read as 4/4.`);
 
   const header: string[] = [];
+  // Line breaks, as alphaTab reads them into the score; a bad value is kept as written and named.
+  const firstTags = tree.bars[0]?.metaData.map(m => m.tag.tag.text.toLowerCase()) ?? [];
+  const layoutOk = new Set<string>();
+  if (firstTags.includes('systemslayout')) {
+    if (score.systemsLayout.length > 0 && score.systemsLayout.every(isBarsPerLine)) layoutOk.add('systemslayout');
+    else warn('\\systemsLayout takes whole numbers from 1, a line\'s bars each; kept as written but not used.');
+  }
+  if (firstTags.includes('defaultsystemslayout')) {
+    if (isBarsPerLine(score.defaultSystemsLayout)) layoutOk.add('defaultsystemslayout');
+    else warn('\\defaultSystemsLayout takes a whole number from 1; kept as written but not used.');
+  }
   const origins = new Map<Note, AtNote>();
   let timeNow = time;
   const bars: Bar[] = tree.bars.map((barNode, b) => {
@@ -305,6 +322,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     for (const meta of barNode.metaData) {
       const tag = meta.tag.tag.text.toLowerCase();
       if (TAGS.has(tag)) continue;
+      if (LAYOUT_TAGS.has(tag) && b === 0 && layoutOk.has(tag)) continue;
       if (b === 0 && CREDIT_TAGS.has(tag)) {
         header.push(written(text, meta));
         continue;
@@ -355,6 +373,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     bars: bars.length > 0 ? bars : [{ columns: [] }],
   };
   if (header.length > 0) clip.header = header;
+  if (layoutOk.has('systemslayout')) clip.systemsLayout = [...score.systemsLayout];
+  if (layoutOk.has('defaultsystemslayout')) clip.defaultSystemsLayout = score.defaultSystemsLayout;
   if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'multibarrest')) clip.multiBarRests = true;
   if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'capo') && staff.capo > 0) {
     clip.capo = Math.min(MAX_CAPO, staff.capo);

@@ -10,7 +10,7 @@ import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { TabClip } from './TabClip';
 import { type TabLook } from './tabLook';
-import { DEFAULT_VIEW, paletteOf, shownColours, type TabView } from './viewOptions';
+import { DEFAULT_VIEW, laidOut, paletteOf, shownColours, type TabView } from './viewOptions';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
 
@@ -120,7 +120,7 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 /** The image's size in pixels. */
 export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
-  const tab = layoutClip(clip, (style.width - 2 * PAD) / zoom, parts);
+  const tab = layoutClip(laidOut(clip, view), (style.width - 2 * PAD) / zoom, parts);
   return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title), zoom) };
 }
 
@@ -146,7 +146,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
         <HeadDrawing head={head} width={inner} ink={look.ink} />
       </g>
       <TabClip
-        clip={clip} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
+        clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
         x={PAD} y={PAD + headTop(head, zoom)}
       />
     </svg>

@@ -32,6 +32,12 @@ chords fit; fingerstyle with a bass line held under moving notes does not
     \capo <fret>                      optional; 1 to 12
     \multiBarRest                     optional; bars of rest in a row
                                       are drawn as one, with their count
+    \systemsLayout (<bars> <bars> ...) optional; how many bars each line
+                                      holds, first line first
+    \defaultSystemsLayout <bars>      optional; bars on each line past
+                                      the list (3 when only the list is
+                                      written). With neither, lines fill
+                                      the width.
     <bars>
 
 End each bar with "|". A line break is just a space: a bar may go on over
@@ -43,6 +49,13 @@ down 1/2 step" and each string when all six are tuned alike) and played;
 frets are frets in any tuning. With all six tuned alike (E-flat tuning is
 \tuning (D#4 A#3 F#3 C#3 G#2 D#2)) the staff is written as fingered, as if
 in standard tuning, as guitar books print it; otherwise as it sounds.
+
+With \systemsLayout or \defaultSystemsLayout, and the viewer's View options
+set to "Clip's line breaks" (off by default), the lines break as written:
+a line too full is squeezed, and wraps only when even that doesn't fit the
+screen (the next line in the list starts after it). A multi-bar rest counts
+as one bar. Bars are spaced by their notes; \scale and \width are kept but
+not used.
 
 
 2. BEATS AND NOTES
@@ -293,6 +306,7 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 
 1. Header: write \ts always; \title, \artist, \words, \music, \tuning and
    \capo only when the picture shows them ("Capo 3rd fret" is \capo 3);
+   \systemsLayout with each line's bar count to keep the picture's lines;
    \multiBarRest when a bar shows a thick bar across the staff with a
    number over it, which stands for that many bars of "r.1 |". A tuning like "D A D G B E" (low to high) is written high
    to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the

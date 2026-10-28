@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
+import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 
@@ -407,6 +407,15 @@ export function noteInset(column: Column): number {
   return minColumnWidth(column) / 2;
 }
 
+/** The least room a column takes on a line squeezed to fit: its numbers, and on the staff its heads and accidentals. */
+function leastWidth(column: Column, heads: Head[], staff: boolean): number {
+  if (!staff) return minColumnWidth(column);
+  const seconds = heads.some((h, k) => k > 0 && h.step - heads[k - 1].step === 1) ? HEAD_WIDTH : 0;
+  return Math.max(minColumnWidth(column), STAFF_LEAST) + signRoom(heads) + seconds;
+}
+/** A note head and a little room either side. */
+const STAFF_LEAST = 20;
+
 /** The least room a column's widest note needs. */
 function minColumnWidth(column: Column): number {
   const widest = Math.max(1, ...column.notes.map(n => (n ? noteLabel(n).length : 0)));
@@ -496,13 +505,25 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
   let x = firstHead;
+  // Where the line would end with every column at its least width: a line of the clip's own breaks
+  // wraps only when even that doesn't fit.
+  let xLeast = firstHead;
+  // The clip's own line breaks (`\systemsLayout`), if it sets them: the line of them being filled, and how
+  // many bars it still asks for. A line too wide for the width still wraps; what is left of it goes on the next.
+  const modelled = barsPerLine(clip, 0) !== null;
+  let modelLine = 0;
+  let wanted = barsPerLine(clip, 0) ?? 0;
+  // Whether each line holds all the bars it asks for: only the last may not, and it isn't run to the width.
+  const complete: boolean[] = [];
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
       bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first,
     });
+    complete.push(true);
     current = [];
     x = head;
+    xLeast = head;
   };
   clip.bars.forEach((bar, index) => {
     // A run of free-time bars shows the time signature again, in brackets, where it starts.
@@ -519,8 +540,14 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     let w = widthWith(keyChange);
     // A multi-bar rest goes on one line, whole: its first bar asks for the room of them all.
     const asks = count ? w + (count - 1) * run!.share + closing : inRun ? 0 : w;
-    if (current.length > 0 && x + asks > width) {
+    // A multi-bar rest counts as one bar of the clip's line breaks, as it is drawn as one.
+    const restOn = inRun && !count;
+    const lineFull = modelled && wanted <= 0 && !restOn;
+    const leastInner = inRun || bar.columns.length === 0 ? inner : bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0);
+    const overflows = modelled ? xLeast + (asks - inner + leastInner) > width : x + asks > width;
+    if (current.length > 0 && (lineFull || overflows)) {
       finish();
+      if (lineFull) wanted = barsPerLine(clip, ++modelLine)!;
       // A key change that starts a line is the line's own key signature, drawn once in front of it.
       keyChange = 0;
       w = widthWith(0);
@@ -528,7 +555,9 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     const lead = inRun && !count ? 0 : barLead(bar, timeChange, keyChange, freeStart);
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
-    const squeeze = bar.columns.length > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
+    // On a line of the clip's own breaks only a bar alone on its line is; `spreadLines` fits the rest.
+    const alone = !modelled || current.length === 0;
+    const squeeze = bar.columns.length > 0 && alone ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
     // A time signature change stands just inside the bar, after a repeat's dots; a key change after it.
     // On the notation staff the key change comes first, then the time signature.
     const inside = x0 + (bar.repeatStart ? REPEAT_PAD : 0);
@@ -546,14 +575,18 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       return placed;
     });
     if (squeeze < 1 && !inRun) w = cx - x0 + closing;
+    xLeast += (w - inner) + Math.min(inner, leastInner);
     x = x0 + w;
     const time = timeAt(clip, index);
     const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
     current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns, restRun });
     if (inRun && index === run!.end) run = null;
+    if (!restOn) wanted--;
   });
   finish();
-  justify(drafts, width);
+  complete[complete.length - 1] = wanted <= 0;
+  if (modelled) spreadLines(drafts, complete, width, staff);
+  else justify(drafts, width);
   // Each multi-bar rest's room, once the lines are spread.
   for (const system of drafts) {
     for (const bar of system.bars) {
@@ -640,6 +673,80 @@ function justify(systems: LineDraft[], width: number): void {
       bar.x1 += shift;
     }
   });
+}
+
+/**
+ * The lines of a clip that sets its own line breaks (`\systemsLayout`), run to the width with Frets' own
+ * spacing: each line's room after its fixed parts (clef, signatures, bar lines) goes to its bars in
+ * proportion to the room their notes take, as `justify` spreads a line, and a line too full is squeezed
+ * the same way, no bar below what its notes need (Jeremy, 2026-10-28: Frets' spacing over Guitar Pro's
+ * even shares by `\scale`, which is kept but not used). Within a bar, columns keep their proportions. A
+ * line holding fewer bars than it asks for (the last) is spread at the line before's rate, and never
+ * runs past the width. Changes the systems in place.
+ */
+function spreadLines(systems: LineDraft[], complete: boolean[], width: number, staff: boolean): void {
+  let previousRate = Infinity;
+  systems.forEach((system, si) => {
+    const bars = system.bars;
+    // A clip of one short line keeps its bars' own room, as a short last line of filled lines does.
+    if (bars.length === 0 || (!complete[si] && previousRate === Infinity)) return;
+    const natural = bars.map(bar => (bar.columns.length > 0 ? bar.columns.reduce((t, c) => t + c.width, 0) : EMPTY_BAR));
+    const least = bars.map((bar, b) => (bar.restRun || bar.columns.length === 0 ? natural[b] : bar.columns.reduce((t, c) => t + Math.min(c.width, leastWidth(c.column, c.heads, staff)), 0)));
+    const fixed = bars.reduce((t, bar, b) => t + (bar.x1 - bar.x0) - natural[b], 0);
+    const room = width - bars[0].x0 - fixed;
+    // Each bar's share; a bar its share can't hold keeps what it needs, and the rest share what is left.
+    const target = bars.map(() => 0);
+    const held = bars.map(() => false);
+    let rate = 0;
+    for (let pass = 0; pass <= bars.length; pass++) {
+      const free = room - bars.reduce((t, _, b) => t + (held[b] ? least[b] : 0), 0);
+      const shares = bars.reduce((t, _, b) => t + (held[b] ? 0 : natural[b]), 0);
+      rate = shares > 0 ? free / shares : 0;
+      if (!complete[si]) rate = Math.min(rate, previousRate);
+      let changed = false;
+      bars.forEach((_, b) => {
+        if (held[b]) return;
+        target[b] = rate * natural[b];
+        if (target[b] < least[b]) { held[b] = true; target[b] = least[b]; changed = true; }
+      });
+      if (!changed) break;
+    }
+    previousRate = rate;
+    let shift = 0;
+    bars.forEach((bar, b) => {
+      bar.x0 += shift;
+      if (bar.timeX !== null) bar.timeX += shift;
+      if (bar.keyX !== null) bar.keyX += shift;
+      if (bar.columns.length === 0) shift += target[b] - natural[b];
+      const widths = fitColumns(bar.columns, target[b], staff);
+      bar.columns.forEach((placed, c) => {
+        const offset = placed.x - placed.start;
+        placed.start += shift;
+        placed.x = placed.start + Math.min(offset, Math.max(widths[c] / 2, widths[c] - noteInset(placed.column)));
+        shift += widths[c] - placed.width;
+        placed.width = widths[c];
+      });
+      bar.x1 += shift;
+    });
+  });
+}
+
+/** Columns' widths summing to `total`: each its room times one factor, none below what its notes need. */
+function fitColumns(columns: PlacedColumn[], total: number, staff: boolean): number[] {
+  const rooms = columns.map(c => c.width);
+  const sum = rooms.reduce((t, w) => t + w, 0);
+  if (sum === 0) return rooms;
+  if (total >= sum) return rooms.map(w => (w * total) / sum);
+  const least = columns.map(c => Math.min(c.width, leastWidth(c.column, c.heads, staff)));
+  const widths = (f: number) => rooms.map((w, c) => Math.max(least[c], w * f));
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (low + high) / 2;
+    if (widths(mid).reduce((t, w) => t + w, 0) > total) high = mid;
+    else low = mid;
+  }
+  return widths(low);
 }
 
 /*
