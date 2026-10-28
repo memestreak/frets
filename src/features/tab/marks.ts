@@ -4,14 +4,14 @@
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
 import { bendCarries, columnAccent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
-import { previousSpots, SPACE, stepY, stringY, type Layout } from './layout';
+import { BEND_RISE, previousSpots, SPACE, stepY, stringY, vibratoRuns, type Layout } from './layout';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'tremolo' | 'tuplet';
+  | 'vibrato' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'tremolo' | 'tuplet' | 'ottava';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -19,7 +19,7 @@ export interface MarkHit {
   mark: DrawnMark;
   index: number;
   string: number | null;
-  /** A tuplet's last column: a tuplet mark covers its whole group. */
+  /** The last column of a mark drawn across several: a tuplet's group, a vibrato's run, an octave line. */
   to?: number;
   /** Pressed where the notation staff draws it, not on the tab: its outline goes there. */
   on?: 'staff';
@@ -32,9 +32,13 @@ export interface Box {
   height: number;
 }
 
-/** A vibrato's wave from just right of `x`: a wide one is taller and longer, in fewer turns. */
-export function vibratoWave(x: number, y: number, wide: boolean): { d: string; width: number; strokeWidth: number } {
-  const [width, height, turns] = wide ? [8, 8, 3] : [6, 4, 4];
+/**
+ * A vibrato's wave from just right of `x` to about `end`, in whole turns (at least one); a wide one
+ * is taller and its turns longer.
+ */
+export function vibratoWave(x: number, y: number, wide: boolean, end: number): { d: string; width: number; strokeWidth: number } {
+  const [width, height] = wide ? [8, 8] : [6, 4];
+  const turns = Math.max(1, Math.round((end - x - 4) / (2 * width)));
   let d = `M${x + 4} ${y}`;
   for (let k = 0; k < turns; k++) d += ` q${width / 2} -${height} ${width} 0 q${width / 2} ${height} ${width} 0`;
   return { d, width: 2 * width * turns, strokeWidth: wide ? 2 : 1.2 };
@@ -58,15 +62,17 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
     /** A row's thin mark: tall enough to press. */
     const rowMark = (mark: DrawnMark, index: number, x0: number, x1: number, rowY: number) =>
       add(mark, index, null, x0, rowY - THIN_REACH, x1, rowY + THIN_REACH);
+    // A vibrato over neighbouring notes is one wave, picked whole.
+    if (rows.vibrato !== null) {
+      for (const run of vibratoRuns(system)) {
+        const { width } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
+        add('vibrato', run.from.index, null, run.from.x + 2, rows.vibrato - THIN_REACH, run.from.x + 6 + width, rows.vibrato + THIN_REACH, run.to.index);
+      }
+    }
     for (const bar of system.bars) {
       for (const { column, x, index } of bar.columns) {
         const notes = column.notes.filter((n): n is Note => n !== null);
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
-        const wide = notes.some(n => n.vibrato === 'wide');
-        if (notes.some(n => n.vibrato) && rows.vibrato !== null) {
-          const [width, turns] = wide ? [8, 3] : [6, 4];
-          rowMark('vibrato', index, x + 2, x + 6 + 2 * width * turns, rows.vibrato);
-        }
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
         const accent = columnAccent(column);
         const staccato = notes.some(n => n.staccato);
@@ -91,16 +97,16 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           const carry = carries.get(note);
           if (carry) {
             // A held bend's dashed line, or a release's arrow down to the string.
-            const peak = rows.staffTop - 10;
+            const peak = rows.staffTop - BEND_RISE;
             const from = (before && before.system === si ? fromX : system.staffStart - 14) + 14;
             if (carry === 'hold') add('bend', index, s, from, peak - THIN_REACH, x + 14, peak + THIN_REACH);
             else add('bend', index, s, Math.min(from, x - 10), peak - THIN_REACH, x + 6, y + 2);
           } else if (note.bend) {
-            const peak = rows.staffTop - 10;
+            const peak = rows.staffTop - BEND_RISE;
             const { pre, release } = note.bend;
             // The arrow and its label over the staff; a pre-bend's stands straight up from the number.
-            if (pre) add('bend', index, s, x - 15, peak - 14, release ? x + 20 : x + 15, y - 8);
-            else add('bend', index, s, x + 6, peak - 14, release ? x + 29 : x + 23, y - 1);
+            if (pre) add('bend', index, s, x - 15, peak - 19, release ? x + 20 : x + 15, y - 8);
+            else add('bend', index, s, x + 6, peak - 19, release ? x + 29 : x + 23, y - 1);
           }
           if (note.slideOut) add('slideOut', index, s, x + 7, y - 7, x + 20, y + 7);
           if (note.tap) add('tap', index, s, x - 6, y - 18, x + 6, y - 7);
@@ -202,6 +208,7 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
       return note?.slide ? tools[note.slide] : null;
     }
     case 'vibrato': return notes.some(n => n.vibrato) ? 'vibrato' : null;
+    case 'ottava': return column?.ottava ? 'ottava' : null;
     case 'pinch': return notes.some(n => n.harmonic === 'pinch') ? 'pinchHarmonic' : null;
     case 'accent': {
       const accent = column ? columnAccent(column) : undefined;

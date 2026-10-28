@@ -112,9 +112,17 @@ export interface Column {
   grace?: 'before' | 'on';
   /** Tremolo picked: picked over and over as fast as eighths, sixteenths or thirty-seconds, a slash on the stem for each beam. */
   tremolo?: TremoloValue;
+  /** Written an octave or two from where it sounds, under an "8va" line and its like (alphaTex ot). */
+  ottava?: Ottava;
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
+
+/** An octave line: play an octave (8) or two (15) above (va, ma) or below (vb, mb) where it is written. */
+export type Ottava = '8va' | '8vb' | '15ma' | '15mb';
+export const OTTAVAS: readonly Ottava[] = ['8va', '8vb', '15ma', '15mb'];
+/** How far the notes under each line sound from where they are written, in semitones. */
+export const OTTAVA_SHIFT: Record<Ottava, number> = { '8va': 12, '8vb': -12, '15ma': 24, '15mb': -24 };
 
 /** How fast a tremolo picked note is picked: as eighths, sixteenths or thirty-seconds. */
 export type TremoloValue = 8 | 16 | 32;
@@ -567,6 +575,7 @@ function isColumn(v: unknown): v is Column {
     && (v.text === undefined || typeof v.text === 'string')
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
+    && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optStrings(v.extra);
 }
 

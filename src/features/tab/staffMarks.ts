@@ -6,9 +6,9 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note } from './clip';
-import { SPACE, STEM_STEPS, stemUpFor, stepY, type Layout } from './layout';
-import type { Box, MarkHit } from './marks';
+import { columnAccent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Note, type Ottava } from './clip';
+import { columnRuns, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, vibratoRuns, type Layout } from './layout';
+import { vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
 
 type Hit = Omit<MarkHit, 'kind' | 'on'>;
@@ -22,7 +22,9 @@ interface Placed {
 export type StaffShape =
   | { kind: 'accent'; heavy: boolean; x: number; y: number; above: boolean }
   | { kind: 'staccato'; x: number; y: number }
-  | { kind: 'vibrato'; x: number; y: number; wide: boolean }
+  | { kind: 'vibrato'; x: number; y: number; wide: boolean; end: number }
+  /** An octave line: its label at `x`, a dashed line to `end`, and a hook there when the line ends on this line of music. */
+  | { kind: 'ottava'; label: Ottava; x: number; y: number; end: number; hook: boolean; below: boolean }
   | { kind: 'tremolo'; x: number; y: number; slashes: number }
   /** A slur or a tie: an arc from (x0, y0) to (x1, y1), bowing `bow` pixels down (negative: up). */
   | { kind: 'arc'; x0: number; y0: number; x1: number; y1: number; bow: number; tie: boolean }
@@ -38,8 +40,19 @@ const REACH = 6;
 const BEND_LABEL: Record<number, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
 
 /** A box round two points, reaching `pad` past them. */
+/** Each box's padding past what it draws, so marks can be spaced by their ink, not their hit areas. */
+const PADS = new WeakMap<Box, number>();
+
 function around(x0: number, y0: number, x1: number, y1: number, pad = REACH): Box {
-  return { x: Math.min(x0, x1) - pad, y: Math.min(y0, y1) - pad, width: Math.abs(x1 - x0) + 2 * pad, height: Math.abs(y1 - y0) + 2 * pad };
+  const box = { x: Math.min(x0, x1) - pad, y: Math.min(y0, y1) - pad, width: Math.abs(x1 - x0) + 2 * pad, height: Math.abs(y1 - y0) + 2 * pad };
+  PADS.set(box, pad);
+  return box;
+}
+
+/** How far a mark's ink reaches, top and bottom. */
+function ink(mark: StaffMark): { top: number; bottom: number } {
+  const pad = PADS.get(mark.box) ?? 0;
+  return { top: mark.box.y + pad, bottom: mark.box.y + mark.box.height - pad };
 }
 
 /** Every mark on the staff, line by line, in the line's own units (y from its top). */
@@ -54,6 +67,10 @@ export function staffMarks(layout: Layout): StaffMark[][] {
     const add = (hit: Hit, box: Box, mark: StaffShape) => {
       out.push({ ...mark, hit: { kind: 'mark', ...hit, on: 'staff' }, box });
     };
+    // Each string's slur still open: the run it covers so far, and where its last head is.
+    const slurs: ({ mark: StaffMark & { kind: 'arc' }; lastX: number } | null)[] = Array(6).fill(null);
+    const highest = new Map<number, number>();
+    const lowest = new Map<number, number>();
     for (const bar of system.bars) {
       const geometry = staffBar(bar, score);
       for (const placed of bar.columns) {
@@ -84,14 +101,9 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           }
         }
 
-        // A vibrato's wave over the staff, clear of the column's heads and an upward stem.
-        const vibrato = notes.some(n => n.vibrato === 'wide') ? 'wide' : notes.some(n => n.vibrato) ? 'slight' : null;
-        if (vibrato) {
-          const highest = c.up && c.tip !== null ? c.tip : topY - SPACE / 2;
-          const y = Math.min(score.top - 10, highest - 10);
-          const [width, turns] = vibrato === 'wide' ? [8, 3] : [6, 4];
-          add({ mark: 'vibrato', index, string: null }, around(x + 2, y, x + 6 + 2 * width * turns, y), { kind: 'vibrato', x, y, wide: vibrato === 'wide' });
-        }
+        // How high the column reaches, for a vibrato's wave over it: its heads, or an upward stem.
+        highest.set(index, c.up && c.tip !== null ? c.tip : topY - SPACE / 2);
+        lowest.set(index, !c.up && c.tip !== null ? c.tip : bottomY + SPACE / 2);
 
         // Tremolo slashes across the stem, between the heads and the stem's end; over a whole note, which has no stem.
         if (column.tremolo && !column.grace) {
@@ -124,8 +136,22 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             const ty = y + bend * 5;
             add({ mark: 'tie', index, string: s }, around(fromX + 1, ty, headLeft - 2, ty + bend * 4), { kind: 'arc', x0: fromX + 1, y0: ty, x1: headLeft - 2, y1: ty, bow: bend * 7, tie: true });
           }
-          // A hammer-on, pull-off or legato slide: a slur from the head before, on the side away from the stem.
-          if (note.legato || (note.slide === 'legato' && before)) {
+          // Hammer-ons, pull-offs and legato slides: one slur over the run, from its first head to its last,
+          // on the side away from the first one's stem (as Guitar Pro prints it).
+          const joinedOn = !!(note.legato || (note.slide === 'legato' && before));
+          const run = slurs[s];
+          const here = placed.x - HEAD_WIDTH / 2;
+          if (!joinedOn) {
+            slurs[s] = null;
+          } else if (run && joined && before.x === run.lastX) {
+            const arc = run.mark;
+            const side = Math.sign(arc.bow);
+            arc.x1 = headLeft + c.width / 2;
+            arc.y1 = y + side * 6;
+            arc.bow = side * Math.min(18, 9 + (arc.x1 - arc.x0) / 25);
+            arc.box = around(arc.x0, Math.min(arc.y0, arc.y1) + Math.min(0, arc.bow), arc.x1, Math.max(arc.y0, arc.y1) + Math.max(0, arc.bow), 2);
+            run.lastX = here;
+          } else {
             const side = c.up ? 1 : -1;
             const y0 = fromY + side * 6;
             const y1 = y + side * 6;
@@ -133,6 +159,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
             add({ mark: note.legato ? 'legato' : 'slide', index, string: s }, around(fromX - c.width / 2, Math.min(y0, y1) + Math.min(0, bow), headLeft + c.width / 2, Math.max(y0, y1) + Math.max(0, bow), 2), {
               kind: 'arc', x0: fromX - c.width / 2, y0, x1: headLeft + c.width / 2, y1, bow, tie: false,
             });
+            slurs[s] = { mark: out[out.length - 1] as StaffMark & { kind: 'arc' }, lastX: here };
           }
           if (note.slide) {
             // A slide from the head before is a line between the heads; from below or above, a short line into the head.
@@ -178,6 +205,40 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           around(members[0].x - 6, y - 10, members[members.length - 1].x + 6, y + 2, 2),
           { kind: 'tuplet', x: mid, y, label: tupletLabel(duration) },
         );
+      }
+    }
+
+    // A vibrato over neighbouring notes is one wave over the staff, clear of every one of them.
+    const placed = system.bars.flatMap(b => b.columns);
+    const span = (from: number, to: number) => placed.filter(p => p.index >= from && p.index <= to);
+    // Every wave on a line at one height, clear of the notes and marks under each of them.
+    const runs = vibratoRuns(system);
+    const waveY = Math.min(score.top - VIBRATO_CLEAR, ...runs.flatMap(run => {
+      const tops = span(run.from.index, run.to.index).map(p => (highest.get(p.index) ?? score.top) - VIBRATO_CLEAR);
+      const marksUnder = out.filter(m => m.box.x < run.end && m.box.x + m.box.width > run.from.x).map(m => ink(m).top - VIBRATO_OVER_MARKS);
+      return [...tops, ...marksUnder];
+    }));
+    for (const run of runs) {
+      const wide = run.kind === 'wide';
+      const { width } = vibratoWave(run.from.x, waveY, wide, run.end);
+      add({ mark: 'vibrato', index: run.from.index, string: null, to: run.to.index }, around(run.from.x + 2, waveY, run.from.x + 6 + width, waveY), { kind: 'vibrato', x: run.from.x, y: waveY, wide, end: run.end });
+    }
+
+    // Octave lines: past everything else on the staff, one height across the line of music.
+    const octaves = columnRuns(system, c => c.ottava ?? null);
+    if (octaves.length > 0) {
+      const above = Math.min(score.top, ...highest.values(), ...out.map(m => ink(m).top)) - OTTAVA_CLEAR;
+      const under = Math.max(score.bottom, ...lowest.values(), ...out.map(m => ink(m).bottom)) + OTTAVA_CLEAR;
+      const lastIndex = placed[placed.length - 1]?.index;
+      for (const run of octaves) {
+        const below = run.kind === '8vb' || run.kind === '15mb';
+        const y = below ? under : above;
+        // The line runs on past the column it ends on, to the next note or the end of the line.
+        const end = run.to.index === lastIndex ? run.end : run.end + 6;
+        const x = run.from.x - 6;
+        add({ mark: 'ottava', index: run.from.index, string: null, to: run.to.index }, around(x, y - 8, end, y + 4, 2), {
+          kind: 'ottava', label: run.kind, x, y, end, hook: true, below,
+        });
       }
     }
     return out;

@@ -21,7 +21,7 @@ import {
 import {
   clampCursor, clearNote, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, insertColumn,
   fillBar, isEmpty, makeRest, removeMark, MAX_FRET, setBarKey, moveColumn, noteAt, pasteAt, placeOf, readTempo, removeEmptyBar, runAround, selectedRange, setBarTime, setCapo, setChordName,
-  setBeatText, setBend, setEnding, setFret, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
+  setBeatText, setBend, setEnding, setFret, setOttava, setTuplet, setSection, setTempo, tempoText, START, stepDuration, type Cursor, type Selection,
 } from './editing';
 import { layoutClip, parseParts, PARTS, PARTS_KEY, RUN_MARKS, textBox, type Parts, type RunMark, type StaffHit, type TextHit, type WordHit } from './layout';
 import { openStrings } from './notation';
@@ -163,6 +163,7 @@ export default function TabPage() {
     vibrato: pickedTool !== 'vibrato' ? null
       : columnAt(clip, cursor)?.notes.some(n => n?.vibrato === 'wide') ? 'wide' as const : 'slight' as const,
     tuplet: pickedTool === 'tuplet' ? cursorKinds.tuplet : null,
+    ottava: pickedTool === 'ottava' ? cursorKinds.ottava : null,
   };
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
@@ -976,7 +977,8 @@ export default function TabPage() {
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
           isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
           onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
-          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))} disabled={view !== 'tab'} />
+          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))}
+          onOttava={o => commitKeepingMark(setOttava(clip, target, o))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">

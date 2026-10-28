@@ -30,7 +30,7 @@ describe('staffMarks', () => {
   it('draws slurs, slides, ties, vibrato and tremolo on the staff', () => {
     const clip = clipOf('5.3{h}.8 7.3.8 5.3{sl}.8 7.3.8 7.3{v}.4 -.3.4 | 5.2.4{tp 16} r.4 r.2 |');
     expect(kinds(clip, 'both')).toEqual([
-      'arc:legato', 'arc:slide', 'line:slide', 'vibrato:vibrato', 'arc:tie', 'tremolo:tremolo',
+      'arc:legato', 'arc:slide', 'line:slide', 'arc:tie', 'tremolo:tremolo', 'vibrato:vibrato',
     ]);
   });
 
@@ -44,9 +44,9 @@ describe('staffMarks', () => {
 describe('the tab\'s rows with the staff shown', () => {
   const clip = clipOf('3.3{v ac}.4 3.3{pm}.4 3.3{ph}.4 r.4 |');
 
-  it('leave vibrato and accents to the staff, and keep P.M. and P.H. between the two', () => {
+  it('draw vibrato on both, leave accents to the staff, and keep P.M. and P.H. between the two', () => {
     const { rows } = layoutClip(clip, WIDTH, 'both');
-    expect(rows.vibrato).toBeNull();
+    expect(rows.vibrato).toBeLessThan(rows.staffTop);
     expect(rows.accents).toBeNull();
     expect(rows.palmMute).toBeGreaterThan(rows.score!.bottom);
     expect(rows.harmonics).toBeLessThan(rows.staffTop);

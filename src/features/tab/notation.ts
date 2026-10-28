@@ -4,7 +4,7 @@
  * where it sits on a treble staff written an octave above the sound, as guitar music is; and which
  * accidentals a bar must show. Pure.
  */
-import { bentSemitones, keyAt, keyTonic, STRING_COUNT, type Clip, type Key, type Note } from './clip';
+import { bentSemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Key, type Note } from './clip';
 
 /** Standard tuning's strings as MIDI numbers, lowest first: E2 A2 D3 G3 B3 E4. */
 const STANDARD_MIDI = [40, 45, 50, 55, 59, 64];
@@ -146,16 +146,18 @@ export function barHeads(clip: Clip, barIndex: number, open = openStrings(clip.t
   const capo = clip.capo ?? 0;
   return clip.bars[barIndex].columns.map(column => {
     const heads: Head[] = [];
+    // Under an octave line the notes are written an octave or two from where they sound.
+    const written = WRITTEN_OCTAVE - (column.ottava ? OTTAVA_SHIFT[column.ottava] : 0);
     column.notes.forEach((note, s) => {
       if (!note) return;
       if (note.fret === null) {
-        const n = spell(open[s] + capo + WRITTEN_OCTAVE, key);
+        const n = spell(open[s] + capo + written, key);
         heads.push({ string: s, step: staffStep(n), shows: null, dead: true });
         return;
       }
       // A tied note in a bend sounds where the bend has taken it, spelled in the key like any other.
       const bent = !!(note.tie && note.bend);
-      const n = spell(soundingPitch(open, capo, s, note)! + bentSemitones(note) + WRITTEN_OCTAVE, key);
+      const n = spell(soundingPitch(open, capo, s, note)! + bentSemitones(note) + written, key);
       const step = staffStep(n);
       const current = now.get(step) ?? inKey[n.letter];
       const shows = (note.tie && !bent) || n.accidental === current ? null : n.accidental;

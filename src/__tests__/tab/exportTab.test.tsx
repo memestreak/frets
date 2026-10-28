@@ -65,8 +65,8 @@ describe('the tab as an image', () => {
       if (!read.ok) throw new Error(read.errors.join('\n'));
       return tabSvg(read.clip, { width: 800, transparent: true, name: false }, '');
     };
-    expect(draw('5.3{sl}.4 7.3.4 r.2 |').match(/data-testid="slide-slur"/g)).toHaveLength(1);
-    expect(draw('5.3{ss}.4 7.3.4 r.2 |')).not.toContain('slide-slur');
+    expect(draw('5.3{sl}.4 7.3.4 r.2 |').match(/data-testid="legato"/g)).toHaveLength(1);
+    expect(draw('5.3{ss}.4 7.3.4 r.2 |')).not.toContain('data-testid="legato"');
   });
 
   it('names its file safely', () => {
