@@ -20,10 +20,10 @@ readers pass keys through to it.
 
 - **Cursor:** a click (or a tap) on the tab puts the cursor on the nearest
   column and string. While the editor has focus, the cursor shows as a
-  soft `--primary-soft` band behind its column and a `--primary` box round
-  its string. Esc leaves the editor, and the cursor hides.
+  `--primary` box round its string, with no band behind its column
+  (`2026-10-28-tab-fewer-bands-design.md`). Esc leaves the editor, and the cursor hides.
 - **Column cursor** (Jeremy, 2026-10-27, both ways in): the cursor can sit
-  on a column with no string picked, drawn as the band without the box.
+  on a column with no string picked, drawn as one box round the whole column.
   Esc on a string drops the string and keeps the column (a second Esc
   leaves the editor); a press above or below the staff puts it there while
   the playback controls are hidden (shown, that press places the playback

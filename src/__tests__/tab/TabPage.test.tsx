@@ -310,6 +310,21 @@ describe('TabPage', () => {
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     });
 
+    it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7');
+      const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
+      expect(band()).toBeNull();
+      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      // With no string picked, a box round the whole column, still no band.
+      keys('Escape');
+      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      expect(band()).toBeNull();
+      keys({ key: 'ArrowLeft', shiftKey: true });
+      expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+    });
+
     it('marks notes and columns from the keys and from the palette', () => {
       renderAt();
       act(() => editor().focus());

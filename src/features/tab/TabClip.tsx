@@ -144,13 +144,18 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       )}
       {spot && highlight?.cursor && (
         <g transform={`translate(0 ${spot.system * rows.height})`} data-testid="tab-cursor">
-          {!highlight.range && (
-            <rect x={spot.start} y={rows.bandTop} width={spot.width} height={rows.bandBottom - rows.bandTop} fill="var(--primary-soft)" />
-          )}
+          {/* No band behind the cursor's column: only Shift's selection draws one (Jeremy, 2026-10-28). */}
           {!highlight.columnOnly && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
               fill="none" stroke="var(--primary)" strokeWidth={1.5}
+            />
+          )}
+          {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
+          {highlight.columnOnly && rows.tab && highlight.staffPitch == null && (
+            <rect
+              x={spot.x - 12} y={stringY(rows, 0) - 9} width={24} height={stringY(rows, STRING_COUNT - 1) - stringY(rows, 0) + 18} rx={4}
+              fill="none" stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
             />
           )}
         </g>

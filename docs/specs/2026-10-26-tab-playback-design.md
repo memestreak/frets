@@ -90,15 +90,13 @@ clip plays, such a press jumps playback there. The line goes when the
 cursor or the selection moves, the clip changes, on Esc, or on a press
 beside the bars.
 
-While the clip plays, a playhead (a line and a soft band) marks the column
-sounding. It is drawn under the notes, so it tints the paper and not the
-numbers. Any edit stops playback, so the next Play plays what is drawn.
+While the clip plays, a playhead line marks the column sounding (no band
+behind it, `2026-10-28-tab-fewer-bands-design.md`). Any edit stops playback, so the next Play plays what is drawn.
 
 The playhead's line glides (issue #167, Jeremy, 2026-10-28: "move
 continuously instead of jump"): it moves through each note's room as the
 note sounds, reaching the next column on the line as that note starts, and
-past a line's last column to the end of its room. The band stays on the
-column sounding. The line follows what is heard, not what the synthesizer
+past a line's last column to the end of its room. The line follows what is heard, not what the synthesizer
 has worked out ahead: `TabPlayer.heardPosition` takes the synthesizer's last
 position, less the audio queued ahead of the speakers (`aheadMs`), and moves
 it on at the tempo times the speed. It is read once a frame, and the line

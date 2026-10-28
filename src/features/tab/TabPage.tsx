@@ -630,7 +630,7 @@ export default function TabPage() {
               {example && exampleNote}
             </>}
           <div className="relative">
-            {/* Under the editor, so the playhead's band tints the paper, not the numbers. */}
+            {/* Under the editor: the loop bracket. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={clip} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (

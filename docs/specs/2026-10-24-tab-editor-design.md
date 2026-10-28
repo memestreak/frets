@@ -87,8 +87,8 @@ As layout A of the mock, without the list: the clip takes the page width.
   column's state and toggle it; each mirrors a key, named in its 1-second
   hover tip. It wraps onto a second row when narrow; nothing in it changes
   width. In the ASCII view it stays, disabled, so nothing moves.
-- **Cursor** (PR 2): a soft `--primary-soft` band behind the cursor column
-  and a `--primary` box round the cursor's string. Nothing moves when the
+- **Cursor** (PR 2): a `--primary` box round the cursor's string, with no
+  band behind its column (`2026-10-28-tab-fewer-bands-design.md`). Nothing moves when the
   cursor moves, and the card has no browser focus outline.
 - **An empty clip** (first visit) shows one empty bar and, under the card,
   one muted line: "Import ASCII tab, or paste it here." (PR 2 adds "Type

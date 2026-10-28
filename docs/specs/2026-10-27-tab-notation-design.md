@@ -53,7 +53,7 @@ signature can write, so D♯ major is written E♭ major.
 
 ## Editing
 
-In Both the cursor and selection bands span the staff and the tab. Notes are
+In Both the selection band spans the staff and the tab. Notes are
 entered on the tab, or on the staff with its own cursor, and Staff alone is
 edited the same way (`2026-10-27-tab-staff-entry-design.md`, issue #136; it had
 been read-only).
