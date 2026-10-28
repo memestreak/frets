@@ -1,6 +1,6 @@
 'use client';
 
-import { type FocusEvent, useCallback, useEffect, useEffectEvent, useReducer, useRef, useState } from 'react';
+import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useReducer, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
@@ -37,7 +37,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { ScoreHead } from './ScoreHead';
-import { parseView, VIEW_KEY, type TabView } from './viewOptions';
+import { paletteOf, parseView, shownColours, VIEW_KEY, type ColourPair, type TabView } from './viewOptions';
 import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
@@ -99,6 +99,10 @@ export default function TabPage() {
   // At a View options size the drawing (and all over it) is zoomed, so it is laid out that much narrower or wider.
   const zoom = shown.size / 100;
   const clipWidth = boxWidth / zoom;
+  // The View options' colours (Jeremy, 2026-10-28): the clip sits on a sheet of its background, and the
+  // tokens the drawing and the text views use are set to its colours there. The theme's own need none.
+  const colours = shownColours(shown);
+  const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
    * view, until an edit elsewhere (on the Standard view, an undo, an import) changes the clip; then the
@@ -613,6 +617,7 @@ export default function TabPage() {
             {actions.buttons}
           </div>
         </div>
+        <div className={colours ? 'tab-paper' : undefined} style={paperStyle} data-testid="tab-paper">
         <div ref={widthRef} className="min-w-0">
           {/* The View options' Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
           <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
@@ -693,6 +698,7 @@ export default function TabPage() {
           </div>
           </div>
         </div>
+        </div>
         {/* Playback belongs to the drawn tab: the text views show neither its toggle nor its controls (Jeremy, 2026-10-27). */}
         {view === 'tab' && (
         <PinnedPlayback shown={showPlayback}>
@@ -748,4 +754,13 @@ export default function TabPage() {
       />
     </div>
   );
+}
+
+/** The tokens the clip is drawn and written in, set to two colours (see `paletteOf`). */
+function paperVars(colours: ColourPair): CSSProperties {
+  const p = paletteOf(colours);
+  return {
+    '--ink': p.ink, '--ink-muted': p.inkMuted, '--line-strong': p.lineStrong, '--line': p.line, '--surface-raised': p.paper,
+    background: p.paper, color: p.ink,
+  } as CSSProperties;
 }

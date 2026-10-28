@@ -390,6 +390,17 @@ button {
     display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: none;
     border: 1.5px solid var(--line-strong); border-radius: 4px; color: var(--ink);
   }
+  .tab-view-colours { flex-wrap: nowrap; align-self: flex-start; }
+  /* Custom's two colours: a swatch (the browser's colour input, drawn as a plain square) and its name. */
+  .tab-view-swatches { display: flex; gap: 16px; }
+  .tab-view-swatch { display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
+  .tab-view-swatch input {
+    width: 24px; height: 24px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 4px;
+    background: none; cursor: pointer; appearance: none;
+  }
+  .tab-view-swatch input::-webkit-color-swatch-wrapper { padding: 0; }
+  .tab-view-swatch input::-webkit-color-swatch { border: 0; border-radius: 2px; }
+  .tab-view-swatch input::-moz-color-swatch { border: 0; border-radius: 2px; }
 
   /* The Export dialog: the image on white, as it comes out. The colour is
      BACKDROP in exportStyle.ts; a test keeps them in step. */
@@ -765,6 +776,9 @@ button {
     border-radius: 999px; font-size: 9px; line-height: 1; vertical-align: 1px;
   }
   .score-tuning ul { display: grid; grid-auto-flow: column; justify-content: start; margin: 0; padding: 0; list-style: none; }
+  /* The View options' colours (TabPage's paperVars): the clip on a sheet of its background, with room
+     round it so the music doesn't touch the sheet's edges. The theme's own colours draw no sheet. */
+  .tab-paper { padding: 12px; border-radius: var(--radius-sm); }
   /* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
      (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
      (Jeremy, 2026-10-27). */

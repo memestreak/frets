@@ -10,7 +10,7 @@ import { creditsOf, headerValue, tuningBlock } from '@/features/tab/credits';
 import { layoutClip } from '@/features/tab/layout';
 import { beamGroups } from '@/features/tab/beams';
 import { barHeads, openStrings, tuningShift, writtenStrings } from '@/features/tab/notation';
-import { parseView, showsBarNumber } from '@/features/tab/viewOptions';
+import { mix, paletteOf, parseView, shownColours, showsBarNumber, DEFAULT_VIEW } from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -81,13 +81,26 @@ describe('the staff for a tuned-down guitar', () => {
 
 describe('view options', () => {
   it('start on bar numbers over every bar at 100%, the rhythm line and line numbers shown, and keep only a valid saved choice', () => {
-    const shown = { asciiRhythm: true, lineNumbers: true };
+    const shown = { asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: { text: '#000000', background: '#ffffff' } };
     expect(parseView(null)).toEqual({ barNumbers: 'every', size: 100, ...shown });
-    expect(parseView({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false }))
-      .toEqual({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false });
+    const custom = { text: '#7a1f1f', background: '#f4ecd8' };
+    expect(parseView({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom }))
+      .toEqual({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom });
+    expect(parseView({ colours: 'pink', custom: { text: 'red', background: '#fff' } })).toEqual({ barNumbers: 'every', size: 100, ...shown });
     expect(parseView({ barNumbers: 'odd', size: 75, asciiRhythm: 'no', lineNumbers: 0 })).toEqual({ barNumbers: 'every', size: 100, ...shown });
     expect([parseView({ size: 50 }).size, parseView({ size: 200 }).size, parseView({ size: 40 }).size, parseView({ size: 210 }).size])
       .toEqual([50, 200, 100, 100]);
+  });
+
+  it('show the theme\'s colours, a named scheme\'s or Custom\'s, and draw the lines as a mix of the two', () => {
+    expect(shownColours(DEFAULT_VIEW)).toBeNull();
+    expect(shownColours({ ...DEFAULT_VIEW, colours: 'sepia' })).toEqual({ text: '#3b2a1a', background: '#f4ecd8' });
+    const custom = { text: '#7a1f1f', background: '#f4ecd8' };
+    expect(shownColours({ ...DEFAULT_VIEW, colours: 'custom', custom })).toEqual(custom);
+    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
+    expect(paletteOf({ text: '#000000', background: '#ffffff' })).toEqual({
+      ink: '#000000', inkMuted: '#4d4d4d', lineStrong: '#8c8c8c', line: '#d1d1d1', paper: '#ffffff',
+    });
   });
 
   it('number every bar, the first of each line, or none', () => {

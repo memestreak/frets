@@ -6,6 +6,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
   DEFAULT_TAB_EXPORT, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
+import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
 
 const clip = (readAscii([
   'Title: Riff',
@@ -48,6 +49,18 @@ describe('the tab as an image', () => {
     const clear = tabSvg(clip, { width: 800, transparent: true, name: false }, 'My riff');
     expect(clear).not.toContain('My riff');
     expect(clear).not.toContain('fill="#ffffff"');
+  });
+
+  it('takes the View options\' colours, and black on white with the theme\'s', () => {
+    const style = { width: 800, transparent: false, name: true } as const;
+    const night = tabSvg(clip, style, 'My riff', 'tab', { ...DEFAULT_VIEW, colours: 'night' });
+    expect(night).toContain('fill="#1c1a17"');
+    expect(night).toContain('fill="#e8e2d6"');
+    expect(night).not.toContain('fill="#000000"');
+    const custom = tabSvg(clip, style, 'My riff', 'tab', { ...DEFAULT_VIEW, colours: 'custom', custom: { text: '#123456', background: '#fedcba' } });
+    expect(custom).toContain('fill="#fedcba"');
+    expect(custom).toContain('fill="#123456"');
+    expect(tabSvg(clip, style, 'My riff', 'tab', DEFAULT_VIEW)).toContain('fill="#000000"');
   });
 
   it('draws a let ring or P.M. shorter than its label as the label alone, with nothing through the word', () => {

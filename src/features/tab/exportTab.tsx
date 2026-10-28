@@ -9,7 +9,7 @@ import type { Clip } from './clip';
 import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { TabClip, type TabLook } from './TabClip';
-import { DEFAULT_VIEW, type TabView } from './viewOptions';
+import { DEFAULT_VIEW, paletteOf, shownColours, type TabView } from './viewOptions';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
 
@@ -40,7 +40,15 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
 }
 
 /** Black ink, as the chord export's black and white: an image is printed or pasted anywhere. */
-const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000', paper: '#ffffff' };
+const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000', paper: BACKDROP };
+
+/** The image's colours: the View options' scheme (Jeremy, 2026-10-28), else black on white, not the theme's. */
+function exportLook(view: TabView): TabLook {
+  const colours = shownColours(view);
+  if (!colours) return EXPORT_LOOK;
+  const p = paletteOf(colours);
+  return { ink: p.ink, line: p.lineStrong, paper: p.paper };
+}
 /** Room round the tab, so it doesn't touch the image's edges. */
 const PAD = 16;
 
@@ -73,8 +81,7 @@ function headTop(head: Head, zoom: number): number {
 }
 
 /** The head as SVG, `width` wide, in the drawing's units. */
-function HeadDrawing({ head, width }: { head: Head; width: number }) {
-  const ink = EXPORT_LOOK.ink;
+function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: string }) {
   const parts: ReactNode[] = [];
   let y = 4;
   // Each line's text sits on a baseline about four fifths down its line, as the page's lines do.
@@ -127,17 +134,18 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const zoom = view.size / 100;
   const head = headOf(clip, style, title);
   const inner = (width - 2 * PAD) / zoom;
+  const look = exportLook(view);
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
       fontFamily={FONT_FAMILY} className="tab-image"
     >
-      {!style.transparent && <rect width={width} height={height} fill={BACKDROP} />}
+      {!style.transparent && <rect width={width} height={height} fill={look.paper} />}
       <g transform={`translate(${PAD} ${PAD}) scale(${zoom})`}>
-        <HeadDrawing head={head} width={inner} />
+        <HeadDrawing head={head} width={inner} ink={look.ink} />
       </g>
       <TabClip
-        clip={clip} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
+        clip={clip} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
         x={PAD} y={PAD + headTop(head, zoom)}
       />
     </svg>

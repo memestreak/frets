@@ -56,6 +56,24 @@ name, whichever view shows:
 - **AlphaTex**: **Line numbers**, a check box, on by default. Off, the editor's margin keeps only
   its ⚠ marks.
 
+Above them, for every view, **Colours** (Jeremy, 2026-10-28: "set the color scheme of the
+arrangement (foreground and background color). This would apply to the text views as well"; of
+named schemes, two colour swatches or both, he chose both):
+
+- **Theme | Paper | Sepia | Night | Custom**, starting on Theme, the page's own light or dark
+  colours, drawn as before. Paper is black on white, Sepia dark brown on cream (#3b2a1a on #f4ecd8),
+  Night light on near-black (#e8e2d6 on #1c1a17).
+- **Custom** shows two swatches, **Text** and **Background**; a press opens the browser's colour
+  picker. The first time Custom is picked it starts from the colours then shown (a scheme's, or the
+  theme's as the page draws them now); afterwards it keeps its own, also while another scheme shows.
+- Any scheme but Theme puts the clip on a sheet of its background inside the card, with 12px of room
+  round it. On the sheet the ink, muted ink and lines are the text colour mixed into the background
+  (the lines about half way, as the theme's sit from its ink), so the drawing, the score's head, the
+  ASCII text and the alphaTex editor all follow; the card's own bar, the palette and the playback
+  footer keep the theme. The selection, cursor and playhead keep their colours.
+- The image export and copy draw in the scheme's colours, on its background unless transparent; with
+  Theme they stay black on white, as before. Text copies and saves have no colour.
+
 ## Not yet (listed for later rounds or a question)
 
 - Spacing of the drawing's parts, vertical and horizontal, set by the reader: its own feature

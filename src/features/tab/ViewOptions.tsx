@@ -2,12 +2,16 @@
 
 /**
  * The View options panel (Jeremy, 2026-10-28), under the eye button over the clip: what each view
- * shows that is the reader's choice. Every view's options are always there, each view's under its
- * name: Notation (bar numbers, size), ASCII Tab (the rhythm line), AlphaTex (line numbers). A choice
- * applies at once and is remembered, and a press elsewhere or Esc closes the panel.
+ * shows that is the reader's choice. Every view's options are always there: first the colours, which
+ * every view shows, then each view's under its name: Notation (bar numbers, size), ASCII Tab (the
+ * rhythm line), AlphaTex (line numbers). A choice applies at once and is remembered, and a press
+ * elsewhere or Esc closes the panel.
  */
 import { NumberField, resetOnDoubleClick } from './NumberField';
-import { BAR_NUMBER_NAMES, BAR_NUMBERS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SIZE_STEP, type TabView } from './viewOptions';
+import {
+  BAR_NUMBER_NAMES, BAR_NUMBERS, COLOUR_NAMES, COLOURS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SCHEMES, SIZE_STEP,
+  type ColourPair, type Colours, type TabView,
+} from './viewOptions';
 import { usePopover } from './usePopover';
 
 export function ViewOptions({ x, y, values, onChange, onClose }: {
@@ -23,6 +27,24 @@ export function ViewOptions({ x, y, values, onChange, onClose }: {
     <div
       ref={ref} role="dialog" aria-label="View options" className="shape-menu tab-view-options" style={style} tabIndex={-1}
     >
+      <h3 className="tab-view-heading">Colours</h3>
+      <div className="seg tab-view-colours" role="group" aria-label="Colours">
+        {COLOURS.map(c => (
+          <button
+            key={c} type="button" className="seg-opt" aria-pressed={values.colours === c}
+            onClick={() => onChange(choose(values, c))}
+          >
+            {COLOUR_NAMES[c]}
+          </button>
+        ))}
+      </div>
+      {/* Custom shows its two colours, each opening the colour picker. */}
+      {values.colours === 'custom' && (
+        <div className="tab-view-swatches">
+          <Swatch label="Text" value={values.custom.text} onChange={text => onChange({ ...values, custom: { ...values.custom, text } })} />
+          <Swatch label="Background" value={values.custom.background} onChange={background => onChange({ ...values, custom: { ...values.custom, background } })} />
+        </div>
+      )}
       <h3 className="tab-view-heading">Notation</h3>
       <div className="tab-view-option">
         <span id="bar-numbers-label">Bar numbers</span>
@@ -53,6 +75,38 @@ export function ViewOptions({ x, y, values, onChange, onClose }: {
       <h3 className="tab-view-heading">AlphaTex</h3>
       <Toggle label="Line numbers" on={values.lineNumbers} onChange={lineNumbers => onChange({ ...values, lineNumbers })} />
     </div>
+  );
+}
+
+/**
+ * A scheme picked. Custom starts from the colours shown when it is first picked, a named scheme's or
+ * the theme's, and afterwards keeps its own.
+ */
+function choose(values: TabView, colours: Colours): TabView {
+  if (colours !== 'custom' || values.colours === 'custom' || !isDefaultCustom(values.custom)) return { ...values, colours };
+  const from = values.colours === 'theme' ? themeColours() : SCHEMES[values.colours];
+  return { ...values, colours, custom: from ?? values.custom };
+}
+
+function isDefaultCustom(pair: ColourPair): boolean {
+  return pair.text === DEFAULT_VIEW.custom.text && pair.background === DEFAULT_VIEW.custom.background;
+}
+
+/** The theme's ink and card colours as the page draws them now, light or dark. */
+function themeColours(): ColourPair | null {
+  const css = getComputedStyle(document.documentElement);
+  const text = css.getPropertyValue('--ink').trim().toLowerCase();
+  const background = css.getPropertyValue('--surface-raised').trim().toLowerCase();
+  return /^#[0-9a-f]{6}$/.test(text) && /^#[0-9a-f]{6}$/.test(background) ? { text, background } : null;
+}
+
+/** A colour and its name: a press on the swatch opens the browser's colour picker. */
+function Swatch({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="tab-view-swatch">
+      <input type="color" aria-label={label} value={value} onChange={e => onChange(e.target.value.toLowerCase())} />
+      {label}
+    </label>
   );
 }
 
