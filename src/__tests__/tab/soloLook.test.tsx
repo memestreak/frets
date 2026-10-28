@@ -9,7 +9,7 @@
  * (docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md): every tuplet is bracketed, a let-down
  * note is named when it slides out, and the wah's + and o are read, written, drawn, set and picked.
  * Round 7 (docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md): two strings bent at once stack
- * their heights' labels.
+ * their heights' labels, and the wah's row goes under the chord names.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -17,7 +17,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { legatoStarts, type Clip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
-import { layoutClip } from '@/features/tab/layout';
+import { layoutClip, rowsFor } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
 import { perform } from '@/features/tab/playback';
 import { TabClip } from '@/features/tab/TabClip';
@@ -155,6 +155,14 @@ describe('the wah', () => {
     const clip = clipOf(TEXT);
     expect(clip.bars[0].columns.slice(0, 2).map(c => c.wah)).toEqual(['closed', 'open']);
     expect(writeAlphaTex(clip)).toContain('10.2.8{wahc} 8.1.8{waho}');
+  });
+
+  it('goes under the chord names and every word over the music, nearest the notes (Jeremy, 2026-10-28)', () => {
+    const clip = clipOf('\\section "Solo" \\tempo 120 10.2.8{wahc ch "Em" txt "slow"} 8.1.8{waho} r.4 r.2 |\n');
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const rows = rowsFor(clip, parts);
+      expect(rows.wah).toBeGreaterThan(Math.max(rows.chords!, rows.text!, rows.section!, rows.tempo!));
+    }
   });
 
   it('draws + and o over the music in every view, as the book prints bars 127–130', () => {

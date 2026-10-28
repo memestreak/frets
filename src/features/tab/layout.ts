@@ -36,7 +36,7 @@ export interface Rows {
   section: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
-  /** The wah's "+" (closed) and "o" (open), over the chord names as Guitar Pro prints them. */
+  /** The wah's "+" (closed) and "o" (open), under the chord names: no mark goes over them (Jeremy, 2026-10-28). */
   wah: number | null;
   /** Chord names over their columns. */
   chords: number | null;
@@ -135,9 +135,10 @@ export function rowsFor(clip: Clip, parts: Parts = 'tab', reach: StaffReach = { 
     tempo: row(used.tempo),
     section: row(used.section, true),
     endings: row(used.endings),
-    wah: row(used.wah),
     chords: row(used.chords),
     text: row(used.text),
+    // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
+    wah: row(used.wah),
   };
   // The staff: room over its top line and under its bottom one for what reaches past them.
   let score: ScoreRows | null = null;
