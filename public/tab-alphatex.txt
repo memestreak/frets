@@ -133,6 +133,8 @@ then "." and its duration:
     tp 16      stem; two slashes tp 16, three tp 32. The beat's own
     tp 32      duration is how long it is picked: 12.1.2{tp 16}.
     sd  su     pick or strum stroke down / up
+    wahc waho  the wah pedal closed (+) or open (o) from this beat, drawn
+               over the music: 10.2.8{wahc} 8.1.16{waho}. Playback ignores it.
     tt         tapped (T)
     ot 8va     under an octave line over the staff: the notes sound as
     ot 8vb     the tab says and are written an octave (15ma, 15mb: two)
@@ -323,7 +325,8 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    wide or heavy one to vw; "P.M." to pm and "let ring" (or "l.r.") to lr
    on every note from where its line starts to its end tick, muted (x)
    notes included; "P.H." or "PH" to ph; strum signs to sd / su (the
-   square or a down arrow is down, the V or an up arrow is up); a fret
+   square or a down arrow is down, the V or an up arrow is up); a "+"
+   over a beat to wahc and an "o" to waho; a fret
    joined by a tie arc to the same fret before it to "-" in place of the
    fret (a tied fret is often also in parentheses); a fret in parentheses
    with no tie arc to g; ">" over a note to ac, "^" to hac, a dot over it

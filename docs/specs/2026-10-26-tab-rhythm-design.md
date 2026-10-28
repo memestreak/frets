@@ -11,7 +11,7 @@ the rhythm PR", 2026-10-26).
 
 | Mark | alphaTex | Drawn |
 | --- | --- | --- |
-| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | its number under each group of n; a bracket across the group, rests included, when one beam doesn't already join it |
+| Tuplet | `tu 3`, `tu 5`, `tu 6`, `tu 7` on each beat | its number under each group of n, in a bracket across the group, rests included (every group since 2026-10-28, issue #179) |
 | Grace note | `gr` (before the beat), `gr ob` (on it) | small numbers in a narrow column, no stem |
 | Tremolo picking | `tp 8`, `tp 16`, `tp 32` | one, two or three slashes across the stem |
 | Time signature change | `\ts (3 4)` at the start of a later bar | the two numbers just inside that bar |
@@ -158,4 +158,5 @@ Each tuplet group's number ("3", "9", "3:4") sits under its middle
 group (a rest in it, quarter notes, or a lone note), a bracket across every
 member, rests included, has the number in a gap (Jeremy, 2026-10-26: a "3"
 not joined to three notes looked wrong, and a bracket under a beamed group
-is an extra line).
+is an extra line). Since 2026-10-28 every group has its bracket, beamed or not, as Guitar Pro prints
+them (Jeremy, issue #179; `2026-10-28-tab-sweet-child-solo-four-design.md`).

@@ -342,6 +342,13 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   return <>{parts}</>;
 }
 
+/** The wah's sign centred on (x, y): "+" closed, "o" open, as Guitar Pro prints them. */
+function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: number; look: TabLook }) {
+  return kind === 'closed'
+    ? <path d={`M${x - 4} ${y} h8 M${x} ${y - 4} v8`} stroke={look.ink} strokeWidth={1.2} fill="none" data-testid="wah" />
+    : <circle cx={x} cy={y} r={3.6} stroke={look.ink} strokeWidth={1.1} fill="none" data-testid="wah" />;
+}
+
 /** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
 function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; look: TabLook }) {
   const parts: ReactNode[] = [];
@@ -385,6 +392,7 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
           ? <path key={`stroke-${index}`} d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
           : <path key={`stroke-${index}`} d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
       }
+      if (column.wah && rows.wah !== null) parts.push(<WahMark key={`wah-${index}`} kind={column.wah} x={x} y={rows.wah} look={look} />);
       parts.push(<g key={`marks-${index}`}>{columnMarks(column, x, rows, look)}</g>);
     }
   }

@@ -28,7 +28,7 @@ export function labelWidth(note: Note, column: Column): number {
 export function hiddenNumber(note: Note, placed: PlacedColumn, bar: PlacedBar, rows: Rows, joins: Joins): boolean {
   const barStart = placed === bar.columns[0];
   const carry = joins.carries.get(note);
-  if (carry === 'release') return !barStart && !joins.legatoStarts.has(note);
+  if (carry === 'release') return !barStart && !joins.legatoStarts.has(note) && !note.slideOut;
   return note.tie === true && rows.score !== null && !barStart && !joins.legatoStarts.has(note) && !note.mordent && !note.vibrato;
 }
 

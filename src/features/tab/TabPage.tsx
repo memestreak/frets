@@ -159,6 +159,7 @@ export default function TabPage() {
       : columnAt(clip, cursor)?.notes.some(n => n?.vibrato === 'wide') ? 'wide' as const : 'slight' as const,
     tuplet: pickedTool === 'tuplet' ? cursorKinds.tuplet : null,
     ottava: pickedTool === 'ottava' ? cursorKinds.ottava : null,
+    wah: pickedTool === 'wah' ? cursorKinds.wah : null,
   };
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;

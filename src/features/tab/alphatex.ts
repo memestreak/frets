@@ -114,6 +114,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   if (column.ottava) effects.push(`ot ${column.ottava}`);
+  if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
   effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;

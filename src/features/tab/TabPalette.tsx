@@ -62,7 +62,7 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, di
                 onClick={() => onTool(tool.id)}
               >
                 <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : ICONS[tool.id]}
+                  {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : tool.id === 'wah' ? <WahGlyph open={kinds.wah === 'open'} /> : ICONS[tool.id]}
                 </svg>
               </button>
             ))}
@@ -123,6 +123,16 @@ function OttavaGlyph({ label }: { label: string }) {
 const BEND_AMOUNTS: Record<BendQuarters, string> = { 1: '¼', 2: '½', 4: 'full', 6: '1½', 8: '2' };
 
 /** A wavy line, taller and heavier when wide. */
+/** The Wah button: the cursor column's sign, "o" when its wah is open, else "+". */
+function WahGlyph({ open }: { open: boolean }) {
+  return (
+    <>
+      {open ? <circle cx={12} cy={8} r={4} /> : <path d="M7 8 h10 M12 3 v10" />}
+      <Label y={21} size={8}>wah</Label>
+    </>
+  );
+}
+
 function VibratoGlyph({ wide }: { wide: boolean }) {
   return wide
     ? <path d="M3 13 q3 -7 6 0 t6 0 t6 0" strokeWidth={2} />
@@ -217,7 +227,7 @@ function TremoloGlyph({ slashes }: { slashes: number }) {
   );
 }
 
-const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet'>, ReactNode> = {
+const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
   quarter: <NoteGlyph open={false} />,

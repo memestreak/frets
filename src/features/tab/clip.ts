@@ -119,6 +119,11 @@ export interface Column {
   tremolo?: TremoloValue;
   /** Written an octave or two from where it sounds, under an "8va" line and its like (alphaTex ot). */
   ottava?: Ottava;
+  /**
+   * The wah pedal from this column: closed, drawn "+" over the music, or open, drawn "o" (alphaTex wahc,
+   * waho), as Guitar Pro prints Sweet Child O' Mine's solo. Drawn only; playback doesn't sound it.
+   */
+  wah?: 'open' | 'closed';
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
@@ -608,6 +613,7 @@ function isColumn(v: unknown): v is Column {
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
+    && optOneOf(v.wah, ['open', 'closed'])
     && optStrings(v.extra);
 }
 

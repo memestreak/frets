@@ -82,16 +82,12 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
     }
   }
 
-  // Each tuplet group's number in its middle: 3 under a triplet, 9 under nine, 3:4 under three in the
-  // time of four. Where one beam doesn't already join the whole group (a rest in it, or quarter notes),
-  // a bracket across every member shows what the number counts. A group short of notes is drawn as it
-  // is, and the warning under the bar says so.
+  // Each tuplet group's number in its middle (3 under a triplet, 9 under nine, 3:4 under three in the
+  // time of four), in a bracket across every member, beamed or not, as Guitar Pro prints them (issue
+  // #179). A group short of notes is drawn as it is, and the warning under the bar says so.
   const cols = bar.columns.filter(p => !p.column.grace);
   for (const { from, to, duration } of tupletGroups(cols.map(p => p.column))) {
     const label = tupletLabel(duration);
-    const members = cols.slice(from, to + 1);
-    const beam = grouped.get(members[0].column);
-    const beamed = members.length > 1 && beam !== undefined && members.every(p => grouped.get(p.column) === beam);
     const x0 = cols[from].x - 5;
     const x1 = cols[to].x + 5;
     const mid = (x0 + x1) / 2;
@@ -99,12 +95,10 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
     const y = rows.tuplet - 4;
     parts.push(
       <g key={`tuplet-${cols[from].x}`} data-testid="tuplet-group">
-        {!beamed && (
-          <path
-            d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
-            fill="none" stroke={look.ink} strokeWidth={1} data-testid="tuplet-bracket"
-          />
-        )}
+        <path
+          d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
+          fill="none" stroke={look.ink} strokeWidth={1} data-testid="tuplet-bracket"
+        />
         <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
       </g>,
     );

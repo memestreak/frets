@@ -345,15 +345,13 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
       // The bracket runs through the number's middle, with a gap for it, and hooks 4px toward the notes.
       const lineY = mark.y - 3.5;
       const gap = mark.label.length * 3.5 + 4;
-      const hook = bracket?.up ? -4 : 4;
+      const hook = bracket.up ? -4 : 4;
       return (
         <g>
-          {bracket && (
-            <path
-              d={`M${bracket.x0} ${lineY + hook} V${lineY} H${Math.max(bracket.x0, mark.x - gap)} M${Math.min(bracket.x1, mark.x + gap)} ${lineY} H${bracket.x1} V${lineY + hook}`}
-              fill="none" stroke={look.ink} strokeWidth={1} data-testid="staff-tuplet-bracket"
-            />
-          )}
+          <path
+            d={`M${bracket.x0} ${lineY + hook} V${lineY} H${Math.max(bracket.x0, mark.x - gap)} M${Math.min(bracket.x1, mark.x + gap)} ${lineY} H${bracket.x1} V${lineY + hook}`}
+            fill="none" stroke={look.ink} strokeWidth={1} data-testid="staff-tuplet-bracket"
+          />
           <text x={mark.x} y={mark.y} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="staff-tuplet">
             {mark.label}
           </text>

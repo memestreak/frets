@@ -13,7 +13,7 @@ import type { ToolId } from './tools';
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'mordent' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'tremolo' | 'tuplet' | 'ottava';
+  | 'vibrato' | 'mordent' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -101,6 +101,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           add('mordent', index, null, box.x - 2, rows.vibrato - THIN_REACH, box.x + box.width + 2, rows.vibrato + THIN_REACH);
         }
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
+        if (column.wah && rows.wah !== null) rowMark('wah', index, x - 7, x + 7, rows.wah);
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
         const accent = columnAccent(column);
         const staccato = notes.some(n => n.staccato);
@@ -248,6 +249,7 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
       return mordent === 'upper' ? 'mordent' : mordent === 'lower' ? 'lowerMordent' : null;
     }
     case 'stroke': return column?.stroke === 'down' ? 'strokeDown' : column?.stroke === 'up' ? 'strokeUp' : null;
+    case 'wah': return column?.wah ? 'wah' : null;
     case 'tremolo': {
       const tools = { 8: 'tremolo8', 16: 'tremolo16', 32: 'tremolo32' } as const;
       return column?.tremolo ? tools[column.tremolo] : null;
