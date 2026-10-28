@@ -37,6 +37,8 @@ export interface Joins {
   carries: Map<Note, 'hold' | 'release'>;
   /** How far each carried bend has been pushed on up (`bendRaises`). */
   raises: Map<Note, number>;
+  /** Tied notes going on from a bend let down part of the way (`bendLandings`). */
+  landings: Set<Note>;
   legatoStarts: Set<Note>;
 }
 
@@ -92,7 +94,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       const rise = note.bend?.from !== undefined ? note.bend : undefined;
       parts.push(
         <BendCarry
-          key={`bend-${s}`} carry={carry} level={level} rise={rise} fromX={before && before.system === system ? fromX : staffStart - 14}
+          key={`bend-${s}`} carry={carry} level={level} rise={rise} bend={note.bend} landed={joins.landings.has(note)} fromX={before && before.system === system ? fromX : staffStart - 14}
           x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look}
         />,
       );
@@ -121,13 +123,18 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
   return <g data-testid="tab-column">{parts}</g>;
 }
 
-/** The marks drawn once over a column, each in its own row: "P.H.", an accent and a staccato dot. */
+/** The marks drawn once over a column, each in its own row: "P.H." or "AH", an accent and a staccato dot. */
 export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): ReactNode[] {
   const notes = column.notes.filter((n): n is Note => n !== null);
   const parts: ReactNode[] = [];
   if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) {
     parts.push(
       <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
+    );
+  } else if (notes.some(n => n.harmonic === 'artificial') && rows.harmonics !== null) {
+    // An artificial harmonic is labelled "AH", as the book prints bar 158 of Sweet Child O' Mine.
+    parts.push(
+      <text key="artificial" x={x} y={rows.harmonics + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="artificial-harmonic">AH</text>,
     );
   }
   const accent = columnAccent(column);
@@ -154,20 +161,24 @@ export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook
  * the dashed line in a curved arrow to a line higher, `BEND_LABEL_STEP` a step, labelled with its new
  * height; `level` is how many steps up it stands.
  */
-function BendCarry({ carry, level, rise, fromX, x, y, staffTop, look }: {
-  carry: 'hold' | 'release'; level: number; rise?: Bend; fromX: number; x: number; y: number; staffTop: number; look: TabLook;
+function BendCarry({ carry, level, rise, bend, landed, fromX, x, y, staffTop, look }: {
+  carry: 'hold' | 'release'; level: number; rise?: Bend; bend?: Bend; landed: boolean; fromX: number; x: number; y: number;
+  staffTop: number; look: TabLook;
 }) {
   const top = staffTop - BEND_RISE - level * BEND_LABEL_STEP;
   const from = fromX + 14;
   if (rise) {
     const below = top + BEND_LABEL_STEP;
-    const up = x + 4;
+    // From where the note before let it down, the arrow rises straight from its arrowhead, as the book
+    // draws bar 165; from a held bend, the dashed line runs on first.
+    const up = landed ? fromX + 4 : x + 4;
     return (
       <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend-rise">
-        {up > from && <line x1={from} x2={up} y1={below} y2={below} strokeDasharray="4 3" />}
+        {!landed && up > from && <line x1={from} x2={up} y1={below} y2={below} strokeDasharray="4 3" />}
         <path d={`M${up} ${below} Q${x + 14} ${below} ${x + 14} ${top + 2}`} />
         <path d={`M${x + 10} ${top + 7} L${x + 14} ${top} L${x + 18} ${top + 7}`} fill={look.ink} stroke="none" />
-        {rise.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${y - 8}`} />}
+        {rise.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${releaseEnd(rise, top, y)}`} />}
+        {rise.release && <ReleaseLabel bend={rise} x={x + 24} top={top} look={look} />}
         <text x={x + 14} y={top - 9} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" textAnchor="middle" data-testid="bend-label">
           {bendLabel({ ...rise, pre: false })}
         </text>
@@ -178,12 +189,30 @@ function BendCarry({ carry, level, rise, fromX, x, y, staffTop, look }: {
     return <line x1={from} x2={x + 14} y1={top} y2={top} stroke={look.ink} strokeWidth={1.2} strokeDasharray="4 3" data-testid="bend-hold" />;
   }
   const down = x - 8;
+  // Down to the string, or, let down part of the way, to a step under the bend's line.
+  const end = bend?.to !== undefined ? top + BEND_LABEL_STEP : y;
   return (
     <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend-release">
       {down > from && <line x1={from} x2={down} y1={top} y2={top} strokeDasharray="4 3" />}
-      <path d={`M${down} ${top} Q${x} ${top} ${x} ${y - 6}`} />
-      <path d={`M${x - 4} ${y - 7} L${x} ${y} L${x + 4} ${y - 7}`} fill={look.ink} stroke="none" />
+      <path d={`M${down} ${top} Q${x} ${top} ${x} ${end - 6}`} />
+      <path d={`M${x - 4} ${end - 7} L${x} ${end} L${x + 4} ${end - 7}`} fill={look.ink} stroke="none" />
+      {bend && <ReleaseLabel bend={bend} x={x} top={top} look={look} />}
     </g>
+  );
+}
+
+/** Where a release's arrowhead stops: over the number, or a step under the bend's line when it lands at `to`. */
+function releaseEnd(bend: Bend, top: number, y: number): number {
+  return bend.to !== undefined ? top + BEND_LABEL_STEP : y - 8;
+}
+
+/** A release that stops part of the way down is labelled with the height it lands at, up by its arrowhead, clear of what rises from there. */
+function ReleaseLabel({ bend, x, top, look }: { bend: Bend; x: number; top: number; look: TabLook }) {
+  if (bend.to === undefined) return null;
+  return (
+    <text x={x + 6} y={top + BEND_LABEL_STEP - 5} fontSize={10} fontWeight={700} fill={look.ink} stroke="none" data-testid="bend-to">
+      {bendLabel({ quarters: bend.to, pre: false, release: false })}
+    </text>
   );
 }
 
@@ -213,8 +242,9 @@ function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
       <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend">
         <line x1={x} x2={x} y1={y - 8} y2={top + 2} />
         {head(x, top)}
-        {bend.release && <path d={`M${x + 2} ${top} Q${x + 14} ${top} ${x + 14} ${y - 8}`} />}
-        {bend.release && head(x + 14, y - 8, true)}
+        {bend.release && <path d={`M${x + 2} ${top} Q${x + 14} ${top} ${x + 14} ${releaseEnd(bend, top, y)}`} />}
+        {bend.release && head(x + 14, releaseEnd(bend, top, y), true)}
+        {bend.release && <ReleaseLabel bend={bend} x={x + 14} top={top} look={look} />}
         {label}
       </g>
     );
@@ -223,8 +253,9 @@ function BendDrawing({ bend, line, x: noteX, from, y, staffTop, look }: {
     <g stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="bend">
       <path d={`M${x + 7} ${y - 2} Q${x + 14} ${y - 2} ${x + 14} ${top + 2}`} />
       {head(x + 14, top)}
-      {bend.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${y - 8}`} />}
-      {bend.release && head(x + 24, y - 8, true)}
+      {bend.release && <path d={`M${x + 15} ${top} Q${x + 24} ${top} ${x + 24} ${releaseEnd(bend, top, y)}`} />}
+      {bend.release && head(x + 24, releaseEnd(bend, top, y), true)}
+      {bend.release && <ReleaseLabel bend={bend} x={x + 24} top={top} look={look} />}
       {!bend.release && from !== undefined && <line x1={x + 18} x2={noteX + 14} y1={top} y2={top} strokeDasharray="4 3" />}
       {label}
     </g>

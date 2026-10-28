@@ -210,7 +210,7 @@ export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip |
   if (key === '/') return cycleSlide(clip, cursor);
   if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
   if (key === 'v') return cycleMark(clip, target, 'vibrato', VIBRATOS);
-  if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch']);
+  if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   if (key === 'T') return cycleTremolo(clip, target);
   return null;

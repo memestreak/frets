@@ -12,19 +12,21 @@
  * their heights' labels, the wah's row goes under the chord names, and a bend after a grace note rises
  * by the grace note's number. Round 8 (docs/specs/2026-10-28-tab-sweet-child-solo-six-design.md): a held
  * bend pushed on up is read, kept, written and drawn as an arrow rising from its dashed line, and a tap is a
- * circled T over the tab and the staff (docs/specs/2026-10-28-tab-circled-tap-design.md).
+ * circled T over the tab and the staff (docs/specs/2026-10-28-tab-circled-tap-design.md). Round 9
+ * (docs/specs/2026-10-28-tab-sweet-child-outro-design.md): a slide from a dead note, a bend let down part of
+ * the way and pushed back up, crescendo and decrescendo hairpins, and artificial harmonics.
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { legatoStarts, parseClip, type Clip } from '@/features/tab/clip';
+import { bendRaises, legatoStarts, parseClip, type Clip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip, rowsFor } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
 import { perform } from '@/features/tab/playback';
 import { TabClip } from '@/features/tab/TabClip';
-import { applyTool, isOn } from '@/features/tab/tools';
+import { applyCyclingKey, applyTool, isOn } from '@/features/tab/tools';
 
 function clipOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
@@ -281,5 +283,107 @@ describe('a tap\'s circled T (round 8, the book\'s bar 141)', () => {
     const both = render(<TabClip clip={clipOf('\\ts (4 4)\n12.1.8{tt} 5.1.8 r.4 r.2 |\n')} width={900} parts="both" title="Tap" />).container;
     const circle = both.querySelector('[data-testid="staff-tap"] circle')!;
     expect(Number(circle.getAttribute('cy')) - 5.5).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('a dead note slid into the next note (round 9, the book\'s bar 160)', () => {
+  const TEXT = '\\ts (4 4)\nr.2 r.4 r.8 x.3{sl}.8 |\n19.3.4 r.4 r.2 |\n';
+
+  it('is read and written back with its slide, and the slide is drawn', () => {
+    const result = readAlphaTexWith(alphaTab, TEXT);
+    expect(result.ok && result.warnings).toEqual([]);
+    const clip = clipOf(TEXT);
+    expect(clip.bars[1].columns[0].notes[2]).toMatchObject({ fret: 19, slide: 'legato' });
+    expect(writeAlphaTex(clip)).toContain('x.3{sl}.8 |');
+    // A hammer-on from a dead note still means nothing, and is left out.
+    const hammer = readAlphaTexWith(alphaTab, '\\ts (4 4)\nx.3{h}.4 5.3.4 r.2 |\n');
+    expect(hammer.ok && hammer.warnings).toEqual(['Left out a hammer-on, pull-off or slide with no later note on its string.']);
+  });
+});
+
+describe('a bend let down part of the way and pushed back up (round 9, the book\'s bar 165)', () => {
+  const TEXT = '\\ts (4 4)\n17.1{b (0 4)}.4 -.1{b (4 2)}.4 -.1{b (2 4)}.4 -.1{b (4 0)}.4 |\n';
+
+  it('keeps the height the release stops at, writes it back as it was, and checks it', () => {
+    const clip = clipOf(TEXT);
+    const notes = clip.bars[0].columns.map(c => c.notes[0]!);
+    expect(notes[1].bend).toEqual({ quarters: 4, pre: true, release: true, to: 2 });
+    expect(notes[2].bend).toEqual({ quarters: 4, pre: true, release: false, from: 2 });
+    expect(writeAlphaTex(clip)).toContain('-.1{b (4 2)}.4 -.1{b (2 4)}.4 -.1{b (4 0)}.4');
+    // Let down half way on a picked note: (0 4 2).
+    expect(writeAlphaTex(clipOf('\\ts (4 4)\n17.1{b (0 4 2)}.4 r.4 r.2 |\n'))).toContain('17.1{b (0 4 2)}.4');
+    const withBend = (bend: object) => ({ ...clip, bars: [{ ...clip.bars[0], columns: [{ ...clip.bars[0].columns[0], notes: [{ fret: 17, bend }, null, null, null, null, null] }] }] });
+    expect(parseClip(withBend({ quarters: 4, pre: false, release: true, to: 2 }))).not.toBeNull();
+    expect(parseClip(withBend({ quarters: 4, pre: false, release: true, to: 4 }))).toBeNull();
+    expect(parseClip(withBend({ quarters: 4, pre: false, release: false, to: 2 }))).toBeNull();
+  });
+
+  it('lands a step under the bend\'s line, labelled "½", and rises from there back to the first line', () => {
+    const clip = clipOf(TEXT);
+    // The rise goes back up to the line it came down from, the usual one, so no note leaves it; a note
+    // holding the bend where it landed stands a step under it.
+    expect(bendRaises(clip).size).toBe(0);
+    expect([...bendRaises(clipOf('\\ts (4 4)\n17.1{b (0 4)}.4 -.1{b (4 2)}.4 -.1{b (2 2)}.2 |\n')).values()]).toEqual([-1]);
+    const tab = render(<TabClip clip={clip} width={900} parts="both" title="Down and up" />).container;
+    expect([...tab.querySelectorAll('[data-testid="bend-to"]')].map(t => t.textContent)).toEqual(['½']);
+    const rise = tab.querySelector('[data-testid="bend-rise"]')!;
+    expect(rise.querySelector('text')!.textContent).toBe('full');
+    // No dashed line before the rise: it leaves straight from where the release landed.
+    expect(rise.querySelector('line')).toBeNull();
+    // The rise's arrowhead is as high as the first bend's.
+    const firstTop = Number(/ ([\d.]+)$/.exec(tab.querySelector('[data-testid="bend"] path')!.getAttribute('d')!)![1]);
+    const riseTop = Number(/ ([\d.]+)$/.exec(rise.querySelector('path')!.getAttribute('d')!)![1]);
+    expect(riseTop).toBe(firstTop);
+  });
+});
+
+describe('crescendo and decrescendo hairpins (round 9, the book\'s bar 157)', () => {
+  const TEXT = '\\ts (4 4)\n7.3.8{cre} 9.3.8{cre} 7.3.8{cre} 9.3.8{cre} 7.3.8{dec} 9.3.8{dec} r.4 |\n';
+
+  it('are read, written back, and drawn one wedge per run, opening and closing, under the staff and over the tab', () => {
+    const clip = clipOf(TEXT);
+    expect(clip.bars[0].columns.map(c => c.hairpin ?? null)).toEqual(['crescendo', 'crescendo', 'crescendo', 'crescendo', 'decrescendo', 'decrescendo', null]);
+    expect(writeAlphaTex(clip)).toContain('7.3.8{cre} 9.3.8{cre} 7.3.8{cre} 9.3.8{cre} 7.3.8{dec} 9.3.8{dec} r.4 |');
+    for (const parts of ['both', 'tab', 'staff'] as const) {
+      const container = render(<TabClip clip={clip} width={900} parts={parts} title="Hairpins" />).container;
+      const wedges = [...container.querySelectorAll('[data-testid="hairpin"]')].map(p => p.getAttribute('d')!.match(/-?[\d.]+/g)!.map(Number));
+      expect(wedges).toHaveLength(2);
+      // M wide-top L point L wide-bottom: a crescendo's point is on its left, a decrescendo's on its right.
+      const [cre, dec] = wedges;
+      expect(cre[2]).toBeLessThan(cre[0]);
+      expect(dec[2]).toBeGreaterThan(dec[0]);
+      const { rows } = layoutClip(clip, 900, parts).systems[0];
+      if (rows.score) expect(cre[3]).toBeGreaterThan(rows.score.bottom);
+      if (rows.tab) expect(cre[3]).toBeLessThan(rows.staffTop);
+    }
+  });
+});
+
+describe('an artificial harmonic (round 9, the book\'s bar 158)', () => {
+  it('is read with or without its touch point, written back, and labelled "AH" over the tab', () => {
+    const clip = clipOf('\\ts (4 4)\n(8.2{ah} 7.3{nh}).4 10.2{ah 12}.4 r.2 |\n');
+    expect(clip.bars[0].columns[0].notes[1]).toMatchObject({ fret: 8, harmonic: 'artificial' });
+    expect(clip.bars[0].columns[1].notes[1]).toMatchObject({ fret: 10, harmonic: 'artificial', harmonicFret: 12 });
+    expect(writeAlphaTex(clip)).toContain('(8.2{ah} 7.3{nh}).4 10.2{ah 12}.4 r.2 |');
+    expect(readAlphaTexWith(alphaTab, writeAlphaTex(clip)).ok && readAlphaTexWith(alphaTab, writeAlphaTex(clip))).toMatchObject({ warnings: [] });
+    for (const parts of ['both', 'tab'] as const) {
+      const container = render(<TabClip clip={clip} width={900} parts={parts} title="AH" />).container;
+      expect([...container.querySelectorAll('[data-testid="artificial-harmonic"]')].map(t => t.textContent)).toEqual(['AH', 'AH']);
+    }
+  });
+
+  it('comes after pinch in the N key\'s cycle, and is picked and deleted, lighting no tool', () => {
+    const target = { cursor: { bar: 0, column: 0, string: 1 }, selection: null };
+    let clip = clipOf('\\ts (4 4)\n8.2.4 r.4 r.2 |\n');
+    const kinds = [];
+    for (let i = 0; i < 4; i++) {
+      clip = applyCyclingKey(clip, target, 'n')!;
+      kinds.push(clip.bars[0].columns[0].notes[1]!.harmonic ?? null);
+    }
+    expect(kinds).toEqual(['natural', 'pinch', 'artificial', null]);
+    clip = clipOf('\\ts (4 4)\n8.2{ah 12}.4 r.4 r.2 |\n');
+    const hit = markBoxes(layoutClip(clip, 900, 'tab')).find(m => m.hit.mark === 'artificial')!.hit;
+    expect(markTool(clip, hit)).toBeNull();
+    expect(removeMark(clip, hit).bars[0].columns[0].notes[1]).toEqual({ fret: 8 });
   });
 });

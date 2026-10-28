@@ -13,7 +13,7 @@ import type { ToolId } from './tools';
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'mordent' | 'pinch' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava';
+  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -104,6 +104,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
         if (column.wah && rows.wah !== null) rowMark('wah', index, x - 7, x + 7, rows.wah);
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
+        else if (notes.some(n => n.harmonic === 'artificial') && rows.harmonics !== null) rowMark('artificial', index, x - 9, x + 9, rows.harmonics);
         const accent = columnAccent(column);
         const staccato = notes.some(n => n.staccato);
         if (rows.accents !== null && (accent || staccato)) {
@@ -242,6 +243,8 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
     case 'vibrato': return notes.some(n => n.vibrato) ? 'vibrato' : null;
     case 'ottava': return column?.ottava ? 'ottava' : null;
     case 'pinch': return notes.some(n => n.harmonic === 'pinch') ? 'pinchHarmonic' : null;
+    // No palette button sets it (the N key's cycle does), so none lights.
+    case 'artificial': return null;
     case 'accent': {
       const accent = column ? columnAccent(column) : undefined;
       return accent === 'heavy' ? 'heavyAccent' : accent === 'normal' ? 'accent' : null;

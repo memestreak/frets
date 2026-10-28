@@ -1,9 +1,9 @@
 import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { beatTicks, bendCarries, bendRaises, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
+import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
-import { RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
+import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type Spot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { StaffCursor, StaffDrawing } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
@@ -153,7 +153,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const previous = previousSpots(layout.systems);
   const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
-  const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), legatoStarts: legatoStarts(clip) };
+  const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), landings: bendLandings(clip), legatoStarts: legatoStarts(clip) };
   const arcs = legatoArcs(layout.systems);
   const lastBar = clip.bars.length - 1;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
@@ -408,6 +408,21 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
           {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
           {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
         </g>,
+      );
+    }
+  }
+
+  // Hairpins: one wedge over each run of neighbouring columns getting louder (opening) or softer (closing).
+  if (rows.hairpins !== null) {
+    for (const run of columnRuns(system, c => c.hairpin ?? null)) {
+      const y = rows.hairpins;
+      const [x0, x1] = [run.from.x - 4, run.end];
+      const [narrow, wide] = run.kind === 'crescendo' ? [x0, x1] : [x1, x0];
+      parts.push(
+        <path
+          key={`hairpin-${run.from.index}`} d={`M${wide} ${y - 4} L${narrow} ${y} L${wide} ${y + 4}`}
+          fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="hairpin"
+        />,
       );
     }
   }

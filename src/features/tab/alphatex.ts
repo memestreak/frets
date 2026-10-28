@@ -43,10 +43,10 @@ function withOctave(name: string, string: number): string {
  * note a "pre-bend" carries on the bend before: (4 4) holds it, (4 0) lets it down and (4 6) pushes it
  * on up.
  */
-function bendPoints({ quarters, pre, release, from }: Bend, tied: boolean): string {
-  if (tied && pre && release && from === undefined) return `${quarters} 0`;
+function bendPoints({ quarters, pre, release, from, to }: Bend, tied: boolean): string {
+  if (tied && pre && release && from === undefined) return `${quarters} ${to ?? 0}`;
   const points = pre ? [from ?? quarters, quarters] : [0, quarters];
-  if (release) points.push(0);
+  if (release) points.push(to ?? 0);
   return points.join(' ');
 }
 
@@ -76,7 +76,8 @@ function noteTex(note: Note, at: At, marks: string[]): string {
   if (note.bend) effects.push(`b (${bendPoints(note.bend, !!note.tie)})`);
   if (note.slideOut) effects.push(note.slideOut === 'down' ? 'sod' : 'sou');
   if (note.vibrato) effects.push(note.vibrato === 'wide' ? 'vw' : 'v');
-  if (note.harmonic) effects.push(note.harmonic === 'pinch' ? 'ph' : 'nh');
+  if (note.harmonic === 'artificial') effects.push(note.harmonicFret ? `ah ${note.harmonicFret}` : 'ah');
+  else if (note.harmonic) effects.push(note.harmonic === 'pinch' ? 'ph' : 'nh');
   if (note.palmMute) effects.push('pm');
   if (note.letRing) effects.push('lr');
   if (note.ghost) effects.push('g');
@@ -116,6 +117,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   if (column.ottava) effects.push(`ot ${column.ottava}`);
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
+  if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
   effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;

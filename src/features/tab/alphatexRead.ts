@@ -29,10 +29,10 @@ export function loadAlphaTab(): Promise<AlphaTab> {
 
 /** Note effects Frets reads. */
 const NOTE_EFFECTS = new Set([
-  'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
+  'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'ah', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec']);
 /** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars and multi-bar rests. */
 const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'multibarrest']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
@@ -47,7 +47,7 @@ const BAR_TAGS = new Set([
 /** What a few kept keywords are, for the line that lists them; tags keep their backslash (\ac is a pickup bar, ac an accent). */
 const KEPT_NAMES: Record<string, string> = {
   '\\ac': 'pickup bar',
-  ah: 'artificial harmonic', th: 'tapped harmonic',
+  th: 'tapped harmonic',
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
   tp: 'tremolo picking', tb: 'whammy bar',
   psu: 'pick slide up', psd: 'pick slide down',
@@ -123,6 +123,9 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
       n.bend = { quarters, pre: values[0] > 0, release: values[values.length - 1] < peak };
       // A bend that starts bent but lower than its peak rises on from there: (4 6).
       if (values[0] > 0 && nearestQuarters(values[0]) < quarters) n.bend.from = nearestQuarters(values[0]);
+      // A release that stops short of the fret lands at its last point: (4 2) lets "full" down to "½".
+      const last = values[values.length - 1];
+      if (n.bend.release && last > 0 && nearestQuarters(last) < quarters) n.bend.to = nearestQuarters(last);
     }
   }
   if (note.slideOutType === at.model.SlideOutType.OutDown) n.slideOut = 'down';
@@ -131,6 +134,10 @@ function noteOf(note: AtNote, at: AlphaTab): Note {
   if (note.vibrato === at.model.VibratoType.Wide) n.vibrato = 'wide';
   if (note.harmonicType === at.model.HarmonicType.Natural) n.harmonic = 'natural';
   if (note.harmonicType === at.model.HarmonicType.Pinch) n.harmonic = 'pinch';
+  if (note.harmonicType === at.model.HarmonicType.Artificial) {
+    n.harmonic = 'artificial';
+    if (note.harmonicValue > 0) n.harmonicFret = note.harmonicValue;
+  }
   if (note.isLetRing) n.letRing = true;
   if (note.isGhost) n.ghost = true;
   if (note.accentuated === at.model.AccentuationType.Normal) n.accent = 'normal';
@@ -188,11 +195,14 @@ function joinToNext(bars: Bar[], origins: Map<Note, AtNote>, at: AlphaTab, warn:
         : source.slideOutType === at.model.SlideOutType.Legato ? 'legato' : null;
       if (!source.isHammerPullOrigin && !slide) return;
       const next = onString[i + 1];
-      if (!next || note.fret === null || next.fret === null) {
+      // A slide may start from a dead note (the book's bar 160 slides an x up into a 19); a hammer-on needs two frets.
+      const from = note.fret;
+      const hammer = source.isHammerPullOrigin && from !== null;
+      if (!next || next.fret === null || (!hammer && !slide)) {
         warn('Left out a hammer-on, pull-off or slide with no later note on its string.');
         return;
       }
-      if (source.isHammerPullOrigin) next.legato = next.fret < note.fret ? 'p' : 'h';
+      if (hammer) next.legato = next.fret < from ? 'p' : 'h';
       if (slide) next.slide = slide;
     });
   }
@@ -310,6 +320,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
       if (beat.wahPedal === at.model.WahPedal.Open) column.wah = 'open';
       if (beat.wahPedal === at.model.WahPedal.Closed) column.wah = 'closed';
+      if (beat.crescendo === at.model.CrescendoType.Crescendo) column.hairpin = 'crescendo';
+      if (beat.crescendo === at.model.CrescendoType.Decrescendo) column.hairpin = 'decrescendo';
       const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
       if (chord?.name) column.chord = chord.name;
       if (beat.text) column.text = beat.text;
