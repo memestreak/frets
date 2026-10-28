@@ -70,6 +70,37 @@ function pressFirstTimeSignature() {
 }
 
 describe('TabPage', () => {
+  it('prints the credits and the tuning under the title, and shows bar numbers as the View options say', async () => {
+    renderAt('#example=tuned-down');
+    await waitFor(() => expect(heading()).toHaveTextContent("Sweet Child O' Mine (intro)"), SLOW);
+    const credits = screen.getByTestId('score-credits');
+    expect(credits).toHaveTextContent("Guns N' Roses");
+    expect(credits).toHaveTextContent('Words & Music by Axl Rose, Slash, Izzy Stradlin, Duff McKagan & Steven Adler');
+    expect(within(credits).getByLabelText('Tuning')).toHaveTextContent('Tune down 1/2 step');
+    const numbers = () => screen.queryAllByTestId('bar-number').map(n => n.textContent);
+    expect(numbers()).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    const panel = screen.getByRole('dialog', { name: 'View options' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'None' }));
+    expect(numbers()).toEqual([]);
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toEqual({ barNumbers: 'none', size: 100 });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
+    expect(numbers().length).toBeGreaterThan(0);
+    expect(numbers()[0]).toBe('1');
+    // Size: the drawing is laid out narrower and zoomed, so it fits more to a line; it steps by 10% and stops at 50%.
+    const drawing = () => screen.getByRole('img', { name: /drawn as/ });
+    const fullWidth = Number(drawing().getAttribute('width'));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
+    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '90');
+    expect(Number(drawing().getAttribute('width'))).toBeCloseTo(fullWidth / 0.9, 3);
+    for (let i = 0; i < 6; i++) fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
+    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '50');
+    expect(JSON.parse(localStorage.getItem('frets.tab.view')!).size).toBe(50);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'View options' })).toBeNull();
+  });
+
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
     expect(heading()).toHaveTextContent('Untitled clip');
@@ -687,7 +718,7 @@ describe('TabPage examples', () => {
     const dialog = screen.getByRole('dialog', { name: 'Examples' });
     fireEvent.click(within(dialog).getByRole('button', { name: /Bends and vibrato/ }));
     await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
-    expect(screen.getByTestId('clip-facts')).toHaveTextContent("Example: edits aren't saved");
+    expect(screen.getByTestId('example-note')).toHaveTextContent("Example: edits aren't saved");
     expect(window.location.hash).toBe('#example=bends');
     // An edit changes the example on the page, not the saved clip.
     act(() => editor().focus());
@@ -696,7 +727,7 @@ describe('TabPage examples', () => {
     expect(saved()).toBe('Tex riff');
     fireEvent.click(screen.getByRole('button', { name: 'Back to my clip' }));
     expect(heading()).toHaveTextContent('Tex riff');
-    expect(screen.getByTestId('clip-facts')).toBeEmptyDOMElement();
+    expect(screen.queryByTestId('example-note')).toBeNull();
     expect(window.location.hash).toBe('');
     // Undo still has the clip's own history: before the import, the clip was empty.
     undo();
@@ -722,7 +753,7 @@ describe('TabPage examples', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: TEX } });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
-    expect(screen.getByTestId('clip-facts')).toBeEmptyDOMElement();
+    expect(screen.queryByTestId('example-note')).toBeNull();
     expect(window.location.hash).toBe('');
     await waitFor(() => expect(saved()).toBe('Tex riff'));
   });

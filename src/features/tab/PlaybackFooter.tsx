@@ -443,7 +443,9 @@ export function LoopHandles({ clip, width, parts, playback }: { clip: Clip; widt
   const onMove = (e: PointerEvent<SVGRectElement>) => {
     if (!drag.current) return;
     const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-    const column = columnAt(layout, e.clientX - box.left, e.clientY - box.top);
+    // From screen pixels to the drawing's units, at any size the page draws it.
+    const scale = box.width > 0 ? width / box.width : 1;
+    const column = columnAt(layout, (e.clientX - box.left) * scale, (e.clientY - box.top) * scale);
     if (column === null) return;
     const next: [number, number] = drag.current === 'start' ? [Math.min(column, loop[1]), loop[1]] : [loop[0], Math.max(column, loop[0])];
     if (next[0] !== loop[0] || next[1] !== loop[1]) playback.setLoopPoints(next);

@@ -10,6 +10,7 @@ import type { Clip } from './clip';
 import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
+import type { TabView } from './viewOptions';
 import type { Parts } from './layout';
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
@@ -26,10 +27,12 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * starts as the clip's and can be changed for this export. It stays open
  * after an action; Done, × or Esc close it.
  */
-export function TabExportDialog({ clip, parts, open, style, onStyle, onClose }: {
+export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClose }: {
   clip: Clip;
   /** What the page shows, which the image draws too: the staff, the tab or both. */
   parts: Parts;
+  /** The View options (bar numbers, size), as the page shows them. */
+  view: TabView;
   open: boolean;
   style: TabExportStyle;
   onStyle: (style: TabExportStyle) => void;
@@ -62,11 +65,11 @@ export function TabExportDialog({ clip, parts, open, style, onStyle, onClose }: 
     setStatus('');
   };
   const run = (action: (svg: string) => Promise<string>) => {
-    action(tabSvg(clip, style, title, parts)).then(setStatus, (e: unknown) => {
+    action(tabSvg(clip, style, title, parts, view)).then(setStatus, (e: unknown) => {
       setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
     });
   };
-  const { width, height } = tabImageSize(clip, style, title, parts);
+  const { width, height } = tabImageSize(clip, style, title, parts, view);
   const fileName = tabFileName(title || clip.name);
 
   return (
@@ -90,7 +93,7 @@ export function TabExportDialog({ clip, parts, open, style, onStyle, onClose }: 
           </div>
           <div className="settings-dialog-body">
             <div className="export-preview" data-testid="export-preview">
-              <TabImage clip={clip} style={style} title={title} parts={parts} />
+              <TabImage clip={clip} style={style} title={title} parts={parts} view={view} />
             </div>
             <p className="export-size" data-testid="export-size">
               {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}

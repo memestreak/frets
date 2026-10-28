@@ -6,8 +6,10 @@ import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Clip } from './clip';
+import { circled, creditsOf, tuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { TabClip, type TabLook } from './TabClip';
+import { DEFAULT_VIEW, type TabView } from './viewOptions';
 
 export const TAB_EXPORT_KEY = 'frets.tab.export';
 
@@ -43,17 +45,49 @@ const EXPORT_LOOK: TabLook = { ink: '#000000', line: '#000000', paper: '#ffffff'
 const PAD = 16;
 const TITLE_SIZE = 20;
 const TITLE_HEIGHT = 34;
+/** The credits' and tuning's lines under the title: their size and the room each takes. */
+const CREDIT_SIZE = 12;
+const CREDIT_LINE = 17;
+/** The tuning's second column of strings, from its first. */
+const TUNING_COLUMN = 64;
 
-/** How far down the tab starts: under the name, if shown. The tab draws its own capo. */
-function headHeight(shown: boolean): number {
-  return shown ? TITLE_HEIGHT : 0;
+/** What the image prints over the tab, as a score does: the title and credits (if the name is shown), then the tuning. */
+interface HeadLine {
+  text: string;
+  bold?: boolean;
+  /** A second column on the line: the tuning's ④ to ⑥ beside ① to ③. */
+  second?: string;
+}
+
+function headLines(clip: Clip, style: TabExportStyle, title: string): { title: string; lines: HeadLine[] } {
+  const shown = style.name && title.trim() !== '' ? title.trim() : '';
+  const lines: HeadLine[] = [];
+  if (shown) {
+    const { artist, lines: by } = creditsOf(clip);
+    if (artist) lines.push({ text: artist, bold: true });
+    lines.push(...by.map(text => ({ text })));
+  }
+  const tuning = tuningBlock(clip.tuning);
+  if (tuning) {
+    if (tuning.heading) lines.push({ text: tuning.heading });
+    const rows = Math.min(3, tuning.strings.length);
+    const said = tuning.strings.map(s => `${circled(s.number)} = ${s.name}`);
+    for (let r = 0; r < rows; r++) lines.push({ text: said[r], second: said[r + rows] });
+  }
+  return { title: shown, lines };
+}
+
+/** How far down the tab starts: under the name and the lines under it, if any. The tab draws its own capo. */
+function headHeight(head: { title: string; lines: HeadLine[] }): number {
+  const lines = head.lines.length > 0 ? head.lines.length * CREDIT_LINE + 8 : 0;
+  return (head.title ? TITLE_HEIGHT : 0) + lines;
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab'): { width: number; height: number } {
-  const tab = layoutClip(clip, style.width - 2 * PAD, parts);
-  const shown = style.name && title.trim() !== '';
-  return { width: style.width, height: tab.height + 2 * PAD + headHeight(shown) - 8 };
+export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
+  const zoom = view.size / 100;
+  const tab = layoutClip(clip, (style.width - 2 * PAD) / zoom, parts);
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headHeight(headLines(clip, style, title)) - 8 };
 }
 
 /**
@@ -61,31 +95,40 @@ export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, p
  * above it if the style shows it, on white unless transparent; the staff, the
  * tab or both, as the page shows them. The Export dialog's preview draws the same.
  */
-export function TabImage({ clip, style, title, parts = 'tab' }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts }) {
-  const { width, height } = tabImageSize(clip, style, title, parts);
-  const shown = style.name && title.trim() !== '' ? title.trim() : '';
+export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
+  const { width, height } = tabImageSize(clip, style, title, parts, view);
+  // At a View options size the tab is drawn bigger or smaller, so as many bars fit a line as on the page.
+  const zoom = view.size / 100;
+  const head = headLines(clip, style, title);
+  const linesTop = PAD + (head.title ? TITLE_HEIGHT : 0);
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
       fontFamily={FONT_FAMILY} className="tab-image"
     >
       {!style.transparent && <rect width={width} height={height} fill={BACKDROP} />}
-      {shown && (
-        <text x={PAD} y={PAD + TITLE_SIZE - 4} fontSize={TITLE_SIZE} fontWeight={700} fill={EXPORT_LOOK.ink}>{shown}</text>
+      {head.title && (
+        <text x={PAD} y={PAD + TITLE_SIZE - 4} fontSize={TITLE_SIZE} fontWeight={700} fill={EXPORT_LOOK.ink}>{head.title}</text>
       )}
+      {head.lines.map((line, i) => (
+        <text key={i} y={linesTop + i * CREDIT_LINE + CREDIT_SIZE - 2} fontSize={CREDIT_SIZE} fontWeight={line.bold ? 700 : 400} fill={EXPORT_LOOK.ink}>
+          <tspan x={PAD}>{line.text}</tspan>
+          {line.second && <tspan x={PAD + TUNING_COLUMN}>{line.second}</tspan>}
+        </text>
+      ))}
       <TabClip
-        clip={clip} width={width - 2 * PAD} parts={parts} look={EXPORT_LOOK} title={shown || 'Tab'}
-        x={PAD} y={PAD + headHeight(!!shown) - 8}
+        clip={clip} width={(width - 2 * PAD) / zoom} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={EXPORT_LOOK} title={head.title || 'Tab'}
+        x={PAD} y={PAD + headHeight(head) - 8}
       />
     </svg>
   );
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab'): string {
+export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts })));
+  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view })));
   const svg = host.querySelector('svg')!;
   root.unmount();
   svg.removeAttribute('class');
