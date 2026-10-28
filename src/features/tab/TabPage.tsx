@@ -4,7 +4,7 @@ import {
   type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState,
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { CheckIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, ChevronDownIcon, CopyIcon, PencilIcon, SaveIcon, TrashIcon } from '@/components/icons';
 import { Modal } from '@/features/practice/quiz/Modal';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
@@ -992,9 +992,12 @@ export default function TabPage() {
         <div className="tab-card-bar">
           {view === 'tab' && (
             // One dropdown, its width fixed whichever is picked (Jeremy, 2026-10-28).
-            <select className="input tab-parts" aria-label="Show" value={parts} onChange={e => setParts(parseParts(e.target.value))}>
-              {PARTS.map(p => <option key={p} value={p}>{PART_LABELS[p]}</option>)}
-            </select>
+            <span className="tab-parts">
+              <select aria-label="Show" value={parts} onChange={e => setParts(parseParts(e.target.value))}>
+                {PARTS.map(p => <option key={p} value={p}>{PART_LABELS[p]}</option>)}
+              </select>
+              <ChevronDownIcon />
+            </span>
           )}
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">

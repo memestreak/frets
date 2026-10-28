@@ -735,8 +735,17 @@ button {
   /* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
      (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
      (Jeremy, 2026-10-27). */
-  /* Wide enough for its longest choice, so picking one never resizes it. */
-  .tab-parts { width: 9.5rem; }
+  /* The Show dropdown: as tall as the view switch beside it, in its type, and just wide enough for
+     its longest choice, so picking one never resizes it (Jeremy, 2026-10-28). Its own chevron, so
+     the width doesn't depend on the browser's arrow. */
+  .tab-parts { position: relative; display: inline-flex; color: var(--ink-muted); }
+  .tab-parts select {
+    appearance: none; width: 7.75rem; height: 38px; padding: 0 28px 0 12px;
+    font: 600 13px/16px var(--font-sans); color: var(--ink); cursor: pointer;
+    background: var(--surface-raised); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
+  }
+  .tab-parts select:hover { border-color: var(--ink-muted); }
+  .tab-parts svg { position: absolute; right: 9px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; pointer-events: none; }
   .tab-card-bar {
     display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
     margin: -8px -8px 12px;
