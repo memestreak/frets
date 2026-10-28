@@ -123,6 +123,9 @@ describe('pressing the drawing', () => {
     expect(columnAt(layout, second.x + 2, rows.stemBottom)).toBe(1);
     expect(columnAt(layout, first.x, 0)).toBe(0);
     expect(columnAt(layout, first.x - 10, 0)).toBe(0);
+    // Left of the first bar, over the time signature or the clef: in front of the first column.
+    expect(columnAt(layout, 2, 0)).toBe(0);
+    expect(columnAt(layout, 2, rows.stemBottom)).toBe(0);
     // Past a note: the next one, even nearer the note just passed.
     expect(columnAt(layout, first.x + (second.x - first.x) / 4, 0)).toBe(1);
     // Past the last column of the clip: the last.

@@ -751,6 +751,9 @@ export const ON_COLUMN_REACH = 8;
 export function columnAt(layout: Layout, x: number, y: number): number | null {
   const system = layout.systems[Math.floor(y / layout.rows.height)];
   if (!system || y < 0) return null;
+  // Left of the line's first bar (over the clef, key and time signature): in front of its first column.
+  const first = system.bars.find(b => b.columns.length > 0);
+  if (first && x < system.bars[0].x0) return first.columns[0].index;
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
   if (!bar || bar.columns.length === 0) return null;
   const next = bar.columns.find(c => x <= c.x + Math.min(ON_COLUMN_REACH, c.width / 2));

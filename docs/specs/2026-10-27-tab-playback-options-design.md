@@ -65,6 +65,10 @@ off but the loop range stays set, so the synth finishes at the range end; on
   it, Esc to drop it. It used to put a column cursor there, the shaded
   column, which left the staff's cursor drawn as a ghost head in Both. Esc
   on a note still gives the column cursor.
+- A press left of a line's first bar, over the clef, key or time signature
+  (above, beside or below the staff and tab), puts the line in front of
+  that line's first column (Jeremy, 2026-10-28). A press on a drawn time or
+  key signature still opens its panel.
 
 ## Transpose
 
