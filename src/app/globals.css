@@ -767,32 +767,25 @@ button {
   /* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
      controls, stops 6px short of it), then the controls. The toggle never moves. */
   .tab-playback-row { margin-top: 12px; }
-  /* Shown, the controls stay in sight while the tab scrolls (#151). In the card: sticky at the
-     window's bottom while the card reaches past it, over the card's padding so the tab doesn't show
-     beside or under them; stuck, a line the card's width over them. */
-  .tab-pin-card {
+  /* Shown, the controls stay in sight while the tab scrolls (#151): sticky at the window's bottom
+     while the card reaches past it, over the card's padding so the tab doesn't show beside or under
+     them. */
+  .tab-pin {
     position: sticky; bottom: -1px; z-index: 5;
     margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
     padding: 0 var(--space-4) var(--space-4);
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     background: var(--surface-raised);
   }
-  /* Stuck, a line over it the card's width, drawn outside it so nothing moves. Its own divider line
-     would be a second line, so it goes (also in the window's bar, whose top edge is the line). */
-  .tab-pin-card[data-stuck] { box-shadow: 0 -1px 0 var(--line); border-radius: 0; }
-  .tab-pin-card[data-stuck] .tab-playback-line, .tab-pin-window .tab-playback-line { visibility: hidden; }
-  /* On a phone, pinned, the controls stay one row that scrolls sideways rather than wrapping to four. */
+  /* Stuck, a line the card's width over them, drawn outside so nothing moves; the divider's own
+     line would be a second line, so it goes. */
+  .tab-pin[data-stuck] { box-shadow: 0 -1px 0 var(--line); border-radius: 0; }
+  .tab-pin[data-stuck] .tab-playback-line { visibility: hidden; }
+  /* On a phone, one row that scrolls sideways rather than four that would fill half the screen. */
   @media (max-width: 640px) {
-    :is(.tab-pin-card, .tab-pin-window) .tab-playback { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-    :is(.tab-pin-card, .tab-pin-window) .tab-playback > * { flex-shrink: 0; }
+    .tab-pin .tab-playback { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .tab-pin .tab-playback > * { flex-shrink: 0; }
   }
-  /* At the window's bottom, a bar its width; the controls line up with the page's content. */
-  .tab-pin-window {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-    background: var(--surface-raised); border-top: 1px solid var(--line);
-  }
-  .tab-pin-window-inner { max-width: 1240px; margin: 0 auto; padding: 0 20px 12px; }
-  .tab-pin-window .tab-playback-row { margin-top: 8px; }
   .tab-playback-rule { display: flex; align-items: center; gap: 6px; }
   .tab-playback-line { flex: 1; height: 1px; background: var(--line); }
   /* Very small and round, with a green triangle. */
