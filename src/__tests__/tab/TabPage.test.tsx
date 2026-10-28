@@ -794,6 +794,29 @@ describe('TabPage playback', () => {
     expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
   });
 
+  it('lets go of the focus after a sound is picked, after Enter in a field, and on a press on the tab', () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    fireEvent.click(toggle());
+    const sound = screen.getByRole('combobox', { name: 'Sound' });
+    act(() => sound.focus());
+    fireEvent.change(sound, { target: { value: '0' } });
+    expect(sound).not.toHaveFocus();
+
+    const speed = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    act(() => speed.focus());
+    fireEvent.change(speed, { target: { value: '80' } });
+    fireEvent.keyDown(speed, { key: 'Enter' });
+    expect(speed).not.toHaveFocus();
+    expect(speed).toHaveValue('80');
+
+    // The tab keeps a press above the staff from taking the focus; the list still lets go of it.
+    act(() => sound.focus());
+    fireEvent.pointerDown(screen.getByRole('textbox', { name: /Tab editor/ }));
+    expect(sound).not.toHaveFocus();
+    fireEvent.keyDown(document.body, { key: ' ' });
+    expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
+  });
+
   it("doesn't play on Space while the footer is hidden", () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
