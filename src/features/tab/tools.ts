@@ -8,7 +8,7 @@ import { type BendQuarters, type Clip, type Duration, type NoteValue, type Ottav
 import {
   columnAt, cycleBend, indexOf, cycleBendShape, cycleDots, cycleEnding, cycleMark, cycleRepeatEnd, cycleSlide, cycleTremolo,
   makeRest, noteAt, setDead, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato,
-  toggleRepeatStart, toggleStroke, toggleTie, toggleTuplet, type MarkKind, type Target,
+  toggleDoubleBar, toggleRepeatStart, toggleStroke, toggleTie, toggleTuplet, type MarkKind, type Target,
 } from './editing';
 
 export type ToolId =
@@ -18,7 +18,7 @@ export type ToolId =
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
-  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'ending'
+  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
   | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
@@ -109,6 +109,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'barKey', label: 'Key signature from this bar', key: '' },
       { id: 'repeatStart', label: 'Repeat starts at this bar', key: '[' },
       { id: 'repeatEnd', label: 'Repeat ends at this bar (again: ×3, ×4)', key: ']' },
+      { id: 'doubleBar', label: 'Double bar line at the end of this bar', key: '' },
       { id: 'ending', label: 'Ending 1., then 2.', key: 'E' },
     ],
   },
@@ -189,6 +190,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
     case 'strokeUp': return toggleStroke(clip, target, 'up');
     case 'repeatStart': return toggleRepeatStart(clip, target.cursor);
     case 'repeatEnd': return cycleRepeatEnd(clip, target.cursor);
+    case 'doubleBar': return toggleDoubleBar(clip, target.cursor);
     case 'ending': return cycleEnding(clip, target.cursor);
     default: return clip;
   }
@@ -271,6 +273,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'strokeUp': return column?.stroke === 'up';
     case 'repeatStart': return !!bar?.repeatStart;
     case 'repeatEnd': return !!bar?.repeatEnd;
+    case 'doubleBar': return !!bar?.doubleBar;
     case 'ending': return !!bar?.ending;
     case 'chordName': return !!column?.chord;
     case 'beatText': return !!column?.text;

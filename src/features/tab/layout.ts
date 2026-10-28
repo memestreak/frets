@@ -35,7 +35,7 @@ export interface Rows {
   capo: number | null;
   /** A tempo over the bar it starts at. */
   tempo: number | null;
-  /** A section's name, boxed, over the bar it starts at. */
+  /** A section over the bar it starts at: its letter boxed, its name in bold. */
   section: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
@@ -240,6 +240,60 @@ export interface PlacedBar {
   /** In 4/4: plain eighths are beamed by the half bar, four together. */
   halfBars: boolean;
   columns: PlacedColumn[];
+  /** One of the bars a multi-bar rest draws as one; null for a bar drawn by itself. */
+  restRun: RestRun | null;
+}
+
+/**
+ * A bar in a multi-bar rest: bars of rest in a row drawn as one wide bar with a thick bar across the
+ * staff and their count over it, as printed parts have them (alphaTex's `\multiBarRest`). Each bar keeps
+ * its own slice of the room, so the cursor and the playhead still step through them.
+ */
+export interface RestRun {
+  /** How many bars the rest stands for. */
+  count: number;
+  first: boolean;
+  last: boolean;
+  /** The whole rest's room, shared by its bars: from the first's opening line to the last's closing one. */
+  span: { x0: number; x1: number };
+}
+
+/** A multi-bar rest's room: about a bar of eighths, as Guitar Pro gives it. */
+export const MULTI_REST_WIDTH = 300;
+
+/** A bar that is a rest and nothing else, as a multi-bar rest gathers. */
+function plainRest(bar: Bar): boolean {
+  if (bar.columns.length !== 1 || bar.ending !== undefined || bar.extra?.length) return false;
+  const c = bar.columns[0];
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.extra?.length;
+}
+
+/**
+ * The multi-bar rests of a clip that asks for them, as the count at each one's first bar: two or more
+ * plain bars of rest in a row. The first may start a section, a tempo, a signature or a repeat, and the
+ * last may end with a double bar or a repeat; anything else ends the run, as it would need a bar of its own.
+ */
+export function multiRests(clip: Clip): Map<number, number> {
+  const runs = new Map<number, number>();
+  if (!clip.multiBarRests) return runs;
+  const { bars } = clip;
+  const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar;
+  const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart);
+  let b = 0;
+  while (b < bars.length) {
+    if (!plainRest(bars[b]) || closes(bars[b])) {
+      b++;
+      continue;
+    }
+    let e = b;
+    while (e + 1 < bars.length && plainRest(bars[e + 1]) && !opens(bars[e + 1])) {
+      e++;
+      if (closes(bars[e])) break;
+    }
+    if (e > b) runs.set(b, e - b + 1);
+    b = e + 1;
+  }
+  return runs;
 }
 
 export interface System {
@@ -300,6 +354,11 @@ export function charWidth(column: Column): number {
 /* — words over the tab: chord names, sections and tempos, and how wide each is drawn — */
 
 export const CHORD_SIZE = 12;
+/** A chord name as printed: the sharps and flats of its root and its bass as ♯ and ♭ ("Ab5" is drawn A♭5); the text stays as typed. */
+export function prettyChord(chord: string): string {
+  return chord.replace(/(^|\/)([A-G])(##|bb|#|b)/g, (_, before: string, letter: string, sign: string) =>
+    before + letter + sign.replace('##', '𝄪').replace('bb', '𝄫').replace('#', '♯').replace('b', '♭'));
+}
 export function chordWidth(chord: string): number {
   return chord.length * 7;
 }
@@ -311,28 +370,45 @@ export function beatTextWidth(text: string): number {
   return text.length * 5.6;
 }
 
-export const SECTION_SIZE = 11;
-/** A section's boxes: their height and the room between the name and its box's sides. */
-export const SECTION_BOX_HEIGHT = 16;
-export const SECTION_PAD = 5;
+export const SECTION_SIZE = 14;
+/** A section's rehearsal mark box: its height (a square for one letter). */
+export const SECTION_BOX_HEIGHT = 19;
 /** Extra room above and below the section row, so its box stands clear of the rows beside it (Jeremy, 2026-10-27). */
-const SECTION_ROOM = 5;
-/** A section's rehearsal mark box (if any) and its name's box, from the bar's start. */
+const SECTION_ROOM = 9;
+
+/**
+ * About how wide a run of bold Figtree is at a size, with narrow, wide and capital letters apart: a
+ * guess, for placing what follows a word and for presses on it.
+ */
+export function boldTextWidth(text: string, size: number): number {
+  let em = 0;
+  for (const c of text) {
+    em += /[il.,:;'!|]/.test(c) ? 0.28 : /[fjrt ]/.test(c) ? 0.36 : /[mwMW]/.test(c) ? 0.86 : /[A-Z]/.test(c) ? 0.68 : 0.57;
+  }
+  return em * size;
+}
+
+/**
+ * A section as guitar books print it (Jeremy, 2026-10-28): its rehearsal mark (if any) in an outlined
+ * box, then its name in bold with no box. Each part's place and width from the bar's start.
+ */
 export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
-  const marker = section.marker ? { x: 0, width: section.marker.length * 7 + 8 } : null;
-  const x = marker ? marker.width + 4 : 0;
-  return { marker, text: { x, width: section.text.length * 6.4 + 2 * SECTION_PAD } };
+  const marker = section.marker ? { x: 0, width: Math.max(SECTION_BOX_HEIGHT, section.marker.length * 9 + 6) } : null;
+  const x = marker ? marker.width + 5 : 0;
+  return { marker, text: { x, width: boldTextWidth(section.text, SECTION_SIZE) } };
 }
 
 export const TEMPO_SIZE = 11;
+/** The room between a tempo's word and its note. */
+const TEMPO_GAP = 6;
 /**
- * Where a tempo's parts go from the bar's start: the note, " = 60", then its word ("Slowly"), which
- * comes last so nothing has to be placed after text of unknown width. `width` is a guess, for presses.
+ * Where a tempo's parts go from the bar's start, as guitar books print it (Jeremy, 2026-10-28): its
+ * word first ("Medium Rock"), then the note and " = 122", all in bold. `width` is a guess, for presses.
  */
-export function tempoParts(tempo: Tempo): { numberX: number; labelX: number; width: number } {
-  const numberX = 8;
-  const labelX = numberX + ` = ${tempo.bpm}`.length * 6.2 + 6;
-  return { numberX, labelX, width: labelX + (tempo.label ? tempo.label.length * 6 : 0) };
+export function tempoParts(tempo: Tempo): { noteX: number; numberX: number; width: number } {
+  const noteX = tempo.label ? boldTextWidth(tempo.label, TEMPO_SIZE) + TEMPO_GAP : 0;
+  const numberX = noteX + 7;
+  return { noteX, numberX, width: numberX + boldTextWidth(` = ${tempo.bpm}`, TEMPO_SIZE) };
 }
 
 /** Where the words over a bar start: just after its opening line. */
@@ -394,6 +470,9 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   const heads = staff ? clip.bars.map((_, b) => barHeads(clip, b, open)) : clip.bars.map(bar => bar.columns.map(() => []));
   const widthOf = (column: Column, b: number, c: number) => (staff ? staffWidth(column, heads[b][c]) : columnWidth(column));
 
+  const rests = multiRests(clip);
+  let run: { span: RestRun['span']; count: number; end: number; share: number } | null = null;
+
   const systems: System[] = [];
   let current: PlacedBar[] = [];
   let place = 0; // the next column's place in the whole clip
@@ -409,16 +488,23 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
   clip.bars.forEach((bar, index) => {
     const timeChange = changesTime(clip, index);
     let keyChange = staff && index > 0 && changesKey(clip, index) ? keyWidth(keyAt(clip, index).fifths) : 0;
-    const inner = bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
-    const widthWith = (keyRoom: number) => barLead(bar, timeChange, keyRoom) + inner + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+    const count = rests.get(index);
+    if (count) run = { span: { x0: 0, x1: 0 }, count, end: index + count - 1, share: MULTI_REST_WIDTH / count };
+    const inRun = run !== null && index <= run.end;
+    // A multi-bar rest's bars share its room: the first takes its lead, the last the closing room.
+    const inner = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
+    const closing = BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+    const widthWith = (keyRoom: number) => (inRun && !count ? 0 : barLead(bar, timeChange, keyRoom)) + inner + (inRun && index < run!.end ? 0 : closing);
     let w = widthWith(keyChange);
-    if (current.length > 0 && x + w > width) {
+    // A multi-bar rest goes on one line, whole: its first bar asks for the room of them all.
+    const asks = count ? w + (count - 1) * run!.share + closing : inRun ? 0 : w;
+    if (current.length > 0 && x + asks > width) {
       finish();
       // A key change that starts a line is the line's own key signature, drawn once in front of it.
       keyChange = 0;
       w = widthWith(0);
     }
-    const lead = barLead(bar, timeChange, keyChange);
+    const lead = inRun && !count ? 0 : barLead(bar, timeChange, keyChange);
     const x0 = x;
     // A bar wider than a whole line is squeezed to fit, down to what its numbers need.
     const squeeze = bar.columns.length > 0 ? Math.min(1, (width - x0 - (w - inner)) / inner) : 1;
@@ -430,7 +516,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
       const columnHeads = heads[index][k];
-      const cw = Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
+      const cw = inRun ? inner : Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
@@ -438,13 +524,22 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       cx += cw;
       return placed;
     });
-    if (squeeze < 1) w = cx - x0 + BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
+    if (squeeze < 1 && !inRun) w = cx - x0 + closing;
     x = x0 + w;
     const time = timeAt(clip, index);
-    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns });
+    const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
+    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns, restRun });
+    if (inRun && index === run!.end) run = null;
   });
   finish();
   justify(systems, width);
+  // Each multi-bar rest's room, once the lines are spread.
+  for (const system of systems) {
+    for (const bar of system.bars) {
+      if (bar.restRun?.first) bar.restRun.span.x0 = bar.x0;
+      if (bar.restRun?.last) bar.restRun.span.x1 = bar.x1;
+    }
+  }
   const reach = staffReach(clip, heads, staff);
   const rows = rowsFor(clip, parts, reach);
   return { parts, systems, rows, height: systems.length * rows.height, names };
@@ -454,7 +549,8 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
  * Every line but the last runs to the full width, as printed music is set (Guitar Pro's Sweet Child
  * O' Mine, Jeremy 2026-10-28): the room left over goes to the columns, in proportion to their room,
  * each note keeping its place near the start of its room. The last line is spread as much as the line
- * before it, so its bars match theirs, and never past the width. Changes the systems in place.
+ * before it, so its bars match theirs, and never past the width; when it holds as many bars as that
+ * line, it runs to the full width as well. Changes the systems in place.
  */
 function justify(systems: System[], width: number): void {
   let previous = 1;
@@ -463,7 +559,9 @@ function justify(systems: System[], width: number): void {
     const rooms = system.bars.reduce((sum, bar) => sum + bar.columns.reduce((t, c) => t + c.width, 0), 0);
     if (!last || rooms === 0) return;
     const full = Math.max(1, 1 + (width - last.x1) / rooms);
-    const k = si < systems.length - 1 ? full : Math.min(full, previous);
+    // The last line runs to the full width too when it holds as many bars as the line before.
+    const lastFull = si === systems.length - 1 && si > 0 && system.bars.length >= systems[si - 1].bars.length;
+    const k = si < systems.length - 1 || lastFull ? full : Math.min(full, previous);
     previous = full;
     let shift = 0;
     for (const bar of system.bars) {
@@ -500,7 +598,7 @@ export function vibratoRuns(system: System) {
 export interface ColumnRun {
   from: PlacedColumn;
   to: PlacedColumn;
-  /** Where it stops: a little before the column after its last, or the end of the line. */
+  /** Where it stops: a little before the column after its last, or its bar's closing line, whichever comes first. */
   end: number;
 }
 
@@ -519,9 +617,12 @@ export function columnRuns<K>(system: System, kind: (column: Column) => K | null
     if (open && open.to === placed[i - 1] && open.kind === k) open.to = p;
     else runs.push({ from: p, to: p, end: 0, kind: k });
   });
+  const barEnd = new Map(system.bars.flatMap(b => b.columns.map(c => [c, b.x1] as const)));
   for (const run of runs) {
     const next = placed[placed.indexOf(run.to) + 1];
-    run.end = next ? next.x - 12 : last - 6;
+    // A run whose last note ends its bar stops at the bar line, as Guitar Pro draws it.
+    const end = barEnd.get(run.to)!;
+    run.end = next ? Math.min(next.x - 12, end - 6) : last - 6;
   }
   return runs;
 }

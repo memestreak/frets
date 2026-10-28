@@ -129,6 +129,7 @@ export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
+  if (clip.multiBarRests) lines.push('\\multiBarRest');
   lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
   if (!isStandardTuning(clip.tuning)) {
     const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
@@ -159,6 +160,7 @@ function barTokens(clip: Clip): string[][] {
     if (bar.repeatStart) meta.push('\\ro');
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);
     if (bar.repeatEnd) meta.push(`\\rc ${bar.repeatEnd}`);
+    if (bar.doubleBar) meta.push('\\db');
     meta.push(...(bar.extra ?? []));
     const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
     // The bar line goes with the last beat, so a wrapped bar never leaves it alone on a line.

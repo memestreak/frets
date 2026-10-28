@@ -642,6 +642,13 @@ export function cycleRepeatEnd(clip: Clip, cursor: Cursor): Clip {
   return replaceBar(clip, cursor.bar, next ? { ...rest, repeatEnd: next } : rest);
 }
 
+/** A double bar line at the end of the cursor's bar, or none. */
+export function toggleDoubleBar(clip: Clip, cursor: Cursor): Clip {
+  const bar = clip.bars[cursor.bar];
+  const { doubleBar, ...rest } = bar;
+  return replaceBar(clip, cursor.bar, doubleBar ? rest : { ...rest, doubleBar: true });
+}
+
 /** The cursor bar's ending bracket, stepping through 1., 2. and none. */
 export function cycleEnding(clip: Clip, cursor: Cursor): Clip {
   const bar = clip.bars[cursor.bar];

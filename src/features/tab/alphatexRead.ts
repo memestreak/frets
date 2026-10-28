@@ -33,8 +33,8 @@ const NOTE_EFFECTS = new Set([
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot']);
-/** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats and endings. */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae']);
+/** Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars and multi-bar rests. */
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'multibarrest']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
 const CREDIT_TAGS = new Set(['artist', 'words', 'music']);
 /** Tags that belong to a bar (the rest, in the first bar, belong to the whole clip). */
@@ -258,6 +258,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     const bar: Bar = { columns: [] };
     if (master?.isRepeatStart) bar.repeatStart = true;
     if (master && master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
+    if (master?.isDoubleBar) bar.doubleBar = true;
     if (master && master.alternateEndings > 0) bar.ending = Math.log2(master.alternateEndings & -master.alternateEndings) + 1;
     const tags = barNode.metaData.map(m => m.tag.tag.text.toLowerCase());
     if (master && tags.includes('section') && master.section) {
@@ -330,6 +331,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     bars: bars.length > 0 ? bars : [{ columns: [] }],
   };
   if (header.length > 0) clip.header = header;
+  if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'multibarrest')) clip.multiBarRests = true;
   if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'capo') && staff.capo > 0) {
     clip.capo = Math.min(MAX_CAPO, staff.capo);
     if (staff.capo > MAX_CAPO) warn(`Read capo ${staff.capo} as ${MAX_CAPO}, the highest Frets offers.`);
