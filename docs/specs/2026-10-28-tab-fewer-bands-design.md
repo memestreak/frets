@@ -25,9 +25,10 @@ still be able to create regions with shift arrow."
   Starting a run lets go of the note the cursor was on (Jeremy,
   2026-10-28: "the highlighted note shouldn't be hidden. It should be
   deselected"): no string stays picked and the staff's cursor goes, as
-  after Esc, so only the band shows. When the run goes (← →, Esc, a
-  press), the cursor is on its column with no string, drawn as the
-  column's box; ↑ ↓ or a press pick a string again. With the staff alone
+  after Esc, so only the band shows. Esc on a run drops it and leaves the
+  tab, as a press beside the bars does, so nothing stays drawn (Jeremy,
+  2026-10-28: no box round a column after Esc). When ← → end the run, the
+  cursor is on its column with no string, drawn as the column's box; ↑ ↓ or a press pick a string again. With the staff alone
   its cursor comes back on the middle line.
 - **Moving the cursor lets go** (Jeremy, 2026-10-28: "Moving the cursor
   should deselect any selected notes or annotations"): a plain press, ← →,

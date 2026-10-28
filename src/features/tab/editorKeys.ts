@@ -191,11 +191,13 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   }
   if (key === 'Escape') {
     handled();
-    // A selection goes first, leaving the cursor on its last column (Jeremy, 2026-10-28).
+    // A selection goes, the cursor on its last column (Jeremy, 2026-10-28), and the tab lets the keys
+    // go, so nothing stays drawn (Jeremy, 2026-10-28: no box round the column).
     if (selection) {
       const end = placeOf(clip, selectedRange(selection)[1]);
       commit(clip, { ...cursor, bar: end.bar, column: end.column }, null);
       editor.dropLine();
+      editor.leave();
       return;
     }
     editor.dropLine();
