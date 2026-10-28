@@ -3,7 +3,8 @@
  * alphaTex loads it) and the SONiVOX soundfont in `public/soundfont/`. The clip is written as
  * alphaTex, read back into alphaTab's score and turned into MIDI, so whatever alphaTab plays
  * (bends, slides, repeats, tempo changes) sounds as written. alphaTab's own player needs its
- * renderer; this file uses the synthesizer alone, on the main thread, with a small Web Audio output.
+ * renderer; this file uses the synthesizer alone, on the main thread, with a small Web Audio output
+ * (`audioOutput.ts`).
  * See docs/specs/2026-10-26-tab-playback-design.md.
  */
 import type * as AlphaTabModule from '@coderline/alphatab';
@@ -11,6 +12,7 @@ import { writeAlphaTex } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
 import { STRING_COUNT, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
+import { WebAudioOutput } from './audioOutput';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -246,198 +248,6 @@ export function tickOf(clip: Clip, performance: Performance, index: number): num
 }
 
 /* — sound: a Web Audio output for the synthesizer — */
-
-/** A list of listeners, as alphaTab's outputs report events. */
-class Emitter<T = void> {
-  private listeners: ((arg: T) => void)[] = [];
-  on(listener: (arg: T) => void) {
-    this.listeners.push(listener);
-    return () => this.off(listener);
-  }
-  off(listener: (arg: T) => void) {
-    this.listeners = this.listeners.filter(l => l !== listener);
-  }
-  trigger(arg: T) {
-    for (const listener of this.listeners) listener(arg);
-  }
-}
-
-/** Samples per channel the audio node asks for at a time. */
-const NODE_SIZE = 4096;
-/** About how many samples (both channels) one answer from the synthesizer holds. */
-const ANSWER_SIZE = 4096;
-/** How long the end of playback fades, so it doesn't click. */
-const FADE_SECONDS = 0.03;
-/** How long Stop fades the sound out (Jeremy, 2026-10-27: "the notes stop with a glitch"). */
-const STOP_FADE_SECONDS = 0.06;
-
-/** Interleaved stereo samples waiting to be played. */
-class SampleQueue {
-  chunks: Float32Array[] = [];
-  /** How many samples (both channels) are queued. */
-  size = 0;
-  push(samples: Float32Array) {
-    this.chunks.push(samples);
-    this.size += samples.length;
-  }
-  /** Moves queued samples into the two channels from their start; returns how many frames it filled. */
-  drainInto(left: Float32Array, right: Float32Array): number {
-    let i = 0;
-    while (i < left.length && this.chunks.length > 0) {
-      const chunk = this.chunks[0];
-      let s = 0;
-      while (i < left.length && s + 1 < chunk.length) {
-        left[i] = chunk[s];
-        right[i] = chunk[s + 1];
-        i++;
-        s += 2;
-      }
-      this.size -= s;
-      if (s >= chunk.length - 1) this.chunks.shift();
-      else this.chunks[0] = chunk.subarray(s);
-    }
-    left.fill(0, i);
-    right.fill(0, i);
-    return i;
-  }
-}
-
-/**
- * The synthesizer's samples played through a ScriptProcessorNode (alphaTab's own fallback; an
- * AudioWorklet would need a script of its own served beside the page). The synthesizer fills a
- * queue of interleaved stereo samples; the node drains it and asks for more when it runs low.
- */
-class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
-  readonly ready = new Emitter();
-  readonly samplesPlayed = new Emitter<number>();
-  readonly sampleRequest = new Emitter();
-  private context: AudioContext | null = null;
-  private node: ScriptProcessorNode | null = null;
-  /** Between the node and the speakers, so Stop can fade the sound out. */
-  private gain: GainNode | null = null;
-  private samples = new SampleQueue();
-  /** Requests made and not yet answered by `addSamples`. */
-  private pending = 0;
-  /** How many samples (both channels) to keep ready. */
-  private target = 0;
-  /** Whether the last answer held no samples: the clip has ended. */
-  private answeredEmpty = false;
-
-  get sampleRate() {
-    return this.context?.sampleRate ?? 44100;
-  }
-  open(bufferTimeInMilliseconds: number) {
-    this.context = new AudioContext();
-    this.target = Math.max(NODE_SIZE * 2, Math.floor((bufferTimeInMilliseconds * this.sampleRate) / 1000)) * 2;
-    this.ready.trigger();
-  }
-  activate() {
-    if (this.context?.state === 'suspended') void this.context.resume();
-  }
-  play() {
-    const context = this.context;
-    if (!context) return;
-    this.activate();
-    this.resetSamples();
-    const node = context.createScriptProcessor(NODE_SIZE, 0, 2);
-    const gain = context.createGain();
-    node.onaudioprocess = e => this.fill(e.outputBuffer);
-    node.connect(gain).connect(context.destination);
-    this.node = node;
-    this.gain = gain;
-    this.request();
-  }
-  /**
-   * Stops asking for samples. Cut off at once the sound would click, so the node plays on a moment
-   * from what was queued, alone, while its gain fades to nothing; then it is disconnected.
-   */
-  pause() {
-    const { context, node, gain } = this;
-    this.node = null;
-    this.gain = null;
-    if (!node || !gain) return;
-    if (!context || context.state !== 'running') {
-      node.onaudioprocess = null;
-      node.disconnect();
-      return;
-    }
-    const tail = this.samples;
-    this.samples = new SampleQueue();
-    node.onaudioprocess = e => tail.drainInto(e.outputBuffer.getChannelData(0), e.outputBuffer.getChannelData(1));
-    const now = context.currentTime;
-    gain.gain.setValueAtTime(1, now);
-    gain.gain.linearRampToValueAtTime(0, now + STOP_FADE_SECONDS);
-    // Long enough for the fade to reach the speakers through the node's own buffer.
-    setTimeout(() => {
-      node.onaudioprocess = null;
-      node.disconnect();
-      gain.disconnect();
-    }, (STOP_FADE_SECONDS + (2 * NODE_SIZE) / context.sampleRate) * 1000);
-  }
-  destroy() {
-    this.pause();
-    void this.context?.close();
-    this.context = null;
-  }
-  addSamples(samples: Float32Array) {
-    this.pending = Math.max(0, this.pending - 1);
-    // The synthesizer has stopped: fade what is left to nothing, so it ends without a click.
-    if (samples.length === 0 && !this.answeredEmpty) this.fadeQueueOut();
-    this.answeredEmpty = samples.length === 0;
-    if (samples.length > 0) this.samples.push(samples);
-  }
-  resetSamples() {
-    this.samples = new SampleQueue();
-    this.pending = 0;
-  }
-  enumerateOutputDevices() {
-    return Promise.resolve([]);
-  }
-  setOutputDevice() {
-    return Promise.resolve();
-  }
-  getOutputDevice() {
-    return Promise.resolve(null);
-  }
-
-  /**
-   * Asks the synthesizer for samples until enough are queued or asked for. It answers at once, on
-   * this thread, and with nothing once the clip has ended; then asking stops until the next fill.
-   */
-  private request() {
-    while (this.samples.size + this.pending * ANSWER_SIZE < this.target) {
-      this.pending++;
-      this.answeredEmpty = false;
-      this.sampleRequest.trigger();
-      if (this.answeredEmpty) return;
-    }
-  }
-
-  /** Fades the last few milliseconds queued down to silence. */
-  private fadeQueueOut() {
-    let left = Math.floor(FADE_SECONDS * this.sampleRate) * 2;
-    const total = left;
-    const chunks = this.samples.chunks;
-    for (let c = chunks.length - 1; c >= 0 && left > 0; c--) {
-      // Copied: the synthesizer may reuse the array it handed over.
-      const chunk = chunks[c].slice();
-      for (let i = chunk.length - 1; i >= 0 && left > 0; i--, left--) {
-        // Interleaved stereo: both samples of a frame get the same gain.
-        const frameFromEnd = Math.floor((total - left) / 2);
-        chunk[i] *= frameFromEnd / (total / 2);
-      }
-      chunks[c] = chunk;
-    }
-  }
-
-  private fill(buffer: AudioBuffer) {
-    const frames = this.samples.drainInto(buffer.getChannelData(0), buffer.getChannelData(1));
-    this.samplesPlayed.trigger(frames);
-    this.request();
-  }
-}
-
-/* — the player — */
 
 /** General MIDI's percussion channel, which a transposition leaves alone. */
 const DRUM_CHANNEL = 9;
