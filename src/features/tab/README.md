@@ -39,7 +39,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
   helpers), and `TabPage.tsx` (the editor, with its parts in `editorKeys.ts` (the keys on the
   tab, the staff cursor and the playback line), `useClipImport.ts` (import, examples, links and
-  drops), `TabDialogs.tsx` (the Import and Examples dialogs), `ClipActions.tsx` (View options,
+  drops), `TabDialogs.tsx` (the Import dialog), `ArrangementsDialog.tsx` (Arrangements…: My arrangements, then Samples and Examples), `arrangements.ts` and `useArrangements.ts` (My arrangements in the browser, one key per clip, the open one saved as it is edited; imports, drops and `#tab=` links open as new ones; `docs/specs/2026-10-28-tab-arrangements-design.md`), `ClipActions.tsx` (View options,
   copy and save), `WordTools.tsx` (a picked word's Edit and Delete, where fields and panels go),
   `views.ts`, `notice.ts` and `useWidth.ts`: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
@@ -53,7 +53,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   its renderer is not used) and keeps what Frets doesn't draw as written
   (`extra` and `header` in the clip), `alphatex.ts` writes it, and
   `readTab.ts` tells ASCII from alphaTex. `examples.ts` is the library of
-  example clips (Examples…, or `/tab#example=<id>`; any `.atex` or `.txt` dropped into `samples/` is listed there too, under Samples, via `samples.ts` and the route `src/app/tab/samples.json/`), shown in place of the
+  example clips (Arrangements…, or `/tab#example=<id>`; any `.atex` or `.txt` dropped into `samples/` is listed there too, under Samples, via `samples.ts` and the route `src/app/tab/samples.json/`), shown in place of the
   clip and never saved (`clipState.ts` sets the clip aside;
   `docs/specs/2026-10-26-tab-examples-design.md`); each must read with no
   warnings and write back exactly, and every newly drawn feature gets one.

@@ -5,7 +5,7 @@ import { SAMPLES_DIR, type SampleFile } from '@/features/tab/samples';
 /**
  * The Tab page's sample clips, every `.atex` or `.txt` file in `src/features/tab/samples/`, as
  * `[{ file, text }]`. Written once by `next build` (`out/tab/samples.json`); the dev server reads the
- * folder afresh on each request, so a file dropped in shows up the next time Examples… opens.
+ * folder afresh on each request, so a file dropped in shows up the next time Arrangements… opens.
  */
 export const dynamic = 'force-static';
 

@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, type Dispatch } from 'react';
+import type { Clip } from './clip';
 import type { ClipAction } from './clipState';
 import { exampleById } from './examples';
 import type { Notice } from './notice';
@@ -12,22 +13,25 @@ const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';
 
 /**
  * What replaces the clip, and what brings it back: Import, a drop anywhere on the page or a `#tab=`
- * link replace it; an example (Examples… or an `#example=` link) is shown in its place until
+ * link open as a new arrangement (`openNew`); an example (Arrangements… or an `#example=` link) is shown in its place until
  * `leaveExample`. Each says on the page what it guessed, or why it couldn't.
  */
-export function useClipImport({ dispatch, onNotice, showTab, toStart }: {
+export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }: {
   dispatch: Dispatch<ClipAction>;
+  /** Opens a clip as a new arrangement. */
+  openNew: (clip: Clip) => void;
   onNotice: (notice: Notice | null) => void;
   /** Shows the Notation view, where a clip just brought in is seen. */
   showTab: () => void;
   /** Puts the cursor on the first column, with nothing selected. */
   toStart: () => void;
 }) {
-  /** Reads `text`; on success replaces the clip (an example too: it becomes the saved clip) and returns null, else the errors. */
+  /** Reads `text`; on success opens it as a new arrangement (in place of an example too) and returns null, else the errors. */
   const importText = async (text: string): Promise<string[] | null> => {
     const result = await readTab(text);
     if (!result.ok) return result.errors;
-    dispatch({ type: 'import', clip: result.clip });
+    openNew(result.clip);
+    toStart();
     clearHash(EXAMPLE_HASH);
     onNotice(result.warnings.length > 0 ? { tone: 'info', lines: result.warnings } : null);
     showTab();
@@ -113,6 +117,9 @@ export function useClipImport({ dispatch, onNotice, showTab, toStart }: {
 
   return { importText, openExample, leaveExample };
 }
+
+/** Takes an `#example=` link out of the address, once something else is shown in the example's place. */
+export const clearExampleHash = () => clearHash(EXAMPLE_HASH);
 
 /** Takes a `#tab=` or `#example=` hash out of the address, so a reload doesn't bring it back. */
 function clearHash(prefix: string) {
