@@ -17,7 +17,7 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
-import { DECAY_SECONDS, DEFAULT_FX, heardEffects, type FxSettings } from './effects';
+import { heardEffects, parseEffects, type FxSettings } from './effects';
 import { FxButton } from './FxButton';
 
 /** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
@@ -43,27 +43,6 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   clickVolume: number;
   /** Distortion and reverb (issue #199), from the FX button after Sound. */
   effects: FxSettings;
-}
-
-/** A saved number in a range, else its default. */
-const numberIn = (value: unknown, min: number, max: number, fallback: number) =>
-  typeof value === 'number' && value >= min && value <= max ? value : fallback;
-
-/** A saved switch, else its default. */
-const switchOr = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
-
-/** The saved FX, each field checked on its own. */
-function parseEffects(saved: unknown): FxSettings {
-  const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
-  return {
-    on: switchOr(fields.on, DEFAULT_FX.on),
-    distortionOn: switchOr(fields.distortionOn, DEFAULT_FX.distortionOn),
-    drive: numberIn(fields.drive, 0, 1, DEFAULT_FX.drive),
-    tone: numberIn(fields.tone, 0, 1, DEFAULT_FX.tone),
-    reverbOn: switchOr(fields.reverbOn, DEFAULT_FX.reverbOn),
-    reverb: numberIn(fields.reverb, 0, 1, DEFAULT_FX.reverb),
-    decay: numberIn(fields.decay, DECAY_SECONDS.min, DECAY_SECONDS.max, DEFAULT_FX.decay),
-  };
 }
 
 /** The clicks' volume at first. */

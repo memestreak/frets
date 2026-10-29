@@ -313,7 +313,7 @@ Percent-encode as JavaScript's encodeURIComponent does: a line break is
 %0A, a space %20, "|" %7C, "/" %2F, "\" %5C, "(" and ")" and "~" are left
 as is. Keep the link under about 8,000 characters; split longer tab into
 several links. The part after "#" is never sent to a server. Opening it
-replaces the clip open in Frets.
+adds the tab to My arrangements as a new arrangement and shows it.
 
 
 10. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
