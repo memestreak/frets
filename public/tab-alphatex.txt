@@ -173,6 +173,13 @@ then "." and its duration:
     fermata medium  a fermata over the beat (fermata short, fermata long
                for the other shapes): 0.6.1{fermata medium}. Over the
                staff, over the tab without one. Playback ignores it.
+    tb (0 -24) the whammy bar over the beat's length, in quarter tones
+               down from the note, spread evenly over it: 4 a whole step,
+               24 an octave. tb (0 -24) dives, tb (0 -2 0) dips,
+               tb (-6 -6) is pre-dipped and held, tb (-14 0) returns.
+               Drawn from the number down under the tab, labelled in steps
+               (-6), under "w/ bar". A tied note held down takes the same
+               depth twice: 15.2.2{tb (0 -24)} -.2.8{tb (-24 -24)}.
     tt         tapped (T)
     ot 8va     under an octave line over the staff: the notes sound as
     ot 8vb     the tab says and are written an octave (15ma, 15mb: two)
@@ -222,8 +229,8 @@ Frets doesn't draw it yet, and Frets lists it under the clip. Write these
 when the picture shows them:
 
     note effects   tr (9 16) trill, ten tenuto
-    beat effects   tb (0 -4 0) whammy bar,
-                   gr b bend grace note
+    beat effects   gr b bend grace note, tb (0 4) a whammy pull-up (above
+                   the note), tb dive (0 -4) with a type or style
     bar tags       \jump Fine
 
 Not read at all (an error): more than one track, staff or voice; a tuning
@@ -290,6 +297,11 @@ Each reads in Frets with no warnings and writes back exactly as shown.
     7.3{h}.8{gr} 9.3.4 12.2.16{tu 5} 10.2.16{tu 5} 8.2.16{tu 5} 10.2.16{tu 5}
       12.2.16{tu 5} 12.1.2{tp 16} |
     \ts (3 4) 5.4{sl}.8{gr} 7.4.4 5.4.4 7.4.4 |
+
+    \title "Dive"
+    \ts (4 4)
+    12.2.4{tb (0 -2 0)} 10.2.4 12.2.2{tb (0 -8 0)} |
+    0.6.2{tb (0 -24)} -.6.4{tb (-24 -24)} r.4 |
 
 
 8. OPENING IT IN FRETS
@@ -379,7 +391,12 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    on every note from where its line starts to its end tick, muted (x)
    notes included; "P.H." or "PH" to ph; strum signs to sd / su (the
    square or a down arrow is down, the V or an up arrow is up); a "+"
-   over a beat to wahc and an "o" to waho; a fret
+   over a beat to wahc and an "o" to waho; a line from a fret down under
+   the tab to a number in steps ("-6", "-1 1/2"), often under "w/ bar",
+   to tb on that beat, four quarter tones a step: a slanted line from the
+   fret tb (0 -24), a V tb (0 -2 0), a dashed drop straight down first
+   (pre-dipped) tb (-6 -6), a line back up to the next fret tb (-14 0) on
+   that tied note ("w/ bar" itself is not written); a fret
    joined by a tie arc to the same fret before it to "-" in place of the
    fret (a tied fret is often also in parentheses); a fret in parentheses
    with no tie arc to g; ">" over a note to ac, "^" to hac, a dot over it

@@ -147,6 +147,13 @@ export interface Column {
   hairpin?: 'crescendo' | 'decrescendo';
   /** A fermata over the column (alphaTex `fermata`): held longer than written. Drawn only. */
   fermata?: Fermata;
+  /**
+   * The whammy bar over the column's length (alphaTex `tb`, issue #216): its pitch at evenly spaced
+   * points, in quarter tones down from the note (0 the note, -4 a whole step down, -24 an octave):
+   * (0 -24) a dive, (0 -2 0) a dip, (-6 -6) held down, (-14 0) a return. Points above the note
+   * (a pull-up) aren't drawn, so they are kept as written in `extra`.
+   */
+  whammy?: number[];
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
@@ -160,6 +167,16 @@ export const OTTAVA_SHIFT: Record<Ottava, number> = { '8va': 12, '8vb': -12, '15
 /** How fast a tremolo picked note is picked: as eighths, sixteenths or thirty-seconds. */
 export type TremoloValue = 8 | 16 | 32;
 export const TREMOLO_VALUES: readonly TremoloValue[] = [8, 16, 32];
+
+/** The most points a whammy bar takes (alphaTab's limit), and its deepest point: four octaves down. */
+export const MAX_WHAMMY_POINTS = 60;
+export const DEEPEST_WHAMMY = -96;
+
+/** Whether `v` is a whammy bar Frets draws: two or more whole quarter tones, none above the note. */
+export function isWhammy(v: unknown): v is number[] {
+  return Array.isArray(v) && v.length >= 2 && v.length <= MAX_WHAMMY_POINTS
+    && v.every(p => Number.isInteger(p) && p <= 0 && p >= DEEPEST_WHAMMY);
+}
 
 /** A fermata's shape: short (pointed), medium (the usual arc) or long (square). */
 export type Fermata = 'short' | 'medium' | 'long';
@@ -717,6 +734,7 @@ function isColumn(v: unknown): v is Column {
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optOneOf(v.wah, ['open', 'closed']) && optOneOf(v.hairpin, ['crescendo', 'decrescendo'])
     && optOneOf(v.fermata, FERMATAS)
+    && (v.whammy === undefined || isWhammy(v.whammy))
     && optStrings(v.extra);
 }
 

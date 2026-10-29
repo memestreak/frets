@@ -238,6 +238,29 @@ describe('playback', () => {
     for (let k = 1; k < heights.length; k++) expect(Math.abs(heights[k] - heights[k - 1])).toBeLessThan(0.15);
   });
 
+  // The whammy bar (issue #216): alphaTab bends the column's notes along its points, tied notes too.
+  it('dives with the whammy bar, holds the dive over a tied note, then lets it back up', () => {
+    const text = '15.2{tb (0 -24)}.4 -.2{tb (-24 -24)}.4 -.2{tb (-24 0)}.4 r.4 |';
+    const dive = heightsOf(text, [0, 1]);
+    expect(dive[0]).toBeCloseTo(0, 1);
+    expect(dive.at(-1)).toBeCloseTo(-12, 0);
+    const held = heightsOf(text, [1, 2]);
+    expect(held.length).toBeGreaterThan(0);
+    for (const h of held) expect(h).toBeCloseTo(-12, 0);
+    const back = heightsOf(text, [2, 3]);
+    expect(back[0]).toBeCloseTo(-12, 0);
+    expect(back.at(-1)).toBeCloseTo(0, 0);
+  });
+
+  it('starts a pre-dipped note down and returns it on the tied note after', () => {
+    // Stop's Gtr. 4, bar 13: the open e dipped three and a half steps, back up over the tie.
+    const text = '0.1{tb (-14 -14)}.4 -.1{tb (-14 0)}.8 r.8 r.2 |';
+    const down = heightsOf(text, [0, 1]);
+    expect(down.length).toBeGreaterThan(0);
+    for (const h of down) expect(h).toBeCloseTo(-7, 1);
+    expect(heightsOf(text, [1, 2]).at(-1)).toBeCloseTo(0, 0);
+  });
+
   it('wobbles a bent note wider with wide vibrato', () => {
     const swing = (text: string) => {
       const held = heightsOf(text, [1, 2]);

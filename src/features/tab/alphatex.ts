@@ -121,6 +121,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
   if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
   if (column.fermata) effects.push(`fermata ${column.fermata}`);
+  if (column.whammy) effects.push(`tb (${column.whammy.join(' ')})`);
   effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;

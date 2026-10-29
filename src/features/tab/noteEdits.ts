@@ -81,6 +81,11 @@ export function cycleTremolo(clip: Clip, target: Target): Clip {
   return changeColumns(clip, target, column => (next ? { ...column, tremolo: next } : without(column, 'tremolo')));
 }
 
+/** Puts a whammy bar (its points) on the target columns, or takes it away with null: the Whammy bar button's panel. */
+export function setWhammy(clip: Clip, target: Target, points: readonly number[] | null): Clip {
+  return changeColumns(clip, target, c => (points ? { ...c, whammy: [...points] } : without(c, 'whammy')));
+}
+
 /** The wah on the target columns, stepping from the cursor column's: closed, open, then off. */
 export function cycleWah(clip: Clip, target: Target): Clip {
   const now = columnAt(clip, target.cursor)?.wah;
@@ -206,6 +211,7 @@ export function removeMark(clip: Clip, hit: MarkHit): Clip {
     case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
     case 'wah': return changeColumns(clip, wholeColumn, c => without(c, 'wah'));
+    case 'whammy': return changeColumns(clip, wholeColumn, c => without(c, 'whammy'));
     case 'fermata': return changeColumns(clip, wholeColumn, c => without(c, 'fermata'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
