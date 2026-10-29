@@ -295,11 +295,10 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Copied as text.');
   });
 
-  it('copies a link that opens the same arrangement as a new one, with its sound and the FX in its text', async () => {
+  it('copies a link that opens the same arrangement as a new one, its instrument and FX in its text', async () => {
     const writeText = vi.fn((text: string) => { void text; return Promise.resolve(); });
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27 }));
-    renderAt(`#tab=${encodeURIComponent(`${FX_LINE}\n${TEX}`)}`);
+    renderAt(`#tab=${encodeURIComponent(`${FX_LINE}\n\\instrument electricguitarclean\n${TEX}`)}`);
     await settle();
     fireEvent.click(await screen.findByRole('button', { name: 'AlphaTex' }, SLOW));
     const before = alphaTexText();
@@ -309,7 +308,6 @@ describe('TabPage', () => {
     const link = new URL(writeText.mock.calls[0][0]);
     expect(link.pathname).toBe('/tab');
     expect(link.hash.startsWith('#tabz=')).toBe(true);
-    expect(link.hash).toMatch(/&sound=27$/);
     expect(notice()).toHaveTextContent('Copied a link to this arrangement.');
     // Followed in a fresh browser: nothing saved, the link alone brings the arrangement.
     cleanup();
@@ -320,9 +318,9 @@ describe('TabPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toBe(before);
     expect(loadLibrary().items).toHaveLength(1);
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27 }));
-    // The FX came with the text: the light is on.
+    // The sound and FX came with the text.
     fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('27');
     expect(screen.getByRole('switch', { name: 'All effects' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -357,12 +355,9 @@ describe('TabPage', () => {
   });
 
   it('says why a damaged #tabz= link could not be read', async () => {
-    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 0 }));
-    renderAt('#tabz=not*base64&sound=27');
+    renderAt('#tabz=not*base64');
     await waitFor(() => expect(notice()).toHaveTextContent('The link\'s tab is cut short or damaged.'), SLOW);
     expect(window.location.hash).toBe('');
-    // The sound stays the opener's own when the tab couldn't be read.
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 0 });
   });
 
   it('saves the clip and opens on it next time', async () => {
@@ -668,13 +663,13 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, volume: 1 });
     cleanup();
     renderAt();
     expect(footer()).toBeNull();
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, volume: 1 });
   });
 
   it('shows neither the toggle nor the controls in the text views', () => {
@@ -686,15 +681,38 @@ describe('TabPage playback', () => {
     expect(footer()).not.toBeNull();
   });
 
-  it('picks the sound at the end of the controls, and remembers it', () => {
-    renderAt();
-    const sound = screen.getByRole('combobox', { name: 'Sound' });
-    expect(sound).toHaveValue('25');
-    fireEvent.change(sound, { target: { value: '0' } });
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 0, volume: 1 });
+  it('picks the sound at the end of the controls, as the clip\'s \\instrument, one undo step', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    const sound = () => screen.getByRole('combobox', { name: 'Sound' });
+    expect(sound()).toHaveValue('25');
+    fireEvent.change(sound(), { target: { value: '0' } });
+    expect(savedClip()).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
+    expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('sound');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    // A piano brings no strings of its own, so the tuning is written too.
+    expect(alphaTexText()).toContain('\\instrument acousticgrandpiano\n\\ts (4 4)\n\\tuning (E4 B3 G3 D3 A2 E2)\n');
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    undo();
+    expect(sound()).toHaveValue('25');
     cleanup();
     renderAt();
-    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
+    await waitFor(() => expect(sound()).toHaveValue('25'));
+  });
+
+  it('plays an instrument Frets doesn\'t have as the nearest sound, says so, and keeps it as written', async () => {
+    renderAt(`#tab=${encodeURIComponent(`\\instrument distortionguitar\n${TEX}`)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('27');
+    expect(screen.getByRole('img', { name: 'This arrangement asks for Distortion Guitar; Frets plays Clean Electric Guitar.' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\instrument distortionguitar\n');
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    // Picking a sound replaces it, and the ⚠ goes.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sound' }), { target: { value: '25' } });
+    expect(screen.queryByRole('img', { name: /asks for/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\instrument acousticguitarsteel\n');
   });
 
   it('turns the volume knob with the arrow keys, and remembers it', () => {

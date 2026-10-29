@@ -16,19 +16,17 @@ import { NumberField, resetOnDoubleClick } from './NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
-import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
 
-/** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
+/** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the volume and the options. The sound is the clip's. */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
 export interface PlaybackSettings extends PlaybackOptionValues {
   /** Whether the controls show, from the small round button under the tab; shown until it is pressed. */
   shown: boolean;
-  /** The General MIDI program the clip plays in. */
-  sound: Sound;
   /** The volume knob, 0 (silent) to 1 (full). */
   volume: number;
   /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
@@ -55,7 +53,6 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
   const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
   return {
     shown: fields.shown !== false,
-    sound: isSound(fields.sound) ? fields.sound : DEFAULT_SOUND,
     volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
     hearNotes: fields.hearNotes === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
@@ -131,7 +128,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   const update = (change: Partial<PlayerView>) =>
     setView(v => (Object.entries(change).every(([k, value]) => v[k as keyof PlayerView] === value) ? v : { ...v, ...change }));
 
-  // An edit stops playback; new FX, set on the clip, are heard as it plays on.
+  // An edit stops playback; new FX or a new sound, set on the clip, are heard as it plays on.
   const music = useRef(clip);
   useEffect(() => {
     if (!sameMusic(music.current, clip)) player.current?.stop();
@@ -304,12 +301,14 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Clip;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
   sound: Sound;
   onSound: (sound: Sound) => void;
+  /** Why the sound isn't the one the clip names, when Frets doesn't have that one (`substituteNote`). */
+  soundNote: string | null;
   /** The volume, 0 to 1, turned on the knob between Speed and Sound. */
   volume: number;
   onVolume: (volume: number) => void;
@@ -443,6 +442,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
               ))}
             </select>
           </label>
+          {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
           <FxButton fx={effects} onFx={onEffects} />
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
           {/* At the row's far right (Jeremy, 2026-10-28). */}

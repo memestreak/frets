@@ -109,7 +109,7 @@ Effects panel, Amp presets).
 ## Saved
 
 Since 2026-10-29 the settings belong to the clip, as its `// frets:fx`
-line (`docs/specs/2026-10-29-tab-fx-in-clip-design.md`). Each field is
+line (`docs/specs/2026-10-29-tab-sound-and-fx-in-clip-design.md`). Each field is
 checked on its own (`parseEffects`).
 
 ## Not done yet

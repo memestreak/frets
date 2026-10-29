@@ -16,25 +16,11 @@ describe('share links', () => {
     expect(link.startsWith(`${ORIGIN}/tab#tabz=`)).toBe(true);
     const hash = new URL(link).hash;
     expect(isTabLink(hash)).toBe(true);
-    expect(await readLink(hash)).toEqual({ text: TEX });
-  });
-
-  it('carries the sound, in a readable field after the tab', async () => {
-    const link = await shareLink(ORIGIN, TEX, 27);
-    expect(link).toMatch(/&sound=27$/);
-    expect(await readLink(new URL(link).hash)).toEqual({ text: TEX, sound: 27 });
-  });
-
-  it('reads the sound field on a plain #tab= link too', async () => {
-    expect(await readLink(`#tab=${encodeURIComponent(TEX)}&sound=0`)).toEqual({ text: TEX, sound: 0 });
-  });
-
-  it('leaves out a sound Frets doesn\'t have', async () => {
-    expect(await readLink(`#tab=${encodeURIComponent(TEX)}&sound=99`)).toEqual({ text: TEX });
+    expect(await readLink(hash)).toBe(TEX);
   });
 
   it('still reads plain #tab= links', async () => {
-    expect(await readLink(`#tab=${encodeURIComponent(TEX)}`)).toEqual({ text: TEX });
+    expect(await readLink(`#tab=${encodeURIComponent(TEX)}`)).toBe(TEX);
   });
 
   it('ignores other hashes', async () => {
@@ -54,6 +40,6 @@ describe('share links', () => {
     const song = readFileSync('src/features/tab/builtin_arrangements/rhythm/tuplets.atex', 'utf8').repeat(40);
     const link = await shareLink(ORIGIN, song);
     expect(link.length).toBeLessThan(encodeURIComponent(song).length / 5);
-    expect(await readLink(new URL(link).hash)).toEqual({ text: song });
+    expect(await readLink(new URL(link).hash)).toBe(song);
   });
 });

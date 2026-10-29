@@ -10,6 +10,7 @@
  */
 import { isRest, isStandardTuning, keyTex, type Bend, type Clip, type Column, type Note } from './clip';
 import { fxLine } from './fxLine';
+import { keepsGuitarTuning } from './instrument';
 
 /** A string in alphaTex quotes. */
 export function quoted(text: string): string {
@@ -137,11 +138,12 @@ export function writeAlphaTex(clip: Clip): string {
   if (clip.fx) lines.push(fxLine(clip.fx));
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
+  if (clip.instrument?.tag) lines.push(clip.instrument.tag);
   if (clip.multiBarRests) lines.push('\\multiBarRest');
   if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
   if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
   lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
-  if (!isStandardTuning(clip.tuning)) {
+  if (!isStandardTuning(clip.tuning) || (clip.instrument && !keepsGuitarTuning(clip.instrument.program))) {
     const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
     lines.push(`\\tuning (${notes.join(' ')})`);
   }

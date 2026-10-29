@@ -82,10 +82,11 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   }
 }
 
-/** Whether two clips differ in nothing but their FX: the same music, played the same. */
+/** Whether two clips differ in nothing but their FX and instrument: the same music, in another sound. */
 export function sameMusic(a: Clip, b: Clip): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)] as (keyof Clip)[]);
   keys.delete('fx');
+  keys.delete('instrument');
   return [...keys].every(key => a[key] === b[key]);
 }
 

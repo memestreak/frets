@@ -82,11 +82,11 @@ describe('playback sounds', () => {
       hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1, transpose: 0,
       metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8,
     };
-    expect(parsePlaybackSettings(null)).toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
-    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
-      .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
-    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
-      .toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
+    expect(parsePlaybackSettings(null)).toEqual({ shown: true, volume: 1, ...options });
+    expect(parsePlaybackSettings({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
+      .toEqual({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
+    expect(parsePlaybackSettings({ shown: 'yes', volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
+      .toEqual({ shown: true, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);
   });
 });

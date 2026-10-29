@@ -1,11 +1,9 @@
-import { isSound, type Sound } from './playback';
 
 /**
  * Links to a clip (issue #206). Copy link writes the clip's alphaTex compressed (deflate, then
- * base64url) into `/tab#tabz=…`, about a seventh the length of the plain text percent-encoded,
- * followed by the sound it plays in: `&sound=27`. The FX are in the text, its `// frets:fx` line.
- * `#tab=<percent-encoded text>` is still read, for links typed by hand or by an agent, and takes
- * the same sound field.
+ * base64url) into `/tab#tabz=…`, about a seventh the length of the plain text percent-encoded.
+ * The text carries everything the clip plays with: its `\instrument` and its `// frets:fx` line.
+ * `#tab=<percent-encoded text>` is still read, for links typed by hand or by an agent.
  */
 
 /** A link holding the plain text, percent-encoded. */
@@ -13,42 +11,29 @@ export const PLAIN_HASH = '#tab=';
 /** A link holding the text compressed. */
 export const COMPRESSED_HASH = '#tabz=';
 
-/** What a link opens: the tab, and the sound when the link names one. */
-export interface LinkContent {
-  text: string;
-  sound?: Sound;
-}
-
-/** The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net), played with `sound`. */
-export async function shareLink(origin: string, text: string, sound?: Sound): Promise<string> {
-  const fields = sound === undefined ? '' : `&${new URLSearchParams({ sound: String(sound) })}`;
-  return `${origin}/tab${COMPRESSED_HASH}${await compress(text)}${fields}`;
+/** The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net). */
+export async function shareLink(origin: string, text: string): Promise<string> {
+  return `${origin}/tab${COMPRESSED_HASH}${await compress(text)}`;
 }
 
 /** Whether `hash` is a link to a tab, plain or compressed. */
 export const isTabLink = (hash: string) => hash.startsWith(PLAIN_HASH) || hash.startsWith(COMPRESSED_HASH);
 
 /**
- * What a `#tab=` or `#tabz=` hash opens; null when the hash is neither, an Error with a sentence
- * for the page when its tab can't be read. A sound Frets doesn't have is left out.
+ * The text a `#tab=` or `#tabz=` hash opens; null when the hash is neither, an Error with a
+ * sentence for the page when its tab can't be read.
  */
-export async function readLink(hash: string): Promise<LinkContent | Error | null> {
+export async function readLink(hash: string): Promise<string | Error | null> {
   const compressed = hash.startsWith(COMPRESSED_HASH);
   if (!compressed && !hash.startsWith(PLAIN_HASH)) return null;
-  // The tab comes first; `&` can't be in it, as base64url has none and percent-encoding writes %26.
-  const [tab, ...rest] = hash.slice(compressed ? COMPRESSED_HASH.length : PLAIN_HASH.length).split('&');
-  let text: string;
+  const tab = hash.slice(compressed ? COMPRESSED_HASH.length : PLAIN_HASH.length);
   try {
-    text = compressed ? await decompress(tab) : decodeURIComponent(tab);
+    return compressed ? await decompress(tab) : decodeURIComponent(tab);
   } catch {
     return new Error(compressed
       ? 'The link\'s tab is cut short or damaged.'
       : 'The link\'s tab is not percent-encoded correctly.');
   }
-  const fields = new URLSearchParams(rest.join('&'));
-  // Number(null) is 0, the piano: a link without the field names no sound.
-  const sound = fields.has('sound') ? Number(fields.get('sound')) : undefined;
-  return isSound(sound) ? { text, sound } : { text };
 }
 
 /** `text` as UTF-8, deflated (raw, no header) and written in base64url without padding. */

@@ -297,6 +297,11 @@ export interface Clip {
   defaultSystemsLayout?: number;
   /** Bars of rest in a row are drawn as one, with their count over it, as printed parts have them (alphaTex's `\multiBarRest`). */
   multiBarRests?: boolean;
+  /**
+   * The General MIDI program the clip names (`instrument.ts`), and its `\instrument` tag as written;
+   * no tag when a kept `\track` line names it. None named, it plays as the steel guitar.
+   */
+  instrument?: { program: number; tag?: string };
   /** The playback FX the clip is heard with, from its `// frets:fx` line (`fxLine.ts`); none set, all off. */
   fx?: FxSettings;
 }
@@ -759,6 +764,10 @@ export function parseClip(v: unknown): Clip | null {
   if (!optBool(v.multiBarRests)) return null;
   if (v.systemsLayout !== undefined && !(Array.isArray(v.systemsLayout) && v.systemsLayout.every(isBarsPerLine))) return null;
   if (v.defaultSystemsLayout !== undefined && !isBarsPerLine(v.defaultSystemsLayout)) return null;
+  const instrument = v.instrument;
+  if (instrument !== undefined && !(isObj(instrument) && Number.isInteger(instrument.program)
+    && (instrument.program as number) >= 0 && (instrument.program as number) <= 127
+    && (instrument.tag === undefined || typeof instrument.tag === 'string'))) return null;
   // The FX, each setting checked on its own, as the FX line's are.
   if (v.fx !== undefined) return { ...v, fx: parseEffects(v.fx) } as unknown as Clip;
   return v as unknown as Clip;

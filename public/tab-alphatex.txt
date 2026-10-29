@@ -29,6 +29,13 @@ chords fit; fingerstyle with a bass line held under moving notes does not
     \words "<lyricist>"               optional; "Words by ..."
     \music "<composer>"               optional; "Music by ...", or one
                                       "Words & Music by ..." when the same
+    \instrument <sound>               optional; acousticguitarsteel (the
+                                      default), electricguitarclean or
+                                      acousticgrandpiano. Any General MIDI
+                                      instrument is kept, and played by the
+                                      nearest of these three. With the
+                                      piano, write \tuning too, so other
+                                      apps read it.
     \ts (<beats> <note>)              optional; (4 4) if left out
                                       (beats 1 to 32; note 2, 4, 8, 16 or 32)
     \tuning (<six notes, HIGH to low, with octaves>)
@@ -300,15 +307,8 @@ never sent to a server. Opening it adds the tab to My arrangements as a
 new arrangement and shows it. If the text can't be read, Frets says why, with
 the line and column.
 
-After the text, a link may name the sound it plays with ("&" in the text
-itself is %26, so it never ends the text):
-
-    https://frets.eminor.net/tab#tab=<text>&sound=27
-
-sound is 0 (Acoustic Grand Piano), 25 (Steel Guitar) or 27 (Clean
-Electric Guitar). Opening the link sets the page's sound to it.
-
-The playback effects belong to the text, as one comment line at its top:
+The sound it plays in is the text's \instrument (see 1.), and the
+playback effects belong to the text, as one comment line at its top:
 
     // frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5
 

@@ -13,6 +13,7 @@ import {
   type NoteValue, type Fermata, isBarsPerLine,
 } from './clip';
 import { readFxLine } from './fxLine';
+import { STANDARD_TUNING_TEX } from './instrument';
 import type { FxSettings } from './effects';
 
 type AlphaTab = typeof AlphaTabModule;
@@ -244,14 +245,28 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
   importer.initFromString(text, new at.Settings());
-  let score: Score;
+  let score: Score | null = null;
   try {
     score = importer.readScore();
   } catch {
+    // Kept for below: the instrument may be why.
+  }
+  const tree = importer.scoreNode as unknown as ScoreNode | undefined;
+  // A clip naming an instrument with no strings of its own (a piano, say) and no tuning is guitar
+  // tab: alphaTab leaves it no strings to put its notes on, so it is read again in standard tuning.
+  // alphaTab says so, failing, as a string out of the range 1-0.
+  const stringless = tree && (score
+    ? score.tracks[0]?.staves[0]?.stringTuning.tunings.length === 0
+    : errorsOf(importer, text).errors.some(e => e.includes('range: 1-0')));
+  const retried = stringless ? withGuitarTuning(tree, text) : null;
+  if (retried) {
+    const again = readAlphaTexWith(at, retried);
+    if (again.ok) return again;
+  }
+  if (!score) {
     const { errors, spots } = errorsOf(importer, text);
     return { ok: false, errors: errors.length > 0 ? errors : ['This is not alphaTex Frets can read.'], spots };
   }
-  const tree = importer.scoreNode as unknown as ScoreNode | undefined;
   const track = score.tracks[0];
   const staff = track?.staves[0];
   if (!tree || !staff || score.tracks.length > 1 || track.staves.length > 1) {
@@ -276,6 +291,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   else warn(`Frets doesn't offer ${beats}/${value}; read as 4/4.`);
 
   const header: string[] = [];
+  let instrumentTag: string | undefined;
   // Line breaks, as alphaTab reads them into the score; a bad value is kept as written and named.
   const firstTags = tree.bars[0]?.metaData.map(m => m.tag.tag.text.toLowerCase()) ?? [];
   const layoutOk = new Set<string>();
@@ -325,6 +341,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       const tag = meta.tag.tag.text.toLowerCase();
       if (TAGS.has(tag)) continue;
       if (LAYOUT_TAGS.has(tag) && b === 0 && layoutOk.has(tag)) continue;
+      if (b === 0 && tag === 'instrument') {
+        instrumentTag = written(text, meta);
+        continue;
+      }
       if (b === 0 && CREDIT_TAGS.has(tag)) {
         header.push(written(text, meta));
         continue;
@@ -375,6 +395,16 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     bars: bars.length > 0 ? bars : [{ columns: [] }],
   };
   if (header.length > 0) clip.header = header;
+  // The instrument, from its tag or a kept `\track` line that names one.
+  if (instrumentTag || header.some(h => /^\\track\b/i.test(h) && /\binstrument\b/i.test(h))) {
+    clip.instrument = { program: track.playbackInfo.program };
+    if (instrumentTag) clip.instrument.tag = instrumentTag;
+    // alphaTab reads a name it doesn't know as program 0, the piano, without a word.
+    const value = instrumentTag?.replace(/^\\instrument\s*/i, '').replace(/["']/g, '').trim().toLowerCase();
+    if (value !== undefined && clip.instrument.program === 0 && value !== '0' && value !== 'acousticgrandpiano') {
+      warn(`Frets doesn't know the instrument ${value}; it plays as Acoustic Grand Piano.`);
+    }
+  }
   const fx = fxOf(tree);
   if (fx) clip.fx = fx;
   if (layoutOk.has('systemslayout')) clip.systemsLayout = [...score.systemsLayout];
@@ -392,6 +422,18 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   const uneven = unevenMessage(clip);
   if (uneven) warnings.push(uneven);
   return { ok: true, clip, warnings };
+}
+
+/**
+ * The text with standard tuning written after its `\instrument` tag, or null when it has no
+ * instrument tag or already has a tuning.
+ */
+function withGuitarTuning(tree: ScoreNode, text: string): string | null {
+  const tags = tree.bars[0]?.metaData ?? [];
+  const instrument = tags.find(m => m.tag.tag.text.toLowerCase() === 'instrument');
+  if (!instrument?.end || tags.some(m => m.tag.tag.text.toLowerCase() === 'tuning')) return null;
+  const at = stringIndex(text, instrument.end.offset);
+  return `${text.slice(0, at)} ${STANDARD_TUNING_TEX}${text.slice(at)}`;
 }
 
 /** A comment as alphaTab's syntax tree keeps it, on the token it comes before or after. */
