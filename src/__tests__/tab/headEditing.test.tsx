@@ -78,7 +78,7 @@ describe("the score head's tuning", () => {
   it('is set from the space where it would go, a preset or a string at a time, each one undo step', () => {
     renderAt();
     expect(screen.queryByRole('group', { name: 'Tuning' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Standard tuning' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add tuning' }));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
     expect(within(panel).getByRole('button', { name: 'Standard' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(within(panel).getByRole('button', { name: 'Drop D' }));

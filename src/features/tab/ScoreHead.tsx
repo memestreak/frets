@@ -6,10 +6,10 @@
  * (`exportTab.tsx`), from the same sizes (`HEAD`).
  *
  * A press on the credits or the tuning opens its panel there (issues #202, #203,
- * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). With none set, the space under the title takes
- * the press instead, naming what it sets only while the pointer is over it.
+ * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). With none set, a button adds it.
  */
-import type { MouseEvent, ReactNode } from 'react';
+import { useState, type MouseEvent, type ReactNode } from 'react';
+import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { ClipTitle } from './ClipTitle';
 import type { Clip } from './clip';
 import { creditsOf, HEAD, tuningBlock } from './credits';
@@ -27,14 +27,23 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning }: {
+/**
+ * MOCK (?mock=a/b/c): how an unset tuning or credits is added. 'text': muted "Add tuning" and "Add artist
+ * and credits" always shown at the head's foot; 'plus': a small round + there, whose menu lists them;
+ * 'none': nothing in the head (the clip's bar has the button).
+ */
+export type HeadAdd = 'text' | 'plus' | 'none';
+
+export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning, add = 'text' }: {
   clip: Clip;
   onRename: (name: string) => void;
   /** A line under the title, as the example note ("Example: edits aren't saved"). */
   note?: ReactNode;
   onEditCredits?: OpenAt;
   onEditTuning?: OpenAt;
+  add?: HeadAdd;
 }) {
+  const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
   const { artist, lines } = creditsOf(clip);
   const tuning = tuningBlock(clip.tuning);
   const rows = tuning ? Math.min(3, tuning.strings.length) : 0;
@@ -68,13 +77,36 @@ export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning }:
           </button>
         </div>
       )}
-      {/* The ways in to what isn't set: unseen until the pointer is over them, so an unset value has no visible control. */}
-      {(!hasCredits && editCredits) || (!tuning && editTuning) ? (
-        <div className="score-head-add" style={{ paddingLeft: HEAD.tuningIndent }}>
-          {!tuning && editTuning && <button type="button" className="score-add score-add-tuning" onClick={editTuning}>Standard tuning</button>}
-          {!hasCredits && editCredits && <button type="button" className="score-add score-add-credits" onClick={editCredits}>Add artist and credits</button>}
+      {/* The ways in to what isn't set. */}
+      {add !== 'none' && ((!hasCredits && editCredits) || (!tuning && editTuning)) ? (
+        <div className={`score-head-add score-head-add-${add}`} style={{ paddingLeft: HEAD.tuningIndent }}>
+          {add === 'text' && <>
+            {!tuning && editTuning && <button type="button" className="score-add score-add-tuning" onClick={editTuning}>Add tuning</button>}
+            {!hasCredits && editCredits && <button type="button" className="score-add score-add-credits" onClick={editCredits}>Add artist and credits</button>}
+          </>}
+          {add === 'plus' && (
+            <button
+              type="button" className="score-add-plus" aria-label="Add tuning or credits" title="Add tuning or credits"
+              aria-haspopup="menu" aria-expanded={addMenu !== null}
+              onClick={e => {
+                const box = e.currentTarget.getBoundingClientRect();
+                setAddMenu(e.detail === 0 ? { x: box.left, y: box.bottom + 4 } : { x: e.clientX, y: e.clientY + 8 });
+              }}
+            >
+              +
+            </button>
+          )}
         </div>
       ) : null}
+      {addMenu && (
+        <ShapeMenu
+          x={addMenu.x} y={addMenu.y} label="Add to the score head" onClose={() => setAddMenu(null)}
+          items={[
+            ...(!tuning && onEditTuning ? [{ label: 'Tuning…', onSelect: () => onEditTuning(addMenu.x, addMenu.y) }] : []),
+            ...(!hasCredits && onEditCredits ? [{ label: 'Artist and credits…', onSelect: () => onEditCredits(addMenu.x, addMenu.y) }] : []),
+          ]}
+        />
+      )}
     </div>
   );
 }
