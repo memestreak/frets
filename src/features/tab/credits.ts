@@ -3,6 +3,7 @@
  * words and music (alphaTex's `\artist`, `\words` and `\music`, kept as written in the clip's header),
  * and the tuning when it isn't standard ("Tune down 1/2 step", then each string). Pure.
  */
+import { quoted } from './alphatex';
 import { STANDARD_TUNING, STRING_COUNT, type Clip } from './clip';
 import { openStrings, tuningShift } from './notation';
 
@@ -14,6 +15,37 @@ export function headerValue(clip: Clip, tag: string): string | null {
     if (m) return m[2].replace(/\\(.)/g, '$1').trim() || null;
   }
   return null;
+}
+
+/** The credit tags, in the order a score prints them and new ones are written. */
+export const CREDIT_TAGS = ['artist', 'words', 'music'] as const;
+export type CreditTag = (typeof CREDIT_TAGS)[number];
+
+/** The header line's tag: `\\artist "…"` gives "artist". */
+function tagOf(line: string): string | null {
+  return /^\\([a-z]+)/i.exec(line.trim())?.[1].toLowerCase() ?? null;
+}
+
+/**
+ * The clip with a credit set (issue #202): an empty value takes its tag away; a new one is written
+ * after the credits before it in `CREDIT_TAGS`; every other header line stays as written, and so
+ * does this one when its value doesn't change.
+ */
+export function setCredit(clip: Clip, tag: CreditTag, value: string): Clip {
+  const text = value.trim();
+  if ((headerValue(clip, tag) ?? '') === text) return clip;
+  const header = [...(clip.header ?? [])];
+  const at = header.findIndex(line => tagOf(line) === tag);
+  if (at >= 0 && !text) header.splice(at, 1);
+  else if (at >= 0) header[at] = `\\${tag} ${quoted(text)}`;
+  else {
+    const before = CREDIT_TAGS.slice(0, CREDIT_TAGS.indexOf(tag)) as readonly string[];
+    const last = header.findLastIndex(line => before.includes(tagOf(line) ?? ''));
+    header.splice(last + 1, 0, `\\${tag} ${quoted(text)}`);
+  }
+  const next = { ...clip, header };
+  if (header.length === 0) delete next.header;
+  return next;
 }
 
 /**
