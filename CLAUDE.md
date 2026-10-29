@@ -93,9 +93,14 @@ both for anything new.
 
 ## Storage
 
-Saved state lives in `localStorage` under keys named
-`frets.<section>.<page>`, listed in `src/lib/README.md`. The parser next to
-each key validates every field; keep it in step with settings changes.
+Saved state lives in `localStorage`, every key listed in `src/lib/README.md`.
+Preferences follow the settings philosophy
+(`docs/specs/2026-10-29-settings-design.md`): one key per Settings section,
+`frets.<page>.<section>` (app-wide: `frets.general.<section>`), each a JSON
+object, and every preference listed in the Settings dialog. The work lives
+under `frets.<page>.works.<id>`, with the page's index at `frets.<page>.works`.
+Pages not yet in Settings still use `frets.<section>.<page>`. The parser next
+to each key validates every field; keep it in step with settings changes.
 
 ## Testing
 

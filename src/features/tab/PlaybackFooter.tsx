@@ -21,7 +21,10 @@ import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
 
-/** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the volume and the options. The sound is the clip's. */
+/**
+ * Tab › Playback, saved: whether the controls show (shown at first, Jeremy 2026-10-28), the volume,
+ * the transposition, Hear notes and Play's right-click options. The sound is the clip's.
+ */
 export const PLAYBACK_KEY = 'frets.tab.playback';
 
 export interface PlaybackSettings extends PlaybackOptionValues {
@@ -29,43 +32,66 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   shown: boolean;
   /** The volume knob, 0 (silent) to 1 (full). */
   volume: number;
-  /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
-  hearNotes: boolean;
   /** Semitones playback is moved by, up or down, from the field after Speed; 0 plays as written. The tab is unchanged. */
   transpose: number;
-  /** The metronome clicks while the clip plays (issue #148), from its toggle after Hear notes. */
-  metronome: boolean;
-  /** Play counts in first, `countInBars` bars (1 to 4) of clicks, from the Metronome toggle's right-click menu. */
-  countIn: boolean;
-  countInBars: number;
-  /** How loud the clicks are, 0 to 1, under the Volume knob; set from the same menu. */
-  clickVolume: number;
+  /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
+  hearNotes: boolean;
 }
-
-/** The clicks' volume at first. */
-export const DEFAULT_CLICK_VOLUME = 0.8;
 
 /** How far playback may be transposed, in semitones either way: an octave. */
 export const MAX_TRANSPOSE = 12;
 
+export const DEFAULT_PLAYBACK: PlaybackSettings = {
+  shown: true, volume: 1, transpose: 0, hearNotes: false,
+  stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1,
+};
+
+/** A saved object's fields, or none. */
+const fieldsOf = (saved: unknown) => (typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {});
+/** A share of full, 0 to 1. */
+const isLevel = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1;
+
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
-  const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
+  const fields = fieldsOf(saved);
+  const d = DEFAULT_PLAYBACK;
   return {
     shown: fields.shown !== false,
-    volume: typeof fields.volume === 'number' && fields.volume >= 0 && fields.volume <= 1 ? fields.volume : 1,
+    volume: isLevel(fields.volume) ? fields.volume : d.volume,
+    transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : d.transpose,
     hearNotes: fields.hearNotes === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
     stopAtRegionEnd: fields.stopAtRegionEnd === true,
     loopPause: fields.loopPause === true,
     loopPauseSeconds: typeof fields.loopPauseSeconds === 'number' && fields.loopPauseSeconds >= MIN_LOOP_PAUSE
-      && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : 1,
-    transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : 0,
-    metronome: fields.metronome === true,
+      && fields.loopPauseSeconds <= MAX_LOOP_PAUSE ? fields.loopPauseSeconds : d.loopPauseSeconds,
+  };
+}
+
+/** Tab › Metronome, saved: the toggle after Hear notes, and its right-click menu (G4: its own section). */
+export const METRONOME_KEY = 'frets.tab.metronome';
+
+export interface MetronomeSettings {
+  /** The metronome clicks while the clip plays (issue #148). */
+  on: boolean;
+  /** Play counts in first, `countInBars` bars (1 to 4) of clicks. */
+  countIn: boolean;
+  countInBars: number;
+  /** How loud the clicks are, 0 to 1, under the Volume knob. */
+  clickVolume: number;
+}
+
+export const DEFAULT_METRONOME: MetronomeSettings = { on: false, countIn: false, countInBars: 1, clickVolume: 0.8 };
+
+export function parseMetronome(saved: unknown): MetronomeSettings {
+  const fields = fieldsOf(saved);
+  const d = DEFAULT_METRONOME;
+  return {
+    on: fields.on === true,
     countIn: fields.countIn === true,
     countInBars: Number.isInteger(fields.countInBars) && (fields.countInBars as number) >= 1 && (fields.countInBars as number) <= MAX_COUNT_IN_BARS
-      ? fields.countInBars as number : 1,
-    clickVolume: typeof fields.clickVolume === 'number' && fields.clickVolume >= 0 && fields.clickVolume <= 1 ? fields.clickVolume : DEFAULT_CLICK_VOLUME,
+      ? fields.countInBars as number : d.countInBars,
+    clickVolume: isLevel(fields.clickVolume) ? fields.clickVolume : d.clickVolume,
   };
 }
 

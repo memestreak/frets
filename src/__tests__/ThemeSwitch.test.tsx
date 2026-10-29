@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
-import { THEME_BOOT_SCRIPT, THEME_KEY } from '@/lib/theme';
+import { APPEARANCE_KEY, THEME_BOOT_SCRIPT } from '@/lib/theme';
 
 const root = document.documentElement;
 const button = () => screen.getByRole('button', { name: /^Theme: / });
@@ -25,14 +25,14 @@ describe('ThemeSwitch', () => {
     expect(button()).toHaveAccessibleName('Theme: Light');
     fireEvent.click(button());
     expect(root).toHaveAttribute('data-theme', 'dark');
-    expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toBe('dark');
+    expect(JSON.parse(localStorage.getItem(APPEARANCE_KEY)!)).toEqual({ theme: 'dark' });
     fireEvent.click(button());
     expect(root).not.toHaveAttribute('data-theme');
-    expect(JSON.parse(localStorage.getItem(THEME_KEY)!)).toBe('auto');
+    expect(JSON.parse(localStorage.getItem(APPEARANCE_KEY)!)).toEqual({ theme: 'auto' });
   });
 
   it('shows the theme the boot script restored', () => {
-    localStorage.setItem(THEME_KEY, JSON.stringify('light'));
+    localStorage.setItem(APPEARANCE_KEY, JSON.stringify({ theme: 'light' }));
     new Function(THEME_BOOT_SCRIPT)();
     expect(root).toHaveAttribute('data-theme', 'light');
     render(<ThemeSwitch />);
@@ -40,7 +40,7 @@ describe('ThemeSwitch', () => {
   });
 
   it('boot script ignores a bad saved value', () => {
-    localStorage.setItem(THEME_KEY, 'not json');
+    localStorage.setItem(APPEARANCE_KEY, 'not json');
     new Function(THEME_BOOT_SCRIPT)();
     expect(root).not.toHaveAttribute('data-theme');
   });

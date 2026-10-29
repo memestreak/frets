@@ -9,8 +9,8 @@
  */
 import { NumberField, resetOnDoubleClick } from './NumberField';
 import {
-  BAR_NUMBER_NAMES, BAR_NUMBERS, COLOUR_NAMES, COLOURS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SCHEMES, SIZE_STEP,
-  type ColourPair, type Colours, type TabView,
+  BAR_NUMBER_NAMES, BAR_NUMBERS, COLOUR_NAMES, COLOURS, DEFAULT_COLOURS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SCHEMES, SIZE_STEP,
+  type ColourPair, type ColourPrefs, type Colours, type TabView,
 } from './viewOptions';
 import { usePopover } from './usePopover';
 
@@ -81,16 +81,19 @@ export function ViewOptions({ x, y, values, onChange, onClose }: {
 
 /**
  * A scheme picked. Custom starts from the colours shown when it is first picked, a named scheme's or
- * the theme's, and afterwards keeps its own.
+ * the theme's, and afterwards keeps its own. Settings › Colours picks through this too.
  */
-function choose(values: TabView, colours: Colours): TabView {
-  if (colours !== 'custom' || values.colours === 'custom' || !isDefaultCustom(values.custom)) return { ...values, colours };
-  const from = values.colours === 'theme' ? themeColours() : SCHEMES[values.colours];
-  return { ...values, colours, custom: from ?? values.custom };
+export function chooseScheme(prefs: ColourPrefs, scheme: Colours): ColourPrefs {
+  const isDefaultCustom = prefs.text === DEFAULT_COLOURS.text && prefs.background === DEFAULT_COLOURS.background;
+  if (scheme !== 'custom' || prefs.scheme === 'custom' || !isDefaultCustom) return { ...prefs, scheme };
+  const from = prefs.scheme === 'theme' ? themeColours() : SCHEMES[prefs.scheme];
+  return { ...prefs, scheme, ...(from ?? {}) };
 }
 
-function isDefaultCustom(pair: ColourPair): boolean {
-  return pair.text === DEFAULT_VIEW.custom.text && pair.background === DEFAULT_VIEW.custom.background;
+/** The View options' pick, on the view the panel shows. */
+function choose(values: TabView, colours: Colours): TabView {
+  const picked = chooseScheme({ scheme: values.colours, ...values.custom }, colours);
+  return { ...values, colours: picked.scheme, custom: { text: picked.text, background: picked.background } };
 }
 
 /** The theme's ink and card colours as the page draws them now, light or dark. */

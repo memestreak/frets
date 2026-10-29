@@ -3,11 +3,19 @@
  * choice, not the music's. Notation: bar numbers, the drawing's size and the clip's own line breaks; ASCII Tab: the rhythm line;
  * AlphaTex: line numbers; and for every view, the colours. Saved per viewer, not in the clip; exports
  * and copies follow them.
+ *
+ * Each is saved as its Settings section (issue #195): `frets.tab.notation` (with Staff | Tab | Both),
+ * `frets.tab.colours`, `frets.tab.ascii` and `frets.tab.alphatex`. The page puts them together as one
+ * `TabView` for the drawing, the text views and the exports.
  */
 
 import type { Clip } from './clip';
+import { PARTS, type Parts } from './layout';
 
-export const VIEW_KEY = 'frets.tab.view';
+export const NOTATION_KEY = 'frets.tab.notation';
+export const COLOURS_KEY = 'frets.tab.colours';
+export const ASCII_KEY = 'frets.tab.ascii';
+export const ALPHATEX_KEY = 'frets.tab.alphatex';
 
 /** Bar numbers over every bar, over the first bar of each line, or none. */
 export type BarNumbers = 'every' | 'lines' | 'none';
@@ -68,26 +76,78 @@ function isSize(n: unknown): n is number {
   return typeof n === 'number' && Number.isInteger(n) && n >= MIN_SIZE && n <= MAX_SIZE && n % SIZE_STEP === 0;
 }
 
-/** Saved options, with the default for any field missing or invalid. */
-export function parseView(raw: unknown): TabView {
-  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** A saved object's fields, or none. */
+const fieldsOf = (raw: unknown) => (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
+
+/** Tab › Notation: Staff | Tab | Both (the switch over the clip), and the View options' Notation group. */
+export interface NotationPrefs {
+  show: Parts;
+  barNumbers: BarNumbers;
+  size: number;
+  lineBreaks: boolean;
+}
+export const DEFAULT_NOTATION: NotationPrefs = { show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false };
+
+export function parseNotation(raw: unknown): NotationPrefs {
+  const o = fieldsOf(raw);
+  const d = DEFAULT_NOTATION;
   return {
-    barNumbers: BAR_NUMBERS.find(b => b === o.barNumbers) ?? DEFAULT_VIEW.barNumbers,
-    size: isSize(o.size) ? o.size : DEFAULT_VIEW.size,
-    lineBreaks: typeof o.lineBreaks === 'boolean' ? o.lineBreaks : DEFAULT_VIEW.lineBreaks,
-    asciiRhythm: typeof o.asciiRhythm === 'boolean' ? o.asciiRhythm : DEFAULT_VIEW.asciiRhythm,
-    lineNumbers: typeof o.lineNumbers === 'boolean' ? o.lineNumbers : DEFAULT_VIEW.lineNumbers,
-    colours: COLOURS.find(c => c === o.colours) ?? DEFAULT_VIEW.colours,
-    custom: parsePair(o.custom) ?? DEFAULT_VIEW.custom,
+    show: PARTS.find(p => p === o.show) ?? d.show,
+    barNumbers: BAR_NUMBERS.find(b => b === o.barNumbers) ?? d.barNumbers,
+    size: isSize(o.size) ? o.size : d.size,
+    lineBreaks: bool(o.lineBreaks, d.lineBreaks),
   };
 }
 
-const HEX = /^#[0-9a-f]{6}$/i;
+/** Tab › Colours: the scheme, and Custom's two colours (kept while another scheme is shown). */
+export interface ColourPrefs {
+  scheme: Colours;
+  text: string;
+  background: string;
+}
+export const DEFAULT_COLOURS: ColourPrefs = { scheme: 'theme', ...SCHEMES.paper };
 
-function parsePair(raw: unknown): ColourPair | null {
-  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  return typeof o.text === 'string' && HEX.test(o.text) && typeof o.background === 'string' && HEX.test(o.background)
-    ? { text: o.text, background: o.background } : null;
+export function parseColours(raw: unknown): ColourPrefs {
+  const o = fieldsOf(raw);
+  const d = DEFAULT_COLOURS;
+  const hex = (v: unknown, fallback: string) => (typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : fallback);
+  return { scheme: COLOURS.find(c => c === o.scheme) ?? d.scheme, text: hex(o.text, d.text), background: hex(o.background, d.background) };
+}
+
+/** Tab › ASCII Tab: the rhythm line over the strings. */
+export interface AsciiPrefs {
+  rhythm: boolean;
+}
+export const DEFAULT_ASCII: AsciiPrefs = { rhythm: true };
+export const parseAscii = (raw: unknown): AsciiPrefs => ({ rhythm: bool(fieldsOf(raw).rhythm, DEFAULT_ASCII.rhythm) });
+
+/** Tab › AlphaTex: each line's number in the margin. */
+export interface AlphaTexPrefs {
+  lineNumbers: boolean;
+}
+export const DEFAULT_ALPHATEX: AlphaTexPrefs = { lineNumbers: true };
+export const parseAlphaTex = (raw: unknown): AlphaTexPrefs => ({ lineNumbers: bool(fieldsOf(raw).lineNumbers, DEFAULT_ALPHATEX.lineNumbers) });
+
+/** The four sections as the page shows them: one view. */
+export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: AsciiPrefs, alphatex: AlphaTexPrefs): TabView {
+  return {
+    barNumbers: notation.barNumbers, size: notation.size, lineBreaks: notation.lineBreaks,
+    asciiRhythm: ascii.rhythm, lineNumbers: alphatex.lineNumbers,
+    colours: colours.scheme, custom: { text: colours.text, background: colours.background },
+  };
+}
+
+/** A view changed in the View options panel, as its sections again (Staff | Tab | Both kept as it was). */
+export function sectionsOf(view: TabView, show: Parts) {
+  return {
+    notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks } satisfies NotationPrefs,
+    colours: { scheme: view.colours, text: view.custom.text, background: view.custom.background } satisfies ColourPrefs,
+    ascii: { rhythm: view.asciiRhythm } satisfies AsciiPrefs,
+    alphatex: { lineNumbers: view.lineNumbers } satisfies AlphaTexPrefs,
+  };
 }
 
 /** The two colours shown, or null for the theme's own. */

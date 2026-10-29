@@ -9,9 +9,9 @@ import { isEmpty } from './editing';
 import { loadJson, saveJson } from '@/lib/storage';
 
 /** The index: which arrangement is open, and every kept one. */
-export const LIBRARY_KEY = 'frets.tab.arrangements';
+export const LIBRARY_KEY = 'frets.tab.works';
 /** One arrangement's clip. */
-export const arrangementKey = (id: string) => `frets.tab.arrangement.${id}`;
+export const arrangementKey = (id: string) => `frets.tab.works.${id}`;
 
 export interface ArrangementInfo {
   id: string;

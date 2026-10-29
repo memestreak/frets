@@ -24,7 +24,7 @@ export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void
 const DRAG_PX_PER_STEP = 10;
 const DRAG_THRESHOLD_PX = 3;
 
-export function NumberField({ value, min, max, step, decimals = 0, unit, label, upLabel, downLabel, onChange }: {
+export function NumberField({ value, min, max, step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
   value: number;
   min: number;
   max: number;
@@ -38,6 +38,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   label: string;
   upLabel: string;
   downLabel: string;
+  /** Shown but not usable: in Settings, while the field it needs is off. */
+  disabled?: boolean;
   onChange: (value: number) => void;
 }) {
   const scale = 10 ** decimals;
@@ -63,8 +65,10 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     if (typed !== null) set(typed);
   };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Enter takes the number and leaves the field, so Space plays again.
+    // Enter takes the number and leaves the field, so Space plays again. A number being typed keeps
+    // that Enter to itself, so in Settings it isn't also OK (G2).
     if (e.key === 'Enter') {
+      if (draft !== null) e.preventDefault();
       settle();
       e.currentTarget.blur();
     }
@@ -81,7 +85,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
   const typing = () => document.activeElement === input.current;
   const onPointerDown = (e: PointerEvent<HTMLInputElement>) => {
-    if (typing() || e.button !== 0) return;
+    if (disabled || typing() || e.button !== 0) return;
     // Keep the caret out (and no text selected) until we know it is a click.
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -108,8 +112,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   // Room for the longest value, its sign included.
   const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
-    <span className="tab-number-field">
-      <input
+    <span className="tab-number-field" data-disabled={disabled || undefined}>
+      <input disabled={disabled}
         ref={input} type="text" inputMode={signed ? 'text' : decimals > 0 ? 'decimal' : 'numeric'} aria-label={label}
         role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={value}
         value={draft ?? shown} maxLength={width + 1} style={{ width: `${width}ch` }}
@@ -120,10 +124,10 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
       />
       <span className="tab-number-unit" aria-hidden="true">{unit ?? ''}</span>
       <span className="tab-number-steps">
-        <button type="button" aria-label={upLabel} tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
+        <button type="button" aria-label={upLabel} tabIndex={-1} disabled={disabled} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
-        <button type="button" aria-label={downLabel} tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={() => set(value - step)}>
+        <button type="button" aria-label={downLabel} tabIndex={-1} disabled={disabled} onMouseDown={e => e.preventDefault()} onClick={() => set(value - step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 0.5 4 4l3.5-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
       </span>

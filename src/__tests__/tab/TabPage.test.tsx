@@ -110,7 +110,8 @@ describe('TabPage', () => {
     const panel = screen.getByRole('dialog', { name: 'View options' });
     fireEvent.click(within(panel).getByRole('button', { name: 'None' }));
     expect(numbers()).toEqual([]);
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ barNumbers: 'none', size: 100, asciiRhythm: true, lineNumbers: true, colours: 'theme' });
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!)).toMatchObject({ barNumbers: 'none', size: 100 });
+    expect(JSON.parse(localStorage.getItem('frets.tab.colours')!)).toMatchObject({ scheme: 'theme' });
     fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
     expect(numbers().length).toBeGreaterThan(0);
     expect(numbers()[0]).toBe('1');
@@ -122,7 +123,7 @@ describe('TabPage', () => {
     expect(Number(drawing().getAttribute('width'))).toBeCloseTo(fullWidth / 0.9, 3);
     for (let i = 0; i < 6; i++) fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
     expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '50');
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!).size).toBe(50);
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).size).toBe(50);
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'View options' })).toBeNull();
   });
@@ -247,7 +248,8 @@ describe('TabPage', () => {
     expect(numbers()).toBeGreaterThan(0);
     fireEvent.click(within(panel).getByRole('switch', { name: 'Line numbers' }));
     expect(numbers()).toBe(0);
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ asciiRhythm: false, lineNumbers: false });
+    expect(JSON.parse(localStorage.getItem('frets.tab.ascii')!)).toEqual({ rhythm: false });
+    expect(JSON.parse(localStorage.getItem('frets.tab.alphatex')!)).toEqual({ lineNumbers: false });
   });
 
   it('shows every view in the colours chosen, on a sheet of the background, and Custom with its two swatches', async () => {
@@ -271,7 +273,7 @@ describe('TabPage', () => {
     // The text views take the same sheet.
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(paper()).toContainElement(screen.getByTestId('tab-ascii'));
-    expect(JSON.parse(localStorage.getItem('frets.tab.view')!)).toMatchObject({ colours: 'custom', custom: { text: '#7a1f1f', background: '#1c1a17' } });
+    expect(JSON.parse(localStorage.getItem('frets.tab.colours')!)).toEqual({ scheme: 'custom', text: '#7a1f1f', background: '#1c1a17' });
   });
 
   it('shows the clip as alphaTex and as ASCII', async () => {
@@ -1462,7 +1464,7 @@ describe('dragging notes on the staff (issue #174)', () => {
   const frets = () => alphaTexText().split('\n').find(line => line.includes('|'));
 
   it.each(['both', 'staff'])('Esc on a note pressed on the staff (%s) leaves nothing drawn', async parts => {
-    localStorage.setItem('frets.tab.parts', JSON.stringify(parts));
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(3), SLOW);
     const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
@@ -1479,7 +1481,7 @@ describe('dragging notes on the staff (issue #174)', () => {
   });
 
   it('moves the note a line or space at a time, a semitone with Shift, and the chord with Ctrl, each one undo step', async () => {
-    localStorage.setItem('frets.tab.parts', JSON.stringify('both'));
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'both' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(3), SLOW);
     const drag = (k: number, dy: number, keys: { shiftKey?: boolean; ctrlKey?: boolean } = {}) => {

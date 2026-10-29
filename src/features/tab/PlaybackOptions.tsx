@@ -13,7 +13,7 @@ import { usePopover } from './usePopover';
 /** The rest between loops, in seconds: its range and step. */
 export const MIN_LOOP_PAUSE = 0.5;
 export const MAX_LOOP_PAUSE = 10;
-const LOOP_PAUSE_STEP = 0.5;
+export const LOOP_PAUSE_STEP = 0.5;
 
 export interface PlaybackOptionValues {
   /** Stop puts the playback line where the playhead was, so the next Play goes on from there. */

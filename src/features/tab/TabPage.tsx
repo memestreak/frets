@@ -4,9 +4,11 @@ import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectE
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
-import { usePersist } from '@/hooks/usePersist';
+import { usePreferenceSaveProblem } from '@/hooks/usePersist';
+import { GearIcon } from '@/components/icons';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
-import { loadJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, type Clip } from './clip';
 import { useArrangements } from './useArrangements';
@@ -15,7 +17,7 @@ import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, i
 import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
-import { parseParts, PARTS, PARTS_KEY, type Parts } from './layout';
+import { PARTS, type Parts } from './layout';
 import { type StaffDrag, type StaffHit } from './hitTest';
 import { type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
@@ -33,7 +35,6 @@ import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
-import { parseTabExportStyle, TAB_EXPORT_KEY } from './exportTab';
 import { writeAlphaTex } from './alphatex';
 import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
@@ -42,14 +43,14 @@ import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { ScoreHead } from './ScoreHead';
 import { TuningPanel } from './TuningPanel';
-import { laidOut, paletteOf, parseView, shownColours, VIEW_KEY, type ColourPair, type TabView } from './viewOptions';
+import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
+import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
-import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
+import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
 import { clearExampleHash, useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
-import { GearIcon, SettingsMock, type MockKind } from './SettingsMock';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
@@ -77,15 +78,24 @@ export default function TabPage() {
   const [choosing, setChoosing] = useState(false);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
-  // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
-  const [exportStyle, setExportStyle] = useState(() => parseTabExportStyle(loadJson(TAB_EXPORT_KEY)));
-  usePersist(TAB_EXPORT_KEY, exportStyle);
+  // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
+  const prefs = useTabPrefs();
+  const { exportStyle, setExportStyle, notation, setNotation } = prefs;
   /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
-  const [parts, setParts] = useState<Parts>(() => parseParts(loadJson(PARTS_KEY)));
-  usePersist(PARTS_KEY, parts);
-  // The View options: what the drawn clip shows that is the reader's choice (bar numbers), saved per viewer.
-  const [shown, setShown] = useState<TabView>(() => parseView(loadJson(VIEW_KEY)));
-  usePersist(VIEW_KEY, shown);
+  const parts = notation.show;
+  const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
+  // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
+  const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
+  const setShown = (next: TabView) => {
+    const sections = sectionsOf(next, parts);
+    setNotation(sections.notation);
+    prefs.setColours(sections.colours);
+    prefs.setAscii(sections.ascii);
+    prefs.setAlphaTex(sections.alphatex);
+  };
+  // Settings, from the gear: open or shut, and the ⚠ after the gear while preferences can't be saved.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const saveProblem = usePreferenceSaveProblem();
   /**
    * The staff's own cursor (issue #136): the sounding pitch on the cursor's column that Enter adds or
    * takes away. Set by a press on the staff, which hands the keys to it; a press on the tab sets it to
@@ -94,14 +104,6 @@ export default function TabPage() {
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
-  // MOCK (issue #195): /tab?mock=a|b|c shows a Settings gear and one look for its dialog.
-  const [mock, setMock] = useState<MockKind | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  useEffect(() => {
-    const m = new URLSearchParams(window.location.search).get('mock');
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once after hydration
-    if (m === 'a' || m === 'b' || m === 'c') setMock(m);
-  }, []);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
   const [widthRef, boxWidth] = useWidth();
@@ -191,8 +193,7 @@ export default function TabPage() {
     selection: selection ?? (columnOnly && columnAt(clip, cursor) ? { anchor: cursorIndex, focus: cursorIndex } : null),
   };
   // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
-  const [playbackSettings, setPlaybackSettings] = useState(() => parsePlaybackSettings(loadJson(PLAYBACK_KEY)));
-  usePersist(PLAYBACK_KEY, playbackSettings);
+  const { playback: playbackSettings, setPlayback: setPlaybackSettings, metronome, setMetronome } = prefs;
   const showPlayback = playbackSettings.shown;
   // The playback line: put on a column by a press above or below the staff (Jeremy,
   // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
@@ -203,10 +204,10 @@ export default function TabPage() {
   const playback = usePlayback(clip, sound, playbackSettings.volume, {
     loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
     transpose: playbackSettings.transpose,
-    metronome: playbackSettings.metronome,
-    countIn: playbackSettings.countIn,
-    countInBars: playbackSettings.countInBars,
-    clickVolume: playbackSettings.clickVolume,
+    metronome: metronome.on,
+    countIn: metronome.countIn,
+    countInBars: metronome.countInBars,
+    clickVolume: metronome.clickVolume,
     effects: clip.fx ?? DEFAULT_FX,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
@@ -248,6 +249,12 @@ export default function TabPage() {
     if (!shown) playback.stop();
     setPlaybackSettings(s => ({ ...s, shown }));
   };
+  /** Playback saved from Settings: hiding the controls stops playback, as their own button does. */
+  const savePlayback = (next: PlaybackSettings) => {
+    if (!next.shown) playback.stop();
+    setPlaybackSettings(next);
+  };
+  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
   const selectedColumns = selection ? selectedRange(selection) : null;
   const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
@@ -723,10 +730,21 @@ export default function TabPage() {
           <button type="button" className="btn btn-secondary" onClick={() => { arrangements.forgetDeleted(); setChoosing(true); }}>Arrangements…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
-          {mock && (
-            <button type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings" onClick={() => setSettingsOpen(true)}>
-              <GearIcon />
-            </button>
+          {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
+          <button
+            type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <GearIcon />
+          </button>
+          {saveProblem && (
+            <span
+              className="settings-save-problem" role="img" aria-label={`Settings couldn't be saved: ${saveProblem}`}
+              title={`Settings couldn't be saved: ${saveProblem}`}
+            >
+              {/* As text, not the coloured emoji. */}
+              ⚠{'\uFE0E'}
+            </span>
           )}
         </div>
       </header>
@@ -873,10 +891,10 @@ export default function TabPage() {
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
             effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
-            metronome={playbackSettings.metronome} onMetronome={metronome => setPlaybackSettings(s => ({ ...s, metronome }))}
-            countIn={playbackSettings.countIn} onCountIn={countIn => setPlaybackSettings(s => ({ ...s, countIn }))}
-            countInBars={playbackSettings.countInBars} onCountInBars={countInBars => setPlaybackSettings(s => ({ ...s, countInBars }))}
-            clickVolume={playbackSettings.clickVolume} onClickVolume={clickVolume => setPlaybackSettings(s => ({ ...s, clickVolume }))}
+            metronome={metronome.on} onMetronome={on => setMetronome(m => ({ ...m, on }))}
+            countIn={metronome.countIn} onCountIn={countIn => setMetronome(m => ({ ...m, countIn }))}
+            countInBars={metronome.countInBars} onCountInBars={countInBars => setMetronome(m => ({ ...m, countInBars }))}
+            clickVolume={metronome.clickVolume} onClickVolume={clickVolume => setMetronome(m => ({ ...m, clickVolume }))}
           />
         </HoverTips>
         </PinnedPlayback>
@@ -931,7 +949,7 @@ export default function TabPage() {
         />
       )}
       {actions.popups}
-      {mock && <SettingsMock kind={mock} open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
+      <SettingsDialog groups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
         clip={clip} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
