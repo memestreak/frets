@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from './BrandMark';
 import { ChevronDownIcon } from './icons';
-import { locate, SECTIONS } from './sections';
+import { locate, MENU_SECTIONS } from './sections';
 import { ThemeSwitch } from './ThemeSwitch';
 
 const MENU_ID = 'site-menu';
@@ -107,7 +107,7 @@ export function AppNav() {
         hidden={!open}
         className="absolute inset-x-0 top-full z-20 grid gap-4 border-b border-(--line) bg-(--surface-raised) p-4 shadow-[0_12px_24px_-12px_rgb(0_0_0/0.25)] sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] sm:px-5"
       >
-        {SECTIONS.map(s => {
+        {MENU_SECTIONS.map(s => {
           const here = s === section;
           const id = `menu-${s.label}`;
           const tone = here ? 'text-(--primary)' : 'text-(--ink-muted)';

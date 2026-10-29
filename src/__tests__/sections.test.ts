@@ -1,4 +1,4 @@
-import { locate, PRACTICE, SECTIONS, TOOLS } from '@/components/sections';
+import { locate, MENU_SECTIONS, MORE, PRACTICE, SECTIONS, TOOLS } from '@/components/sections';
 
 describe('SECTIONS', () => {
   it('groups the pages as Tools, then Practice', () => {
@@ -7,6 +7,13 @@ describe('SECTIONS', () => {
       ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab'],
     );
     expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
+  });
+});
+
+describe('MENU_SECTIONS', () => {
+  it('ends the site menu with More, which the home page leaves out', () => {
+    expect(MENU_SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice', 'More']);
+    expect(MORE.pages.map(p => p.href)).toEqual(['/agents']);
   });
 });
 
@@ -23,6 +30,10 @@ describe('locate', () => {
     expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[1] });
     expect(locate('/tuner')).toEqual({ section: TOOLS, page: TOOLS.pages[4] });
     expect(locate('/tab')).toEqual({ section: TOOLS, page: TOOLS.pages[5] });
+  });
+
+  it('finds a More page', () => {
+    expect(locate('/agents')).toEqual({ section: MORE, page: MORE.pages[0] });
   });
 
   it('finds the group but no page on its index page', () => {
