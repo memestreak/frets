@@ -4,16 +4,19 @@
  * See `docs/specs/2026-10-27-tab-alphatex-editing-design.md`.
  */
 import type { TextSpot } from './ascii';
+import { readFxLine } from './fxLine';
 
-/** What the margin says beside a comment: Frets reads comments but keeps none of them. */
+/** What the margin says beside a comment: Frets keeps none of them but the FX line. */
 export const COMMENT_NOTE = 'Comments are not kept';
 
 /**
  * The comments in alphaTex text, `// to the line's end` and `/* … *\/`, as
- * spots. Quoted text ("…" or '…', with backslash escapes) is not a comment.
+ * spots. Quoted text ("…" or '…', with backslash escapes) is not a comment. The first
+ * `// frets:fx` line is kept, as the clip's FX (`fxLine.ts`), so it is no spot.
  */
 export function commentSpots(text: string): TextSpot[] {
   const spots: TextSpot[] = [];
+  let fxKept = false;
   let i = 0;
   while (i < text.length) {
     const c = text[i];
@@ -24,7 +27,8 @@ export function commentSpots(text: string): TextSpot[] {
     } else if (c === '/' && text[i + 1] === '/') {
       const end = text.indexOf('\n', i);
       const to = end === -1 ? text.length : end;
-      spots.push({ from: i, to, message: COMMENT_NOTE });
+      if (!fxKept && readFxLine(text.slice(i + 2, to))) fxKept = true;
+      else spots.push({ from: i, to, message: COMMENT_NOTE });
       i = to;
     } else if (c === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2);

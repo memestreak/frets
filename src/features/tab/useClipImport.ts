@@ -4,7 +4,7 @@ import type { ClipAction } from './clipState';
 import { loadBuiltins } from './builtins';
 import type { Notice } from './notice';
 import { isTabFile, readTab } from './readTab';
-import { isTabLink, readLink, type LinkContent } from './shareLink';
+import { isTabLink, readLink } from './shareLink';
 
 /** An example's link, /tab#example=bends; it stays in the address while the example is shown. */
 const EXAMPLE_HASH = '#example=';
@@ -14,10 +14,9 @@ const EXAMPLE_HASH = '#example=';
  * link open as a new arrangement (`openNew`); an example (Arrangements… or an `#example=` link) is shown in its place until
  * `leaveExample`. Each says on the page what it guessed, or why it couldn't.
  */
-export function useClipImport({ dispatch, openNew, onNotice, onLinkSound, showTab, toStart }: {
+export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }: {
   dispatch: Dispatch<ClipAction>;
   /** Sets the page's Sound and FX to the ones a link names, once its tab has opened. */
-  onLinkSound: (sound: Omit<LinkContent, 'text'>) => void;
   /** Opens a clip as a new arrangement. */
   openNew: (clip: Clip) => void;
   onNotice: (notice: Notice | null) => void;
@@ -73,12 +72,6 @@ export function useClipImport({ dispatch, openNew, onNotice, onLinkSound, showTa
     const errors = await importText(text);
     if (errors) onNotice({ tone: 'error', lines: errors });
   });
-  /** Opens a link's tab; the sound and FX it names follow only when the tab could be read. */
-  const openLink = useEffectEvent(async ({ text, ...sound }: LinkContent) => {
-    const errors = await importText(text);
-    if (errors) onNotice({ tone: 'error', lines: errors });
-    else onLinkSound(sound);
-  });
   const badLink = useEffectEvent((error: Error) => onNotice({ tone: 'error', lines: [error.message] }));
 
   // The tab in a `#tab=` or `#tabz=` link (`shareLink.ts`), on load or when a link is followed while the page is open.
@@ -97,7 +90,7 @@ export function useClipImport({ dispatch, openNew, onNotice, onLinkSound, showTa
       const link = await readLink(hash);
       if (link === null) return;
       if (link instanceof Error) badLink(link);
-      else void openLink(link);
+      else void importOrSay(link);
     };
     const onHashChange = () => void followLink();
     onHashChange();

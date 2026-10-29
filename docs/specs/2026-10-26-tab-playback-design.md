@@ -120,6 +120,16 @@ only when the column sounding changes.
   note, where nothing sounds). Those pitch bends move to the run's key and
   channel: 12 sl 14 sl 12 bent half a step sounds G bent to G♯, not a flat
   F (Jeremy, 2026-10-28).
+- `vibratoOnBends` gives a bent note with vibrato both. alphaTab's generator
+  plays a note's bend or its vibrato, never both, so a bent note with `v`, and
+  a held bend's tied note with `v` (Frets writes it `b (4 4) v`), only bent
+  (Jeremy, 2026-10-29). The generator's bend for such a note is caught and
+  written again with alphaTab's own vibrato (slight or wide, same period and
+  depth as on an unbent note) added to its height. A bend runs on through the
+  plain ties after it; alphaTab also wobbled those ties from the bent note's
+  vibrato round the bend's peak, a second curve at once, so their own wobble
+  is dropped and the bend's covers them. Vibrato on the bend leaves a held
+  note after it still: each note wobbles only where its `v` is.
 - `columnAtTick` and `ticksOf` map between ticks and the clip's columns.
 - Loop points are the synthesizer's playback range, set straight on its
   sequencer (`rangeWithoutSeek`): alphaTab's own setter moves the playhead

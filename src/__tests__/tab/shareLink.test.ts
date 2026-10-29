@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { DEFAULT_FX, type FxSettings } from '@/features/tab/effects';
 import { compress, decompress, isTabLink, readLink, shareLink } from '@/features/tab/shareLink';
 
 const TEX = '\\title "Riff — ♯ and ♭ & more"\n\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |';
-const FX: FxSettings = { on: true, distortionOn: true, drive: 0.8, tone: 0.25, reverbOn: false, reverb: 0.4, decay: 2.5 };
 const ORIGIN = 'https://frets.eminor.net';
 
 describe('share links', () => {
@@ -18,26 +16,11 @@ describe('share links', () => {
     expect(link.startsWith(`${ORIGIN}/tab#tabz=`)).toBe(true);
     const hash = new URL(link).hash;
     expect(isTabLink(hash)).toBe(true);
-    expect(await readLink(hash)).toEqual({ text: TEX });
-  });
-
-  it('carries the sound and FX, in readable fields after the tab', async () => {
-    const link = await shareLink(ORIGIN, TEX, { sound: 27, effects: FX });
-    expect(link).toMatch(/&sound=27&fx=on&distortion=on&drive=0\.8&tone=0\.25&reverb=off&amount=0\.4&decay=2\.5$/);
-    expect(await readLink(new URL(link).hash)).toEqual({ text: TEX, sound: 27, effects: FX });
-  });
-
-  it('reads sound and FX fields on a plain #tab= link too', async () => {
-    expect(await readLink(`#tab=${encodeURIComponent(TEX)}&sound=0`)).toEqual({ text: TEX, sound: 0 });
-  });
-
-  it('leaves out a sound Frets doesn\'t have, and defaults FX fields that are missing or wrong', async () => {
-    const link = await readLink(`#tab=${encodeURIComponent(TEX)}&sound=99&fx=on&drive=7&decay=2`);
-    expect(link).toEqual({ text: TEX, effects: { ...DEFAULT_FX, on: true, decay: 2 } });
+    expect(await readLink(hash)).toBe(TEX);
   });
 
   it('still reads plain #tab= links', async () => {
-    expect(await readLink(`#tab=${encodeURIComponent(TEX)}`)).toEqual({ text: TEX });
+    expect(await readLink(`#tab=${encodeURIComponent(TEX)}`)).toBe(TEX);
   });
 
   it('ignores other hashes', async () => {
@@ -57,6 +40,6 @@ describe('share links', () => {
     const song = readFileSync('src/features/tab/builtin_arrangements/rhythm/tuplets.atex', 'utf8').repeat(40);
     const link = await shareLink(ORIGIN, song);
     expect(link.length).toBeLessThan(encodeURIComponent(song).length / 5);
-    expect(await readLink(new URL(link).hash)).toEqual({ text: song });
+    expect(await readLink(new URL(link).hash)).toBe(song);
   });
 });

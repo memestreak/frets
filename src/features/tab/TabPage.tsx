@@ -35,6 +35,8 @@ import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY } from './exportTab';
 import { writeAlphaTex } from './alphatex';
+import { DEFAULT_FX } from './effects';
+import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
@@ -196,14 +198,16 @@ export default function TabPage() {
   // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
   // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
-  const playback = usePlayback(clip, playbackSettings.sound, playbackSettings.volume, {
+  // The clip's own instrument, or the nearest of Frets' sounds to it (`instrument.ts`).
+  const sound = soundFor(clip.instrument?.program);
+  const playback = usePlayback(clip, sound, playbackSettings.volume, {
     loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
     transpose: playbackSettings.transpose,
     metronome: playbackSettings.metronome,
     countIn: playbackSettings.countIn,
     countInBars: playbackSettings.countInBars,
     clickVolume: playbackSettings.clickVolume,
-    effects: playbackSettings.effects,
+    effects: clip.fx ?? DEFAULT_FX,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
@@ -633,7 +637,6 @@ export default function TabPage() {
 
   const { importText, openExample, leaveExample } = useClipImport({
     dispatch, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
-    onLinkSound: sound => setPlaybackSettings(settings => ({ ...settings, ...sound })),
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
@@ -671,7 +674,6 @@ export default function TabPage() {
 
   const actions = useClipActions({
     clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
-    linkSound: { sound: playbackSettings.sound, effects: playbackSettings.effects },
   });
 
   const name = clip.name.trim() || UNTITLED;
@@ -864,11 +866,12 @@ export default function TabPage() {
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
             shown={showPlayback} onShow={showPlaybackControls}
-            sound={playbackSettings.sound} onSound={sound => setPlaybackSettings(s => ({ ...s, sound }))}
+            sound={sound} soundNote={substituteNote(clip.instrument?.program)}
+            onSound={next => commit({ ...clip, instrument: { program: next, tag: instrumentTag(next) } })}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
-            effects={playbackSettings.effects} onEffects={effects => setPlaybackSettings(s => ({ ...s, effects }))}
+            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={playbackSettings.metronome} onMetronome={metronome => setPlaybackSettings(s => ({ ...s, metronome }))}
             countIn={playbackSettings.countIn} onCountIn={countIn => setPlaybackSettings(s => ({ ...s, countIn }))}

@@ -919,6 +919,8 @@ button {
   /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
   .tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
+  /* A clip's instrument Frets has no sound for: a small red ⚠ after the list, its tip naming both. */
+  .tab-sound-note { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); margin-left: -6px; }
   /* The FX button (Jeremy, 2026-10-28): one outlined control, FX opening the dialog and, at its
      right past a thin line, a small switch whose light shows whether the effects are on. */
   .tab-fx {

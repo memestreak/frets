@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
+import { writeAlphaTex } from '@/features/tab/alphatex';
 import type { Clip } from '@/features/tab/clip';
 import { clickSoundFont, clickWave, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import {
@@ -12,7 +13,6 @@ import {
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
-import { DEFAULT_FX } from '@/features/tab/effects';
 
 function clipOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
@@ -81,23 +81,14 @@ describe('playback sounds', () => {
   it('reads the saved settings, each field checked', () => {
     const options = {
       hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1, transpose: 0,
-      metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8, effects: DEFAULT_FX,
+      metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8,
     };
-    expect(parsePlaybackSettings(null)).toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
-    expect(parsePlaybackSettings({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
-      .toEqual({ shown: true, sound: 0, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35, effects: DEFAULT_FX });
-    expect(parsePlaybackSettings({ shown: 'yes', sound: 115, volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
-      .toEqual({ shown: true, sound: DEFAULT_SOUND, volume: 1, ...options });
+    expect(parsePlaybackSettings(null)).toEqual({ shown: true, volume: 1, ...options });
+    expect(parsePlaybackSettings({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
+      .toEqual({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
+    expect(parsePlaybackSettings({ shown: 'yes', volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
+      .toEqual({ shown: true, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);
-  });
-
-  it('reads the saved effects, each field checked on its own', () => {
-    const effects = { on: true, distortionOn: false, drive: 0.4, tone: 0.8, reverbOn: true, reverb: 0.25, decay: 3 };
-    expect(parsePlaybackSettings({ effects }).effects).toEqual(effects);
-    expect(parsePlaybackSettings({ effects: 'loud' }).effects).toEqual(DEFAULT_FX);
-    expect(parsePlaybackSettings({ effects: { on: 'yes', distortionOn: 0, drive: 2, tone: -1, reverbOn: null, reverb: '1', decay: 0.1 } }).effects)
-      .toEqual(DEFAULT_FX);
-    expect(parsePlaybackSettings({ effects: { drive: 1, decay: 9 } }).effects).toEqual({ ...DEFAULT_FX, drive: 1 });
   });
 });
 
@@ -190,6 +181,63 @@ describe('playback', () => {
       .map(e => (e.value - 8192) / 512);
     expect(Math.min(...sounded)).toBeCloseTo(semitones, 0);
     expect(Math.max(...sounded)).toBeCloseTo(semitones + 1, 0);
+  });
+
+  /** The pitch bends of the clip's one picked note, between two columns, in semitones above it. */
+  function heightsOf(text: string, [from, to]: [number, number]): number[] {
+    const clip = clipOf(text);
+    const played = plain(clip);
+    const [start, end] = [tickOf(clip, played, from), tickOf(clip, played, to)];
+    return pitchBendsOn(played.midi, noteOns(played.midi)[0].channel)
+      .filter(e => e.tick >= start && e.tick < end)
+      .map(e => (e.value - 8192) / 512);
+  }
+
+  /** How many times a curve turns round: a vibrato turns twice a period, a plain bend never. */
+  function turnsOf(heights: number[]): number {
+    const steps = heights.slice(1).map((h, k) => Math.sign(h - heights[k])).filter(sign => sign !== 0);
+    return steps.filter((sign, k) => k > 0 && sign !== steps[k - 1]).length;
+  }
+
+  // alphaTab plays a note's bend or its vibrato, never both (Jeremy, 2026-10-29: "I do not hear vibrato").
+  it('wobbles a bent note with vibrato while it bends, up to the bend\'s height', () => {
+    const heights = heightsOf('7.3{b (0 4) v}.2 r.2 |', [0, 1]);
+    expect(turnsOf(heights)).toBeGreaterThan(6);
+    // The bend still reaches a whole step, and the wobble is alphaTab's slight one, a quarter tone.
+    expect(heights.at(-1)).toBeCloseTo(2, 0);
+    expect(Math.max(...heights)).toBeGreaterThan(2);
+    expect(Math.max(...heights)).toBeLessThan(2.3);
+  });
+
+  it('wobbles the note a held bend ends on round the bend\'s height when it has vibrato', () => {
+    const text = '7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |';
+    // Frets writes the held note as a bend of its own, so alphaTab had held it flat.
+    expect(writeAlphaTex(clipOf(text))).toContain('b (4 4) v');
+    const held = heightsOf(text, [1, 2]);
+    expect(turnsOf(held)).toBeGreaterThan(3);
+    for (const h of held) expect(Math.abs(h - 2)).toBeLessThan(0.3);
+    // The bend up before it has no vibrato of its own.
+    expect(turnsOf(heightsOf(text, [0, 1]))).toBe(0);
+  });
+
+  it('wobbles a held note only when it has vibrato, not from the bend before it', () => {
+    const held = heightsOf('7.3{b (0 4) v}.4 -.3{b (4 4)}.4 r.2 |', [1, 2]);
+    for (const h of held) expect(h).toBeCloseTo(2, 2);
+  });
+
+  it('wobbles a bent note\'s plain ties once, on the bend that runs on through them', () => {
+    // alphaTab also wobbled the tie round the bend's peak while the bend still rose: two curves at once.
+    const heights = heightsOf('7.3{b (0 4) v}.4 -.3.4 r.2 |', [0, 2]);
+    expect(turnsOf(heights)).toBeGreaterThan(6);
+    for (let k = 1; k < heights.length; k++) expect(Math.abs(heights[k] - heights[k - 1])).toBeLessThan(0.15);
+  });
+
+  it('wobbles a bent note wider with wide vibrato', () => {
+    const swing = (text: string) => {
+      const held = heightsOf(text, [1, 2]);
+      return Math.max(...held) - Math.min(...held);
+    };
+    expect(swing('7.3{b (0 4)}.4 -.3{b (4 4) vw}.4 r.2 |')).toBeGreaterThan(1.5 * swing('7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |'));
   });
 
   it('gives a loop the ticks from its first column to the end of its last', () => {

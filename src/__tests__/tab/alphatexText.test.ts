@@ -3,6 +3,11 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { COMMENT_NOTE, commentSpots, lineAt, lineMarks } from '@/features/tab/alphatexText';
 
 describe('commentSpots', () => {
+  it('leaves out the first FX line, which is kept, but not a second', () => {
+    const text = '// frets:fx on\n// mine\n// frets:fx off\n5.5.4 |';
+    expect(commentSpots(text).map(s => text.slice(s.from, s.to))).toEqual(['// mine', '// frets:fx off']);
+  });
+
   it('finds line and block comments, but not inside quoted text', () => {
     const text = '\\title "a // b" // one\n/* two\nlines */ 5.6 |\n\\title \'c /* d\' x';
     const found = commentSpots(text).map(s => text.slice(s.from, s.to));
