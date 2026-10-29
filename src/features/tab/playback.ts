@@ -15,6 +15,8 @@ import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
 import type { EffectSettings } from './effects';
+import { decodeOnMainThread, lastFont, useDecoded } from './soundDecode';
+import { SoundDecoder } from './soundDecoder';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -637,30 +639,6 @@ function rangeWithoutSeek(synth: AlphaTabModule.synth.AlphaSynth, range: AlphaTa
 }
 
 /**
- * The samples of a soundfont the synthesizer holds, decoded one at a time with a pause between, so
- * the page stays responsive (a sound's samples take seconds to decode in all: the piano's about 4).
- * alphaTab decodes a sound's samples when a clip first uses it and keeps them, so a clip played
- * after this finds them ready. The soundfont is the last one loaded; the synthesizer's list of them
- * and the soundfont's own decoding are not in alphaTab's types (checked against the pinned 1.8.4).
- */
-async function decodeLastSoundFont(synth: AlphaTabModule.synth.AlphaSynth) {
-  interface Soundfont {
-    sHdrs: { start: number; end: number; sampleType: number }[];
-    decodeSamples(startByte: number, endByte: number, decompressVorbis: boolean): Float32Array;
-  }
-  const fonts = (synth as unknown as { _loadedSoundFonts: Soundfont[] })._loadedSoundFonts;
-  const font = fonts[fonts.length - 1];
-  /** The sample type's bit for an Ogg Vorbis sample (an .sf3's), the only kind slow to decode. */
-  const VORBIS = 16;
-  for (const sample of font.sHdrs) {
-    if ((sample.sampleType & VORBIS) === 0) continue;
-    // The same arguments alphaTab decodes with, so it finds the samples under the same key.
-    font.decodeSamples(sample.start, sample.end, true);
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-}
-
-/**
  * alphaTab's synthesizer with the soundfont loaded and one clip's MIDI. Made when the page opens,
  * to load the sound in the background; its AudioContext starts on the first Play.
  */
@@ -673,6 +651,8 @@ export class TabPlayer {
   private readonly fonts = new Set<string>();
   /** The sounds' own soundfonts loading, by URL: whoever wants one meanwhile waits for the same load. */
   private readonly loading = new Map<string, Promise<void>>();
+  /** Decodes the sounds' samples off the main thread (`soundDecode.ts`). */
+  private readonly decoder = new SoundDecoder();
   private loop: [number, number] | 'whole' | null = null;
   /**
    * The last column to play when no loop holds the playhead: "Stop playback at region end" with a
@@ -1065,10 +1045,18 @@ export class TabPlayer {
     let loading = this.loading.get(url);
     if (!loading) {
       loading = (async () => {
+        this.decoder.start();
         const response = await fetch(url);
         if (!response.ok) throw new Error(`the sound didn't load (${response.status})`);
-        this.synth.loadSoundFont(new Uint8Array(await response.arrayBuffer()), true);
-        await decodeLastSoundFont(this.synth);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        this.synth.loadSoundFont(bytes, true);
+        // The synthesizer keeps its own copy of the samples' bytes, so these can go to the worker.
+        const font = lastFont(this.synth);
+        try {
+          useDecoded(font, await this.decoder.decode(bytes));
+        } catch {
+          await decodeOnMainThread(font);
+        }
         this.fonts.add(url);
       })().finally(() => this.loading.delete(url));
       this.loading.set(url, loading);
@@ -1139,6 +1127,7 @@ export class TabPlayer {
 
   destroy() {
     this.endRest();
+    this.decoder.destroy();
     this.synth.destroy();
   }
 }
