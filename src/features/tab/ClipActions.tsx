@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { CheckIcon, CopyIcon, EyeIcon, SaveIcon } from '@/components/icons';
+import { CheckIcon, CopyIcon, EyeIcon, LinkIcon, SaveIcon } from '@/components/icons';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
 import { writeAlphaTex } from './alphatex';
@@ -9,6 +9,7 @@ import { tabSvg, type TabExportStyle } from './exportTab';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
+import { shareLink } from './shareLink';
 import type { TabView } from './viewOptions';
 import type { View } from './views';
 import { ViewOptions } from './ViewOptions';
@@ -17,8 +18,8 @@ import { ViewOptions } from './ViewOptions';
 const PRESSED_AWAY_MS = 500;
 
 /**
- * The buttons at the clip's top right, after the view switch: View options, copy and save
- * (Jeremy, 2026-10-27/28). `buttons` go in the card's bar; `popups`, their panel and menu, go
+ * The buttons at the clip's top right, after the view switch: View options, copy, Copy link
+ * (issue #206) and save (Jeremy, 2026-10-27/28). `buttons` go in the card's bar; `popups`, their panel and menu, go
  * outside the card, so the focus moving into them counts as leaving the tab.
  */
 export function useClipActions({ clip, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
@@ -47,10 +48,25 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   const saveMenuPressedAway = useRef(0);
   /** Whether the copy button shows its tick, briefly after a copy. */
   const [copied, setCopied] = useState(false);
+  /** Whether the Copy link button shows its tick, briefly after a copy. */
+  const [linked, setLinked] = useState(false);
 
-  const showCopied = () => {
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+  /** Shows a button's tick for a moment. */
+  const tick = (set: (on: boolean) => void) => {
+    set(true);
+    window.setTimeout(() => set(false), 1500);
+  };
+  const showCopied = () => tick(setCopied);
+
+  /** Copies a link that opens this clip, as a new arrangement, for whoever follows it. */
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(await shareLink(window.location.origin, writeAlphaTex(clip)));
+      onNotice({ tone: 'info', lines: ['Copied a link to this arrangement.'] });
+      tick(setLinked);
+    } catch {
+      onNotice({ tone: 'error', lines: ['The browser didn\'t allow copying.'] });
+    }
   };
 
   /** The picture as the Export dialog makes it, with its saved choices. */
@@ -115,6 +131,12 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
         aria-label={copyLabel} title={copyLabel} onClick={() => void copy()}
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
+      </button>
+      <button
+        type="button" className="btn btn-secondary btn-icon"
+        aria-label="Copy link" title="Copy link" onClick={() => void copyLink()}
+      >
+        {linked ? <CheckIcon /> : <LinkIcon />}
       </button>
       <button
         type="button" className="btn btn-secondary btn-icon" aria-label={saveLabel} title={saveLabel}

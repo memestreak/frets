@@ -292,8 +292,8 @@ anywhere on that page, or make a link that opens it directly:
 Percent-encode as JavaScript's encodeURIComponent does: a line break is
 %0A, a space %20, "\" %5C, "{" %7B, "}" %7D, "|" %7C, "(" and ")" are left
 as is. Keep the link under about 8,000 characters. The part after "#" is
-never sent to a server. Opening it replaces the clip open in Frets (Ctrl+Z
-brings the old one back). If the text can't be read, Frets says why, with
+never sent to a server. Opening it adds the tab to My arrangements as a
+new arrangement and shows it. If the text can't be read, Frets says why, with
 the line and column.
 
 The same link and Import also take ASCII tab
