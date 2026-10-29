@@ -47,6 +47,7 @@ import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
 import { clearExampleHash, useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
+import { GearIcon, SettingsMock, type MockKind } from './SettingsMock';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
@@ -91,6 +92,14 @@ export default function TabPage() {
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
+  // MOCK (issue #195): /tab?mock=a|b|c shows a Settings gear and one look for its dialog.
+  const [mock, setMock] = useState<MockKind | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => {
+    const m = new URLSearchParams(window.location.search).get('mock');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once after hydration
+    if (m === 'a' || m === 'b' || m === 'c') setMock(m);
+  }, []);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
   const [widthRef, boxWidth] = useWidth();
@@ -712,6 +721,11 @@ export default function TabPage() {
           <button type="button" className="btn btn-secondary" onClick={() => { arrangements.forgetDeleted(); setChoosing(true); }}>Arrangements…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
+          {mock && (
+            <button type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings" onClick={() => setSettingsOpen(true)}>
+              <GearIcon />
+            </button>
+          )}
         </div>
       </header>
 
@@ -914,6 +928,7 @@ export default function TabPage() {
         />
       )}
       {actions.popups}
+      {mock && <SettingsMock kind={mock} open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
       <TabExportDialog
         clip={clip} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
