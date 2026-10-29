@@ -8,7 +8,9 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { parseClip, type Clip } from '@/features/tab/clip';
-import { layoutClip, stringY, type Parts } from '@/features/tab/layout';
+import { layoutClip, SPACE, stringY, type Parts } from '@/features/tab/layout';
+import { barHeads } from '@/features/tab/notation';
+import { staffMarks } from '@/features/tab/staffMarks';
 import { markAt, markTool } from '@/features/tab/marks';
 import { removeMark, setWhammy } from '@/features/tab/noteEdits';
 import { TabClip } from '@/features/tab/TabClip';
@@ -148,10 +150,63 @@ describe('drawing', () => {
     expect(dived.whammy).not.toBeNull();
   });
 
-  it('draws only "w/ bar" with the staff alone', () => {
+  it('draws only "w/ bar" of the tab\'s marks with the staff alone', () => {
     const container = drawn(DIVE, 'staff');
     expect(count(container, 'whammy')).toBe(0);
     expect(count(container, 'whammy-run')).toBe(1);
+  });
+});
+
+describe('on the staff', () => {
+  it('draws a tied note going on under a dive at the pitch reached, its own accidental shown, joined by a line', () => {
+    // In E major, as the book has it: 15 on the B string is a D♮, written D6; an octave down, D5.
+    const clip = clipOf(`\\ks E ${DIVE}`);
+    const [picked] = barHeads(clip, 0)[1];
+    const [dived] = barHeads(clip, 1)[0];
+    expect(dived.step).toBe(picked.step - 7);
+    // A new bar, so its natural is shown again.
+    expect(dived.shows).toBe(0);
+    const container = drawn(DIVE, 'both');
+    expect(count(container, 'staff-slide')).toBe(1);
+    expect(count(container, 'staff-tie')).toBe(0);
+    // The tie's line says where the dive goes: no line of its own.
+    expect(count(container, 'staff-whammy')).toBe(0);
+  });
+
+  it('draws a pre-dipped note at the pitch it is dipped to, after its fret\'s pitch in brackets', () => {
+    const [[dipped]] = barHeads(clipOf(RETURN), 0);
+    // The open e (E5 as written) dipped seven semitones, to A4.
+    expect(dipped.bendFrom).toEqual({ step: dipped.step + 4, shows: null });
+    expect(count(drawn(RETURN, 'both'), 'staff-bend-from')).toBe(1);
+  });
+
+  it('draws a line through the pitches of a dive or dip no tied note goes on from', () => {
+    const text = '12.2.4{tb (0 -8 0)} 12.2.2{tb (0 -8)} r.4 |';
+    const marks = staffMarks(layoutClip(clipOf(text), 1200, 'both'))[0].filter(m => m.kind === 'whammy');
+    expect(marks).toHaveLength(2);
+    const [dip, dive] = marks.map(m => (m.kind === 'whammy' ? m : null)!);
+    expect(dip.points).toHaveLength(3);
+    // Two whole steps down, an E to a C: two staff steps lower, and back.
+    expect(dip.points[1][1] - dip.points[0][1]).toBeCloseTo(2 * SPACE / 2 * 1, 0);
+    expect(dip.points[2][1]).toBe(dip.points[0][1]);
+    expect(dive.points[1][1]).toBeGreaterThan(dive.points[0][1]);
+    // Under a tab, the tab labels the depths.
+    expect(dip.labels).toEqual([]);
+    expect(count(drawn(text, 'both'), 'staff-whammy')).toBe(2);
+  });
+
+  it('labels the depths with the staff alone, pre-dips and tied dives too, under the staff', () => {
+    const container = drawn(`${DIVE.split('|')[0]}| ${RETURN}`, 'staff');
+    const texts = [...container.querySelectorAll('[data-testid="staff-whammy"] text')].map(t => t.textContent);
+    expect(texts).toEqual(['-6', '-3½']);
+  });
+
+  it('picks the staff\'s line too, for the same Delete', () => {
+    const text = '12.2.2{tb (0 -8)} r.2 |';
+    const layout = layoutClip(clipOf(text), 1200, 'staff');
+    const mark = staffMarks(layout)[0].find(m => m.kind === 'whammy')!;
+    const hit = markAt(layout, mark.box.x + mark.box.width / 2, mark.box.y + mark.box.height / 2);
+    expect(hit).toMatchObject({ mark: 'whammy', index: 0, on: 'staff' });
   });
 });
 

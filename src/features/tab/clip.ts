@@ -647,6 +647,26 @@ export function bentSemitones(note: Note): number {
   return Math.floor(note.bend.quarters / 2);
 }
 
+/** How far a whammy bar's point takes the note down, in whole semitones (a quarter tone doesn't move it on the staff). */
+export function whammySemitones(quarters: number): number {
+  return -Math.floor(-quarters / 2) || 0;
+}
+
+/**
+ * The columns whose whammy bar starts down where the column before left it: a tied note going on under
+ * a dive, held or returning. Any other whammy bar that starts down is pre-dipped.
+ */
+export function whammyGoesOn(clip: Pick<Clip, 'bars'>): Set<Column> {
+  const out = new Set<Column>();
+  let before: number[] | undefined;
+  for (const column of clip.bars.flatMap(b => b.columns)) {
+    const points = column.whammy;
+    if (points && before && points[0] !== 0 && before[before.length - 1] === points[0]) out.add(column);
+    before = points;
+  }
+  return out;
+}
+
 export function isStandardTuning(tuning: readonly string[]): boolean {
   return tuning.every((n, i) => n === STANDARD_TUNING[i]);
 }

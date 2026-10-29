@@ -4,7 +4,7 @@
  * where it sits on a treble staff written an octave above the sound, as guitar music is; and which
  * accidentals a bar must show. Pure.
  */
-import { bentSemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Column, type Key, type Note } from './clip';
+import { bentSemitones, whammyGoesOn, whammySemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Column, type Key, type Note } from './clip';
 
 /** Standard tuning's strings as MIDI numbers, lowest first: E2 A2 D3 G3 B3 E4. */
 const STANDARD_MIDI = [40, 45, 50, 55, 59, 64];
@@ -154,7 +154,8 @@ export interface Head {
   bent?: boolean;
   /**
    * A picked note bent up (`pickedBendSemitones`) is drawn at the pitch its bend reaches, as Guitar Pro
-   * prints it, after the pitch it starts from in brackets, joined to it by a line (issue #176).
+   * prints it, after the pitch it starts from in brackets, joined to it by a line (issue #176); a
+   * pre-dipped note (the whammy bar) at the pitch it is dipped to, after its fret's (issue #216).
    */
   bendFrom?: SmallHead;
   /** Let down within the same note, the pitch it comes back to, in brackets after it. */
@@ -187,7 +188,12 @@ export function barHeads(clip: Clip, barIndex: number, open = writtenStrings(cli
   const inKey = keyAccidentals(key);
   const now = new Map<number, Accidental>();
   const capo = clip.capo ?? 0;
+  const goesOn = whammyGoesOn(clip);
   return clip.bars[barIndex].columns.map(column => {
+    // Under the whammy bar a note is drawn at the pitch its bar starts at, as the book prints Stop: a tied
+    // note going on under a dive at the pitch reached, and a pre-dipped one after its fret's pitch in brackets.
+    const dip = column.whammy ? whammySemitones(column.whammy[0]) : 0;
+    const preDipped = dip !== 0 && !goesOn.has(column);
     const heads: Head[] = [];
     // Under an octave line the notes are written an octave or two from where they sound.
     const written = WRITTEN_OCTAVE - (column.ottava ? OTTAVA_SHIFT[column.ottava] : 0);
@@ -210,11 +216,11 @@ export function barHeads(clip: Clip, barIndex: number, open = writtenStrings(cli
       const fretted = soundingPitch(open, capo, s, note)! + written;
       // A picked note bent up: first the pitch it starts from, then the pitch the bend takes it to.
       const rise = pickedBendSemitones(column, note);
-      const bendFrom = rise > 0 ? place(fretted) : null;
+      const bendFrom = rise > 0 || (preDipped && !note.tie) ? place(fretted) : null;
       // A tied note in a bend sounds where the bend has taken it, spelled in the key like any other.
       const bent = !!(note.tie && note.bend);
-      const { step, shows } = place(fretted + bentSemitones(note) + rise, note.tie && !bent);
-      const bendBack = bendFrom && note.bend!.release ? place(fretted + Math.floor((note.bend!.to ?? 0) / 2)) : null;
+      const { step, shows } = place(fretted + bentSemitones(note) + rise + dip, note.tie && !bent && dip === 0);
+      const bendBack = rise > 0 && note.bend!.release ? place(fretted + Math.floor((note.bend!.to ?? 0) / 2)) : null;
       heads.push({
         string: s, step, shows, dead: false,
         ...(bent ? { bent } : {}), ...(bendFrom ? { bendFrom } : {}), ...(bendBack ? { bendBack } : {}),

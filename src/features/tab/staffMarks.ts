@@ -6,11 +6,12 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, columnMordent, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava } from './clip';
+import { columnAccent, columnMordent, whammyGoesOn, whammySemitones, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava } from './clip';
 import { BEND_LABEL_STEP, HEAD_WIDTH, OTTAVA_CLEAR, SPACE, STEM_STEPS, stemUpFor, stepY, TAP_RADIUS, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout, type StaffReach } from './layout';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
+import { whammyLabel } from './whammy';
 
 type Hit = Omit<MarkHit, 'kind' | 'on'>;
 
@@ -33,6 +34,8 @@ export type StaffShape =
   | { kind: 'line'; x0: number; y0: number; x1: number; y1: number }
   | { kind: 'bend'; x: number; y: number; top: number; bend: Bend; line: number }
   | { kind: 'tap'; x: number; y: number }
+  /** The whammy bar's line through `points`, with its depths labelled (with the staff alone, which has no tab to label them). */
+  | { kind: 'whammy'; points: [number, number][]; labels: { x: number; y: number; text: string }[] }
   /** A fermata centred over x, its foot at y. */
   | { kind: 'fermata'; x: number; y: number; fermata: Fermata }
   /** A tuplet's number at (x, y) in its bracket from `x0` to `x1`, the ends hooking toward the notes (up when it is under them). */
@@ -72,6 +75,10 @@ export function staffMarks(layout: Layout): StaffMark[][] {
   if (layout.parts === 'tab') return layout.systems.map(() => []);
   const staffAlone = layout.parts === 'staff';
   const previous = previousHeads(layout.systems);
+  // The column after each one, and which whammy bars go on from the column before.
+  const columns = layout.systems.flatMap(sys => sys.bars.flatMap(b => b.columns.map(p => p.column)));
+  const after = new Map(columns.map((c, k) => [c, columns[k + 1]] as const));
+  const goesOn = whammyGoesOn({ bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) });
   return layout.systems.map((system, si) => {
     const score = system.rows.score!;
     const out: StaffMark[] = [];
@@ -209,6 +216,34 @@ export function staffMarks(layout: Layout): StaffMark[][] {
           }
         });
 
+        // The whammy bar: a line from the top head through the pitches it goes to, over the note's length
+        // (`whammy.ts` spreads the tab's the same way). A tied note going on under it draws where it gets
+        // to with its own head, joined by the tie's line, as the book prints Stop (issue #216).
+        const points = column.whammy;
+        const next = after.get(column);
+        const tiedOn = !!next && goesOn.has(next) && next.notes.some(n => n?.tie);
+        // With the staff alone, a pre-dipped note's depth is labelled under it.
+        if (staffAlone && points && points[0] !== 0 && !goesOn.has(column)) {
+          const ly = Math.max(bottomY, score.bottom) + 14;
+          add({ mark: 'whammy', index, string: null }, around(x - 8, ly - 10, x + 8, ly, 2), { kind: 'whammy', points: [], labels: [{ x, y: ly, text: whammyLabel(points[0]) }] });
+        }
+        // With the staff alone the line's depths are labelled, even where a tied note's head shows the pitch.
+        if (points && points.some(p => p !== points[0]) && (!tiedOn || staffAlone)) {
+          const k = heads.length - 1;
+          const step0 = heads[k].step;
+          const x0 = c.xs[k] + c.width + 2;
+          // Within its bar, so a depth's label stays clear of the bar line.
+          const x1 = Math.max(x0 + 10, Math.min(x + Math.max(14, placed.bendRoom), bar.x1 - 10));
+          const line = points.map((p, i): [number, number] => [
+            x0 + ((x1 - x0) * i) / (points.length - 1),
+            stepY(score, step0 + Math.round(((whammySemitones(p) - whammySemitones(points[0])) * 7) / 12)),
+          ]);
+          const labels = !staffAlone ? [] : points.flatMap((p, i) => (i > 0 && p !== 0 && p !== points[i - 1]
+            ? [{ x: line[i][0], y: Math.max(line[i][1], score.bottom) + 14, text: whammyLabel(p) }] : []));
+          const ys = [...line.map(pt => pt[1]), ...labels.map(l => l.y)];
+          add({ mark: 'whammy', index, string: null }, around(x0, Math.min(...ys), x1, Math.max(...ys), 4), { kind: 'whammy', points: tiedOn ? [] : line, labels });
+        }
+
         // A fermata over everything else in the column, as a book prints it over the staff, clear of the bar number.
         if (column.fermata) {
           const under = Math.min(score.top - BAR_NUMBER_ROOM, topY - SPACE / 2, marksTop, tapTop, c.up && c.tip !== null ? c.tip : Infinity);
@@ -292,7 +327,7 @@ export function staffMarks(layout: Layout): StaffMark[][] {
 }
 
 /** The staff's marks that `staffReach` in `layout.ts` doesn't foresee: they stand over everything else. */
-const FAR_MARKS: ReadonlySet<StaffMark['kind']> = new Set(['bend', 'tap', 'ottava', 'fermata']);
+const FAR_MARKS: ReadonlySet<StaffMark['kind']> = new Set(['bend', 'tap', 'ottava', 'fermata', 'whammy']);
 
 /**
  * How far each line's bends, taps and octave lines reach over and under the staff, in steps from its
