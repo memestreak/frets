@@ -51,9 +51,10 @@ off but the loop range stays set, so the synth finishes at the range end; on
   100%. Not on the step buttons, so two quick presses still step twice. From
   the keyboard, type 100.
 - **The title renames the clip** (Jeremy, 2026-10-27): a click on the page's
-  title turns it into a field (`ClipTitle.tsx`); Enter or leaving it keeps
+  title turns it into a field; Enter or leaving it keeps
   the text, trimmed, as one undo step; Esc keeps the old title. Empty is
-  "Untitled clip". The Export dialog's Name already starts on the clip's
+  "Untitled clip". (Since issue #227 the press opens the Title and credits
+  panel instead: `docs/specs/2026-10-29-tab-credits-tuning-design.md`.) The Export dialog's Name already starts on the clip's
   name, so it follows the title.
 - **A press after a note moves the line past it** (Jeremy, 2026-10-27): a
   press above or below the staff puts the playback line on the note pressed

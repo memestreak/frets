@@ -33,14 +33,14 @@ describe("the score head's credits", () => {
   it('are added from the space under the title, shown as typed, and kept as one undo step', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
-    const panel = screen.getByRole('dialog', { name: 'Artist and credits' });
+    const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     fireEvent.change(within(panel).getByLabelText('Artist (optional)'), { target: { value: 'Band' } });
     expect(head()).toHaveTextContent('Band');
     // One set of people wrote both until said otherwise: one field, one line.
     fireEvent.change(within(panel).getByLabelText('Words & Music (optional)'), { target: { value: 'Ann' } });
     expect(head()).toHaveTextContent('Words & Music by Ann');
     fireEvent.keyDown(within(panel).getByLabelText('Artist (optional)'), { key: 'Enter' });
-    expect(screen.queryByRole('dialog', { name: 'Artist and credits' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add artist and credits' })).toBeNull();
 
     undo();
@@ -51,7 +51,7 @@ describe("the score head's credits", () => {
   it('go back as they were on Esc', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
-    const panel = screen.getByRole('dialog', { name: 'Artist and credits' });
+    const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     const artist = within(panel).getByLabelText('Artist (optional)');
     fireEvent.change(artist, { target: { value: 'Band' } });
     fireEvent.keyDown(artist, { key: 'Escape' });
@@ -64,7 +64,7 @@ describe("the score head's credits", () => {
     renderAt('#example=tuned-down');
     await waitFor(() => expect(head()).toHaveTextContent("Guns N' Roses"), SLOW);
     fireEvent.click(within(head()).getByRole('button', { name: /Guns N' Roses/ }));
-    const panel = screen.getByRole('dialog', { name: 'Artist and credits' });
+    const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     expect(within(panel).getByLabelText('Artist (optional)')).toHaveValue("Guns N' Roses");
     fireEvent.click(within(panel).getByRole('switch', { name: 'Same people wrote both' }));
     const music = within(panel).getByLabelText('Music (optional)');
@@ -73,6 +73,59 @@ describe("the score head's credits", () => {
     fireEvent.keyDown(music, { key: 'Enter' });
     expect(head()).toHaveTextContent('Words by Axl Rose');
     expect(head()).toHaveTextContent('Music by Slash');
+  });
+});
+
+describe("the score head's title and credits panel", () => {
+  it('opens from the title or the credits, focused on the pressed one, and keeps title and credits as one undo step', () => {
+    renderAt();
+    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
+    let panel = screen.getByRole('dialog', { name: 'Title and credits' });
+    // Every field is in the one panel; the title is first.
+    const fields = within(panel).getAllByRole('textbox').map(f => f.getAttribute('aria-label'));
+    expect(fields).toEqual(['Title (optional)', 'Artist (optional)', 'Words & Music (optional)']);
+    expect(within(panel).getByLabelText('Title (optional)')).toHaveFocus();
+    expect(within(panel).getByLabelText('Title (optional)')).toHaveAttribute('placeholder', 'Untitled clip');
+    fireEvent.change(within(panel).getByLabelText('Title (optional)'), { target: { value: 'Song' } });
+    fireEvent.change(within(panel).getByLabelText('Artist (optional)'), { target: { value: 'Band' } });
+    expect(head()).toHaveTextContent('Song');
+    expect(head()).toHaveTextContent('Band');
+    // A press away keeps it.
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    // The artist opens the same panel, on the artist's field.
+    fireEvent.click(within(head()).getByRole('button', { name: /Band/ }));
+    panel = screen.getByRole('dialog', { name: 'Title and credits' });
+    expect(within(panel).getByLabelText('Artist (optional)')).toHaveFocus();
+    expect(within(panel).getByLabelText('Title (optional)')).toHaveValue('Song');
+    fireEvent.keyDown(within(panel).getByLabelText('Artist (optional)'), { key: 'Escape' });
+
+    // Title and artist went in as one step.
+    undo();
+    expect(head()).toHaveTextContent('Untitled clip');
+    expect(head()).not.toHaveTextContent('Band');
+  });
+
+  it('opens on the artist from "Add artist and credits", and an emptied title is "Untitled clip"', () => {
+    renderAt();
+    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
+    fireEvent.change(screen.getByLabelText('Title (optional)'), { target: { value: 'Riff' } });
+    fireEvent.keyDown(screen.getByLabelText('Title (optional)'), { key: 'Enter' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
+    const panel = screen.getByRole('dialog', { name: 'Title and credits' });
+    expect(within(panel).getByLabelText('Artist (optional)')).toHaveFocus();
+    const title = within(panel).getByLabelText('Title (optional)');
+    expect(title).toHaveValue('Riff');
+    fireEvent.change(title, { target: { value: '   ' } });
+    fireEvent.keyDown(title, { key: 'Enter' });
+    expect(within(head()).getByRole('heading', { level: 1 })).toHaveTextContent('Untitled clip');
+  });
+
+  it('has no title field of its own on the page', () => {
+    renderAt();
+    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
+    expect(screen.queryByRole('textbox', { name: 'Clip title' })).toBeNull();
   });
 });
 

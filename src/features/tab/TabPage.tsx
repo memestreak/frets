@@ -10,7 +10,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, UNTITLED, type Clip } from './clip';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
@@ -27,7 +27,7 @@ import type { Notice } from './notice';
 import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
-import { CreditsPanel } from './CreditsPanel';
+import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { useClipActions } from './ClipActions';
 import { WordField, type FieldKind } from './WordField';
@@ -46,7 +46,6 @@ import { ScoreHead } from './ScoreHead';
 import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
-import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
@@ -156,11 +155,11 @@ export default function TabPage() {
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
   /**
-   * The score head's open panel and where it was pressed, in viewport pixels; the credits' holds the
-   * clip as it opened, the undo step its typing becomes.
+   * The score head's open panel and where it was pressed, in viewport pixels; the title and credits'
+   * holds the clip as it opened, the undo step its typing becomes, and the field the press focuses.
    */
   const [headPanel, setHeadPanel] = useState<
-    { kind: 'credits'; x: number; y: number; from: Clip } | { kind: 'tuning'; x: number; y: number } | null
+    { kind: 'credits'; x: number; y: number; from: Clip; field: HeadField } | { kind: 'tuning'; x: number; y: number } | null
   >(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
@@ -686,9 +685,7 @@ export default function TabPage() {
   });
 
   const name = clip.name.trim() || UNTITLED;
-  /** A new title: one undo step, as any edit. */
-  const rename = (next: string) => dispatch({ type: 'rename', name: next });
-  /** The credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
+  /** The title and credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
   const finishCredits = (from: Clip, kept: Clip | null) => {
     setHeadPanel(null);
     if (kept && kept !== from) dispatch({ type: 'replace', clip: kept, from });
@@ -792,8 +789,8 @@ export default function TabPage() {
           {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
           {view === 'tab'
             ? <ScoreHead
-                clip={clip} onRename={rename} note={example && exampleNote}
-                onEditCredits={(x, y) => setHeadPanel({ kind: 'credits', x, y, from: clip })}
+                clip={clip} note={example && exampleNote}
+                onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
               />
             : <>
@@ -863,7 +860,7 @@ export default function TabPage() {
             )}
             {view === 'tab' && headPanel?.kind === 'credits' && (
               <CreditsPanel
-                clip={headPanel.from} x={headPanel.x} y={headPanel.y}
+                clip={headPanel.from} x={headPanel.x} y={headPanel.y} field={headPanel.field}
                 onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishCredits(headPanel.from, kept)}
               />
             )}
