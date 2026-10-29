@@ -1,0 +1,5 @@
+\title "Grace notes and tremolo picking"
+\ts (4 4)
+5.3{h}.8{gr} 7.3.4 5.3.4 7.4{sl}.8{gr} 9.4.4 5.2.16{gr} 7.2{h}.16{gr} 8.2.4 |
+12.1.4{tp 8} 12.1.4{tp 16} 12.1.2{tp 32} |
+

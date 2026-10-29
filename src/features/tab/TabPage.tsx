@@ -1,15 +1,16 @@
 'use client';
 
-import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useReducer, useRef, useState } from 'react';
+import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
-import { loadJson, saveJson } from '@/lib/storage';
+import { loadJson } from '@/lib/storage';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, type Clip } from './clip';
-import { clipReducer, initClipState, STORAGE_KEY } from './clipState';
+import { useArrangements } from './useArrangements';
+import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
 import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
@@ -28,7 +29,7 @@ import { useClipActions } from './ClipActions';
 import { WordField, type FieldKind } from './WordField';
 import { barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
 import { TabClip } from './TabClip';
-import { ExamplesDialog, ImportDialog } from './TabDialogs';
+import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY } from './exportTab';
@@ -42,7 +43,7 @@ import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PLAYBACK_KEY, PlaybackFooter, Playhead, parsePlaybackSettings, usePlayback } from './PlaybackFooter';
-import { useClipImport } from './useClipImport';
+import { clearExampleHash, useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
@@ -52,25 +53,23 @@ const TEXT_FIELDS = 'input, select, textarea, dialog';
 const COLUMN_REACH = 16;
 
 /**
- * The Tab page: one clip, brought in as alphaTex or ASCII tab (Import, a
- * drop or a `#tab=` link replace it; a paste goes in at the cursor), or one
- * of the examples in its place (Examples… or a `#example=` link; never
- * saved, and Back to my clip brings the clip back), edited
+ * The Tab page: one clip, the open one of My arrangements (Arrangements…), saved as it is edited;
+ * Import, a drop or a `#tab=` link open as a new one, a paste goes in at the cursor. One of the
+ * examples may be shown in its place (Arrangements… or a `#example=` link; never saved, Back to
+ * my clip brings the clip back, Keep a copy makes it an arrangement), edited
  * on the tab with the keys and the symbol palette, and shown drawn, as
  * alphaTex or as ASCII. See `docs/specs/2026-10-24-tab-editor-design.md` and
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
 export default function TabPage() {
-  const [state, dispatch] = useReducer(clipReducer, undefined, initClipState);
+  // The open arrangement, saved as it is edited, and the others kept (My arrangements).
+  const arrangements = useArrangements();
+  const { state, dispatch } = arrangements;
   const { clip } = state;
-  // The example or sample shown in place of the clip (only its id is needed here).
+  // The example or sample shown in place of the clip (only its id is needed here); its edits are never saved.
   const example = state.example;
-  // An example's edits are never saved: the saved clip waits, untouched, until the example is left.
-  useEffect(() => {
-    if (!example) saveJson(STORAGE_KEY, clip);
-  }, [clip, example]);
-  const [choosingExample, setChoosingExample] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // Export: the saved choices and the dialog. The right-click menu (where it opened) inserts bars.
@@ -615,7 +614,7 @@ export default function TabPage() {
   });
 
   const { importText, openExample, leaveExample } = useClipImport({
-    dispatch, onNotice: setNotice, showTab: () => setView('tab'),
+    dispatch, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
@@ -649,7 +648,7 @@ export default function TabPage() {
       document.removeEventListener('cut', onCut);
       document.removeEventListener('keydown', onKey);
     };
-  }, []);
+  }, [dispatch]);
 
   const actions = useClipActions({
     clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
@@ -657,7 +656,25 @@ export default function TabPage() {
 
   const name = clip.name.trim() || UNTITLED;
   /** A new title: one undo step, as any edit. */
-  const rename = (next: string) => dispatch({ type: 'replace', clip: { ...clip, name: next } });
+  const rename = (next: string) => dispatch({ type: 'rename', name: next });
+  /** Deletes from the Arrangements dialog, which stays open; when `ids` hold the open one, another is shown. */
+  const removing = (ids: string[], remove: () => void) => {
+    if (!ids.includes(state.id)) {
+      remove();
+      return;
+    }
+    replaceShown(() => { remove(); clearExampleHash(); });
+    setChoosing(true);
+  };
+  /** What is shown in place of the open arrangement, from the Arrangements dialog. */
+  const replaceShown = (open: () => void) => {
+    open();
+    setCursor(START);
+    setSelection(null);
+    setNotice(null);
+    setView('tab');
+    setChoosing(false);
+  };
   const empty = isEmpty(clip);
   const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
@@ -669,7 +686,13 @@ export default function TabPage() {
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
-          <button type="button" className="btn btn-secondary" onClick={() => setChoosingExample(true)}>Examples…</button>
+          {/* An example kept as one of My arrangements, with the edits made to it. */}
+          {example && (
+            <button type="button" className="btn btn-secondary" onClick={() => replaceShown(() => { arrangements.openNew(clip); clearExampleHash(); })}>
+              Keep a copy
+            </button>
+          )}
+          <button type="button" className="btn btn-secondary" onClick={() => { arrangements.forgetDeleted(); setChoosing(true); }}>Arrangements…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
         </div>
@@ -821,11 +844,28 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
-      <ExamplesDialog
-        open={choosingExample} current={example?.id ?? null} onClose={() => setChoosingExample(false)}
-        onOpen={async id => {
+      <ArrangementsDialog
+        open={choosing} library={arrangements.library} openId={state.id} exampleId={example?.id ?? null}
+        deleted={arrangements.deleted} onClose={() => setChoosing(false)}
+        onOpen={id => replaceShown(() => {
+          if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
+          clearExampleHash();
+        })}
+        onNew={() => replaceShown(() => { arrangements.openNew(); clearExampleHash(); })}
+        onDuplicate={() => replaceShown(() => arrangements.openNew(clip))}
+        onRename={arrangements.rename}
+        onMove={arrangements.move}
+        // Deleting the open arrangement opens another, or a new clip.
+        onDelete={id => removing([id], () => arrangements.remove(id))}
+        onCreateFolder={arrangements.createFolder}
+        onRenameFolder={arrangements.renameFolder}
+        onDeleteFolder={id => removing(
+          arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
+        )}
+        onUndoDelete={arrangements.undoDelete}
+        onOpenExample={async id => {
           const error = await openExample(id);
-          setChoosingExample(false);
+          setChoosing(false);
           if (error) setNotice({ tone: 'error', lines: [error] });
         }}
       />

@@ -1,13 +1,11 @@
 /**
- * The Tab page's clip and its undo history, and the example clip open in
- * its place, if any. An example's edits are never saved: the page saves
- * the clip only while no example is open, and leaving the example brings
- * back the clip and history it set aside.
+ * The Tab page's clip and its undo history, which arrangement it is (`arrangements.ts`), and the
+ * example clip open in its place, if any. An example's edits are never saved: the page saves the
+ * clip only while no example is open, and leaving the example brings back the clip and history it
+ * set aside.
  */
-import { emptyClip, parseClip, type Clip } from './clip';
-import { loadJson } from '@/lib/storage';
-
-export const STORAGE_KEY = 'frets.tab.clip';
+import type { Clip } from './clip';
+import { openOnLoad, type Library } from './arrangements';
 
 /** A clip with its undo history. */
 interface History {
@@ -19,7 +17,9 @@ interface History {
 }
 
 export interface ClipState extends History {
-  /** The example being shown (its id in `examples.ts`) and the clip it set aside; null for the saved clip. */
+  /** The arrangement the clip is saved as; while an example is shown, the one it set aside. */
+  id: string;
+  /** The example being shown (a built-in arrangement's id, `builtins.ts`) and the clip it set aside; null for the saved clip. */
   example: { id: string; mine: History } | null;
 }
 
@@ -34,8 +34,10 @@ export type ClipAction =
   | { type: 'openExample'; id: string; clip: Clip }
   /** Back to the clip an example set aside. */
   | { type: 'leaveExample' }
-  /** An import replaces the clip; over an example, it replaces the set-aside clip, so it is saved. */
-  | { type: 'import'; clip: Clip };
+  /** A new title for the arrangement: one undo step; while an example is shown, in the clip it set aside. */
+  | { type: 'rename'; name: string }
+  /** Another arrangement (a kept one, a new one, an import or a copy) in place of the clip, with a fresh history. */
+  | { type: 'open'; id: string; clip: Clip };
 
 export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   switch (action.type) {
@@ -55,18 +57,22 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
     }
     case 'openExample': {
       const mine = state.example?.mine ?? { clip: state.clip, past: state.past, future: state.future };
-      return { clip: action.clip, past: [], future: [], example: { id: action.id, mine } };
+      return { clip: action.clip, past: [], future: [], id: state.id, example: { id: action.id, mine } };
     }
     case 'leaveExample':
-      return state.example ? { ...state.example.mine, example: null } : state;
-    case 'import': {
-      const mine: History = state.example?.mine ?? state;
-      return { clip: action.clip, past: [...mine.past, mine.clip], future: [], example: null };
+      return state.example ? { ...state.example.mine, id: state.id, example: null } : state;
+    case 'rename': {
+      if (!state.example) return clipReducer(state, { type: 'replace', clip: { ...state.clip, name: action.name } });
+      const { mine } = state.example;
+      const renamed = { clip: { ...mine.clip, name: action.name }, past: [...mine.past, mine.clip], future: [] };
+      return { ...state, example: { ...state.example, mine: renamed } };
     }
+    case 'open':
+      return { clip: action.clip, past: [], future: [], id: action.id, example: null };
   }
 }
 
-/** The saved clip, or an empty one. */
-export function initClipState(): ClipState {
-  return { clip: parseClip(loadJson(STORAGE_KEY)) ?? emptyClip(), past: [], future: [], example: null };
+/** The open arrangement, or a new empty clip. */
+export function initClipState(library: Library): ClipState {
+  return { ...openOnLoad(library), past: [], future: [], example: null };
 }

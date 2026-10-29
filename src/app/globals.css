@@ -975,18 +975,30 @@ button {
   }
   .tab-panel-choice { min-width: 36px; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
-  /* The Examples dialog: one row per example, its title over a line on what it shows; the shown one is filled. */
+  /* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
   .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }
-  .tab-examples { list-style: none; display: grid; gap: 4px; }
+  .tab-rows { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .tab-folder-items { padding-left: 22px; }
   .tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
-  .tab-example {
-    display: grid; gap: 2px; width: 100%; padding: 8px 12px; text-align: left;
+  .tab-row { display: flex; align-items: center; gap: 2px; min-height: 36px; }
+  .tab-row-main {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; text-align: left;
     border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--ink); cursor: pointer;
   }
-  .tab-example:hover, .tab-example:focus-visible { background: var(--surface-sunken); outline: none; }
-  .tab-example[aria-current='true'] { border-color: var(--primary); background: var(--primary-soft); }
-  .tab-example-title { font-weight: 600; }
-  .tab-example-shows { color: var(--ink-muted); font-size: 0.875rem; }
+  .tab-row-main:hover, .tab-row-main:focus-visible { background: var(--surface-sunken); outline: none; }
+  .tab-row-main[aria-current='true'] { border-color: var(--primary); background: var(--primary-soft); }
+  .tab-row-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab-row-changed { margin-left: auto; flex: none; color: var(--ink-muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .tab-folder { font-weight: 600; }
+  .tab-folder > svg { flex: none; color: var(--ink-muted); }
+  .tab-folder-empty { padding-left: 12px; }
+  .tab-row-name { flex: 1; min-width: 0; }
+  .tab-row-tool { color: var(--ink-muted); }
+  /* Where a dragged arrangement would land: a folder with what it holds, or the whole list for the top level. */
+  .tab-drop { border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1px dashed var(--line-strong); }
+  .tab-row-tool:hover { color: var(--ink); background: var(--surface-sunken); }
+  .tab-examples-note { color: var(--ink-muted); font-size: 0.875rem; }
+  .tab-undo-delete { min-height: 0; padding-block: 0; }
   .tab-import-text {
     width: 100%; min-height: 240px; resize: vertical; padding: 10px 12px;
     font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
