@@ -2,6 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { emptyClip, fewestRests, WHOLE, type Clip } from '@/features/tab/clip';
+import { parseEditing } from '@/features/tab/editingPrefs';
 import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
@@ -145,44 +146,47 @@ describe('note marks', () => {
   });
 });
 
+/** Settings' "Fill short bars with rests", turned on. */
+const FILL = { fillBars: true };
+
 describe('moving', () => {
   it('adds a column at the end while the bar has room, then a new bar of rests', () => {
     let clip = clipOf('5.3.2 |');
     let cursor = at(0, 0, 2);
-    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    ({ clip, cursor } = moveColumn(clip, cursor, 1, FILL));
     expect(cursor).toEqual(at(0, 1, 2));
     clip = setFret(clip, cursor, 7);
-    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    ({ clip, cursor } = moveColumn(clip, cursor, 1, FILL));
     expect(cursor).toEqual(at(1, 0, 2));
     expect(bars(clip)).toBe('5.3.2 7.3.2 |\nr.2 r.2 |');
   });
 
   it('crosses bar lines both ways and stops at the start', () => {
     const clip = clipOf('5.3.2 5.3.2 | 7.3.1 |');
-    expect(moveColumn(clip, at(1, 0, 0), -1).cursor).toEqual(at(0, 1, 0));
-    expect(moveColumn(clip, at(0, 0, 0), -1).cursor).toEqual(at(0, 0, 0));
-    expect(moveColumn(clip, at(0, 1, 0), 1).cursor).toEqual(at(1, 0, 0));
+    expect(moveColumn(clip, at(1, 0, 0), -1, FILL).cursor).toEqual(at(0, 1, 0));
+    expect(moveColumn(clip, at(0, 0, 0), -1, FILL).cursor).toEqual(at(0, 0, 0));
+    expect(moveColumn(clip, at(0, 1, 0), 1, FILL).cursor).toEqual(at(1, 0, 0));
   });
 
   it('fills a short bar anywhere in the clip at once, with the fewest rests, then moves on', () => {
     const clip = clipOf('5.3.4 | 7.3.1 |');
-    const moved = moveColumn(clip, at(0, 0, 2), 1);
+    const moved = moveColumn(clip, at(0, 0, 2), 1, FILL);
     expect(bars(moved.clip)).toBe('5.3.4 r.2{d} |\n7.3.1 |');
     expect(moved.cursor).toEqual(at(0, 1, 2));
-    expect(moveColumn(moved.clip, moved.cursor, 1).cursor).toEqual(at(1, 0, 2));
+    expect(moveColumn(moved.clip, moved.cursor, 1, FILL).cursor).toEqual(at(1, 0, 2));
     // Only an eighth is left: the rest is an eighth.
     const short = clipOf('5.3.2 5.3.4 5.3.8 | 7.3.1 |');
-    expect(bars(moveColumn(short, at(0, 2, 0), 1).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
+    expect(bars(moveColumn(short, at(0, 2, 0), 1, FILL).clip).split('\n')[0]).toBe('5.3.2 5.3.4 5.3.8 r.8 |');
   });
 
   it('fills the bar it leaves going left, after its last column', () => {
     const clip = clipOf('5.3.2 5.3.2 | 7.3.4 | 9.3.1 |');
-    const moved = moveColumn(clip, at(1, 0, 2), -1);
+    const moved = moveColumn(clip, at(1, 0, 2), -1, FILL);
     expect(bars(moved.clip)).toBe('5.3.2 5.3.2 |\n7.3.4 r.2{d} |\n9.3.1 |');
     expect(moved.cursor).toEqual(at(0, 1, 2));
     // Within a bar, and when selecting, nothing is added.
-    expect(moveColumn(clip, at(2, 0, 2), -1).clip).toBe(clip);
-    expect(moveColumn(clip, at(1, 0, 2), -1, false).clip).toBe(clip);
+    expect(moveColumn(clip, at(2, 0, 2), -1, FILL).clip).toBe(clip);
+    expect(moveColumn(clip, at(1, 0, 2), -1, { grow: false, fillBars: true }).clip).toBe(clip);
   });
 
   it('fills a bar with the fewest rests, and leaves a full one alone', () => {
@@ -194,21 +198,62 @@ describe('moving', () => {
   it('fills an emptied bar with one rest where one will do', () => {
     const full = clipOf('5.3.1 | \\ts (3 4) 7.3.2 7.3.4 | 9.3.2 9.3.4 |');
     const clip: Clip = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
-    const moved = moveColumn(clip, at(1, 0, 2), 1);
+    const moved = moveColumn(clip, at(1, 0, 2), 1, FILL);
     expect(bars(moved.clip).split('\n')[1]).toBe('\\ts (3 4) r.2{d} |');
     expect(moved.cursor).toEqual(at(1, 0, 2));
-    expect(moveColumn(moved.clip, moved.cursor, 1).cursor).toEqual(at(2, 0, 2));
+    expect(moveColumn(moved.clip, moved.cursor, 1, FILL).cursor).toEqual(at(2, 0, 2));
   });
 
   it('splits a long rest when a note goes on it: the note takes the last note\'s length', () => {
-    let { clip, cursor } = moveColumn(clipOf('12.3.4 |'), at(0, 0, 2), 1);
+    let { clip, cursor } = moveColumn(clipOf('12.3.4 |'), at(0, 0, 2), 1, FILL);
     clip = setFret(clip, cursor, 14);
     expect(bars(clip)).toBe('12.3.4 14.3.4 r.2 |');
-    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    ({ clip, cursor } = moveColumn(clip, cursor, 1, FILL));
     clip = setFret(clip, cursor, 15);
     expect(bars(clip)).toBe('12.3.4 14.3.4 15.3.4 r.4 |');
     // A rest no longer than the last note keeps its length.
     expect(bars(setFret(clipOf('5.3.2 r.4 r.4 |'), at(0, 1, 0), 3))).toBe('5.3.2 3.1.4 r.4 |');
+  });
+
+  it('with filling off (the default), adds one rest to type on and leaves short bars short', () => {
+    // → past a short bar's last column: one rest as long as the column before it.
+    let clip = clipOf('5.3.4 | 7.3.1 |');
+    let cursor = at(0, 0, 2);
+    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    expect(bars(clip)).toBe('5.3.4 r.4 |\n7.3.1 |');
+    expect(cursor).toEqual(at(0, 1, 2));
+    clip = setFret(clip, cursor, 7);
+    ({ clip, cursor } = moveColumn(clip, cursor, 1));
+    expect(bars(clip)).toBe('5.3.4 7.3.4 r.4 |\n7.3.1 |');
+    // A full bar moves on to the next one, adding nothing.
+    const full = clipOf('5.3.2 5.3.2 | 7.3.1 |');
+    expect(moveColumn(full, at(0, 1, 2), 1)).toEqual({ clip: full, cursor: at(1, 0, 2) });
+    // Where the column before is too long for what is left, the longest rest that fits.
+    expect(bars(moveColumn(clipOf('5.3.2 5.3.4{d} |'), at(0, 1, 2), 1).clip)).toBe('5.3.2 5.3.4{d} r.8 |');
+    // An emptied bar gets one rest, as long as the last column before it.
+    const emptied = clipOf('5.3.4 | 9.3.1 |');
+    const blank: Clip = { ...emptied, bars: [emptied.bars[0], { ...emptied.bars[1], columns: [] }] };
+    expect(bars(moveColumn(blank, at(1, 0, 2), 1).clip)).toBe('5.3.4 |\nr.4 |');
+  });
+
+  it('with filling off, ← leaves the bar it leaves as it was', () => {
+    const clip = clipOf('5.3.2 5.3.2 | 7.3.4 | 9.3.1 |');
+    const moved = moveColumn(clip, at(1, 0, 2), -1);
+    expect(moved.clip).toBe(clip);
+    expect(moved.cursor).toEqual(at(0, 1, 2));
+  });
+
+  it('starts a new full bar from the clip\'s last column either way', () => {
+    for (const options of [{}, FILL]) {
+      const moved = moveColumn(clipOf('5.3.2 5.3.2 |'), at(0, 1, 2), 1, options);
+      expect(bars(moved.clip)).toBe('5.3.2 5.3.2 |\nr.2 r.2 |');
+      expect(moved.cursor).toEqual(at(1, 0, 2));
+    }
+  });
+
+  it('reads the Editing setting, off unless saved as true', () => {
+    expect([parseEditing(null), parseEditing({ fillBars: true }), parseEditing({ fillBars: 'yes' })])
+      .toEqual([{ fillBars: false }, { fillBars: true }, { fillBars: false }]);
   });
 
   it('makes up any length with the fewest rests, longest first', () => {

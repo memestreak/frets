@@ -28,6 +28,7 @@ import {
 } from './viewOptions';
 import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
+import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
 
 /** One section's state: read from its key once, written back on every change. */
 function usePreference<V>(key: string, parse: (raw: unknown) => V) {
@@ -44,10 +45,11 @@ export function useTabPrefs() {
   const [colours, setColours] = usePreference(COLOURS_KEY, parseColours);
   const [ascii, setAscii] = usePreference(ASCII_KEY, parseAscii);
   const [alphatex, setAlphaTex] = usePreference(ALPHATEX_KEY, parseAlphaTex);
+  const [editing, setEditing] = usePreference(EDITING_KEY, parseEditing);
   const [exportStyle, setExportStyle] = usePreference(TAB_EXPORT_KEY, parseTabExportStyle);
   return {
     playback, setPlayback, metronome, setMetronome, notation, setNotation, colours, setColours,
-    ascii, setAscii, alphatex, setAlphaTex, exportStyle, setExportStyle,
+    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle,
   };
 }
 
@@ -183,6 +185,10 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       section<AlphaTexPrefs>({
         id: 'alphatex', name: 'AlphaTex', value: prefs.alphatex, defaults: DEFAULT_ALPHATEX, save: prefs.setAlphaTex,
         fields: [checkField('lineNumbers', 'Line numbers')],
+      }),
+      section<EditingPrefs>({
+        id: 'editing', name: 'Editing', value: prefs.editing, defaults: DEFAULT_EDITING, save: prefs.setEditing,
+        fields: [checkField('fillBars', 'Fill short bars with rests')],
       }),
       section<TabExportStyle>({
         id: 'export', name: 'Export', value: prefs.exportStyle, defaults: DEFAULT_TAB_EXPORT, save: prefs.setExportStyle,
