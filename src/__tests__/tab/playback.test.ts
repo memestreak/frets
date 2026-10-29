@@ -446,6 +446,39 @@ describe('tremolo picking', () => {
     expect(picks('0.1.16{tp 16} 0.1.32{tp 16} 0.1.32 0.1.8 0.1.2 |')).toBe(5);
   });
 
+  /** The pitch bends of the clip's first note's channel in its first half note, in semitones. */
+  function heights(text: string): number[] {
+    const played = plain(clipOf(text));
+    return pitchBendsOn(played.midi, noteOns(played.midi)[0].channel)
+      .filter(e => e.tick <= 2 * Q)
+      .map(e => (e.value - 8192) / 512);
+  }
+
+  // alphaTab returned after the picking, before a note's pitch effects (Jeremy, 2026-10-29: "I'm not
+  // hearing whammy when a note also has tremolo picking").
+  it('plays a whammy bar dive and return while it picks', () => {
+    const dived = heights('7.3.2{tb (0 -8 0) tp 16} r.2 |');
+    // -8 quarter tones: two whole steps down.
+    expect(Math.min(...dived)).toBeCloseTo(-4, 0);
+    expect(dived.at(-1)).toBeCloseTo(0, 1);
+    // Still picked as before.
+    expect(noteOns(plain(clipOf('7.3.2{tb (0 -8 0) tp 16} r.2 |')).midi)).toHaveLength(8);
+  });
+
+  it('plays a bend and its vibrato while it picks', () => {
+    const bent = heights('7.3{b (0 4)}.2{tp 16} r.2 |');
+    expect(Math.max(...bent)).toBeCloseTo(2, 0);
+    const wobbled = heights('7.3{v}.2{tp 16} r.2 |');
+    expect(Math.max(...wobbled)).toBeGreaterThan(0.1);
+    expect(Math.min(...wobbled)).toBeLessThan(-0.1);
+  });
+
+  it('picks on through a tied note once, whether or not the tied note has its own tp', () => {
+    expect(picks('7.3.4{tp 32} -.3.4 r.2 |')).toBe(16);
+    expect(picks('7.3.4{tp 32} -.3.4{tp 32} r.2 |')).toBe(16);
+    expect(picks('7.3.4{tp 32 tb (0 -4)} -.3.4{tp 32 tb (-4 -4)} r.2 |')).toBe(16);
+  });
+
   it('picks every note of a chord, each picking evenly spaced', () => {
     const ons = noteOns(plain(clipOf('(15.2 14.3).1{tp 32} |')).midi);
     expect(ons).toHaveLength(64);
