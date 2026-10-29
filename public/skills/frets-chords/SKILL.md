@@ -1,6 +1,9 @@
 ---
 name: frets-chords
-description: Link chords and chord shapes to the Frets Chords page (frets.eminor.net/chords). Use when asked for guitar chords, voicings or a progression to open in Frets.
+description: >-
+  Link chords and chord shapes to the Frets Chords page
+  (frets.eminor.net/chords). Use when asked for guitar chords, voicings or a
+  progression to open in Frets.
 ---
 
 # Frets chords

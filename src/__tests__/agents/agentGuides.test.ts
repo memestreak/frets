@@ -100,10 +100,13 @@ describe('the files the agents page and llms.txt point to', () => {
 
   it.each(AGENT_GUIDES.map(g => g.skill))('%s is an Agent Skill named after its folder', path => {
     const text = read(path);
-    const front = /^---\nname: ([a-z0-9-]+)\ndescription: (.+)\n---\n/.exec(text);
+    // The description is folded (">-") so the front matter stays within 80 columns.
+    const front = /^---\nname: ([a-z0-9-]+)\ndescription: >-\n((?: {2}\S.*\n)+)---\n/.exec(text);
     expect(front).not.toBeNull();
     expect(path).toBe(`/skills/${front![1]}/SKILL.md`);
-    expect(front![2].length).toBeLessThanOrEqual(1024);
+    for (const line of front![0].split('\n')) expect(line.length).toBeLessThanOrEqual(80);
+    const description = front![2].trim().split(/\n {2}/).join(' ');
+    expect(description.length).toBeLessThanOrEqual(1024);
     // The skill sends the agent to its guide, which carries the details.
     expect(text).toContain(`https://frets.eminor.net${AGENT_GUIDES.find(g => g.skill === path)!.guide}`);
   });

@@ -32,8 +32,11 @@ export function AgentsPage() {
       </ul>
       <p className="m-0 text-(--ink-muted)">
         A skill is a SKILL.md file: save it as <code>frets-chords/SKILL.md</code> or{' '}
-        <code>frets-tab/SKILL.md</code> in your agent&apos;s skills folder. Agents that read{' '}
-        <a href="/llms.txt" target="_blank" rel="noreferrer">llms.txt</a> find all of this on their own.
+        <code>frets-tab/SKILL.md</code> in your agent&apos;s skills folder.
+      </p>
+      <p className="m-0 text-(--ink-muted)">
+        Agents that read <a href="/llms.txt" target="_blank" rel="noreferrer">llms.txt</a> find all
+        of this on their own.
       </p>
     </div>
   );

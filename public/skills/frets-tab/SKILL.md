@@ -1,6 +1,9 @@
 ---
 name: frets-tab
-description: Write guitar tab as alphaTex for the Frets Tab page (frets.eminor.net/tab) and give a link that opens it. Use for riffs, solos and tab or sheet music read from a picture.
+description: >-
+  Write guitar tab as alphaTex for the Frets Tab page (frets.eminor.net/tab)
+  and give a link that opens it. Use for riffs, solos and tab or sheet music
+  read from a picture.
 ---
 
 # Frets tab
