@@ -363,6 +363,17 @@ export default function TabPage() {
     if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
   };
 
+  /**
+   * Right-click, a long press or Shift+F10 on the tab: the bar menu, alone. A long press has already
+   * picked what it landed on, so a signature's panel or a word's outline it opened goes (Jeremy, 2026-10-29).
+   */
+  const openBarMenu = (el: HTMLElement, x: number, y: number) => {
+    setTimeBar(null);
+    setKeyBar(null);
+    setPicked(null);
+    setBarMenu(menuSpot(el, x, y));
+  };
+
   const closeTimeBar = useCallback((byKey: boolean) => {
     setTimeBar(null);
     if (byKey) editorRef.current?.focus();
@@ -812,7 +823,7 @@ export default function TabPage() {
                   aria-label="Tab editor: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Shift+F10 to insert a bar"
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.
-                  {...menuTrigger.props((el, x, y) => setBarMenu(menuSpot(el, x, y)))}
+                  {...menuTrigger.props(openBarMenu)}
                 >
                   {/* A bar's warning explains itself on hover. */}
                   <HoverTips>
