@@ -1,18 +1,12 @@
-import { locate, MENU_SECTIONS, MORE, PRACTICE, SECTIONS, TOOLS } from '@/components/sections';
+import { locate, MORE, PRACTICE, SECTIONS, TOOLS } from '@/components/sections';
 
 describe('SECTIONS', () => {
-  it('groups the pages as Tools, then Practice', () => {
-    expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice']);
+  it('groups the pages as Tools, Practice, then More', () => {
+    expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice', 'More']);
     expect(TOOLS.pages.map(p => p.href)).toEqual(
       ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab'],
     );
     expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
-  });
-});
-
-describe('MENU_SECTIONS', () => {
-  it('ends the site menu with More, which the home page leaves out', () => {
-    expect(MENU_SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice', 'More']);
     expect(MORE.pages.map(p => p.href)).toEqual(['/agents']);
   });
 });

@@ -1,6 +1,5 @@
 /**
- * The app's map: the two groups of pages, Tools and Practice, and the site
- * menu's More (pages about Frets itself, not on the home page). The nav, the
+ * The app's map: the groups of pages, Tools, Practice and More. The nav, the
  * home page and the Practice index page are all drawn from this list, so a
  * new feature is one entry here plus its route under `src/app/`. A page's
  * group says nothing about its URL: the Scale lab is a tool at
@@ -76,10 +75,10 @@ export const PRACTICE: Section = {
   ],
 };
 
-/** Pages about Frets rather than music: in the site menu, not on the home page. */
+/** Pages about using Frets rather than about music. */
 export const MORE: Section = {
   label: 'More',
-  summary: 'Frets beyond the browser.',
+  summary: 'Ways to use Frets beyond its own pages.',
   pages: [
     {
       href: '/agents',
@@ -89,15 +88,11 @@ export const MORE: Section = {
   ],
 };
 
-/** The groups on the home page. */
-export const SECTIONS: readonly Section[] = [TOOLS, PRACTICE];
-
-/** The groups in the site menu: the home page's, then More. */
-export const MENU_SECTIONS: readonly Section[] = [...SECTIONS, MORE];
+export const SECTIONS: readonly Section[] = [TOOLS, PRACTICE, MORE];
 
 /** The group and page a pathname belongs to; either may be undefined. */
 export function locate(pathname: string): { section?: Section; page?: Page } {
-  for (const section of MENU_SECTIONS) {
+  for (const section of SECTIONS) {
     const page = section.pages.find(p => pathname === p.href);
     if (page || pathname === section.href) return { section, page };
   }
