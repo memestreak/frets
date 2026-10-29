@@ -27,8 +27,10 @@ Everything is a static file in `public/`, served at frets.eminor.net:
 ## Where people find it
 
 A quiet "Agents" link in the footer, beside Source Code, opens
-`/agents`: one card per page with what an agent can write, the guide's
-link with a copy button, and a Download skill button. It is not in the
+`/agents`: one card per page with what an agent can write and its skill:
+a View skill link that opens the SKILL.md in the browser, and Copy and
+Download buttons. The guides aren't shown there: the skill sends the agent
+to its guide, and `llms.txt` lists them. It is not in the
 site menu or on home. The Tab page's Import dialog, which already links the
 formats, adds "An agent can write it for you", linking to the same page.
 

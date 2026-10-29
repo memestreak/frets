@@ -1,10 +1,9 @@
 /**
  * What the Agents page lists: one entry per page an agent can write
- * for, with its guide and its skill, both served from `public/`.
+ * for, with its skill (shown on the page) and the guide the skill sends
+ * the agent to, both served from `public/`.
  * `public/llms.txt` lists the same files for agents.
  */
-export const SITE = 'https://frets.eminor.net';
-
 export interface AgentGuide {
   /** The Frets page the agent writes for. */
   page: string;

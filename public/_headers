@@ -1,0 +1,3 @@
+# Cloudflare Pages: show the skills as text in the browser, not as a download.
+/skills/*
+  Content-Type: text/plain; charset=utf-8

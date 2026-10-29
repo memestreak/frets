@@ -5,8 +5,8 @@ The `/agents` page, linked from the footer, and what it lists
 
 - `agentGuides.ts` — one entry per page an agent can write for: its guide
   and its skill, both files in `public/`.
-- `AgentsPage.tsx` — a card per entry: the guide's link with `CopyUrl.tsx`,
-  and a Download skill button.
+- `AgentsPage.tsx` — a card per entry, with `SkillActions.tsx`: View skill
+  (opens the SKILL.md), Copy (its text) and Download.
 
 The files themselves:
 
@@ -16,6 +16,7 @@ The files themselves:
 - `public/tab-alphatex.txt`, `public/tab-ascii.txt` — the Tab page's formats
   (described in `src/features/tab/README.md`).
 - `public/skills/<name>/SKILL.md` — Agent Skills, short, each sending the
-  agent to its guide.
+  agent to its guide. `public/_headers` serves them as plain text, so View
+  skill shows them in the browser.
 
 Tests: `src/__tests__/agents/agentGuides.test.ts`.
