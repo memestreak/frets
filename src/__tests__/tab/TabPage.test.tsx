@@ -64,6 +64,7 @@ const SLOW = { timeout: 5000 };
 /** Lets an import finish: reading is async, and alphaTex loads alphaTab first. */
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
 const TEX = '\\title "Tex riff"\n:8 5.5{h} 7.5 5.4{h} 7.4 |';
+const FX_LINE = '// frets:fx on; distortion on drive=0.9 tone=0.2; reverb on amount=0.6 decay=3';
 const undo = (shift = false) => fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true, shiftKey: shift });
 
 /** Keeps `clip` as the open arrangement, as if it had been written on an earlier visit. */
@@ -294,31 +295,65 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Copied as text.');
   });
 
-  it('copies a link that opens the same arrangement as a new one, with its sound and FX', async () => {
+  it('copies a link that opens the same arrangement as a new one, with its sound and the FX in its text', async () => {
     const writeText = vi.fn((text: string) => { void text; return Promise.resolve(); });
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const effects = { on: true, distortionOn: true, drive: 0.9, tone: 0.2, reverbOn: true, reverb: 0.6, decay: 3 };
-    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27, effects }));
-    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27 }));
+    renderAt(`#tab=${encodeURIComponent(`${FX_LINE}\n${TEX}`)}`);
     await settle();
-    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'AlphaTex' }, SLOW));
     const before = alphaTexText();
+    expect(before.split('\n')[0]).toBe(FX_LINE);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy link' })); });
     await waitFor(() => expect(writeText).toHaveBeenCalled(), SLOW);
     const link = new URL(writeText.mock.calls[0][0]);
     expect(link.pathname).toBe('/tab');
     expect(link.hash.startsWith('#tabz=')).toBe(true);
+    expect(link.hash).toMatch(/&sound=27$/);
     expect(notice()).toHaveTextContent('Copied a link to this arrangement.');
     // Followed in a fresh browser: nothing saved, the link alone brings the arrangement.
     cleanup();
     localStorage.clear();
     renderAt(link.hash);
-    await screen.findByRole('heading', { name: 'Riff' }, SLOW);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     expect(window.location.hash).toBe('');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toBe(before);
     expect(loadLibrary().items).toHaveLength(1);
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27, effects }));
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27 }));
+    // The FX came with the text: the light is on.
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    expect(screen.getByRole('switch', { name: 'All effects' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('keeps the FX in the clip: the dialog writes its line, a run of changes is one undo step', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    const firstLine = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const line = alphaTexText().split('\n')[0];
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+      return line;
+    };
+    expect(firstLine()).toBe('\\title "Tex riff"');
+    const light = () => screen.getByRole('switch', { name: 'All effects' });
+    fireEvent.click(light());
+    expect(light()).toHaveAttribute('aria-checked', 'true');
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5');
+    fireEvent.click(screen.getByRole('button', { name: 'FX' }));
+    const dialog = screen.getByRole('dialog', { name: 'Effects' });
+    fireEvent.click(within(dialog).getByRole('switch', { name: 'Reverb' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Longer decay' }));
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.6');
+    // Saved with the arrangement, not with the viewer's playback settings.
+    expect(savedClip()).toMatchObject({ fx: { on: true, reverbOn: false, decay: 1.6 } });
+    expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('reverb');
+    undo();
+    expect(light()).toHaveAttribute('aria-checked', 'false');
+    expect(firstLine()).toBe('\\title "Tex riff"');
+    undo(true);
+    expect(firstLine()).toContain('reverb off amount=0.3 decay=1.6');
   });
 
   it('says why a damaged #tabz= link could not be read', async () => {

@@ -16,13 +16,14 @@ alphaTex format landed, but nothing in the app made one.
 
 - The clip's alphaTex, as Export writes it. The title is in it
   (`\title`); View options are per viewer and stay out.
-- The Sound and the FX dialog's settings (Jeremy, 2026-10-29: "include the
-  instrument and effects settings in the link"), as readable fields after the
-  tab: `&sound=27&fx=on&distortion=on&drive=0.5&tone=0.5&reverb=on&amount=0.3&decay=1.5`
-  (`sound` is the General MIDI program; `fx` the FX button's light switch).
-  They are page settings, not the arrangement's, so the link is the only
-  place they travel; volume, speed, transpose and the metronome stay the
-  opener's.
+- The Sound (Jeremy, 2026-10-29: "include the instrument and effects
+  settings in the link"), as a readable field after the tab: `&sound=27`
+  (the General MIDI program). It is a page setting, not the arrangement's,
+  so the link is the only place it travels; volume, speed, transpose and
+  the metronome stay the opener's.
+- The FX travel in the clip's text, its `// frets:fx` line
+  (`docs/specs/2026-10-29-tab-fx-in-clip-design.md`); the link has no
+  fields of its own for them.
 - Compressed: UTF-8, raw deflate, base64url without padding, in
   `https://<origin>/tab#tabz=<code>` (`shareLink.ts`, the browser's
   `CompressionStream`). Sweet Child O' Mine's 181 bars make a 4.2 KB link,
@@ -35,10 +36,8 @@ alphaTex format landed, but nothing in the app made one.
 - As any `#tab=` link: read on load or on hashchange, the hash cleared at
   once (before the text is inflated, so a second read finds nothing), the
   tab opened as a new arrangement (`docs/specs/2026-10-28-tab-arrangements-design.md`).
-- Once its tab has opened, the link's Sound and FX become the page's (for
-  every arrangement, as if set by hand). A field missing or out of range
-  leaves that setting: no `sound`, or one Frets doesn't offer, keeps the
-  opener's sound; with `fx` present, FX fields missing or wrong take their
-  defaults; with no `fx`, the FX stay the opener's.
+- Once its tab has opened, the link's Sound becomes the page's (for every
+  arrangement, as if set by hand). No `sound`, or one Frets doesn't offer,
+  keeps the opener's sound.
 - A link cut short or damaged says "The link's tab is cut short or damaged."
-  in the notice line and keeps the open arrangement, sound and FX.
+  in the notice line and keeps the open arrangement and sound.

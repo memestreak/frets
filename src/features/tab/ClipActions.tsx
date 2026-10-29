@@ -9,7 +9,8 @@ import { tabSvg, type TabExportStyle } from './exportTab';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
-import { shareLink, type LinkSound } from './shareLink';
+import { shareLink } from './shareLink';
+import type { Sound } from './playback';
 import type { TabView } from './viewOptions';
 import type { View } from './views';
 import { ViewOptions } from './ViewOptions';
@@ -33,8 +34,8 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   alphaTexText: string;
   /** What the text view shown copies. */
   shownText: string;
-  /** The Sound and FX, which Copy link's link carries (Jeremy, 2026-10-29). */
-  linkSound: LinkSound;
+  /** The Sound, which Copy link's link carries (Jeremy, 2026-10-29); the FX are in the clip's text. */
+  linkSound: Sound;
   onNotice: (notice: Notice) => void;
 }): { buttons: ReactNode; popups: ReactNode } {
   /** The View options panel, open under its button (its right edge at x). */

@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { DEFAULT_FX, type FxSettings } from '@/features/tab/effects';
 import { compress, decompress, isTabLink, readLink, shareLink } from '@/features/tab/shareLink';
 
 const TEX = '\\title "Riff — ♯ and ♭ & more"\n\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |';
-const FX: FxSettings = { on: true, distortionOn: true, drive: 0.8, tone: 0.25, reverbOn: false, reverb: 0.4, decay: 2.5 };
 const ORIGIN = 'https://frets.eminor.net';
 
 describe('share links', () => {
@@ -21,19 +19,18 @@ describe('share links', () => {
     expect(await readLink(hash)).toEqual({ text: TEX });
   });
 
-  it('carries the sound and FX, in readable fields after the tab', async () => {
-    const link = await shareLink(ORIGIN, TEX, { sound: 27, effects: FX });
-    expect(link).toMatch(/&sound=27&fx=on&distortion=on&drive=0\.8&tone=0\.25&reverb=off&amount=0\.4&decay=2\.5$/);
-    expect(await readLink(new URL(link).hash)).toEqual({ text: TEX, sound: 27, effects: FX });
+  it('carries the sound, in a readable field after the tab', async () => {
+    const link = await shareLink(ORIGIN, TEX, 27);
+    expect(link).toMatch(/&sound=27$/);
+    expect(await readLink(new URL(link).hash)).toEqual({ text: TEX, sound: 27 });
   });
 
-  it('reads sound and FX fields on a plain #tab= link too', async () => {
+  it('reads the sound field on a plain #tab= link too', async () => {
     expect(await readLink(`#tab=${encodeURIComponent(TEX)}&sound=0`)).toEqual({ text: TEX, sound: 0 });
   });
 
-  it('leaves out a sound Frets doesn\'t have, and defaults FX fields that are missing or wrong', async () => {
-    const link = await readLink(`#tab=${encodeURIComponent(TEX)}&sound=99&fx=on&drive=7&decay=2`);
-    expect(link).toEqual({ text: TEX, effects: { ...DEFAULT_FX, on: true, decay: 2 } });
+  it('leaves out a sound Frets doesn\'t have', async () => {
+    expect(await readLink(`#tab=${encodeURIComponent(TEX)}&sound=99`)).toEqual({ text: TEX });
   });
 
   it('still reads plain #tab= links', async () => {

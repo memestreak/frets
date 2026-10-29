@@ -17,7 +17,8 @@ import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionVal
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from './VolumeKnob';
 import { DEFAULT_SOUND, isSound, MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
-import { heardEffects, parseEffects, type FxSettings } from './effects';
+import { heardEffects, type FxSettings } from './effects';
+import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
 
 /** The saved playback settings: whether the controls show (shown at first, Jeremy 2026-10-28), the sound, the volume and the options. */
@@ -41,8 +42,6 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   countInBars: number;
   /** How loud the clicks are, 0 to 1, under the Volume knob; set from the same menu. */
   clickVolume: number;
-  /** Distortion and reverb (issue #199), from the FX button after Sound. */
-  effects: FxSettings;
 }
 
 /** The clicks' volume at first. */
@@ -70,7 +69,6 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     countInBars: Number.isInteger(fields.countInBars) && (fields.countInBars as number) >= 1 && (fields.countInBars as number) <= MAX_COUNT_IN_BARS
       ? fields.countInBars as number : 1,
     clickVolume: typeof fields.clickVolume === 'number' && fields.clickVolume >= 0 && fields.clickVolume <= 1 ? fields.clickVolume : DEFAULT_CLICK_VOLUME,
-    effects: parseEffects(fields.effects),
   };
 }
 
@@ -133,8 +131,11 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
   const update = (change: Partial<PlayerView>) =>
     setView(v => (Object.entries(change).every(([k, value]) => v[k as keyof PlayerView] === value) ? v : { ...v, ...change }));
 
+  // An edit stops playback; new FX, set on the clip, are heard as it plays on.
+  const music = useRef(clip);
   useEffect(() => {
-    player.current?.stop();
+    if (!sameMusic(music.current, clip)) player.current?.stop();
+    music.current = clip;
   }, [clip]);
   useEffect(() => () => player.current?.destroy(), []);
   // A new sound takes over at once, even mid-play.

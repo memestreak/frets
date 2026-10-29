@@ -35,6 +35,7 @@ import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
 import { parseTabExportStyle, TAB_EXPORT_KEY } from './exportTab';
 import { writeAlphaTex } from './alphatex';
+import { DEFAULT_FX } from './effects';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
@@ -194,7 +195,7 @@ export default function TabPage() {
     countIn: playbackSettings.countIn,
     countInBars: playbackSettings.countInBars,
     clickVolume: playbackSettings.clickVolume,
-    effects: playbackSettings.effects,
+    effects: clip.fx ?? DEFAULT_FX,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
@@ -662,7 +663,7 @@ export default function TabPage() {
 
   const actions = useClipActions({
     clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
-    linkSound: { sound: playbackSettings.sound, effects: playbackSettings.effects },
+    linkSound: playbackSettings.sound,
   });
 
   const name = clip.name.trim() || UNTITLED;
@@ -854,7 +855,7 @@ export default function TabPage() {
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
-            effects={playbackSettings.effects} onEffects={effects => setPlaybackSettings(s => ({ ...s, effects }))}
+            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={playbackSettings.metronome} onMetronome={metronome => setPlaybackSettings(s => ({ ...s, metronome }))}
             countIn={playbackSettings.countIn} onCountIn={countIn => setPlaybackSettings(s => ({ ...s, countIn }))}

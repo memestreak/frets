@@ -73,7 +73,7 @@ export function useClipImport({ dispatch, openNew, onNotice, onLinkSound, showTa
     const errors = await importText(text);
     if (errors) onNotice({ tone: 'error', lines: errors });
   });
-  /** Opens a link's tab; the sound and FX it names follow only when the tab could be read. */
+  /** Opens a link's tab; the sound it names follows only when the tab could be read. */
   const openLink = useEffectEvent(async ({ text, ...sound }: LinkContent) => {
     const errors = await importText(text);
     if (errors) onNotice({ tone: 'error', lines: errors });

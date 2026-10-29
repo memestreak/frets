@@ -5,6 +5,7 @@
  * set aside.
  */
 import type { Clip } from './clip';
+import type { FxSettings } from './effects';
 import { openOnLoad, type Library } from './arrangements';
 
 /** A clip with its undo history. */
@@ -26,6 +27,8 @@ export interface ClipState extends History {
 export type ClipAction =
   /** An edit, one undo step back to `from` when given (a drag's first clip), else to the clip before. */
   | { type: 'replace'; clip: Clip; from?: Clip }
+  /** New FX for the clip: changes made one after another, as a knob turns, are one undo step. */
+  | { type: 'fx'; fx: FxSettings }
   /** A clip shown while a drag goes on, not an undo step of its own. */
   | { type: 'preview'; clip: Clip }
   | { type: 'undo' }
@@ -43,6 +46,13 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   switch (action.type) {
     case 'replace':
       return { ...state, clip: action.clip, past: [...state.past, action.from ?? state.clip], future: [] };
+    case 'fx': {
+      const clip = { ...state.clip, fx: action.fx };
+      const before = state.past[state.past.length - 1];
+      // The clip is already an FX change from the one before: this change joins its step.
+      if (before && before.fx !== state.clip.fx && sameMusic(before, state.clip)) return { ...state, clip, future: [] };
+      return clipReducer(state, { type: 'replace', clip });
+    }
     case 'preview':
       return { ...state, clip: action.clip };
     case 'undo': {
@@ -70,6 +80,13 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
     case 'open':
       return { clip: action.clip, past: [], future: [], id: action.id, example: null };
   }
+}
+
+/** Whether two clips differ in nothing but their FX: the same music, played the same. */
+export function sameMusic(a: Clip, b: Clip): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)] as (keyof Clip)[]);
+  keys.delete('fx');
+  return [...keys].every(key => a[key] === b[key]);
 }
 
 /** The open arrangement, or a new empty clip. */

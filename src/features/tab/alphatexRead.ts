@@ -12,6 +12,8 @@ import {
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine,
 } from './clip';
+import { readFxLine } from './fxLine';
+import type { FxSettings } from './effects';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -373,6 +375,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     bars: bars.length > 0 ? bars : [{ columns: [] }],
   };
   if (header.length > 0) clip.header = header;
+  const fx = fxOf(tree);
+  if (fx) clip.fx = fx;
   if (layoutOk.has('systemslayout')) clip.systemsLayout = [...score.systemsLayout];
   if (layoutOk.has('defaultsystemslayout')) clip.defaultSystemsLayout = score.defaultSystemsLayout;
   if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'multibarrest')) clip.multiBarRests = true;
@@ -388,6 +392,34 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   const uneven = unevenMessage(clip);
   if (uneven) warnings.push(uneven);
   return { ok: true, clip, warnings };
+}
+
+/** A comment as alphaTab's syntax tree keeps it, on the token it comes before or after. */
+interface CommentNode { text: string; multiLine: boolean; start?: { offset: number } }
+
+/**
+ * The FX in the clip's `// frets:fx` line (`fxLine.ts`), wherever it is, the first if there are
+ * more; null when there is none. Other comments aren't kept.
+ */
+function fxOf(tree: unknown): FxSettings | null {
+  let first: { at: number; fx: FxSettings } | null = null;
+  const seen = new Set<object>();
+  const stack: unknown[] = [tree];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (typeof node !== 'object' || node === null || seen.has(node)) continue;
+    seen.add(node);
+    for (const [key, value] of Object.entries(node)) {
+      if ((key === 'leadingComments' || key === 'trailingComments') && Array.isArray(value)) {
+        for (const comment of value as CommentNode[]) {
+          const fx = comment.multiLine ? null : readFxLine(comment.text);
+          const at = comment.start?.offset ?? 0;
+          if (fx && (!first || at < first.at)) first = { at, fx };
+        }
+      } else if (typeof value === 'object') stack.push(value);
+    }
+  }
+  return first?.fx ?? null;
 }
 
 /** Reads alphaTex, loading alphaTab first. */
