@@ -10,7 +10,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writeAlphaTex } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { STRING_COUNT, type Clip, type Note } from './clip';
+import { STRING_COUNT, TREMOLO_VALUES, type Clip, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
@@ -132,6 +132,29 @@ export interface Performance {
 }
 
 /**
+ * Makes each tremolo picked beat pick at the value its `tp` names, whatever the note's length.
+ * alphaTab reads `tp 32` as three slashes and picks at the beat's value halved once per slash, so
+ * a whole note with `tp 32` played eighths (Jeremy, 2026-10-29). Frets' `tp N` means N-ths, as
+ * eighths, sixteenths or thirty-seconds in a tuplet's time, so the slashes become whatever count
+ * gives that: log2(N × dots / value), which alphaTab's generator takes even when it isn't whole.
+ * A beat no longer than its picking (a sixteenth with `tp 16`) plays as one note.
+ */
+function pickAtTremoloValue(score: Score) {
+  for (const track of score.tracks) for (const staff of track.staves) for (const bar of staff.bars) {
+    for (const voice of bar.voices) for (const beat of voice.beats) {
+      const tremolo = beat.tremoloPicking;
+      const value = tremolo ? TREMOLO_VALUES[tremolo.marks - 1] : undefined;
+      if (!tremolo || !value) continue;
+      const dots = beat.dots >= 2 ? 1.75 : beat.dots === 1 ? 1.5 : 1;
+      const marks = Math.log2((value * dots) / beat.duration);
+      // alphaTab plays nothing at all for a tremolo with no slashes.
+      if (marks > 0) tremolo.marks = marks;
+      else beat.tremoloPicking = undefined;
+    }
+  }
+}
+
+/**
  * The clip as alphaTab's score and MIDI in a sound, with the lookup from a tick to the beat sounding
  * then. With `clicks`, the metronome's clicks are in the MIDI too, on their own channel, muted while
  * the metronome is off; so they keep time with the notes whatever the speed, the loop or the time
@@ -153,6 +176,7 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, 
       }
     }
   }
+  pickAtTremoloValue(score);
   const midi = new at.midi.MidiFile();
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   generator.generate();

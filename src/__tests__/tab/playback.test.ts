@@ -348,3 +348,32 @@ describe('metronome', () => {
     expect(peakOf(plain(rests).midi, [sonivox, clickSoundFont()])).toBeLessThan(0.001);
   }, 30_000);
 });
+
+describe('tremolo picking', () => {
+  /** How many times the clip's notes are picked. */
+  const picks = (text: string) => noteOns(plain(clipOf(text)).midi).length;
+
+  it('picks at the value tp names, whatever the note is', () => {
+    expect(picks('0.1.1{tp 32} |')).toBe(32);
+    expect(picks('0.1.1{tp 8} |')).toBe(8);
+    expect(picks('0.1.2{tp 16} 0.1.2{tp 32} |')).toBe(8 + 16);
+    expect(picks('0.1.4{tp 16} 0.1.4{tp 32} 0.1.8{tp 16} 0.1.8{tp 32} 0.1.4 |')).toBe(4 + 8 + 2 + 4 + 1);
+  });
+
+  it('picks a dotted note at the same speed and a tuplet in its own time', () => {
+    expect(picks('0.1.2{d tp 16} 0.1.4 |')).toBe(12 + 1);
+    expect(picks('0.1.8{tu 3 tp 32} 0.1.8{tu 3} 0.1.8{tu 3} 0.1.2 0.1.4 |')).toBe(4 + 2 + 1 + 1);
+  });
+
+  it('plays a note no longer than its picking once', () => {
+    expect(picks('0.1.16{tp 16} 0.1.32{tp 16} 0.1.32 0.1.8 0.1.2 |')).toBe(5);
+  });
+
+  it('picks every note of a chord, each picking evenly spaced', () => {
+    const ons = noteOns(plain(clipOf('(15.2 14.3).1{tp 32} |')).midi);
+    expect(ons).toHaveLength(64);
+    const ticks = [...new Set(ons.map(e => e.tick))].sort((a, b) => a - b);
+    expect(ticks).toHaveLength(32);
+    expect(ticks.slice(1).map((t, i) => t - ticks[i])).toEqual(Array(31).fill(Q / 8));
+  });
+});
