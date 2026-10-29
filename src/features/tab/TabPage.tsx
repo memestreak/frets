@@ -24,6 +24,7 @@ import type { Notice } from './notice';
 import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
+import { CreditsPanel } from './CreditsPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { useClipActions } from './ClipActions';
 import { WordField, type FieldKind } from './WordField';
@@ -38,6 +39,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { ScoreHead } from './ScoreHead';
+import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, parseView, shownColours, VIEW_KEY, type ColourPair, type TabView } from './viewOptions';
 import { UNTITLED } from './ClipTitle';
 import { VIEWS, type View } from './views';
@@ -139,6 +141,13 @@ export default function TabPage() {
   const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
+  /**
+   * The score head's open panel and where it was pressed, in viewport pixels; the credits' holds the
+   * clip as it opened, the undo step its typing becomes.
+   */
+  const [headPanel, setHeadPanel] = useState<
+    { kind: 'credits'; x: number; y: number; from: Clip } | { kind: 'tuning'; x: number; y: number } | null
+  >(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   const quietBlur = useRef(false);
@@ -659,6 +668,12 @@ export default function TabPage() {
   const name = clip.name.trim() || UNTITLED;
   /** A new title: one undo step, as any edit. */
   const rename = (next: string) => dispatch({ type: 'rename', name: next });
+  /** The credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
+  const finishCredits = (from: Clip, kept: Clip | null) => {
+    setHeadPanel(null);
+    if (kept && kept !== from) dispatch({ type: 'replace', clip: kept, from });
+    else dispatch({ type: 'preview', clip: from });
+  };
   /** Deletes from the Arrangements dialog, which stays open; when `ids` hold the open one, another is shown. */
   const removing = (ids: string[], remove: () => void) => {
     if (!ids.includes(state.id)) {
@@ -739,7 +754,11 @@ export default function TabPage() {
           <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
           {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
           {view === 'tab'
-            ? <ScoreHead clip={clip} onRename={rename} note={example && exampleNote} />
+            ? <ScoreHead
+                clip={clip} onRename={rename} note={example && exampleNote}
+                onEditCredits={(x, y) => setHeadPanel({ kind: 'credits', x, y, from: clip })}
+                onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
+              />
             : <>
               {/* The page keeps its heading for screen readers. */}
               <h1 className="sr-only">{name}</h1>
@@ -804,6 +823,15 @@ export default function TabPage() {
                 clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(drawn, clipWidth, parts, keyBar))}
                 onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
               />
+            )}
+            {view === 'tab' && headPanel?.kind === 'credits' && (
+              <CreditsPanel
+                clip={headPanel.from} x={headPanel.x} y={headPanel.y}
+                onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishCredits(headPanel.from, kept)}
+              />
+            )}
+            {view === 'tab' && headPanel?.kind === 'tuning' && (
+              <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} onChange={commit} onClose={() => setHeadPanel(null)} />
             )}
             {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
               <BarTimePanel

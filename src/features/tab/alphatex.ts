@@ -11,7 +11,7 @@
 import { isRest, isStandardTuning, keyTex, type Bend, type Clip, type Column, type Note } from './clip';
 
 /** A string in alphaTex quotes. */
-function quoted(text: string): string {
+export function quoted(text: string): string {
   return `"${text.replace(/["\\]/g, '\\$&')}"`;
 }
 
