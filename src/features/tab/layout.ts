@@ -445,12 +445,12 @@ export function chordWidth(chord: string): number {
 const SECTION_ROOM = 9;
 
 /**
- * What is written on the string for a note: "5", "x", "<12>" for a natural harmonic, and in brackets
- * a tie, "(5)" with an arc from the note before, or a ghost note, "(5)" or "(x)" alone.
+ * What is written on the string for a note: "5", "X" (a capital, as printed tab has it, issue #177), "<12>" for a natural harmonic, and in brackets
+ * a tie, "(5)" with an arc from the note before, or a ghost note, "(5)" or "(X)" alone.
  */
 export function noteLabel(note: Note): string {
   if (note.tie) return `(${note.fret})`;
-  const label = note.fret === null ? 'x' : note.harmonic === 'natural' ? `<${note.fret}>` : String(note.fret);
+  const label = note.fret === null ? 'X' : note.harmonic === 'natural' ? `<${note.fret}>` : String(note.fret);
   return note.ghost ? `(${label})` : label;
 }
 
@@ -466,10 +466,25 @@ function staffWidth(column: Column, heads: Head[]): number {
   return columnWidth(column) + signs + seconds;
 }
 
-/** The room a column's accidentals take left of its heads. */
+/** The room left of a column's heads: their accidentals, and a bent note's starting head before them. */
 export function signRoom(heads: Head[]): number {
+  return accidentalRoom(heads) + bendFromRoom(heads);
+}
+
+/** The room a column's accidentals take left of its heads. */
+export function accidentalRoom(heads: Head[]): number {
   const lanes = accidentalLanes(heads).filter((l): l is number => l !== null);
   return lanes.length === 0 ? 0 : (Math.max(...lanes) + 1) * ACCIDENTAL_ROOM + 2;
+}
+
+/** A bent note's bracketed starting head and the line from it to the note (issue #176). */
+export const BEND_FROM_ROOM = 34;
+
+/** The room left of the accidentals for a bent note's starting head, and its own accidental. */
+export function bendFromRoom(heads: Head[]): number {
+  const from = heads.filter(h => h.bendFrom);
+  if (from.length === 0) return 0;
+  return BEND_FROM_ROOM + (from.some(h => h.bendFrom!.shows !== null) ? ACCIDENTAL_ROOM : 0);
 }
 
 /** Which way a column's stem goes: down when its heads sit mostly on or above the middle line. */

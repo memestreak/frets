@@ -209,7 +209,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} />
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} />
           )}
           {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
             <StaffCursor x={spot.x} score={rows.score} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />

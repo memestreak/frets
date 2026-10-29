@@ -4,7 +4,7 @@
  * where it sits on a treble staff written an octave above the sound, as guitar music is; and which
  * accidentals a bar must show. Pure.
  */
-import { bentSemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Key, type Note } from './clip';
+import { bentSemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Column, type Key, type Note } from './clip';
 
 /** Standard tuning's strings as MIDI numbers, lowest first: E2 A2 D3 G3 B3 E4. */
 const STANDARD_MIDI = [40, 45, 50, 55, 59, 64];
@@ -152,6 +152,29 @@ export interface Head {
   dead: boolean;
   /** A tied note held through a bend: drawn in brackets at the pitch it reaches (`bentSemitones`). */
   bent?: boolean;
+  /**
+   * A picked note bent up (`pickedBendSemitones`) is drawn at the pitch its bend reaches, as Guitar Pro
+   * prints it, after the pitch it starts from in brackets, joined to it by a line (issue #176).
+   */
+  bendFrom?: SmallHead;
+  /** Let down within the same note, the pitch it comes back to, in brackets after it. */
+  bendBack?: SmallHead;
+}
+
+/** A bracketed head beside a bent note's own: its staff step and the sign it shows. */
+export interface SmallHead {
+  step: number;
+  shows: Accidental | null;
+}
+
+/**
+ * How far a picked note's own bend takes it up, in semitones; 0 for none. A pre-bend starts bent, a
+ * tied note carries on from the note before, and a grace note bent up is itself the starting pitch,
+ * so none of them gets a starting head of its own.
+ */
+export function pickedBendSemitones(column: Column, note: Note): number {
+  if (!note.bend || note.tie || note.bend.pre || column.grace || note.fret === null) return 0;
+  return Math.floor(note.bend.quarters / 2);
 }
 
 /**
@@ -175,14 +198,27 @@ export function barHeads(clip: Clip, barIndex: number, open = writtenStrings(cli
         heads.push({ string: s, step: staffStep(n), shows: null, dead: true });
         return;
       }
+      // Spelled in the key; a sign holds for the rest of the bar on its line or space.
+      const place = (pitch: number, quiet = false): SmallHead => {
+        const n = spell(pitch, key);
+        const step = staffStep(n);
+        const current = now.get(step) ?? inKey[n.letter];
+        const shows = quiet || n.accidental === current ? null : n.accidental;
+        now.set(step, n.accidental);
+        return { step, shows };
+      };
+      const fretted = soundingPitch(open, capo, s, note)! + written;
+      // A picked note bent up: first the pitch it starts from, then the pitch the bend takes it to.
+      const rise = pickedBendSemitones(column, note);
+      const bendFrom = rise > 0 ? place(fretted) : null;
       // A tied note in a bend sounds where the bend has taken it, spelled in the key like any other.
       const bent = !!(note.tie && note.bend);
-      const n = spell(soundingPitch(open, capo, s, note)! + bentSemitones(note) + written, key);
-      const step = staffStep(n);
-      const current = now.get(step) ?? inKey[n.letter];
-      const shows = (note.tie && !bent) || n.accidental === current ? null : n.accidental;
-      now.set(step, n.accidental);
-      heads.push({ string: s, step, shows, dead: false, ...(bent ? { bent } : {}) });
+      const { step, shows } = place(fretted + bentSemitones(note) + rise, note.tie && !bent);
+      const bendBack = bendFrom && note.bend!.release ? place(fretted + Math.floor((note.bend!.to ?? 0) / 2)) : null;
+      heads.push({
+        string: s, step, shows, dead: false,
+        ...(bent ? { bent } : {}), ...(bendFrom ? { bendFrom } : {}), ...(bendBack ? { bendBack } : {}),
+      });
     });
     // Low to high, as stems and seconds are worked out.
     return heads.sort((a, b) => a.step - b.step);
