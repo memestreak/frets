@@ -54,12 +54,23 @@ under the tab.
 alphaTab already bends the column's notes along the points, tied notes too, with a pitch-bend range
 of 16 semitones; tests check a dive, a hold over a tie, a pre-dip and its return.
 
-## Not done
+## On the staff (follow-up to #218)
 
-- The staff doesn't draw the dive (the book draws the dived note's pitch and a line between the
-  heads); the tab carries it.
+As the book prints Stop's staff:
+
+- A tied note going on under a whammy bar is drawn at the pitch the bar starts it at (`whammySemitones`,
+  quarter tones halved toward the note), with its own accidental, and the tie becomes a straight
+  line between the two pitches, as a tie into a bend does. So a dive an octave down ends on a head an
+  octave lower.
+- A pre-dipped note is drawn at the pitch it is dipped to, after its fret's pitch in brackets joined by a
+  line, as a picked bend's starting pitch is drawn (#176).
+- A dive, dip or return that no tied note goes on from draws a line from the top head through the
+  pitches it reaches, over the note's length, within its bar.
+- With the staff alone the depths are labelled under the staff (the tab labels them otherwise),
+  pre-dips and dives into tied notes too.
+- The staff's line is picked like the tab's, for the same Delete.
 
 ## Tests
 
-`src/__tests__/tab/whammy.test.tsx`, `playback.test.ts` (the bends heard), the built-in arrangement
+`src/__tests__/tab/whammy.test.tsx` (the staff's too), `playback.test.ts` (the bends heard), the built-in arrangement
 `articulations/whammy.atex`, and the "Dive" example in `public/tab-alphatex.txt`.

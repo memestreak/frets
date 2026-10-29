@@ -453,6 +453,15 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
         </g>
       );
     }
+    case 'whammy':
+      return (
+        <g data-testid="staff-whammy">
+          {mark.points.length > 0 && <polyline points={mark.points.map(p => p.join(',')).join(' ')} fill="none" stroke={look.ink} strokeWidth={1.1} />}
+          {mark.labels.map((l, k) => (
+            <text key={k} x={l.x} y={l.y} fontSize={10} fontWeight={600} fill={look.ink} textAnchor="middle">{l.text}</text>
+          ))}
+        </g>
+      );
     case 'tap':
       return <TapSign x={mark.x} y={mark.y} look={look} testId="staff-tap" />;
     case 'fermata':
