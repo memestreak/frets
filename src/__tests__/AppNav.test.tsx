@@ -64,7 +64,7 @@ describe('AppNav', () => {
     const hrefs = (name: string) => within(within(menu()).getByRole('list', { name }))
       .getAllByRole('link').map(l => l.getAttribute('href'));
     expect(hrefs('Tools'))
-      .toEqual(['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner']);
+      .toEqual(['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab']);
     expect(hrefs('Practice')).toEqual(['/practice/intervals', '/practice/notes']);
     expect(within(menu()).getByRole('link', { name: 'Practice' }))
       .toHaveAttribute('href', '/practice');
@@ -85,6 +85,15 @@ describe('AppNav', () => {
   it('puts the Chords page under Tools', () => {
     renderAt('/chords');
     expect(crumbs()).toHaveAccessibleName('Tools › Chords: show every page');
+  });
+
+  it('puts the Tab page under Tools and marks it in the menu', () => {
+    renderAt('/tab');
+    expect(crumbs()).toHaveAccessibleName('Tools › Tab: show every page');
+    openMenu();
+    const current = within(menu()).getByRole('link', { current: 'page' });
+    expect(current).toHaveAttribute('href', '/tab');
+    expect(current).toHaveTextContent('You are here');
   });
 
   it('focuses the current page in the menu and returns to the breadcrumbs on Esc', () => {
