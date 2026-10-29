@@ -9,7 +9,7 @@ import { tabSvg, type TabExportStyle } from './exportTab';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
-import { shareLink } from './shareLink';
+import { shareLink, type LinkSound } from './shareLink';
 import type { TabView } from './viewOptions';
 import type { View } from './views';
 import { ViewOptions } from './ViewOptions';
@@ -22,7 +22,7 @@ const PRESSED_AWAY_MS = 500;
  * (issue #206) and save (Jeremy, 2026-10-27/28). `buttons` go in the card's bar; `popups`, their panel and menu, go
  * outside the card, so the focus moving into them counts as leaving the tab.
  */
-export function useClipActions({ clip, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
+export function useClipActions({ clip, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, linkSound, onNotice }: {
   clip: Clip;
   view: View;
   parts: Parts;
@@ -33,6 +33,8 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   alphaTexText: string;
   /** What the text view shown copies. */
   shownText: string;
+  /** The Sound and FX, which Copy link's link carries (Jeremy, 2026-10-29). */
+  linkSound: LinkSound;
   onNotice: (notice: Notice) => void;
 }): { buttons: ReactNode; popups: ReactNode } {
   /** The View options panel, open under its button (its right edge at x). */
@@ -58,10 +60,10 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   };
   const showCopied = () => tick(setCopied);
 
-  /** Copies a link that opens this clip, as a new arrangement, for whoever follows it. */
+  /** Copies a link that opens this clip, as a new arrangement played with this Sound and FX, for whoever follows it. */
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(await shareLink(window.location.origin, writeAlphaTex(clip)));
+      await navigator.clipboard.writeText(await shareLink(window.location.origin, writeAlphaTex(clip), linkSound));
       onNotice({ tone: 'info', lines: ['Copied a link to this arrangement.'] });
       tick(setLinked);
     } catch {

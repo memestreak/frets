@@ -296,6 +296,16 @@ never sent to a server. Opening it adds the tab to My arrangements as a
 new arrangement and shows it. If the text can't be read, Frets says why, with
 the line and column.
 
+After the text, a link may name the sound it plays with and its effects,
+each optional ("&" in the text itself is %26, so it never ends the text):
+
+    https://frets.eminor.net/tab#tab=<text>&sound=27&fx=on&distortion=on&drive=0.5&tone=0.5&reverb=on&amount=0.3&decay=1.5
+
+sound is 0 (Acoustic Grand Piano), 25 (Steel Guitar) or 27 (Clean
+Electric Guitar). fx=on turns the effects on; distortion and reverb are
+on or off; drive, tone and amount run 0 to 1, decay 0.3 to 5 seconds.
+Opening the link sets the page's sound and effects to these.
+
 The same link and Import also take ASCII tab
 (https://frets.eminor.net/tab-ascii.txt); Frets tells the two apart by
 the text: ASCII tab has runs of dashes, alphaTex never does.

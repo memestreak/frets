@@ -294,9 +294,11 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Copied as text.');
   });
 
-  it('copies a link that opens the same arrangement as a new one', async () => {
+  it('copies a link that opens the same arrangement as a new one, with its sound and FX', async () => {
     const writeText = vi.fn((text: string) => { void text; return Promise.resolve(); });
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const effects = { on: true, distortionOn: true, drive: 0.9, tone: 0.2, reverbOn: true, reverb: 0.6, decay: 3 };
+    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27, effects }));
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
@@ -316,12 +318,16 @@ describe('TabPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toBe(before);
     expect(loadLibrary().items).toHaveLength(1);
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27, effects }));
   });
 
   it('says why a damaged #tabz= link could not be read', async () => {
-    renderAt('#tabz=not*base64');
+    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 0 }));
+    renderAt('#tabz=not*base64&sound=27');
     await waitFor(() => expect(notice()).toHaveTextContent('The link\'s tab is cut short or damaged.'), SLOW);
     expect(window.location.hash).toBe('');
+    // The sound stays the opener's own when the tab couldn't be read.
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 0 });
   });
 
   it('saves the clip and opens on it next time', async () => {
