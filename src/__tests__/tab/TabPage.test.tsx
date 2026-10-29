@@ -1,3 +1,4 @@
+import type { Clip } from '@/features/tab/clip';
 import { vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
@@ -868,6 +869,28 @@ describe('TabPage playback', () => {
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(screen.queryByTestId('play-mark')).toBeNull();
+  });
+
+  it('takes the rest just before the line on Delete or Backspace, off the tab', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    // Placing the line fills the bar with a rest after the 5 and the 7.
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    const firstBar = () => (savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
+    expect(firstBar()).toEqual(['note', 'note', 'rest']);
+    // The line to the bar's end: Delete takes the rest, then Backspace turns the 7 into a rest.
+    for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    fireEvent.keyDown(document.body, { key: 'Delete' });
+    expect(firstBar()).toEqual(['note', 'note']);
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: 'Backspace' });
+    expect(firstBar()).toEqual(['note', 'rest']);
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    // Each is one undo step.
+    undo();
+    expect(firstBar()).toEqual(['note', 'note']);
   });
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {
