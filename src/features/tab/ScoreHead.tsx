@@ -1,17 +1,17 @@
 /**
  * The head of the drawn score, as a printed score's first page has it (Jeremy, 2026-10-28,
- * `docs/specs/2026-10-28-tab-score-head-design.md`): the title in the middle (a click renames the clip),
- * the artist in bold and who wrote the words and music under it, then the tuning on the left. It
+ * `docs/specs/2026-10-28-tab-score-head-design.md`): the title in the middle, the artist in bold and who wrote the words and music under it, then the tuning on the left. It
  * stands over the drawing and is zoomed with it; the exported image draws the same in SVG
  * (`exportTab.tsx`), from the same sizes (`HEAD`).
  *
- * A press on the credits or the tuning opens its panel there (issues #202, #203,
+ * A press on the title or the credits opens the one Title and credits panel there, with the pressed
+ * one's field focused (issue #227); a press on the tuning opens its panel (issues #202, #203,
  * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). The tuning is always shown, as "Standard tuning"
  * when it is; an unset artist has a quiet "Add artist and credits" under the title.
  */
 import type { MouseEvent, ReactNode } from 'react';
-import { ClipTitle } from './ClipTitle';
-import type { Clip } from './clip';
+import { UNTITLED, type Clip } from './clip';
+import type { HeadField } from './CreditsPanel';
 import { creditsOf, HEAD, tuningBlock } from './credits';
 
 /** Opens a panel at the press, in viewport pixels (a key press opens it under the element). */
@@ -27,12 +27,12 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning }: {
+export function ScoreHead({ clip, note, onEditCredits, onEditTuning }: {
   clip: Clip;
-  onRename: (name: string) => void;
   /** A line under the title, as the example note ("Example: edits aren't saved"). */
   note?: ReactNode;
-  onEditCredits?: OpenAt;
+  /** Opens the Title and credits panel with `field`'s field focused. */
+  onEditCredits?: (x: number, y: number, field: HeadField) => void;
   onEditTuning?: OpenAt;
 }) {
   const { artist, lines } = creditsOf(clip);
@@ -41,14 +41,17 @@ export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning }:
   // Always shown (Jeremy, 2026-10-29): standard tuning is named, so a press on it opens the tuning panel.
   const heading = tuning ? tuning.heading : 'Standard tuning';
   const hasCredits = !!artist || lines.length > 0;
-  const editCredits = openAt(onEditCredits);
+  const editTitle = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'title')));
+  const editCredits = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'artist')));
   const editTuning = openAt(onEditTuning);
   return (
     <div
       className="score-head" data-testid="score-head"
       style={{ ['--title-size' as string]: `${HEAD.titleSize}px`, ['--artist-size' as string]: `${HEAD.artistSize}px`, ['--credit-size' as string]: `${HEAD.creditSize}px` }}
     >
-      <ClipTitle name={clip.name} onRename={onRename} />
+      <h1 className="m-0 tab-title">
+        <button type="button" className="tab-title-text" onClick={editTitle} disabled={!editTitle}>{clip.name.trim() || UNTITLED}</button>
+      </h1>
       {note}
       {hasCredits && (
         <button type="button" className="score-credits" onClick={editCredits} disabled={!editCredits}>

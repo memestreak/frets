@@ -21,7 +21,7 @@ const SONG = clipOf([
 
 describe("the score's head", () => {
   it('on the page: the title as the heading, then the artist, credits and tuning', () => {
-    const { getByRole, getByTestId, getByLabelText } = render(<ScoreHead clip={SONG} onRename={() => {}} />);
+    const { getByRole, getByTestId, getByLabelText } = render(<ScoreHead clip={SONG} />);
     expect(getByRole('heading', { level: 1 })).toHaveTextContent('Song');
     const head = getByTestId('score-head');
     expect(head).toHaveTextContent("BandWords & Music by Ann");

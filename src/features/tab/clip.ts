@@ -295,6 +295,9 @@ export function changesKey(clip: Pick<Clip, 'bars'>, index: number): boolean {
 
 export const STANDARD_TUNING: readonly string[] = ['E', 'A', 'D', 'G', 'B', 'E'];
 
+/** What a clip with no name is called. */
+export const UNTITLED = 'Untitled clip';
+
 export interface Clip {
   name: string;
   time: TimeSignature;

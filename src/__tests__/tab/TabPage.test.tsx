@@ -137,16 +137,21 @@ describe('TabPage', () => {
   it('renames the clip from its title, which the export Name starts on', () => {
     renderAt();
     fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled clip' }));
-    const field = screen.getByRole('textbox', { name: 'Clip title' });
+    const panel = screen.getByRole('dialog', { name: 'Title and credits' });
+    const field = within(panel).getByLabelText('Title (optional)');
     expect(field).toHaveValue('');
+    expect(field).toHaveFocus();
     fireEvent.change(field, { target: { value: '  Riff  ' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(heading()).toHaveTextContent('Riff');
-    expect(screen.queryByRole('textbox', { name: 'Clip title' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
     // Esc keeps the old title.
     fireEvent.click(within(heading()).getByRole('button', { name: 'Riff' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Clip title' }), { target: { value: 'Other' } });
-    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Clip title' }), { key: 'Escape' });
+    const again = screen.getByLabelText('Title (optional)');
+    expect(again).toHaveValue('Riff');
+    fireEvent.change(again, { target: { value: 'Other' } });
+    expect(heading()).toHaveTextContent('Other');
+    fireEvent.keyDown(again, { key: 'Escape' });
     expect(heading()).toHaveTextContent('Riff');
     fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
     expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');

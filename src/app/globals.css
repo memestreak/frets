@@ -776,7 +776,7 @@ button {
   .score-head { display: grid; justify-items: center; padding: 4px 0 var(--head-gap, 12px); color: var(--ink); font-family: var(--font-sans); }
   .score-head p { margin: 0; }
   .score-head h1 { font: 400 var(--title-size)/1.33 var(--font-sans); margin: 0; text-align: center; }
-  .score-head .tab-title-text, .score-head .tab-title-input { text-align: center; }
+  .score-head .tab-title-text { text-align: center; }
   .score-head .score-artist { font-size: var(--artist-size); line-height: 1.375; font-weight: 700; }
   .score-head .score-credit { font-size: var(--credit-size); line-height: 1.385; }
   .score-tuning { justify-self: stretch; margin-top: 12px; font-size: var(--credit-size); line-height: 1.385; text-align: left; }
@@ -1102,18 +1102,13 @@ button {
   }
 }
 
-/* The Tab page's title: a click turns it into a field to rename the clip. */
+/* The Tab page's title: a press opens the Title and credits panel. */
 .tab-title-text {
   font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
-  text-align: left; cursor: text;
+  text-align: left; cursor: pointer;
 }
-.tab-title-text:hover { text-decoration: underline dotted var(--line-strong); text-underline-offset: 6px; }
-.tab-title-input {
-  font: inherit; color: var(--ink); background: none; border: 0; padding: 0; margin: 0;
-  border-bottom: 1px solid var(--line-strong); width: 16em; max-width: 100%; outline: none;
-}
-.tab-title-input::placeholder { color: var(--ink-muted); }
-.tab-title-input:focus-visible { outline: none; border-bottom-color: var(--primary); }
+.tab-title-text:hover:enabled { text-decoration: underline dotted var(--line-strong); text-underline-offset: 6px; }
+.tab-title-text:focus-visible { outline: none; text-decoration: underline var(--primary); text-underline-offset: 6px; }
 
 /* The Agents page: file names in the mono face. */
 .agents-page code { font: 13px/1.4 var(--font-mono); }

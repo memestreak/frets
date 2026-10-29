@@ -15,7 +15,8 @@ identical" to the head of the book's first page.
     ① = E♭ … ⑥ = E♭ in two columns of three.
 - It is part of the drawing. It uses the drawing's font and ink, and View options' Size zooms it with
   the drawing.
-- The title is still the page's heading, and a click on it still renames the clip.
+- The title is still the page's heading. A press on it opens the Title and credits panel
+  (`docs/specs/2026-10-29-tab-credits-tuning-design.md`, issue #227).
 - The text views (ASCII Tab, AlphaTex) show no head: their text already carries the title, credits
   and tuning (Jeremy). The page keeps a heading there for screen readers.
 - The top of the page keeps only Examples…, Import… and Export options. An example's note ("Example:

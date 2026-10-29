@@ -10,7 +10,7 @@ import { Modal } from '@/features/practice/quiz/Modal';
 import { ChevronDownIcon, ChevronRightIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import type { ArrangementInfo, Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
-import { UNTITLED } from './ClipTitle';
+import { UNTITLED } from './clip';
 import type { Deleted } from './useArrangements';
 
 const NEW_FOLDER = 'New folder';
