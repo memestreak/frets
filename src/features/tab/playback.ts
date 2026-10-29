@@ -19,6 +19,7 @@ import type { EffectSettings } from './effects';
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
 type Beat = AlphaTabModule.model.Beat;
+type ScoreNote = AlphaTabModule.model.Note;
 type TickLookup = AlphaTabModule.midi.MidiTickLookup;
 
 /** Where the soundfont is served from. */
@@ -179,6 +180,7 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, 
   pickAtTremoloValue(score);
   const midi = new at.midi.MidiFile();
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
+  vibratoOnBends(at, generator, settings);
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
   const bars = masterBars.map(b => ({
@@ -301,6 +303,84 @@ export function midiUntil(at: AlphaTab, performance: Performance, end: number): 
   }
   midi.addEvent(new at.midi.EndOfTrackEvent(0, end + RING_OUT_TICKS));
   return midi;
+}
+
+/** The parts of alphaTab's MidiFileGenerator that `vibratoOnBends` steps into (alphaTab 1.8.4). */
+interface GeneratorInternals {
+  _handler: AlphaTabModule.midi.IMidiFileHandler;
+  _generateBend(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number, tempo: number): void;
+  _generateVibrato(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number): void;
+  vibratoResolution: number;
+}
+
+/**
+ * alphaTab plays a note's bend or its vibrato, never both (`_generateNote` picks one), so a bent note
+ * with vibrato only bent, and so did the tied note a held bend ends on, which carries the bend on
+ * (`b (4 4)`) (Jeremy, 2026-10-29). Each bend alphaTab writes for a note with vibrato is caught here
+ * and written again with the vibrato's wobble on top of it, the way alphaTab wobbles an unbent note.
+ *
+ * A bent note's bend runs on through the plain ties after it, and alphaTab wobbled those ties too
+ * from the bent note's vibrato, round the bend's peak, while the bend was still rising: two curves
+ * at once. The wobble on the bend covers them, so their own is dropped.
+ */
+function vibratoOnBends(at: AlphaTab, generator: AlphaTabModule.midi.MidiFileGenerator, settings: AlphaTabModule.Settings) {
+  const g = generator as unknown as GeneratorInternals;
+  const { vibrato } = settings.player;
+  const generateBend = g._generateBend.bind(g);
+  const generateVibrato = g._generateVibrato.bind(g);
+  g._generateBend = (note, noteStart, noteDuration, noteKey, channel, tempo) => {
+    if (note.vibrato === at.model.VibratoType.None) return generateBend(note, noteStart, noteDuration, noteKey, channel, tempo);
+    const wide = note.vibrato === at.model.VibratoType.Wide;
+    const phase = wide ? vibrato.noteWideLength : vibrato.noteSlightLength;
+    const amplitude = wide ? vibrato.noteWideAmplitude : vibrato.noteSlightAmplitude;
+    // The bend's points, caught on their way to the MIDI.
+    const handler = g._handler;
+    const points: { tick: number; value: number }[] = [];
+    g._handler = Object.create(handler, {
+      addNoteBend: { value: (_track: number, tick: number, _channel: number, _key: number, value: number) => points.push({ tick, value }) },
+    });
+    try {
+      generateBend(note, noteStart, noteDuration, noteKey, channel, tempo);
+    } finally {
+      g._handler = handler;
+    }
+    if (points.length === 0) return;
+    const track = note.beat.voice.bar.staff.track.index;
+    const start = Math.min(noteStart, points[0].tick);
+    const end = Math.max(noteStart + noteDuration.noteOnly, points[points.length - 1].tick);
+    for (const { tick, value } of wobbled(points, start, end, phase, amplitude, g.vibratoResolution)) {
+      handler.addNoteBend(track, tick, channel, noteKey, value);
+    }
+  };
+  g._generateVibrato = (note, noteStart, noteDuration, noteKey, channel) => {
+    const underBend = note.vibrato === at.model.VibratoType.None && note.isTieDestination && note.tieOrigin!.hasBend
+      && settings.notation.extendBendArrowsOnTiedNotes;
+    if (!underBend) generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+  };
+}
+
+/**
+ * A bend's points (in pitch-wheel values, in tick order) with a vibrato on top from `start` to `end`:
+ * alphaTab's own vibrato (a sine of `amplitude` quarter tones, a period every `phase` ticks, a point
+ * every `step`) added to the bend's height there, read off a straight line between its points.
+ */
+export function wobbled(points: readonly { tick: number; value: number }[], start: number, end: number, phase: number, amplitude: number, step: number) {
+  const heightAt = (tick: number) => {
+    let k = 0;
+    while (k + 1 < points.length && points[k + 1].tick <= tick) k++;
+    const [a, b] = [points[k], points[k + 1]];
+    if (!b || tick <= a.tick) return a.value;
+    return a.value + (b.value - a.value) * (tick - a.tick) / (b.tick - a.tick);
+  };
+  const out: { tick: number; value: number }[] = [];
+  // What the bend sends before the vibrato starts (a pre-bend's step a tick early) is kept.
+  for (const p of points) if (p.tick < start) out.push(p);
+  for (let tick = start; tick < end; tick += step) {
+    const wobble = amplitude / 2 * BEND_PER_SEMITONE * Math.sin(2 * Math.PI * (tick - start) / phase);
+    out.push({ tick, value: Math.round(Math.max(0, Math.min(16383, heightAt(tick) + wobble))) });
+  }
+  out.push({ tick: end, value: Math.round(heightAt(end)) });
+  return out;
 }
 
 /** alphaTab's pitch-bend range: 16 semitones either way of 8192 (the RPN it sends at the start). */

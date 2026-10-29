@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
+import { writeAlphaTex } from '@/features/tab/alphatex';
 import type { Clip } from '@/features/tab/clip';
 import { clickSoundFont, clickWave, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import {
@@ -180,6 +181,63 @@ describe('playback', () => {
       .map(e => (e.value - 8192) / 512);
     expect(Math.min(...sounded)).toBeCloseTo(semitones, 0);
     expect(Math.max(...sounded)).toBeCloseTo(semitones + 1, 0);
+  });
+
+  /** The pitch bends of the clip's one picked note, between two columns, in semitones above it. */
+  function heightsOf(text: string, [from, to]: [number, number]): number[] {
+    const clip = clipOf(text);
+    const played = plain(clip);
+    const [start, end] = [tickOf(clip, played, from), tickOf(clip, played, to)];
+    return pitchBendsOn(played.midi, noteOns(played.midi)[0].channel)
+      .filter(e => e.tick >= start && e.tick < end)
+      .map(e => (e.value - 8192) / 512);
+  }
+
+  /** How many times a curve turns round: a vibrato turns twice a period, a plain bend never. */
+  function turnsOf(heights: number[]): number {
+    const steps = heights.slice(1).map((h, k) => Math.sign(h - heights[k])).filter(sign => sign !== 0);
+    return steps.filter((sign, k) => k > 0 && sign !== steps[k - 1]).length;
+  }
+
+  // alphaTab plays a note's bend or its vibrato, never both (Jeremy, 2026-10-29: "I do not hear vibrato").
+  it('wobbles a bent note with vibrato while it bends, up to the bend\'s height', () => {
+    const heights = heightsOf('7.3{b (0 4) v}.2 r.2 |', [0, 1]);
+    expect(turnsOf(heights)).toBeGreaterThan(6);
+    // The bend still reaches a whole step, and the wobble is alphaTab's slight one, a quarter tone.
+    expect(heights.at(-1)).toBeCloseTo(2, 0);
+    expect(Math.max(...heights)).toBeGreaterThan(2);
+    expect(Math.max(...heights)).toBeLessThan(2.3);
+  });
+
+  it('wobbles the note a held bend ends on round the bend\'s height when it has vibrato', () => {
+    const text = '7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |';
+    // Frets writes the held note as a bend of its own, so alphaTab had held it flat.
+    expect(writeAlphaTex(clipOf(text))).toContain('b (4 4) v');
+    const held = heightsOf(text, [1, 2]);
+    expect(turnsOf(held)).toBeGreaterThan(3);
+    for (const h of held) expect(Math.abs(h - 2)).toBeLessThan(0.3);
+    // The bend up before it has no vibrato of its own.
+    expect(turnsOf(heightsOf(text, [0, 1]))).toBe(0);
+  });
+
+  it('wobbles a held note only when it has vibrato, not from the bend before it', () => {
+    const held = heightsOf('7.3{b (0 4) v}.4 -.3{b (4 4)}.4 r.2 |', [1, 2]);
+    for (const h of held) expect(h).toBeCloseTo(2, 2);
+  });
+
+  it('wobbles a bent note\'s plain ties once, on the bend that runs on through them', () => {
+    // alphaTab also wobbled the tie round the bend's peak while the bend still rose: two curves at once.
+    const heights = heightsOf('7.3{b (0 4) v}.4 -.3.4 r.2 |', [0, 2]);
+    expect(turnsOf(heights)).toBeGreaterThan(6);
+    for (let k = 1; k < heights.length; k++) expect(Math.abs(heights[k] - heights[k - 1])).toBeLessThan(0.15);
+  });
+
+  it('wobbles a bent note wider with wide vibrato', () => {
+    const swing = (text: string) => {
+      const held = heightsOf(text, [1, 2]);
+      return Math.max(...held) - Math.min(...held);
+    };
+    expect(swing('7.3{b (0 4)}.4 -.3{b (4 4) vw}.4 r.2 |')).toBeGreaterThan(1.5 * swing('7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |'));
   });
 
   it('gives a loop the ticks from its first column to the end of its last', () => {
