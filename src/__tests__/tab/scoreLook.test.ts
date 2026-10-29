@@ -56,8 +56,15 @@ describe('the tuning block', () => {
 
   it('says whole steps, and lists only the retuned strings when they are tuned apart', () => {
     expect(tuningBlock(['D', 'G', 'C', 'F', 'A', 'D'])!.heading).toBe('Tune down 1 step');
-    expect(tuningBlock(['D', 'A', 'D', 'G', 'B', 'E'])).toEqual({ heading: null, strings: [{ number: 6, name: 'D' }] });
+    expect(tuningBlock(['D', 'A', 'D', 'G', 'B', 'E'])).toEqual({ heading: 'Drop D tuning', strings: [{ number: 6, name: 'D' }] });
     expect(tuningBlock(['E', 'A', 'D', 'G', 'B', 'E'])).toBeNull();
+  });
+
+  it('names a common tuning over its strings, and leaves a tuning of its own unnamed', () => {
+    expect(tuningBlock(['D', 'A', 'D', 'G', 'A', 'D'])!.heading).toBe('DADGAD tuning');
+    expect(tuningBlock(['C#', 'G#', 'C#', 'F#', 'A#', 'D#'])!.heading).toBe('Drop C♯ tuning');
+    expect(tuningBlock(['D', 'G', 'D', 'G', 'B', 'D'])!.heading).toBe('Open G tuning');
+    expect(tuningBlock(['E', 'A', 'D', 'G', 'B', 'D'])!.heading).toBeNull();
   });
 });
 

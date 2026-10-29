@@ -716,9 +716,9 @@ export function writeAscii(clip: Clip, { rhythm = true }: { rhythm?: boolean } =
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
   if (!isStandardTuning(clip.tuning)) head.push(`Tuning: ${clip.tuning.join(' ')}`);
 
-  // Names high string first, the top one lower case as tab writes "e".
-  const names = [...clip.tuning].reverse();
-  names[0] = names[0].toLowerCase();
+  // The strings' standard names, high string first, in every tuning: they label the strings, and the
+  // Tuning line says how they're tuned, as the score's head does in the Notation view (Jeremy, 2026-10-29).
+  const names = ['e', 'B', 'G', 'D', 'A', 'E'];
 
   const slides = slideDirections(clip);
   const blocks: string[][] = [];
