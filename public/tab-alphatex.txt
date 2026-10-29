@@ -20,11 +20,22 @@ chords fit; fingerstyle with a bass line held under moving notes does not
 1. THE WHOLE TEXT
 -----------------
 
+    // frets:fx <on|off>; distortion <on|off> drive=<0-1> tone=<0-1>; reverb <on|off> amount=<0-1> decay=<0.3-5>
+                                      optional; first line. The playback
+                                      effects (see 8.); other comments
+                                      are skipped and not kept
     \title "<name of the clip>"       optional
     \artist "<band or player>"        optional; printed under the title
     \words "<lyricist>"               optional; "Words by ..."
     \music "<composer>"               optional; "Music by ...", or one
                                       "Words & Music by ..." when the same
+    \instrument <sound>               optional; acousticguitarsteel (the
+                                      default), electricguitarclean or
+                                      acousticgrandpiano. Any General MIDI
+                                      instrument is kept, and played by the
+                                      nearest of these three. With the
+                                      piano, write \tuning too, so other
+                                      apps read it.
     \ts (<beats> <note>)              optional; (4 4) if left out
                                       (beats 1 to 32; note 2, 4, 8, 16 or 32)
     \tuning (<six notes, HIGH to low, with octaves>)
@@ -296,15 +307,16 @@ never sent to a server. Opening it adds the tab to My arrangements as a
 new arrangement and shows it. If the text can't be read, Frets says why, with
 the line and column.
 
-After the text, a link may name the sound it plays with and its effects,
-each optional ("&" in the text itself is %26, so it never ends the text):
+The sound it plays in is the text's \instrument (see 1.), and the
+playback effects belong to the text, as one comment line at its top:
 
-    https://frets.eminor.net/tab#tab=<text>&sound=27&fx=on&distortion=on&drive=0.5&tone=0.5&reverb=on&amount=0.3&decay=1.5
+    // frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5
 
-sound is 0 (Acoustic Grand Piano), 25 (Steel Guitar) or 27 (Clean
-Electric Guitar). fx=on turns the effects on; distortion and reverb are
-on or off; drive, tone and amount run 0 to 1, decay 0.3 to 5 seconds.
-Opening the link sets the page's sound and effects to these.
+The first word turns the effects on or off together; distortion and
+reverb are each on or off; drive, tone and amount run 0 to 1, decay 0.3 to
+5 seconds. A part or setting left out takes its default (effects off;
+distortion on, drive 0.5, tone 0.5; reverb on, amount 0.3, decay 1.5).
+Without the line the effects are off.
 
 The same link and Import also take ASCII tab
 (https://frets.eminor.net/tab-ascii.txt); Frets tells the two apart by

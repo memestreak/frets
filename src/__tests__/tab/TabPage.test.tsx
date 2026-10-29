@@ -64,6 +64,7 @@ const SLOW = { timeout: 5000 };
 /** Lets an import finish: reading is async, and alphaTex loads alphaTab first. */
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
 const TEX = '\\title "Tex riff"\n:8 5.5{h} 7.5 5.4{h} 7.4 |';
+const FX_LINE = '// frets:fx on; distortion on drive=0.9 tone=0.2; reverb on amount=0.6 decay=3';
 const undo = (shift = false) => fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true, shiftKey: shift });
 
 /** Keeps `clip` as the open arrangement, as if it had been written on an earlier visit. */
@@ -294,15 +295,14 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Copied as text.');
   });
 
-  it('copies a link that opens the same arrangement as a new one, with its sound and FX', async () => {
+  it('copies a link that opens the same arrangement as a new one, its instrument and FX in its text', async () => {
     const writeText = vi.fn((text: string) => { void text; return Promise.resolve(); });
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    const effects = { on: true, distortionOn: true, drive: 0.9, tone: 0.2, reverbOn: true, reverb: 0.6, decay: 3 };
-    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27, effects }));
-    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    renderAt(`#tab=${encodeURIComponent(`${FX_LINE}\n\\instrument electricguitarclean\n${TEX}`)}`);
     await settle();
-    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'AlphaTex' }, SLOW));
     const before = alphaTexText();
+    expect(before.split('\n')[0]).toBe(FX_LINE);
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy link' })); });
     await waitFor(() => expect(writeText).toHaveBeenCalled(), SLOW);
     const link = new URL(writeText.mock.calls[0][0]);
@@ -313,21 +313,51 @@ describe('TabPage', () => {
     cleanup();
     localStorage.clear();
     renderAt(link.hash);
-    await screen.findByRole('heading', { name: 'Riff' }, SLOW);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     expect(window.location.hash).toBe('');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toBe(before);
     expect(loadLibrary().items).toHaveLength(1);
-    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27, effects }));
+    // The sound and FX came with the text.
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('27');
+    expect(screen.getByRole('switch', { name: 'All effects' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('keeps the FX in the clip: the dialog writes its line, a run of changes is one undo step', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    const firstLine = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      const line = alphaTexText().split('\n')[0];
+      fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+      return line;
+    };
+    expect(firstLine()).toBe('\\title "Tex riff"');
+    const light = () => screen.getByRole('switch', { name: 'All effects' });
+    fireEvent.click(light());
+    expect(light()).toHaveAttribute('aria-checked', 'true');
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5');
+    fireEvent.click(screen.getByRole('button', { name: 'FX' }));
+    const dialog = screen.getByRole('dialog', { name: 'Effects' });
+    fireEvent.click(within(dialog).getByRole('switch', { name: 'Reverb' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Longer decay' }));
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.6');
+    // Saved with the arrangement, not with the viewer's playback settings.
+    expect(savedClip()).toMatchObject({ fx: { on: true, reverbOn: false, decay: 1.6 } });
+    expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('reverb');
+    undo();
+    expect(light()).toHaveAttribute('aria-checked', 'false');
+    expect(firstLine()).toBe('\\title "Tex riff"');
+    undo(true);
+    expect(firstLine()).toContain('reverb off amount=0.3 decay=1.6');
   });
 
   it('says why a damaged #tabz= link could not be read', async () => {
-    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 0 }));
-    renderAt('#tabz=not*base64&sound=27');
+    renderAt('#tabz=not*base64');
     await waitFor(() => expect(notice()).toHaveTextContent('The link\'s tab is cut short or damaged.'), SLOW);
     expect(window.location.hash).toBe('');
-    // The sound stays the opener's own when the tab couldn't be read.
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 0 });
   });
 
   it('saves the clip and opens on it next time', async () => {
@@ -633,13 +663,13 @@ describe('TabPage playback', () => {
     fireEvent.click(toggle());
     expect(footer()).toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: false, volume: 1 });
     cleanup();
     renderAt();
     expect(footer()).toBeNull();
     fireEvent.click(toggle());
     expect(footer()).not.toBeNull();
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 25, volume: 1 });
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, volume: 1 });
   });
 
   it('shows neither the toggle nor the controls in the text views', () => {
@@ -651,15 +681,38 @@ describe('TabPage playback', () => {
     expect(footer()).not.toBeNull();
   });
 
-  it('picks the sound at the end of the controls, and remembers it', () => {
-    renderAt();
-    const sound = screen.getByRole('combobox', { name: 'Sound' });
-    expect(sound).toHaveValue('25');
-    fireEvent.change(sound, { target: { value: '0' } });
-    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ shown: true, sound: 0, volume: 1 });
+  it('picks the sound at the end of the controls, as the clip\'s \\instrument, one undo step', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    const sound = () => screen.getByRole('combobox', { name: 'Sound' });
+    expect(sound()).toHaveValue('25');
+    fireEvent.change(sound(), { target: { value: '0' } });
+    expect(savedClip()).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
+    expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('sound');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    // A piano brings no strings of its own, so the tuning is written too.
+    expect(alphaTexText()).toContain('\\instrument acousticgrandpiano\n\\ts (4 4)\n\\tuning (E4 B3 G3 D3 A2 E2)\n');
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    undo();
+    expect(sound()).toHaveValue('25');
     cleanup();
     renderAt();
-    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('0');
+    await waitFor(() => expect(sound()).toHaveValue('25'));
+  });
+
+  it('plays an instrument Frets doesn\'t have as the nearest sound, says so, and keeps it as written', async () => {
+    renderAt(`#tab=${encodeURIComponent(`\\instrument distortionguitar\n${TEX}`)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('27');
+    expect(screen.getByRole('img', { name: 'This arrangement asks for Distortion Guitar; Frets plays Clean Electric Guitar.' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\instrument distortionguitar\n');
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    // Picking a sound replaces it, and the ⚠ goes.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Sound' }), { target: { value: '25' } });
+    expect(screen.queryByRole('img', { name: /asks for/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\instrument acousticguitarsteel\n');
   });
 
   it('turns the volume knob with the arrow keys, and remembers it', () => {

@@ -9,6 +9,8 @@
  * back as it was read. Reading is `alphatexRead.ts`.
  */
 import { isRest, isStandardTuning, keyTex, type Bend, type Clip, type Column, type Note } from './clip';
+import { fxLine } from './fxLine';
+import { keepsGuitarTuning } from './instrument';
 
 /** A string in alphaTex quotes. */
 export function quoted(text: string): string {
@@ -130,16 +132,18 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   return `${notes.length === 1 ? notes[0] : `(${notes.join(' ')})`}${after}`;
 }
 
-/** The clip as alphaTex: header lines, then the bars, each ending in "|", wrapped at `LINE_WIDTH`. */
+/** The clip as alphaTex: its FX line, header lines, then the bars, each ending in "|", wrapped at `LINE_WIDTH`. */
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
+  if (clip.fx) lines.push(fxLine(clip.fx));
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
+  if (clip.instrument?.tag) lines.push(clip.instrument.tag);
   if (clip.multiBarRests) lines.push('\\multiBarRest');
   if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
   if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
   lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
-  if (!isStandardTuning(clip.tuning)) {
+  if (!isStandardTuning(clip.tuning) || (clip.instrument && !keepsGuitarTuning(clip.instrument.program))) {
     const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
     lines.push(`\\tuning (${notes.join(' ')})`);
   }
