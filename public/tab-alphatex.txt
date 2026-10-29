@@ -321,6 +321,30 @@ never sent to a server. Opening it adds the tab to My arrangements as a
 new arrangement and shows it. If the text can't be read, Frets says why, with
 the line and column.
 
+When you can run code, make a shorter link: compress the text and put it
+after #tabz= instead. Take the text as UTF-8, deflate it raw (no zlib
+header or checksum), and write the bytes as base64url ("-" and "_" for "+"
+and "/") with no "=" padding:
+
+    https://frets.eminor.net/tab#tabz=<the compressed text>
+
+It is two to four times shorter than #tab= for a short clip, and up to
+seven times for a whole song. In Python:
+
+    import base64, zlib
+    deflate = zlib.compressobj(9, zlib.DEFLATED, -15)
+    data = deflate.compress(text.encode()) + deflate.flush()
+    link = 'https://frets.eminor.net/tab#tabz=' + base64.urlsafe_b64encode(data).decode().rstrip('=')
+
+In Node.js:
+
+    const link = 'https://frets.eminor.net/tab#tabz=' + zlib.deflateRawSync(text).toString('base64url');
+
+Chat apps cut long links: Discord at 2,000 characters. A compressed link
+holds about 23 characters a bar of riffs and 60 of a busy solo. When the
+link would be longer than the chat takes, or than about 8,000 characters
+anywhere, give the text and say to paste it into Import.
+
 The sound it plays in is the text's \instrument (see 1.), and the
 playback effects belong to the text, as one comment line at its top:
 
@@ -419,4 +443,76 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
 6. Check: every beat has fret.string.duration, strings 1 to 6, frets 0 to
    24, each bar adds up, every bar ends with "|".
 7. Unless told to give only the text, give the user the link from section
-   8 and the text, in case the link is too long for the chat.
+   8 (#tabz= when you can run code) and the text, in case the link is too
+   long for the chat.
+
+
+10. LESSONS FROM TRANSCRIBING BOOKS
+-----------------------------------
+
+- Spell in the key. Put the piece's key signature in \ks at the first
+  bar, and again wherever it changes; Frets spells the staff from it.
+  Don't copy odd spellings from a Guitar Pro score (a C-flat in G major is
+  Guitar Pro's, not the music's).
+- Tuned-down guitars: write the real \tuning and keep the frets as
+  printed (see 1.). Frets prints "Tune down 1/2 step" and writes the staff
+  as fingered, as books do, while playback sounds at the real pitch.
+- Legato runs: an arc over several notes is h (or sl for a slide) on
+  every note under it but the last:
+      14.2{h}.16 15.2{h}.16 14.2{sl}.16 12.2.16
+  A hammer-on from nowhere (no picked note before it) is lht.
+- A grace note tied into a bend:
+      17.1.8{gr} -.1{b (0 4) v}.2 -.1{b (4 4) v}.4 -.1{b (4 0)}.8
+  A held bend pushed further up is -.1{b (4 6)}, let down part way
+  -.1{b (4 2)}. "1/2" then "full" on one note is b (0 2), then a tie with
+  b (2 4). Slides into bends and vibrato on bends: write what is printed,
+  12.3{sl}.16 14.3{sl}.16 12.3{b (0 2)}.16 or {b (0 4) v}.
+- Several guitar parts: Frets holds one. Write the part the user names; if
+  they don't say, take the top (lead) part and say so. Never merge two
+  parts into one line.
+- "Free time" over a bar is \ft on that bar (and on every free bar after
+  it); other words over the tab are txt.
+- Say in one line anything the picture shows that Frets can't hold (a
+  second part, fingerings) and what you did with it.
+
+
+11. FROM SHEET MUSIC (STANDARD NOTATION, NO TAB)
+------------------------------------------------
+
+The score gives the pitches; you choose where each is played. Guitar
+music is written an octave above how it sounds, and Frets' staff is drawn
+the same way, so a note on Frets' staff lands where it is on the page.
+
+- Find the places a written note can be played: in standard tuning the
+  open strings are written E3 A3 D4 G4 B4 E5 (strings 6 to 1; middle C is
+  C4), and a fret is the number of semitones above its string's open
+  note. Written G4 is 0.3, 5.4, 10.5 or 15.6. For another \tuning, write
+  each open string an octave above its tuning note. For a guitar tuned
+  down with all six strings alike, the score is written as fingered: look
+  the notes up in standard tuning.
+- Choose a position, not note by note: keep a phrase within about four
+  frets (a finger a fret), as low on the neck as covers it. Use open
+  strings in open-position keys (E, A, D, G, C) unless the music is high
+  or marked otherwise. Change position at a rest, a long note or a slide,
+  never in the middle of a fast run.
+- Follow the score's own fingering: a circled number is the string
+  (circled 3 is string 3), a Roman numeral (V, VII) the fret the hand
+  sits at, "sul G" string 3. Small numbers 1 to 4 by the notes are
+  left-hand fingers: they confirm a position but aren't written.
+- Chords: one note a string, on neighbouring strings, in a shape a hand
+  can hold (at most four fretted notes across about four frets, or a
+  barre).
+- Marks: a slur between two different notes on one string is h on the
+  first; a straight line or "gliss." between them sl; a tie "-" on the
+  second; "8va" over the staff is ot 8va on each beat under it, with frets
+  an octave above the written notes; diamond heads nh; staccato st;
+  accents ac and hac; a trill tr (kept, not drawn).
+- Key and time: the key signature is \ks (major or minor as the music
+  reads, \ks Eminor), the time signature \ts; an accidental lasts to the
+  end of its bar.
+- Two voices (stems up and stems down at once): Frets holds one. Keep the
+  melody; where a bass note starts with a melody note, put both in one
+  chord with the melody's length, and give a held bass as ties. Say that
+  you did this.
+- When done, tell the user to open Notation, then Staff or Both, and
+  compare the staff with the printed page.
