@@ -163,6 +163,9 @@ function pickAtTremoloValue(score: Score) {
  */
 export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
   const settings = new at.Settings();
+  // alphaTab's wide vibrato is faster as well as wider (a period of 240 ticks to the slight one's
+  // 360); a wide vibrato is only wider (Jeremy, 2026-10-29: "it should just be wider").
+  settings.player.vibrato.noteWideLength = settings.player.vibrato.noteSlightLength;
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
   importer.initFromString(writeAlphaTex(clip), settings);

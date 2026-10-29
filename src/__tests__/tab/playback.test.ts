@@ -269,6 +269,13 @@ describe('playback', () => {
     expect(swing('7.3{b (0 4)}.4 -.3{b (4 4) vw}.4 r.2 |')).toBeGreaterThan(1.5 * swing('7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |'));
   });
 
+  // alphaTab's wide vibrato was faster too (Jeremy, 2026-10-29: "it should just be wider").
+  it('wobbles wide vibrato as fast as slight vibrato, only wider', () => {
+    const [slight, wide] = ['7.3{v}.1 |', '7.3{vw}.1 |'].map(text => heightsOf(text + ' r.1 |', [0, 1]));
+    expect(turnsOf(wide)).toBe(turnsOf(slight));
+    expect(Math.max(...wide)).toBeCloseTo(2 * Math.max(...slight), 1);
+  });
+
   it('gives a loop the ticks from its first column to the end of its last', () => {
     const clip = clipOf('0.6.4 2.6.4 3.6.2 | 5.6.1 |');
     expect(ticksOf(clip, plain(clip), [1, 2])).toEqual({ startTick: Q, endTick: 4 * Q });
