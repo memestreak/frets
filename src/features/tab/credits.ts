@@ -43,7 +43,7 @@ export function setCredit(clip: Clip, tag: CreditTag, value: string): Clip {
     const last = header.findLastIndex(line => before.includes(tagOf(line) ?? ''));
     header.splice(last + 1, 0, `\\${tag} ${quoted(text)}`);
   }
-  const next = { ...clip, header };
+  const next: Clip = { ...clip, header };
   if (header.length === 0) delete next.header;
   return next;
 }
