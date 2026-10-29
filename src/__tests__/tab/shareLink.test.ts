@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { deflateRawSync } from 'node:zlib';
 import { compress, decompress, isTabLink, readLink, shareLink } from '@/features/tab/shareLink';
 
 const TEX = '\\title "Riff — ♯ and ♭ & more"\n\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |';
@@ -17,6 +19,15 @@ describe('share links', () => {
     const hash = new URL(link).hash;
     expect(isTabLink(hash)).toBe(true);
     expect(await readLink(hash)).toBe(TEX);
+  });
+
+  it('reads a link made by the Node.js recipe in tab-alphatex.txt', async () => {
+    const doc = readFileSync(join(__dirname, '../../../public/tab-alphatex.txt'), 'utf8');
+    expect(doc).toContain(
+      "const link = 'https://frets.eminor.net/tab#tabz=' + zlib.deflateRawSync(text).toString('base64url');",
+    );
+    const link = `${ORIGIN}/tab#tabz=${deflateRawSync(TEX).toString('base64url')}`;
+    expect(await readLink(new URL(link).hash)).toBe(TEX);
   });
 
   it('still reads plain #tab= links', async () => {

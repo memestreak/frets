@@ -210,6 +210,20 @@ describe('the examples in tab-alphatex.txt', () => {
   });
 });
 
+describe('the snippets in section 10 of tab-alphatex.txt', () => {
+  const doc = readFileSync(join(__dirname, '../../../public/tab-alphatex.txt'), 'utf8');
+  const section = doc.split(/\n10\. LESSONS/)[1].split(/\n11\. /)[0];
+  const snippets = section.split('\n').filter(l => /^ {6}\S/.test(l)).map(l => l.trim());
+
+  it('finds both', () => {
+    expect(snippets).toHaveLength(2);
+  });
+
+  it.each(snippets)('%s reads', snippet => {
+    expect(read(`\\ts (4 4)\n${snippet} |\n`).ok).toBe(true);
+  });
+});
+
 describe('looksLikeAscii', () => {
   it.each([
     ['e|-----5h7-----|', true],
