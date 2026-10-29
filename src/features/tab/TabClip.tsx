@@ -212,7 +212,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         return (
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
           <SystemDrawing
-            system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
+            system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
@@ -290,7 +290,7 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, joins, legato, whammy, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -298,7 +298,6 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   index: number;
   clip: Clip;
   look: TabLook;
-  names: string[] | null;
   previous: Map<Note, NoteSpot>;
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
@@ -315,7 +314,7 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
 
-  // The staff: the time signature and names in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
+  // The staff: the time signature in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
   parts.push(
     <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={rows.height}>
@@ -335,11 +334,6 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
         stroke={look.line} strokeWidth={1} mask={`url(#${maskId})`}
       />,
     );
-    if (names) {
-      parts.push(
-        <text key={`name-${s}`} x={system.lineStart - 10} y={stringY(rows, s) + 4} fontSize={10} fill={look.ink} textAnchor="middle">{names[s]}</text>,
-      );
-    }
   }
   parts.push(
     <line key="open" x1={system.lineStart} x2={system.lineStart} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={1.5} />,

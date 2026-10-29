@@ -49,7 +49,7 @@ clip as the canonical alphaTex Frets writes.
 | repeats | Repeats and endings | \ro, \rc 2 and 3, \ae 1 and 2 |
 | compound-time | Six-eight time | 6/8 beamed in threes |
 | time-changes | Changing time | \ts in later bars: 3/4, 7/8, back to 4/4 |
-| drop-d | Drop D | a tuning, names left of the lines |
+| drop-d | Drop D | a tuning, shown in the score's head |
 
 Every feature Frets learns to draw gets an example. `examples.test.ts`
 checks each one:

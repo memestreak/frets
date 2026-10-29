@@ -105,8 +105,8 @@ As layout A of the mock, without the list: the clip takes the page width.
   line, its two numbers close together. Every later line leaves the same
   room, so the lines of tab start one under another (Jeremy, 2026-10-26);
   bar lines, a final double bar, in
-  `--ink` (both themes). With a non-standard tuning, the
-  string names stand left of the lines (D A D G B E).
+  `--ink` (both themes). No string names stand left of the lines: the
+  score's head shows the tuning (Jeremy, 2026-10-29).
 - Columns are spaced by duration. Stems and beams under the bottom string,
   beamed by beat: a half note a short stem, a whole note none, a rest its
   usual sign (a whole rest hanging from a short line of its own, a half rest

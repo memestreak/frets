@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, isStandardTuning, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
+import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 
@@ -247,7 +247,6 @@ export interface StaffReach {
   low: number;
 }
 
-const NAMES_WIDTH = 16;
 const CLEF_WIDTH = 30;
 const TIME_WIDTH = 30;
 /** The notation staff's room for the first line's time signature, after the key signature, and the margin before its lines. */
@@ -376,7 +375,7 @@ export interface System {
   top: number;
   /** Where the time signature's numbers are centred, on the first line of tab only. */
   timeX: number | null;
-  /** Where the staff lines and the opening line start: after the time signature and the names, if any. "TAB" sits on the lines. */
+  /** Where the staff lines and the opening line start: after the time signature. "TAB" sits on the lines. */
   lineStart: number;
   /** Where the first bar starts: after "TAB", and on the staff the clef and the key signature. */
   staffStart: number;
@@ -392,8 +391,6 @@ export interface Layout {
   parts: Parts;
   systems: System[];
   height: number;
-  /** Names to draw left of the strings, high string first, when the tuning isn't standard. */
-  names: string[] | null;
 }
 
 /** A column's width: longer notes take more room, and its widest note must fit; a grace note takes little. */
@@ -505,13 +502,12 @@ export function stemUpFor(heads: Head[]): boolean {
 
 export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Layout {
   const staff = parts !== 'tab';
-  const names = staff || isStandardTuning(clip.tuning) ? null : [...clip.tuning].reverse();
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
-  // room, so the lines start one under another), then the string names. On the notation staff the
-  // clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
+  // room, so the lines start one under another). No string names: the score's head shows the tuning
+  // (Jeremy, 2026-10-29). On the notation staff the clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
   // With the notation staff, the first line's time signature goes after the clef and key signature
   // instead, as printed music has it (Jeremy, 2026-10-27).
-  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH + (names ? NAMES_WIDTH : 0);
+  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH;
   const widestKey = staff ? Math.max(0, ...clip.bars.map((_, b) => keyWidth(keyAt(clip, b).fifths))) : 0;
   const keyStart = lineStart + CLEF_WIDTH;
   const head = keyStart + widestKey;
@@ -638,7 +634,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
       top += rows.height;
       return system;
     });
-    return { parts, systems, height: top, names };
+    return { parts, systems, height: top };
   };
   const reaches = drafts.map(draft => staffReach(clip, heads, staff, draft.bars.map(b => b.index)));
   const layout = stack(reaches);

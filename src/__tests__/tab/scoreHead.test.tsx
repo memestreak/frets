@@ -38,6 +38,13 @@ describe("the score's head", () => {
     expect(head.textContent).toContain('Tune down 1/2 step');
   });
 
+  it('names no string beside the tab: the head shows the tuning (Jeremy, 2026-10-29)', () => {
+    const { container } = render(<TabImage clip={SONG} style={DEFAULT_TAB_EXPORT} title="Song" />);
+    const head = container.querySelector('[data-testid="score-head-drawn"]')!;
+    const outside = [...container.querySelectorAll('text')].filter(t => !head.contains(t)).map(t => t.textContent);
+    expect(outside.filter(t => /^[A-G][#b♯♭]?$/.test(t!))).toEqual(['A', 'B']); // only the TAB clef's letters
+  });
+
   it('in the image without the name: only the tuning, and less room taken', () => {
     const named = tabImageSize(SONG, DEFAULT_TAB_EXPORT, 'Song').height;
     const style = { ...DEFAULT_TAB_EXPORT, name: false };

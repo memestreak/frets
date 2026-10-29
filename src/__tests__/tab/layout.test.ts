@@ -74,9 +74,9 @@ describe('layoutClip', () => {
     expect(columnWidth(half)).toBeGreaterThan(columnWidth(eighth));
   });
 
-  it('names the strings only when the tuning is not standard', () => {
-    expect(layoutClip(LONG, 800).names).toBeNull();
-    expect(layoutClip({ ...LONG, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] }, 800).names).toEqual(['E', 'B', 'G', 'D', 'A', 'D']);
+  it('leaves no room for string names in any tuning: the score head shows the tuning', () => {
+    const dropD = layoutClip({ ...LONG, tuning: ['D', 'A', 'D', 'G', 'B', 'E'] }, 800);
+    expect(dropD.systems.map(s => s.lineStart)).toEqual(layoutClip(LONG, 800).systems.map(s => s.lineStart));
   });
 });
 
