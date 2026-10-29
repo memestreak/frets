@@ -9,7 +9,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   for its Advanced view, the modes), the Chords page `/chords`, the Tuner
   `/tuner`, the Tab editor `/tab`.
 - `src/components/sections.ts` — the app's map: the two groups, Tools and
-  Practice, each with its pages (href, title, summary). A group is not a
+  Practice, each with its pages (href, title, summary), and More (the Agents
+  page), which ends the site menu (`MENU_SECTIONS`) but isn't on the home page. A group is not a
   path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home
   page and the Practice page (`PageList`) are drawn from it, in its order,
   so a new page is an entry here, a route and its icon in `PageIcon.tsx`
@@ -19,7 +20,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `BrandMark` and wordmark home, then the group and the page as one
   button opening a panel of every page with the current one marked; then
   `ThemeSwitch`, one button cycling Auto, Light, Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
-  `<main>` and `AppFooter` (source link and the build's commit hash, from
+  `<main>` and `AppFooter` (source link, the Agents link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
 - `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard

@@ -2,7 +2,7 @@ FRETS ALPHATEX
 ==============
 
 How to write guitar tab that Frets (https://frets.eminor.net/tab) opens and
-draws, as alphaTex. Written for people and for AI agents turning a picture
+draws, as alphaTex. Written for people and for agents turning a picture
 of tab into text. Everything below is a rule unless it says "may".
 
 alphaTex is the text notation of alphaTab

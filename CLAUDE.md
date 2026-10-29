@@ -35,6 +35,7 @@ folder's `README.md`; update that instead:
 - `src/features/explore/README.md` — the Scale lab, Triads, the Circle of fifths
 - `src/features/chords/README.md` — the Chords page and chord export
 - `src/features/tab/README.md` — the Tab editor
+- `src/features/agents/README.md` — the Agents page, guides and skills
 
 ## Commands
 
@@ -64,6 +65,12 @@ binds a local port).
 - `src/features/<section>/` — everything only one section uses.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
+
+Agents outside the repo write for Frets from the guides and skills in
+`public/` (`docs/specs/2026-10-29-agent-skills-design.md`, listed in
+`public/llms.txt`). A PR that changes what a page reads from its link, or
+what the Tab page draws, updates that page's guide in the same PR, and its
+`public/skills/*/SKILL.md` if the rules summarised there change.
 
 Third-party material (the chord shapes, the tuner's recordings) is listed
 with its licence in `NOTICE.md` and credited in the README's Credits; add

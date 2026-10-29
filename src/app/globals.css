@@ -1120,3 +1120,6 @@ button {
 }
 .tab-title-input::placeholder { color: var(--ink-muted); }
 .tab-title-input:focus-visible { outline: none; border-bottom-color: var(--primary); }
+
+/* The Agents page: file names in the mono face. */
+.agents-page code { font: 13px/1.4 var(--font-mono); }
