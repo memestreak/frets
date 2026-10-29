@@ -355,6 +355,42 @@ export function beatTicks(time: TimeSignature): number {
   return Math.max(beat, WHOLE / 4);
 }
 
+/** Every plain rest length, longest first: each note value, then dotted and double-dotted where it may be. */
+const REST_DURATIONS: Duration[] = NOTE_VALUES.flatMap(value => {
+  const dots: Duration['dots'][] = value > SHORTEST_DOTTED ? [0] : [0, 1, 2];
+  return dots.map(d => ({ value, dots: d }));
+}).sort((a, b) => ticks(b) - ticks(a));
+
+/** The step every rest length is a whole number of: a 256th, since a double-dotted 32nd is 14 of them. */
+const REST_STEP = WHOLE / 256;
+
+/**
+ * The fewest rests that add up to `room` ticks, longest first: a whole rest for an empty bar of 4/4,
+ * a dotted half for 3/4. Time a plain rest can't fill (left by a broken tuplet) stays unfilled.
+ */
+export function fewestRests(room: number): Duration[] {
+  const steps = Math.floor(Math.max(0, room) / REST_STEP);
+  const sizes = REST_DURATIONS.map(d => ticks(d) / REST_STEP);
+  // fewest[n]: the fewest rests making n steps; last[n]: the rest that ends such a run.
+  const fewest = new Array<number>(steps + 1).fill(Infinity);
+  const last = new Array<number>(steps + 1).fill(-1);
+  fewest[0] = 0;
+  for (let n = 1; n <= steps; n++) {
+    sizes.forEach((size, k) => {
+      if (size <= n && fewest[n - size] + 1 < fewest[n]) {
+        fewest[n] = fewest[n - size] + 1;
+        last[n] = k;
+      }
+    });
+  }
+  // The longest run of steps that can be made (every count can, a 256th aside).
+  let n = steps;
+  while (n > 0 && last[n] === -1) n--;
+  const rests: Duration[] = [];
+  for (; n > 0; n -= sizes[last[n]]) rests.push(REST_DURATIONS[last[n]]);
+  return rests.sort((a, b) => ticks(b) - ticks(a));
+}
+
 /** The time a bar's columns take; grace notes take none. */
 export function barLength(bar: Bar): number {
   return bar.columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
@@ -392,26 +428,78 @@ export function isUneven(clip: Pick<Clip, 'time' | 'bars'>, index: number): bool
   return barLength(bar) !== barTicks(timeAt(clip, index));
 }
 
+/** How far a bar is from filling its time signature, in words ("1 beat and a 32nd"), and which way; null when it fills it. */
+export function unevenBy(clip: Pick<Clip, 'time' | 'bars'>, index: number): { words: string; over: boolean } | null {
+  const time = timeAt(clip, index);
+  const off = barLength(clip.bars[index]) - barTicks(time);
+  return off === 0 ? null : { words: timeInWords(Math.abs(off), time), over: off > 0 };
+}
+
+const NOTE_NAMES: Readonly<Record<NoteValue, string>> = { 1: 'whole', 2: 'half', 4: 'quarter', 8: '8th', 16: '16th', 32: '32nd', 64: '64th' };
+
+/** A note length in words, with its article: "a quarter", "an 8th", "a dotted 16th", "an 8th triplet". */
+function noteInWords(duration: Duration): string {
+  const dots = ['', 'dotted ', 'double-dotted '][duration.dots];
+  const name = `${dots}${NOTE_NAMES[duration.value]}${duration.tuplet ? ' triplet' : ''}`;
+  return `${name.startsWith('8') ? 'an' : 'a'} ${name}`;
+}
+
+const FRACTIONS: Readonly<Record<string, string>> = {
+  '1/2': '½', '1/3': '⅓', '2/3': '⅔', '1/4': '¼', '3/4': '¾', '1/5': '⅕', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘',
+  '1/6': '⅙', '5/6': '⅚', '1/8': '⅛', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞',
+};
+
+/** `part` of `whole` as a fraction in lowest terms, in one glyph where there is one: "⅓", "5/24". */
+function fraction(part: number, whole: number): string {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  const d = gcd(part, whole);
+  const text = `${part / d}/${whole / d}`;
+  return FRACTIONS[text] ?? text;
+}
+
+/**
+ * A length of time, `t` ticks, the way a guitarist counts it in a bar of `time`: whole beats (a beat
+ * is the time signature's bottom number, so an 8th in 6/8), then what's left as the fewest plain
+ * notes, else as one triplet note, else as a fraction of a beat ("1 beat and ⅕ of a beat").
+ */
+export function timeInWords(t: number, time: TimeSignature): string {
+  const beat = WHOLE / time.value;
+  const beats = Math.floor(t / beat);
+  const left = t - beats * beat;
+  const parts: string[] = beats > 0 ? [`${beats} beat${beats === 1 ? '' : 's'}`] : [];
+  if (left > 0) {
+    const plain = fewestRests(left);
+    const triplet = NOTE_VALUES.map((value): Duration => ({ value, dots: 0, tuplet: 3 })).find(d => ticks(d) === left);
+    if (plain.reduce((sum, d) => sum + ticks(d), 0) === left) parts.push(...plain.map(noteInWords));
+    else if (triplet) parts.push(noteInWords(triplet));
+    else parts.push(`${fraction(left, beat)} of a beat`);
+  }
+  return listed(parts);
+}
+
 /** A list of numbers in words: "2", "2 and 5", "2, 5 and 7". */
-export function listed(numbers: number[]): string {
+export function listed(numbers: readonly (number | string)[]): string {
   return numbers.length < 2 ? numbers.join('') : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
 }
 
 /**
- * The line that names the bars that don't add up, by the time signature each should fill
- * ("Bars 2 and 3 don't add up to 4/4; bar 5 doesn't add up to 3/4."), or null when every bar does.
+ * The line that names each bar that doesn't add up and by how much, a clause a bar; a bar with the
+ * same time signature as the one named before it leaves the time signature out ("Bar 2 doesn't add
+ * up to 4/4: 1 beat short; bar 3: 1 beat short; bar 5 doesn't add up to 3/4: a 16th over."), or null
+ * when every bar adds up.
  */
 export function unevenMessage(clip: Pick<Clip, 'time' | 'bars'>): string | null {
-  const byTime = new Map<string, number[]>();
+  const parts: string[] = [];
+  let lastTime = '';
   clip.bars.forEach((bar, i) => {
     if (!isUneven(clip, i)) return;
     const time = timeAt(clip, i);
     const key = `${time.beats}/${time.value}`;
-    byTime.set(key, [...(byTime.get(key) ?? []), i + 1]);
+    const amount = amountText(unevenBy(clip, i));
+    parts.push(key === lastTime ? `bar ${i + 1}${amount}` : `bar ${i + 1} doesn't add up to ${key}${amount}`);
+    lastTime = key;
   });
-  if (byTime.size === 0) return null;
-  const parts = [...byTime].map(([time, bars]) =>
-    `${bars.length === 1 ? `bar ${bars[0]} doesn't` : `bars ${listed(bars)} don't`} add up to ${time}`);
+  if (parts.length === 0) return null;
   const line = `${parts.join('; ')}.`;
   return line[0].toUpperCase() + line.slice(1);
 }
@@ -487,6 +575,11 @@ export function brokenTupletMessage(clip: Pick<Clip, 'bars'>): string | null {
   return lines.length > 0 ? lines.join(' ') : null;
 }
 
+/** ": 1 beat short", ": a 16th over", or nothing when the bar fills its time (no way to be uneven, then). */
+function amountText(by: { words: string; over: boolean } | null): string {
+  return by ? `: ${by.words} ${by.over ? 'over' : 'short'}` : '';
+}
+
 /**
  * Each bar with something wrong (it doesn't add up, a tuplet in it isn't whole) and what, in
  * sentences: the tip on the warning drawn under the bar's start.
@@ -496,7 +589,7 @@ export function barErrors(clip: Pick<Clip, 'time' | 'bars'>): Map<number, string
   clip.bars.forEach((bar, b) => {
     const time = timeAt(clip, b);
     const lines = [
-      ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}.`] : []),
+      ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}${amountText(unevenBy(clip, b))}.`] : []),
       ...tupletProblems(bar, b),
     ];
     if (lines.length > 0) errors.set(b, lines.join(' '));

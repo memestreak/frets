@@ -7,7 +7,7 @@ import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, tupletGroups, unevenMessage, WHOLE, type Clip,
+  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, timeInWords, tupletGroups, unevenMessage, WHOLE, type Clip, type TimeSignature,
 } from '@/features/tab/clip';
 import { copyText, moveColumn, pasteAt, sliceClip, type Cursor } from '@/features/tab/editing';
 import { setBarTime } from '@/features/tab/barEdits';
@@ -126,13 +126,13 @@ describe('incomplete tuplets', () => {
     expect(brokenTupletMessage(short)).toBe('The tuplet of 3 in bar 1 has 2 notes; it needs 3. The tuplet of 5 in bar 2 has 6 notes; it needs 10.');
     const errors = barErrors(short);
     expect([...errors.keys()]).toEqual([0, 1]);
-    expect(errors.get(0)).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 2 notes; it needs 3.");
+    expect(errors.get(0)).toBe("Bar 1 doesn't add up to 4/4: an 8th triplet short. The tuplet of 3 in bar 1 has 2 notes; it needs 3.");
   });
 
   it('flag an emptied bar, but not a clip with nothing in it yet', () => {
     const clip = clipOf('5.3.1 | r.1 |');
     const emptied: Clip = { ...clip, bars: [clip.bars[0], { ...clip.bars[1], columns: [] }] };
-    expect(barErrors(emptied).get(1)).toBe("Bar 2 doesn't add up to 4/4.");
+    expect(barErrors(emptied).get(1)).toBe("Bar 2 doesn't add up to 4/4: 4 beats short.");
     expect(barErrors({ ...clip, bars: [{ columns: [] }] }).size).toBe(0);
   });
 
@@ -220,6 +220,42 @@ describe('tremolo picking', () => {
   });
 });
 
+describe('how far a bar is off', () => {
+  const four: TimeSignature = { beats: 4, value: 4 };
+  const t = (value: 1 | 2 | 4 | 8 | 16 | 32 | 64, dots: 0 | 1 | 2 = 0, tuplet?: number) => ticks({ value, dots, tuplet });
+
+  it('counts whole beats, then the fewest plain notes', () => {
+    expect(timeInWords(t(4) + t(32), four)).toBe('1 beat and a 32nd');
+    expect(timeInWords(2 * t(4), four)).toBe('2 beats');
+    expect(timeInWords(t(8, 1), four)).toBe('a dotted 8th');
+    expect(timeInWords(t(8, 2), four)).toBe('a double-dotted 8th');
+    expect(timeInWords(t(16) + t(64), four)).toBe('a 16th and a 64th');
+    expect(timeInWords(t(1) + t(4), four)).toBe('5 beats');
+  });
+
+  it('takes a beat from the bottom number of the time signature', () => {
+    expect(timeInWords(t(4), { beats: 6, value: 8 } as TimeSignature)).toBe('2 beats');
+    expect(timeInWords(t(16), { beats: 6, value: 8 } as TimeSignature)).toBe('a 16th');
+    expect(timeInWords(t(2) + t(4), { beats: 2, value: 2 } as TimeSignature)).toBe('1 beat and a quarter');
+  });
+
+  it('names one triplet note, and says anything else as a fraction of a beat', () => {
+    expect(timeInWords(t(8, 0, 3), four)).toBe('an 8th triplet');
+    expect(timeInWords(t(4) + t(4, 0, 3), four)).toBe('1 beat and a quarter triplet');
+    expect(timeInWords(t(16, 0, 5), four)).toBe('⅕ of a beat');
+    expect(timeInWords(t(4) + t(16, 0, 7), four)).toBe('1 beat and 1/7 of a beat');
+    expect(timeInWords(t(8, 0, 3) + t(32), four)).toBe('11/24 of a beat');
+  });
+
+  it('says short or over in the tip and in the line under the clip', () => {
+    const clip = clipOf('5.3.4 5.3.4 5.3.4 5.3.16 5.3.32 | 5.3.4 5.3.4 5.3.4 5.3.4 5.3.8{d} | 5.3.1 |');
+    expect(barErrors(clip).get(0)).toBe("Bar 1 doesn't add up to 4/4: an 8th and a 32nd short.");
+    expect(barErrors(clip).get(1)).toBe("Bar 2 doesn't add up to 4/4: a dotted 8th over.");
+    expect(barErrors(clip).has(2)).toBe(false);
+    expect(unevenMessage(clip)).toBe("Bar 1 doesn't add up to 4/4: an 8th and a 32nd short; bar 2: a dotted 8th over.");
+  });
+});
+
 describe('time signature changes', () => {
   // Short bars share a line, as Frets writes them.
   const tex = '\\ts (4 4)\n0.6.1 | \\ts (3 4) 0.5.2{d} | 0.5.2{d} | \\ts (4 4) 0.6.1 |\n';
@@ -241,7 +277,7 @@ describe('time signature changes', () => {
 
   it('name each bar that does not add up by its own time', () => {
     const clip = clipOf('\\ts (4 4)\n0.6.2 |\n\\ts (3 4) 0.6.2 |\n0.6.2 |\n');
-    expect(unevenMessage(clip)).toBe("Bar 1 doesn't add up to 4/4; bars 2 and 3 don't add up to 3/4.");
+    expect(unevenMessage(clip)).toBe("Bar 1 doesn't add up to 4/4: 2 beats short; bar 2 doesn't add up to 3/4: 1 beat short; bar 3: 1 beat short.");
   });
 
   it('are set from a bar on, taken away by null or by setting the time before, and set the clip\'s own on the first bar', () => {

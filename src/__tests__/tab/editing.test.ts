@@ -1,8 +1,8 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
-import { emptyClip, WHOLE, type Clip } from '@/features/tab/clip';
-import { fewestRests, clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
+import { emptyClip, fewestRests, WHOLE, type Clip } from '@/features/tab/clip';
+import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo, readTempo, tempoText } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
 

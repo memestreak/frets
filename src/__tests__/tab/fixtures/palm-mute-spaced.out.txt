@@ -1,5 +1,5 @@
 ! Guessed the length of 4 notes from the spacing.
-! Bar 1 doesn't add up to 4/4.
+! Bar 1 doesn't add up to 4/4: 2 beats short.
 
 Time: 4/4
 

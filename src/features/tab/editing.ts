@@ -7,7 +7,7 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barLength, barTicks, ticks, emptyClip, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, timeAt, WHOLE, type Bar, type Clip, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barLength, barTicks, ticks, emptyClip, fewestRests, STRING_COUNT, timeAt, type Bar, type Clip, type Column, type Duration, type Note, type TimeSignature } from './clip';
 import { writeAlphaTex } from './alphatex';
 
 /** Where the cursor is: a column of a bar, and a string (0 = high e). In an empty bar the column is 0. */
@@ -282,42 +282,6 @@ export function clearNote(clip: Clip, cursor: Cursor): Clip {
 
 function isFull(clip: Clip, index: number): boolean {
   return barLength(clip.bars[index]) >= barTicks(timeAt(clip, index));
-}
-
-/** Every plain rest length, longest first: each note value, then dotted and double-dotted where it may be. */
-const REST_DURATIONS: Duration[] = NOTE_VALUES.flatMap(value => {
-  const dots: Duration['dots'][] = value > SHORTEST_DOTTED ? [0] : [0, 1, 2];
-  return dots.map(d => ({ value, dots: d }));
-}).sort((a, b) => ticks(b) - ticks(a));
-
-/** The step every rest length is a whole number of: a 256th, since a double-dotted 32nd is 14 of them. */
-const REST_STEP = WHOLE / 256;
-
-/**
- * The fewest rests that add up to `room` ticks, longest first: a whole rest for an empty bar of 4/4,
- * a dotted half for 3/4. Time a plain rest can't fill (left by a broken tuplet) stays unfilled.
- */
-export function fewestRests(room: number): Duration[] {
-  const steps = Math.floor(Math.max(0, room) / REST_STEP);
-  const sizes = REST_DURATIONS.map(d => ticks(d) / REST_STEP);
-  // fewest[n]: the fewest rests making n steps; last[n]: the rest that ends such a run.
-  const fewest = new Array<number>(steps + 1).fill(Infinity);
-  const last = new Array<number>(steps + 1).fill(-1);
-  fewest[0] = 0;
-  for (let n = 1; n <= steps; n++) {
-    sizes.forEach((size, k) => {
-      if (size <= n && fewest[n - size] + 1 < fewest[n]) {
-        fewest[n] = fewest[n - size] + 1;
-        last[n] = k;
-      }
-    });
-  }
-  // The longest run of steps that can be made (every count can, a 256th aside).
-  let n = steps;
-  while (n > 0 && last[n] === -1) n--;
-  const rests: Duration[] = [];
-  for (; n > 0; n -= sizes[last[n]]) rests.push(REST_DURATIONS[last[n]]);
-  return rests.sort((a, b) => ticks(b) - ticks(a));
 }
 
 /** The rests that complete a bar: the fewest that fill the time it lacks. */
