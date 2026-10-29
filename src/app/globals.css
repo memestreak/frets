@@ -1054,3 +1054,60 @@ button {
 }
 .tab-title-input::placeholder { color: var(--ink-muted); }
 .tab-title-input:focus-visible { outline: none; border-bottom-color: var(--primary); }
+
+/* MOCK (issue #195): the Settings dialog's three looks, /tab?mock=a|b|c. */
+@layer components {
+  .settings-dialog.mock-settings { width: min(820px, calc(100vw - 32px)); height: min(600px, calc(100dvh - 32px)); }
+  .mock-settings .settings-dialog-inner { height: 100%; }
+  .mock-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; }
+  .mock-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+  .mock-nav { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 10px; }
+  .mock-nav-a, .mock-nav-c { background: var(--surface-sunken); }
+  .mock-group { display: flex; flex-direction: column; gap: 1px; }
+  .mock-group-head {
+    display: flex; align-items: center; gap: 4px; padding: 6px 6px; font: 600 14px/20px var(--font-sans);
+    color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left;
+  }
+  .mock-group-label { padding: 8px 10px 2px; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
+  .mock-nav-item {
+    padding: 6px 10px 6px 28px; border-radius: 6px; font: 500 14px/20px var(--font-sans); color: var(--ink);
+    background: none; border: 0; text-align: left; cursor: pointer;
+  }
+  .mock-nav-b .mock-nav-item, .mock-nav-c .mock-nav-item { padding-left: 10px; }
+  .mock-nav-item:hover { background: var(--surface-raised); }
+  .mock-nav-item[aria-current='true'] { background: var(--surface-raised); color: var(--ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+  .mock-nav-b .mock-nav-item[aria-current='true'] { background: var(--surface-sunken); box-shadow: none; }
+  .mock-settings .tab-view-toggle { white-space: normal; text-align: left; }
+  .mock-find { display: flex; align-items: center; gap: 6px; color: var(--ink-muted); }
+  .mock-find .input { flex: 1; min-width: 0; }
+  .mock-pane { min-height: 0; overflow-y: auto; padding: 4px 4px 4px 0; }
+  .mock-settings-a .mock-pane { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .mock-pane-group { margin: 4px 0 2px; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
+  .mock-section { padding-bottom: 14px; }
+  .mock-section-title { margin: 0 0 10px; font: 600 15px/22px var(--font-sans); color: var(--ink); }
+  .mock-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 16px; align-items: center; }
+  .mock-rows .mock-row { display: contents; }
+  .mock-rows .mock-row:has(> .mock-control:only-child) .mock-control { grid-column: 1 / -1; }
+  .mock-label { font: 500 14px/20px var(--font-sans); color: var(--ink); white-space: nowrap; }
+  .mock-control { display: flex; align-items: center; min-width: 0; }
+  .mock-control .seg { flex-wrap: wrap; }
+  .mock-rows-c { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised); }
+  .mock-row-c { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 6px 14px 6px 22px; }
+  .mock-row-c + .mock-row-c { border-top: 1px solid var(--line); }
+  .mock-row-c .mock-control { margin-left: auto; }
+  .mock-row-c:has(> .mock-control:first-child) .mock-control { margin-left: 0; flex: 1; }
+  .mock-dot { position: absolute; left: 8px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
+  .mock-knob { display: inline-flex; }
+  .mock-hint { font-size: 13px; }
+  @media (max-width: 640px) {
+    .settings-dialog.mock-settings { height: calc(100dvh - 32px); }
+    .mock-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .mock-nav { flex-direction: row; overflow-x: auto; padding: 4px; }
+    .mock-group { flex-direction: row; align-items: center; }
+    .mock-group-head, .mock-group-label { display: none; }
+    .mock-nav-item { padding: 6px 10px; white-space: nowrap; }
+    .mock-find, .mock-hint { display: none; }
+    .mock-rows { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .mock-rows .mock-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 8px; }
+  }
+}
