@@ -215,6 +215,8 @@ export interface Tempo {
 /** The tempos Frets offers, in bpm. */
 export const MIN_BPM = 20;
 export const MAX_BPM = 400;
+/** The tempo of a clip that names none, as alphaTab plays it. */
+export const DEFAULT_BPM = 120;
 
 export interface Section {
   text: string;

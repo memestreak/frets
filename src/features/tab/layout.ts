@@ -149,7 +149,8 @@ export function rowsFor(
   const used = {
     capo: !!clip.capo,
     // "Free time" goes in the tempo's row, over the chord names, as Guitar Pro prints it.
-    tempo: clip.bars.some(b => b.tempo) || freeTimeLabel,
+    // The first bar's tempo is printed in the score's head (`tempoOver` in layoutText.ts).
+    tempo: clip.bars.some((b, index) => index > 0 && b.tempo) || freeTimeLabel,
     section: clip.bars.some(b => b.section),
     chords: columns.some(c => c.chord),
     text: columns.some(c => c.text),

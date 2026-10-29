@@ -2,7 +2,7 @@ import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } fro
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
@@ -12,6 +12,7 @@ import { showsBarNumber, type BarNumbers } from './viewOptions';
 import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks';
 import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
+import { TempoNote } from './TempoNote';
 import { PAGE_LOOK, type TabLook } from './tabLook';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 
@@ -533,7 +534,8 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
   // Sections and tempos, over the bar they start at; chord names and free text over their columns.
   for (const bar of system.bars) {
     const x0 = barTextX(bar);
-    const { section, tempo } = bar.bar;
+    const { section } = bar.bar;
+    const tempo = tempoOver(bar);
     if (section && rows.section !== null) {
       const y = rows.section;
       const { marker, text } = sectionBoxes(section);
@@ -556,9 +558,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
       parts.push(
         <g key={`tempo-${bar.index}`} data-testid="tempo" fill={look.ink} fontSize={TEMPO_SIZE} fontWeight={700}>
           {tempo.label && <text x={x0} y={y + 4}>{tempo.label}</text>}
-          {/* A quarter note: its head and stem. */}
-          <ellipse cx={nx + 2} cy={y + 2} rx={3.2} ry={2.4} transform={`rotate(-20 ${nx + 2} ${y + 2})`} />
-          <line x1={nx + 5} x2={nx + 5} y1={y + 1} y2={y - 9} stroke={look.ink} strokeWidth={1.1} />
+          <TempoNote x={nx} y={y + 2} size={TEMPO_SIZE} ink={look.ink} />
           <text x={x0 + numberX} y={y + 4}>{` = ${tempo.bpm}`}</text>
         </g>,
       );

@@ -205,7 +205,9 @@ Put these at the start of a bar, before its beats:
     \section "Verse"           a section starts here, its name in bold;
     \section ("A" "Chorus")    with a rehearsal mark, "A", in a box
     \tempo 90                  the tempo from this bar on, in bpm
-    \tempo (90 "Slowly")       (20 to 400), with a label
+    \tempo (90 "Slowly")       (20 to 400), with a label; the first
+                               bar's is printed at the top, under
+                               the tuning (120 when it has none)
     \ks G                      the key signature from this bar on; the
                                staff spells its notes in it
     \ro        the bar starts a repeat
