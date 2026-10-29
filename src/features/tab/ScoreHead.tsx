@@ -6,10 +6,10 @@
  * (`exportTab.tsx`), from the same sizes (`HEAD`).
  *
  * A press on the credits or the tuning opens its panel there (issues #202, #203,
- * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). With none set, a button adds it.
+ * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). The tuning is always shown, as "Standard tuning"
+ * when it is; an unset artist has a quiet "Add artist and credits" under the title.
  */
-import { useState, type MouseEvent, type ReactNode } from 'react';
-import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
+import type { MouseEvent, ReactNode } from 'react';
 import { ClipTitle } from './ClipTitle';
 import type { Clip } from './clip';
 import { creditsOf, HEAD, tuningBlock } from './credits';
@@ -27,26 +27,19 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-/**
- * MOCK (?mock=a/b/c): how an unset tuning or credits is added. 'text': muted "Add tuning" and "Add artist
- * and credits" always shown at the head's foot; 'plus': a small round + there, whose menu lists them;
- * 'none': nothing in the head (the clip's bar has the button).
- */
-export type HeadAdd = 'text' | 'plus' | 'none';
-
-export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning, add = 'text' }: {
+export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning }: {
   clip: Clip;
   onRename: (name: string) => void;
   /** A line under the title, as the example note ("Example: edits aren't saved"). */
   note?: ReactNode;
   onEditCredits?: OpenAt;
   onEditTuning?: OpenAt;
-  add?: HeadAdd;
 }) {
-  const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
   const { artist, lines } = creditsOf(clip);
   const tuning = tuningBlock(clip.tuning);
   const rows = tuning ? Math.min(3, tuning.strings.length) : 0;
+  // Always shown (Jeremy, 2026-10-29): standard tuning is named, so a press on it opens the tuning panel.
+  const heading = tuning ? tuning.heading : 'Standard tuning';
   const hasCredits = !!artist || lines.length > 0;
   const editCredits = openAt(onEditCredits);
   const editTuning = openAt(onEditTuning);
@@ -63,49 +56,25 @@ export function ScoreHead({ clip, onRename, note, onEditCredits, onEditTuning, a
           {lines.map(line => <span key={line} className="score-credit">{line}</span>)}
         </button>
       )}
-      {tuning && (
+      {/* An unset artist: a quiet line in the credits' place, always shown (no text that appears on hover). */}
+      {!hasCredits && editCredits && (
+        <div className="score-head-add">
+          <button type="button" className="score-add" onClick={editCredits}>Add artist and credits</button>
+        </div>
+      )}
+      {(tuning || editTuning) && (
         <div className="score-tuning" role="group" aria-label="Tuning" style={{ paddingLeft: HEAD.tuningIndent }}>
           <button type="button" className="score-tuning-button" onClick={editTuning} disabled={!editTuning}>
-            {tuning.heading && <span className="score-tuning-heading">{tuning.heading}</span>}
-            <span className="score-tuning-strings" style={{ gridTemplateRows: `repeat(${rows}, auto)`, columnGap: HEAD.tuningColumn - HEAD.tuningColumnWidth }}>
+            {heading && <span className="score-tuning-heading">{heading}</span>}
+            {tuning && <span className="score-tuning-strings" style={{ gridTemplateRows: `repeat(${rows}, auto)`, columnGap: HEAD.tuningColumn - HEAD.tuningColumnWidth }}>
               {tuning.strings.map(s => (
                 <span key={s.number} style={{ width: HEAD.tuningColumnWidth }}>
                   <span className="score-string" aria-label={`string ${s.number}`}>{s.number}</span> = {s.name}
                 </span>
               ))}
-            </span>
+            </span>}
           </button>
         </div>
-      )}
-      {/* The ways in to what isn't set. */}
-      {add !== 'none' && ((!hasCredits && editCredits) || (!tuning && editTuning)) ? (
-        <div className={`score-head-add score-head-add-${add}`} style={{ paddingLeft: HEAD.tuningIndent }}>
-          {add === 'text' && <>
-            {!tuning && editTuning && <button type="button" className="score-add score-add-tuning" onClick={editTuning}>Add tuning</button>}
-            {!hasCredits && editCredits && <button type="button" className="score-add score-add-credits" onClick={editCredits}>Add artist and credits</button>}
-          </>}
-          {add === 'plus' && (
-            <button
-              type="button" className="score-add-plus" aria-label="Add tuning or credits" title="Add tuning or credits"
-              aria-haspopup="menu" aria-expanded={addMenu !== null}
-              onClick={e => {
-                const box = e.currentTarget.getBoundingClientRect();
-                setAddMenu(e.detail === 0 ? { x: box.left, y: box.bottom + 4 } : { x: e.clientX, y: e.clientY + 8 });
-              }}
-            >
-              +
-            </button>
-          )}
-        </div>
-      ) : null}
-      {addMenu && (
-        <ShapeMenu
-          x={addMenu.x} y={addMenu.y} label="Add to the score head" onClose={() => setAddMenu(null)}
-          items={[
-            ...(!tuning && onEditTuning ? [{ label: 'Tuning…', onSelect: () => onEditTuning(addMenu.x, addMenu.y) }] : []),
-            ...(!hasCredits && onEditCredits ? [{ label: 'Artist and credits…', onSelect: () => onEditCredits(addMenu.x, addMenu.y) }] : []),
-          ]}
-        />
       )}
     </div>
   );

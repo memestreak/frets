@@ -7,6 +7,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { emptyClip } from '@/features/tab/clip';
+import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 
 const BUILTIN_FILES = await readBuiltinFiles();
 vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
@@ -75,10 +77,11 @@ describe("the score head's credits", () => {
 });
 
 describe("the score head's tuning", () => {
-  it('is set from the space where it would go, a preset or a string at a time, each one undo step', () => {
+  it('is always shown, "Standard tuning" opening the panel; set a preset or a string at a time, each one undo step', () => {
     renderAt();
-    expect(screen.queryByRole('group', { name: 'Tuning' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Add tuning' }));
+    const tuning = () => screen.getByRole('group', { name: 'Tuning' });
+    expect(tuning()).toHaveTextContent(/^Standard tuning$/);
+    fireEvent.click(within(tuning()).getByRole('button', { name: 'Standard tuning' }));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
     expect(within(panel).getByRole('button', { name: 'Standard' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(within(panel).getByRole('button', { name: 'Drop D' }));
@@ -94,7 +97,16 @@ describe("the score head's tuning", () => {
     undo();
     expect(within(head()).queryByLabelText('string 1')).toBeNull();
     undo();
-    expect(screen.queryByRole('group', { name: 'Tuning' })).toBeNull();
+    expect(tuning()).toHaveTextContent(/^Standard tuning$/);
+  });
+
+  it('shows "Standard tuning" only in the Notation view, and never in the picture', () => {
+    renderAt();
+    expect(screen.getByRole('button', { name: 'Standard tuning' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(screen.queryByRole('button', { name: 'Standard tuning' })).toBeNull();
+    // Printed scores leave standard tuning unsaid.
+    expect(tabSvg({ ...emptyClip(), name: 'Riff' }, parseTabExportStyle(null), 'Riff')).not.toContain('Standard tuning');
   });
 
   it('opens from the drawn tuning, and Standard takes the tag away', async () => {
@@ -104,7 +116,7 @@ describe("the score head's tuning", () => {
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
     expect(within(panel).getByRole('button', { name: 'E♭' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(within(panel).getByRole('button', { name: 'Standard' }));
-    expect(screen.queryByRole('group', { name: 'Tuning' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Tuning' })).toHaveTextContent(/^Standard tuning$/);
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect((screen.getByRole('textbox', { name: 'alphaTex' }) as HTMLTextAreaElement).value).not.toContain('\\tuning');

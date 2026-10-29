@@ -1,11 +1,11 @@
 'use client';
 
-import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
+import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
-import { GearIcon, PencilIcon } from '@/components/icons';
+import { GearIcon } from '@/components/icons';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
@@ -42,7 +42,7 @@ import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
-import { ScoreHead, type HeadAdd } from './ScoreHead';
+import { ScoreHead } from './ScoreHead';
 import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
@@ -162,10 +162,6 @@ export default function TabPage() {
   const [headPanel, setHeadPanel] = useState<
     { kind: 'credits'; x: number; y: number; from: Clip } | { kind: 'tuning'; x: number; y: number } | null
   >(null);
-  /** MOCK (?mock=a/b/c): how an unset tuning or credits is added (ScoreHead's HeadAdd; c: a button in the clip's bar). */
-  const mock = useSyncExternalStore(noSubscribe, () => new URLSearchParams(window.location.search).get('mock'), () => null);
-  const headAdd: HeadAdd = mock === 'b' ? 'plus' : mock === 'c' ? 'none' : 'text';
-  const [detailsMenu, setDetailsMenu] = useState<{ x: number; y: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   const quietBlur = useRef(false);
@@ -786,19 +782,6 @@ export default function TabPage() {
                 </button>
               ))}
             </div>
-            {view === 'tab' && mock === 'c' && (
-              <button
-                type="button" className="btn btn-secondary btn-icon" aria-label="Tuning and credits" title="Tuning and credits"
-                aria-haspopup="menu" aria-expanded={detailsMenu !== null}
-                onMouseDown={e => e.preventDefault()}
-                onClick={e => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setDetailsMenu({ x: r.right, y: r.bottom + 4 });
-                }}
-              >
-                <PencilIcon />
-              </button>
-            )}
             {actions.buttons}
           </div>
         </div>
@@ -812,7 +795,6 @@ export default function TabPage() {
                 clip={clip} onRename={rename} note={example && exampleNote}
                 onEditCredits={(x, y) => setHeadPanel({ kind: 'credits', x, y, from: clip })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
-                add={headAdd}
               />
             : <>
               {/* The page keeps its heading for screen readers. */}
@@ -970,15 +952,6 @@ export default function TabPage() {
         />
       )}
       {actions.popups}
-      {detailsMenu && (
-        <ShapeMenu
-          x={detailsMenu.x} y={detailsMenu.y} align="end" label="Tuning and credits" onClose={() => setDetailsMenu(null)}
-          items={[
-            { label: 'Tuning…', onSelect: () => setHeadPanel({ kind: 'tuning', x: detailsMenu.x - 300, y: detailsMenu.y }) },
-            { label: 'Artist and credits…', onSelect: () => setHeadPanel({ kind: 'credits', x: detailsMenu.x - 300, y: detailsMenu.y, from: clip }) },
-          ]}
-        />
-      )}
       <SettingsDialog groups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
         clip={clip} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
@@ -995,9 +968,4 @@ function paperVars(colours: ColourPair): CSSProperties {
     '--ink': p.ink, '--ink-muted': p.inkMuted, '--line-strong': p.lineStrong, '--line': p.line, '--surface-raised': p.paper,
     background: p.paper, color: p.ink,
   } as CSSProperties;
-}
-
-/** MOCK: the URL's query never changes while the page is open. */
-function noSubscribe() {
-  return () => {};
 }
