@@ -99,7 +99,7 @@ export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
   return createPortal(
     // Its keys are the fields' own: Enter keeps, Esc puts back, T taps.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-    <div ref={ref} role="dialog" aria-label="Tempo" className="shape-menu tab-head-panel" style={style} tabIndex={-1} onKeyDown={onKeyDown}>
+    <div ref={ref} role="dialog" aria-label="Tempo" className="shape-menu tab-head-panel tab-tempo-panel" style={style} tabIndex={-1} onKeyDown={onKeyDown}>
       <span className="tab-time-caption">Tempo</span>
       <div className="tab-tempo-row">
         {/* A double-click on the number or "bpm" puts it back to 120, as other number fields do. */}
@@ -129,7 +129,7 @@ export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
       <label className="grid gap-1.5">
         <span className="tab-time-caption">Label (optional)</span>
         <input
-          ref={labelRef} className="input tab-head-input" aria-label="Label (optional)" placeholder="Slowly" value={label} maxLength={40}
+          ref={labelRef} className="input tab-tempo-label" aria-label="Label (optional)" placeholder="Slowly" value={label} maxLength={40}
           onChange={e => { setLabel(e.target.value); show({ label: e.target.value }); }}
         />
       </label>

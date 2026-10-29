@@ -824,6 +824,9 @@ button {
   .tab-tuning-presets { flex-wrap: wrap; max-width: 340px; }
   /* The tempo panel: bpm and Tap on one row. */
   .tab-tempo-row { display: flex; align-items: center; gap: 12px; }
+  /* Only as wide as the bpm and Tap row (Jeremy, 2026-10-29): a label is a word or two. */
+  .tab-tempo-panel { width: max-content; }
+  .tab-tempo-label { width: 0; min-width: 100%; }
   .tab-tap { min-width: 72px; }
   .tab-tuning-string { display: inline-flex; align-items: center; gap: 4px; padding-inline: 7px; }
   .tab-tuning-panel .seg { flex-wrap: wrap; }

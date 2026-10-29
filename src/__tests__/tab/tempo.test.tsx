@@ -160,6 +160,25 @@ describe('the tempo panel', () => {
     expect(tempoButton()).toHaveAccessibleName('Tempo: 120 bpm');
   });
 
+  it('drags the bpm up and down, even while it is being typed', () => {
+    // jsdom has no pointer capture.
+    HTMLElement.prototype.setPointerCapture ??= () => {};
+    renderAt();
+    fireEvent.click(tempoButton());
+    const drag = (dy: number) => {
+      fireEvent.pointerDown(bpmField(), { button: 0, clientY: 200 });
+      fireEvent.pointerMove(bpmField(), { clientY: 200 - dy });
+      fireEvent.pointerUp(bpmField(), { clientY: 200 - dy });
+    };
+    drag(50);
+    expect(bpmField()).toHaveValue('125');
+    act(() => bpmField().focus());
+    fireEvent.change(bpmField(), { target: { value: '90' } });
+    drag(-30);
+    expect(bpmField()).toHaveValue('87');
+    expect(tempoButton()).toHaveAccessibleName('Tempo: 87 bpm');
+  });
+
   it('takes the tempo from taps on Tap, or on T', () => {
     let now = 0;
     vi.spyOn(performance, 'now').mockImplementation(() => now);

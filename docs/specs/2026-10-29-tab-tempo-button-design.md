@@ -23,8 +23,10 @@ Text group's Tempo tool, or Edit beside a picked tempo, opens it for the cursor'
 earlier two-box field.
 
 - **bpm**: the small number field the playback footer uses, 20 to 400: typed, stepped with its buttons
-  or ↑ ↓, or pressed and dragged up and down; "bpm" after it; a double-click puts it back to 120. It
-  opens selected, so a typed number replaces it. A bar with no tempo yet starts from the tempo in
+  or ↑ ↓, or pressed and dragged up and down, even while a number is being typed (every number field
+  now drags that way); "bpm" after it; a double-click puts it back to 120. The panel opens with the
+  focus on itself, so a press on the number drags at once and a typed digit starts the bpm afresh.
+- The panel is only as wide as the bpm and Tap row; a label is a word or two. A bar with no tempo yet starts from the tempo in
   effect there.
 - **Tap**: each press is a beat; from the second press on, the bpm is the average gap of the latest
   eight taps (`tapTempo.ts`), whole, kept within 20 to 400. A pause over 2 seconds starts a new run. A

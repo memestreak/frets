@@ -3,8 +3,8 @@
 /**
  * A small number field with up and down buttons, for the playback footer's speed (Jeremy's ask,
  * 2026-10-26) and the pause between loops. Type a number (it takes effect on Enter or on leaving the
- * field), press the buttons or ↑ ↓ to step it, or press on the number and drag up or down. A press
- * that doesn't move puts the caret in the field to type.
+ * field), press the buttons or ↑ ↓ to step it, or press on the number and drag up or down, even
+ * while typing. A press that doesn't move selects the number to type over it.
  */
 import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 
@@ -83,19 +83,21 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
 
   // A press on the number: dragging up or down changes it; a press that stays put starts typing.
   const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
-  const typing = () => document.activeElement === input.current;
   const onPointerDown = (e: PointerEvent<HTMLInputElement>) => {
-    if (disabled || typing() || e.button !== 0) return;
-    // Keep the caret out (and no text selected) until we know it is a click.
+    if (disabled || e.button !== 0) return;
+    // Keep the caret out (and no text selected) until we know it is a click. Dragging works while
+    // typing too (Jeremy, 2026-10-29): the number being typed is settled first.
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y: e.clientY, from: value, moved: false };
+    const typed = draft !== null ? parse(draft) : null;
+    drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false };
   };
   const onPointerMove = (e: PointerEvent<HTMLInputElement>) => {
     const d = drag.current;
     if (!d) return;
     const dy = d.y - e.clientY;
     if (!d.moved && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+    if (!d.moved) setDraft(null);
     d.moved = true;
     // Up raises it, a step every few pixels.
     set(d.from + Math.round(dy / DRAG_PX_PER_STEP) * step);
@@ -103,7 +105,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   const onPointerUp = () => {
     const d = drag.current;
     drag.current = null;
-    if (d && !d.moved) {
+    // A click selects the number to type over; so does a drag while typing, so what comes next replaces it.
+    if (d && (!d.moved || document.activeElement === input.current)) {
       input.current?.focus();
       input.current?.select();
     }
