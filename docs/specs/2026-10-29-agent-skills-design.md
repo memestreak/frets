@@ -30,9 +30,9 @@ A quiet "Agents" link in the footer, beside Source Code, opens
 `/agents`: one card per page with what an agent can write and its skill:
 a View skill link that opens the SKILL.md in the browser, and Copy and
 Download buttons. The guides aren't shown there: the skill sends the agent
-to its guide, and `llms.txt` lists them. The site menu ends with a More
-group holding the page (breadcrumbs "More › Agents"); the home page leaves
-More out. The Tab page's Import dialog, which already links the
+to its guide, and `llms.txt` lists them. A third group, More, holds the
+page in the site menu and on the home page (breadcrumbs "More › Agents"),
+with its own pictogram: a speech bubble holding three notes. The Tab page's Import dialog, which already links the
 formats, adds "An agent can write it for you", linking to the same page.
 
 ## Keeping them current

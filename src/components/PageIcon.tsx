@@ -146,6 +146,18 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       <TabNumber x={76} y={34} n={8} />
     </>
   ),
+  '/agents': (
+    <>
+      {/* A speech bubble holding three notes: an agent talking guitar. */}
+      <path
+        d="M22 20 H74 a8 8 0 0 1 8 8 V56 a8 8 0 0 1 -8 8 H44 L30 77 V64 H22 a8 8 0 0 1 -8 -8 V28 a8 8 0 0 1 8 -8 Z"
+        fill="none" stroke="var(--string)" strokeWidth="2.5" strokeLinejoin="round"
+      />
+      <rect x="25" y="36" width="12" height="12" rx="2.5" fill="var(--degree-root)" {...ring} />
+      <circle cx="48" cy="42" r="6" fill="var(--degree-third)" {...ring} />
+      <circle cx="65" cy="42" r="6" fill="var(--degree-fifth)" {...ring} />
+    </>
+  ),
 };
 
 /**
