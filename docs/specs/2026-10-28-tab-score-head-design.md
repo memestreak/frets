@@ -12,7 +12,8 @@ identical" to the head of the book's first page.
   - the artist in bold, centred, under it;
   - "Words & Music by …" (or "Words by …" and "Music by …"), centred;
   - then the tuning on the left, a little in from the staff's start: "Tune down 1/2 step", then
-    ① = E♭ … ⑥ = E♭ in two columns of three.
+    ① = E♭ … ⑥ = E♭ in two columns of three. A tuning that isn't one shift of every string is
+    headed by its name when it is a common one ("Drop D tuning", then ⑥ = D; Jeremy, 2026-10-29).
 - It is part of the drawing. It uses the drawing's font and ink, and View options' Size zooms it with
   the drawing.
 - The title is still the page's heading. A press on it opens the Title and credits panel

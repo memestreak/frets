@@ -6,6 +6,7 @@
 import { quoted } from './alphatex';
 import { STANDARD_TUNING, STRING_COUNT, type Clip } from './clip';
 import { openStrings, tuningShift } from './notation';
+import { presetOf } from './tuning';
 
 /** A header tag's text: `\artist "Guns N' Roses"` gives "Guns N' Roses"; null when the header has no such tag. */
 export function headerValue(clip: Clip, tag: string): string | null {
@@ -96,10 +97,19 @@ function steps(semitones: number): string {
 }
 
 export interface TuningBlock {
-  /** "Tune down 1/2 step" when every string is tuned alike; null otherwise. */
+  /**
+   * "Tune down 1/2 step" when every string is tuned alike; else the common tuning's name ("Drop D
+   * tuning", Jeremy, 2026-10-29); null for a tuning of its own.
+   */
   heading: string | null;
   /** The strings to retune, as printed: ① is the high e. All six under a heading; otherwise only those tuned away from standard. */
   strings: { number: number; name: string }[];
+}
+
+/** "Drop D tuning": the name of the common tuning this is, or null. */
+function presetName(tuning: readonly string[]): string | null {
+  const preset = presetOf(tuning);
+  return preset ? `${preset.name} tuning` : null;
 }
 
 /** The tuning as a score prints it over the music; null for standard tuning. */
@@ -115,7 +125,7 @@ export function tuningBlock(tuning: readonly string[]): TuningBlock | null {
     return { number: s + 1, name, by };
   });
   return {
-    heading: shift === 0 ? null : `Tune ${shift < 0 ? 'down' : 'up'} ${steps(Math.abs(shift))}`,
+    heading: shift !== 0 ? `Tune ${shift < 0 ? 'down' : 'up'} ${steps(Math.abs(shift))}` : presetName(tuning),
     strings: strings.filter(s => shift !== 0 || s.by !== 0).map(({ number, name }) => ({ number, name })),
   };
 }
