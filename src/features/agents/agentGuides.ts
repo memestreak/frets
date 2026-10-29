@@ -1,5 +1,5 @@
 /**
- * What the AI agents page lists: one entry per page an agent can write
+ * What the Agents page lists: one entry per page an agent can write
  * for, with its guide and its skill, both served from `public/`.
  * `public/llms.txt` lists the same files for agents.
  */

@@ -35,7 +35,7 @@ folder's `README.md`; update that instead:
 - `src/features/explore/README.md` — the Scale lab, Triads, the Circle of fifths
 - `src/features/chords/README.md` — the Chords page and chord export
 - `src/features/tab/README.md` — the Tab editor
-- `src/features/agents/README.md` — the AI agents page, guides and skills
+- `src/features/agents/README.md` — the Agents page, guides and skills
 
 ## Commands
 

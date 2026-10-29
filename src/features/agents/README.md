@@ -1,4 +1,4 @@
-# AI agents
+# Agents
 
 The `/agents` page, linked from the footer, and what it lists
 (`docs/specs/2026-10-29-agent-skills-design.md`).

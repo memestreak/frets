@@ -16,7 +16,7 @@ export function AppFooter() {
         <a href={REPO} target="_blank" rel="noopener noreferrer" className={LINK}>
           Source Code
         </a>
-        <Link href="/agents" className={LINK}>AI agents</Link>
+        <Link href="/agents" className={LINK}>Agents</Link>
       </span>
       <span className="sm:text-right">
         Built at commit{' '}

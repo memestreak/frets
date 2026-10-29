@@ -4,16 +4,16 @@ import { AGENT_GUIDES, SITE } from './agentGuides';
 import { CopyUrl } from './CopyUrl';
 
 /**
- * The AI agents page, linked from the footer (docs/specs/2026-10-29-agent-skills-design.md):
+ * The Agents page, linked from the footer (docs/specs/2026-10-29-agent-skills-design.md):
  * per page, the guide to give an agent and the skill to install.
  */
 export function AgentsPage() {
   return (
     <div className="agents-page grid gap-3">
       <header>
-        <h1 className="m-0">AI agents</h1>
+        <h1 className="m-0">Agents</h1>
         <p className="mt-1 mb-0">
-          Give an AI agent one of these guides and it can write chords and tab that open in Frets.
+          Give an agent one of these guides and it can write chords and tab that open in Frets.
           Paste the guide&apos;s link into the chat, or install the skill once.
         </p>
       </header>
