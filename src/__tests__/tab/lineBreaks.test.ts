@@ -4,7 +4,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { layoutClip } from '@/features/tab/layout';
 import { barsPerLine, parseClip, type Clip } from '@/features/tab/clip';
-import { DEFAULT_VIEW, laidOut, parseView } from '@/features/tab/viewOptions';
+import { DEFAULT_VIEW, laidOut, parseNotation } from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -138,9 +138,9 @@ describe('laying out the clip’s own lines', () => {
 describe('the Clip\'s line breaks view option', () => {
   it('is off by default and kept when saved', () => {
     expect(DEFAULT_VIEW.lineBreaks).toBe(false);
-    expect(parseView({}).lineBreaks).toBe(false);
-    expect(parseView({ lineBreaks: true }).lineBreaks).toBe(true);
-    expect(parseView({ lineBreaks: 'yes' }).lineBreaks).toBe(false);
+    expect(parseNotation({}).lineBreaks).toBe(false);
+    expect(parseNotation({ lineBreaks: true }).lineBreaks).toBe(true);
+    expect(parseNotation({ lineBreaks: 'yes' }).lineBreaks).toBe(false);
   });
 
   it('lays the clip out filling the width when off, and at its own breaks when on', () => {

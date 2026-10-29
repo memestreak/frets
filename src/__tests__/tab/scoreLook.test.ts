@@ -10,7 +10,9 @@ import { creditsOf, headerValue, tuningBlock } from '@/features/tab/credits';
 import { layoutClip } from '@/features/tab/layout';
 import { beamGroups } from '@/features/tab/beams';
 import { barHeads, openStrings, tuningShift, writtenStrings } from '@/features/tab/notation';
-import { mix, paletteOf, parseView, shownColours, showsBarNumber, DEFAULT_VIEW } from '@/features/tab/viewOptions';
+import {
+  mix, paletteOf, parseAlphaTex, parseAscii, parseColours, parseNotation, sectionsOf, shownColours, showsBarNumber, viewOf, DEFAULT_VIEW,
+} from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Clip {
@@ -80,16 +82,30 @@ describe('the staff for a tuned-down guitar', () => {
 });
 
 describe('view options', () => {
-  it('start on bar numbers over every bar at 100%, the rhythm line and line numbers shown, and keep only a valid saved choice', () => {
-    const shown = { lineBreaks: false, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: { text: '#000000', background: '#ffffff' } };
-    expect(parseView(null)).toEqual({ barNumbers: 'every', size: 100, ...shown });
-    const custom = { text: '#7a1f1f', background: '#f4ecd8' };
-    expect(parseView({ barNumbers: 'lines', size: 70, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom, lineBreaks: true }))
-      .toEqual({ barNumbers: 'lines', size: 70, lineBreaks: true, asciiRhythm: false, lineNumbers: false, colours: 'custom', custom });
-    expect(parseView({ colours: 'pink', custom: { text: 'red', background: '#fff' } })).toEqual({ barNumbers: 'every', size: 100, ...shown });
-    expect(parseView({ barNumbers: 'odd', size: 75, asciiRhythm: 'no', lineNumbers: 0 })).toEqual({ barNumbers: 'every', size: 100, ...shown });
-    expect([parseView({ size: 50 }).size, parseView({ size: 200 }).size, parseView({ size: 40 }).size, parseView({ size: 210 }).size])
+  it('read each section saved, keeping only valid fields', () => {
+    expect(parseNotation(null)).toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false });
+    expect(parseNotation({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true }))
+      .toEqual({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true });
+    expect(parseNotation({ show: 'score', barNumbers: 'odd', size: 75, lineBreaks: 'yes' }))
+      .toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false });
+    expect([parseNotation({ size: 50 }).size, parseNotation({ size: 200 }).size, parseNotation({ size: 40 }).size, parseNotation({ size: 210 }).size])
       .toEqual([50, 200, 100, 100]);
+    expect(parseColours(null)).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });
+    expect(parseColours({ scheme: 'custom', text: '#7A1F1F', background: '#f4ecd8' })).toEqual({ scheme: 'custom', text: '#7a1f1f', background: '#f4ecd8' });
+    expect(parseColours({ scheme: 'pink', text: 'red', background: '#fff' })).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });
+    expect([parseAscii(null), parseAscii({ rhythm: false }), parseAscii({ rhythm: 'no' })]).toEqual([{ rhythm: true }, { rhythm: false }, { rhythm: true }]);
+    expect([parseAlphaTex(null), parseAlphaTex({ lineNumbers: false }), parseAlphaTex({ lineNumbers: 0 })])
+      .toEqual([{ lineNumbers: true }, { lineNumbers: false }, { lineNumbers: true }]);
+  });
+
+  it('put the four sections together as the view, and back', () => {
+    const view = viewOf(parseNotation(null), parseColours(null), parseAscii(null), parseAlphaTex(null));
+    expect(view).toEqual(DEFAULT_VIEW);
+    const custom = { text: '#7a1f1f', background: '#f4ecd8' };
+    const changed = { ...DEFAULT_VIEW, barNumbers: 'none' as const, colours: 'custom' as const, custom, asciiRhythm: false };
+    const back = sectionsOf(changed, 'both');
+    expect(back.notation.show).toBe('both');
+    expect(viewOf(back.notation, back.colours, back.ascii, back.alphatex)).toEqual(changed);
   });
 
   it('show the theme\'s colours, a named scheme\'s or Custom\'s, and draw the lines as a mix of the two', () => {

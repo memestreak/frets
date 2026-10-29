@@ -37,6 +37,17 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
   Arpeggio, on the Chords and Triads pages).
+- `src/components/settings/` — the Settings dialog (issue #195,
+  `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
+  of groups and sections, on a phone a group picker and a strip of sections;
+  the selected section's rows; staged values, OK / Cancel / Apply, Enter = OK,
+  a double-click or long-press on a label resetting its field), `types.ts`
+  (a group is a list of sections, each one saved key; a field is one of its
+  values), `fields.tsx` (the check box and segmented fields every page uses)
+  and `general.tsx` (General › Appearance › Theme, shared with `ThemeSwitch`).
+  Each page builds its own group on its state (Tab: `tabSettings.tsx`) and
+  shows a gear after its page actions; `usePreferenceSaveProblem`
+  (`src/hooks/usePersist.ts`) drives the ⚠ after it.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.

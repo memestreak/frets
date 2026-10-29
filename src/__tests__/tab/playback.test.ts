@@ -12,7 +12,7 @@ import {
   midiUntil, noteAlone, columnAtTick, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
-import { parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
+import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 
 function clipOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
@@ -78,17 +78,23 @@ describe('playback sounds', () => {
     expect(new Set(programsOf(perform(alphaTab, clip, 40, { clicks: false }).midi))).toEqual(new Set([40]));
   });
 
-  it('reads the saved settings, each field checked', () => {
+  it('reads the saved Playback section, each field checked', () => {
     const options = {
-      hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1, transpose: 0,
-      metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8,
+      transpose: 0, hearNotes: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1,
     };
     expect(parsePlaybackSettings(null)).toEqual({ shown: true, volume: 1, ...options });
-    expect(parsePlaybackSettings({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 }))
-      .toEqual({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5, metronome: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
-    expect(parsePlaybackSettings({ shown: 'yes', volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5, metronome: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 }))
+    expect(parsePlaybackSettings({ shown: true, volume: 0.4, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5 }))
+      .toEqual({ shown: true, volume: 0.4, transpose: -5, hearNotes: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5 });
+    expect(parsePlaybackSettings({ shown: 'yes', volume: 2, hearNotes: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5 }))
       .toEqual({ shown: true, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);
+  });
+
+  it('reads the saved Metronome section, each field checked', () => {
+    const off = { on: false, countIn: false, countInBars: 1, clickVolume: 0.8 };
+    expect(parseMetronome(null)).toEqual(off);
+    expect(parseMetronome({ on: true, countIn: true, countInBars: 3, clickVolume: 0.35 })).toEqual({ on: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
+    expect(parseMetronome({ on: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 })).toEqual(off);
   });
 });
 

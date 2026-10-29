@@ -13,13 +13,6 @@ import { staffInk } from './staffMarks';
  */
 export type Parts = 'tab' | 'staff' | 'both';
 export const PARTS: readonly Parts[] = ['staff', 'tab', 'both'];
-/** Which parts the viewer last chose, kept for the next visit (not in the clip). */
-export const PARTS_KEY = 'frets.tab.parts';
-
-/** A saved choice of parts; the tab alone when missing or invalid. */
-export function parseParts(saved: unknown): Parts {
-  return PARTS.find(p => p === saved) ?? 'tab';
-}
 
 /* — vertical rows of one system, from its top — */
 
