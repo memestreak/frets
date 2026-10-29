@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Clip, type Fermata, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
-import { accidentalLanes, keySigns, STAFF_LINES } from './notation';
+import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Clip, type Column, type Fermata, type TimeSignature } from './clip';
+import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { accidentalLanes, keySigns, STAFF_LINES, type Accidental, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
@@ -15,7 +15,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false }: {
   system: System;
   score: ScoreRows;
   clip: Clip;
@@ -23,6 +23,8 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks }: {
   lastBar: number;
   /** The line's technique marks, ties and tuplet numbers (`staffMarks.ts`). */
   marks: StaffMark[];
+  /** The staff without the tab: its bends' arrows show a let-down bend coming back, so no head does. */
+  alone?: boolean;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
@@ -48,7 +50,7 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks }: {
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} />);
     parts.push(
-      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} />,
+      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} />,
     );
   }
   marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={look} />));
@@ -203,8 +205,31 @@ const DIAMOND_HEADS: GlyphName[] = ['noteheadDiamondWhole', 'noteheadDiamondHalf
 const BEAM_THICKNESS = 0.5 * SPACE;
 const BEAM_GAP = 0.75 * SPACE;
 
+const PAREN_LEFT = GLYPHS.noteheadParenthesisLeft.width * SPACE;
+const PAREN_RIGHT = GLYPHS.noteheadParenthesisRight.width * SPACE;
+/** The line from a bent note's bracketed starting head to the note: what is left of its room (`BEND_FROM_ROOM`). */
+const BEND_FROM_LINE = BEND_FROM_ROOM - (PAREN_LEFT + 1 + HEAD_WIDTH + 1 + PAREN_RIGHT);
+/** The line from a bent note let down in the same note to the head it comes back to. */
+const BEND_BACK_LINE = 6;
+
+/** An accidental whose right edge is at `right`. */
+function Sign({ shows, right, y, look, scale = 1 }: { shows: Accidental; right: number; y: number; look: TabLook; scale?: number }) {
+  const sign: GlyphName = shows > 0 ? 'accidentalSharp' : shows < 0 ? 'accidentalFlat' : 'accidentalNatural';
+  return <Glyph name={sign} x={right - GLYPHS[sign].width * SPACE * scale} y={y} look={look} scale={scale} />;
+}
+
+/** A bracket glyph's height, in staff spaces. */
+const PAREN_HEIGHT = 1.45;
+/** How far apart, in steps, a ghost chord's outer heads may be for one pair of brackets round them all: a fifth. */
+const GHOST_CHORD_SPREAD = 4;
+
+/** Whether a column is a chord of ghost notes close enough together to share one pair of brackets. */
+export function ghostChord(column: Column, heads: Head[]): boolean {
+  return heads.length > 1 && heads.every(h => column.notes[h.string]?.ghost) && heads[heads.length - 1].step - heads[0].step <= GHOST_CHORD_SPREAD;
+}
+
 /** One bar's notes on the staff. */
-function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look: TabLook }) {
+function StaffBar({ bar, score, look, alone }: { bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean }) {
   if (bar.restRun) {
     const { first, span, count } = bar.restRun;
     return first ? <MultiRest span={span} count={count} y={stepY(score, 4)} countY={score.top - 8} look={look} reach={SPACE} /> : null;
@@ -229,21 +254,49 @@ function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look
     const { up, width, xs, stemX, tip, group } = geometry.get(placed)!;
     const lanes = accidentalLanes(heads);
     const shape = value === 1 ? 0 : value === 2 ? 1 : 2;
+    const chord = ghostChord(column, heads);
     heads.forEach((h, k) => {
       const note = column.notes[h.string];
       // A dead note is an ×; a natural harmonic a diamond, as printed guitar music has them.
       const head = h.dead ? X_HEADS[shape] : note?.harmonic === 'natural' ? DIAMOND_HEADS[shape] : HEADS[shape];
       const y = stepY(score, h.step);
-      // Ledger lines from the staff out to the head: every line step below the bottom line or above the top one.
-      const ledgers: number[] = [];
-      for (let ls = -2; ls >= h.step; ls -= 2) ledgers.push(ls);
-      for (let ls = 10; ls <= h.step; ls += 2) ledgers.push(ls);
-      for (const ls of ledgers) {
-        parts.push(<line key={`ledger-${key}-${k}-${ls}`} x1={xs[k] - 3} x2={xs[k] + width + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke={look.ink} strokeWidth={1} />);
+      // Ledger lines from the staff out to a head: every line step below the bottom line or above the top one.
+      const ledgers = (step: number, left: number, right: number, id: string) => {
+        for (let ls = -2; ls >= step; ls -= 2) parts.push(<line key={`ledger-${id}-${ls}`} x1={left} x2={right} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke={look.ink} strokeWidth={1} />);
+        for (let ls = 10; ls <= step; ls += 2) parts.push(<line key={`ledger-${id}-${ls}`} x1={left} x2={right} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke={look.ink} strokeWidth={1} />);
+      };
+      ledgers(h.step, xs[k] - 3, xs[k] + width + 3, `${key}-${k}`);
+      // A picked note bent up: the pitch it starts from in brackets before it, a line up to it, and,
+      // let down in the same note, the pitch it comes back to in brackets after it (issue #176).
+      const headWidth = GLYPHS[head].width * SPACE;
+      const sideHead = (side: SmallHead, left: number, id: 'from' | 'back') => {
+        const sy = stepY(score, side.step);
+        ledgers(side.step, left - 3, left + headWidth + 3, `${id}-${key}-${k}`);
+        parts.push(
+          <g key={`${id}-${key}-${k}`} data-testid={`staff-bend-${id}`}>
+            <Glyph name="noteheadParenthesisLeft" x={left - PAREN_LEFT - 1} y={sy} look={look} />
+            <Glyph name={head} x={left} y={sy} look={look} />
+            <Glyph name="noteheadParenthesisRight" x={left + headWidth + 1} y={sy} look={look} />
+            {side.shows !== null && <Sign shows={side.shows} right={left - PAREN_LEFT - 2} y={sy} look={look} />}
+          </g>,
+        );
+        return sy;
+      };
+      if (h.bendFrom) {
+        const end = Math.min(...xs) - accidentalRoom(heads) - 1;
+        const right = end + 1 - BEND_FROM_LINE;
+        const sy = sideHead(h.bendFrom, right - PAREN_RIGHT - 1 - headWidth, 'from');
+        parts.push(<line key={`from-line-${key}-${k}`} x1={right + 1} y1={sy - 2} x2={end} y2={y} stroke={look.ink} strokeWidth={1} data-testid="staff-bend-line" />);
+      }
+      if (h.bendBack && !alone) {
+        const start = Math.max(...xs) + width + 2 + dots * 5;
+        const left = start + BEND_BACK_LINE + PAREN_LEFT + 1;
+        const sy = sideHead(h.bendBack, left, 'back');
+        parts.push(<line key={`back-line-${key}-${k}`} x1={start} y1={y} x2={left - PAREN_LEFT - 2} y2={sy - 2} stroke={look.ink} strokeWidth={1} data-testid="staff-bend-line" />);
       }
       parts.push(<g key={`head-${key}-${k}`} data-testid="staff-head"><Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} /></g>);
       // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
-      if (note?.ghost || h.bent) {
+      if ((note?.ghost && !chord) || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;
         parts.push(
           <g key={`ghost-${key}-${k}`} data-testid={note?.ghost ? 'staff-ghost' : 'staff-bent'}>
@@ -253,14 +306,32 @@ function StaffBar({ bar, score, look }: { bar: PlacedBar; score: ScoreRows; look
         );
       }
       if (h.shows !== null) {
-        const sign: GlyphName = h.shows > 0 ? 'accidentalSharp' : h.shows < 0 ? 'accidentalFlat' : 'accidentalNatural';
         const laneX = Math.min(...xs) - 2 - lanes[k]! * ACCIDENTAL_ROOM * grace;
-        parts.push(<Glyph key={`acc-${key}-${k}`} name={sign} x={laneX - GLYPHS[sign].width * SPACE * grace} y={y} look={look} scale={grace} />);
+        parts.push(<Sign key={`acc-${key}-${k}`} shows={h.shows} right={laneX} y={y} look={look} scale={grace} />);
       }
       // Dots go in the space right of the head: a head on a line puts its dot in the space above.
       const dotY = stepY(score, h.step % 2 === 0 ? h.step + 1 : h.step);
       for (let d = 0; d < dots; d++) parts.push(<circle key={`dot-${key}-${k}-${d}`} cx={Math.max(...xs) + width + 4 + d * 5} cy={dotY} r={1.6} fill={look.ink} />);
     });
+    // A chord of ghost notes close together: one tall pair of brackets round them all (issue #178).
+    if (chord) {
+      const top = stepY(score, heads[heads.length - 1].step);
+      const bottom = stepY(score, heads[0].step);
+      const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;
+      // Clear of a stem up the heads' right side.
+      const right = Math.max(...xs) + GLYPHS[HEADS[shape]].width * SPACE * grace + (up ? 3 : 1);
+      // The glyphs are a head's height (1.45 spaces); stretched upright, they reach past the outer heads as far.
+      const stretch = 1 + (bottom - top) / (PAREN_HEIGHT * SPACE * grace);
+      const tall = (name: GlyphName, x: number) => (
+        <path d={GLYPHS[name].d} transform={`translate(${x} ${(top + bottom) / 2}) scale(${SPACE * grace} ${SPACE * grace * stretch})`} fill={look.ink} />
+      );
+      parts.push(
+        <g key={`ghost-chord-${key}`} data-testid="staff-ghost-chord">
+          {tall('noteheadParenthesisLeft', Math.min(...xs) - open - 1)}
+          {tall('noteheadParenthesisRight', right)}
+        </g>,
+      );
+    }
 
     if (tip === null) continue;
     // The stem: from the farthest head to its length past the nearest, or to the group's beam.
