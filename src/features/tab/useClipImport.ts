@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, type Dispatch } from 'react';
 import type { Clip } from './clip';
 import type { ClipAction } from './clipState';
-import { loadBuiltins } from './builtins';
+import { loadBuiltins, type Builtin } from './builtins';
 import type { Notice } from './notice';
 import { isTabFile, readTab } from './readTab';
 import { isTabLink, readLink } from './shareLink';
@@ -37,12 +37,9 @@ export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }:
     return null;
   };
 
-  /** Shows the example with this id in place of the clip; null when it opened, else why it couldn't. */
-  const openExample = async (id: string): Promise<string | null> => {
-    // Fetched afresh, so a file dropped into the folder a moment ago opens.
-    const chosen = (await loadBuiltins()).find(b => b.id === id);
-    if (!chosen) return `There is no example called "${id}".`;
-    const result = await readTab(chosen.text);
+  /** Shows a built-in arrangement in place of the clip; null when it opened, else why it couldn't. */
+  const showExample = async ({ id, text }: Builtin): Promise<string | null> => {
+    const result = await readTab(text);
     if (!result.ok) return result.errors.join(' ');
     dispatch({ type: 'openExample', id, clip: result.clip });
     toStart();
@@ -52,6 +49,14 @@ export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }:
     const { pathname, search } = window.location;
     window.history.replaceState(null, '', `${pathname}${search}${EXAMPLE_HASH}${id}`);
     return null;
+  };
+
+  /** Shows the example with this id (from an `#example=` link) in place of the clip; null when it opened, else why it couldn't. */
+  const openExample = async (id: string): Promise<string | null> => {
+    // Fetched afresh, so a file dropped into the folder a moment ago opens.
+    const chosen = (await loadBuiltins()).find(b => b.id === id);
+    if (!chosen) return `There is no example called "${id}".`;
+    return showExample(chosen);
   };
 
   const leaveExample = () => {
@@ -117,7 +122,7 @@ export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }:
     };
   }, []);
 
-  return { importText, openExample, leaveExample };
+  return { importText, showExample, leaveExample };
 }
 
 /** Takes an `#example=` link out of the address, once something else is shown in the example's place. */

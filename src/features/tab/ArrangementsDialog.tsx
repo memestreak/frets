@@ -152,12 +152,17 @@ export function ArrangementsDialog({
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onUndoDelete: () => void;
-  onOpenExample: (id: string) => void;
+  /** A built-in arrangement, with its text as the dialog listed it, so opening it needn't fetch again. */
+  onOpenExample: (builtin: Builtin) => void;
 }) {
-  // The built-in arrangements now in their folders, read each time the dialog opens.
+  // The built-in arrangements now in their folders: read when the page opens, so the list is there at the first
+  // opening, and again each time the dialog opens, so a file just dropped into the folder is listed.
   const [builtins, setBuiltins] = useState<Builtin[]>([]);
+  const readOnce = useRef(false);
   useEffect(() => {
-    if (!open) return;
+    // Not again on closing.
+    if (!open && readOnce.current) return;
+    readOnce.current = true;
     let live = true;
     void loadBuiltins().then(found => { if (live) setBuiltins(found); });
     return () => { live = false; };
@@ -326,7 +331,7 @@ export function ArrangementsDialog({
                 return (
                   <FolderRow key={folder} name={folderTitle(folder)} expanded={expanded.has(key)} onToggle={() => toggle(key)}>
                     {inside.map(b => (
-                      <ItemRow key={b.id} name={b.title} current={b.id === exampleId} onOpen={() => onOpenExample(b.id)} />
+                      <ItemRow key={b.id} name={b.title} current={b.id === exampleId} onOpen={() => onOpenExample(b)} />
                     ))}
                   </FolderRow>
                 );

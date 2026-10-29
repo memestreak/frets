@@ -75,5 +75,8 @@ for testing -- in the Examples... chooser."
 - They open like examples (never saved; `/tab#example=sample-<name>`).
   Unlike examples they are not tests, so a sample may read with warnings.
 - `src/app/tab/samples.json/route.ts` lists the folder: written once by
-  `next build`, read afresh by the dev server each time the dialog opens or
-  a sample is opened, so a file dropped in shows up without a restart.
+  `next build`, read afresh by the dev server when the page opens and each
+  time the dialog opens, so a file dropped in shows up without a restart.
+  A press opens the text the dialog listed, with no fetch in between, and
+  closes the dialog at once (2026-10-29: a fetch per press made opening
+  one feel slow); an `#example=` link fetches the list itself.

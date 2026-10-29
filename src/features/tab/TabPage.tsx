@@ -654,7 +654,7 @@ export default function TabPage() {
     commit(left.clip, { ...cursor, ...left.cursor }, null);
   });
 
-  const { importText, openExample, leaveExample } = useClipImport({
+  const { importText, showExample, leaveExample } = useClipImport({
     dispatch, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
     toStart: () => { setCursor(START); setSelection(null); },
   });
@@ -939,9 +939,9 @@ export default function TabPage() {
           arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
         )}
         onUndoDelete={arrangements.undoDelete}
-        onOpenExample={async id => {
-          const error = await openExample(id);
+        onOpenExample={async builtin => {
           setChoosing(false);
+          const error = await showExample(builtin);
           if (error) setNotice({ tone: 'error', lines: [error] });
         }}
       />
