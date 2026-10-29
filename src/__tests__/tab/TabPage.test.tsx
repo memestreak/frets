@@ -968,6 +968,24 @@ describe('TabPage examples', () => {
     expect(saved()).toBe('Tex riff');
   });
 
+  it('lists the built-ins at once and opens one without fetching again, closing the dialog at the press', async () => {
+    renderAt();
+    const fetched = vi.mocked(fetch);
+    // Read when the page opens, so the first opening already lists them.
+    await waitFor(() => expect(fetched).toHaveBeenCalledWith(BUILTIN_URL, expect.anything()));
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Arrangements' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Samples' }));
+    await settle();
+    const calls = fetched.mock.calls.length;
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hello, sample' }));
+    expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
+    await screen.findByRole('heading', { name: 'Hello, sample' }, SLOW);
+    // The text came with the dialog's list: nothing more was fetched, and closing it read nothing again.
+    expect(fetched.mock.calls.length).toBe(calls);
+  });
+
   it('opens the example in an #example= link and keeps the link while it is shown', async () => {
     renderAt('#example=repeats');
     await screen.findByRole('heading', { name: 'Repeats and endings' }, SLOW);
