@@ -4,6 +4,7 @@
  */
 
 import { type Section, type Tempo } from './clip';
+import { tempoNoteWidth } from './TempoNote';
 import { type Layout, lineAt, type PlacedBar, type System, chordWidth } from './layout';
 
 export const BEAT_TEXT_SIZE = 11;
@@ -45,10 +46,18 @@ const TEMPO_GAP = 6;
  * Where a tempo's parts go from the bar's start, as guitar books print it (Jeremy, 2026-10-28): its
  * word first ("Medium Rock"), then the note and " = 122", all in bold. `width` is a guess, for presses.
  */
-export function tempoParts(tempo: Tempo): { noteX: number; numberX: number; width: number } {
-  const noteX = tempo.label ? boldTextWidth(tempo.label, TEMPO_SIZE) + TEMPO_GAP : 0;
-  const numberX = noteX + 7;
-  return { noteX, numberX, width: numberX + boldTextWidth(` = ${tempo.bpm}`, TEMPO_SIZE) };
+export function tempoParts(tempo: Tempo, size: number = TEMPO_SIZE): { noteX: number; numberX: number; width: number } {
+  const noteX = tempo.label ? boldTextWidth(tempo.label, size) + TEMPO_GAP * (size / TEMPO_SIZE) : 0;
+  const numberX = noteX + tempoNoteWidth(size);
+  return { noteX, numberX, width: numberX + boldTextWidth(` = ${tempo.bpm}`, size) };
+}
+
+/**
+ * The tempo drawn over a bar. The first bar's is printed in the score's head instead, under the tuning,
+ * as a printed score has it (Jeremy, 2026-10-29; `ScoreHead.tsx`), so only later changes are drawn here.
+ */
+export function tempoOver(bar: { index: number; bar: { tempo?: Tempo } }): Tempo | undefined {
+  return bar.index > 0 ? bar.bar.tempo : undefined;
 }
 
 /** Where the words over a bar start: just after its opening line. */
@@ -123,7 +132,8 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
       const { text } = sectionBoxes(bar.bar.section);
       return box(s, rows.section, x0, x0 + text.x + text.width, SECTION_BOX_HEIGHT + 6);
     }
-    return bar.bar.tempo ? box(s, rows.tempo, x0, x0 + tempoParts(bar.bar.tempo).width) : null;
+    const tempo = tempoOver(bar);
+    return tempo ? box(s, rows.tempo, x0, x0 + tempoParts(tempo).width) : null;
   }
   return null;
 }
@@ -164,7 +174,8 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
       const { text } = sectionBoxes(bar.bar.section);
       if (x >= x0 - 2 && x <= x0 + text.x + text.width + 2) return { kind: 'section', bar: bar.index };
     }
-    if (near(rows.tempo) && bar.bar.tempo && x >= x0 - 2 && x <= x0 + tempoParts(bar.bar.tempo).width + 2) {
+    const tempo = tempoOver(bar);
+    if (near(rows.tempo) && tempo && x >= x0 - 2 && x <= x0 + tempoParts(tempo).width + 2) {
       return { kind: 'tempo', bar: bar.index };
     }
   }

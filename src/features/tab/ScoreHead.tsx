@@ -7,12 +7,15 @@
  * A press on the title or the credits opens the one Title and credits panel there, with the pressed
  * one's field focused (issue #227); a press on the tuning opens its panel (issues #202, #203,
  * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). The tuning is always shown, as "Standard tuning"
- * when it is; an unset artist has a quiet "Add artist and credits" under the title.
+ * when it is; an unset artist has a quiet "Add artist and credits" under the title. Under the tuning,
+ * the first bar's tempo ("♩ = 120" when none is set), whose press opens the tempo panel
+ * (`docs/specs/2026-10-29-tab-tempo-button-design.md`).
  */
 import type { MouseEvent, ReactNode } from 'react';
-import { UNTITLED, type Clip } from './clip';
+import { DEFAULT_BPM, UNTITLED, type Clip, type Tempo } from './clip';
 import type { HeadField } from './CreditsPanel';
 import { creditsOf, HEAD, tuningBlock } from './credits';
+import { TempoNote, tempoNoteWidth } from './TempoNote';
 
 /** Opens a panel at the press, in viewport pixels (a key press opens it under the element). */
 type OpenAt = (x: number, y: number) => void;
@@ -27,13 +30,14 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, note, onEditCredits, onEditTuning }: {
+export function ScoreHead({ clip, note, onEditCredits, onEditTuning, onEditTempo }: {
   clip: Clip;
   /** A line under the title, as the example note ("Example: edits aren't saved"). */
   note?: ReactNode;
   /** Opens the Title and credits panel with `field`'s field focused. */
   onEditCredits?: (x: number, y: number, field: HeadField) => void;
   onEditTuning?: OpenAt;
+  onEditTempo?: OpenAt;
 }) {
   const { artist, lines } = creditsOf(clip);
   const tuning = tuningBlock(clip.tuning);
@@ -44,6 +48,9 @@ export function ScoreHead({ clip, note, onEditCredits, onEditTuning }: {
   const editTitle = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'title')));
   const editCredits = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'artist')));
   const editTuning = openAt(onEditTuning);
+  const editTempo = openAt(onEditTempo);
+  // The first bar's tempo, always shown where it can be set (Jeremy, 2026-10-29): 120 when the clip names none.
+  const tempo = clip.bars[0]?.tempo ?? (editTempo ? { bpm: DEFAULT_BPM } : null);
   return (
     <div
       className="score-head" data-testid="score-head"
@@ -79,6 +86,31 @@ export function ScoreHead({ clip, note, onEditCredits, onEditTuning }: {
           </button>
         </div>
       )}
+      {tempo && (
+        <div className="score-tempo" style={{ paddingLeft: HEAD.tuningIndent, height: HEAD.tempoLine }}>
+          <button type="button" className="score-tempo-button" onClick={editTempo} disabled={!editTempo} aria-label={`Tempo: ${tempoWords(tempo)}`}>
+            {tempo.label && <span>{tempo.label}</span>}
+            <TempoGlyph />
+            <span>= {tempo.bpm}</span>
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+/** A tempo as a screen reader says it: "Slowly, 92 bpm". */
+function tempoWords(tempo: Tempo): string {
+  return [tempo.label, `${tempo.bpm} bpm`].filter(Boolean).join(', ');
+}
+
+/** The tempo's quarter note, as the drawn tab and the exported image draw it, sized to the head's text. */
+function TempoGlyph() {
+  const size = HEAD.creditSize;
+  const width = tempoNoteWidth(size);
+  return (
+    <svg width={width} height={size + 2} viewBox={`0 0 ${width} ${size + 2}`} aria-hidden="true" className="score-tempo-note">
+      <TempoNote x={1} y={size - 1} size={size} ink="currentColor" />
+    </svg>
   );
 }

@@ -3,7 +3,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
 import { emptyClip, fewestRests, WHOLE, type Clip } from '@/features/tab/clip';
 import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
-import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo, readTempo, tempoText } from '@/features/tab/barEdits';
+import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
 
 function clipOf(text: string): Clip {
@@ -342,17 +342,6 @@ describe('words over the tab', () => {
     let clip = clipOf('\\section ("A" "Verse") \\tempo (60 "Slowly") 5.3.1 |');
     clip = setSection(clip, 0, 'Bridge');
     expect(bars(clip)).toBe('\\section ("A" "Bridge") \\tempo (60 "Slowly") 5.3.1 |');
-  });
-
-  it('reads a typed tempo as bpm then a label, and shows it the same way', () => {
-    expect(readTempo('100 A little faster')).toEqual({ bpm: 100, label: 'A little faster' });
-    expect(readTempo(' 66 ')).toEqual({ bpm: 66 });
-    expect(readTempo('9999')).toEqual({ bpm: 400 });
-    expect(readTempo('')).toBeNull();
-    expect(readTempo('Slowly')).toBeUndefined();
-    expect(tempoText({ bpm: 100, label: 'A little faster' })).toBe('100 A little faster');
-    const clip = setTempo(clipOf('\\tempo (60 "Slowly") 5.3.1 |'), 0, readTempo('66')!);
-    expect(bars(clip)).toBe('\\tempo 66 5.3.1 |');
   });
 });
 

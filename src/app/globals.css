@@ -800,6 +800,16 @@ button {
     text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px;
   }
   .score-tuning-button:hover:not(:has(.score-tuning-heading)) { text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px; }
+  /* The first bar's tempo under the tuning, bold, as printed: its word, the note, "= 92". */
+  .score-tempo { justify-self: stretch; display: flex; align-items: flex-end; font-size: var(--credit-size); line-height: 1.385; font-weight: 700; text-align: left; }
+  .score-tempo-button {
+    position: relative; z-index: 1; display: inline-flex; align-items: baseline; gap: 4px; padding: 0; margin: 0;
+    font: inherit; color: inherit; background: none; border: 0; cursor: pointer;
+  }
+  .score-tempo-note { align-self: flex-end; margin-bottom: 3px; }
+  .score-tempo-button:hover > span { text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px; }
+  .score-tempo-button:focus-visible > span { text-decoration: underline var(--primary); }
+  .score-tempo-button:focus { outline: none; }
   .score-credits:focus-visible, .score-tuning-button:focus-visible, .score-add:focus-visible { outline: none; text-decoration: underline var(--primary); }
   /* The way in to an unset artist: a quiet line in the credits' place. */
   .score-head-add { display: grid; justify-items: center; }
@@ -812,6 +822,9 @@ button {
   .tab-head-panel { gap: 10px; padding: 12px; color: var(--ink); }
   .tab-head-input { width: 280px; max-width: calc(100vw - 64px); }
   .tab-tuning-presets { flex-wrap: wrap; max-width: 340px; }
+  /* The tempo panel: bpm and Tap on one row. */
+  .tab-tempo-row { display: flex; align-items: center; gap: 12px; }
+  .tab-tap { min-width: 72px; }
   .tab-tuning-string { display: inline-flex; align-items: center; gap: 4px; padding-inline: 7px; }
   .tab-tuning-panel .seg { flex-wrap: wrap; }
   /* The View options' colours (TabPage's paperVars): the clip on a sheet of its background, with room

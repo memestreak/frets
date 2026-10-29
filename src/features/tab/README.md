@@ -32,8 +32,11 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   with `barPanel.ts`) with
   `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
   press on a drawn one or the palette; nothing in the header sets it),
-  `WordField.tsx` (the field over the tab for a chord name, section, tempo or
-  the capo, "Capo 3" over the first line;
+  `WordField.tsx` (the field over the tab for a chord name, section or
+  the capo, "Capo 3" over the first line; a tempo has `TempoPanel.tsx`: bpm in a `NumberField`, Tap, from
+  `tapTempo.ts`, and a label, opened by the Tempo tool, a picked tempo's Edit or the score head's tempo, the
+  first bar's, printed under the tuning, "♩ = 120" when unset; `TempoNote.tsx` draws its note
+  everywhere; `docs/specs/2026-10-29-tab-tempo-button-design.md`;
   `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
   `TabExportDialog.tsx` (the Export options button; the Tab view's copy button copies the PNG;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's

@@ -3,7 +3,7 @@
  * (repeats, endings, double bars, time and key signatures). Pure: each returns a new clip.
  */
 
-import { C_MAJOR, keyAt, sameKey, MAX_BPM, MIN_BPM, type Clip, type Key, type TimeSignature, type Tempo } from './clip';
+import { C_MAJOR, keyAt, sameKey, type Clip, type Key, type TimeSignature, type Tempo } from './clip';
 import { type Cursor, columnAt, normalize, replaceBar, withColumn, without } from './editing';
 
 /** The free text over the cursor's column; empty or blank clears it. */
@@ -37,25 +37,6 @@ export function setSection(clip: Clip, bar: number, text: string): Clip {
 export function setTempo(clip: Clip, bar: number, tempo: Tempo | null): Clip {
   const rest = without(clip.bars[bar], 'tempo');
   return replaceBar(clip, bar, tempo === null ? rest : { ...rest, tempo });
-}
-
-/**
- * A tempo as typed in its field: bpm, then an optional label ("100 A little faster"; Jeremy,
- * 2026-10-27), the bpm kept within MIN_BPM to MAX_BPM. Nothing typed is null, no tempo; text that
- * doesn't start with a number is undefined, so the tempo stays as it was.
- */
-export function readTempo(typed: string): Tempo | null | undefined {
-  const t = typed.trim();
-  if (t === '') return null;
-  const match = /^(\d+)\s*(.*)$/.exec(t);
-  if (!match) return undefined;
-  const bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Number(match[1])));
-  return match[2] ? { bpm, label: match[2] } : { bpm };
-}
-
-/** A tempo as its field shows it: bpm, then the label. */
-export function tempoText(tempo: Tempo | undefined): string {
-  return tempo ? [tempo.bpm, tempo.label].filter(Boolean).join(' ') : '';
 }
 
 /** The capo's fret; null for none. */

@@ -5,10 +5,12 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
-import type { Clip } from './clip';
+import type { Clip, Tempo } from './clip';
 import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
+import { tempoParts } from './layoutText';
 import { TabClip } from './TabClip';
+import { TempoNote } from './TempoNote';
 import { type TabLook } from './tabLook';
 import { DEFAULT_VIEW, laidOut, paletteOf, shownColours, type TabView } from './viewOptions';
 
@@ -53,26 +55,37 @@ function exportLook(view: TabView): TabLook {
 /** Room round the tab, so it doesn't touch the image's edges. */
 const PAD = 16;
 
-/** What the image prints over the tab, as the page's head (`ScoreHead.tsx`): the title and credits (if the name is shown), then the tuning. */
+/**
+ * What the image prints over the tab, as the page's head (`ScoreHead.tsx`): the title and credits (if
+ * the name is shown), then the tuning and the first bar's tempo. Standard tuning and an unset tempo
+ * go unsaid, as printed scores leave them.
+ */
 interface Head {
   title: string;
   artist: string | null;
   credits: string[];
   tuning: TuningBlock | null;
+  tempo: Tempo | null;
 }
 
 function headOf(clip: Clip, style: TabExportStyle, title: string): Head {
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
   const { artist, lines } = creditsOf(clip);
-  return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning: tuningBlock(clip.tuning) };
+  return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning: tuningBlock(clip.tuning), tempo: clip.bars[0]?.tempo ?? null };
 }
 
 /** The head's height in the drawing's units, as the page's head takes it (its room after included); 0 for none. */
 function headHeight(head: Head): number {
   const top = (head.title ? HEAD.titleLine : 0) + (head.artist ? HEAD.artistLine : 0) + head.credits.length * HEAD.creditLine;
-  const tuning = head.tuning ? (head.tuning.heading ? 1 : 0) + Math.min(3, head.tuning.strings.length) : 0;
-  if (top === 0 && tuning === 0) return 0;
-  return 4 + top + (tuning > 0 ? (top > 0 ? HEAD.gap : 0) + tuning * HEAD.creditLine : 0) + HEAD.gap;
+  // On the left: the tuning's lines, then the tempo's.
+  const left = tuningLines(head.tuning) * HEAD.creditLine + (head.tempo ? HEAD.tempoLine : 0);
+  if (top === 0 && left === 0) return 0;
+  return 4 + top + (left > 0 ? (top > 0 ? HEAD.gap : 0) + left : 0) + HEAD.gap;
+}
+
+/** How many lines the tuning takes: its heading, then up to three rows of strings. */
+function tuningLines(tuning: TuningBlock | null): number {
+  return tuning ? (tuning.heading ? 1 : 0) + Math.min(3, tuning.strings.length) : 0;
 }
 
 /** Where the tab starts under the head, in pixels: the tab's own room over its top line is trimmed when there is no head. */
@@ -93,8 +106,8 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
   if (head.title) line('title', head.title, HEAD.titleSize, HEAD.titleLine);
   if (head.artist) line('artist', head.artist, HEAD.artistSize, HEAD.artistLine, 700);
   head.credits.forEach((c, i) => line(`credit-${i}`, c, HEAD.creditSize, HEAD.creditLine));
+  if ((head.tuning || head.tempo) && y > 4) y += HEAD.gap;
   if (head.tuning) {
-    if (y > 4) y += HEAD.gap;
     const { heading, strings } = head.tuning;
     const mid = (k: number) => y + k * HEAD.creditLine + HEAD.creditLine / 2;
     const baseline = (k: number) => mid(k) + HEAD.creditSize * 0.36;
@@ -113,6 +126,20 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
         </g>,
       );
     });
+    y += tuningLines(head.tuning) * HEAD.creditLine;
+  }
+  if (head.tempo) {
+    // As the drawn tab's tempos: its word, the note, then " = 92", in bold; the text's baseline low in the line, under the stem.
+    const { noteX, numberX } = tempoParts(head.tempo, HEAD.creditSize);
+    const baseline = y + HEAD.tempoLine * 0.5 + HEAD.creditSize * 0.5;
+    const x = HEAD.tuningIndent;
+    parts.push(
+      <g key="tempo" fontSize={HEAD.creditSize} fontWeight={700} fill={ink} data-testid="score-tempo-drawn">
+        {head.tempo.label && <text x={x} y={baseline}>{head.tempo.label}</text>}
+        <TempoNote x={x + noteX} y={baseline - HEAD.creditSize * 0.18} size={HEAD.creditSize} ink={ink} />
+        <text x={x + numberX} y={baseline}>{` = ${head.tempo.bpm}`}</text>
+      </g>,
+    );
   }
   return <g data-testid="score-head-drawn">{parts}</g>;
 }

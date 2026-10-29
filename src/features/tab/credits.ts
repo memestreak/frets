@@ -66,6 +66,8 @@ export const HEAD = {
   /** From one tuning column's start to the next, and each column's own width. */
   tuningColumn: 72,
   tuningColumnWidth: 60,
+  /** The first bar's tempo ("♩ = 92"), in bold under the tuning: its line, room for the note's stem included. */
+  tempoLine: 22,
 } as const;
 
 export interface Credits {

@@ -14,7 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, UNT
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
-import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
+import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
@@ -31,7 +31,7 @@ import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { useClipActions } from './ClipActions';
 import { WordField, type FieldKind } from './WordField';
-import { barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
+import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
@@ -43,6 +43,7 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { ScoreHead } from './ScoreHead';
+import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
@@ -156,10 +157,15 @@ export default function TabPage() {
   const [keyBar, setKeyBar] = useState<number | null>(null);
   /**
    * The score head's open panel and where it was pressed, in viewport pixels; the title and credits'
-   * holds the clip as it opened, the undo step its typing becomes, and the field the press focuses.
+   * and the tempo's hold the clip as it opened, the undo step their changes become (the credits' also
+   * the field the press focuses). A tempo panel opened from the tab (the Tempo tool, a picked tempo's
+   * Edit) gives the keys back to the tab when it closes.
    */
   const [headPanel, setHeadPanel] = useState<
-    { kind: 'credits'; x: number; y: number; from: Clip; field: HeadField } | { kind: 'tuning'; x: number; y: number } | null
+    | { kind: 'credits'; x: number; y: number; from: Clip; field: HeadField }
+    | { kind: 'tuning'; x: number; y: number }
+    | { kind: 'tempo'; x: number; y: number; from: Clip; bar: number; fromTab: boolean }
+    | null
   >(null);
   const editorRef = useRef<HTMLDivElement>(null);
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
@@ -329,7 +335,11 @@ export default function TabPage() {
     setNotice(null);
   };
 
-  const openWord = (kind: FieldKind, at: Cursor = cursor) => {
+  const openWord = (kind: FieldKind | 'tempo', at: Cursor = cursor) => {
+    if (kind === 'tempo') {
+      openTempo(at.bar);
+      return;
+    }
     // A chord name or text belongs to a column; an empty bar has none yet.
     if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
     // The capo belongs to the whole clip, written over its first line.
@@ -382,7 +392,7 @@ export default function TabPage() {
     if (byKey) editorRef.current?.focus();
   }, []);
 
-  /** A typed chord name, text, section, tempo or capo set (an empty one clears it); null leaves it as it was. */
+  /** A typed chord name, text, section or capo set (an empty one clears it); null leaves it as it was. */
   const finishWord = (value: string | null, byKey: boolean) => {
     const w = word;
     setWord(null);
@@ -392,11 +402,6 @@ export default function TabPage() {
     if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
-    if (w.kind === 'tempo') {
-      // Text that isn't a tempo leaves it as it was.
-      const tempo = readTempo(value);
-      if (tempo !== undefined) commit(setTempo(clip, w.bar, tempo));
-    }
     // A capo of 0 is no capo.
     // An ending of 0, or none, takes the bracket away.
     if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
@@ -696,6 +701,32 @@ export default function TabPage() {
   });
 
   const name = clip.name.trim() || UNTITLED;
+  /**
+   * The tempo panel from the tab: the first bar's under the head's tempo, as a press on it opens it;
+   * a later bar's just under where its tempo is drawn.
+   */
+  const openTempo = (bar: number) => {
+    const head = bar === 0 ? document.querySelector('.score-tempo-button') : null;
+    const editor = editorRef.current;
+    let at = { x: 0, y: 0 };
+    if (head) {
+      const box = head.getBoundingClientRect();
+      at = { x: box.left, y: box.bottom + 4 };
+    } else if (editor) {
+      // The drawing's units are zoomed by the View options' Size.
+      const box = editor.getBoundingClientRect();
+      const spot = barTempoSpot(drawn, clipWidth, parts, bar);
+      at = { x: box.left + spot.x * zoom, y: box.top + spot.y * zoom };
+    }
+    setHeadPanel({ kind: 'tempo', ...at, from: clip, bar, fromTab: true });
+  };
+  /** The tempo as set: shown at once, kept as one undo step when the panel closes, or put back. */
+  const finishTempo = (from: Clip, kept: Clip | null, fromTab: boolean) => {
+    setHeadPanel(null);
+    if (kept && kept !== from) dispatch({ type: 'replace', clip: kept, from });
+    else dispatch({ type: 'preview', clip: from });
+    if (fromTab) editorRef.current?.focus();
+  };
   /** The title and credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
   const finishCredits = (from: Clip, kept: Clip | null) => {
     setHeadPanel(null);
@@ -803,6 +834,7 @@ export default function TabPage() {
                 clip={clip} note={example && exampleNote}
                 onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
+                onEditTempo={(x, y) => setHeadPanel({ kind: 'tempo', x, y, from: clip, bar: 0, fromTab: false })}
               />
             : <>
               {/* The page keeps its heading for screen readers. */}
@@ -873,6 +905,12 @@ export default function TabPage() {
               <CreditsPanel
                 clip={headPanel.from} x={headPanel.x} y={headPanel.y} field={headPanel.field}
                 onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishCredits(headPanel.from, kept)}
+              />
+            )}
+            {view === 'tab' && headPanel?.kind === 'tempo' && (
+              <TempoPanel
+                clip={headPanel.from} bar={headPanel.bar} x={headPanel.x} y={headPanel.y}
+                onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishTempo(headPanel.from, kept, headPanel.fromTab)}
               />
             )}
             {view === 'tab' && headPanel?.kind === 'tuning' && (
