@@ -1221,6 +1221,32 @@ describe('TabPage export', () => {
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
   });
 
+  it('opens only the bar menu on a right-click on a drawn signature, not its panel too', () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    const svg = screen.getByRole('img', { name: /drawn as tab/ });
+    fireEvent.pointerDown(svg, { clientX: 13, clientY: 65, button: 2 });
+    fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }), { clientX: 13, clientY: 65 });
+    expect(screen.getByRole('menu', { name: 'Tab' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
+  });
+
+  it('closes the panel a long press opened when the bar menu opens', () => {
+    vi.useFakeTimers();
+    try {
+      keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+      renderAt();
+      const svg = screen.getByRole('img', { name: /drawn as tab/ });
+      fireEvent.pointerDown(svg, { clientX: 13, clientY: 65, pointerType: 'touch' });
+      expect(screen.getByRole('dialog', { name: 'Time signature' })).toBeInTheDocument();
+      act(() => { vi.advanceTimersByTime(600); });
+      expect(screen.getByRole('menu', { name: 'Tab' })).toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('saves from a button at the clip\'s bottom right: a list of formats in Standard, the text in the text views', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();

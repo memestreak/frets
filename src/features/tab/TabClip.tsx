@@ -82,8 +82,13 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
 }) {
   const layout = layoutClip(clip, width, parts);
   const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
-  /** What a press at a point in the drawing is on. */
+  /**
+   * What a press at a point in the drawing is on. A right-click (or any press but the main button) opens
+   * the bar menu, so it skips the words, signatures and marks, whose panels and outlines would open
+   * under the menu; it only puts the cursor in the bar.
+   */
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
+    const words = e.button === 0 && !e.shiftKey;
     const box = e.currentTarget.getBoundingClientRect();
     // From screen pixels to the drawing's units, at any size the page draws it (View options' Size).
     const scale = box.width > 0 ? width / box.width : 1;
@@ -95,9 +100,9 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
       return { run: null, text: null, mark: null, staff: null, hit: null, column, px, py };
     }
-    const run = onPickRun && !e.shiftKey ? runAt(layout, px, py) : null;
-    const text = !run && onPickText && !e.shiftKey ? textAt(layout, px, py) : null;
-    const mark = !run && !text && onPickMark && !e.shiftKey ? markAt(layout, px, py) : null;
+    const run = onPickRun && words ? runAt(layout, px, py) : null;
+    const text = !run && onPickText && words ? textAt(layout, px, py) : null;
+    const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
     const staff = run || text || mark || !onPickStaff ? null : staffAt(layout, px, py);
     const hit = run || text || mark || staff ? null : hitTest(layout, px, py);
     const column = run || text || mark || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
