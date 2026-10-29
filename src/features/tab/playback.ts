@@ -163,6 +163,9 @@ function pickAtTremoloValue(score: Score) {
  */
 export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
   const settings = new at.Settings();
+  // alphaTab's wide vibrato is faster as well as wider (a period of 240 ticks to the slight one's
+  // 360); a wide vibrato is only wider (Jeremy, 2026-10-29: "it should just be wider").
+  settings.player.vibrato.noteWideLength = settings.player.vibrato.noteSlightLength;
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
   importer.initFromString(writeAlphaTex(clip), settings);
@@ -181,6 +184,7 @@ export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, 
   const midi = new at.midi.MidiFile();
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   vibratoOnBends(at, generator, settings);
+  bendWhileTremoloPicking(at, generator);
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
   const bars = masterBars.map(b => ({
@@ -310,7 +314,43 @@ interface GeneratorInternals {
   _handler: AlphaTabModule.midi.IMidiFileHandler;
   _generateBend(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number, tempo: number): void;
   _generateVibrato(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number): void;
+  _generateWhammy(beat: Beat, noteStart: number, noteDuration: { noteOnly: number }, channel: number, tempo: number): void;
+  _generateSlide(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number, tempo: number): void;
+  _generateNote(note: ScoreNote, beatStart: number, beatDuration: number, tempo: number, ...rest: unknown[]): void;
+  _generateTremoloPicking(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, velocity: number, channel: number): void;
   vibratoResolution: number;
+}
+
+/**
+ * alphaTab picks a tremolo picked note and stops there (`_generateNote` returns before the pitch
+ * effects), so its whammy bar, bend, slide and vibrato never sounded (Jeremy, 2026-10-29: "I'm not
+ * hearing whammy when a note also has tremolo picking"). After the picking, the note's pitch effect
+ * is written the way alphaTab writes it for a note picked once.
+ */
+function bendWhileTremoloPicking(at: AlphaTab, generator: AlphaTabModule.midi.MidiFileGenerator) {
+  const g = generator as unknown as GeneratorInternals;
+  const generateNote = g._generateNote.bind(g);
+  const generateTremoloPicking = g._generateTremoloPicking.bind(g);
+  // The tempo the note being written starts in, which only `_generateNote` is told.
+  let tempo = 0;
+  g._generateNote = (note, beatStart, beatDuration, tempoOnBeatStart, ...rest) => {
+    tempo = tempoOnBeatStart;
+    generateNote(note, beatStart, beatDuration, tempoOnBeatStart, ...rest);
+  };
+  g._generateTremoloPicking = (note, noteStart, noteDuration, noteKey, velocity, channel) => {
+    // A tremolo picked note picks on through the notes tied to it, so a tied note picks no more of
+    // its own: with its own `tp` too, it was picked twice over.
+    const pickedBefore = note.isTieDestination && note.tieOrigin!.beat.isTremolo;
+    if (!pickedBefore) generateTremoloPicking(note, noteStart, noteDuration, noteKey, velocity, channel);
+    // The same choice as `_generateNote`'s, through `g` so a bend still gets `vibratoOnBends`' wobble.
+    if (note.hasBend) g._generateBend(note, noteStart, noteDuration, noteKey, channel, tempo);
+    else if (note.beat.hasWhammyBar && note.index === 0) g._generateWhammy(note.beat, noteStart, noteDuration, channel, tempo);
+    else if (note.slideInType !== at.model.SlideInType.None || note.slideOutType !== at.model.SlideOutType.None) {
+      g._generateSlide(note, noteStart, noteDuration, noteKey, channel, tempo);
+    } else if (note.vibrato !== at.model.VibratoType.None || (note.isTieDestination && note.tieOrigin!.vibrato !== at.model.VibratoType.None)) {
+      g._generateVibrato(note, noteStart, noteDuration, noteKey, channel);
+    }
+  };
 }
 
 /**

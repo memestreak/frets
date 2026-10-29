@@ -130,6 +130,16 @@ only when the column sounding changes.
   vibrato round the bend's peak, a second curve at once, so their own wobble
   is dropped and the bend's covers them. Vibrato on the bend leaves a held
   note after it still: each note wobbles only where its `v` is.
+- Wide vibrato (`vw`) wobbles at slight vibrato's speed, only twice as wide:
+  alphaTab's own wide vibrato is faster too (Jeremy, 2026-10-29).
+- `bendWhileTremoloPicking` plays a tremolo picked note's pitch effects.
+  alphaTab's generator picks a `tp` note and returns before its whammy bar,
+  bend, slide or vibrato, so a dive under tremolo picking stayed at pitch
+  (Jeremy, 2026-10-29). After the picking, the same one effect alphaTab
+  would play for the note picked once is written, a bend still through
+  `vibratoOnBends`. A tremolo picked note picks on through the notes tied to
+  it, so a tied note with `tp` of its own picks no more (it had been picked
+  twice over).
 - `columnAtTick` and `ticksOf` map between ticks and the clip's columns.
 - Loop points are the synthesizer's playback range, set straight on its
   sequencer (`rangeWithoutSeek`): alphaTab's own setter moves the playhead
