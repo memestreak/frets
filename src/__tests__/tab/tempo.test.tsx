@@ -83,12 +83,12 @@ describe('tempoFrom', () => {
 describe("the score head's tempo", () => {
   it('reads "= 120" when the clip names none, and the label and bpm when it does', () => {
     const onEdit = vi.fn();
-    const { rerender } = render(<ScoreHead clip={emptyClip()} onRename={() => {}} onEditTempo={onEdit} />);
+    const { rerender } = render(<ScoreHead clip={emptyClip()} onEditTempo={onEdit} />);
     expect(tempoButton()).toHaveAccessibleName('Tempo: 120 bpm');
     expect(tempoButton()).toHaveTextContent(/^= 120$/);
     fireEvent.click(tempoButton());
     expect(onEdit).toHaveBeenCalledTimes(1);
-    rerender(<ScoreHead clip={clipOf('\\tempo (92 "Slowly") 0.6.4 |')} onRename={() => {}} onEditTempo={onEdit} />);
+    rerender(<ScoreHead clip={clipOf('\\tempo (92 "Slowly") 0.6.4 |')} onEditTempo={onEdit} />);
     expect(tempoButton()).toHaveTextContent(/^Slowly= 92$/);
   });
 
