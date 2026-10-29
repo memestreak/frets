@@ -4,19 +4,20 @@ import type { ClipAction } from './clipState';
 import { loadBuiltins } from './builtins';
 import type { Notice } from './notice';
 import { isTabFile, readTab } from './readTab';
+import { isTabLink, readLink, type LinkContent } from './shareLink';
 
-const HASH = '#tab=';
 /** An example's link, /tab#example=bends; it stays in the address while the example is shown. */
 const EXAMPLE_HASH = '#example=';
-const BAD_ENCODING = 'The link\'s tab is not percent-encoded correctly.';
 
 /**
- * What replaces the clip, and what brings it back: Import, a drop anywhere on the page or a `#tab=`
+ * What replaces the clip, and what brings it back: Import, a drop anywhere on the page or a `#tab=` / `#tabz=`
  * link open as a new arrangement (`openNew`); an example (Arrangements… or an `#example=` link) is shown in its place until
  * `leaveExample`. Each says on the page what it guessed, or why it couldn't.
  */
-export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }: {
+export function useClipImport({ dispatch, openNew, onNotice, onLinkSound, showTab, toStart }: {
   dispatch: Dispatch<ClipAction>;
+  /** Sets the page's Sound and FX to the ones a link names, once its tab has opened. */
+  onLinkSound: (sound: Omit<LinkContent, 'text'>) => void;
   /** Opens a clip as a new arrangement. */
   openNew: (clip: Clip) => void;
   onNotice: (notice: Notice | null) => void;
@@ -72,27 +73,36 @@ export function useClipImport({ dispatch, openNew, onNotice, showTab, toStart }:
     const errors = await importText(text);
     if (errors) onNotice({ tone: 'error', lines: errors });
   });
-  const badLink = useEffectEvent(() => onNotice({ tone: 'error', lines: [BAD_ENCODING] }));
+  /** Opens a link's tab; the sound and FX it names follow only when the tab could be read. */
+  const openLink = useEffectEvent(async ({ text, ...sound }: LinkContent) => {
+    const errors = await importText(text);
+    if (errors) onNotice({ tone: 'error', lines: errors });
+    else onLinkSound(sound);
+  });
+  const badLink = useEffectEvent((error: Error) => onNotice({ tone: 'error', lines: [error.message] }));
 
-  // The tab in a `#tab=` link, on load or when a link is followed while the page is open.
+  // The tab in a `#tab=` or `#tabz=` link (`shareLink.ts`), on load or when a link is followed while the page is open.
   // The hash is cleared so a reload doesn't import it again.
   useEffect(() => {
-    const readLink = () => {
+    const followLink = async () => {
       const { hash } = window.location;
       if (hash.startsWith(EXAMPLE_HASH)) {
         void openExampleOrSay(decodeURIComponent(hash.slice(EXAMPLE_HASH.length)));
         return;
       }
-      const text = linkText(hash);
-      if (text === null) return;
+      if (!isTabLink(hash)) return;
+      // Cleared before the wait, so a second read (React runs effects twice in development) finds nothing.
       const { pathname, search } = window.location;
       window.history.replaceState(null, '', pathname + search);
-      if (text instanceof Error) badLink();
-      else void importOrSay(text);
+      const link = await readLink(hash);
+      if (link === null) return;
+      if (link instanceof Error) badLink(link);
+      else void openLink(link);
     };
-    readLink();
-    window.addEventListener('hashchange', readLink);
-    return () => window.removeEventListener('hashchange', readLink);
+    const onHashChange = () => void followLink();
+    onHashChange();
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   // A file or text dropped anywhere on the page replaces the clip.
@@ -124,14 +134,4 @@ export const clearExampleHash = () => clearHash(EXAMPLE_HASH);
 function clearHash(prefix: string) {
   const { pathname, search, hash } = window.location;
   if (hash.startsWith(prefix)) window.history.replaceState(null, '', pathname + search);
-}
-
-/** The tab in a `#tab=` hash; null when the hash is something else, an Error when it can't be decoded. */
-function linkText(hash: string): string | Error | null {
-  if (!hash.startsWith(HASH)) return null;
-  try {
-    return decodeURIComponent(hash.slice(HASH.length));
-  } catch (e) {
-    return e as Error;
-  }
 }

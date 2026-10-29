@@ -40,6 +40,27 @@ export const DEFAULT_FX: FxSettings = {
   on: false, distortionOn: true, drive: 0.5, tone: 0.5, reverbOn: true, reverb: 0.3, decay: DECAY_SECONDS.start,
 };
 
+/** A saved number in a range, else its default. */
+const numberIn = (value: unknown, min: number, max: number, fallback: number) =>
+  typeof value === 'number' && value >= min && value <= max ? value : fallback;
+
+/** A saved switch, else its default. */
+const switchOr = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
+
+/** Saved or linked FX, each field checked on its own; anything missing or wrong takes its default. */
+export function parseEffects(saved: unknown): FxSettings {
+  const fields = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {};
+  return {
+    on: switchOr(fields.on, DEFAULT_FX.on),
+    distortionOn: switchOr(fields.distortionOn, DEFAULT_FX.distortionOn),
+    drive: numberIn(fields.drive, 0, 1, DEFAULT_FX.drive),
+    tone: numberIn(fields.tone, 0, 1, DEFAULT_FX.tone),
+    reverbOn: switchOr(fields.reverbOn, DEFAULT_FX.reverbOn),
+    reverb: numberIn(fields.reverb, 0, 1, DEFAULT_FX.reverb),
+    decay: numberIn(fields.decay, DECAY_SECONDS.min, DECAY_SECONDS.max, DEFAULT_FX.decay),
+  };
+}
+
 /** What is heard from the FX: an effect switched off, or every one by the FX button, is at 0. */
 export function heardEffects(fx: FxSettings): EffectSettings {
   return {

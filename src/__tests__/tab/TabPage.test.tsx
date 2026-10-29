@@ -294,6 +294,42 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Copied as text.');
   });
 
+  it('copies a link that opens the same arrangement as a new one, with its sound and FX', async () => {
+    const writeText = vi.fn((text: string) => { void text; return Promise.resolve(); });
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const effects = { on: true, distortionOn: true, drive: 0.9, tone: 0.2, reverbOn: true, reverb: 0.6, decay: 3 };
+    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 27, effects }));
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    const before = alphaTexText();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy link' })); });
+    await waitFor(() => expect(writeText).toHaveBeenCalled(), SLOW);
+    const link = new URL(writeText.mock.calls[0][0]);
+    expect(link.pathname).toBe('/tab');
+    expect(link.hash.startsWith('#tabz=')).toBe(true);
+    expect(notice()).toHaveTextContent('Copied a link to this arrangement.');
+    // Followed in a fresh browser: nothing saved, the link alone brings the arrangement.
+    cleanup();
+    localStorage.clear();
+    renderAt(link.hash);
+    await screen.findByRole('heading', { name: 'Riff' }, SLOW);
+    expect(window.location.hash).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toBe(before);
+    expect(loadLibrary().items).toHaveLength(1);
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 27, effects }));
+  });
+
+  it('says why a damaged #tabz= link could not be read', async () => {
+    localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ sound: 0 }));
+    renderAt('#tabz=not*base64&sound=27');
+    await waitFor(() => expect(notice()).toHaveTextContent('The link\'s tab is cut short or damaged.'), SLOW);
+    expect(window.location.hash).toBe('');
+    // The sound stays the opener's own when the tab couldn't be read.
+    expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ sound: 0 });
+  });
+
   it('saves the clip and opens on it next time', async () => {
     renderAt();
     await paste(RIFF);

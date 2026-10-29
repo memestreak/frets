@@ -615,6 +615,7 @@ export default function TabPage() {
 
   const { importText, openExample, leaveExample } = useClipImport({
     dispatch, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
+    onLinkSound: sound => setPlaybackSettings(settings => ({ ...settings, ...sound })),
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
@@ -652,6 +653,7 @@ export default function TabPage() {
 
   const actions = useClipActions({
     clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
+    linkSound: { sound: playbackSettings.sound, effects: playbackSettings.effects },
   });
 
   const name = clip.name.trim() || UNTITLED;
