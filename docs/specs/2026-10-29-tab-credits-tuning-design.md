@@ -8,11 +8,15 @@ alphaTex. They are now set where they are drawn.
 
 - A press on the artist or a credits line opens the **Artist and credits** panel at the press.
 - A press on the tuning block opens the **Tuning** panel at the press.
-- With no artist or credits, or in standard tuning, nothing is drawn, so there is no visible control
-  (Jeremy's rule: no visible control for an unset value). A row at the head's foot, in place of its
-  gap, takes the press instead: "Add artist and credits" in the middle, under the title, and
-  "Standard tuning" on the left, where the tuning would be. Each is drawn only while the pointer is
-  over it (or it has the keyboard's focus). The row adds 12px to a head with something unset.
+- Nothing in the head shows up only on hover (Jeremy, 2026-10-29). The tuning is always shown: in
+  standard tuning it reads "Standard tuning", on the left where a tuning prints, and a press on it
+  opens the Tuning panel like any other tuning. The exported picture still leaves standard tuning
+  unsaid, as printed scores do.
+- With no artist or credits, a quiet "Add artist and credits" (muted ink) stands in the credits'
+  place under the title, always shown, and opens the Artist and credits panel.
+- Tuning (like Sound's `\instrument`) belongs to a track in alphaTex. Frets has one track, so the
+  clip's tuning is that track's; nothing here should assume one tuning for a whole score, so that
+  several tracks stay possible later.
 - Both are in the Notation view only, in Staff, Tab and Both alike, since that is where the head is
   drawn. The text views already carry the same lines in their text.
 
