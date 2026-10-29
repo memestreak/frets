@@ -8,7 +8,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  BEND_QUARTERS, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  BEND_QUARTERS, isWhammy, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine,
 } from './clip';
@@ -71,7 +71,9 @@ const KEPT_NAMES: Record<string, string> = {
 /* — the parse tree, as far as this file uses it — */
 
 interface Located { start?: { line: number; col: number; offset: number }; end?: { offset: number } }
-interface PropertyNode extends Located { property: { text: string } }
+interface PropertyNode extends Located { property: { text: string }; arguments?: ArgumentsNode }
+/** A property's arguments: numbers, words, or a bracketed list of them. */
+interface ArgumentsNode { arguments?: (ArgumentsNode & { value?: unknown; text?: string })[] }
 interface PropertiesNode { properties: PropertyNode[] }
 interface MetaNode extends Located { tag: { tag: { text: string } } }
 interface NoteNode { noteString?: { value: number }; noteEffects?: PropertiesNode }
@@ -179,8 +181,13 @@ function durationOf(beat: AtBeat, warn: (w: string) => void): Column['duration']
  * Reads a beat's grace note, tremolo picking and octave line onto its column, and says which of tu, gr and tp
  * Frets read; any other form (a tuplet of thirteen, a bend grace note, four tremolo slashes) is kept as written.
  */
-function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
+function beatReads(beat: AtBeat, column: Column, at: AlphaTab, node: BeatNode | undefined): Set<string> {
   const reads = new Set(BEAT_EFFECTS);
+  const whammy = whammyOf(node?.beatEffects);
+  if (whammy) {
+    column.whammy = whammy;
+    reads.add('tb');
+  }
   if (beat.hasTuplet && !column.duration.tuplet) reads.delete('tu');
   if (beat.graceType === at.model.GraceType.BeforeBeat) column.grace = 'before';
   else if (beat.graceType === at.model.GraceType.OnBeat) column.grace = 'on';
@@ -193,6 +200,21 @@ function beatReads(beat: AtBeat, column: Column, at: AlphaTab): Set<string> {
   const ottava = ottavas[beat.ottava as keyof typeof ottavas];
   if (ottava) column.ottava = ottava;
   return reads;
+}
+
+/**
+ * A whammy bar as Frets draws it, from a beat's effects (or a note's, where alphaTab reads it for the
+ * beat too): `tb` with only its points, two or more whole quarter tones none above the note, as written
+ * (alphaTab's reading of them is the same points). A `tb` naming a type or style, a `tbe` with its own
+ * offsets, or a pull-up is kept as written; null then, and with no `tb`.
+ */
+function whammyOf(effects: PropertiesNode | undefined): number[] | null {
+  const property = effects?.properties.find(p => p.property.text === 'tb');
+  let args = property?.arguments?.arguments ?? [];
+  // `tb (0 -4)` and `tb 0 -4` both read; a list inside the brackets is one more level down.
+  if (args.length === 1 && args[0].arguments) args = args[0].arguments;
+  const values = args.map(a => (a.text === undefined && typeof a.value === 'number' ? a.value : NaN));
+  return isWhammy(values) ? values : null;
 }
 
 /** Joins hammer-ons, pull-offs and slides to the note they lead to, the next on the same string. */
@@ -375,12 +397,15 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         const n = noteOf(note, at);
         if (beat.tap) n.tap = true;
         const noteNode = node?.notes?.notes.find(nn => nn.noteString?.value === s + 1);
-        const extra = keptEffects(text, noteNode?.noteEffects, NOTE_EFFECTS, kept);
+        // A whammy bar written with a note is the beat's, written back with the beat (`tb` after its length).
+        const whammy = column.whammy || whammyOf(node?.beatEffects) ? null : whammyOf(noteNode?.noteEffects);
+        if (whammy) column.whammy = whammy;
+        const extra = keptEffects(text, noteNode?.noteEffects, whammy ? new Set([...NOTE_EFFECTS, 'tb']) : NOTE_EFFECTS, kept);
         if (extra.length > 0) n.extra = extra;
         column.notes[s] = n;
         origins.set(n, note);
       }
-      const extra = keptEffects(text, node?.beatEffects, beatReads(beat, column, at), kept);
+      const extra = keptEffects(text, node?.beatEffects, beatReads(beat, column, at, node), kept);
       if (extra.length > 0) column.extra = extra;
       bar.columns.push(column);
     });

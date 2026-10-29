@@ -9,11 +9,13 @@ import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
+import { whammyDrawings } from './whammy';
 
 /** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata';
+  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
+  | 'whammy';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -78,6 +80,7 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const carries = bendCarries(bars);
   const raises = bendRaises(bars);
   const onStaff = staffMarks(layout);
+  const whammies = whammyDrawings(layout);
   layout.systems.forEach((system, si) => {
     const { rows, top } = system;
     const add = (mark: DrawnMark, index: number, string: number | null, x0: number, y0: number, x1: number, y1: number, to?: number) => {
@@ -164,6 +167,8 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
         add('tuplet', cols[from].index, null, cols[from].x - 6, rows.tuplet - 12, cols[to].x + 6, rows.tuplet + 4, cols[to].index);
       }
     }
+    // A whammy bar's line and labels, under the tab.
+    for (const { placed, box } of whammies[si]) add('whammy', placed.index, null, box.x, box.y, box.x + box.width, box.y + box.height);
     for (const { hit, box } of onStaff[si]) out.push({ hit, box: { ...box, y: top + box.y } });
   });
   return out;
@@ -262,6 +267,7 @@ export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
     }
     case 'stroke': return column?.stroke === 'down' ? 'strokeDown' : column?.stroke === 'up' ? 'strokeUp' : null;
     case 'wah': return column?.wah ? 'wah' : null;
+    case 'whammy': return column?.whammy ? 'whammy' : null;
     case 'tremolo': {
       const tools = { 8: 'tremolo8', 16: 'tremolo16', 32: 'tremolo32' } as const;
       return column?.tremolo ? tools[column.tremolo] : null;

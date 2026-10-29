@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { mordentSign } from './marks';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
+import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy';
 
 /**
  * The symbol palette over the tab, as Guitar Pro's: one button per symbol
@@ -15,7 +16,7 @@ import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, disabled }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -25,6 +26,8 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, di
   onTuplet: (n: number | null) => void;
   /** An octave line picked in the Octave line button's panel. */
   onOttava: (ottava: Ottava | null) => void;
+  /** A whammy bar shape picked in the Whammy bar button's panel. */
+  onWhammy: (shape: WhammyShape | null) => void;
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
@@ -51,6 +54,12 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, di
               <PanelTool
                 key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
                 icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
+              />
+            ) : tool.id === 'whammy' ? (
+              <PanelTool
+                key={tool.id} tool={tool} pressed={kinds.whammy !== null}
+                current={kinds.whammy === 'other' ? null : kinds.whammy} choices={WHAMMY_SHAPE_IDS} label={s => WHAMMY_SHAPE_NAMES[s]}
+                icon={<WhammyGlyph />} onPick={onWhammy} disabled={disabled}
               />
             ) : (
               <button
@@ -144,10 +153,12 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number | string>({ tool, current, choices, label, icon, onPick, disabled }: {
+function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled }: {
   tool: Tool;
-  /** The cursor's choice, or null for none. */
+  /** The cursor's choice, or null for none (or for one the panel doesn't offer). */
   current: T | null;
+  /** Whether the cursor has the tool's mark at all, offered or not; by default, when it has a choice. */
+  pressed?: boolean;
   choices: readonly T[];
   /** A choice as the panel names it. */
   label: (choice: T) => string;
@@ -182,7 +193,7 @@ function PanelTool<T extends number | string>({ tool, current, choices, label, i
     <span ref={boxRef} className="tab-tool-box">
       <button
         type="button" className="btn btn-secondary btn-toggle tab-tool"
-        aria-label={tool.label} aria-pressed={!disabled && current !== null} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        aria-label={tool.label} aria-pressed={!disabled && pressed} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
@@ -227,7 +238,18 @@ function TremoloGlyph({ slashes }: { slashes: number }) {
   );
 }
 
-const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'>, ReactNode> = {
+/** The whammy bar: a number with its line diving away under it, as tab prints a dive. */
+function WhammyGlyph() {
+  return (
+    <>
+      <Label x={6} y={9} size={9}>5</Label>
+      <path d="M9 7 L18 19" />
+      <path d="M2 13 H22" strokeWidth={0.8} />
+    </>
+  );
+}
+
+const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah' | 'whammy'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
   quarter: <NoteGlyph open={false} />,

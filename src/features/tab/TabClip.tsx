@@ -13,6 +13,7 @@ import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks
 import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
 import { PAGE_LOOK, type TabLook } from './tabLook';
+import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -153,8 +154,9 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const previous = previousSpots(layout.systems);
   const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
-  const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), landings: bendLandings(clip), legatoStarts: legatoStarts(clip) };
+  const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), landings: bendLandings(clip), legatoStarts: legatoStarts(clip), whammy: whammyJoins(clip) };
   const arcs = legatoArcs(layout.systems);
+  const whammies = whammyDrawings(layout);
   const lastBar = clip.bars.length - 1;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
   const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
@@ -206,7 +208,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} names={layout.names} slides={slides}
-            previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
           />
           {rows.score && onStaff && (
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} />
@@ -283,7 +285,7 @@ function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<type
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, joins, legato, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, names, previous, slides, joins, legato, whammy, lastBar, maskId }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -297,6 +299,8 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
   joins: Joins;
   /** This line's arcs over hammer-ons, pull-offs and legato slides. */
   legato: LegatoArc[];
+  /** This line's whammy bar lines, under the tab. */
+  whammy: WhammyDrawing[];
   lastBar: number;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
@@ -368,6 +372,18 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
     );
   }
 
+  // The whammy bar: lines from the numbers down through the tab to their depths, labelled under it.
+  for (const { placed, pieces, labels } of whammy) {
+    parts.push(
+      <g key={`whammy-${placed.index}`} data-testid="whammy" stroke={look.ink} strokeWidth={1.1} fill="none">
+        {pieces.map((p, k) => <line key={k} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} strokeDasharray={p.dashed ? '3 3' : undefined} />)}
+        {labels.map((l, k) => (
+          <text key={`label-${k}`} x={l.x} y={l.y} fontSize={10} fontWeight={600} fill={look.ink} stroke="none" textAnchor="middle" data-testid="whammy-label">{l.text}</text>
+        ))}
+      </g>,
+    );
+  }
+
   for (const bar of system.bars) {
     for (const placed of bar.columns) {
       parts.push(
@@ -383,6 +399,9 @@ function SystemDrawing({ system, rows, index, clip, look, names, previous, slide
 
   return <>{parts}</>;
 }
+
+/** What a whammy bar's run is labelled, as guitar books print it. */
+const WHAMMY_LABEL = 'w/ bar';
 
 /** The wah's sign centred on (x, y): "+" closed, "o" open, as Guitar Pro prints them. */
 function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: number; look: TabLook }) {
@@ -408,6 +427,21 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
           <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
           {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
           {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
+        </g>,
+      );
+    }
+  }
+
+  // The whammy bar: "w/ bar" and a dashed line over each run of columns that use it, as guitar books print it.
+  if (rows.whammy !== null) {
+    const y = rows.whammy;
+    const lw = runLabelWidth(WHAMMY_LABEL);
+    for (const { columns, x0, x1 } of runsIn(system, c => !!c.whammy)) {
+      const longer = x1 > x0 + lw + 2;
+      parts.push(
+        <g key={`whammy-run-${columns[0].index}`} data-testid="whammy-run">
+          <text x={x0} y={y + 4} fontSize={10} fontStyle="italic" fill={look.ink}>{WHAMMY_LABEL}</text>
+          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
         </g>,
       );
     }

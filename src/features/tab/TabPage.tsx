@@ -15,7 +15,8 @@ import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
 import { setBarKey, readTempo, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
-import { removeMark, setBend, setOttava, setTuplet } from './noteEdits';
+import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { PARTS, type Parts } from './layout';
 import { type StaffDrag, type StaffHit } from './hitTest';
@@ -183,6 +184,7 @@ export default function TabPage() {
     tuplet: pickedTool === 'tuplet' ? cursorKinds.tuplet : null,
     ottava: pickedTool === 'ottava' ? cursorKinds.ottava : null,
     wah: pickedTool === 'wah' ? cursorKinds.wah : null,
+    whammy: pickedTool === 'whammy' ? cursorKinds.whammy : null,
   };
   const count = columnCount(clip);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
@@ -756,7 +758,8 @@ export default function TabPage() {
           isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
           onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
           onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))}
-          onOttava={o => commitKeepingMark(setOttava(clip, target, o))} disabled={view !== 'tab'} />
+          onOttava={o => commitKeepingMark(setOttava(clip, target, o))}
+          onWhammy={shape => commitKeepingMark(setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">

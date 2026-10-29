@@ -44,6 +44,8 @@ export interface Rows {
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
+  /** "w/ bar" and its dashed line over a run of whammy bar columns, as printed guitar books have it. */
+  whammy: number | null;
   /** "P.H." over pinch harmonics, "AH" over artificial ones. */
   harmonics: number | null;
   vibrato: number | null;
@@ -59,6 +61,11 @@ export interface Rows {
   bandBottom: number;
   /** The loop's bracket, under the rhythm. */
   loopY: number;
+  /**
+   * Under the tab, where the whammy bar's lines go down to (`whammy.ts`): the top of the room they take
+   * under the bottom string, pushing the stems down. Null on a line without one, or without the tab.
+   */
+  dives: number | null;
   /** The top string. */
   staffTop: number;
   staffBottom: number;
@@ -119,6 +126,10 @@ export function bendShape(placed: Pick<PlacedColumn, 'bendRoom' | 'bendPeakRoom'
   return { peak, drop: peak };
 }
 
+/** From the bottom string down to the top of the whammy bar's room, and that room's height: its lines and labels. */
+export const DIVES_GAP = 6;
+export const DIVES_ROOM = 34;
+
 /** The radius of a tap's circled T, over the staff and over its number on the tab. */
 export const TAP_RADIUS = 5.5;
 /** From the top of a bend's arrow down to its label's baseline: the label stands this far over the arrow. */
@@ -152,6 +163,7 @@ export function rowsFor(
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
+    whammy: columns.some(c => c.whammy),
     harmonics: notes.some(n => n.harmonic === 'pinch' || n.harmonic === 'artificial'),
     // Vibrato goes over the tab too when the staff is shown, as Guitar Pro prints it (Jeremy, 2026-10-27),
     // and so does a mordent, in the same row (Sweet Child O' Mine, bar 93).
@@ -193,6 +205,7 @@ export function rowsFor(
     strokes: row(used.strokes),
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
+    whammy: row(used.whammy),
     harmonics: row(used.harmonics),
     vibrato: row(used.vibrato),
     accents: row(used.accents),
@@ -201,7 +214,7 @@ export function rowsFor(
     // The staff alone: the tab's rows stand at the staff's foot, drawing nothing.
     const end = y + 12;
     return {
-      ...words, ...marks, score, tab, tabStems: false, staffTop: end, staffBottom: end,
+      ...words, ...marks, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
       bandTop: score!.top - 10, bandBottom: score!.bottom + 10, loopY: end,
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
@@ -217,11 +230,14 @@ export function rowsFor(
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
   const tabStems = score === null;
+  // The whammy bar's lines and their labels go under the tab, and the stems under them.
+  const dives = used.whammy ? staffBottom + DIVES_GAP : null;
+  const under = dives === null ? staffBottom : dives + DIVES_ROOM;
   return {
-    ...words, ...marks, score, tab, tabStems, staffTop, staffBottom,
+    ...words, ...marks, score, tab, tabStems, dives, staffTop, staffBottom,
     bandTop: (score ? score.top : staffTop) - 10, bandBottom: staffBottom + 10,
-    loopY: tabStems ? staffBottom + 40 : staffBottom + 14,
-    stemTop: staffBottom + 8, stemBottom: staffBottom + 32, tuplet: staffBottom + 45, height: tabStems ? staffBottom + 54 : staffBottom + 16,
+    loopY: tabStems ? under + 40 : under + 14,
+    stemTop: under + 8, stemBottom: under + 32, tuplet: under + 45, height: tabStems ? under + 54 : under + 16,
   };
 }
 
@@ -321,7 +337,7 @@ export const MULTI_REST_WIDTH = 300;
 function plainRest(bar: Bar): boolean {
   if (bar.columns.length !== 1 || bar.ending !== undefined || bar.extra?.length) return false;
   const c = bar.columns[0];
-  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.extra?.length;
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
 }
 
 /**

@@ -190,8 +190,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all nine', () => {
-    expect(examples).toHaveLength(9);
+  it('finds all ten', () => {
+    expect(examples).toHaveLength(10);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {
@@ -203,7 +203,7 @@ describe('the examples in tab-alphatex.txt', () => {
   it('keeps every symbol section 6 lists', () => {
     const result = read([
       '\\ks D \\jump Fine',
-      '5.3{ten}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3.8 5.3.8{gr b} 5.3.8 3.6.8{tb (0 -4 0)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
+      '5.3{ten}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3.8 5.3.8{gr b} 5.3.8 3.6.8{tb (0 4)} 3.6.8{tb dive (0 -4)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
     ].join('\n'));
     expect(result.ok).toBe(true);
     if (result.ok) expect(clipOf(writeAlphaTex(result.clip))).toEqual(result.clip);
