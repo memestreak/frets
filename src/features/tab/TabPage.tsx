@@ -313,9 +313,16 @@ export default function TabPage() {
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
   const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip, cursor: cursorAsSet, selection: null });
-  // Off the tab, in the Notation view, the arrow keys and Esc work on the playback line (`lineKeyDown`).
+  /** An edit made off the tab, from the playback line: one undo step, the line held at a gap of the new clip. */
+  const editAtLine = (next: Clip, index: number) => {
+    if (next !== clip) dispatch({ type: 'replace', clip: next });
+    setSelection(null);
+    setNotice(null);
+    setPlayMark({ index, clip: next, cursor: cursorAsSet, selection: null });
+  };
+  // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
-    if (view === 'tab') lineKeyDown(e, { count, line: markAt, selection, select: setSelection, placeLine });
+    if (view === 'tab') lineKeyDown(e, { clip, count, line: markAt, selection, select: setSelection, placeLine, editAtLine });
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => onLineKey(e);

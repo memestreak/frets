@@ -298,6 +298,7 @@ function moveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys):
 
 /** The playback line as the keys off the tab find it, and how they move it. */
 export interface LineKeys {
+  clip: Clip;
   count: number;
   /** The column gap the playback line is at, or null. */
   line: number | null;
@@ -305,17 +306,47 @@ export interface LineKeys {
   select: (selection: Selection | null) => void;
   /** Puts the playback line at a gap, or takes it away. */
   placeLine: (index: number | null) => void;
+  /** Records an edit as one undo step, lets any selection go and puts the playback line at a gap. */
+  editAtLine: (next: Clip, line: number) => void;
+}
+
+/**
+ * Delete or Backspace off the tab (Jeremy, 2026-10-29), as on a column with no string picked: a
+ * selection goes, the line where it began; else the column just before the line becomes a rest
+ * if it holds notes, or, a rest already, goes, and the line steps back over it. Null when there
+ * is nothing to take: no line, or the line at the clip's start.
+ */
+export function deleteAtLine(clip: Clip, line: number | null, selection: Selection | null): { clip: Clip; line: number } | null {
+  if (selection) {
+    const range = selectedRange(selection);
+    return { clip: deleteColumns(clip, range).clip, line: range[0] };
+  }
+  if (line === null || line <= 0) return null;
+  const before = Math.min(line, columnCount(clip)) - 1;
+  if (before < 0) return null;
+  const { bar, column } = placeOf(clip, before);
+  if (!isRest(clip.bars[bar].columns[column])) {
+    return { clip: makeRest(clip, { cursor: { bar, column, string: 0 }, selection: null }), line: before + 1 };
+  }
+  return { clip: deleteColumns(clip, [before, before]).clip, line: before };
 }
 
 /**
  * Off the tab (no string picked), the arrow keys work on the playback line, the footer shown or
  * not (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
- * made so), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
+ * made so), Delete and Backspace take what is before it (`deleteAtLine`), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
  */
-export function lineKeyDown(e: KeyboardEvent, { count, line, selection, select, placeLine }: LineKeys) {
+export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, select, placeLine, editAtLine }: LineKeys) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const target = e.target as Element | null;
   if (target?.closest?.('input, select, textarea, dialog, [role="dialog"], [role="menu"], [role="slider"], .tab-editor')) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    const cut = deleteAtLine(clip, line, selection);
+    if (!cut) return;
+    editAtLine(cut.clip, cut.line);
+    e.preventDefault();
+    return;
+  }
   if (e.key === 'Escape') {
     if (line === null && !selection) return;
     // A selection goes first, leaving the line after its last column (Jeremy, 2026-10-28); then the line goes.
