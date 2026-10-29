@@ -1,0 +1,201 @@
+FRETS CHORD LINKS
+=================
+
+How to open a chord, or a particular way to play it, on the Frets Chords
+page (https://frets.eminor.net/chords). Written for people and for AI
+agents. Everything below is a rule unless it says "may".
+
+The Chords page shows one chord at a time: its name, its notes and its
+shapes on a six-string guitar in standard tuning. A link opens it on a
+chord, on a shape, or on both. For a progression, give one link per chord.
+
+
+1. THE LINK
+-----------
+
+    https://frets.eminor.net/chords?chord=<chord>&shape=<shape>
+
+Either part may be left out:
+
+    ?chord=<chord>                 the chord on its first shape (an open
+                                   shape when it has one)
+    ?shape=<shape>                 those frets, named by Frets
+    ?chord=<chord>&shape=<shape>   those frets under that name, even when
+                                   the shape leaves out one of its notes
+
+A chord or a shape Frets can't read is ignored; with neither, the page
+opens on Am7.
+
+
+2. THE CHORD
+------------
+
+A chord is its root followed by its type, lower case, with nothing between:
+am7, fsharpm7b5, bb13, c (C major: the root alone).
+
+Roots, one spelling per pitch, as chord charts write them:
+
+    c  db  d  eb  e  f  fsharp  g  ab  a  bb  b
+
+Write C# as db, D# as eb, Gb as fsharp, G# as ab and A# as bb. There is no
+other root: no cb, no e#, no double sharps.
+
+Types: the first column of the list below, exactly as written. "#" is
+written "sharp" and a capital M (major) "maj"; the second column is how
+Frets prints the name, the third the chord's notes above the root. A type
+not in the list can't be linked: link its nearest type, or the shape alone.
+
+--- generated from the code: do not edit by hand ---
+    (none)             C             1 3 5
+    m                  Cm            1 b3 5
+    7                  C7            1 3 5 b7
+    maj7               Cmaj7         1 3 5 7
+    m7                 Cm7           1 b3 5 b7
+    m7b5               Cm7♭5         1 b3 b5 b7
+    dim                C°            1 b3 b5
+    dim7               C°7           1 b3 b5 bb7
+    aug                C+            1 3 #5
+    sus2               Csus2         1 2 5
+    sus4               Csus4         1 4 5
+    6                  C6            1 3 5 6
+    m6                 Cm6           1 b3 5 6
+    9                  C9            1 3 5 b7 9
+    m9                 Cm9           1 b3 5 b7 9
+    maj9               Cmaj9         1 3 5 7 9
+    majadd9            Cadd9         1 3 5 9
+    7sus4              C7sus4        1 4 5 b7
+    13                 C13           1 3 5 b7 9 13
+    5                  C5            1 5
+    maj7sharp5sus4     CM7♯5sus4     1 4 #5 7
+    7sharp5sus4        C7♯5sus4      1 4 #5 b7
+    maj7sus4           CM7sus4       1 4 5 7
+    7no5               C7no5         1 3 b7
+    maj7b6             CM7♭6         1 3 b6 7
+    maj7sharp5         Cmaj7♯5       1 3 #5 7
+    7sharp5            C7♯5          1 3 #5 b7
+    7b13               C7♭13         1 3 b7 b13
+    7add6              C7add6        1 3 5 b7 13
+    7b6                C7♭6          1 3 5 b6 b7
+    majb5              CM♭5          1 3 b5
+    maj7b5             CM7♭5         1 3 b5 7
+    7b5                C7♭5          1 3 b5 b7
+    majsharp4          Cmaj♯4        1 3 5 7 #11
+    7sharp11           C7♯11         1 3 5 b7 #11
+    maj6sharp11        CM6♯11        1 3 5 6 #11
+    7sharp11b13        C7♯11♭13      1 3 5 b7 #11 b13
+    msharp5            Cm♯5          1 b3 #5
+    mb6m7              Cm♭6M7        1 b3 b6 7
+    m7sharp5           Cm7♯5         1 b3 b6 b7
+    mmaj7              Cm(maj7)      1 b3 5 7
+    mmaj7b6            CmMaj7♭6      1 b3 5 b6 7
+    om7                CoM7          1 b3 b5 7
+    o7m7               Co7M7         1 b3 b5 6 7
+    4                  C4            1 4 b7 b10
+    madd4              Cmadd4        1 b3 4 5
+    m7add11            Cm7add11      1 b3 5 b7 11
+    augaddsharp9       C+add♯9       1 3 #5 #9
+    7sharp5sharp9      C7♯5♯9        1 3 #5 b7 #9
+    7sharp9            C7♯9          1 3 5 b7 #9
+    13sharp9           C13♯9         1 3 5 b7 #9 13
+    7sharp9b13         C7♯9♭13       1 3 5 b7 #9 b13
+    maj7sharp9sharp11  Cmaj7♯9♯11    1 3 5 7 #9 #11
+    7sharp9sharp11     C7♯9♯11       1 3 5 b7 #9 #11
+    13sharp9sharp11    C13♯9♯11      1 3 5 b7 #9 #11 13
+    7sharp9sharp11b13  C7♯9♯11♭13    1 3 5 b7 #9 #11 b13
+    maj9sharp5sus4     CM9♯5sus4     1 4 #5 7 9
+    sus24              Csus24        1 2 4 5
+    maj9sus4           CM9sus4       1 4 5 7 9
+    11                 C11           1 5 b7 9 11
+    9sus4              C9sus4        1 4 5 b7 9
+    13sus4             C13sus4       1 4 5 b7 9 13
+    9no5               C9no5         1 3 b7 9
+    13no5              C13no5        1 3 b7 9 13
+    majsharp5add9      CM♯5add9      1 3 #5 9
+    maj9sharp5         Cmaj9♯5       1 3 #5 7 9
+    9sharp5            C9♯5          1 3 #5 b7 9
+    9b13               C9♭13         1 3 b7 9 b13
+    6add9              C6add9        1 3 5 6 9
+    maj13              Cmaj13        1 3 5 7 9 13
+    maj7add13          CM7add13      1 3 5 6 7 9
+    maj9b5             CM9♭5         1 3 b5 7 9
+    9b5                C9♭5          1 3 b5 b7 9
+    13b5               C13♭5         1 3 b5 6 b7 9
+    9sharp5sharp11     C9♯5♯11       1 3 #5 b7 9 #11
+    maj9sharp11        Cmaj9♯11      1 3 5 7 9 #11
+    9sharp11           C9♯11         1 3 5 b7 9 #11
+    69sharp11          C69♯11        1 3 5 6 9 #11
+    maj13sharp11       CM13♯11       1 3 5 7 9 #11 13
+    13sharp11          C13♯11        1 3 5 b7 9 #11 13
+    9sharp11b13        C9♯11♭13      1 3 5 b7 9 #11 b13
+    m9sharp5           Cm9♯5         1 b3 b6 b7 9
+    madd9              Cmadd9        1 b3 5 9
+    mm9                CmM9          1 b3 5 7 9
+    m69                Cm69          1 b3 5 6 9
+    m13                Cm13          1 b3 5 b7 9 13
+    mmaj9b6            CmMaj9♭6      1 b3 5 b6 7 9
+    m9b5               Cm9♭5         1 2 b3 b5 b7
+    m11a               Cm11A         1 b3 #5 b7 9 11
+    m11                Cm11          1 b3 5 b7 9 11
+    b9sus              C♭9sus        1 4 5 b7 b9
+    11b9               C11♭9         1 5 b7 b9 11
+    7sus4b9b13         C7sus4♭9♭13   1 4 5 b7 b9 b13
+    alt7               Calt7         1 3 b7 b9
+    7sharp5b9          C7♯5♭9        1 3 #5 b7 b9
+    majaddb9           CMadd♭9       1 3 5 b9
+    maj7b9             CM7♭9         1 3 5 7 b9
+    7b9                C7♭9          1 3 5 b7 b9
+    13b9               C13♭9         1 3 5 b7 b9 13
+    7b9b13             C7♭9♭13       1 3 5 b7 b9 b13
+    7sharp5b9sharp11   C7♯5♭9♯11     1 3 #5 b7 b9 #11
+    7b9sharp11         C7♭9♯11       1 3 5 b7 b9 #11
+    13b9sharp11        C13♭9♯11      1 3 5 b7 b9 #11 13
+    7b9b13sharp11      C7♭9♭13♯11    1 3 5 b7 b9 #11 b13
+    mb6b9              Cm♭6♭9        1 b3 b6 b9
+    7b9sharp9          C7♭9♯9        1 3 5 b7 b9 #9
+    majadd11           Cadd11        1 3 5 11
+    majadd9add11       Cadd9(add11)  1 3 5 9 11
+    mmaj7sharp11       Cm(maj7)♯11   1 b3 5 7 #11
+--- end of generated list ---
+
+
+3. THE SHAPE
+------------
+
+Six frets joined by "-", from the low E string (the thickest) to the high
+e string: a number from 0 (open) to 15, or x for a string not played.
+
+    x-0-2-2-1-0      Am, open
+    3-2-0-0-0-3      G, open
+    x-3-5-3-4-3      Cm7, barred at the 3rd fret
+    8-x-9-9-8-x      Cmaj7, root on the low E string
+
+Frets doesn't check that a shape can be played: keep it within about four
+frets, one finger per fret, with a barre where a finger lies across several
+strings.
+
+
+4. EXAMPLES
+-----------
+
+    https://frets.eminor.net/chords?chord=am7
+    https://frets.eminor.net/chords?chord=fsharpm7b5&shape=2-x-2-2-1-x
+    https://frets.eminor.net/chords?chord=c7sharp9&shape=x-3-2-3-4-x
+    https://frets.eminor.net/chords?shape=x-0-2-2-1-0
+
+A ii-V-I in C, one link per chord:
+
+    https://frets.eminor.net/chords?chord=dm7&shape=x-5-7-5-6-5
+    https://frets.eminor.net/chords?chord=g7&shape=3-x-3-4-3-x
+    https://frets.eminor.net/chords?chord=cmaj7&shape=x-3-5-4-5-3
+
+
+5. CHECKLIST FOR AGENTS
+-----------------------
+
+1. Name each chord as a guitarist writes it, then find its type in the
+   list in section 2; write the root from the roots list.
+2. When the user asks for a particular voicing, add its shape; otherwise
+   the chord alone is enough and Frets shows its shapes.
+3. Check every shape: six parts, each x or 0 to 15, and its notes are the
+   chord's notes.
+4. Give each chord's name with its link.

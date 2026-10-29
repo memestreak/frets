@@ -43,6 +43,7 @@ export function ImportDialog({ open, onClose, onImport }: {
           Formats: <a href="/tab-alphatex.txt" target="_blank" rel="noreferrer">alphaTex</a>{' '}
           or <a href="/tab-ascii.txt" target="_blank" rel="noreferrer">ASCII tab</a>.
           Importing opens it as a new arrangement.
+          An <a href="/agents" target="_blank" rel="noreferrer">AI agent</a> can write it for you.
         </p>
         {errors.length > 0 && (
           <ul className="m-0 pl-5 text-(--danger)" data-testid="import-errors">

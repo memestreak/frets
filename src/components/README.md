@@ -19,7 +19,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `BrandMark` and wordmark home, then the group and the page as one
   button opening a panel of every page with the current one marked; then
   `ThemeSwitch`, one button cycling Auto, Light, Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
-  `<main>` and `AppFooter` (source link and the build's commit hash, from
+  `<main>` and `AppFooter` (source link, the AI agents link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
 - `src/components/fretboard/` (SVG `Fretboard` with rounded fingerboard

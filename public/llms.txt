@@ -1,0 +1,19 @@
+# Frets
+
+> Frets (https://frets.eminor.net) is a guitar fretboard app: scales,
+> chords, triads, the circle of fifths, a tuner, a tab editor and ear
+> trainers. AI agents can write chords and tab that open in it from a link.
+
+People: see https://frets.eminor.net/agents for these guides and skills to
+download.
+
+## Guides
+
+- [Chord links](https://frets.eminor.net/chord-links.txt): open a chord or a chord shape on the Chords page
+- [Tab as alphaTex](https://frets.eminor.net/tab-alphatex.txt): write tab the Tab page opens, and link to it
+- [Tab as ASCII](https://frets.eminor.net/tab-ascii.txt): the plainer format the Tab page also reads
+
+## Skills
+
+- [frets-chords](https://frets.eminor.net/skills/frets-chords/SKILL.md): Agent Skill for chord links
+- [frets-tab](https://frets.eminor.net/skills/frets-tab/SKILL.md): Agent Skill for tab
