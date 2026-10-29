@@ -160,7 +160,7 @@ describe('readAscii forgives', () => {
       'E|-------------|-----------------|---------|',
     ].join('\n'));
     expect(clip.bars).toHaveLength(3);
-    expect(warnings).toEqual(['Bars 1 and 3 don\'t add up to 4/4.']);
+    expect(warnings).toEqual(['Bar 1 doesn\'t add up to 4/4: 1 beat short; bar 3: 2 beats short.']);
   });
 
   it('tab with no bar lines inside, taking the most common gap as an eighth', () => {

@@ -475,11 +475,11 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', '-');
       // One eighth: the bar doesn't add up.
-      expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4.");
+      expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and an 8th short.");
       // A lone triplet eighth: nor is the triplet whole.
       act(() => { fireEvent.keyDown(editor(), { key: '3', code: 'Digit3', altKey: true }); });
       const warning = screen.getByTestId('bar-warning');
-      expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
+      expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and a quarter triplet short. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
     });
 
     it('writes free text over a column from the palette, and edits it from a press on it', () => {
@@ -582,7 +582,7 @@ describe('TabPage', () => {
       // Three quarters: the rest → filled the bar with is deleted.
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', 'Delete');
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
-      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 1 beat short.');
       // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
       fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
       const panel = screen.getByRole('dialog', { name: 'Time signature' });
@@ -600,7 +600,7 @@ describe('TabPage', () => {
       expect(beats).toHaveValue('5');
       fireEvent.click(within(panel).getByRole('button', { name: '8' }));
       expect(within(panel).getByRole('button', { name: '8' })).toHaveAttribute('aria-pressed', 'true');
-      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 5/8.');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 5/8: 1 beat over.');
       undo();
       expect(drawn()).toBe('54');
       undo();
@@ -649,7 +649,7 @@ describe('TabPage', () => {
       renderAt();
       act(() => editor().focus());
       keys('5');
-      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4.');
+      expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 3 beats short.');
     });
   });
 });

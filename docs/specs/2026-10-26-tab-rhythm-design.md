@@ -51,8 +51,10 @@ six or seven in the time of four.
 - **Kept as written:** `tu 9` and other tuplets, `gr b` (bend grace notes),
   `tp 4` and more slashes, and tremolo styles such as buzz roll. They are
   listed in the kept line.
-- **Bars that don't add up** are named by their own time ("Bar 1 doesn't add
-  up to 4/4; bars 2 and 3 don't add up to 3/4.", `unevenMessage`).
+- **Bars that don't add up** are named by their own time and by how much they
+  are short or over ("Bar 1 doesn't add up to 4/4: 2 beats short; bar 2
+  doesn't add up to 3/4: 1 beat short; bar 3: 1 beat short.", `unevenMessage`);
+  see `2026-10-29-tab-uneven-bar-amounts-design.md`.
 
 ## Setting them
 
