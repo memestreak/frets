@@ -1,0 +1,4 @@
+\title "Vibrato on bends"
+\ts (4 4)
+\tempo 60 7.3{b (0 4) v}.2 r.2 | 7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |
+7.3{b (0 4) vw}.2 r.2 |
