@@ -1811,6 +1811,7 @@ describe('TabPage export', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+    expect(within(dialog).getByRole('combobox', { name: 'Format' })).toHaveValue('png');
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);
     // A choice changes the preview's size line and is remembered.
@@ -1821,8 +1822,59 @@ describe('TabPage export', () => {
     // Hiding the name greys out its field.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Clip name' })).getByRole('button', { name: 'Hide' }));
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+    // One way to close: × (or Esc); no Done.
+    expect(within(dialog).queryByRole('button', { name: 'Done' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
     expect(dialog).not.toHaveAttribute('open');
+  });
+
+  it('lists every format in one Format list, with the image choices only for PNG and SVG, and Copy only where it can paste', () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+    const format = within(dialog).getByRole('combobox', { name: 'Format' });
+    expect(within(format).getAllByRole('option').map(o => o.textContent)).toEqual(['PNG image', 'SVG image', 'ASCII tab', 'alphaTex', 'MusicXML', 'Guitar Pro']);
+    const shows = () => ({
+      preview: within(dialog).queryByTestId('export-preview') !== null,
+      copy: within(dialog).queryByRole('button', { name: 'Copy' }) !== null,
+      downloads: within(dialog).getAllByRole('button', { name: /Download/ }).length,
+    });
+    const seen: Record<string, ReturnType<typeof shows>> = {};
+    for (const f of ['png', 'svg', 'ascii', 'alphatex', 'musicxml', 'guitarPro']) {
+      fireEvent.change(format, { target: { value: f } });
+      seen[f] = shows();
+    }
+    expect(seen).toEqual({
+      png: { preview: true, copy: true, downloads: 1 },
+      svg: { preview: true, copy: true, downloads: 1 },
+      ascii: { preview: false, copy: true, downloads: 1 },
+      alphatex: { preview: false, copy: true, downloads: 1 },
+      musicxml: { preview: false, copy: false, downloads: 1 },
+      guitarPro: { preview: false, copy: false, downloads: 1 },
+    });
+    // Closed and opened again, it is still on the format last picked.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    expect(within(screen.getByRole('dialog', { name: 'Export Riff' })).getByRole('combobox', { name: 'Format' })).toHaveValue('guitarPro');
+  });
+
+  it('copies ASCII tab and alphaTex as text', async () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: 'alphatex' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+    await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Copied as text'));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining('\\title "Riff"'));
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: 'ascii' } });
+    expect(within(dialog).getByRole('status')).toHaveTextContent('');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringMatching(/^e\|/m));
   });
 
   describe('the AlphaTex view (issue #126)', () => {
@@ -1924,10 +1976,9 @@ describe('TabPage export', () => {
     expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
   });
 
-  it('opens the Export dialog from the Export button, which also downloads the clip as text', () => {
+  it('downloads the picked format with the one Download button', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
-    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     const saved: string[] = [];
@@ -1936,23 +1987,34 @@ describe('TabPage export', () => {
     });
     URL.createObjectURL = vi.fn(() => 'blob:x');
     URL.revokeObjectURL = vi.fn();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Download alphaTex' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Download ASCII' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Download MusicXML' }));
-    expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt', 'Riff.musicxml']);
-    expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.musicxml');
-    // The file holds all of this clip, so no ⚠ says otherwise.
-    expect(within(dialog).queryByRole('img', { name: /MusicXML file leaves out/ })).toBeNull();
-    click.mockRestore();
+    try {
+      for (const [f, name] of [['alphatex', 'Riff.alphatex.txt'], ['ascii', 'Riff.txt'], ['musicxml', 'Riff.musicxml'], ['svg', 'Riff.svg']]) {
+        fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: f } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Download' }));
+        await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent(`Downloaded ${name}`));
+      }
+      expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt', 'Riff.musicxml', 'Riff.svg']);
+      // The file holds all of this clip, so no ⚠ says otherwise.
+      fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: 'musicxml' } });
+      expect(within(dialog).queryByRole('img', { name: /MusicXML file leaves out/ })).toBeNull();
+    } finally {
+      click.mockRestore();
+    }
   });
 
-  it('marks Download MusicXML and Download Guitar Pro with a ⚠ when the file can\'t hold all of the clip', async () => {
+  it('marks MusicXML and Guitar Pro with a ⚠ when the file can\'t hold all of the clip, only while that format is picked', async () => {
     renderAt('#example=oceanic-speedy-down-run');
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: /^Export/ });
+    const format = within(dialog).getByRole('combobox', { name: 'Format' });
+    expect(within(dialog).queryByRole('img', { name: /leaves out/ })).toBeNull();
+    fireEvent.change(format, { target: { value: 'musicxml' } });
     expect(within(dialog).getByRole('img', { name: 'The MusicXML file leaves out the FX.' })).toHaveTextContent('⚠');
+    fireEvent.change(format, { target: { value: 'guitarPro' } });
     expect(within(dialog).getByRole('img', { name: 'The Guitar Pro file leaves out the FX.' })).toHaveTextContent('⚠');
+    fireEvent.change(format, { target: { value: 'alphatex' } });
+    expect(within(dialog).queryByRole('img', { name: /leaves out/ })).toBeNull();
   });
 
   it('downloads the whole clip as a Guitar Pro file from Export and from Notation\'s Save as list', async () => {
@@ -1972,11 +2034,12 @@ describe('TabPage export', () => {
     try {
       fireEvent.click(screen.getByRole('button', { name: 'Export' }));
       const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+      fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: 'guitarPro' } });
       // The riff has no FX, so nothing is left out.
       expect(within(dialog).queryByRole('img', { name: /Guitar Pro file leaves out/ })).toBeNull();
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Download Guitar Pro' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Download' }));
       await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.gp'), SLOW);
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
       fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
       fireEvent.click(within(screen.getByRole('menu', { name: 'Save as' })).getByRole('menuitem', { name: 'Guitar Pro…' }));
       await waitFor(() => expect(saved).toHaveLength(2), SLOW);

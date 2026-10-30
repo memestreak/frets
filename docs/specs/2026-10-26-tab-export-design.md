@@ -49,7 +49,10 @@ used to make moved into the dialog, so nothing is lost.
 
 ## The dialog
 
-It follows the Chords page's Export dialog:
+A **Format** list at the top picks what to export: PNG image, SVG image,
+ASCII tab, alphaTex, MusicXML or Guitar Pro. One **Download** button saves
+the clip in that format (`2026-10-30-tab-export-format-list-design.md`).
+For PNG and SVG the dialog also shows, as the Chords page's does:
 
 - **Preview:** the image as it will be, on white, shrunk to fit.
 - **Size line:** the image's size in pixels under the preview, and whether
@@ -62,12 +65,6 @@ It follows the Chords page's Export dialog:
   - **Clip name:** Show (default) or Hide, above the tab.
   - **Name:** what the title says. It starts as the clip's name and can be
     changed for this export only.
-- **Actions:** Copy PNG, Copy SVG, Download PNG, Download SVG. Under them,
-  "Other formats" (first "As text"): Download alphaTex (`<name>.alphatex.txt`), Download ASCII
-  (`<name>.txt`), Download MusicXML (`<name>.musicxml`, every track;
-  `2026-10-30-tab-musicxml-export-design.md`) and Download Guitar Pro (`<name>.gp`, every track;
-  `2026-10-30-tab-guitar-pro-export-design.md`). A line says what happened. It stays open after an action; Done, × or Esc close
-  it.
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,
 so they are left out. The image is black ink, as the chords' black and
@@ -89,7 +86,7 @@ the cursor's band shows through them too.
   `tabFileName`.
 - `TabExportDialog.tsx`: the dialog.
 - The chord export code now shares a few helpers with the Tab page:
-  - `copySvgAsPng`, `copySvgCode` and `downloadSvg` in `exportImage.ts`
+  - `copySvgAsPng`, `copySvgCode` and `svgToPng` in `exportImage.ts`
     work on any SVG;
   - `useMenuTrigger.ts` handles right-click, a long press and Shift+F10 for
     both pages;
