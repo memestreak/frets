@@ -5,8 +5,8 @@ import { KeyPicker } from '@/components/KeyPicker';
 import { SearchIcon } from '@/components/icons';
 import {
   chordRootOf, CHORD_GROUPS, CHORD_TYPES, type ChordRoot,
-} from '@/lib/chords/chordTypes';
-import { findChord } from './chordSearch';
+} from '@/lib/theory/chords';
+import { findChord } from '@/lib/theory/chordSearch';
 
 interface ChordPickersProps {
   root: ChordRoot;

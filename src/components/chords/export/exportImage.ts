@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { ChordDiagram, DIAGRAM_WIDTH, diagramSize } from '@/components/chords/ChordDiagram';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import { voicingKey, type Voicing } from '@/lib/chords/voicings';
 import { BACKDROP, exportLook, type ExportStyle } from './exportStyle';
 

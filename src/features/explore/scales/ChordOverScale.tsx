@@ -1,10 +1,11 @@
 import { ToneKey } from '@/components/chords/ToneKey';
 import { Segmented } from '@/components/controls';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import { ChordClock } from './ChordClock';
 import { ChordLadder } from './ChordLadder';
 import type { ChordIntervals, ChordView } from './settings';
-import type { DiatonicChord, Scale } from './theory';
+import type { DiatonicChord } from '@/lib/theory/diatonic';
+import type { Scale } from '@/lib/theory/scales';
 
 const VIEW_OPTS = [['ladder', 'Ladder'], ['clock', 'Clock']] as const;
 const INTERVAL_OPTS = [['root', 'From the root'], ['between', 'Between tones']] as const;

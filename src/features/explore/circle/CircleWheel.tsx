@@ -1,7 +1,7 @@
 import { useId, useState, type KeyboardEvent } from 'react';
 import { DEGREES } from '@/components/fretboard/theme';
 import {
-  ALL_CELLS, cellId, cellName, keySignature, signatureTip,
+  ALL_CELLS, cellId, cellName, signatureTip, spokeSignature,
   type Cell, type Ring, type RingNote, type WheelModel,
 } from './circle';
 
@@ -79,7 +79,7 @@ function layout(ring: boolean, staves: boolean) {
   let halfX = bare;
   let halfY = bare;
   const staffAt = Array.from({ length: 12 }, (_, spoke) => {
-    const w = staffWidth(keySignature(spoke).notes.length);
+    const w = staffWidth(spokeSignature(spoke).notes.length);
     const at = point(spoke, bare + reach(spoke, w, STAFF_HEIGHT));
     if (staves) {
       halfX = Math.max(halfX, Math.abs(at[0]) + w / 2 + 2);
@@ -246,7 +246,7 @@ export function CircleWheel({ model, signatures, pickable, onPick, onNote, previ
       )}
 
       {signatures && staffAt.map(([cx, cy], spoke) => {
-        const { sharps, notes } = keySignature(spoke);
+        const { sharps, notes } = spokeSignature(spoke);
         const w = staffWidth(notes.length);
         const x0 = cx - w / 2;
         const yOf = (step: number) => cy + 4 * STEP - step * STEP;

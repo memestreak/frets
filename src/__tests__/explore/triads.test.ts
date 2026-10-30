@@ -1,7 +1,7 @@
 import {
   gripAt, gripCaption, STRING_SETS, setLabel, TRIAD_TYPES, triadGrips, type Grip,
 } from '@/features/explore/triads/triads';
-import { chordOf, CHORD_ROOTS } from '@/lib/chords/chordTypes';
+import { chordOf, CHORD_ROOTS } from '@/lib/theory/chords';
 import { pitchClass } from '@/lib/music';
 
 /** A grip as "inversion: frets on the set's strings", e.g. "1: 9-8-8". */

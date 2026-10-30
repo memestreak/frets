@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { KeyPicker } from '@/components/KeyPicker';
-import { prettyNote } from '@/lib/notation';
+import { prettyNote } from '@/lib/theory/notes';
 import { STRING_COUNT, type Part } from './clip';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from './tuning';
 import { usePopover } from './usePopover';

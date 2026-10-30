@@ -1,5 +1,5 @@
 import { TUNING } from '@/lib/music';
-import type { ChordInfo } from './chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import type { Voicing } from './voicings';
 import data from './data/haus-of-chords.json';
 

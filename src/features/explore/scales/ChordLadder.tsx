@@ -4,8 +4,9 @@ import {
   chordSpans, degreeFill, degreeInk, degreeLabel, describeChord, describeScale,
   IntervalTag, toneFill, toneInk, toneLabel,
 } from './chordDiagram';
-import { prettyNote } from '@/lib/notation';
-import type { DiatonicChord, Scale } from './theory';
+import { prettyNote } from '@/lib/theory/notes';
+import type { DiatonicChord } from '@/lib/theory/diatonic';
+import type { Scale } from '@/lib/theory/scales';
 
 const CELL = 30;
 const TILE = 26;

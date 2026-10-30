@@ -8,9 +8,9 @@
  */
 import { keyAt, STRING_COUNT, type Part, type Column, type Duration, type Note } from './clip';
 import { clearNote, columnAt, MAX_FRET, normalize, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
-import { keyAccidentals, writtenStrings, spell, staffStep, WRITTEN_OCTAVE } from './notation';
-
-const PITCH_CLASS = [0, 2, 4, 5, 7, 9, 11];
+import { keyAccidentals, spellPitch } from '@/lib/theory/keys';
+import { LETTER_PCS } from '@/lib/theory/notes';
+import { writtenStrings, staffStep, WRITTEN_OCTAVE } from './notation';
 /** `staffStep` counts from E4, the bottom line: letter 2 of octave 4. */
 const STEP_ZERO = 4 * 7 + 2;
 /** How far the staff cursor may go: two octaves of ledger lines below the staff and above it. */
@@ -22,7 +22,7 @@ export type Place = Pick<Cursor, 'bar' | 'column'>;
 
 /** The staff step a sounding pitch is written on, spelled in the bar's key. */
 export function stepOf(clip: Part, bar: number, pitch: number): number {
-  return staffStep(spell(pitch + WRITTEN_OCTAVE, keyAt(clip, bar)));
+  return staffStep(spellPitch(pitch + WRITTEN_OCTAVE, keyAt(clip, bar)));
 }
 
 /** The pitch of a line or space as the key has it: F♯ on the top line in G major. */
@@ -30,7 +30,7 @@ export function pitchOfStep(clip: Part, bar: number, step: number): number {
   const letterSteps = step + STEP_ZERO;
   const octave = Math.floor(letterSteps / 7);
   const letter = letterSteps - octave * 7;
-  const written = (octave + 1) * 12 + PITCH_CLASS[letter] + keyAccidentals(keyAt(clip, bar))[letter];
+  const written = (octave + 1) * 12 + LETTER_PCS[letter] + keyAccidentals(keyAt(clip, bar))[letter];
   return written - WRITTEN_OCTAVE;
 }
 
@@ -158,7 +158,7 @@ export function moveToString(clip: Part, at: Place, pitch: number, direction: -1
 /** Where the staff cursor is drawn for a pitch: its step, and the sign it shows when the key doesn't give it. */
 export function staffCursorPlace(clip: Part, bar: number, pitch: number): { step: number; sign: -1 | 0 | 1 | null } {
   const key = keyAt(clip, bar);
-  const n = spell(pitch + WRITTEN_OCTAVE, key);
+  const n = spellPitch(pitch + WRITTEN_OCTAVE, key);
   const fromKey = keyAccidentals(key)[n.letter];
   return { step: staffStep(n), sign: n.accidental === fromKey ? null : (Math.max(-1, Math.min(1, n.accidental)) as -1 | 0 | 1) };
 }

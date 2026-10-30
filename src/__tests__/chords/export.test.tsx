@@ -9,7 +9,7 @@ import {
   BACKDROP, DEFAULT_EXPORT_STYLE, EXPORT_STORAGE_KEY, LIGHT_PALETTE, parseExportStyle,
   type ExportStyle,
 } from '@/components/chords/export/exportStyle';
-import { chordOf } from '@/lib/chords/chordTypes';
+import { chordOf } from '@/lib/theory/chords';
 import type { Voicing } from '@/lib/chords/voicings';
 
 /** Renders the page at /chords plus `search`. */

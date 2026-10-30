@@ -1,4 +1,4 @@
-import type { ChordInfo } from '@/lib/chords/chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import type { Voicing } from '@/lib/chords/voicings';
 import { pitchClass, samePos, STRING_NAMES, type Position } from '@/lib/music';
 

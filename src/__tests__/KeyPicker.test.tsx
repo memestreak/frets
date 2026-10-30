@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { KEY_PICKER_NOTES, KeyPicker } from '@/components/KeyPicker';
-import { ROOTS } from '@/features/explore/scales/theory';
+import { ROOTS } from '@/lib/theory/scales';
 
 const FLATS: Record<string, string> = { 'C#': 'Db', 'D#': 'Eb', 'G#': 'Ab', 'A#': 'Bb' };
 

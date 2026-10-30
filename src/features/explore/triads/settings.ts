@@ -1,5 +1,5 @@
 import { isDotLabels, type DotLabels } from '@/components/DotLabels';
-import { CHORD_ROOTS, type ChordRoot } from '@/lib/chords/chordTypes';
+import { CHORD_ROOTS, type ChordRoot } from '@/lib/theory/chords';
 import { STRING_SETS, TRIAD_TYPES, type StringSet, type TriadType } from './triads';
 
 export interface TriadsSettings {

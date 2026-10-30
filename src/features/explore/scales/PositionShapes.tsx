@@ -4,7 +4,7 @@ import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { LAST_POSITION } from '@/lib/chords/voicings';
 import { libraryHref, positionLabel, type PositionChord } from './positions';
-import type { DiatonicChord } from './theory';
+import type { DiatonicChord } from '@/lib/theory/diatonic';
 
 interface PositionShapesProps {
   /** One per diatonic chord, in `chords` order (`index`). */

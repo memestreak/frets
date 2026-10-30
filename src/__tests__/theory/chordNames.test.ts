@@ -1,5 +1,5 @@
-import { chordFromTones, chordOf } from '@/lib/chords/chordTypes';
-import { nameAs, nameNotes } from '@/features/chords/naming';
+import { chordFromTones, chordOf } from '@/lib/theory/chords';
+import { nameAs, nameNotes } from '@/lib/theory/chordNames';
 
 const PC: Record<string, number> = {
   C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, 'F#': 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11,

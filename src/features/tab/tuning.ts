@@ -3,11 +3,9 @@
  * Pure. Changing the tuning keeps every note's fret, as Guitar Pro does by default, so the music
  * sounds as fingered in the new tuning. See docs/specs/2026-10-29-tab-credits-tuning-design.md.
  */
+import { FLAT_NOTES, mod12, pitchClassOf, SHARP_NOTES } from '@/lib/theory/notes';
 import { STANDARD_TUNING, STRING_COUNT, type Part } from './clip';
 import { openStrings } from './notation';
-
-const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 export interface TuningPreset {
   name: string;
@@ -49,7 +47,7 @@ export function stringNote(tuning: readonly string[], low: number): string {
   const high = STRING_COUNT - 1 - low;
   const open = openStrings(tuning)[high];
   const standard = openStrings(STANDARD_TUNING)[high];
-  return (open < standard ? FLAT_NAMES : SHARP_NAMES)[((open % 12) + 12) % 12];
+  return (open < standard ? FLAT_NOTES : SHARP_NOTES)[mod12(open)];
 }
 
 /** The clip in another tuning, every fret kept; the clip itself when nothing changes. */
@@ -64,8 +62,4 @@ export function withStringNote(clip: Part, low: number, note: string): Part {
 }
 
 /** A note spelled with a sharp, as the clip reads a tuning: "Eb" gives "D#". */
-function sharpName(note: string): string {
-  const naturals: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-  const shift = note.slice(1).includes('#') ? 1 : note.slice(1).includes('b') ? -1 : 0;
-  return SHARP_NAMES[(naturals[note[0]] + shift + 12) % 12];
-}
+const sharpName = (note: string): string => SHARP_NOTES[pitchClassOf(note)];

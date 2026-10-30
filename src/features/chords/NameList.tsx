@@ -1,4 +1,4 @@
-import type { ChordName } from './naming';
+import type { ChordName } from '@/lib/theory/chordNames';
 
 interface NameListProps {
   names: ChordName[];

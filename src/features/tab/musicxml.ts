@@ -8,13 +8,14 @@
 import {
   barTicks, beatTicks, bendCarries, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
   spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
-  type Bar, type Clip, type Column, type Key, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
+  type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
 import { beamGroups } from './beams';
 import { headerValue, creditsOf, CREDIT_TAGS } from './credits';
 import { instrumentName } from './instrument';
 import { multiRests } from './layout';
-import { keyAccidentals, openStrings, spell, tuningShift, writtenStrings, type Accidental } from './notation';
+import { keyAccidentals, spellPitch, type Accidental, type Key } from '@/lib/theory/keys';
+import { openStrings, tuningShift, writtenStrings } from './notation';
 
 /* — a small XML tree, written out indented — */
 
@@ -88,7 +89,7 @@ const STEPS = 'CDEFGAB';
 const ACCIDENTAL_NAMES: Record<Accidental, string> = { [-2]: 'flat-flat', [-1]: 'flat', 0: 'natural', 1: 'sharp', 2: 'double-sharp' };
 
 function pitchOf(midi: number, key: Key): XmlNode {
-  const n = spell(midi, key);
+  const n = spellPitch(midi, key);
   return el('pitch', {}, text('step', STEPS[n.letter]), n.accidental !== 0 && text('alter', n.accidental), text('octave', n.octave));
 }
 
@@ -368,7 +369,7 @@ function barAccidentals(ctx: TrackContext, bar: Bar, key: Key): Map<Note, Accide
   for (const column of bar.columns) {
     column.notes.forEach((note, s) => {
       if (!note || note.fret === null) return;
-      const n = spell(ctx.open[s] + capo + note.fret, key);
+      const n = spellPitch(ctx.open[s] + capo + note.fret, key);
       const place = n.octave * 7 + n.letter;
       const current = now.get(place) ?? inKey[n.letter];
       out.set(note, note.tie || n.accidental === current ? null : n.accidental);

@@ -8,7 +8,7 @@ import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
-import { chordOf, chordRootOf } from '@/lib/chords/chordTypes';
+import { chordOf, chordRootOf } from '@/lib/theory/chords';
 import { loadJson } from '@/lib/storage';
 import {
   parseTriadsSettings, TRIADS_STORAGE_KEY, type TriadsSettings,

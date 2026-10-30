@@ -1,4 +1,4 @@
-import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from './chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from '@/lib/theory/chords';
 import { voicingKey, type Voicing } from './voicings';
 
 /*

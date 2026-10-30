@@ -1,5 +1,5 @@
-import { findChord, normalizeType } from '@/features/chords/chordSearch';
-import { CHORD_TYPES } from '@/lib/chords/chordTypes';
+import { findChord, normalizeType } from '@/lib/theory/chordSearch';
+import { CHORD_TYPES } from '@/lib/theory/chords';
 
 const found = (text: string) => {
   const chord = findChord(text);

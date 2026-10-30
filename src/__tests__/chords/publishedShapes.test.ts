@@ -1,5 +1,5 @@
 import { TUNING } from '@/lib/music';
-import { CHORD_ROOTS, chordOf, chordTypeDef, type ChordInfo } from '@/lib/chords/chordTypes';
+import { CHORD_ROOTS, chordOf, chordTypeDef, type ChordInfo } from '@/lib/theory/chords';
 import { PUBLISHED_TYPES, publishedShapes } from '@/lib/chords/publishedShapes';
 import { findVoicings, voicingKey, type Voicing } from '@/lib/chords/voicings';
 

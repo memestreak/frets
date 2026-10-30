@@ -3,6 +3,7 @@
  * words and music (alphaTex's `\artist`, `\words` and `\music`, kept as written in the clip's header),
  * and the tuning when it isn't standard ("Tune down 1/2 step", then each string). Pure.
  */
+import { FLAT_NOTES, mod12, prettyNote, SHARP_NOTES } from '@/lib/theory/notes';
 import { quoted } from './alphatex';
 import { STANDARD_TUNING, STRING_COUNT, type Part } from './clip';
 import { openStrings, tuningShift } from './notation';
@@ -87,8 +88,6 @@ export function creditsOf(clip: Part): Credits {
   return { artist: headerValue(clip, 'artist'), lines };
 }
 
-const FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
-const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
 
 /** "1/2 step", "1 step", "1 1/2 steps": a shift in semitones as tuning instructions say it. */
 function steps(semitones: number): string {
@@ -123,7 +122,7 @@ export function tuningBlock(tuning: readonly string[]): TuningBlock | null {
   const strings = Array.from({ length: STRING_COUNT }, (_, s) => {
     const by = open[s] - standard[s];
     // A string tuned down is named with a flat, one tuned up with a sharp, as tuning notes have it.
-    const name = (by < 0 ? FLAT_NAMES : SHARP_NAMES)[((open[s] % 12) + 12) % 12];
+    const name = prettyNote((by < 0 ? FLAT_NOTES : SHARP_NOTES)[mod12(open[s])]);
     return { number: s + 1, name, by };
   });
   return {

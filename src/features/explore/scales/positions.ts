@@ -1,21 +1,15 @@
-import { chordFromTones, type ChordInfo } from '@/lib/chords/chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import { chordHref } from '@/lib/chords/chordUrls';
 import {
   findVoicings, LAST_POSITION, POSITION_FRETS, shapesInPosition, type Voicing,
 } from '@/lib/chords/voicings';
-import type { DiatonicChord, Scale } from './theory';
+import type { DiatonicChord } from '@/lib/theory/diatonic';
 
 /*
  * The "Diatonic chords" card's logic: each diatonic chord as the Chord
  * library knows it, and its shapes in a five-fret position. The shapes
  * come from the library's generator (`findVoicings`), so both pages agree.
  */
-
-/** A diatonic chord as a `ChordInfo`: its root's pitch class and its tones above it. */
-export function chordInfoOf(scale: Scale, chord: DiatonicChord): ChordInfo {
-  const rootPc = scale.degrees[chord.index].pc;
-  return chordFromTones(rootPc, chord.semis.map(s => s - chord.semis[0]));
-}
 
 export interface PositionChord {
   chord: DiatonicChord;
@@ -26,12 +20,11 @@ export interface PositionChord {
 
 /** Every chord with its shapes in the position from fret `first`. */
 export function chordsInPosition(
-  scale: Scale, chords: DiatonicChord[], first: number,
+  chords: DiatonicChord[], first: number,
 ): PositionChord[] {
-  return chords.map(chord => {
-    const info = chordInfoOf(scale, chord);
-    return { chord, info, shapes: shapesInPosition(findVoicings(info), first) };
-  });
+  return chords.map(chord => ({
+    chord, info: chord.info, shapes: shapesInPosition(findVoicings(chord.info), first),
+  }));
 }
 
 /** The last fret of the position from fret `first`. */

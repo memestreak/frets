@@ -1,13 +1,14 @@
 import type { DotLabels } from '@/components/DotLabels';
 import type { FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES, type DotColor } from '@/components/fretboard/theme';
-import { positionsOnNeck, TUNING } from '@/lib/music';
-import type { ChordInfo, ChordTone } from '@/lib/chords/chordTypes';
+import { positionsOnNeck, TUNING, type Tuning } from '@/lib/music';
+import type { ChordInfo, ChordTone } from '@/lib/theory/chords';
+import { mod12 } from '@/lib/theory/notes';
 import type { Voicing } from '@/lib/chords/voicings';
 
-/** The chord tone a string plays at a fret. Voicings only hold chord tones. */
-export function toneAt(chord: ChordInfo, string: number, fret: number): ChordTone {
-  const semis = (TUNING[string] + fret - chord.rootPc + 120) % 12;
+/** The chord tone a string plays at a fret, in a tuning (standard by default). Voicings only hold chord tones. */
+export function toneAt(chord: ChordInfo, string: number, fret: number, tuning: Tuning = TUNING): ChordTone {
+  const semis = mod12(tuning[string] + fret - chord.rootPc);
   return chord.tones.find(t => t.semis === semis)!;
 }
 

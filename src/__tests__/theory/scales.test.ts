@@ -1,8 +1,9 @@
-import { prettyNote } from '@/lib/notation';
+import { diatonicChords } from '@/lib/theory/diatonic';
+import { intervalLabel, intervalWords } from '@/lib/theory/intervals';
+import { prettyNote } from '@/lib/theory/notes';
 import {
-  diatonicChords, intervalLabel, intervalWords, modeFamily, neckNotes, ROOTS,
-  rotateMode, scaleDef, scaleOf, SCALES, type Root,
-} from '@/features/explore/scales/theory';
+  modeFamily, ROOTS, rotateMode, scaleDef, scaleOf, SCALES, type Root,
+} from '@/lib/theory/scales';
 
 const scale = (root: Root, id: string) => scaleOf(root, scaleDef(id)!);
 const notes = (root: Root, id: string) =>
@@ -64,9 +65,9 @@ describe('diatonicChords', () => {
   it('stacks the sevenths of A harmonic minor', () => {
     const chords = row('A', 'harmonic-minor', 4);
     expect(chords.map(c => c.symbol))
-      .toEqual(['Am(maj7)', 'Bm7♭5', 'C+maj7', 'Dm7', 'E7', 'Fmaj7', 'G♯°7']);
+      .toEqual(['Am(maj7)', 'Bm7♭5', 'Cmaj7♯5', 'Dm7', 'E7', 'Fmaj7', 'G♯°7']);
     expect(chords.map(c => c.numeral))
-      .toEqual(['i(maj7)', 'iiø7', '♭III+maj7', 'iv7', 'V7', '♭VImaj7', 'vii°7']);
+      .toEqual(['i(maj7)', 'iiø7', '♭IIImaj7♯5', 'iv7', 'V7', '♭VImaj7', 'vii°7']);
     expect(chords[6].quality).toBe('diminished 7');
     expect(chords[6].labels).toEqual(['1', '♭3', '♭5', '𝄫7']);
     expect(chords[6].thirds).toEqual(['m3', 'm3', 'm3']);
@@ -134,28 +135,6 @@ describe('diatonicChords', () => {
   it('has no chords outside seven-note scales', () => {
     expect(row('A', 'minor-pentatonic', 3)).toEqual([]);
     expect(row('A', 'minor-blues', 4)).toEqual([]);
-  });
-});
-
-describe('neckNotes', () => {
-  it('finds every scale note on the neck', () => {
-    const all = neckNotes(scale('A', 'minor-pentatonic'), 12);
-    // Five of every twelve frets on each string, plus fret 12 doubling fret 0.
-    expect(all.filter(n => n.s === 0).map(n => n.f)).toEqual([0, 3, 5, 8, 10, 12]);
-    const root = all.find(n => n.s === 0 && n.f === 5)!;
-    expect(root).toMatchObject({ note: 'A', label: '1', degree: 1 });
-  });
-
-  it('keeps only chord tones, labelled against the chord root', () => {
-    const sc = scale('A', 'aeolian');
-    const dm7 = diatonicChords(sc, 4)[3];
-    const on = neckNotes(sc, 12, dm7);
-    // Low E string: D at fret 10 is the chord root, A at 5 its fifth.
-    expect(on.find(n => n.s === 0 && n.f === 10)).toMatchObject({ label: '1', degree: 1 });
-    expect(on.find(n => n.s === 0 && n.f === 5)).toMatchObject({ label: '5', degree: 5 });
-    // B at fret 7 is a scale note outside the chord.
-    expect(on.find(n => n.s === 0 && n.f === 7)).toBeUndefined();
-    expect(new Set(on.map(n => n.note))).toEqual(new Set(['D', 'F', 'A', 'C']));
   });
 });
 
