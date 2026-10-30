@@ -1,15 +1,18 @@
 /** Which notes a beam joins in a bar: by beat, and plain eighths four together in 4/4. Pure. */
 
 import { isRest, ticks, type Column } from './clip';
-import { type PlacedBar, type PlacedColumn } from './layout';
+import { type PlacedColumn } from './layout';
 
-export interface BeamGroup {
-  columns: PlacedColumn[];
+/** What beaming needs of a column: itself and its place in the bar. Laid out (`PlacedColumn`) or not (the MusicXML export). */
+type BeamColumn = Pick<PlacedColumn, 'column' | 'index'>;
+
+export interface BeamGroup<C extends BeamColumn = PlacedColumn> {
+  columns: C[];
 }
 
 /** A beat's run of beamable columns, and whether it is two plain eighths filling the beat. */
-interface BeatRun {
-  columns: PlacedColumn[];
+interface BeatRun<C extends BeamColumn> {
+  columns: C[];
   beat: number;
   eighths: boolean;
 }
@@ -19,10 +22,10 @@ interface BeatRun {
  * beats of plain eighths in the same half of the bar are one group of four, as printed music beams
  * them (`halfBars`; Guitar Pro's Sweet Child O' Mine, Jeremy 2026-10-28); sixteenths stay by the beat.
  */
-export function beamGroups(bar: PlacedBar, beat: number): BeamGroup[] {
-  const runs: BeatRun[] = [];
+export function beamGroups<C extends BeamColumn>(bar: { columns: C[]; halfBars: boolean }, beat: number): BeamGroup<C>[] {
+  const runs: BeatRun<C>[] = [];
   let at = 0;
-  let current: PlacedColumn[] = [];
+  let current: C[] = [];
   let currentBeat = -1;
   const close = () => {
     if (current.length > 0) {
@@ -48,7 +51,7 @@ export function beamGroups(bar: PlacedBar, beat: number): BeamGroup[] {
     at += ticks(placed.column.duration);
   }
   close();
-  const groups: BeamGroup[] = [];
+  const groups: BeamGroup<C>[] = [];
   for (let i = 0; i < runs.length; i++) {
     const run = runs[i];
     const next = runs[i + 1];

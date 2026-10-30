@@ -3,9 +3,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { copySvgAsPng, copySvgCode, downloadSvg } from '@/components/chords/export/exportImage';
 import { Segmented } from '@/components/controls';
+import { HoverTips } from '@/components/HoverTips';
 import { CloseIcon } from '@/components/icons';
 import { writeAlphaTex } from './alphatex';
 import { writeAscii } from './ascii';
+import { musicXmlLosses, writeMusicXml } from './musicxml';
+import { SAVE_KINDS } from './saveFile';
 import { partOf, type Clip } from './clip';
 import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
@@ -22,13 +25,14 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * image as it will be with its size in pixels, the choices (width,
  * transparent, the name above the tab and what it says), and Copy PNG,
  * Copy SVG, Download PNG and Download SVG, then the clip as text (Download
- * alphaTex, Download ASCII), with a line saying what happened. The page's
- * Export options button opens it, as does the tab's right-click menu. The name
+ * alphaTex, Download ASCII, Download MusicXML, with a red ⚠ after it when the
+ * file can't hold all of the clip), with a line saying what happened. The page's
+ * Export button opens it, as does the tab's right-click menu. The name
  * starts as the clip's and can be changed for this export. It stays open
  * after an action; Done, × or Esc close it.
  */
 export function TabExportDialog({ clip, track, parts, view, open, style, onStyle, onClose }: {
-  /** The whole clip, every track: downloaded as alphaTex; the images and ASCII tab are of the track the page shows. */
+  /** The whole clip, every track: downloaded as alphaTex and MusicXML; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
   /** The track the page shows. */
   track: number;
@@ -75,6 +79,8 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   };
   const { width, height } = tabImageSize(part, style, title, parts, view);
   const fileName = tabFileName(title || clip.name);
+  const losses = musicXmlLosses(clip);
+  const lossNote = losses.length ? `The MusicXML file leaves out ${losses.join(' and ')}.` : null;
 
   return (
     <dialog
@@ -87,7 +93,9 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
         if (open) onClose();
       }}
     >
+      {/* Its own tips, as the page's are drawn under the open dialog. */}
       {open && (
+        <HoverTips>
         <div className="settings-dialog-inner">
           <div className="flex items-center justify-between gap-3">
             <h3 id={headingId} className="dialog-title m-0">Export {clip.name.trim() || 'tab'}</h3>
@@ -145,20 +153,25 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
             <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
               Download ASCII
             </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.musicxml`, writeMusicXml(clip), SAVE_KINDS.musicxml.mime))}>
+              Download MusicXML
+            </button>
+            {lossNote && <span className="tab-sound-note" role="img" aria-label={lossNote} data-tip={lossNote}>⚠</span>}
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--ink-muted)" role="status">{status}</span>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Done</button>
           </div>
         </div>
+        </HoverTips>
       )}
     </dialog>
   );
 }
 
-/** Saves `text` as a .txt file; returns the line the dialog shows. */
-function downloadText(fileName: string, text: string): string {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+/** Saves `text` as a file (plain text unless `type` says otherwise); returns the line the dialog shows. */
+function downloadText(fileName: string, text: string, type = 'text/plain'): string {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;
