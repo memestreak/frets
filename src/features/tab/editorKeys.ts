@@ -13,6 +13,8 @@ import type { Notice } from './notice';
 import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
+import { setValue } from './noteEdits';
+import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
@@ -39,6 +41,12 @@ export interface EditorKeys {
   lines: () => Lines;
   /** Settings' "Fill short bars with rests": → and ← complete a short bar they leave. */
   fillBars: boolean;
+  /**
+   * Note input (issue #238): the cursor types, as the tab always did. Off, normal mode: what the
+   * cursor is on is selected, and MuseScore's keys change it.
+   */
+  inputMode: boolean;
+  setInputMode: (on: boolean) => void;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Part, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
@@ -102,13 +110,38 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     return;
   }
   const handled = () => e.preventDefault();
-  if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
+  const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+  // N goes into note input and back out (issue #238), as in MuseScore; Esc leaves it too.
+  if (key === 'n' && plain) {
     handled();
+    editor.setInputMode(!editor.inputMode);
     return;
   }
-  if (moveKeyDown(e, editor)) {
+  if (key === 'Escape' && editor.inputMode) {
     handled();
+    editor.setInputMode(false);
     return;
+  }
+  // Shift and a digit's key set the length on the tab, in either mode (MuseScore's tab keys): Shift+5 a quarter.
+  const shiftedDigit = e.shiftKey && plain && editor.staffPitch === null ? digitOfCode(e.code) : null;
+  if (shiftedDigit !== null) {
+    handled();
+    const value = valueForDigit(shiftedDigit);
+    if (value) commit(setValue(clip, target, value));
+    return;
+  }
+  if (!editor.inputMode) {
+    if (normalKeyDown(e, editor)) handled();
+    if (e.defaultPrevented) return;
+  } else {
+    if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
+      handled();
+      return;
+    }
+    if (moveKeyDown(e, editor)) {
+      handled();
+      return;
+    }
   }
   if (jumpKeyDown(e, editor)) {
     handled();
@@ -236,6 +269,91 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     editor.onTool(tool);
   }
+}
+
+/**
+ * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note a digit sets its length (5 a
+ * quarter) and ↑ ↓ move it a semitone, Alt+Shift+↑ ↓ a step in the key, Ctrl/⌘+↑ ↓ an octave; on a
+ * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
+ * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
+ * chord. ← → select the next or last column, on the same string when it has a note there, and add
+ * nothing. A digit on a tab note still types its fret (Jeremy, 2026-10-30). True when the key was one of them.
+ */
+function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  const { clip, cursor, selection, target, columnOnly, staffPitch, commit } = editor;
+  const { key } = e;
+  const chord = e.ctrlKey || e.metaKey;
+  const onStaff = staffPitch !== null;
+  if (onStaff && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+    const value = valueForDigit(Number(key));
+    if (value) commit(setValue(clip, target, value));
+    return true;
+  }
+  if (key === 'ArrowUp' || key === 'ArrowDown') {
+    const up = key === 'ArrowUp';
+    // The next note up or down the chord, by pitch.
+    if (e.altKey && !e.shiftKey && !chord) {
+      const from = onStaff ? staffPitch : columnOnly ? null : pitchAt(clip, cursor);
+      const string = nextInChord(clip, cursor, from, up);
+      if (string === null) return true;
+      const at = { ...cursor, string };
+      if (onStaff) editor.toPitch(clip, at, pitchAt(clip, at)!, null);
+      else {
+        commit(clip, at, null);
+        editor.setColumnOnly(false);
+      }
+      return true;
+    }
+    if (onStaff) {
+      // ↑ ↓ a semitone, Alt+Shift a step in the key, Ctrl/⌘ an octave; Shift alone (a range across staves in MuseScore) nothing yet.
+      if (e.shiftKey && !e.altKey) return true;
+      const sign = up ? 1 : -1;
+      const move = e.altKey ? { steps: sign, semitones: false } : chord ? { steps: 12 * sign, semitones: true } : { steps: sign, semitones: true };
+      const places = notesToMove(clip, cursor, staffPitch, selection, false);
+      if (!places.length) return true;
+      const edit = moveNotes(clip, places, move);
+      if (edit.problem) {
+        editor.onNotice({ tone: 'error', lines: [edit.problem] });
+        return true;
+      }
+      const moved = movedPitch(clip, cursor.bar, staffPitch, move);
+      editor.toPitch(edit.clip, cursor, moved, selection);
+      const string = stringAtPitch(edit.clip, cursor, moved);
+      if (string !== null && !selection) editor.hearNote({ ...cursor, string });
+      return true;
+    }
+    if (e.altKey || e.shiftKey) return true;
+    if (chord) {
+      // The note to the next string up or down that plays its pitch.
+      const pitch = columnOnly || selection ? null : pitchAt(clip, cursor);
+      if (pitch === null) return true;
+      const moved = moveToString(clip, cursor, pitch, up ? -1 : 1);
+      if (moved.string !== null) commit(moved.clip, { ...cursor, string: moved.string });
+      return true;
+    }
+    const places = selectedNotes(clip, cursor, target.selection);
+    const next = stepFrets(clip, places, up ? 1 : -1);
+    if (next !== clip) {
+      commit(next);
+      if (places.length === 1) editor.hearNote(places[0]);
+    }
+    return true;
+  }
+  if ((key === 'ArrowLeft' || key === 'ArrowRight') && !e.shiftKey && !chord && !e.altKey) {
+    // The next column is selected; normal mode adds no rests to step onto.
+    const moved = moveColumn(clip, cursor, key === 'ArrowLeft' ? -1 : 1, { grow: false }).cursor;
+    const pitch = pitchAt(clip, moved);
+    if (pitch === null) {
+      commit(clip, moved, null);
+      editor.startRegion();
+    } else if (onStaff) editor.toPitch(clip, moved, pitch, null);
+    else {
+      commit(clip, moved, null);
+      editor.setColumnOnly(false);
+    }
+    return true;
+  }
+  return false;
 }
 
 /**

@@ -16,7 +16,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -31,9 +31,32 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
+  /** Note input is on (issue #238): the pencil, first, stays lit. */
+  inputMode?: boolean;
+  /** The pencil pressed: note input on or off, as N does. */
+  onInputMode?: () => void;
 }) {
   return (
     <div className="tab-palette" role="toolbar" aria-label="Symbols">
+      {onInputMode && (
+        <div className="tab-palette-group" role="group" aria-label="Input">
+          <span className="tab-palette-label" aria-hidden="true">Input</span>
+          <div className="tab-palette-tools">
+            <button
+              type="button" className="btn btn-secondary btn-toggle tab-tool" aria-label="Note input"
+              aria-pressed={!disabled && inputMode} disabled={disabled} data-tip="Note input (N)"
+              // Keep the focus, and so the cursor, on the tab.
+              onMouseDown={e => e.preventDefault()}
+              onClick={onInputMode}
+            >
+              <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                {/* A pencil, as MuseScore's note input button. */}
+                <path d="M5 19l1-4L16 5l3 3L9 18l-4 1zM14 7l3 3" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       {TOOL_GROUPS.map(group => (
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>

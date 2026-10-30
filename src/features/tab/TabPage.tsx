@@ -14,7 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart,
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
-import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
@@ -26,7 +26,7 @@ import { type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
+import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
@@ -122,6 +122,11 @@ export default function TabPage() {
    * null and hands them back. With the staff alone it is always there.
    */
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
+  /**
+   * Note input (issue #238, as MuseScore's): N or the palette's pencil goes in and out, Esc out. In it the
+   * cursor types and a press enters a note; out of it, in normal mode, a press selects what it is on.
+   */
+  const [inputMode, setInputMode] = useState(false);
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
@@ -197,7 +202,7 @@ export default function TabPage() {
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
    */
-  const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && editing && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
+  const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && editing && inputMode && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
   /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
   const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
   const paletteKinds = lit ? cursorKinds : {
@@ -544,7 +549,7 @@ export default function TabPage() {
   });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -553,6 +558,12 @@ export default function TabPage() {
    * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
    * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
    */
+  /** Note input on or off; going in, the keys come to the tab. */
+  const enterInput = (on: boolean) => {
+    setInputMode(on);
+    if (on) editorRef.current?.focus();
+  };
+
   const startRegion = () => {
     setColumnOnly(true);
     setStaffPitch(null);
@@ -571,7 +582,16 @@ export default function TabPage() {
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
       const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-      commit(left, hit, null);
+      const there = hasColumn && noteAt(left, hit);
+      if (inputMode && hasColumn && !there) {
+        // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
+        commit(setFret(left, hit, 0), hit, null);
+        hearNote(hit);
+      } else {
+        commit(left, hit, null);
+        // In normal mode a press beside the notes selects the column (Jeremy, 2026-10-30, issue #238).
+        if (!inputMode && !there) setColumnOnly(true);
+      }
     }
   };
 
@@ -604,7 +624,21 @@ export default function TabPage() {
       return;
     }
     const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    toPitch(left, at, pitch);
+    if (note) {
+      toPitch(left, at, pitch);
+    } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
+      // In note input a press on a line or space enters the shadow note's pitch there (issue #238).
+      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch) : { clip: left, string: null };
+      toPitch(edit.clip, at, pitch);
+      if (edit.string !== null) hearNote({ ...at, string: edit.string });
+      if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
+    } else if (inputMode) {
+      toPitch(left, at, pitch);
+    } else {
+      // In normal mode a press beside the heads selects the column.
+      commit(left, at, null);
+      startRegion();
+    }
   };
 
   /**
@@ -816,6 +850,9 @@ export default function TabPage() {
     setChoosing(false);
   };
   const empty = isEmpty(clip);
+  // The length a press in note input enters, shown by the shadow note: the cursor's notes', else a quarter.
+  const cursorColumn = columnAt(clip, cursor);
+  const shadowValue = cursorColumn && cursorColumn.notes.some(Boolean) ? cursorColumn.duration.value : 4;
   const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
@@ -862,7 +899,8 @@ export default function TabPage() {
           onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
           onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
           onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
-          onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'} />
+          onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
+          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -921,7 +959,9 @@ export default function TabPage() {
                 <div
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
                   ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                  aria-label="Tab editor: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Shift+F10 to insert a bar"
+                  aria-label={inputMode
+                    ? 'Tab editor, note input: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
+                    : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input; Shift+F10 to insert a bar'}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.
                   {...menuTrigger.props(openBarMenu)}
@@ -935,8 +975,9 @@ export default function TabPage() {
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                       highlight={{
                         cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
-                        staffPitch: staffCursor,
+                        staffPitch: staffCursor, input: inputMode,
                       }}
+                      shadow={inputMode ? shadowValue : null}
                       picked={editing ? picked : null}
                       errors={barErrors(clip)}
                     />

@@ -85,8 +85,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'letRing', label: 'Let ring', key: 'L' },
       { id: 'dead', label: 'Dead note', key: 'X' },
       { id: 'ghost', label: 'Ghost note', key: 'G' },
-      { id: 'harmonic', label: 'Natural harmonic', key: 'N' },
-      { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'N' },
+      { id: 'harmonic', label: 'Natural harmonic', key: 'Shift+N' },
+      { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'Shift+N' },
       { id: 'tap', label: 'Tap', key: 'T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
@@ -212,7 +212,7 @@ export function applyCyclingKey(clip: Part, target: Target, key: string): Part |
   if (key === '/') return cycleSlide(clip, cursor);
   if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
   if (key === 'v') return cycleMark(clip, target, 'vibrato', VIBRATOS);
-  if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
+  if (key === 'N') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   if (key === 'T') return cycleTremolo(clip, target);
   return null;

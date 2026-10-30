@@ -1,10 +1,10 @@
-import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { BAR_DASHES, FermataSign, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
+import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -25,6 +25,11 @@ export interface Highlight {
   columnOnly?: boolean;
   /** The staff's own cursor on the cursor's column: the sounding pitch Enter would put there (issue #136). */
   staffPitch?: number | null;
+  /**
+   * In note input (issue #238) the cursor is outlined, where typing goes; in normal mode what it is on is
+   * selected, filled, as MuseScore colours a selected note.
+   */
+  input?: boolean;
 }
 
 /**
@@ -33,7 +38,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -73,6 +78,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * still `onPickStaff`, when the pointer lets go.
    */
   onDragStaff?: (drag: StaffDrag) => void;
+  /**
+   * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
+   * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
+   */
+  shadow?: number | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -128,7 +138,21 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   };
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
   const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; last: StaffDrag | null } | null>(null);
+  /** Where the shadow note is drawn: on the staff at a step, or on a string of the tab; in the drawing's units. */
+  const [hover, setHover] = useState<{ system: number; x: number; step: number | null; string: number | null } | null>(null);
+  const showShadow = (e: PointerEvent<SVGSVGElement>) => {
+    if (shadow === null || headPress.current) return;
+    const { text, mark, staff, hit } = target(e);
+    const on = text || mark ? null : staff ?? hit;
+    const spot = on ? cursorSpot(layout, on.bar, on.column) : null;
+    if (!on || !spot) {
+      setHover(null);
+      return;
+    }
+    setHover(staff ? { system: spot.system, x: spot.x, step: staff.step, string: null } : { system: spot.system, x: spot.x, step: null, string: hit!.string });
+  };
   const dragHead = (e: PointerEvent<SVGSVGElement>) => {
+    showShadow(e);
     const press = headPress.current;
     if (!press) return;
     const box = e.currentTarget.getBoundingClientRect();
@@ -171,7 +195,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined}
-      onPointerMove={onDragStaff ? dragHead : undefined} onPointerUp={onDragStaff ? e => dropHead(e, false) : undefined}
+      onPointerMove={onDragStaff || shadow !== null ? dragHead : undefined}
+      onPointerLeave={shadow !== null ? () => setHover(null) : undefined} onPointerUp={onDragStaff ? e => dropHead(e, false) : undefined}
       onPointerCancel={onDragStaff ? e => dropHead(e, true) : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
@@ -195,16 +220,21 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           {!highlight.range && !highlight.columnOnly && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
-              fill="none" stroke="var(--primary)" strokeWidth={1.5}
+              fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5}
+              data-testid={highlight.input ? 'input-cursor' : 'selected-note'}
             />
           )}
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
-          {!highlight.range && highlight.columnOnly && rows.tab && highlight.staffPitch == null && (
-            <rect
-              x={spot.x - 12} y={stringY(rows, 0) - 9} width={24} height={stringY(rows, STRING_COUNT - 1) - stringY(rows, 0) + 18} rx={4}
-              fill="none" stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
-            />
-          )}
+          {!highlight.range && highlight.columnOnly && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
+            // Round the tab's six strings; with the staff alone, round its five lines.
+            const [top, bottom] = rows.tab ? [stringY(rows, 0) - 9, stringY(rows, STRING_COUNT - 1) + 9] : [rows.score!.top - 9, rows.score!.bottom + 9];
+            return (
+              <rect
+                x={spot.x - 12} y={top} width={24} height={bottom - top} rx={4}
+                fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
+              />
+            );
+          })()}
         </g>
         );
       })()}
@@ -220,7 +250,16 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} />
           )}
           {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
-            <StaffCursor x={spot.x} score={rows.score} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
+            <StaffCursor x={spot.x} score={rows.score} selected={!highlight.input} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
+          )}
+          {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
+            <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
+          )}
+          {shadow !== null && hover?.system === si && hover.string !== null && rows.tab && (
+            <text
+              x={hover.x} y={stringY(rows, hover.string) + 4.5} textAnchor="middle" fontSize={13} fontWeight={600}
+              fill="var(--primary)" fillOpacity={0.45} pointerEvents="none" data-testid="shadow-fret"
+            >0</text>
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (!bar.restRun || bar.restRun.first) && (

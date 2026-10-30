@@ -34,7 +34,10 @@ Frets already has. It lands in two PRs: the keys first, then picking several thi
 - Plain Home and End, which MuseScore doesn't bind, stay unbound.
 - Shift+W and Shift+Q (MuseScore's dots) are not taken: `.` steps the dots.
 
-## PR 2: picking several things (next)
+## PR 2: picking several things (after the modes)
+
+Jeremy moved step 3, normal mode and note input, ahead of this
+(`2026-10-30-tab-note-input-mode-design.md`).
 
 Ctrl/⌘+click list selection of notes and marks, Shift+drag rectangle from blank space, Alt+← → through
 marks and words, right-click → Select similar.

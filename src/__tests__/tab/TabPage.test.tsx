@@ -426,6 +426,8 @@ describe('TabPage', () => {
     it('types frets, two digits making one, and moves on with the arrows', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
       // → adds one rest as long as the note before, to type on; the bar stays short.
       expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 |');
@@ -436,6 +438,8 @@ describe('TabPage', () => {
       localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
       // → fills the bar with a dotted half rest; 14 splits it, a quarter like the note before.
       expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 r.2 |');
@@ -445,18 +449,23 @@ describe('TabPage', () => {
       localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       // jsdom's window never has the focus; the blur only fills while it does.
       vi.spyOn(document, 'hasFocus').mockReturnValue(true);
       // → fills at once; Delete takes the rest away again, and leaving the tab puts it back.
       keys('5', 'ArrowRight', '7', 'ArrowRight', 'Delete');
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
-      keys('Escape');
+      // The first Esc leaves note input, the second the tab.
+      keys('Escape', 'Escape');
       expect(alphaTex()).toBe('5.1.4 7.1.4 r.2 |');
     });
 
     it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowRight', '7');
       const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
       expect(band()).toBeNull();
@@ -480,19 +489,23 @@ describe('TabPage', () => {
     it('marks notes and columns from the keys and from the palette', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowRight', '7', 'h', '-');
       fireEvent.click(vibrato());
       expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
-      // Off the tab, no button is lit.
+      // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
       act(() => editor().blur());
-      expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
+      expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input']);
     });
 
     it('acts on nothing from the palette once the cursor has left the tab, by Esc or a press elsewhere', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowRight', '7');
       const pressAll = () => {
         fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
@@ -501,7 +514,8 @@ describe('TabPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Bend' }));
         fireEvent.click(screen.getByRole('button', { name: 'full' }));
       };
-      keys('Escape');
+      // The first Esc leaves note input, the second the tab.
+      keys('Escape', 'Escape');
       expect(editor()).not.toHaveFocus();
       pressAll();
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
@@ -542,10 +556,12 @@ describe('TabPage', () => {
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     });
 
-    it('steps V, N, A and \\ through their kinds, and toggles L, G and S', () => {
+    it('steps V, Shift+N, A and \\ through their kinds, and toggles L, G and S', () => {
       renderAt();
       act(() => editor().focus());
-      keys('5', 'v', 'v', 'n', 'n', 'a', 'a', '\\', 'l', 'g', 's');
+      // Typing is note input's (issue #238).
+      keys('n');
+      keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'l', 'g', 's');
       expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       keys('v', 'g');
@@ -614,6 +630,8 @@ describe('TabPage', () => {
     it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
       // One unbroken band over the two selected columns.
       expect(screen.getByTestId('tab-selection').children).toHaveLength(1);
@@ -624,6 +642,94 @@ describe('TabPage', () => {
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
       expect(alphaTex()).toBe('5.1.4 |');
+    });
+
+    describe('normal mode and note input (issue #238)', () => {
+      const pencil = () => screen.getByRole('button', { name: 'Note input' });
+
+      it('starts in normal mode; N and the pencil go in and out of note input, Esc out', () => {
+        renderAt();
+        act(() => editor().focus());
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+        keys('n');
+        expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+        expect(editor()).toHaveAccessibleName(/note input/);
+        // Esc leaves note input and keeps the tab.
+        keys('Escape');
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+        expect(editor()).toHaveFocus();
+        fireEvent.click(pencil());
+        expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+        keys('n');
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+      });
+
+      it('draws the cursor outlined in note input and the selected note filled in normal mode', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        keys('n');
+        expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+        expect(screen.queryByTestId('selected-note')).toBeNull();
+      });
+
+      it('in normal mode a digit types the selected tab note’s fret, ↑ ↓ change it by one, Ctrl/⌘+↑ ↓ move it a string', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5', 'ArrowUp');
+        expect(alphaTex()).toBe('6.1.4 |');
+        keys('ArrowDown', 'ArrowDown');
+        expect(alphaTex()).toBe('4.1.4 |');
+        // The open string is as low as it goes.
+        keys('0', 'ArrowDown');
+        expect(alphaTex()).toBe('0.1.4 |');
+        keys('4', { key: 'ArrowDown', ctrlKey: true });
+        expect(alphaTex()).toBe('9.2.4 |');
+        keys({ key: 'ArrowUp', metaKey: true });
+        expect(alphaTex()).toBe('4.1.4 |');
+      });
+
+      it('in normal mode ← → select the next column and add no rests; in note input → adds one to type on', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5', 'ArrowRight', 'ArrowRight');
+        expect(alphaTex()).toBe('5.1.4 |');
+        keys('n', 'ArrowRight', '7');
+        expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+        // Back in normal mode, ← on a column with no note on the string selects the column.
+        keys('Escape', 'ArrowDown');
+        expect(alphaTex()).toBe('5.1.4 6.1.4 |');
+      });
+
+      it('Alt+↑ ↓ select the next note up or down in the chord', () => {
+        renderAt();
+        act(() => editor().focus());
+        // A chord typed in note input: 5 on the high e, 7 on the B.
+        keys('n', '5', 'ArrowDown', '7', 'Escape');
+        // The B's 7 is selected; Alt+↑ selects the e's 5, which ↑ then raises.
+        keys({ key: 'ArrowUp', altKey: true }, 'ArrowUp');
+        expect(alphaTex()).toBe('(6.1 7.2).4 |');
+        keys({ key: 'ArrowDown', altKey: true }, 'ArrowDown');
+        expect(alphaTex()).toBe('(6.1 6.2).4 |');
+      });
+
+      it('Shift with a digit’s key sets the length on the tab, in either mode', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5', { key: '^', shiftKey: true, code: 'Digit6' });
+        expect(alphaTex()).toBe('5.1.2 |');
+        keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
+        expect(alphaTex()).toBe('5.1.8 |');
+      });
+
+      it('Shift+N steps the harmonic, as N did', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5', 'N');
+        expect(alphaTex()).toBe('5.1{nh}.4 |');
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+      });
     });
 
     describe('MuseScore’s jumps and keys (issue #238)', () => {
@@ -717,9 +823,12 @@ describe('TabPage', () => {
       vi.spyOn(document, 'hasFocus').mockReturnValue(true);
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowRight', '7');
       expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
-      keys('Escape');
+      // The first Esc leaves note input, the second the tab.
+      keys('Escape', 'Escape');
       expect(screen.queryByTestId('tab-cursor')).toBeNull();
       expect(screen.queryByTestId('column-cursor')).toBeNull();
       expect(editor()).not.toHaveFocus();
@@ -730,6 +839,8 @@ describe('TabPage', () => {
     it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
       // On string 3, under a column whose notes are on strings 1 and 2.
       keys('ArrowLeft', 'Delete');
@@ -741,6 +852,8 @@ describe('TabPage', () => {
     it('sets the time signature from the palette, each change one undo step', () => {
       renderAt();
       act(() => editor().focus());
+      // Typing is note input's (issue #238).
+      keys('n');
       // Three quarters: the rest → filled the bar with is deleted.
       keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', 'Delete');
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
@@ -1032,7 +1145,8 @@ describe('TabPage playback', () => {
     renderAt();
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
-    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    // Typed in note input (issue #238).
+    for (const key of ['n', '5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
     // Placing the line fills the bar with a rest after the 5 and the 7.
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     const firstBar = () => partOf(savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
@@ -1056,7 +1170,8 @@ describe('TabPage playback', () => {
     const loop = () => screen.getByRole('button', { name: 'Loop' });
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
-    for (const key of ['5', 'ArrowRight', '7', 'ArrowRight', '9']) fireEvent.keyDown(editor, { key });
+    // Typed in note input (issue #238).
+    for (const key of ['n', '5', 'ArrowRight', '7', 'ArrowRight', '9']) fireEvent.keyDown(editor, { key });
     // No selection: the whole clip; pressed again, cleared.
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
@@ -1864,12 +1979,70 @@ describe('dragging notes on the staff (issue #174)', () => {
     act(() => editor().focus());
     fireEvent.pointerDown(svg, { ...headAt(2), button: 0 });
     fireEvent.pointerUp(svg, { ...headAt(2), button: 0 });
-    expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
+    // In normal mode the note pressed is selected (issue #238).
+    expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
     fireEvent.keyDown(editor(), { key: 'Escape' });
+    expect(screen.queryByTestId('staff-selected')).toBeNull();
     expect(screen.queryByTestId('staff-cursor')).toBeNull();
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     expect(screen.queryByTestId('column-cursor')).toBeNull();
     expect(editor()).not.toHaveFocus();
+  });
+
+  describe('normal mode and note input on the staff (issue #238)', () => {
+    const open = async () => {
+      localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'both' }));
+      renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
+      await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(3), SLOW);
+      act(() => screen.getByRole('textbox', { name: /Tab editor/ }).focus());
+    };
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const svg = () => screen.getByRole('img', { name: /drawn as/ });
+    const press = (at: { clientX: number; clientY: number }) => {
+      fireEvent.pointerDown(svg(), { ...at, button: 0 });
+      fireEvent.pointerUp(svg(), { ...at, button: 0 });
+    };
+
+    it('in normal mode a digit sets the selected note’s length, ↑ ↓ a semitone, Ctrl/⌘ an octave', async () => {
+      await open();
+      press(headAt(2));
+      const shown = () => {
+        fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+        const line = frets();
+        fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+        act(() => editor().focus());
+        return line;
+      };
+      fireEvent.keyDown(editor(), { key: '6' });
+      expect(shown()).toBe('(7.5 5.6).4 3.4.2 r.2 |');
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      expect(shown()).toBe('(7.5 5.6).4 4.4.2 r.2 |');
+      fireEvent.keyDown(editor(), { key: 'ArrowDown', ctrlKey: true });
+      // An octave under the D string's 4th fret (F♯) is the low E string's 2nd.
+      expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.2 |');
+    });
+
+    it('shows a shadow note under the pointer only in note input, and a press there enters it', async () => {
+      await open();
+      // Over the first column, a few lines above its heads.
+      const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
+      fireEvent.pointerMove(svg(), over);
+      expect(screen.queryByTestId('shadow-note')).toBeNull();
+      fireEvent.keyDown(editor(), { key: 'n' });
+      fireEvent.pointerMove(svg(), over);
+      expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
+      press(over);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
+      fireEvent.pointerLeave(svg());
+      expect(screen.queryByTestId('shadow-note')).toBeNull();
+    });
+
+    it('in normal mode a press beside the heads selects the column and enters nothing', async () => {
+      await open();
+      press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
+      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+    });
   });
 
   it('moves the note a line or space at a time, a semitone with Shift, and the chord with Ctrl, each one undo step', async () => {
