@@ -8,7 +8,7 @@ import {
 
 /** What was just deleted, kept until the dialog closes so Undo can bring it back. */
 export interface Deleted {
-  /** Its name, as the dialog says it. */
+  /** Its name, as the dialog says it ("3 arrangements" when several were). */
   name: string;
   /** The folder deleted, with everything in it; none when one arrangement was. */
   folder?: FolderInfo;
@@ -95,13 +95,14 @@ export function useArrangements() {
       return clip ? [{ info, clip }] : [];
     });
 
-  /** Deletes a kept arrangement; deleting the open one opens the latest other, or a new clip. */
-  const remove = (id: string) => {
-    const info = library.items.find(i => i.id === id);
-    if (!info) return;
-    setDeleted({ name: info.name, items: withClips([info]) });
-    store.set(dropArrangements(library, [id]));
-    reopen([id]);
+  /** Deletes kept arrangements; deleting the open one opens the latest other, or a new clip. */
+  const remove = (ids: string[]) => {
+    const infos = library.items.filter(i => ids.includes(i.id));
+    if (infos.length === 0) return;
+    const name = infos.length === 1 ? infos[0].name : `${infos.length} arrangements`;
+    setDeleted({ name, items: withClips(infos) });
+    store.set(dropArrangements(library, infos.map(i => i.id)));
+    reopen(infos.map(i => i.id));
   };
 
   /** Deletes a folder and everything in it. */
@@ -133,7 +134,9 @@ export function useArrangements() {
   return {
     state, dispatch, library, deleted, open, openNew, rename, remove, removeFolder, undoDelete, createFolder,
     renameFolder: (id: string, name: string) => store.set(renameFolder(library, id, name)),
-    move: (id: string, folder: string | undefined) => store.set(moveArrangement(library, id, folder)),
+    /** Moves the arrangements `ids` into `folder`, or to the top level with none. */
+    move: (ids: string[], folder: string | undefined) =>
+      store.set(ids.reduce((next, id) => moveArrangement(next, id, folder), library)),
     forgetDeleted: () => setDeleted(null),
   };
 }

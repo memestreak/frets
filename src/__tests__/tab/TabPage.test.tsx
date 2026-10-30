@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import TabPage from '@/features/tab/TabPage';
 import { readAscii } from '@/features/tab/ascii';
 import { arrangementKey, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
-import { DRAG_TYPE } from '@/features/tab/ArrangementsDialog';
+import { DOUBLE_TAP_MS, DRAG_TYPE } from '@/features/tab/ArrangementsDialog';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import * as alphaTab from '@coderline/alphatab';
@@ -76,6 +76,11 @@ function keepOpen(clip: unknown) {
 }
 /** The open arrangement's clip as saved. */
 const savedClip = () => JSON.parse(localStorage.getItem(arrangementKey(loadLibrary().open!))!) as { name: string };
+/** A double click, as a browser sends it: two clicks, the second counted as the second. */
+const doubleClick = (el: Element) => {
+  fireEvent.click(el, { detail: 1 });
+  fireEvent.click(el, { detail: 2 });
+};
 
 beforeEach(() => {
   localStorage.clear();
@@ -1103,7 +1108,7 @@ describe('TabPage examples', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
     const dialog = screen.getByRole('dialog', { name: 'Arrangements' });
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Articulations' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Bends and vibrato' }));
+    doubleClick(within(dialog).getByRole('button', { name: 'Bends and vibrato' }));
     await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
     expect(screen.getByTestId('example-note')).toHaveTextContent("Example: edits aren't saved");
     expect(window.location.hash).toBe('#example=bends');
@@ -1133,7 +1138,7 @@ describe('TabPage examples', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Samples' }));
     await settle();
     const calls = fetched.mock.calls.length;
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
+    doubleClick(within(dialog).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
     expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     // The text came with the dialog's list: nothing more was fetched, and closing it read nothing again.
@@ -1224,7 +1229,7 @@ describe('TabPage arrangements', () => {
     const dialog = openDialog();
     expect(names(dialog)).toEqual(['Riff', 'Tex riff']);
     expect(mine(dialog).getByRole('button', { name: /^Tex riff/ })).toHaveAttribute('aria-current', 'true');
-    fireEvent.click(mine(dialog).getByRole('button', { name: /^Riff/ }));
+    doubleClick(mine(dialog).getByRole('button', { name: /^Riff/ }));
     expect(heading()).toHaveTextContent('Riff');
     expect(dialog).not.toHaveAttribute('open');
     // Opening one is no change: the list keeps its order.
@@ -1369,7 +1374,7 @@ describe('TabPage arrangements', () => {
     const folders = builtIn.getAllByRole('button', { expanded: false }).map(b => b.textContent);
     expect(folders).toEqual(expect.arrayContaining(['Articulations', 'Rhythm', 'Samples', 'Song structure']));
     fireEvent.click(builtIn.getByRole('button', { name: 'Samples' }));
-    fireEvent.click(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
+    doubleClick(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     expect(window.location.hash).toBe('#example=oceanic-speedy-down-run');
     // Opened again, the dialog shows the folder of what is shown.
@@ -1386,6 +1391,157 @@ describe('TabPage arrangements', () => {
     expect(window.location.hash).toBe('');
     expect(loadLibrary().items.map(i => i.name)).toEqual(['Drop D']);
     expect(savedClip().name).toBe('Drop D');
+  });
+
+  /** Kept arrangements named `names` (ids a, b, c…), the first open, in `folder` where given. */
+  const keepMany = (names: string[], folders: { id: string; name: string; holds: string[] }[] = []) => {
+    const riff = (readAscii(RIFF) as { clip: { name: string } }).clip;
+    const ids = names.map((_, i) => String.fromCharCode(97 + i));
+    names.forEach((name, i) => localStorage.setItem(arrangementKey(ids[i]), JSON.stringify({ ...riff, name })));
+    const folderOf = (name: string) => folders.find(f => f.holds.includes(name))?.id;
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify({
+      open: ids[0], folders: folders.map(({ id, name }) => ({ id, name })),
+      items: names.map((name, i) => ({ id: ids[i], name, changed: 100 - i, ...(folderOf(name) ? { folder: folderOf(name) } : {}) })),
+    }));
+  };
+  const line = (dialog: HTMLElement, name: string) => mine(dialog).getByRole('button', { name: new RegExp(`^${name} `) });
+  const pickedNames = (dialog: HTMLElement) =>
+    mine(dialog).queryAllByRole('button', { pressed: true }).map(b => b.firstChild?.textContent);
+
+  it('picks a line with a click and opens it only with a double click, a double tap or the keyboard', async () => {
+    keepMany(['One', 'Two']);
+    renderAt();
+    let dialog = openDialog();
+    // A click picks Two and leaves One open.
+    fireEvent.click(line(dialog, 'Two'), { detail: 1 });
+    expect(dialog).toHaveAttribute('open');
+    expect(heading()).toHaveTextContent('One');
+    expect(pickedNames(dialog)).toEqual(['Two']);
+    expect(line(dialog, 'One')).toHaveAttribute('aria-current', 'true');
+    // A click on another picks it instead: no double click across two lines.
+    fireEvent.click(line(dialog, 'One'), { detail: 1 });
+    expect(pickedNames(dialog)).toEqual(['One']);
+    expect(dialog).toHaveAttribute('open');
+    // A double click opens.
+    doubleClick(line(dialog, 'Two'));
+    expect(heading()).toHaveTextContent('Two');
+    expect(dialog).not.toHaveAttribute('open');
+    // Two taps the browser counts as one each, close together, open too.
+    dialog = openDialog();
+    expect(pickedNames(dialog)).toEqual([]);
+    fireEvent.click(line(dialog, 'One'), { detail: 1 });
+    fireEvent.click(line(dialog, 'One'), { detail: 1 });
+    expect(heading()).toHaveTextContent('One');
+    // Enter or Space on a line (a click with no count) opens it.
+    dialog = openDialog();
+    fireEvent.click(line(dialog, 'Two'), { detail: 0 });
+    expect(heading()).toHaveTextContent('Two');
+  });
+
+  it('does not open on two taps far apart', () => {
+    keepMany(['One', 'Two']);
+    renderAt();
+    const dialog = openDialog();
+    const stamp = vi.spyOn(Event.prototype, 'timeStamp', 'get').mockReturnValue(1000);
+    fireEvent.click(line(dialog, 'Two'), { detail: 1 });
+    stamp.mockReturnValue(1000 + DOUBLE_TAP_MS);
+    fireEvent.click(line(dialog, 'Two'), { detail: 1 });
+    stamp.mockRestore();
+    expect(heading()).toHaveTextContent('One');
+    expect(dialog).toHaveAttribute('open');
+  });
+
+  it('picks a range with Shift and one more with Cmd or Ctrl, and deletes them all with one Undo', async () => {
+    keepMany(['A1', 'A2', 'A3', 'A4', 'A5']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(line(dialog, 'A2'), { detail: 1 });
+    fireEvent.click(line(dialog, 'A4'), { detail: 1, shiftKey: true });
+    expect(pickedNames(dialog)).toEqual(['A2', 'A3', 'A4']);
+    // Shift again ranges from the same start, upward too.
+    fireEvent.click(line(dialog, 'A1'), { detail: 1, shiftKey: true });
+    expect(pickedNames(dialog)).toEqual(['A1', 'A2']);
+    // Cmd adds one, and takes it away again; Ctrl does the same.
+    fireEvent.click(line(dialog, 'A5'), { detail: 1, metaKey: true });
+    expect(pickedNames(dialog)).toEqual(['A1', 'A2', 'A5']);
+    fireEvent.click(line(dialog, 'A5'), { detail: 2, metaKey: true });
+    expect(pickedNames(dialog)).toEqual(['A1', 'A2']);
+    expect(dialog).toHaveAttribute('open');
+    fireEvent.click(line(dialog, 'A4'), { detail: 1, ctrlKey: true });
+    expect(pickedNames(dialog)).toEqual(['A1', 'A2', 'A4']);
+    // A picked line's Delete (each picked line has one) deletes every picked one, the open one among them.
+    const deletes = mine(dialog).getAllByRole('button', { name: 'Delete 3 arrangements' });
+    expect(deletes).toHaveLength(3);
+    fireEvent.click(deletes[1]);
+    await settle();
+    expect(names(dialog)).toEqual(['A3', 'A5']);
+    expect(pickedNames(dialog)).toEqual([]);
+    expect(heading()).toHaveTextContent('A3');
+    expect(dialog).toHaveAttribute('open');
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted 3 arrangements.');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
+    expect(names(dialog)).toEqual(['A1', 'A2', 'A3', 'A4', 'A5']);
+    expect(['a', 'b', 'd'].every(id => localStorage.getItem(arrangementKey(id)) !== null)).toBe(true);
+  });
+
+  it('deletes only its own line from a line that is not picked, and the picked ones with the Delete key', async () => {
+    keepMany(['A1', 'A2', 'A3', 'A4']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(line(dialog, 'A2'), { detail: 1 });
+    fireEvent.click(line(dialog, 'A3'), { detail: 1, shiftKey: true });
+    expect(mine(dialog).getByRole('button', { name: 'Delete A4' })).toBeInTheDocument();
+    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete A4' }));
+    expect(names(dialog)).toEqual(['A1', 'A2', 'A3']);
+    expect(pickedNames(dialog)).toEqual([]);
+    fireEvent.click(line(dialog, 'A1'), { detail: 1 });
+    fireEvent.click(line(dialog, 'A2'), { detail: 1, metaKey: true });
+    fireEvent.keyDown(line(dialog, 'A2'), { key: 'Backspace' });
+    await settle();
+    expect(names(dialog)).toEqual(['A3']);
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted 2 arrangements.');
+    // With nothing picked, Delete does nothing.
+    fireEvent.keyDown(line(dialog, 'A3'), { key: 'Delete' });
+    expect(names(dialog)).toEqual(['A3']);
+  });
+
+  it('ranges over the lines shown, leaving out a closed folder, and drags the picked ones together', () => {
+    keepMany(['Top 1', 'Top 2', 'Inside'], [{ id: 'f', name: 'Riffs', holds: ['Inside'] }]);
+    renderAt();
+    const dialog = openDialog();
+    const folder = mine(dialog).getByRole('button', { name: 'Riffs' });
+    expect(folder).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(line(dialog, 'Top 2'), { detail: 1 });
+    fireEvent.click(line(dialog, 'Top 1'), { detail: 1, shiftKey: true });
+    expect(pickedNames(dialog)).toEqual(['Top 1', 'Top 2']);
+    // Opened, the folder's lines come first, so a range from inside it takes in Top 1.
+    fireEvent.click(folder);
+    fireEvent.click(line(dialog, 'Inside'), { detail: 1 });
+    fireEvent.click(line(dialog, 'Top 1'), { detail: 1, shiftKey: true });
+    expect(pickedNames(dialog)).toEqual(['Inside', 'Top 1']);
+    // Closing the folder lets go of what is in it.
+    fireEvent.click(folder);
+    expect(pickedNames(dialog)).toEqual(['Top 1']);
+    fireEvent.click(line(dialog, 'Top 2'), { detail: 1, metaKey: true });
+    // Dragging one picked line carries both into the folder.
+    drag(line(dialog, 'Top 1').closest('li')!, folder);
+    expect(loadLibrary().items.filter(i => i.folder === 'f').map(i => i.name).sort()).toEqual(['Inside', 'Top 1', 'Top 2']);
+  });
+
+  it('picks one built-in line at a time, and opens it with a double click', async () => {
+    keepMany(['One']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Samples' }));
+    const sample = within(within(dialog).getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' });
+    fireEvent.click(line(dialog, 'One'), { detail: 1 });
+    // Shift on a built-in picks only it, and lets go of the kept ones: they are never deleted together.
+    fireEvent.click(sample, { detail: 1, shiftKey: true });
+    expect(sample).toHaveAttribute('aria-pressed', 'true');
+    expect(pickedNames(dialog)).toEqual([]);
+    expect(dialog).toHaveAttribute('open');
+    doubleClick(sample);
+    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
   });
 });
 

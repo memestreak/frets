@@ -1036,9 +1036,13 @@ button {
   .tab-row-main {
     flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; text-align: left;
     border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--ink); cursor: pointer;
+    /* A Shift-click picks lines, not text; a double tap opens, never zooms. */
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
   }
   .tab-row-main:hover, .tab-row-main:focus-visible { background: var(--surface-sunken); outline: none; }
-  .tab-row-main[aria-current='true'] { border-color: var(--primary); background: var(--primary-soft); }
+  /* The open one is outlined, the picked ones filled. */
+  .tab-row-main[aria-current='true'] { border-color: var(--primary); }
+  .tab-row-main[aria-pressed='true'] { background: var(--primary-soft); }
   .tab-row-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tab-row-changed { margin-left: auto; flex: none; color: var(--ink-muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
   .tab-folder { font-weight: 600; }

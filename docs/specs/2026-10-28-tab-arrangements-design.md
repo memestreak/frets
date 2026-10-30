@@ -22,8 +22,25 @@ folder of their own, the built-ins as files in the repository.
 
 - **My arrangements**: folders first, then the arrangements at the top level.
   A press on a folder opens or closes it (closed by default; the one holding
-  what is shown opens with the dialog); an empty one says "Empty". A press on
-  an arrangement opens it; the open one is filled.
+  what is shown opens with the dialog); an empty one says "Empty". The open
+  arrangement's line is outlined.
+- Picking and opening (Jeremy, 2026-10-30), as in a file browser: a click on
+  an arrangement's line picks it alone (filled); a **double click** opens it.
+  A double tap opens it on a phone too, counted by the dialog where the
+  browser doesn't (two taps on one line within 400 ms). Enter or Space on a
+  line opens it, so the keyboard needs no double press. **Shift**-click
+  picks every line from the last one picked to this one, as listed
+  (leaving out what is in closed folders); **Cmd**-click (Ctrl on Windows and
+  Linux) adds or takes away one line. A press with Shift, Cmd or Ctrl never
+  opens. Only kept arrangements are picked several at a time; a built-in line
+  is picked on its own, and a folder's line still opens or closes it. The
+  dialog opens with nothing picked.
+- Delete on a picked line deletes every picked arrangement (its label says how
+  many, e.g. "Delete 3 arrangements"); on a line that isn't picked it deletes
+  that one. Delete or Backspace with the focus in My arrangements deletes the
+  picked ones. One Undo brings them all back ("Deleted 3 arrangements."), and
+  nothing stays picked after a delete. Dragging a picked line carries every
+  picked one.
 - A kept arrangement's line ends, muted, with when it last changed, so two of
   one name can be told apart (Jeremy, 2026-10-28): the time today, else the
   day and time, with the year when it isn't this one. Built-ins have none.

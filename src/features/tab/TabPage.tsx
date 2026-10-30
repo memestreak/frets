@@ -1016,7 +1016,7 @@ export default function TabPage() {
         onRename={arrangements.rename}
         onMove={arrangements.move}
         // Deleting the open arrangement opens another, or a new clip.
-        onDelete={id => removing([id], () => arrangements.remove(id))}
+        onDelete={ids => removing(ids, () => arrangements.remove(ids))}
         onCreateFolder={arrangements.createFolder}
         onRenameFolder={arrangements.renameFolder}
         onDeleteFolder={id => removing(
