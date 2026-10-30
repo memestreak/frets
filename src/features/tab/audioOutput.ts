@@ -119,8 +119,8 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private effectSettings: EffectSettings = NO_EFFECTS;
   private volume = 1;
   private samples = new SampleQueue();
-  /** Sounds left to ring on (`ringOn`), each on its own node, by key (a string). */
-  private readonly ringing = new Map<number, Sounding>();
+  /** Sounds left to ring on (`ringOn`), each on its own node. */
+  private readonly ringing = new Set<Sounding>();
   /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
   private lastBlock: { playbackTime: number; seconds: number } | null = null;
   /** Requests made and not yet answered by `addSamples`. */
@@ -186,11 +186,11 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
 
   /**
    * Lets what is sounding now ring out on its own (issue #258: a note heard while editing, not cut
-   * off by the next one), under `key` (its string). The synthesizer renders the rest of it at once,
-   * until it answers with nothing; the node plays that to the end, apart from the next sound, which
-   * starts on a node of its own. `choke(key)` stops it sooner.
+   * off by the next one, even on the same string: Jeremy, 2026-10-30, "they should ring the same").
+   * The synthesizer renders the rest of it at once, until it answers with nothing; the node plays that
+   * to the end, apart from the next sound, which starts on a node of its own. `chokeAll` stops it sooner.
    */
-  ringOn(key: number) {
+  ringOn() {
     const { context, node, gain } = this;
     if (!context || context.state !== 'running' || !node || !gain) return;
     this.node = null;
@@ -205,28 +205,20 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     const tail = this.samples;
     this.samples = new SampleQueue();
     this.pending = 0;
-    this.choke(key);
     const ringing = { node, gain };
-    this.ringing.set(key, ringing);
+    this.ringing.add(ringing);
     node.onaudioprocess = e => {
       if (tail.drainInto(channelsOf(e.outputBuffer)) > 0) return;
       node.onaudioprocess = null;
-      if (this.ringing.get(key) === ringing) this.ringing.delete(key);
+      this.ringing.delete(ringing);
       this.disconnectLater(ringing);
     };
   }
 
-  /** Stops what rings on under `key` (`ringOn`), fading it out: a new note on the same string. */
-  choke(key: number) {
-    const ringing = this.ringing.get(key);
-    if (!ringing) return;
-    this.ringing.delete(key);
-    this.fadeAway(ringing, null);
-  }
-
-  /** Stops everything ringing on (`ringOn`), as Play or Stop does. */
+  /** Fades out everything ringing on (`ringOn`), as Play or Stop does. */
   chokeAll() {
-    for (const key of [...this.ringing.keys()]) this.choke(key);
+    for (const ringing of this.ringing) this.fadeAway(ringing, null);
+    this.ringing.clear();
   }
 
   /**

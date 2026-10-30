@@ -147,7 +147,7 @@ describe('a sound left to ring on', () => {
   it('renders the rest of the sound and plays it to its end on its own node, unfaded', () => {
     const { output, scripts, run, made } = ringingSetup(6);
     const first = scripts()[0];
-    output.ringOn(2);
+    output.ringOn();
     // Every block the synthesizer had left was rendered at once.
     expect(made()).toBe(6);
     // A new sound starts on a node of its own; the ringing node plays on.
@@ -163,25 +163,22 @@ describe('a sound left to ring on', () => {
     expect(first.disconnected).toBe(true);
   });
 
-  it('chokes the sound ringing on a string when that string sounds again, fading it out', () => {
+  it('lets each sound ring on beside the next, whichever string it was on', () => {
     const { output, scripts } = ringingSetup(3);
-    output.ringOn(4);
-    // The gain the first sound's node plays through.
-    const ringingGain = scripts()[0].next[0].to;
+    output.ringOn();
     output.play();
-    output.ringOn(1);
-    // The other string rings on; this one fades to nothing and is let go.
-    output.choke(4);
-    expect(ringingGain.gain.target).toBe(0);
-    vi.runAllTimers();
-    expect(scripts()[0].disconnected).toBe(true);
+    output.ringOn();
+    output.play();
+    // Two ringing nodes and the one playing now, none faded.
+    expect(scripts()).toHaveLength(3);
+    for (const node of scripts()) expect(node.next[0].to.gain.target).toBeNull();
   });
 
   it('chokes every ringing sound at once, as Play does', () => {
     const { output, scripts } = ringingSetup(3);
-    output.ringOn(0);
+    output.ringOn();
     output.play();
-    output.ringOn(5);
+    output.ringOn();
     output.chokeAll();
     vi.runAllTimers();
     expect(scripts().every(n => n.disconnected)).toBe(true);
