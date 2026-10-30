@@ -184,10 +184,16 @@ export function plateImpulse(sampleRate: number, seconds: number): [Float32Array
  * board. Each effect is always connected and faded in or out by gains, so a change never clicks.
  *
  *   input ─┬─────────────── clean ────────────────┬─┬─────────────┬─ volume → limiter → output
- *          └ drive → tighten → shaper → shaper → tone → cab ┘ └ plate → wet ┘
+ *          └ drive → tighten → shaper → shaper → tone → cab ┘ └ plate → wet ┘   │
+ *   dryInput ──────────────────────────────────────────────────────────────────┘
+ *
+ * `dryInput` takes what must not be heard through the effects (the metronome's clicks) straight to
+ * the volume, so the Volume knob and the limiter still act on it.
  */
 export class EffectsChain {
   readonly input: GainNode;
+  /** Into the volume, past every effect. */
+  readonly dryInput: GainNode;
   /** After the volume, a limiter, so distortion and reverb together never clip the speakers. */
   readonly output: DynamicsCompressorNode;
   private readonly volume: GainNode;
@@ -221,6 +227,8 @@ export class EffectsChain {
     };
     this.input = gain(1);
     this.volume = gain(1);
+    this.dryInput = gain(1);
+    this.dryInput.connect(this.volume);
     this.output = context.createDynamicsCompressor();
     this.output.threshold.value = -3;
     this.output.knee.value = 0;

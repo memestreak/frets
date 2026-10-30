@@ -78,8 +78,9 @@ export default function TabPage() {
   // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
   const whole = state.clip;
   // The track the page shows, edits and plays (issue #237: the first, until tracks are drawn); its edits
-  // go back into the whole clip through `dispatch`.
-  const clip = useMemo(() => partOf(whole), [whole]);
+  // go back into the whole clip through `dispatch`. Its FX are the ones playback goes through.
+  const shownTrack = 0;
+  const clip = useMemo(() => partOf(whole, shownTrack), [whole]);
   const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action));
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
   const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part));
@@ -984,7 +985,7 @@ export default function TabPage() {
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
-            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', fx })}
+            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', track: shownTrack, fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={metronome.on} onMetronome={on => setMetronome(m => ({ ...m, on }))}
             countIn={metronome.countIn} onCountIn={countIn => setMetronome(m => ({ ...m, countIn }))}

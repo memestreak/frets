@@ -24,8 +24,10 @@ shows, edits and plays only the first.
 
     // frets:fx <on|off>; distortion <on|off> drive=<0-1> tone=<0-1>; reverb <on|off> amount=<0-1> decay=<0.3-5>
                                       optional; first line. The playback
-                                      effects (see 8.); other comments
-                                      are skipped and not kept
+                                      effects (see 8.); with tracks, one
+                                      under each \track line instead.
+                                      Other comments are skipped and not
+                                      kept
     \title "<name of the clip>"       optional
     \artist "<band or player>"        optional; printed under the title
     \words "<lyricist>"               optional; "Words by ..."
@@ -65,7 +67,8 @@ in standard tuning, as guitar books print it; otherwise as it sounds.
 
 Tracks. A part for another guitar ("Gtr II") is a track of its own: write
 \track "<name>" before each part's lines and bars, the first included,
-then that part's \instrument, \tuning and \capo, then its bars. Lines for
+then that part's effects line (see 8.), \instrument, \tuning and \capo,
+then its bars. Lines for
 the whole clip (\title, \artist, \words, \music, \multiBarRest, the
 layout tags) come before the first \track; \ts follows the first track's
 own lines. Every track has the same number of bars. Time and key
@@ -381,6 +384,10 @@ The sound it plays in is the text's \instrument (see 1.), and the
 playback effects belong to the text, as one comment line at its top:
 
     // frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5
+
+Each track has its own effects: with tracks, write each track's line on
+the line after its \track. A line before the second \track belongs to the
+first track. The metronome's clicks never go through the effects.
 
 The first word turns the effects on or off together; distortion and
 reverb are each on or off; drive, tone and amount run 0 to 1, decay 0.3 to

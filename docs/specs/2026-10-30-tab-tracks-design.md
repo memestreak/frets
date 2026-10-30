@@ -15,14 +15,15 @@ more tracks than Frets supports yet.
 ## The model (`clip.ts`)
 
 - `Clip` is what is stored, linked and written: its name, first time
-  signature, header lines, line breaks, multi-bar rests and FX, its
+  signature, header lines, line breaks, multi-bar rests, its
   `masterBars` and its `tracks` (one at least).
 - `MasterBar` is what every track's bar `b` shares, as alphaTab's master bar
   does: time and key signatures, repeats, endings, double bars, free time,
   tempo, section. One place each, so tracks can't disagree.
 - `Track` is one part: its name, its `\track` line as written (`tag`, which
   keeps whatever it sets past the name), its own kept lines (`header`, such
-  as `\staff {score tabs}`), tuning, capo, sound (`instrument`) and its
+  as `\staff {score tabs}`), tuning, capo, sound (`instrument`), FX
+  (`fx`, `2026-10-30-tab-track-effects-design.md`) and its
   `bars`, as many as the clip's `masterBars`. A `TrackBar` is a bar's
   columns and its kept bar metadata (`extra`).
 - `Part` is one track as the editor sees it, the shape the clip had before
@@ -51,9 +52,10 @@ more tracks than Frets supports yet.
 - In the first track's first bar, kept lines before its `\track` are the
   clip's `header`, lines after it the track's. Credits are always the clip's.
 - An uneven bar is named with its track: "Gtr II: Bar 3 doesn't add up…".
-- Writing: the FX line, `\title`, the clip's header, then each track: its
-  `\track` (as written, or `\track "<name>"` when the clip has more than one
-  and none was written), its own lines and `\instrument`, then for the
+- Writing: the first track's FX line when it has no `\track`, `\title`, the
+  clip's header, then each track: its `\track` (as written, or
+  `\track "<name>"` when the clip has more than one and none was written)
+  and its FX line under it, its own lines and `\instrument`, then for the
   first track `\multiBarRest`, the layout tags and `\ts`, then its tuning
   and capo and its bars. Bar marks are written in the first track's bars
   only; alphaTab gives them to every track. A clip of one track with no

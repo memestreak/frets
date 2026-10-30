@@ -27,8 +27,8 @@ export interface ClipState extends History {
 export type ClipAction =
   /** An edit, one undo step back to `from` when given (a drag's first clip), else to the clip before. */
   | { type: 'replace'; clip: Clip; from?: Clip }
-  /** New FX for the clip: changes made one after another, as a knob turns, are one undo step. */
-  | { type: 'fx'; fx: FxSettings }
+  /** New FX for track `track`: changes made one after another, as a knob turns, are one undo step. */
+  | { type: 'fx'; track: number; fx: FxSettings }
   /** A clip shown while a drag goes on, not an undo step of its own. */
   | { type: 'preview'; clip: Clip }
   | { type: 'undo' }
@@ -61,10 +61,13 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
     case 'replace':
       return { ...state, clip: action.clip, past: [...state.past, action.from ?? state.clip], future: [] };
     case 'fx': {
-      const clip = { ...state.clip, fx: action.fx };
+      const tracks = state.clip.tracks.map((track, t) => (t === action.track ? { ...track, fx: action.fx } : track));
+      const clip = { ...state.clip, tracks };
       const before = state.past[state.past.length - 1];
-      // The clip is already an FX change from the one before: this change joins its step.
-      if (before && before.fx !== state.clip.fx && sameMusic(before, state.clip)) return { ...state, clip, future: [] };
+      // The clip is already a change of this track's FX from the one before: this change joins its step.
+      const sameStep = before && before.tracks.length === tracks.length
+        && before.tracks[action.track]?.fx !== state.clip.tracks[action.track]?.fx && sameMusic(before, state.clip);
+      if (sameStep) return { ...state, clip, future: [] };
       return clipReducer(state, { type: 'replace', clip });
     }
     case 'preview':
@@ -97,14 +100,14 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
 }
 
 /**
- * Whether two clips, or two parts, differ in nothing but their FX and their tracks' sounds: the same
- * music, in another sound.
+ * Whether two clips, or two parts, differ in nothing but their tracks' FX and sounds: the same music,
+ * in another sound.
  */
 export function sameMusic<T extends Clip | Part>(a: T, b: T): boolean {
   if (!sameBut(a, b, ['fx', 'instrument', 'tracks'])) return false;
   const tracksA = 'tracks' in a ? a.tracks : [];
   const tracksB = 'tracks' in b ? b.tracks : [];
-  return tracksA.length === tracksB.length && tracksA.every((track, t) => sameBut(track, tracksB[t], ['instrument']));
+  return tracksA.length === tracksB.length && tracksA.every((track, t) => sameBut(track, tracksB[t], ['fx', 'instrument']));
 }
 
 /** Whether every field of two objects but `skip` is the very same. */

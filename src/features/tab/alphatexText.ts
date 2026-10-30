@@ -6,17 +6,24 @@
 import type { TextSpot } from './ascii';
 import { readFxLine } from './fxLine';
 
-/** What the margin says beside a comment: Frets keeps none of them but the FX line. */
+/** What the margin says beside a comment: Frets keeps none of them but the FX lines. */
 export const COMMENT_NOTE = 'Comments are not kept';
+
+/** A `\track` tag, not a longer tag that starts the same. */
+const TRACK_TAG = /^\\track(?![a-z0-9])/i;
 
 /**
  * The comments in alphaTex text, `// to the line's end` and `/* … *\/`, as
- * spots. Quoted text ("…" or '…', with backslash escapes) is not a comment. The first
- * `// frets:fx` line is kept, as the clip's FX (`fxLine.ts`), so it is no spot.
+ * spots. Quoted text ("…" or '…', with backslash escapes) is not a comment. Each
+ * track's first `// frets:fx` line is kept, as its FX (`fxLine.ts`), so it is no
+ * spot: a line belongs to the track whose `\track` comes last before it, and one
+ * before the second track's `\track` to the first, as `alphatexRead.ts` reads them.
  */
 export function commentSpots(text: string): TextSpot[] {
   const spots: TextSpot[] = [];
-  let fxKept = false;
+  /** The tracks (from 0) whose FX line has been found. */
+  const fxKept = new Set<number>();
+  let tracks = 0;
   let i = 0;
   while (i < text.length) {
     const c = text[i];
@@ -27,7 +34,9 @@ export function commentSpots(text: string): TextSpot[] {
     } else if (c === '/' && text[i + 1] === '/') {
       const end = text.indexOf('\n', i);
       const to = end === -1 ? text.length : end;
-      if (!fxKept && readFxLine(text.slice(i + 2, to))) fxKept = true;
+      // Before the second `\track`, the first track's.
+      const track = Math.max(0, tracks - 1);
+      if (!fxKept.has(track) && readFxLine(text.slice(i + 2, to))) fxKept.add(track);
       else spots.push({ from: i, to, message: COMMENT_NOTE });
       i = to;
     } else if (c === '/' && text[i + 1] === '*') {
@@ -36,6 +45,7 @@ export function commentSpots(text: string): TextSpot[] {
       spots.push({ from: i, to, message: COMMENT_NOTE });
       i = to;
     } else {
+      if (c === '\\' && TRACK_TAG.test(text.slice(i, i + 7))) tracks++;
       i++;
     }
   }
