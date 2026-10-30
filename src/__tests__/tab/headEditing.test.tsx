@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
-import { emptyClip } from '@/features/tab/clip';
+import { emptyPart } from '@/features/tab/clip';
 import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 
 const BUILTIN_FILES = await readBuiltinFiles();
@@ -159,7 +159,7 @@ describe("the score head's tuning", () => {
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(screen.queryByRole('button', { name: 'Standard tuning' })).toBeNull();
     // Printed scores leave standard tuning unsaid.
-    expect(tabSvg({ ...emptyClip(), name: 'Riff' }, parseTabExportStyle(null), 'Riff')).not.toContain('Standard tuning');
+    expect(tabSvg({ ...emptyPart(), name: 'Riff' }, parseTabExportStyle(null), 'Riff')).not.toContain('Standard tuning');
   });
 
   it('opens from the drawn tuning, and Standard takes the tag away', async () => {

@@ -7,8 +7,8 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barLength, barTicks, ticks, emptyClip, fewestRests, STRING_COUNT, timeAt, type Bar, type Clip, type Column, type Duration, type Note, type TimeSignature } from './clip';
-import { writeAlphaTex } from './alphatex';
+import { barLength, barTicks, ticks, emptyPart, fewestRests, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { writePart } from './alphatex';
 
 /** Where the cursor is: a column of a bar, and a string (0 = high e). In an empty bar the column is 0. */
 export interface Cursor {
@@ -39,14 +39,14 @@ export function without<T extends object, K extends keyof T>(obj: T, key: K): Om
 /* — places — */
 
 /** A column's place in the whole clip, counting from 0. An empty bar has no columns, so no place. */
-export function indexOf(clip: Clip, bar: number, column: number): number {
+export function indexOf(clip: Part, bar: number, column: number): number {
   let index = column;
   for (let b = 0; b < bar; b++) index += clip.bars[b].columns.length;
   return index;
 }
 
 /** The bar and column at a place in the whole clip. */
-export function placeOf(clip: Clip, index: number): { bar: number; column: number } {
+export function placeOf(clip: Part, index: number): { bar: number; column: number } {
   let left = index;
   for (let b = 0; b < clip.bars.length; b++) {
     const n = clip.bars[b].columns.length;
@@ -57,7 +57,7 @@ export function placeOf(clip: Clip, index: number): { bar: number; column: numbe
   return { bar: last, column: Math.max(0, clip.bars[last].columns.length - 1) };
 }
 
-export function columnCount(clip: Clip): number {
+export function columnCount(clip: Part): number {
   return clip.bars.reduce((n, b) => n + b.columns.length, 0);
 }
 
@@ -67,7 +67,7 @@ export function selectedRange(selection: Selection): [number, number] {
 }
 
 /** The cursor moved inside the clip, as after an undo that took columns away. */
-export function clampCursor(clip: Clip, cursor: Cursor): Cursor {
+export function clampCursor(clip: Part, cursor: Cursor): Cursor {
   const bar = Math.min(Math.max(cursor.bar, 0), clip.bars.length - 1);
   const columns = clip.bars[bar].columns.length;
   return {
@@ -78,16 +78,16 @@ export function clampCursor(clip: Clip, cursor: Cursor): Cursor {
 }
 
 /** The column under the cursor, or null in an empty bar. */
-export function columnAt(clip: Clip, cursor: Cursor): Column | null {
+export function columnAt(clip: Part, cursor: Cursor): Column | null {
   return clip.bars[cursor.bar]?.columns[cursor.column] ?? null;
 }
 
-export function noteAt(clip: Clip, cursor: Cursor): Note | null {
+export function noteAt(clip: Part, cursor: Cursor): Note | null {
   return columnAt(clip, cursor)?.notes[cursor.string] ?? null;
 }
 
 /** The nearest note before the cursor on its string, in this bar or an earlier one. */
-export function noteBefore(clip: Clip, cursor: Cursor): Note | null {
+export function noteBefore(clip: Part, cursor: Cursor): Note | null {
   for (let b = cursor.bar; b >= 0; b--) {
     const columns = clip.bars[b].columns;
     for (let c = b === cursor.bar ? cursor.column - 1 : columns.length - 1; c >= 0; c--) {
@@ -102,7 +102,7 @@ export function noteBefore(clip: Clip, cursor: Cursor): Note | null {
  * The places of the run of columns round `index` that all have a mark (`has`), as the P.M. and let
  * ring lines run: across bars and lines of tab, as far as the mark goes.
  */
-export function runAround(clip: Clip, index: number, has: (column: Column) => boolean): [number, number] {
+export function runAround(clip: Part, index: number, has: (column: Column) => boolean): [number, number] {
   const columns = clip.bars.flatMap(b => b.columns);
   let from = index;
   let to = index;
@@ -118,7 +118,7 @@ export function runAround(clip: Clip, index: number, has: (column: Column) => bo
  * a tie takes its fret, a hammer-on or pull-off is named by which way the frets go, and a mark
  * with no earlier note to join (or a dead one) is dropped; a slide from it becomes a slide from below.
  */
-export function normalize(clip: Clip): Clip {
+export function normalize(clip: Part): Part {
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
   const bars = clip.bars.map(bar => ({
     ...bar,
@@ -153,7 +153,7 @@ const sameTime = (a: TimeSignature, b: TimeSignature) => a.beats === b.beats && 
  * A time signature set on the first bar becomes the clip's, and one that repeats the time signature
  * already in force is dropped, so a bar's `time` always marks a change.
  */
-function tidyTimes(clip: Clip): Clip {
+function tidyTimes(clip: Part): Part {
   let time = clip.bars[0]?.time ?? clip.time;
   const bars = clip.bars.map((bar, b) => {
     if (!bar.time) return bar;
@@ -169,7 +169,7 @@ function tidyTimes(clip: Clip): Clip {
 /* — changing columns and notes — */
 
 /** The duration a new column gets: the cursor column's, else the nearest column's before it, else a quarter. */
-function durationNear(clip: Clip, cursor: Cursor): Duration {
+function durationNear(clip: Part, cursor: Cursor): Duration {
   const here = columnAt(clip, cursor);
   if (here) return { ...here.duration };
   for (let b = cursor.bar; b >= 0; b--) {
@@ -183,12 +183,12 @@ export function emptyColumn(duration: Duration): Column {
   return { duration, notes: Array<Note | null>(STRING_COUNT).fill(null) };
 }
 
-export function replaceBar(clip: Clip, index: number, bar: Bar): Clip {
+export function replaceBar(clip: Part, index: number, bar: Bar): Part {
   return { ...clip, bars: clip.bars.map((b, i) => (i === index ? bar : b)) };
 }
 
 /** The clip with the cursor's column changed by `change`; in an empty bar a column is made first. */
-export function withColumn(clip: Clip, cursor: Cursor, change: (column: Column) => Column): Clip {
+export function withColumn(clip: Part, cursor: Cursor, change: (column: Column) => Column): Part {
   const bar = clip.bars[cursor.bar];
   if (bar.columns.length === 0) {
     return replaceBar(clip, cursor.bar, { ...bar, columns: [change(emptyColumn(durationNear(clip, cursor)))] });
@@ -200,7 +200,7 @@ export function withColumn(clip: Clip, cursor: Cursor, change: (column: Column) 
 }
 
 /** The clip with every column in `range` (places, inclusive) changed by `change`. */
-function withColumns(clip: Clip, [from, to]: [number, number], change: (column: Column) => Column): Clip {
+function withColumns(clip: Part, [from, to]: [number, number], change: (column: Column) => Column): Part {
   let index = 0;
   const bars = clip.bars.map(bar => ({
     ...bar,
@@ -219,12 +219,12 @@ export interface Target {
   selection: Selection | null;
 }
 
-export function changeColumns(clip: Clip, { cursor, selection }: Target, change: (column: Column) => Column): Clip {
+export function changeColumns(clip: Part, { cursor, selection }: Target, change: (column: Column) => Column): Part {
   return normalize(selection ? withColumns(clip, selectedRange(selection), change) : withColumn(clip, cursor, change));
 }
 
 /** The length of the last column with a note before the cursor's, in the clip; a quarter when none. */
-function lastNoteLength(clip: Clip, cursor: Cursor): Duration {
+function lastNoteLength(clip: Part, cursor: Cursor): Duration {
   for (let b = cursor.bar; b >= 0; b--) {
     const columns = clip.bars[b].columns;
     for (let c = (b === cursor.bar ? cursor.column : columns.length) - 1; c >= 0; c--) {
@@ -239,7 +239,7 @@ function lastNoteLength(clip: Clip, cursor: Cursor): Duration {
  * rest is split: its first part takes that note's length and the rest of its time stays rests, the
  * fewest that fill it. So a run of quarters types on as before (Jeremy, 2026-10-26).
  */
-function splitRest(clip: Clip, cursor: Cursor): Clip {
+function splitRest(clip: Part, cursor: Cursor): Part {
   const column = columnAt(clip, cursor);
   if (!column || column.grace || column.duration.tuplet || column.notes.some(Boolean)) return clip;
   const length = lastNoteLength(clip, cursor);
@@ -252,7 +252,7 @@ function splitRest(clip: Clip, cursor: Cursor): Clip {
 }
 
 /** Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. */
-export function setFret(clip: Clip, cursor: Cursor, fret: number): Clip {
+export function setFret(clip: Part, cursor: Cursor, fret: number): Part {
   return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => {
@@ -264,7 +264,7 @@ export function setFret(clip: Clip, cursor: Cursor, fret: number): Clip {
 }
 
 /** A dead note (x) on the cursor's string. */
-export function setDead(clip: Clip, cursor: Cursor): Clip {
+export function setDead(clip: Part, cursor: Cursor): Part {
   return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => (s === cursor.string ? { fret: null, ...(note?.palmMute ? { palmMute: true } : {}) } : note)),
@@ -272,7 +272,7 @@ export function setDead(clip: Clip, cursor: Cursor): Clip {
 }
 
 /** Clears the cursor's note. */
-export function clearNote(clip: Clip, cursor: Cursor): Clip {
+export function clearNote(clip: Part, cursor: Cursor): Part {
   if (!columnAt(clip, cursor)) return clip;
   return normalize(withColumn(clip, cursor, column => ({
     ...column,
@@ -280,12 +280,12 @@ export function clearNote(clip: Clip, cursor: Cursor): Clip {
   })));
 }
 
-function isFull(clip: Clip, index: number): boolean {
+function isFull(clip: Part, index: number): boolean {
   return barLength(clip.bars[index]) >= barTicks(timeAt(clip, index));
 }
 
 /** The rests that complete a bar: the fewest that fill the time it lacks. */
-function restsToFill(clip: Clip, bar: number): Duration[] {
+function restsToFill(clip: Part, bar: number): Duration[] {
   return fewestRests(barTicks(timeAt(clip, bar)) - barLength(clip.bars[bar]));
 }
 
@@ -295,7 +295,7 @@ function restsToFill(clip: Clip, bar: number): Duration[] {
  * With Settings' "Fill short bars with rests" on, the cursor leaving a bar (←, a press elsewhere, or
  * the tab losing focus) does this (Jeremy, 2026-10-27; off by default since 2026-10-29).
  */
-export function fillBar(clip: Clip, bar: number): Clip {
+export function fillBar(clip: Part, bar: number): Part {
   const here = clip.bars[bar];
   if (!here || isFull(clip, bar)) return clip;
   const rests = restsToFill(clip, bar);
@@ -307,7 +307,7 @@ export function fillBar(clip: Clip, bar: number): Clip {
  * One rest for the cursor to type on after a short bar's last column: as long as the column before
  * it, or the longest rest that fits when that would make the bar too long.
  */
-function restToTypeOn(clip: Clip, cursor: Cursor): Duration {
+function restToTypeOn(clip: Part, cursor: Cursor): Duration {
   const near = durationNear(clip, cursor);
   const room = barTicks(timeAt(clip, cursor.bar)) - barLength(clip.bars[cursor.bar]);
   return ticks(near) <= room ? near : fewestRests(room)[0] ?? near;
@@ -334,7 +334,7 @@ export interface MoveOptions {
  * Either way, right from the clip's last column, once its bar is full, starts a new bar with a rest
  * as long as the cursor's column, so typing runs on, and the fewest rests after it that fill the bar.
  */
-export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, { grow = true, fillBars = false }: MoveOptions = {}): { clip: Clip; cursor: Cursor } {
+export function moveColumn(clip: Part, cursor: Cursor, step: 1 | -1, { grow = true, fillBars = false }: MoveOptions = {}): { clip: Part; cursor: Cursor } {
   const { bar, column } = cursor;
   if (step === -1) {
     if (column > 0) return { clip, cursor: { ...cursor, column: column - 1 } };
@@ -363,7 +363,7 @@ export function moveColumn(clip: Clip, cursor: Cursor, step: 1 | -1, { grow = tr
 }
 
 /** A rest with the cursor column's duration, put before the cursor column (the Insert key). */
-export function insertColumn(clip: Clip, cursor: Cursor): Clip {
+export function insertColumn(clip: Part, cursor: Cursor): Part {
   const bar = clip.bars[cursor.bar];
   const columns = [...bar.columns];
   columns.splice(cursor.column, 0, emptyColumn(durationNear(clip, cursor)));
@@ -376,7 +376,7 @@ export function insertColumn(clip: Clip, cursor: Cursor): Clip {
  * the time, that is the time before the change, which the cursor's bar keeps. The cursor goes to
  * the new bar's first rest.
  */
-export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after'): { clip: Clip; cursor: Cursor } {
+export function insertBar(clip: Part, cursor: Cursor, where: 'before' | 'after'): { clip: Part; cursor: Cursor } {
   const index = where === 'before' ? cursor.bar : cursor.bar + 1;
   const time = index === 0 ? clip.time : timeAt(clip, index - 1);
   const rests = fewestRests(barTicks(time)).map(emptyColumn);
@@ -394,7 +394,7 @@ export function insertBar(clip: Clip, cursor: Cursor, where: 'before' | 'after')
  * so → can fill it with rests again (Jeremy, 2026-10-26); bars a wider range empties go, unless
  * none would be left.
  */
-export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip: Clip; cursor: { bar: number; column: number } } {
+export function deleteColumns(clip: Part, [from, to]: [number, number]): { clip: Part; cursor: { bar: number; column: number } } {
   const first = placeOf(clip, from).bar;
   const oneBar = placeOf(clip, to).bar === first;
   let index = 0;
@@ -418,7 +418,7 @@ export function deleteColumns(clip: Clip, [from, to]: [number, number]): { clip:
  * The clip without an empty bar (Delete in it), and the cursor on the last column before it, else
  * the first after it. The only bar stays.
  */
-export function removeEmptyBar(clip: Clip, bar: number): { clip: Clip; cursor: { bar: number; column: number } } {
+export function removeEmptyBar(clip: Part, bar: number): { clip: Part; cursor: { bar: number; column: number } } {
   if (clip.bars.length === 1 || clip.bars[bar].columns.length > 0) return { clip, cursor: { bar, column: 0 } };
   const left = normalize({ ...clip, bars: clip.bars.filter((_, i) => i !== bar) });
   if (bar === 0) return { clip: left, cursor: { bar: 0, column: 0 } };
@@ -426,7 +426,7 @@ export function removeEmptyBar(clip: Clip, bar: number): { clip: Clip; cursor: {
 }
 
 /** The columns in `range` as a clip of their own, with the clip's time and tuning; bar lines between them are kept. */
-export function sliceClip(clip: Clip, [from, to]: [number, number]): Clip {
+export function sliceClip(clip: Part, [from, to]: [number, number]): Part {
   let index = 0;
   const bars: Bar[] = [];
   for (const bar of clip.bars) {
@@ -438,15 +438,15 @@ export function sliceClip(clip: Clip, [from, to]: [number, number]): Clip {
     if (columns.length > 0) bars.push({ ...bar, columns });
   }
   const first = placeOf(clip, from).bar;
-  return normalize({ ...emptyClip(), time: timeAt(clip, first), tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });
+  return normalize({ ...emptyPart(), time: timeAt(clip, first), tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });
 }
 
 /** The columns in `range` as alphaTex, for the clipboard. */
-export function copyText(clip: Clip, range: [number, number]): string {
-  return writeAlphaTex(sliceClip(clip, range));
+export function copyText(clip: Part, range: [number, number]): string {
+  return writePart(sliceClip(clip, range));
 }
 
-export function isEmpty(clip: Clip): boolean {
+export function isEmpty(clip: Part): boolean {
   return clip.bars.every(b => b.columns.length === 0);
 }
 
@@ -456,7 +456,7 @@ export function isEmpty(clip: Clip): boolean {
  * cursor's bar follows its last one. Into an empty clip, the pasted clip comes whole, with its
  * name, time and tuning. The cursor ends on the last pasted column.
  */
-export function pasteAt(clip: Clip, cursor: Cursor, pasted: Clip): { clip: Clip; cursor: Cursor } {
+export function pasteAt(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
   if (isEmpty(clip)) {

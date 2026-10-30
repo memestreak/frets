@@ -5,7 +5,6 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { creditsOf, headerValue, tuningBlock } from '@/features/tab/credits';
 import { layoutClip } from '@/features/tab/layout';
 import { beamGroups } from '@/features/tab/beams';
@@ -13,12 +12,13 @@ import { barHeads, openStrings, tuningShift, writtenStrings } from '@/features/t
 import {
   mix, paletteOf, parseAlphaTex, parseAscii, parseColours, parseNotation, sectionsOf, shownColours, showsBarNumber, viewOf, DEFAULT_VIEW,
 } from '@/features/tab/viewOptions';
+import { type Part, partOf } from '@/features/tab/clip';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = read(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 const E_FLAT = '\\tuning (D#4 A#3 F#3 C#3 G#2 D#2)';
 const EIGHTS = '12.4.8 15.2.8 14.3.8 12.3.8 15.1.8 14.3.8 14.1.8 14.3.8 |';

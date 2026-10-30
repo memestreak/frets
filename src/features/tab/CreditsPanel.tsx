@@ -9,7 +9,7 @@
  */
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { Clip } from './clip';
+import type { Part } from './clip';
 import { UNTITLED } from './clip';
 import { headerValue, setCredit } from './credits';
 import { usePopover } from './usePopover';
@@ -20,14 +20,14 @@ export type HeadField = 'title' | 'artist';
 
 export function CreditsPanel({ clip, x, y, field, onChange, onDone }: {
   /** The clip as it was when the panel opened. */
-  clip: Clip;
+  clip: Part;
   x: number;
   y: number;
   field: HeadField;
   /** The clip as typed so far, shown while the panel is open. */
-  onChange: (clip: Clip) => void;
+  onChange: (clip: Part) => void;
   /** Closed: the clip to keep, or null to put it back as it was (Esc). */
-  onDone: (clip: Clip | null) => void;
+  onDone: (clip: Part | null) => void;
 }) {
   const [title, setTitle] = useState(clip.name);
   const [artist, setArtist] = useState(headerValue(clip, 'artist') ?? '');

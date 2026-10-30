@@ -1,5 +1,5 @@
 import { useId, useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Clip, type Note, type TimeSignature } from './clip';
+import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
@@ -34,7 +34,7 @@ export interface Highlight {
  * and says where a press lands with `onPick`.
  */
 export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, x, y }: {
-  clip: Clip;
+  clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
   parts?: Parts;
@@ -297,7 +297,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   /** The mask that keeps the string lines out from behind the numbers. */
   maskId: string;
   index: number;
-  clip: Clip;
+  clip: Part;
   look: TabLook;
   previous: Map<Note, NoteSpot>;
   slides: Map<Note, 'up' | 'down'>;
@@ -503,7 +503,7 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Clip; look: TabLook }) {
+function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Part; look: TabLook }) {
   const parts: ReactNode[] = [];
   // Endings: one bracket over each run of bars with the same ending.
   endingSpans(system).forEach(({ bar, n, x0, x1 }) => {

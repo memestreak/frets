@@ -4,7 +4,7 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { type BendQuarters, type Clip, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
+import { type BendQuarters, type Part, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
 import { whammyShape, type WhammyShape } from './whammy';
 import { columnAt, indexOf, noteAt, setDead, type Target } from './editing';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
@@ -153,7 +153,7 @@ const MARK: Partial<Record<ToolId, MarkKind>> = {
 const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato', 'mordent']);
 
 /** The target as whole columns: the selection, else the cursor's column. */
-function wholeColumns(clip: Clip, target: Target): Target {
+function wholeColumns(clip: Part, target: Target): Target {
   if (target.selection || !columnAt(clip, target.cursor)) return target;
   const i = indexOf(clip, target.cursor.bar, target.cursor.column);
   return { ...target, selection: { anchor: i, focus: i } };
@@ -169,7 +169,7 @@ export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
 };
 
 /** The clip after a palette press. */
-export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
+export function applyTool(clip: Part, target: Target, id: ToolId): Part {
   const value = VALUE[id];
   if (value) return setValue(clip, target, value);
   const tremolo = TREMOLO[id];
@@ -205,7 +205,7 @@ export function applyTool(clip: Clip, target: Target, id: ToolId): Clip {
  * The clip after a key press that steps through a tool's choices (b, Shift+B, /, \\, V, N, A, Shift+T), or null
  * when the key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do.
  */
-export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip | null {
+export function applyCyclingKey(clip: Part, target: Target, key: string): Part | null {
   const { cursor } = target;
   if (key === 'b') return cycleBend(clip, target);
   if (key === 'B') return cycleBendShape(clip, cursor);
@@ -222,7 +222,7 @@ export function applyCyclingKey(clip: Clip, target: Target, key: string): Clip |
  * The clip after Alt with 3, 5, 6 or 7 (a triplet … septuplet on the target, or plain again), or null
  * for any other key. Alt with a digit types other characters on some layouts, so the key's place is read.
  */
-export function applyTupletKey(clip: Clip, target: Target, code: string): Clip | null {
+export function applyTupletKey(clip: Part, target: Target, code: string): Part | null {
   const n = ({ Digit3: 3, Digit5: 5, Digit6: 6, Digit7: 7 } as Record<string, number>)[code];
   return n ? toggleTuplet(clip, target, n) : null;
 }
@@ -239,7 +239,7 @@ export function toolForKey(key: string, alt: boolean): ToolId | null {
 }
 
 /** Whether the cursor's column, note or bar has what a tool sets, to show its button pressed. */
-export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId, columnOnly = false): boolean {
+export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnly = false): boolean {
   // With no string picked, a note's mark is on when every note in the column has it.
   if (columnOnly) {
     const strings = columnAt(clip, cursor)?.notes.flatMap((n, s) => (n ? [s] : [])) ?? [];
@@ -292,7 +292,7 @@ export function isOn(clip: Clip, cursor: Target['cursor'], id: ToolId, columnOnl
 }
 
 /** What the cursor has of the things whose buttons draw it (the Bend, Vibrato and Tuplet icons); none off the tab. */
-export function noteKinds(clip: Clip, cursor: Target['cursor'] | null): {
+export function noteKinds(clip: Part, cursor: Target['cursor'] | null): {
   bend: BendQuarters | null;
   vibrato: 'slight' | 'wide' | null;
   /** The cursor column's duration while it is in a tuplet. */

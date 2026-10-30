@@ -5,14 +5,14 @@
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { DEFAULT_TAB_EXPORT, TabImage, tabImageSize } from '@/features/tab/exportTab';
 import { ScoreHead } from '@/features/tab/ScoreHead';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 const SONG = clipOf([
   '\\title "Song"', '\\artist "Band"', '\\words "Ann"', '\\music "Ann"',

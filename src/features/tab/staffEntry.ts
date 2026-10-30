@@ -6,7 +6,7 @@
  * (issue #174, `docs/specs/2026-10-28-tab-staff-drag-design.md`), and to another string from the tab.
  * Pitches here are sounding MIDI numbers, as `notation.ts` reckons them. Pure.
  */
-import { keyAt, STRING_COUNT, type Clip, type Column, type Note } from './clip';
+import { keyAt, STRING_COUNT, type Part, type Column, type Note } from './clip';
 import { clearNote, columnAt, MAX_FRET, normalize, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { keyAccidentals, writtenStrings, spell, staffStep, WRITTEN_OCTAVE } from './notation';
 
@@ -21,12 +21,12 @@ const HIGHEST_STEP = 22;
 export type Place = Pick<Cursor, 'bar' | 'column'>;
 
 /** The staff step a sounding pitch is written on, spelled in the bar's key. */
-export function stepOf(clip: Clip, bar: number, pitch: number): number {
+export function stepOf(clip: Part, bar: number, pitch: number): number {
   return staffStep(spell(pitch + WRITTEN_OCTAVE, keyAt(clip, bar)));
 }
 
 /** The pitch of a line or space as the key has it: F♯ on the top line in G major. */
-export function pitchOfStep(clip: Clip, bar: number, step: number): number {
+export function pitchOfStep(clip: Part, bar: number, step: number): number {
   const letterSteps = step + STEP_ZERO;
   const octave = Math.floor(letterSteps / 7);
   const letter = letterSteps - octave * 7;
@@ -35,23 +35,23 @@ export function pitchOfStep(clip: Clip, bar: number, step: number): number {
 }
 
 /** The staff cursor moved a line or space up (1) or down (-1), onto the key's note there. */
-export function stepPitch(clip: Clip, bar: number, pitch: number, direction: 1 | -1): number {
+export function stepPitch(clip: Part, bar: number, pitch: number, direction: 1 | -1): number {
   const step = Math.max(LOWEST_STEP, Math.min(HIGHEST_STEP, stepOf(clip, bar, pitch) + direction));
   return pitchOfStep(clip, bar, step);
 }
 
 /** The pitch a press on the staff names: the key's note on that line or space. */
-export function pitchAtStep(clip: Clip, bar: number, step: number): number {
+export function pitchAtStep(clip: Part, bar: number, step: number): number {
   return pitchOfStep(clip, bar, Math.max(LOWEST_STEP, Math.min(HIGHEST_STEP, step)));
 }
 
 /** The sounding pitch, as the staff writes it, of a fret on a string. */
-export function pitchOf(clip: Clip, string: number, fret: number): number {
+export function pitchOf(clip: Part, string: number, fret: number): number {
   return writtenStrings(clip.tuning)[string] + (clip.capo ?? 0) + fret;
 }
 
 /** Each note's pitch in a column, as the staff writes it, by string; null for none or a dead note. */
-function pitches(clip: Clip, column: Column | null): (number | null)[] {
+function pitches(clip: Part, column: Column | null): (number | null)[] {
   const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   return Array.from({ length: STRING_COUNT }, (_, s) => {
@@ -61,13 +61,13 @@ function pitches(clip: Clip, column: Column | null): (number | null)[] {
 }
 
 /** The string of the column's note at a pitch, or null. */
-export function stringAtPitch(clip: Clip, at: Place, pitch: number): number | null {
+export function stringAtPitch(clip: Part, at: Place, pitch: number): number | null {
   const s = pitches(clip, columnAt(clip, { ...at, string: 0 })).indexOf(pitch);
   return s < 0 ? null : s;
 }
 
 /** The fret to aim near: the column's other notes, else the nearest column before with fretted notes. */
-function aimFret(clip: Clip, at: Place): number | null {
+function aimFret(clip: Part, at: Place): number | null {
   const fretted = (column: Column | null) => (column?.notes ?? []).filter((n): n is Note => n !== null && n.fret !== null && n.fret > 0).map(n => n.fret!);
   const here = fretted(columnAt(clip, { ...at, string: 0 }));
   if (here.length) return here.reduce((x, y) => x + y, 0) / here.length;
@@ -89,13 +89,13 @@ const OPEN_REACH = 5;
  * fret nearest the notes around it (an open string counts as near while the hand is low on the neck);
  * with nothing around, the lowest fret. Null when no free string can play it.
  */
-export function choosePlace(clip: Clip, at: Place, pitch: number): { string: number; fret: number } | null {
+export function choosePlace(clip: Part, at: Place, pitch: number): { string: number; fret: number } | null {
   const column = columnAt(clip, { ...at, string: 0 });
   return placeAmong(clip, column?.notes ?? [], pitch, aimFret(clip, at));
 }
 
 /** The free string (no note in `notes`) that plays a pitch with the fret nearest `aim`; ties go to the lower fret. */
-function placeAmong(clip: Clip, notes: readonly (Note | null)[], pitch: number, aim: number | null): { string: number; fret: number } | null {
+function placeAmong(clip: Part, notes: readonly (Note | null)[], pitch: number, aim: number | null): { string: number; fret: number } | null {
   const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   const cost = (fret: number) => {
@@ -115,14 +115,14 @@ function placeAmong(clip: Clip, notes: readonly (Note | null)[], pitch: number, 
 
 /** What Enter on the staff did: the clip after it, and the string of the note now at the cursor (null after a removal). */
 export interface StaffEdit {
-  clip: Clip;
+  clip: Part;
   string: number | null;
   /** Why nothing changed, for the line under the clip. */
   problem?: string;
 }
 
 /** Enter on the staff: takes away the column's note at the pitch, or puts one there on the string Frets picks. */
-export function toggleStaffNote(clip: Clip, at: Place, pitch: number): StaffEdit {
+export function toggleStaffNote(clip: Part, at: Place, pitch: number): StaffEdit {
   const there = stringAtPitch(clip, at, pitch);
   if (there !== null) return { clip: clearNote(clip, { ...at, string: there }), string: null };
   const place = choosePlace(clip, at, pitch);
@@ -134,7 +134,7 @@ export function toggleStaffNote(clip: Clip, at: Place, pitch: number): StaffEdit
  * Alt+Up on the tab (toward the high e, -1) or Alt+Down (toward the low E, 1): the note at the pitch moved to the
  * next string that way that can play it and has no note in the column, keeping its marks.
  */
-export function moveToString(clip: Clip, at: Place, pitch: number, direction: -1 | 1): StaffEdit {
+export function moveToString(clip: Part, at: Place, pitch: number, direction: -1 | 1): StaffEdit {
   const from = stringAtPitch(clip, at, pitch);
   if (from === null) return { clip, string: null };
   const open = writtenStrings(clip.tuning);
@@ -153,7 +153,7 @@ export function moveToString(clip: Clip, at: Place, pitch: number, direction: -1
 }
 
 /** Where the staff cursor is drawn for a pitch: its step, and the sign it shows when the key doesn't give it. */
-export function staffCursorPlace(clip: Clip, bar: number, pitch: number): { step: number; sign: -1 | 0 | 1 | null } {
+export function staffCursorPlace(clip: Part, bar: number, pitch: number): { step: number; sign: -1 | 0 | 1 | null } {
   const key = keyAt(clip, bar);
   const n = spell(pitch + WRITTEN_OCTAVE, key);
   const fromKey = keyAccidentals(key)[n.letter];
@@ -170,7 +170,7 @@ export interface PitchMove {
 }
 
 /** A sounding pitch moved: a semitone at a time, or a line or space at a time in the bar's key. */
-export function movedPitch(clip: Clip, bar: number, pitch: number, move: PitchMove): number {
+export function movedPitch(clip: Part, bar: number, pitch: number, move: PitchMove): number {
   if (move.semitones) return pitch + move.steps;
   let moved = pitch;
   for (let i = 0; i < Math.abs(move.steps); i++) moved = stepPitch(clip, bar, moved, move.steps > 0 ? 1 : -1);
@@ -182,7 +182,7 @@ export function movedPitch(clip: Clip, bar: number, pitch: number, move: PitchMo
  * selection; else, with `chord`, every note of the cursor's column; else the note at the pitch.
  * Dead notes have no pitch and stay where they are.
  */
-export function notesToMove(clip: Clip, at: Place, pitch: number, selection: Selection | null, chord: boolean): Cursor[] {
+export function notesToMove(clip: Part, at: Place, pitch: number, selection: Selection | null, chord: boolean): Cursor[] {
   const inColumn = (place: Place): Cursor[] => {
     const column = columnAt(clip, { ...place, string: 0 });
     if (!column) return [];
@@ -204,7 +204,7 @@ export function notesToMove(clip: Clip, at: Place, pitch: number, selection: Sel
  * while that string can play the new pitch, so a chord keeps its shape; else Frets picks a free string
  * and fret for it, nearest where it was played. When any note can't be placed, nothing moves.
  */
-export function moveNotes(clip: Clip, places: readonly Cursor[], move: PitchMove): StaffEdit & { moved: Cursor[] } {
+export function moveNotes(clip: Part, places: readonly Cursor[], move: PitchMove): StaffEdit & { moved: Cursor[] } {
   const open = writtenStrings(clip.tuning);
   const capo = clip.capo ?? 0;
   const byColumn = new Map<string, Cursor[]>();

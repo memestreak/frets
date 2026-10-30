@@ -1,5 +1,5 @@
 import { barHeads, keySigns, openStrings, spell, staffStep } from '@/features/tab/notation';
-import type { Clip } from '@/features/tab/clip';
+import { type Part, partOf } from '@/features/tab/clip';
 
 const name = (midi: number, fifths: number, minor = false) => {
   const n = spell(midi, minor ? { fifths, minor: true } : { fifths });
@@ -58,7 +58,7 @@ describe('barHeads', () => {
     notes[s] = note(fret, tie);
     return { duration: { value: 4 as const, dots: 0 as const }, notes };
   };
-  const clip = (key: Clip['bars'][0]['key'], ...columns: ReturnType<typeof column>[]): Clip => ({
+  const clip = (key: Part['bars'][0]['key'], ...columns: ReturnType<typeof column>[]): Part => ({
     name: '', time: { beats: 4, value: 4 }, tuning: ['E', 'A', 'D', 'G', 'B', 'E'], bars: [{ columns, ...(key ? { key } : {}) }],
   });
 
@@ -89,7 +89,7 @@ describe('a press on the staff', () => {
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n(0.1 3.4).4 r.4 r.2 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
     for (const parts of ['both', 'staff'] as const) {
-      const layout = layoutClip(read.clip, 900, parts);
+      const layout = layoutClip(partOf(read.clip), 900, parts);
       const placed = layout.systems[0].bars[0].columns[0];
       const [low, high] = placed.heads;
       const score = layout.systems[0].rows.score!;
@@ -112,9 +112,9 @@ describe('a key change at the start of a line', () => {
     const { layoutClip } = await import('@/features/tab/layout');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n\\ks G 3.3.1 |\n\\ks F 3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const wide = layoutClip(read.clip, 900, 'both');
+    const wide = layoutClip(partOf(read.clip), 900, 'both');
     expect(wide.systems[0].bars[1].keyX).not.toBeNull();
-    const narrow = layoutClip(read.clip, 160, 'both');
+    const narrow = layoutClip(partOf(read.clip), 160, 'both');
     expect(narrow.systems[1].bars[0].index).toBe(1);
     expect(narrow.systems[1].bars[0].keyX).toBeNull();
   });
@@ -128,14 +128,14 @@ describe('time signatures with the staff shown', () => {
     const { textAt } = await import('@/features/tab/layoutText');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const both = layoutClip(read.clip, 900, 'both');
+    const both = layoutClip(partOf(read.clip), 900, 'both');
     const x = both.systems[0].timeX!;
     const score = both.systems[0].rows.score!;
     expect(textAt(both, x, (score.top + score.bottom) / 2)).toEqual({ kind: 'time', bar: 0 });
     expect(textAt(both, x, stringY(both.systems[0].rows, 2))).toBeNull();
     // After the clef, not in front of the lines as on the tab alone.
     expect(x).toBeGreaterThan(both.systems[0].keyX);
-    const tab = layoutClip(read.clip, 900, 'tab');
+    const tab = layoutClip(partOf(read.clip), 900, 'tab');
     expect(tab.systems[0].timeX!).toBeLessThan(tab.systems[0].lineStart);
     expect(textAt(tab, tab.systems[0].timeX!, stringY(tab.systems[0].rows, 2))).toEqual({ kind: 'time', bar: 0 });
   });
@@ -149,7 +149,7 @@ describe('the clef', () => {
     const { textAt } = await import('@/features/tab/layoutText');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const both = layoutClip(read.clip, 900, 'both');
+    const both = layoutClip(partOf(read.clip), 900, 'both');
     const score = both.systems[0].rows.score!;
     expect(textAt(both, both.systems[0].lineStart + 12, (score.top + score.bottom) / 2)).toEqual({ kind: 'key', bar: 0 });
   });
@@ -162,7 +162,7 @@ describe('the bracket joining the staff and the tab', () => {
     const { BRACKET_WIDTH, layoutClip } = await import('@/features/tab/layout');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    expect(layoutClip(read.clip, 900, 'both').systems[0].lineStart).toBeGreaterThan(BRACKET_WIDTH);
-    expect(layoutClip(read.clip, 900, 'staff').systems[0].lineStart).toBeLessThan(BRACKET_WIDTH);
+    expect(layoutClip(partOf(read.clip), 900, 'both').systems[0].lineStart).toBeGreaterThan(BRACKET_WIDTH);
+    expect(layoutClip(partOf(read.clip), 900, 'staff').systems[0].lineStart).toBeLessThan(BRACKET_WIDTH);
   });
 });

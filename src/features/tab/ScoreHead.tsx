@@ -12,7 +12,7 @@
  * (`docs/specs/2026-10-29-tab-tempo-button-design.md`).
  */
 import type { MouseEvent, ReactNode } from 'react';
-import { DEFAULT_BPM, UNTITLED, type Clip, type Tempo } from './clip';
+import { DEFAULT_BPM, UNTITLED, type Part, type Tempo } from './clip';
 import type { HeadField } from './CreditsPanel';
 import { creditsOf, HEAD, tuningBlock } from './credits';
 import { TempoNote, tempoNoteWidth } from './TempoNote';
@@ -31,7 +31,7 @@ function openAt(open: OpenAt | undefined) {
 }
 
 export function ScoreHead({ clip, note, onEditCredits, onEditTuning, onEditTempo }: {
-  clip: Clip;
+  clip: Part;
   /** A line under the title, as the example note ("Example: edits aren't saved"). */
   note?: ReactNode;
   /** Opens the Title and credits panel with `field`'s field focused. */

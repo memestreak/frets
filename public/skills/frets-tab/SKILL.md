@@ -21,8 +21,10 @@ disagree, it wins.
 
 ## In short
 
-- One track, one voice, six strings in standard tuning unless `\tuning`
-  says otherwise. Notes are `fret.string.duration`; string 1 is the high e.
+- One voice, six strings in standard tuning unless `\tuning` says
+  otherwise. Parts for several guitars go in tracks, each after its own
+  `\track "<name>"` with the same number of bars; Frets keeps them all
+  but shows and plays only the first for now. Notes are `fret.string.duration`; string 1 is the high e.
   Bars end with `|`.
 - Write `\ts` always, and check every bar adds up to its time signature.
 - Give the user a link that opens the tab, plus the text unless they ask

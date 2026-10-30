@@ -5,9 +5,9 @@
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
+import { writePart, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { parseClip, type Clip } from '@/features/tab/clip';
+import { parseClip, type Part, partOf, asClip } from '@/features/tab/clip';
 import { layoutClip, SPACE, stringY, type Parts } from '@/features/tab/layout';
 import { barHeads } from '@/features/tab/notation';
 import { staffMarks } from '@/features/tab/staffMarks';
@@ -22,7 +22,7 @@ function read(text: string) {
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return result;
 }
-const clipOf = (text: string): Clip => read(text).clip;
+const clipOf = (text: string): Part => partOf(read(text).clip);
 
 const drawn = (text: string, parts: Parts = 'both') =>
   render(<TabClip clip={clipOf(text)} width={1200} parts={parts} title="Whammy" />).container;
@@ -38,30 +38,30 @@ describe('reading and writing', () => {
   it('reads tb as the column\'s whammy bar and writes it back after the beat\'s length', () => {
     const result = read('7.3.4{tb (0 -2 0)} 7.3.4{tb (-6 -6 -24)} r.2 |');
     expect(result.warnings).toEqual([]);
-    expect(result.clip.bars[0].columns.map(c => c.whammy)).toEqual([[0, -2, 0], [-6, -6, -24], undefined]);
-    expect(writeBars(result.clip)).toEqual(['7.3.4{tb (0 -2 0)} 7.3.4{tb (-6 -6 -24)} r.2 |']);
+    expect(partOf(result.clip).bars[0].columns.map(c => c.whammy)).toEqual([[0, -2, 0], [-6, -6, -24], undefined]);
+    expect(writeBars(partOf(result.clip))).toEqual(['7.3.4{tb (0 -2 0)} 7.3.4{tb (-6 -6 -24)} r.2 |']);
   });
 
   it('reads one written with a note as the beat\'s, where alphaTab reads it too', () => {
     const result = read('7.3{tb (0 -4)}.2 r.2 |');
     expect(result.warnings).toEqual([]);
-    expect(result.clip.bars[0].columns[0].whammy).toEqual([0, -4]);
-    expect(result.clip.bars[0].columns[0].notes[2]?.extra).toBeUndefined();
-    expect(writeBars(result.clip)).toEqual(['7.3.2{tb (0 -4)} r.2 |']);
+    expect(partOf(result.clip).bars[0].columns[0].whammy).toEqual([0, -4]);
+    expect(partOf(result.clip).bars[0].columns[0].notes[2]?.extra).toBeUndefined();
+    expect(writeBars(partOf(result.clip))).toEqual(['7.3.2{tb (0 -4)} r.2 |']);
   });
 
   it('keeps as written the forms it doesn\'t draw: a pull-up, a named type, exact offsets, half quarter tones', () => {
     for (const tb of ['tb (0 4 0)', 'tb dive (0 -4)', 'tbe (0 0 60 -4)', 'tb (0 -2.5)']) {
       const result = read(`7.3.2{${tb}} r.2 |`);
-      expect(result.clip.bars[0].columns[0].whammy).toBeUndefined();
-      expect(result.clip.bars[0].columns[0].extra).toEqual([tb]);
+      expect(partOf(result.clip).bars[0].columns[0].whammy).toBeUndefined();
+      expect(partOf(result.clip).bars[0].columns[0].extra).toEqual([tb]);
       expect(result.warnings.join(' ')).toContain('tb');
     }
   });
 
   it('keeps only whole quarter tones from two to sixty points, none above the note, in a saved clip', () => {
     const clip = clipOf('7.3.2 r.2 |');
-    const withWhammy = (whammy: unknown) => parseClip({ ...clip, bars: [{ columns: [{ ...clip.bars[0].columns[0], whammy }] }] });
+    const withWhammy = (whammy: unknown) => parseClip(asClip({ ...clip, bars: [{ columns: [{ ...clip.bars[0].columns[0], whammy }] }] } as Part));
     expect(withWhammy([0, -24])).not.toBeNull();
     for (const bad of [[0], [0, 2], [0, -1.5], 'tb', Array(61).fill(0)]) expect(withWhammy(bad)).toBeNull();
   });
@@ -232,7 +232,7 @@ describe('editing', () => {
     expect(isOn(dived, target.cursor, 'whammy')).toBe(true);
     expect(noteKinds(dived, target.cursor).whammy).toBe('diveBomb');
     expect(setWhammy(dived, target, null).bars[0].columns[0].whammy).toBeUndefined();
-    expect(writeAlphaTex(dived)).toContain('15.2.2{tb (0 -24)}');
+    expect(writePart(dived)).toContain('15.2.2{tb (0 -24)}');
   });
 
   it('names a whammy bar no shape matches "other", so the button lights with no choice lit', () => {

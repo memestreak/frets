@@ -3,16 +3,16 @@
  * written back, and the tunings offered. See docs/specs/2026-10-29-tab-credits-tuning-design.md.
  */
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { STANDARD_TUNING, type Clip } from '@/features/tab/clip';
+import { STANDARD_TUNING, type Part, partOf } from '@/features/tab/clip';
 import { creditsOf, headerValue, setCredit, tuningBlock } from '@/features/tab/credits';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from '@/features/tab/tuning';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 const RIFF = '0.6.4 3.6.4 5.6.2 |';
 
@@ -37,12 +37,12 @@ describe('setCredit', () => {
     const clip = clipOf(`\\artist "Band"\n${RIFF}`);
     const cleared = setCredit(clip, 'artist', '  ');
     expect(cleared.header).toBeUndefined();
-    expect(writeAlphaTex(cleared)).not.toContain('\\artist');
+    expect(writePart(cleared)).not.toContain('\\artist');
   });
 
   it('reads back as written', () => {
     const clip = setCredit(setCredit(clipOf(RIFF), 'words', 'A & B'), 'music', 'A & B');
-    const back = clipOf(writeAlphaTex(clip));
+    const back = clipOf(writePart(clip));
     expect(creditsOf(back)).toEqual({ artist: null, lines: ['Words & Music by A & B'] });
   });
 });
@@ -80,7 +80,7 @@ describe('tuning', () => {
 
   it('writes every preset so it reads back as itself, standard tuning as no tag at all', () => {
     for (const preset of TUNING_PRESETS) {
-      const text = writeAlphaTex(withTuning(clipOf(RIFF), preset.notes));
+      const text = writePart(withTuning(clipOf(RIFF), preset.notes));
       expect(text.includes('\\tuning')).toBe(preset.name !== 'Standard');
       expect(presetOf(clipOf(text).tuning)).toBe(preset);
     }

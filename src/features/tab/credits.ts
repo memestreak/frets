@@ -4,12 +4,12 @@
  * and the tuning when it isn't standard ("Tune down 1/2 step", then each string). Pure.
  */
 import { quoted } from './alphatex';
-import { STANDARD_TUNING, STRING_COUNT, type Clip } from './clip';
+import { STANDARD_TUNING, STRING_COUNT, type Part } from './clip';
 import { openStrings, tuningShift } from './notation';
 import { presetOf } from './tuning';
 
 /** A header tag's text: `\artist "Guns N' Roses"` gives "Guns N' Roses"; null when the header has no such tag. */
-export function headerValue(clip: Clip, tag: string): string | null {
+export function headerValue(clip: Part, tag: string): string | null {
   const pattern = new RegExp(`^\\\\${tag}\\s+(["'])((?:\\\\.|(?!\\1).)*)\\1`, 'i');
   for (const line of clip.header ?? []) {
     const m = pattern.exec(line.trim());
@@ -32,7 +32,7 @@ function tagOf(line: string): string | null {
  * after the credits before it in `CREDIT_TAGS`; every other header line stays as written, and so
  * does this one when its value doesn't change.
  */
-export function setCredit(clip: Clip, tag: CreditTag, value: string): Clip {
+export function setCredit(clip: Part, tag: CreditTag, value: string): Part {
   const text = value.trim();
   if ((headerValue(clip, tag) ?? '') === text) return clip;
   const header = [...(clip.header ?? [])];
@@ -44,7 +44,7 @@ export function setCredit(clip: Clip, tag: CreditTag, value: string): Clip {
     const last = header.findLastIndex(line => before.includes(tagOf(line) ?? ''));
     header.splice(last + 1, 0, `\\${tag} ${quoted(text)}`);
   }
-  const next: Clip = { ...clip, header };
+  const next: Part = { ...clip, header };
   if (header.length === 0) delete next.header;
   return next;
 }
@@ -77,7 +77,7 @@ export interface Credits {
   lines: string[];
 }
 
-export function creditsOf(clip: Clip): Credits {
+export function creditsOf(clip: Part): Credits {
   const words = headerValue(clip, 'words');
   const music = headerValue(clip, 'music');
   const lines =

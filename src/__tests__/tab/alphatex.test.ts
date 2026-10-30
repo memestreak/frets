@@ -7,17 +7,17 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import * as alphaTab from '@coderline/alphatab';
 import { readAscii } from '@/features/tab/ascii';
-import { LINE_WIDTH, writeAlphaTex } from '@/features/tab/alphatex';
+import { LINE_WIDTH, writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { looksLikeAscii } from '@/features/tab/readTab';
-import type { Clip } from '@/features/tab/clip';
+import { type Part, partOf, type Clip } from '@/features/tab/clip';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = read(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const FIXTURES = join(__dirname, 'fixtures');
@@ -39,8 +39,8 @@ describe('writeAlphaTex then reading it back', () => {
     const tex = writeAlphaTex(clip);
     const result = read(tex);
     expect(result.ok && result.warnings.filter(w => !/add up to/.test(w))).toEqual([]);
-    expect(clipOf(tex)).toEqual(clip);
-    expect(writeAlphaTex(clipOf(tex))).toBe(tex);
+    expect(clipOf(tex)).toEqual(partOf(clip));
+    expect(writePart(clipOf(tex))).toBe(tex);
   });
 });
 
@@ -62,12 +62,12 @@ describe('readAlphaTex', () => {
     expect(clip.bars[0].columns.map(c => [c.duration.value, c.duration.dots])).toEqual([
       [32, 1], [64, 0], [64, 0], [16, 1], [32, 0], [8, 0], [4, 0], [2, 0],
     ]);
-    expect(clipOf(writeAlphaTex(clip))).toEqual(clip);
+    expect(clipOf(writePart(clip))).toEqual(clip);
   });
 
   it('reads a note shorter than a sixty-fourth as one, and says so', () => {
     const result = read('5.3.128 |');
-    expect(result.ok && result.clip.bars[0].columns[0].duration.value).toBe(64);
+    expect(result.ok && partOf(result.clip).bars[0].columns[0].duration.value).toBe(64);
     expect(result.ok && result.warnings.join(' ')).toMatch(/1\/128/);
   });
 
@@ -96,7 +96,7 @@ describe('readAlphaTex', () => {
     expect(notes.map(n => n?.slide)).toEqual([undefined, 'shift', undefined, 'below', 'above', undefined]);
     expect(clip.bars[0].columns[4].duration.dots).toBe(2);
     expect(clip.bars[0].columns[5].notes.slice(3, 5)).toEqual([{ fret: 5 }, { fret: 3, palmMute: true }]);
-    expect(writeAlphaTex(clip)).toBe(tex);
+    expect(writePart(clip)).toBe(tex);
   });
 
   it('reads bends, pre-bends and releases from their points', () => {
@@ -124,7 +124,7 @@ describe('readAlphaTex', () => {
     expect(out).toContain('\\section "Chorus"');
     expect(out).toContain('5.3{ten}');
     expect(out).toContain('{gr}');
-    expect(clipOf(out)).toEqual(result.clip);
+    expect(clipOf(out)).toEqual(partOf(result.clip));
   });
 
   it('names a kept \\ac tag a pickup bar, not an accent', () => {
@@ -145,7 +145,7 @@ describe('readAlphaTex', () => {
     ]);
     const result = read(tex);
     expect(result.ok && result.warnings).toEqual([]);
-    expect(writeAlphaTex(clip)).toContain(tex);
+    expect(writePart(clip)).toContain(tex);
   });
 
   it('reads and writes chord names, sections, tempos and the capo', () => {
@@ -159,7 +159,7 @@ describe('readAlphaTex', () => {
       [{ text: 'Chorus', marker: 'A' }, { bpm: 120, label: 'Fast' }],
     ]);
     expect(clip.bars[0].columns.map(c => c.chord)).toEqual(['C/G', undefined]);
-    expect(writeAlphaTex(clip)).toBe(tex);
+    expect(writePart(clip)).toBe(tex);
   });
 
   it('says so when a tempo or capo is past what Frets offers', () => {
@@ -173,9 +173,10 @@ describe('readAlphaTex', () => {
     if (!result.ok) expect(result.errors[0]).toMatch(/^Line 2, column \d+: .*zz/);
   });
 
-  it('refuses anything but one six-string track', () => {
+  it('refuses anything but six-string tracks of one staff each', () => {
     expect(read('\\tuning (G3 D3 A2 E2)\n0.1.4').ok).toBe(false);
-    expect(read('\\track "A"\n0.1.4 |\n\\track "B"\n0.1.4').ok).toBe(false);
+    expect(read('\\track "A"\n0.1.4 |\n\\track "B" \\tuning (G3 D3 A2 E2)\n0.1.4').ok).toBe(false);
+    expect(read('\\track "A"\n\\staff {tabs} 0.1.4 |\n\\staff {tabs} 0.1.4').ok).toBe(false);
   });
 });
 
@@ -190,8 +191,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all ten', () => {
-    expect(examples).toHaveLength(10);
+  it('finds all eleven', () => {
+    expect(examples).toHaveLength(11);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {
@@ -206,7 +207,7 @@ describe('the examples in tab-alphatex.txt', () => {
       '5.3{ten}.8 12.3{ah}.8 7.3{tr (9 16)}.8 5.3.8 5.3.8{gr b} 5.3.8 3.6.8{tb (0 4)} 3.6.8{tb dive (0 -4)} 3.6.8{txt "text"} 5.3.8{fermata (medium 1)} |',
     ].join('\n'));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(clipOf(writeAlphaTex(result.clip))).toEqual(result.clip);
+    if (result.ok) expect(clipOf(writeAlphaTex(result.clip))).toEqual(partOf(result.clip));
   });
 });
 
@@ -238,13 +239,13 @@ describe('looksLikeAscii', () => {
 
 describe('line length', () => {
   it('puts whole bars on a line while they fit, and starts a section on a new line', () => {
-    const text = writeAlphaTex(clipOf('0.6.1 |\n3.6.1 |\n5.6.1 |\n\\section "B" 7.6.1 |\n'));
+    const text = writePart(clipOf('0.6.1 |\n3.6.1 |\n5.6.1 |\n\\section "B" 7.6.1 |\n'));
     expect(text).toBe('\\ts (4 4)\n0.6.1 | 3.6.1 | 5.6.1 |\n\\section "B" 7.6.1 |\n');
   });
 
   it('breaks a bar too long for a line between beats, indented, the bar line with its last beat', () => {
     const tex = `${Array.from({ length: 16 }, () => '(12.2 10.5).16').join(' ')} |\n`;
-    const lines = writeAlphaTex(clipOf(tex)).trimEnd().split('\n').slice(1);
+    const lines = writePart(clipOf(tex)).trimEnd().split('\n').slice(1);
     expect(lines.length).toBeGreaterThan(1);
     for (const line of lines) expect(line.length).toBeLessThanOrEqual(LINE_WIDTH);
     expect(lines.slice(1).every(l => l.startsWith('  ('))).toBe(true);

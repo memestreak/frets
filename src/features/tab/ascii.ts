@@ -11,7 +11,7 @@
 import {
   barTicks, isPalmMuted, isStandardTuning, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
-  type Bar, type BendQuarters, type Clip, type Column, type Duration, type Note, type NoteValue,
+  asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
 } from './clip';
 
@@ -374,7 +374,7 @@ export function readAscii(text: string): ReadResult {
 
   return {
     ok: true,
-    clip: { name: header.title ?? '', time, tuning: tuning ?? [...STANDARD_TUNING], bars },
+    clip: asClip({ name: header.title ?? '', time, tuning: tuning ?? [...STANDARD_TUNING], bars }),
     warnings,
   };
 }
@@ -710,7 +710,7 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
  * what ASCII tab can't hold: grace notes, tremolo picking and time signature changes are left out.
  * With `rhythm` false (the ASCII Tab view's option), the rhythm line is left out too.
  */
-export function writeAscii(clip: Clip, { rhythm = true }: { rhythm?: boolean } = {}): string {
+export function writeAscii(clip: Part, { rhythm = true }: { rhythm?: boolean } = {}): string {
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);

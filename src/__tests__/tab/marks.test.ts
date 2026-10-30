@@ -1,32 +1,32 @@
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { markAt, markBox, markBoxes, markTool, type MarkHit } from '@/features/tab/marks';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(body: string): Clip {
+function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
   if (!result.ok) throw new Error(result.errors.join('\n'));
   expect(result.warnings).toEqual([]);
-  return result.clip;
+  return partOf(result.clip);
 }
 
 /** The clip's notes, in alphaTex, without its header lines. */
-const notesOf = (clip: Clip) => writeAlphaTex(clip).split('\n').filter(l => l && !l.startsWith('\\')).join(' ');
+const notesOf = (clip: Part) => writePart(clip).split('\n').filter(l => l && !l.startsWith('\\')).join(' ');
 
 const WIDTH = 900;
 
 /** The middle of the first box drawn for `mark`. */
-function middleOf(clip: Clip, mark: MarkHit['mark']) {
+function middleOf(clip: Part, mark: MarkHit['mark']) {
   const found = markBoxes(layoutClip(clip, WIDTH)).find(m => m.hit.mark === mark);
   if (!found) throw new Error(`no ${mark} drawn`);
   return { hit: found.hit, x: found.box.x + found.box.width / 2, y: found.box.y + found.box.height / 2 };
 }
 
 /** Picks the first drawn `mark` with a press on its middle, and checks the press finds it. */
-function pick(clip: Clip, mark: MarkHit['mark']): MarkHit {
+function pick(clip: Part, mark: MarkHit['mark']): MarkHit {
   const { hit, x, y } = middleOf(clip, mark);
   expect(markAt(layoutClip(clip, WIDTH), x, y)).toEqual(hit);
   return hit;

@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import type { Clip } from './clip';
+import type { Part } from './clip';
 import { layoutClip, type Parts } from './layout';
 import { textBox, type WordHit } from './layoutText';
 import { markBox, type MarkHit } from './marks';
@@ -12,7 +12,7 @@ import type { FieldKind } from './WordField';
  */
 
 /** What a word's field starts with: what is there now. */
-export function wordNow(clip: Clip, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): string {
+export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): string {
   const b = clip.bars[bar];
   if (kind === 'ending') return b?.ending ? String(b.ending) : '';
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
@@ -22,7 +22,7 @@ export function wordNow(clip: Clip, { kind, bar, column }: { kind: FieldKind; ba
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
-export function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
+export function wordSpot(clip: Part, width: number, parts: Parts, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
   // The capo's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
   const FIELD_WIDTH = kind === 'capo' || kind === 'ending' ? 150 : 180;
@@ -45,7 +45,7 @@ export function wordSpot(clip: Clip, width: number, parts: Parts, { kind, bar, c
  * edge; Delete alone for a picked mark, whose palette tool does the editing.
  */
 export function WordTools({ clip, width, parts, hit, onEdit, onDelete }: {
-  clip: Clip;
+  clip: Part;
   width: number;
   parts: Parts;
   hit: WordHit | MarkHit;
@@ -79,7 +79,7 @@ export function WordTools({ clip, width, parts, hit, onEdit, onDelete }: {
  * Where a later bar's tempo panel goes when the Tempo tool or a picked tempo's Edit opens it: from
  * the bar's start, just under its tempo's row (over the staff when the bar has no tempo yet).
  */
-export function barTempoSpot(clip: Clip, width: number, parts: Parts, bar: number): { x: number; y: number } {
+export function barTempoSpot(clip: Part, width: number, parts: Parts, bar: number): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
   for (const { bars, rows, top } of layout.systems) {
     const placed = bars.find(b => b.index === bar);
@@ -97,7 +97,7 @@ export const PANEL_DROP = 14;
  * under the staff its signatures are drawn on (the notation staff when it is shown). The panel keeps
  * itself inside the tab's width.
  */
-export function barTimeSpot(clip: Clip, width: number, parts: Parts, bar: number): { x: number; y: number } {
+export function barTimeSpot(clip: Part, width: number, parts: Parts, bar: number): { x: number; y: number } {
   const layout = layoutClip(clip, width, parts);
   for (const { bars, rows, top } of layout.systems) {
     const placed = bars.find(b => b.index === bar);

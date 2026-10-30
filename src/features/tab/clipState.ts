@@ -4,7 +4,7 @@
  * clip only while no example is open, and leaving the example brings back the clip and history it
  * set aside.
  */
-import type { Clip } from './clip';
+import { withPart, type Clip, type Part } from './clip';
 import type { FxSettings } from './effects';
 import { openOnLoad, type Library } from './arrangements';
 
@@ -41,6 +41,20 @@ export type ClipAction =
   | { type: 'rename'; name: string }
   /** Another arrangement (a kept one, a new one, an import or a copy) in place of the clip, with a fresh history. */
   | { type: 'open'; id: string; clip: Clip };
+
+/** An edit or a preview made on the part the page shows, which goes back into the whole clip (`withPart`). */
+export type PartAction =
+  | { type: 'replacePart'; part: Part; from?: Part }
+  | { type: 'previewPart'; part: Part };
+
+/** The action on the whole clip `clip` that a part's edit makes; any other action as it is. */
+export function clipAction(clip: Clip, action: ClipAction | PartAction): ClipAction {
+  if (action.type === 'replacePart') {
+    return { type: 'replace', clip: withPart(clip, action.part), from: action.from && withPart(clip, action.from) };
+  }
+  if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part) };
+  return action;
+}
 
 export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   switch (action.type) {
@@ -82,12 +96,23 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
   }
 }
 
-/** Whether two clips differ in nothing but their FX and instrument: the same music, in another sound. */
-export function sameMusic(a: Clip, b: Clip): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)] as (keyof Clip)[]);
-  keys.delete('fx');
-  keys.delete('instrument');
-  return [...keys].every(key => a[key] === b[key]);
+/**
+ * Whether two clips, or two parts, differ in nothing but their FX and their tracks' sounds: the same
+ * music, in another sound.
+ */
+export function sameMusic<T extends Clip | Part>(a: T, b: T): boolean {
+  if (!sameBut(a, b, ['fx', 'instrument', 'tracks'])) return false;
+  const tracksA = 'tracks' in a ? a.tracks : [];
+  const tracksB = 'tracks' in b ? b.tracks : [];
+  return tracksA.length === tracksB.length && tracksA.every((track, t) => sameBut(track, tracksB[t], ['instrument']));
+}
+
+/** Whether every field of two objects but `skip` is the very same. */
+function sameBut(a: object, b: object, skip: string[]): boolean {
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+  return [...keys].every(key => skip.includes(key) || x[key] === y[key]);
 }
 
 /** The open arrangement, or a new empty clip. */

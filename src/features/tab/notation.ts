@@ -4,7 +4,7 @@
  * where it sits on a treble staff written an octave above the sound, as guitar music is; and which
  * accidentals a bar must show. Pure.
  */
-import { bentSemitones, whammyGoesOn, whammySemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Clip, type Column, type Key, type Note } from './clip';
+import { bentSemitones, whammyGoesOn, whammySemitones, keyAt, OTTAVA_SHIFT, keyTonic, STRING_COUNT, type Part, type Column, type Key, type Note } from './clip';
 
 /** Standard tuning's strings as MIDI numbers, lowest first: E2 A2 D3 G3 B3 E4. */
 const STANDARD_MIDI = [40, 45, 50, 55, 59, 64];
@@ -183,7 +183,7 @@ export function pickedBendSemitones(column: Column, note: Note): number {
  * bar must show. An accidental holds for the rest of the bar on its line or space (not in other
  * octaves); a tied note takes its sign from the note before and shows none.
  */
-export function barHeads(clip: Clip, barIndex: number, open = writtenStrings(clip.tuning)): Head[][] {
+export function barHeads(clip: Part, barIndex: number, open = writtenStrings(clip.tuning)): Head[][] {
   const key = keyAt(clip, barIndex);
   const inKey = keyAccidentals(key);
   const now = new Map<number, Accidental>();

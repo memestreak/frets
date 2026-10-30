@@ -3,7 +3,7 @@
  * Pure. Changing the tuning keeps every note's fret, as Guitar Pro does by default, so the music
  * sounds as fingered in the new tuning. See docs/specs/2026-10-29-tab-credits-tuning-design.md.
  */
-import { STANDARD_TUNING, STRING_COUNT, type Clip } from './clip';
+import { STANDARD_TUNING, STRING_COUNT, type Part } from './clip';
 import { openStrings } from './notation';
 
 const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -53,13 +53,13 @@ export function stringNote(tuning: readonly string[], low: number): string {
 }
 
 /** The clip in another tuning, every fret kept; the clip itself when nothing changes. */
-export function withTuning(clip: Clip, tuning: readonly string[]): Clip {
+export function withTuning(clip: Part, tuning: readonly string[]): Part {
   if (samePitches(clip.tuning, tuning)) return clip;
   return { ...clip, tuning: tuning.map(sharpName) };
 }
 
 /** The clip with one string, counted from the low E (0), tuned to a note ("Eb" or "D#"). */
-export function withStringNote(clip: Clip, low: number, note: string): Clip {
+export function withStringNote(clip: Part, low: number, note: string): Part {
   return withTuning(clip, clip.tuning.map((n, s) => (s === low ? note : n)));
 }
 

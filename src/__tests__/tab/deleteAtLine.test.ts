@@ -1,16 +1,16 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeBars } from '@/features/tab/alphatex';
-import type { Clip } from '@/features/tab/clip';
 import { deleteAtLine } from '@/features/tab/editorKeys';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
-const bars = (clip: Clip) => writeBars(clip).join('\n');
+const bars = (clip: Part) => writeBars(clip).join('\n');
 
 /** Delete or Backspace off the tab, with the playback line at a gap (Jeremy, 2026-10-29). */
 describe('deleteAtLine', () => {

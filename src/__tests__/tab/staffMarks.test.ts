@@ -1,19 +1,19 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { layoutClip, stepY, type Parts } from '@/features/tab/layout';
 import { markAt, markBox, markBoxes } from '@/features/tab/marks';
 import { staffMarks } from '@/features/tab/staffMarks';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(body: string): Clip {
+function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
   if (!result.ok) throw new Error(result.errors.join('\n'));
   expect(result.warnings).toEqual([]);
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const WIDTH = 900;
-const kinds = (clip: Clip, parts: Parts) => staffMarks(layoutClip(clip, WIDTH, parts))[0].map(m => `${m.kind}:${m.hit.mark}`);
+const kinds = (clip: Part, parts: Parts) => staffMarks(layoutClip(clip, WIDTH, parts))[0].map(m => `${m.kind}:${m.hit.mark}`);
 
 describe('staffMarks', () => {
   it('puts a column\'s accent and staccato dot at its heads, away from the stem', () => {

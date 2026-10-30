@@ -6,7 +6,7 @@ import { Segmented } from '@/components/controls';
 import { CloseIcon } from '@/components/icons';
 import { writeAlphaTex } from './alphatex';
 import { writeAscii } from './ascii';
-import type { Clip } from './clip';
+import { partOf, type Clip } from './clip';
 import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
@@ -28,6 +28,7 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * after an action; Done, × or Esc close it.
  */
 export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClose }: {
+  /** The whole clip, every track: downloaded as alphaTex; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
   /** What the page shows, which the image draws too: the staff, the tab or both. */
   parts: Parts;
@@ -42,6 +43,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
   const headingId = useId();
   const nameId = useId();
   const [status, setStatus] = useState('');
+  const part = partOf(clip);
   const [title, setTitle] = useState(clip.name);
   // Each opening starts on the clip's own name and a blank status line.
   const [wasOpen, setWasOpen] = useState(open);
@@ -65,11 +67,11 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
     setStatus('');
   };
   const run = (action: (svg: string) => Promise<string>) => {
-    action(tabSvg(clip, style, title, parts, view)).then(setStatus, (e: unknown) => {
+    action(tabSvg(part, style, title, parts, view)).then(setStatus, (e: unknown) => {
       setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
     });
   };
-  const { width, height } = tabImageSize(clip, style, title, parts, view);
+  const { width, height } = tabImageSize(part, style, title, parts, view);
   const fileName = tabFileName(title || clip.name);
 
   return (
@@ -93,7 +95,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
           </div>
           <div className="settings-dialog-body">
             <div className="export-preview" data-testid="export-preview">
-              <TabImage clip={clip} style={style} title={title} parts={parts} view={view} />
+              <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
             </div>
             <p className="export-size" data-testid="export-size">
               {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
@@ -138,7 +140,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
             <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
               Download alphaTex
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(clip, { rhythm: view.asciiRhythm })))}>
+            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
               Download ASCII
             </button>
           </div>

@@ -19,9 +19,9 @@
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { bendRaises, legatoStarts, parseClip, type Clip } from '@/features/tab/clip';
+import { bendRaises, legatoStarts, parseClip, type Part, partOf, asClip } from '@/features/tab/clip';
 import { removeMark } from '@/features/tab/noteEdits';
 import { layoutClip, rowsFor } from '@/features/tab/layout';
 import { markBoxes, markTool } from '@/features/tab/marks';
@@ -29,10 +29,10 @@ import { perform } from '@/features/tab/playback';
 import { TabClip } from '@/features/tab/TabClip';
 import { applyCyclingKey, applyTool, isOn } from '@/features/tab/tools';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const numbers = (text: string, parts: 'tab' | 'both') => {
@@ -91,7 +91,7 @@ describe('mordents', () => {
     expect(result.ok && result.warnings).toEqual([]);
     const clip = clipOf(TEXT);
     expect(clip.bars[0].columns.slice(0, 2).map((c, k) => c.notes[[2, 1][k]]?.mordent)).toEqual(['upper', 'lower']);
-    expect(writeAlphaTex(clip)).toContain('7.3{umordent}.4 8.2{lmordent}.4');
+    expect(writePart(clip)).toContain('7.3{umordent}.4 8.2{lmordent}.4');
   });
 
   it('are drawn over the staff and over the tab, or over the tab alone', () => {
@@ -160,7 +160,7 @@ describe('the wah', () => {
     expect(result.ok && result.warnings).toEqual([]);
     const clip = clipOf(TEXT);
     expect(clip.bars[0].columns.slice(0, 2).map(c => c.wah)).toEqual(['closed', 'open']);
-    expect(writeAlphaTex(clip)).toContain('10.2.8{wahc} 8.1.8{waho}');
+    expect(writePart(clip)).toContain('10.2.8{wahc} 8.1.8{waho}');
   });
 
   it('goes under the chord names and every word over the music, nearest the notes (Jeremy, 2026-10-28)', () => {
@@ -242,9 +242,9 @@ describe('a held bend pushed on up (round 8, the book\'s bar 144: "full" then "1
     expect(result.ok && result.warnings).toEqual([]);
     const clip = clipOf(TEXT);
     expect(clip.bars[1].columns[0].notes[0]!.bend).toEqual({ quarters: 6, pre: true, release: false, from: 4 });
-    expect(writeAlphaTex(clip)).toContain('-.1{b (4 6)}.2 -.1{b (6 6)}.4 -.1{b (6 0)}.4');
-    expect(parseClip(clip)).not.toBeNull();
-    expect(parseClip({ ...clip, bars: [{ ...clip.bars[1], columns: [{ ...clip.bars[1].columns[0], notes: [{ fret: 15, tie: true, bend: { quarters: 4, pre: true, release: false, from: 6 } }, null, null, null, null, null] }] }] })).toBeNull();
+    expect(writePart(clip)).toContain('-.1{b (4 6)}.2 -.1{b (6 6)}.4 -.1{b (6 0)}.4');
+    expect(parseClip(asClip(clip))).not.toBeNull();
+    expect(parseClip(asClip({ ...clip, bars: [{ ...clip.bars[1], columns: [{ ...clip.bars[1].columns[0], notes: [{ fret: 15, tie: true, bend: { quarters: 4, pre: true, release: false, from: 6 } }, null, null, null, null, null] }] }] }))).toBeNull();
   });
 
   it('rises from the dashed line to a line higher, labelled with its new height, on the tab and on the staff alone', () => {
@@ -295,7 +295,7 @@ describe('a dead note slid into the next note (round 9, the book\'s bar 160)', (
     expect(result.ok && result.warnings).toEqual([]);
     const clip = clipOf(TEXT);
     expect(clip.bars[1].columns[0].notes[2]).toMatchObject({ fret: 19, slide: 'legato' });
-    expect(writeAlphaTex(clip)).toContain('x.3{sl}.8 |');
+    expect(writePart(clip)).toContain('x.3{sl}.8 |');
     // A hammer-on from a dead note still means nothing, and is left out.
     const hammer = readAlphaTexWith(alphaTab, '\\ts (4 4)\nx.3{h}.4 5.3.4 r.2 |\n');
     expect(hammer.ok && hammer.warnings).toEqual(['Left out a hammer-on, pull-off or slide with no later note on its string.']);
@@ -310,13 +310,13 @@ describe('a bend let down part of the way and pushed back up (round 9, the book\
     const notes = clip.bars[0].columns.map(c => c.notes[0]!);
     expect(notes[1].bend).toEqual({ quarters: 4, pre: true, release: true, to: 2 });
     expect(notes[2].bend).toEqual({ quarters: 4, pre: true, release: false, from: 2 });
-    expect(writeAlphaTex(clip)).toContain('-.1{b (4 2)}.4 -.1{b (2 4)}.4 -.1{b (4 0)}.4');
+    expect(writePart(clip)).toContain('-.1{b (4 2)}.4 -.1{b (2 4)}.4 -.1{b (4 0)}.4');
     // Let down half way on a picked note: (0 4 2).
-    expect(writeAlphaTex(clipOf('\\ts (4 4)\n17.1{b (0 4 2)}.4 r.4 r.2 |\n'))).toContain('17.1{b (0 4 2)}.4');
+    expect(writePart(clipOf('\\ts (4 4)\n17.1{b (0 4 2)}.4 r.4 r.2 |\n'))).toContain('17.1{b (0 4 2)}.4');
     const withBend = (bend: object) => ({ ...clip, bars: [{ ...clip.bars[0], columns: [{ ...clip.bars[0].columns[0], notes: [{ fret: 17, bend }, null, null, null, null, null] }] }] });
-    expect(parseClip(withBend({ quarters: 4, pre: false, release: true, to: 2 }))).not.toBeNull();
-    expect(parseClip(withBend({ quarters: 4, pre: false, release: true, to: 4 }))).toBeNull();
-    expect(parseClip(withBend({ quarters: 4, pre: false, release: false, to: 2 }))).toBeNull();
+    expect(parseClip(asClip(withBend({ quarters: 4, pre: false, release: true, to: 2 }) as Part))).not.toBeNull();
+    expect(parseClip(asClip(withBend({ quarters: 4, pre: false, release: true, to: 4 }) as Part))).toBeNull();
+    expect(parseClip(asClip(withBend({ quarters: 4, pre: false, release: false, to: 2 }) as Part))).toBeNull();
   });
 
   it('lands a step under the bend\'s line, labelled "½", and rises from there back to the first line', () => {
@@ -344,7 +344,7 @@ describe('crescendo and decrescendo hairpins (round 9, the book\'s bar 157)', ()
   it('are read, written back, and drawn one wedge per run, opening and closing, under the staff and over the tab', () => {
     const clip = clipOf(TEXT);
     expect(clip.bars[0].columns.map(c => c.hairpin ?? null)).toEqual(['crescendo', 'crescendo', 'crescendo', 'crescendo', 'decrescendo', 'decrescendo', null]);
-    expect(writeAlphaTex(clip)).toContain('7.3.8{cre} 9.3.8{cre} 7.3.8{cre} 9.3.8{cre} 7.3.8{dec} 9.3.8{dec} r.4 |');
+    expect(writePart(clip)).toContain('7.3.8{cre} 9.3.8{cre} 7.3.8{cre} 9.3.8{cre} 7.3.8{dec} 9.3.8{dec} r.4 |');
     for (const parts of ['both', 'tab', 'staff'] as const) {
       const container = render(<TabClip clip={clip} width={900} parts={parts} title="Hairpins" />).container;
       const wedges = [...container.querySelectorAll('[data-testid="hairpin"]')].map(p => p.getAttribute('d')!.match(/-?[\d.]+/g)!.map(Number));
@@ -365,8 +365,8 @@ describe('an artificial harmonic (round 9, the book\'s bar 158)', () => {
     const clip = clipOf('\\ts (4 4)\n(8.2{ah} 7.3{nh}).4 10.2{ah 12}.4 r.2 |\n');
     expect(clip.bars[0].columns[0].notes[1]).toMatchObject({ fret: 8, harmonic: 'artificial' });
     expect(clip.bars[0].columns[1].notes[1]).toMatchObject({ fret: 10, harmonic: 'artificial', harmonicFret: 12 });
-    expect(writeAlphaTex(clip)).toContain('(8.2{ah} 7.3{nh}).4 10.2{ah 12}.4 r.2 |');
-    expect(readAlphaTexWith(alphaTab, writeAlphaTex(clip)).ok && readAlphaTexWith(alphaTab, writeAlphaTex(clip))).toMatchObject({ warnings: [] });
+    expect(writePart(clip)).toContain('(8.2{ah} 7.3{nh}).4 10.2{ah 12}.4 r.2 |');
+    expect(readAlphaTexWith(alphaTab, writePart(clip)).ok && readAlphaTexWith(alphaTab, writePart(clip))).toMatchObject({ warnings: [] });
     for (const parts of ['both', 'tab'] as const) {
       const container = render(<TabClip clip={clip} width={900} parts={parts} title="AH" />).container;
       expect([...container.querySelectorAll('[data-testid="artificial-harmonic"]')].map(t => t.textContent)).toEqual(['AH', 'AH']);
@@ -395,11 +395,11 @@ describe('free time (round 10, the book\'s bars 176 to 181)', () => {
   it('is read and written back as \\ft on each bar', () => {
     const clip = clipOf(TEXT);
     expect(clip.bars.map(b => b.freeTime ?? false)).toEqual([false, true, true, false]);
-    expect(writeAlphaTex(clip)).toContain('\\ft 0.6.1 | \\ft 0.6.1 |');
-    const again = readAlphaTexWith(alphaTab, writeAlphaTex(clip));
+    expect(writePart(clip)).toContain('\\ft 0.6.1 | \\ft 0.6.1 |');
+    const again = readAlphaTexWith(alphaTab, writePart(clip));
     expect(again.ok && again.warnings).toEqual([]);
-    expect(parseClip(JSON.parse(JSON.stringify(clip)))).toEqual(clip);
-    expect(parseClip({ ...clip, bars: [{ ...clip.bars[0], freeTime: 'yes' }] })).toBeNull();
+    expect(parseClip(JSON.parse(JSON.stringify(asClip(clip))))).toEqual(asClip(clip));
+    expect(parseClip(asClip({ ...clip, bars: [{ ...clip.bars[0], freeTime: 'yes' }] } as unknown as Part))).toBeNull();
   });
 
   it('says "Free time" once, brackets the time signature where it starts, and dashes each free bar\'s closing line', () => {
@@ -442,10 +442,10 @@ describe('a fermata (round 10, the book\'s bars 180 and 181)', () => {
   it('is read in each shape and written back', () => {
     const clip = clipOf('\\ts (4 4)\n0.6.4{fermata short} 0.6.4{fermata (medium 2)} 0.6.4{fermata long} 0.6.4 |\n');
     expect(clip.bars[0].columns.map(c => c.fermata ?? null)).toEqual(['short', 'medium', 'long', null]);
-    expect(writeAlphaTex(clip)).toContain('0.6.4{fermata short} 0.6.4{fermata medium} 0.6.4{fermata long} 0.6.4 |');
-    const again = readAlphaTexWith(alphaTab, writeAlphaTex(clip));
+    expect(writePart(clip)).toContain('0.6.4{fermata short} 0.6.4{fermata medium} 0.6.4{fermata long} 0.6.4 |');
+    const again = readAlphaTexWith(alphaTab, writePart(clip));
     expect(again.ok && again.warnings).toEqual([]);
-    expect(parseClip({ ...clip, bars: [{ columns: [{ ...clip.bars[0].columns[0], fermata: 'huge' }] }] })).toBeNull();
+    expect(parseClip(asClip({ ...clip, bars: [{ columns: [{ ...clip.bars[0].columns[0], fermata: 'huge' }] }] } as unknown as Part))).toBeNull();
   });
 
   it('stands over the staff, clear of the bar number, and over the tab only without a staff', () => {

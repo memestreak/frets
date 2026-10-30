@@ -12,9 +12,11 @@ the same way here; this guide covers the part Frets draws, in the form
 Frets writes it. Prefer alphaTex to ASCII tab when writing tab from a
 picture: nothing has to line up in columns.
 
-One track, one voice, six strings. Riffs, solos, double stops and strummed
-chords fit; fingerstyle with a bass line held under moving notes does not
-(write the moving part and give held notes as ties).
+One voice, six strings. Riffs, solos, double stops and strummed chords fit;
+fingerstyle with a bass line held under moving notes does not (write the
+moving part and give held notes as ties). Several guitar parts may be
+written as tracks (see "Tracks" below): Frets keeps them all, but for now
+shows, edits and plays only the first.
 
 
 1. THE WHOLE TEXT
@@ -60,6 +62,26 @@ down 1/2 step" and each string when all six are tuned alike) and played;
 frets are frets in any tuning. With all six tuned alike (E-flat tuning is
 \tuning (D#4 A#3 F#3 C#3 G#2 D#2)) the staff is written as fingered, as if
 in standard tuning, as guitar books print it; otherwise as it sounds.
+
+Tracks. A part for another guitar ("Gtr II") is a track of its own: write
+\track "<name>" before each part's lines and bars, the first included,
+then that part's \instrument, \tuning and \capo, then its bars. Lines for
+the whole clip (\title, \artist, \words, \music, \multiBarRest, the
+layout tags) come before the first \track; \ts follows the first track's
+own lines. Every track has the same number of bars. Time and key
+signatures, repeats, endings, sections and tempos belong to every track:
+write them in the first track's bars only. Each track is one staff of
+six strings with one voice. Frets keeps every track and writes them back,
+but shows, edits and plays only the first for now, with a small "i" over
+the clip saying so.
+
+    \title "Two guitars"
+    \track "Gtr I"
+    \ts (4 4)
+    \ro 0.6.8 3.6.8 5.6.8 0.6.8 3.6.8 6.6.8 5.6.8 3.6.8 | \rc 2 0.6.1 |
+    \track "Gtr II"
+    \tuning (E4 B3 G3 D3 A2 D2)
+    (0.4 0.5 0.6).1 | (0.4 0.5 0.6).1 |
 
 With \systemsLayout or \defaultSystemsLayout, and the viewer's View options
 set to "Clip's line breaks" (off by default), the lines break as written:
@@ -235,8 +257,8 @@ when the picture shows them:
                    the note), tb dive (0 -4) with a type or style
     bar tags       \jump Fine
 
-Not read at all (an error): more than one track, staff or voice; a tuning
-of other than six strings. Read with a warning: other time signatures (as
+Not read at all (an error): more than one staff in a track, or more than
+one voice; a tuning of other than six strings. Read with a warning: other time signatures (as
 4/4, or in a later bar as no change), notes shorter than a sixty-fourth
 (as sixty-fourths). Kept as written, as plain notes: tuplets of more
 than twelve notes (tu (13 8)), tremolo picking with four or more slashes.
@@ -305,6 +327,16 @@ Each reads in Frets with no warnings and writes back exactly as shown.
     12.2.4{tb (0 -2 0)} 10.2.4 12.2.2{tb (0 -8 0)} |
     0.6.2{tb (0 -24)} -.6.4{tb (-24 -24)} r.4 |
 
+    \title "Two guitars"
+    \track "Gtr I"
+    \instrument electricguitarclean
+    \ts (4 4)
+    \section "Riff" \ro 0.6.8 3.6.8 5.6.8 0.6.8 3.6.8 6.6.8 5.6.8 3.6.8 |
+    \rc 2 0.6.8 3.6.8 5.6.8 3.6.8 0.6.8 5.5.8 3.6.8 0.6.8 |
+    \track "Gtr II"
+    \instrument acousticguitarsteel
+    r.1 | (2.4 2.5 0.6).1{ch "Em"} |
+
 
 8. OPENING IT IN FRETS
 ----------------------
@@ -368,7 +400,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    \capo only when the picture shows them ("Capo 3rd fret" is \capo 3);
    \systemsLayout with each line's bar count to keep the picture's lines;
    \multiBarRest when a bar shows a thick bar across the staff with a
-   number over it, which stands for that many bars of "r.1 |". A tuning like "D A D G B E" (low to high) is written high
+   number over it, which stands for that many bars of "r.1 |". Parts for
+   two or more guitars (Gtr I, Gtr II) are tracks, each after its own
+   \track "<name>", with the same number of bars. A tuning like "D A D G B E" (low to high) is written high
    to low with octaves: \tuning (E4 B3 G3 D3 A2 D2). Give each string the
    octave nearest its standard note (E4 B3 G3 D3 A2 E2): DADGAD is
    \tuning (D4 A3 G3 D3 A2 D2).

@@ -10,15 +10,15 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/notation';
-import { STRING_COUNT, type Clip } from './clip';
+import { STRING_COUNT, type Part } from './clip';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from './tuning';
 import { usePopover } from './usePopover';
 
 export function TuningPanel({ clip, x, y, onChange, onClose }: {
-  clip: Clip;
+  clip: Part;
   x: number;
   y: number;
-  onChange: (clip: Clip) => void;
+  onChange: (clip: Part) => void;
   onClose: () => void;
 }) {
   // The string whose note the piano picks, counted from the low E (0).

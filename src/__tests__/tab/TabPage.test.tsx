@@ -1,4 +1,3 @@
-import type { Clip } from '@/features/tab/clip';
 import { vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
@@ -14,6 +13,7 @@ import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { layoutClip } from '@/features/tab/layout';
 import { markBoxes, type MarkHit } from '@/features/tab/marks';
+import { type Clip, partOf } from '@/features/tab/clip';
 
 const RIFF = [
   'Title: Riff',
@@ -748,7 +748,7 @@ describe('TabPage playback', () => {
     const sound = () => screen.getByRole('combobox', { name: 'Sound' });
     expect(sound()).toHaveValue('25');
     fireEvent.change(sound(), { target: { value: '0' } });
-    expect(savedClip()).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
+    expect(partOf(savedClip() as unknown as Clip)).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
     expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('sound');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     // A piano brings no strings of its own, so the tuning is written too.
@@ -932,7 +932,7 @@ describe('TabPage playback', () => {
     for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
     // Placing the line fills the bar with a rest after the 5 and the 7.
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
-    const firstBar = () => (savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
+    const firstBar = () => partOf(savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
     // The line to the bar's end: Delete takes the rest, then Backspace turns the 7 into a rest.
     for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
@@ -1509,7 +1509,7 @@ describe('picking a technique mark (issue #128)', () => {
     await screen.findByRole('heading', { name: title }, SLOW);
     const read = readAlphaTexWith(alphaTab, text);
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const { box } = markBoxes(layoutClip(read.clip, 800)).find(m => m.hit.mark === mark)!;
+    const { box } = markBoxes(layoutClip(partOf(read.clip), 800)).find(m => m.hit.mark === mark)!;
     const svg = screen.getByRole('img', { name: /drawn as tab/ });
     fireEvent.pointerDown(svg, { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
   }
@@ -1633,5 +1633,32 @@ describe('dragging notes on the staff (issue #174)', () => {
     undo();
     drag(0, -9, { ctrlKey: true });
     expect(shown()).toMatch(/\(8\.6 10\.5\)|\(10\.5 8\.6\)/);
+  });
+});
+
+describe('TabPage with several tracks (issue #237)', () => {
+  const TWO = '\\title "Two"\n\\track "Gtr I"\n\\ts (4 4)\n5.3.1 |\n\\track "Gtr II"\n0.6.1 |\n';
+
+  it('shows and edits the first track, keeps the second, and says so in an "i"', async () => {
+    renderAt(`#tab=${encodeURIComponent(TWO)}`);
+    await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(1);
+    expect(screen.getByRole('img', { name: /has 2 tracks.*only the first \(Gtr I\)/ })).toHaveAttribute('data-tip');
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    fireEvent.keyDown(editor, { key: '7' });
+    const saved = savedClip() as unknown as Clip;
+    expect(saved.tracks).toHaveLength(2);
+    expect(saved.tracks[1].bars[0].columns[0].notes[5]).toEqual({ fret: 0 });
+    // The AlphaTex view has every track, so no "i" there.
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\track "Gtr II"\n0.6.1 |');
+    expect(screen.queryByRole('img', { name: /has 2 tracks/ })).toBeNull();
+  });
+
+  it('shows no "i" for one track', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    expect(screen.queryByRole('img', { name: /tracks/ })).toBeNull();
   });
 });

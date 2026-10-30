@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Clip, type Column, type Note } from './clip';
+import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 
@@ -140,7 +140,7 @@ export const BEND_LABEL_RAISE = 9;
  * everything, the staff, the tab's marks, the tab.
  */
 export function rowsFor(
-  clip: Clip, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 },
+  clip: Part, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 },
   freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
 ): Rows {
   const tab = parts !== 'staff';
@@ -345,7 +345,7 @@ function plainRest(bar: Bar): boolean {
  * plain bars of rest in a row. The first may start a section, a tempo, a signature or a repeat, and the
  * last may end with a double bar or a repeat; anything else ends the run, as it would need a bar of its own.
  */
-export function multiRests(clip: Clip): Map<number, number> {
+export function multiRests(clip: Part): Map<number, number> {
   const runs = new Map<number, number>();
   if (!clip.multiBarRests) return runs;
   const { bars } = clip;
@@ -501,7 +501,7 @@ export function stemUpFor(heads: Head[]): boolean {
   return far < 2 * MIDDLE_STEP;
 }
 
-export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Layout {
+export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Layout {
   const staff = parts !== 'tab';
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
   // room, so the lines start one under another). No string names: the score's head shows the tuning
@@ -649,7 +649,7 @@ export function layoutClip(clip: Clip, width: number, parts: Parts = 'tab'): Lay
 }
 
 /** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only on the first line. */
-export function lineClip(clip: Clip, bars: number[], first: boolean): Clip {
+export function lineClip(clip: Part, bars: number[], first: boolean): Part {
   return { ...clip, capo: first ? clip.capo : undefined, bars: bars.map(i => clip.bars[i]) };
 }
 
@@ -781,7 +781,7 @@ export const VIBRATO_OVER_MARKS = 17;
 /** From the top of everything else on the staff up to an octave line (or down, under it). */
 export const OTTAVA_CLEAR = 33;
 /** How far the heads and stems of the given bars (one line's) reach above and below the staff, in steps. */
-function staffReach(clip: Clip, heads: Head[][][], marks: boolean, bars: number[]): StaffReach {
+function staffReach(clip: Part, heads: Head[][][], marks: boolean, bars: number[]): StaffReach {
   let high = 8;
   let low = 0;
   // Over every column, in steps: the vibrato's band, then an octave line over all of it.

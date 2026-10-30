@@ -4,7 +4,7 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { isRest, type Clip } from './clip';
+import { isRest, type Part } from './clip';
 import { clearNote, columnAt, columnCount, deleteColumns, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
@@ -21,7 +21,7 @@ export type LastDigit = { spot: string; digit: number; at: number } | null;
 
 /** The editor as a key finds it, and how a key changes it. */
 export interface EditorKeys {
-  clip: Clip;
+  clip: Part;
   cursor: Cursor;
   selection: Selection | null;
   /** What the tools change: the selection, else the cursor's note, or its whole column with no string picked. */
@@ -37,9 +37,9 @@ export interface EditorKeys {
   /** Settings' "Fill short bars with rests": → and ← complete a short bar they leave. */
   fillBars: boolean;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
-  commit: (next: Clip, cursor?: Cursor, selection?: Selection | null) => void;
+  commit: (next: Part, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
-  toPitch: (next: Clip, at: Cursor, pitch: number, selection: Selection | null) => void;
+  toPitch: (next: Part, at: Cursor, pitch: number, selection: Selection | null) => void;
   setColumnOnly: (columnOnly: boolean) => void;
   /** A selection starts: the string and the staff's cursor let go. */
   startRegion: () => void;
@@ -300,7 +300,7 @@ function moveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys):
 
 /** The playback line as the keys off the tab find it, and how they move it. */
 export interface LineKeys {
-  clip: Clip;
+  clip: Part;
   count: number;
   /** The column gap the playback line is at, or null. */
   line: number | null;
@@ -309,7 +309,7 @@ export interface LineKeys {
   /** Puts the playback line at a gap, or takes it away. */
   placeLine: (index: number | null) => void;
   /** Records an edit as one undo step, lets any selection go and puts the playback line at a gap. */
-  editAtLine: (next: Clip, line: number) => void;
+  editAtLine: (next: Part, line: number) => void;
 }
 
 /**
@@ -318,7 +318,7 @@ export interface LineKeys {
  * if it holds notes, or, a rest already, goes, and the line steps back over it. Null when there
  * is nothing to take: no line, or the line at the clip's start.
  */
-export function deleteAtLine(clip: Clip, line: number | null, selection: Selection | null): { clip: Clip; line: number } | null {
+export function deleteAtLine(clip: Part, line: number | null, selection: Selection | null): { clip: Part; line: number } | null {
   if (selection) {
     const range = selectedRange(selection);
     return { clip: deleteColumns(clip, range).clip, line: range[0] };
@@ -384,7 +384,7 @@ export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, se
 }
 
 /** The last column of the clip, for Ctrl+A. */
-function placeOfLast(clip: Clip): { bar: number; column: number } {
+function placeOfLast(clip: Part): { bar: number; column: number } {
   for (let b = clip.bars.length - 1; b >= 0; b--) {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };
   }
