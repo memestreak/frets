@@ -149,30 +149,37 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
               Download SVG
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="tab-export-text-label">Other formats</span>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
-              Download alphaTex
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
-              Download ASCII
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.musicxml`, writeMusicXml(clip), SAVE_KINDS.musicxml.mime))}>
-              Download MusicXML
-            </button>
-            {lossNote && <span className="tab-sound-note" role="img" aria-label={lossNote} data-tip={lossNote}>⚠</span>}
-            <button
-              type="button" className="btn btn-ghost"
-              onClick={() => {
-                writeGuitarPro(clip).then(
-                  bytes => setStatus(download(`${fileName}.gp`, new Blob([bytes as Uint8Array<ArrayBuffer>], { type: SAVE_KINDS.guitarPro.mime }))),
-                  (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`),
-                );
-              }}
-            >
-              Download Guitar Pro
-            </button>
-            {gpLossNote && <span className="tab-sound-note" role="img" aria-label={gpLossNote} data-tip={gpLossNote}>⚠</span>}
+          {/* The label on the left; the buttons wrap under one another beside it, each ⚠ kept with its button. */}
+          <div className="flex items-baseline gap-2">
+            <span className="tab-export-text-label shrink-0">Other formats</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
+                Download alphaTex
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
+                Download ASCII
+              </button>
+              <span className="inline-flex items-center gap-2">
+                <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.musicxml`, writeMusicXml(clip), SAVE_KINDS.musicxml.mime))}>
+                  Download MusicXML
+                </button>
+                {lossNote && <span className="tab-sound-note" role="img" aria-label={lossNote} data-tip={lossNote}>⚠</span>}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <button
+                  type="button" className="btn btn-ghost"
+                  onClick={() => {
+                    writeGuitarPro(clip).then(
+                      bytes => setStatus(download(`${fileName}.gp`, new Blob([bytes as Uint8Array<ArrayBuffer>], { type: SAVE_KINDS.guitarPro.mime }))),
+                      (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`),
+                    );
+                  }}
+                >
+                  Download Guitar Pro
+                </button>
+                {gpLossNote && <span className="tab-sound-note" role="img" aria-label={gpLossNote} data-tip={gpLossNote}>⚠</span>}
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--ink-muted)" role="status">{status}</span>
