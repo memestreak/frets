@@ -327,9 +327,24 @@ function LoopIcon() {
  * The row under the tab: a very small round button with a play triangle (Jeremy, 2026-10-26; not green, 2026-10-27)
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
-export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+/** How many characters the track's name shows in the footer, its ellipsis included. */
+export const TRACK_LABEL_LENGTH = 10;
+
+/**
+ * The track's name as the footer labels its Sound and FX (Jeremy, 2026-10-30): cut to
+ * `TRACK_LABEL_LENGTH` characters with an ellipsis; an unnamed track is "Track <n>".
+ */
+export function trackLabel(name: string, index: number): string {
+  const full = name.trim() || `Track ${index + 1}`;
+  const chars = [...full];
+  return chars.length <= TRACK_LABEL_LENGTH ? full : `${chars.slice(0, TRACK_LABEL_LENGTH - 1).join('')}…`;
+}
+
+export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, track, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Part;
   playback: Playback;
+  /** The track shown and played: its name ('' for none) and place, which label its Sound and FX. */
+  track: { name: string; index: number };
   /** The sound the clip plays in, picked at the end of the controls. */
   sound: Sound;
   onSound: (sound: Sound) => void;
@@ -368,6 +383,8 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   clickVolume: number;
   onClickVolume: (volume: number) => void;
 }) {
+  const label = trackLabel(track.name, track.index);
+  const fullName = track.name.trim() || `Track ${track.index + 1}`;
   // Where the options menu opened; null while it is shut. Likewise the clicks' menu.
   const [optionsAt, setOptionsAt] = useState<{ x: number; y: number } | null>(null);
   const [clickOptionsAt, setClickOptionsAt] = useState<{ x: number; y: number } | null>(null);
@@ -454,8 +471,10 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
             />
             <span className="text-(--ink-muted)">semitones</span>
           </div>
+          {/* The track's own: its Sound and FX in one thin box, labelled with its name (Jeremy, 2026-10-30). */}
+          <div className="tab-track-box" role="group" aria-label={`Track: ${track.name.trim() || `Track ${track.index + 1}`}`}>
           <label className="tab-sound">
-            <span className="text-(--ink-muted)">Sound</span>
+            <span className="tab-track-name" data-tip={label === fullName ? undefined : fullName}>{label}</span>
             <select className="input" aria-label="Sound" value={sound} onChange={e => {
               onSound(Number(e.target.value));
               // A sound picked, the list lets go of the focus, so Space plays again (Jeremy, 2026-10-28).
@@ -470,6 +489,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           </label>
           {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
           <FxButton fx={effects} onFx={onEffects} />
+          </div>
           {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
           {/* At the row's far right (Jeremy, 2026-10-28). */}
           <div className="tab-volume tab-volume-end">

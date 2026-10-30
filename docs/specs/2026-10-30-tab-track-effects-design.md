@@ -57,3 +57,20 @@ through the distortion and reverb.
 - When several tracks play at once (issue #237 step 2 or later), the same
   mixing step can give each track's channels samples of their own, one
   effects chain each.
+
+## The footer: the track's box
+
+Jeremy, 2026-10-30: "group with thin-line box the instrument and fx button
+to make it clear that the effects are associated with the track", and the
+Sound label replaced by the track's name, "truncated to 10 characters (using
+...) and right justified". A later PR turns that name into the track chooser.
+
+- The Sound list, its ⚠ and the FX button sit in one box with a 1px
+  `--line` border (`.tab-track-box`), a group named "Track: <name>".
+- Where "Sound" was, the shown track's name: ten characters at most, the
+  tenth an ellipsis when cut (`trackLabel`), its full name in a hover tip
+  when cut. An unnamed track is "Track <n>". It is right-aligned in a fixed
+  80px, so the box keeps its size whatever the name.
+- To keep the row on one line beside Volume at the widths it fit before,
+  the box's gaps are 6px and the list is as wide as its longest sound
+  rather than 200px.

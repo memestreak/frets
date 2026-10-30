@@ -980,6 +980,7 @@ export default function TabPage() {
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
             shown={showPlayback} onShow={showPlaybackControls}
+            track={{ name: whole.tracks[shownTrack].name, index: shownTrack }}
             sound={sound} soundNote={substituteNote(clip.instrument?.program)}
             onSound={next => commit({ ...clip, instrument: { program: next, tag: instrumentTag(next) } })}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
