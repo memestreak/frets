@@ -65,6 +65,8 @@ describe('multi-bar rests', () => {
     // A rest bar alone, a rest with a chord name over it, and a section in the middle each stand by themselves.
     expect(multiRests(clipOf(`\\multiBarRest\n${EIGHTS}\nr.1 |\n${EIGHTS}`)).size).toBe(0);
     expect([...multiRests(clipOf(`\\multiBarRest\nr.1 |\nr.1{ch "D"} |\nr.1 |\nr.1 |`))]).toEqual([[2, 2]]);
+    // A bar of several rests is a bar of rest too.
+    expect([...multiRests(clipOf(`\\multiBarRest\n${EIGHTS}\nr.2 r.2 |\nr.1 |`))]).toEqual([[1, 2]]);
     expect([...multiRests(clipOf(`\\multiBarRest\nr.1 |\nr.1 |\n\\section "B" r.1 |\nr.1 |`))]).toEqual([[0, 2], [2, 2]]);
   });
 

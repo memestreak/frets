@@ -333,18 +333,15 @@ export interface RestRun {
 /** A multi-bar rest's room: about a bar of eighths, as Guitar Pro gives it. */
 export const MULTI_REST_WIDTH = 300;
 
-/** A bar that is a rest and nothing else, as a multi-bar rest gathers. */
-function plainRest(bar: Bar): boolean {
-  if (bar.columns.length !== 1 || bar.ending !== undefined || bar.extra?.length) return false;
-  const c = bar.columns[0];
+/** A rest with nothing on it or over it. */
+function plainRestColumn(c: Column): boolean {
   return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
 }
 
-/** The other tracks' bars drawn in step with the part's bar `b` (`Part.alongside`). */
-function alongsideBars(clip: Part, b: number): Bar[] {
-  const origin = clip.bars[b].origin;
-  if (origin === undefined || !clip.alongside) return [];
-  return clip.alongside.flatMap(other => (other.bars[origin] ? [other.bars[origin]] : []));
+/** A bar of rests and nothing else, as a multi-bar rest gathers: one whole-bar rest, or several that fill it. */
+function restBar(bar: Bar): boolean {
+  if (bar.columns.length === 0 || bar.ending !== undefined || bar.extra?.length) return false;
+  return bar.columns.every(plainRestColumn);
 }
 
 /** The most room the other tracks' bars in step with bar `b` ask for, and the least they can take. */
@@ -369,25 +366,27 @@ function alongsideRoom(clip: Part, b: number, staff: boolean): { inner: number; 
 }
 
 /**
- * The multi-bar rests of a clip that asks for them, as the count at each one's first bar: two or more
- * plain bars of rest in a row. The first may start a section, a tempo, a signature or a repeat, and the
- * last may end with a double bar or a repeat; anything else ends the run, as it would need a bar of its own.
+ * The multi-bar rests of a part, as the count at each one's first bar: two or more bars of rests in a row.
+ * A clip of one track gathers them only when it asks (`\multiBarRest`); a track of a clip of several
+ * always does, so a part that sits out half the song isn't drawn as bar after empty bar (Jeremy,
+ * 2026-10-30). Only the part's own bars count: the other tracks may play there.
+ * The first may start a section, a tempo, a signature or a repeat, and the last may end with a double
+ * bar or a repeat; anything else ends the run, as it would need a bar of its own.
  */
 export function multiRests(clip: Part): Map<number, number> {
   const runs = new Map<number, number>();
-  if (!clip.multiBarRests) return runs;
-  // A bar another track plays in is not a rest.
-  const bars = clip.bars.map((bar, b) => (alongsideBars(clip, b).every(plainRest) ? bar : { ...bar, columns: [] }));
+  if (!clip.multiBarRests && !clip.alongside?.length) return runs;
+  const bars = clip.bars;
   const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar || !!bar.freeTime;
   const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart || bar.freeTime);
   let b = 0;
   while (b < bars.length) {
-    if (!plainRest(bars[b]) || closes(bars[b])) {
+    if (!restBar(bars[b]) || closes(bars[b])) {
       b++;
       continue;
     }
     let e = b;
-    while (e + 1 < bars.length && plainRest(bars[e + 1]) && !opens(bars[e + 1])) {
+    while (e + 1 < bars.length && restBar(bars[e + 1]) && !opens(bars[e + 1])) {
       e++;
       if (closes(bars[e])) break;
     }
@@ -621,7 +620,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
       const columnHeads = heads[index][k];
-      const cw = inRun ? inner : Math.max(minColumnWidth(column), widthOf(column, index, k) * spread * squeeze);
+      const cw = inRun ? inner / bar.columns.length : Math.max(minColumnWidth(column), widthOf(column, index, k) * spread * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);

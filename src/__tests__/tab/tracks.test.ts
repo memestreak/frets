@@ -215,10 +215,46 @@ describe('every track laid out in step (#243)', () => {
     expect(bar.columns[0].width).toBeGreaterThan(columnWidth(bar.columns[0].column));
   });
 
-  it('gathers no multi-bar rest over bars another track plays in', () => {
-    const rests = read('\\multiBarRest\n\\track "A"\nr.1 | r.1 | r.1 |\n\\track "B"\nr.1 | 0.6.1 | r.1 |');
-    expect(multiRests(partOf(rests, 0)).size).toBe(0);
-    expect(multiRests({ ...partOf(rests, 0), alongside: undefined }).get(0)).toBe(3);
+});
+
+describe('a track\'s runs of rests (#243 follow-up)', () => {
+  // The lead sits out four bars, plays two, and sits out the last two.
+  const clip = read([
+    '\\track "Rhythm"', '\\ts (4 4)', ('0.6.4 '.repeat(4) + '| ').repeat(8),
+    '\\track "Lead"', 'r.1 | r.1 | r.4 r.4 r.4 r.4 | r.1 | 12.2.1 | 14.3.1 | r.1 | r.1 |',
+  ].join('\n'));
+
+  it('are gathered into multi-bar rests in a clip of several tracks, without \\multiBarRest, whatever the others play', () => {
+    expect(clip.multiBarRests).toBeUndefined();
+    expect([...multiRests(partOf(clip, 1))]).toEqual([[0, 4], [6, 2]]);
+    expect(multiRests(partOf(clip, 0)).size).toBe(0);
+  });
+
+  it('gather no bar alone, and a clip of one track only when it asks', () => {
+    expect(multiRests(partOf(read('\\track "A"\n0.6.1 | r.1 | 0.6.1 |\n\\track "B"\nr.1 | r.1 | r.1 |'), 0)).size).toBe(0);
+    const one = read('r.1 | r.1 | r.1 |');
+    expect(multiRests(partOf(one)).size).toBe(0);
+    expect(multiRests({ ...partOf(one), multiBarRests: true }).get(0)).toBe(3);
+  });
+
+  it('take a multi-bar rest\'s room, so the track is drawn shorter than the others', () => {
+    const bars = (t: number) => layoutClip(partOf(clip, t), 1200).systems.flatMap(s => s.bars);
+    const lead = bars(1);
+    const run = lead.filter(b => b.restRun?.span === lead[0].restRun!.span);
+    expect(run.map(b => b.index)).toEqual([0, 1, 2, 3]);
+    expect(run[3].x1 - run[0].x0).toBeLessThan(bars(0)[3].x1 - bars(0)[0].x0);
+    // A bar of several rests shares its slice among them, inside the bar.
+    expect(run[2].columns).toHaveLength(4);
+    expect(run[2].columns.every(c => c.start >= run[2].x0 && c.start + c.width <= run[2].x1 + 0.001)).toBe(true);
+    // Every column is still placed, so the cursor and the playhead step through them.
+    expect(lead.flatMap(b => b.columns.map(c => c.index))).toEqual([...Array(11).keys()]);
+  });
+
+  it('open into their bars when a note goes into one', () => {
+    const lead = partOf(clip, 1);
+    const edited = partOf(withPart(clip, setFret(lead, { bar: 1, column: 0, string: 2 }, 7), 1), 1);
+    expect([...multiRests(edited)]).toEqual([[2, 2], [6, 2]]);
+    expect(edited.bars).toHaveLength(8);
   });
 });
 
