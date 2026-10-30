@@ -43,13 +43,31 @@ one. A bar every other track has only rests in still goes from every track,
 so empty bars can still be trimmed. The same holds for Delete in an empty
 bar. One track behaves as before.
 
-Jeremy was asked (2026-10-30) to choose between this, clearing to rests
-always, and step 1's rule (remove from every track); this is the recommended
-option, built while the question is open.
+Jeremy, 2026-10-30, picked this over clearing to rests always and over
+step 1's rule (remove from every track).
+
+## Every track the same length
+
+Picking another track must not change how long the arrangement is drawn
+(Jeremy, 2026-10-30: "the arrangement changes length when I choose between
+the two tracks"). A part of a clip of several tracks carries the others as
+`alongside` (made by `partOf`, never written or compared as music). The
+layout gives each bar the room the widest track's bar there asks for, and
+the least room the most any needs, spreading the bar's own columns over it;
+so every track breaks its lines at the same bars, each bar at the same
+place. A multi-bar rest gathers only bars that are rests in every track.
+The rows over the staff (a chord name, a section) are still each track's
+own, so a line may be a little taller in one track; step 2 draws the tracks
+together.
+
+Tracks never start at different bars: every track has every bar (alphaTex
+and the model share the bars), so a part that comes in later has rests
+until it does, and bar numbers are the same in every track.
 
 ## Tests
 
 `tracks.test.ts` (editing track 2, `clipAction` with a track, bars kept for
-another track's music, `trackName`) and TabPage's "several tracks" tests
+another track's music, every track laid out in step, multi-bar rests,
+`trackName`) and TabPage's "several tracks" tests
 (the list, editing and ASCII of track 2, no list in AlphaTex or for one
 track, back to track 1 on Duplicate).

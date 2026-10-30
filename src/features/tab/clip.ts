@@ -386,6 +386,11 @@ export interface Part {
   instrument?: { program: number; tag?: string };
   /** The track's FX. */
   fx?: FxSettings;
+  /**
+   * The clip's other tracks, only read: the layout gives each bar the room the widest track's needs, so
+   * every track breaks its lines at the same bars and keeps its length when another is picked (issue #243).
+   */
+  alongside?: Part[];
 }
 
 export const STRING_COUNT = 6;
@@ -865,6 +870,13 @@ function copied<T extends object>(to: T, from: object, keys: readonly string[]):
  * takes away; a clip of one track needs none.
  */
 export function partOf(clip: Clip, index = 0): Part {
+  const part = trackPart(clip, index);
+  if (clip.tracks.length > 1) part.alongside = clip.tracks.flatMap((_, t) => (t === index ? [] : [trackPart(clip, t)]));
+  return part;
+}
+
+/** Track `index` as a part, by itself. */
+function trackPart(clip: Clip, index: number): Part {
   const track = clip.tracks[index];
   const bars = partBars(clip.masterBars, track.bars, clip.tracks.length > 1);
   const part: Part = { name: clip.name, time: clip.time, tuning: track.tuning, bars };

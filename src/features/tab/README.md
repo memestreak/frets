@@ -9,7 +9,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   edits and playback work on, made by `partOf` and put back by `withPart`, which keeps the other tracks'
   bars in step and never takes away a bar another track has music in; the page shows, edits and plays one
   track, picked from the Track list over a clip of more (the viewer's, back to the first for another
-  arrangement; `trackName`); `docs/specs/2026-10-30-tab-tracks-design.md` and
+  arrangement; `trackName`), each bar as wide as the widest track's (`Part.alongside`, `layout.ts`); `docs/specs/2026-10-30-tab-tracks-design.md` and
   `docs/specs/2026-10-30-tab-track-chooser-design.md`; bars of
   columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
   thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
