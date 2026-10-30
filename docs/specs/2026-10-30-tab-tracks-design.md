@@ -64,6 +64,9 @@ more tracks than Frets supports yet.
 
 ## The page, until step 2
 
+Issue #243 (`2026-10-30-tab-track-chooser-design.md`) replaced the "i"
+with a Track list and changed deleting bars; below is step 1 as built.
+
 - The page shows, edits and plays track 1; the rest are kept unchanged.
   `TabPage` keeps the whole clip in its history and dispatches a part's
   edits through `clipAction` (`replacePart`, `previewPart`), which uses

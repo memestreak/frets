@@ -10,7 +10,7 @@ import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, isWhammy, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata, isBarsPerLine, partOf, type MasterBar, type Track, type TrackBar,
+  type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
 import { readFxLine } from './fxLine';
 import { STANDARD_TUNING_TEX } from './instrument';
@@ -449,9 +449,9 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k] ? ` (${KEPT_NAMES[k]})` : ''}${n > 1 ? ` ×${n}` : ''}`);
     warnings.push(`Kept but not drawn yet: ${list.join(', ')}.`);
   }
-  clip.tracks.forEach((track, t) => {
+  clip.tracks.forEach((_, t) => {
     const uneven = unevenMessage(partOf(clip, t));
-    if (uneven) warnings.push(clip.tracks.length > 1 ? `${track.name || `Track ${t + 1}`}: ${uneven}` : uneven);
+    if (uneven) warnings.push(clip.tracks.length > 1 ? `${trackName(clip, t)}: ${uneven}` : uneven);
   });
   return { ok: true, clip, warnings };
 }

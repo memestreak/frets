@@ -47,12 +47,12 @@ export type PartAction =
   | { type: 'replacePart'; part: Part; from?: Part }
   | { type: 'previewPart'; part: Part };
 
-/** The action on the whole clip `clip` that a part's edit makes; any other action as it is. */
-export function clipAction(clip: Clip, action: ClipAction | PartAction): ClipAction {
+/** The action on the whole clip `clip` that an edit of its track `track` makes; any other action as it is. */
+export function clipAction(clip: Clip, action: ClipAction | PartAction, track = 0): ClipAction {
   if (action.type === 'replacePart') {
-    return { type: 'replace', clip: withPart(clip, action.part), from: action.from && withPart(clip, action.from) };
+    return { type: 'replace', clip: withPart(clip, action.part, track), from: action.from && withPart(clip, action.from, track) };
   }
-  if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part) };
+  if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part, track) };
   return action;
 }
 

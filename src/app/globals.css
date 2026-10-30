@@ -844,12 +844,11 @@ button {
      Staff | Tab | Both; the switch never breaks onto two lines. */
   .tab-card-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; margin-left: auto; }
   .tab-card-end > * { flex-shrink: 0; }
-  /* The "i" over a clip of several tracks, while only the first is shown (issue #237): a small quiet circle whose tip says so. */
-  .tab-tracks-note {
-    display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
-    border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ink-muted); color: var(--ink-muted);
-    font: 600 11px/1 var(--font-sans); cursor: help; outline: none;
-  }
+  /* Staff | Tab | Both and the track list keep together at the left. */
+  .tab-card-start { display: flex; align-items: center; gap: 8px; }
+  .tab-card-start:empty { display: none; }
+  /* The track list over a clip of several tracks (issue #243): as narrow as its longest name. */
+  .tab-track-pick { width: auto; min-width: 0; max-width: 200px; }
   .tab-card-end > .seg { flex-wrap: nowrap; }
   /* On a phone, a little less room round the views' names keeps copy and save on the switch's line. */
   @media (max-width: 420px) { .tab-card-end .seg-opt { padding-inline: 10px; } }

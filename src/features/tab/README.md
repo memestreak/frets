@@ -7,8 +7,10 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   over the bars they share, `masterBars` holding each bar's signatures, repeats, tempo and section and each
   track's `bars` its notes; `Part` is one track with those marks in its bars, what the layout, drawing,
   edits and playback work on, made by `partOf` and put back by `withPart`, which keeps the other tracks'
-  bars in step; the page shows, edits and plays the first track, with an "i" over a clip of more,
-  `hiddenTracksNote` in `TabPage.tsx`; `docs/specs/2026-10-30-tab-tracks-design.md`; bars of
+  bars in step and never takes away a bar another track has music in; the page shows, edits and plays one
+  track, picked from the Track list over a clip of more (the viewer's, back to the first for another
+  arrangement; `trackName`); `docs/specs/2026-10-30-tab-tracks-design.md` and
+  `docs/specs/2026-10-30-tab-track-chooser-design.md`; bars of
   columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
   thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
   tu 3 … 12, or any ratio `tu (n d)`) are whole numbers too; grace notes take no time; a bar may change the time signature, `timeAt`;

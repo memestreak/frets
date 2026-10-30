@@ -1,6 +1,6 @@
 /**
- * A clip of several tracks (issue #237, step 1): read, kept, written and stored with every track,
- * while the page shows, edits and plays the first as a part.
+ * A clip of several tracks (issue #237): read, kept, written and stored with every track,
+ * while the page shows, edits and plays one of them as a part (#243).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,11 +8,10 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setSection } from '@/features/tab/barEdits';
-import { asClip, emptyClip, parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
+import { asClip, emptyClip, parseClip, partOf, trackName, withPart, type Clip } from '@/features/tab/clip';
 import { clipAction, sameMusic } from '@/features/tab/clipState';
-import { deleteColumns, indexOf, insertBar, setFret } from '@/features/tab/editing';
+import { deleteColumns, indexOf, insertBar, removeEmptyBar, setFret } from '@/features/tab/editing';
 import { perform } from '@/features/tab/playback';
-import { hiddenTracksNote } from '@/features/tab/TabPage';
 
 /** Two guitars: the first with the repeat, section and tempo every track shares; the second in drop D, capo 2. */
 const TWO = [
@@ -112,9 +111,33 @@ describe('the first track as a part', () => {
     expect(notes(added)).toEqual(['5.3.2 7.3.2 | r.1 | 8.3.1 |', '0.6.1 | r.1 | 3.6.1 |']);
     expect(added.masterBars).toEqual([clip.masterBars[0], {}, clip.masterBars[1]]);
     const shown = partOf(added);
-    const first = indexOf(shown, 0, 0);
-    const gone = withPart(added, deleteColumns(shown, [first, indexOf(shown, 1, 0)]).clip);
-    expect(notes(gone)).toEqual(['8.3.1 |', '3.6.1 |']);
+    const emptied = deleteColumns(shown, [indexOf(shown, 1, 0), indexOf(shown, 1, 0)]).clip;
+    const gone = withPart(added, removeEmptyBar(emptied, 1).clip);
+    expect(notes(gone)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', '0.6.1 | 3.6.1 |']);
+  });
+
+  it('keeps a bar an edit empties while another track has music in it, as rests in the edited track', () => {
+    const added = withPart(clip, insertBar(part, { bar: 0, column: 0, string: 0 }, 'after').clip);
+    const shown = partOf(added);
+    // Bars 1 and 2 go from Gtr I: Gtr II has only rests in the first, a note in the other.
+    const gone = withPart(added, deleteColumns(shown, [indexOf(shown, 0, 0), indexOf(shown, 1, 0)]).clip);
+    expect(notes(gone)).toEqual(['r.1 | 8.3.1 |', '0.6.1 | 3.6.1 |']);
+    expect(gone.masterBars).toEqual(clip.masterBars);
+    // From Gtr II, which shares the bars with Gtr I's music, nothing goes but its notes.
+    const second = partOf(clip, 1);
+    const cleared = withPart(clip, deleteColumns(second, [0, 1]).clip, 1);
+    expect(notes(cleared)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', 'r.1 | r.1 |']);
+    expect(cleared.masterBars).toEqual(clip.masterBars);
+  });
+
+  it('edits any track, the others kept', () => {
+    const second = partOf(clip, 1);
+    expect(second.tuning).toEqual(clip.tracks[1].tuning);
+    const edited = withPart(clip, setFret(second, { bar: 0, column: 0, string: 5 }, 2), 1);
+    expect(notes(edited)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', '2.6.1 | 3.6.1 |']);
+    expect(edited.tracks[0]).toBe(clip.tracks[0]);
+    const action = clipAction(clip, { type: 'replacePart', part: setFret(second, { bar: 0, column: 0, string: 5 }, 2) }, 1);
+    expect(action.type === 'replace' && notes(action.clip)).toEqual(notes(edited));
   });
 
   it('makes a bar mark set on it every track\'s', () => {
@@ -168,10 +191,11 @@ describe('a stored clip of several tracks', () => {
   });
 });
 
-describe('the "i" over the clip', () => {
-  it('says how many tracks there are and that the first is shown, only when there are more', () => {
-    expect(hiddenTracksNote(read(TWO))).toBe('This arrangement has 2 tracks. Frets shows, edits and plays only the first (Gtr I) for now; the others are kept as they are.');
-    expect(hiddenTracksNote(emptyClip())).toBeNull();
+describe('a track\'s name', () => {
+  it('is its own, else its number', () => {
+    const clip = read(TWO);
+    expect(trackName(clip, 1)).toBe('Gtr II');
+    expect(trackName({ ...clip, tracks: [clip.tracks[0], { ...clip.tracks[1], name: ' ' }] }, 1)).toBe('Track 2');
   });
 });
 
