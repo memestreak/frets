@@ -383,7 +383,7 @@ describe('TabPage', () => {
   describe('editing', () => {
     const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
   const vibrato = () => screen.getByRole('button', { name: /^Vibrato/ });
-    const keys = (...list: (string | { key: string; shiftKey?: boolean; altKey?: boolean; code?: string })[]) => {
+    const keys = (...list: (string | { key: string; shiftKey?: boolean; altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; code?: string })[]) => {
       for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
     };
     const alphaTex = () => {
@@ -598,6 +598,83 @@ describe('TabPage', () => {
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
       expect(alphaTex()).toBe('5.1.4 |');
+    });
+
+    describe('MuseScore’s jumps and keys (issue #238)', () => {
+      const THREE_BARS = '\\title "Bars"\n:2 5.1 7.1 | 8.1 9.1 | 3.2 5.2 |';
+      const copied = () => {
+        const data = new Map<string, string>();
+        const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+        copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
+        act(() => { editor().dispatchEvent(copy); });
+        // The bars after the header, one per line, however many the writer put on a line.
+        const [, ...body] = data.get('text/plain')!.split('\n');
+        return (body.join(' ').match(/[^|]*\|/g) ?? []).map(b => b.trim()).join('\n');
+      };
+      const open = async () => {
+        renderAt(`#tab=${encodeURIComponent(THREE_BARS)}`);
+        await screen.findByRole('heading', { name: 'Bars' }, SLOW);
+        act(() => editor().focus());
+      };
+
+      it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {
+        await open();
+        keys({ key: 'ArrowRight', ctrlKey: true }, '1');
+        expect(alphaTex().split('\n')[1]).toBe('1.1.2 9.1.2 |');
+        keys({ key: 'ArrowRight', metaKey: true }, { key: 'ArrowRight', ctrlKey: true }, '2');
+        expect(alphaTex().split('\n')[2]).toBe('(2.1 3.2).2 5.2.2 |');
+        // Back from the start of a bar goes to the start of the bar before.
+        keys({ key: 'ArrowLeft', ctrlKey: true }, '3');
+        expect(alphaTex().split('\n')[1]).toBe('3.1.2 9.1.2 |');
+        keys({ key: 'End', ctrlKey: true }, '4');
+        expect(alphaTex().split('\n')[2]).toBe('(2.1 3.2).2 (4.1 5.2).2 |');
+        keys({ key: 'Home', ctrlKey: true }, '6');
+        expect(alphaTex().split('\n')[0]).toBe('6.1.2 7.1.2 |');
+      });
+
+      it('Ctrl/⌘+Shift+← → grow a selection by bars, Ctrl/⌘+Shift+Home / End to the clip’s ends', async () => {
+        await open();
+        keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
+        expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+        expect(copied()).toBe('5.1.2 7.1.2 |');
+        keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
+        expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |');
+        keys({ key: 'ArrowLeft', ctrlKey: true, shiftKey: true });
+        expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 |');
+        keys({ key: 'End', ctrlKey: true, shiftKey: true });
+        expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 5.2.2 |');
+        // Moving lets the selection go.
+        keys({ key: 'ArrowLeft', ctrlKey: true });
+        expect(screen.queryByTestId('tab-selection')).toBeNull();
+      });
+
+      it('Shift+Home / End grow a selection to the ends of the line of tab', async () => {
+        await open();
+        keys('ArrowRight', 'ArrowRight', { key: 'End', shiftKey: true });
+        // The three short bars sit on one line, so the selection runs to the clip's last column.
+        expect(copied()).toBe('8.1.2 9.1.2 |\n3.2.2 5.2.2 |');
+        keys({ key: 'Home', shiftKey: true });
+        expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 |');
+      });
+
+      it('W and Q make a note longer and shorter, as + and − do', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5', 'q');
+        expect(alphaTex()).toBe('5.1.8 |');
+        keys('w', 'w');
+        expect(alphaTex()).toBe('5.1.2 |');
+      });
+
+      it('Ctrl+Y redoes, as Ctrl+Shift+Z does', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('5');
+        undo();
+        expect(alphaTex()).toBe('|');
+        fireEvent.keyDown(document.body, { key: 'y', ctrlKey: true });
+        expect(alphaTex()).toBe('5.1.4 |');
+      });
     });
 
     it('Esc drops a selection and leaves the tab, with nothing drawn', () => {

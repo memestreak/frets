@@ -49,7 +49,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   tab, the staff cursor and the playback line), `useClipImport.ts` (import, examples, links and
   drops), `TabDialogs.tsx` (the Import dialog), `ArrangementsDialog.tsx` (Arrangements…: My arrangements, in folders one level deep, then the built-in ones in theirs, one line each by name), `arrangements.ts` and `useArrangements.ts` (My arrangements in the browser, one key per clip, the open one saved as it is edited; imports, drops and `#tab=` links open as new ones; `docs/specs/2026-10-28-tab-arrangements-design.md`), `ClipActions.tsx` (View options,
   copy, Copy link and save; `shareLink.ts` writes the link, the clip's alphaTex compressed in `#tabz=` (its `\instrument` and FX line carry the Sound and FX), and reads it and `#tab=`; `docs/specs/2026-10-29-tab-share-link-design.md`), `WordTools.tsx` (a picked word's Edit and Delete, where fields and panels go),
-  `views.ts`, `notice.ts` and `useWidth.ts`: keys
+  `jumps.ts` (pure: Ctrl/⌘+← → a bar, Home / End to the line's or clip's ends, moving the cursor or growing the selection; `docs/specs/2026-10-30-tab-musescore-selection-design.md`), `views.ts`, `notice.ts` and `useWidth.ts`: keys
   on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
   by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` / `#tabz=` link replaces the clip, read on load or
   hashchange and then cleared, while a paste goes in at the cursor;

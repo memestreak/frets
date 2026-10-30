@@ -5,13 +5,14 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { isRest, type Part } from './clip';
-import { clearNote, columnAt, columnCount, deleteColumns, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
 import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tools';
+import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
@@ -34,6 +35,8 @@ export interface EditorKeys {
   /** The notation staff is drawn (Staff or Both), so Alt+↑ ↓ on a selection move its notes' pitch. */
   staffShown: boolean;
   lastDigit: RefObject<LastDigit>;
+  /** Each drawn line of tab's first and last column, for Shift+Home / End (worked out only when asked). */
+  lines: () => Lines;
   /** Settings' "Fill short bars with rests": → and ← complete a short bar they leave. */
   fillBars: boolean;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
@@ -104,6 +107,10 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     return;
   }
   if (moveKeyDown(e, editor)) {
+    handled();
+    return;
+  }
+  if (jumpKeyDown(e, editor)) {
     handled();
     return;
   }
@@ -187,9 +194,11 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     }
     return;
   }
-  if (key === '+' || key === '-') {
+  // W and Q are MuseScore's longer and shorter (issue #238), beside + and −.
+  const longer = key === '+' || key === 'w';
+  if (longer || key === '-' || key === 'q') {
     handled();
-    commit(stepDuration(clip, target, key === '+' ? 1 : -1));
+    commit(stepDuration(clip, target, longer ? 1 : -1));
     return;
   }
   if (key === 'Insert') {
@@ -273,6 +282,31 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     return true;
   }
   return false;
+}
+
+/**
+ * The keys that jump by more than a column (issue #238, `jumps.ts`): Ctrl/⌘+← → a bar and
+ * Ctrl/⌘+Home / End the clip's ends move the cursor; with Shift they grow the selection that way,
+ * as Shift+Home / End grow it to the ends of the line. Moving lets any selection go, and leaving a
+ * short bar fills it when Settings says to, as ← → do. True when the key was one of them.
+ */
+function jumpKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  if (e.altKey) return false;
+  const jump = jumpForKey(e.key, e.ctrlKey || e.metaKey, e.shiftKey);
+  if (!jump) return false;
+  const { clip, cursor, selection, commit } = editor;
+  if (e.shiftKey) {
+    if (!columnAt(clip, cursor)) return true;
+    const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
+    const focus = jumpFocus(clip, selection?.focus ?? anchor, jump, jump === 'lineStart' || jump === 'lineEnd' ? editor.lines() : []);
+    commit(clip, { ...cursor, ...placeOf(clip, focus) }, { anchor, focus });
+    editor.startRegion();
+    return true;
+  }
+  const to = jumpCursor(clip, cursor, jump);
+  const left = editor.fillBars && to.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+  commit(left, to, null);
+  return true;
 }
 
 /**

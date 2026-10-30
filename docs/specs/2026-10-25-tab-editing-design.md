@@ -52,10 +52,11 @@ readers pass keys through to it.
 | ↑ ↓ | String. |
 | ← → | Column, across bar lines. Short bars stay short unless Settings › Tab › Editing › "Fill short bars with rests" is on (off by default; `2026-10-29-tab-fill-bars-setting-design.md`): with it off, → from the last column of a bar that doesn't add up adds one rest to type on (as long as the column before, or the longest rest that fits), and leaving a bar adds nothing. With it on, → from the last column of a bar that doesn't add up fills it at once, anywhere in the clip, with the fewest rests that complete it (`fewestRests`: a dotted half after a quarter in 4/4, a whole rest in an empty bar; Jeremy, 2026-10-26: "be generous"), and the cursor goes to the first of them. A fret typed on a rest longer than the last note before it splits the rest: the note takes that note's length and the rest of the time stays the fewest rests, so a run of quarters types on as before. → from the clip's last column, once its bar is full, starts a new bar: a rest as long as the cursor's column to type on, then the fewest rests that fill the bar. A pickup bar walked through with → fills up too; Ctrl+Z takes it back. Leaving a short bar any other way fills it the same way, the rests after its last column (`fillBar`; Jeremy, 2026-10-27): ← off its first column, a press on a note in another bar, a press off the tab, or Esc. Shift+← doesn't, nor does focus moving to the clip's own fields and panels or the palette, nor the window losing focus. |
 | Shift+← → | Select. |
+| Ctrl/⌘+← →, Ctrl/⌘+Home / End, with Shift too; Shift+Home / End | A bar at a time, and the clip's or the line's ends (issue #238, `2026-10-30-tab-musescore-selection-design.md`). |
 | Backspace, Delete | With a selection, removes its columns, and the bars a selection over several bars leaves empty. Otherwise clears the cursor's note; on an empty string of a column with notes, makes the column a rest of its length, as the Rest tool does (Jeremy, 2026-10-27: it had removed the column, notes and all); and on a rest removes the column. The cursor stays in the bar: on the column after while there is one in that bar, else on the column before (Jeremy, 2026-10-26: deleting a bar's last note had jumped to the next bar). A bar emptied on its own stays, empty, with the cursor in it, so → puts a rest in it again (with filling on, one rest where one will do; Jeremy, 2026-10-26); Delete in an empty bar removes the bar. |
 | Insert | A rest before the cursor's column. |
 | Ctrl+Enter (⌘+Enter), Ctrl+Shift+Enter | A new bar after (with Shift, before) the cursor's bar, filled with the fewest rests that make up the time signature in force there (a whole rest in 4/4, a dotted half in 3/4 or 6/8; before a bar that changes the time, the time before the change); the cursor goes to its first rest. Also the Bars group's first two buttons and the tab's right-click menu (Insert bar before, Insert bar after, on the bar under the pointer). Jeremy asked for both directions and the menu items the same day. Added 2026-10-26: Jeremy couldn't see how to add a bar of rests mid-clip, and picked this over a Mac key for Insert and over notes spilling into the next bar. |
-| + − | Longer or shorter note value. |
+| + − (or W Q) | Longer or shorter note value. |
 | . | No dot, then one dot, then two dots. |
 | Alt+3 | Triplet. |
 | R | Rest. |
@@ -68,7 +69,7 @@ readers pass keys through to it.
 | D U | Down or up stroke. |
 | [ ] E | Repeat start; repeat end, ×2, ×3, ×4, then none; ending 1., 2., then none. |
 | Ctrl+C, X, V | Copy, cut, paste (below). |
-| Ctrl+Z, Ctrl+Shift+Z | Undo, redo. Every change is one step. |
+| Ctrl+Z, Ctrl+Shift+Z (or Ctrl+Y) | Undo, redo. Every change is one step. |
 
 Column marks (duration, dots, triplet, rest, strokes) and note marks
 (vibrato, palm mute and so on) apply to every selected column when there

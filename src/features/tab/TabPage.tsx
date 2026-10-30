@@ -19,7 +19,8 @@ import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, s
 import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
-import { PARTS, type Parts } from './layout';
+import { layoutClip, PARTS, type Parts } from './layout';
+import type { Lines } from './jumps';
 import { type StaffDrag, type StaffHit } from './hitTest';
 import { type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
@@ -512,8 +513,14 @@ export default function TabPage() {
     return [i, i];
   };
 
+  /** Each drawn line of tab's first and last column, as laid out now, for Shift+Home / End. */
+  const drawnLines = (): Lines => layoutClip(drawn, clipWidth, parts).systems.flatMap(system => {
+    const places = system.bars.flatMap(bar => bar.columns.map(column => column.index));
+    return places.length ? [[Math.min(...places), Math.max(...places)] as [number, number]] : [];
+  });
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -709,10 +716,12 @@ export default function TabPage() {
     const onCopy = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, false); };
     const onCut = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, true); };
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+      // Ctrl+Y redoes too, as in MuseScore and Windows (issue #238); ⌘+Y is left to the browser.
+      const redoY = e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === 'y';
+      if (!redoY && (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z')) return;
       if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
       e.preventDefault();
-      dispatchClip({ type: e.shiftKey ? 'redo' : 'undo' });
+      dispatchClip({ type: redoY || e.shiftKey ? 'redo' : 'undo' });
       setNotice(null);
     };
     document.addEventListener('paste', onPaste);
