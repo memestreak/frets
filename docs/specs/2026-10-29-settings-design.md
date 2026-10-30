@@ -82,6 +82,13 @@ one is open) at `<app>.<page>.works`. No preference section is named `works`.
   `frets.tab.notation` as `show`.
 - `frets.theme`, a bare string, becomes `frets.general.appearance`, an object
   `{ theme }`. The `<head>` boot script reads the new key.
+- A link can set the theme: `?theme=auto`, `light` or `dark` on any page is
+  saved to `frets.general.appearance` as if picked, applied before first
+  paint, and dropped from the address (2026-10-30). Saved preferences belong
+  to one site address, and each Cloudflare PR preview is a new address with
+  nothing saved (pages.dev is a public suffix, so not even a cookie can be
+  shared between previews); preview links Claude sends carry `?theme=` so
+  they open in Jeremy's theme.
 - The keys of the other pages (`frets.explore.scales`, `frets.chords.export`,
   `frets.tuner.settings`, the trainers' keys) are renamed when each page joins
   Settings, in its own PR.
