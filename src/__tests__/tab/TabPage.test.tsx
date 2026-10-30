@@ -491,7 +491,8 @@ describe('TabPage', () => {
       act(() => editor().focus());
       // Typing is note input's (issue #238).
       keys('n');
-      keys('5', 'ArrowRight', '7', 'h', '-');
+      // − shortens the note in normal mode; in note input it is the next note's length (issue #238).
+      keys('5', 'ArrowRight', '7', 'h', 'Escape', '-', 'n');
       fireEvent.click(vibrato());
       expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
@@ -714,13 +715,46 @@ describe('TabPage', () => {
         expect(alphaTex()).toBe('(6.1 6.2).4 |');
       });
 
-      it('Shift with a digit’s key sets the length on the tab, in either mode', () => {
+      it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', () => {
         renderAt();
         act(() => editor().focus());
         keys('5', { key: '^', shiftKey: true, code: 'Digit6' });
         expect(alphaTex()).toBe('5.1.2 |');
+        // In note input the note already there keeps its length; the next one takes the new one.
         keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
-        expect(alphaTex()).toBe('5.1.8 |');
+        expect(alphaTex()).toBe('5.1.2 |');
+        keys('ArrowRight', '7');
+        expect(alphaTex()).toMatch(/^5\.1\.2 7\.1\.8 /);
+      });
+
+      it('in note input W Q, + − and the Duration buttons set the next note’s length and light it', () => {
+        renderAt();
+        act(() => editor().focus());
+        keys('n', '5', 'ArrowRight');
+        const button = (name: string) => screen.getByRole('button', { name });
+        // Going in, the length is the note's there (a quarter); Q halves it.
+        keys('q');
+        expect(button('Eighth note')).toHaveAttribute('aria-pressed', 'true');
+        expect(button('Quarter note')).toHaveAttribute('aria-pressed', 'false');
+        fireEvent.click(button('Sixteenth note'));
+        expect(button('Sixteenth note')).toHaveAttribute('aria-pressed', 'true');
+        // The note already entered keeps its quarter.
+        expect(alphaTex()).toMatch(/^5\.1\.4 /);
+        keys('7', 'ArrowRight', 'w', '+', '3');
+        expect(alphaTex()).toMatch(/^5\.1\.4 7\.1\.16 3\.1\.4 /);
+        // . dots the next note, not the one entered.
+        keys('ArrowRight', '.');
+        expect(button('Dotted, then double dotted')).toHaveAttribute('aria-pressed', 'true');
+        keys('2');
+        expect(alphaTex()).toMatch(/^5\.1\.4 7\.1\.16 3\.1\.4 2\.1\.4\{d\} /);
+      });
+
+      it('a note of note input’s length takes its time from the rests after it', async () => {
+        renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 r.4 r.4 r.4 |')}`);
+        await waitFor(() => expect(alphaTex()).toBe('5.1.4 r.4 r.4 r.4 |'), SLOW);
+        act(() => editor().focus());
+        keys('n', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
+        expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
       });
 
       it('Shift+N steps the harmonic, as N did', () => {
@@ -2035,6 +2069,26 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
       fireEvent.pointerLeave(svg());
       expect(screen.queryByTestId('shadow-note')).toBeNull();
+    });
+
+    it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
+      await open();
+      const shown = () => {
+        fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+        const line = frets();
+        fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+        act(() => editor().focus());
+        return line;
+      };
+      fireEvent.keyDown(editor(), { key: 'n' });
+      press(headAt(2));
+      fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+      fireEvent.keyDown(editor(), { key: '3' });
+      expect(shown()).toBe('(7.5 5.6).4 3.4.4 r.2 |');
+      fireEvent.pointerMove(svg(), { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
+      expect(screen.getByTestId('shadow-note')).toHaveAttribute('data-value', '16');
+      fireEvent.keyDown(editor(), { key: 'Enter' });
+      expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
     });
 
     it('in normal mode a press beside the heads selects the column and enters nothing', async () => {

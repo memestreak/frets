@@ -6,7 +6,7 @@
  * (issue #174, `docs/specs/2026-10-28-tab-staff-drag-design.md`), and to another string from the tab.
  * Pitches here are sounding MIDI numbers, as `notation.ts` reckons them. Pure.
  */
-import { keyAt, STRING_COUNT, type Part, type Column, type Note } from './clip';
+import { keyAt, STRING_COUNT, type Part, type Column, type Duration, type Note } from './clip';
 import { clearNote, columnAt, MAX_FRET, normalize, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { keyAccidentals, writtenStrings, spell, staffStep, WRITTEN_OCTAVE } from './notation';
 
@@ -121,13 +121,16 @@ export interface StaffEdit {
   problem?: string;
 }
 
-/** Enter on the staff: takes away the column's note at the pitch, or puts one there on the string Frets picks. */
-export function toggleStaffNote(clip: Part, at: Place, pitch: number): StaffEdit {
+/**
+ * Enter on the staff: takes away the column's note at the pitch, or puts one there on the string Frets picks
+ * (on a rest, `length` long when given, as `setFret`).
+ */
+export function toggleStaffNote(clip: Part, at: Place, pitch: number, length?: Duration): StaffEdit {
   const there = stringAtPitch(clip, at, pitch);
   if (there !== null) return { clip: clearNote(clip, { ...at, string: there }), string: null };
   const place = choosePlace(clip, at, pitch);
   if (!place) return { clip, string: null, problem: 'No free string can play that note here.' };
-  return { clip: setFret(clip, { ...at, string: place.string }, place.fret), string: place.string };
+  return { clip: setFret(clip, { ...at, string: place.string }, place.fret, length), string: place.string };
 }
 
 /**

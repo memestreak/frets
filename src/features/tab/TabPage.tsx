@@ -10,7 +10,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
@@ -43,7 +43,8 @@ import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
-import { applyTool, isOn, noteKinds, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
+import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
+import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { ScoreHead } from './ScoreHead';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
@@ -127,6 +128,11 @@ export default function TabPage() {
    * cursor types and a press enters a note; out of it, in normal mode, a press selects what it is on.
    */
   const [inputMode, setInputMode] = useState(false);
+  /**
+   * Note input's length (`inputLength.ts`): the next note entered on a rest takes it, as MuseScore's
+   * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
+   */
+  const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
@@ -416,6 +422,9 @@ export default function TabPage() {
     else if (id === 'barKey') { setPanelAt(null); setKeyBar(cursor.bar); }
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
+    // In note input the Duration buttons set the next note's length, as the length keys do.
+    else if (inputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
+    else if (inputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
       commitKeepingMark(applyTool(clip, target, id));
@@ -549,7 +558,7 @@ export default function TabPage() {
   });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -561,7 +570,10 @@ export default function TabPage() {
   /** Note input on or off; going in, the keys come to the tab. */
   const enterInput = (on: boolean) => {
     setInputMode(on);
-    if (on) editorRef.current?.focus();
+    if (on) {
+      setInputLength(startLength(clip, cursor));
+      editorRef.current?.focus();
+    }
   };
 
   const startRegion = () => {
@@ -585,7 +597,7 @@ export default function TabPage() {
       const there = hasColumn && noteAt(left, hit);
       if (inputMode && hasColumn && !there) {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
-        commit(setFret(left, hit, 0), hit, null);
+        commit(setFret(left, hit, 0, inputLength), hit, null);
         hearNote(hit);
       } else {
         commit(left, hit, null);
@@ -628,7 +640,7 @@ export default function TabPage() {
       toPitch(left, at, pitch);
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
       // In note input a press on a line or space enters the shadow note's pitch there (issue #238).
-      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch) : { clip: left, string: null };
+      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch, inputLength) : { clip: left, string: null };
       toPitch(edit.clip, at, pitch);
       if (edit.string !== null) hearNote({ ...at, string: edit.string });
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
@@ -850,9 +862,6 @@ export default function TabPage() {
     setChoosing(false);
   };
   const empty = isEmpty(clip);
-  // The length a press in note input enters, shown by the shadow note: the cursor's notes', else a quarter.
-  const cursorColumn = columnAt(clip, cursor);
-  const shadowValue = cursorColumn && cursorColumn.notes.some(Boolean) ? cursorColumn.duration.value : 4;
   const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
@@ -895,7 +904,7 @@ export default function TabPage() {
         {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
         <TabPalette
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-          isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
+          isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
           onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
           onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
           onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
@@ -960,7 +969,7 @@ export default function TabPage() {
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
                   ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
                   aria-label={inputMode
-                    ? 'Tab editor, note input: type frets, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
+                    ? 'Tab editor, note input: type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
                     : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input; Shift+F10 to insert a bar'}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.
@@ -977,7 +986,7 @@ export default function TabPage() {
                         cursor: editing && !picked ? cursor : null, range: selection ? selectedRange(selection) : null, columnOnly,
                         staffPitch: staffCursor, input: inputMode,
                       }}
-                      shadow={inputMode ? shadowValue : null}
+                      shadow={inputMode ? inputLength.value : null}
                       picked={editing ? picked : null}
                       errors={barErrors(clip)}
                     />

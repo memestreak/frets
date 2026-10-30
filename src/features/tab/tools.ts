@@ -131,6 +131,11 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
 const VALUE: Partial<Record<ToolId, NoteValue>> = {
   whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
 };
+/** The note value a Duration button sets, or undefined for any other tool. */
+export function toolValue(id: ToolId): NoteValue | undefined {
+  return VALUE[id];
+}
+
 const TREMOLO: Partial<Record<ToolId, TremoloValue>> = { tremolo8: 8, tremolo16: 16, tremolo32: 32 };
 
 /** The vibrato kinds the V key and the Vibrato button step through, then off. */

@@ -50,15 +50,26 @@ adds a rest to type on. The tab's cursor is outlined, as before; the staff's is 
 - **The shadow note** (Q2, Jeremy: "your cursor changes to the note representation"): under the
   pointer, over the staff, a faint note of the length a press would enter, on the line or space
   pointed at, with its ledger lines, stem and flag; over the tab, a faint 0 on the string pointed at.
-  Its length is the cursor's column's, or a quarter on a rest.
+  Its length is note input's length (below).
 - **A press adds a note** (Q3, Jeremy): on a string with no note, a 0 there (digits then change it); on
   a staff line or space, a note at that pitch on the string Frets picks, as Enter does. A press on a
   note puts the cursor on it.
+- **Note input's length** (Jeremy, 2026-10-30: "the number keys don't work the way I would expect to
+  change the inserted note length"): as in MuseScore, the length is set before the note goes in, and
+  the notes already entered keep theirs. Going in, it is the cursor's note's, else the last note's
+  before it, else a quarter. On the staff a digit sets it (5 a quarter, 3 a sixteenth; 8, 9 and 0 do
+  nothing and never type a fret); on the tab, where digits are frets, Shift with the digit sets it.
+  W Q and + − step it, . cycles its dots, and the palette's Duration buttons set it and light it.
+  A note entered on a rest (a typed fret, a press, Enter on the staff) takes it: a shorter note leaves
+  the fewest rests after it, a longer one takes its time from the plain rests after it in the bar and,
+  past them, runs over the bar, which the line under the clip then names. A note added to a column
+  that has notes keeps the column's length. To change a note already entered, Esc to normal mode.
 
 ## Either mode
 
 - **Shift with a digit's key** sets the length when the tab has the keys, as MuseScore's tab input does:
-  Shift+5 a quarter. It reads the key's place (`KeyboardEvent.code`), so any keyboard layout works.
+  Shift+5 a quarter; in normal mode the selected notes', in note input note input's length. It reads
+  the key's place (`KeyboardEvent.code`), so any keyboard layout works.
 
 ## Reading
 
@@ -71,7 +82,9 @@ adds a rest to type on. The tab's cursor is outlined, as before; the staff's is 
 ## Code
 
 `normalMode.ts` (pure: MuseScore's length digits, `stepFrets`, `nextInChord`, `selectedNotes`).
-`editorKeys.ts`: `normalKeyDown`, N and Esc, Shift+digit. `TabPage.tsx` keeps `inputMode`; its presses
+`inputLength.ts` (pure: note input's length, where it starts, its steps and dots, which Duration
+button it lights); `setFret` and `toggleStaffNote` take it as an optional `length`.
+`editorKeys.ts`: `normalKeyDown`, N and Esc, Shift+digit. `TabPage.tsx` keeps `inputMode` and `inputLength`; its presses
 on the tab and staff select or enter by mode. `TabClip.tsx` draws the selected or input look
 (`Highlight.input`) and the shadow note (`shadow`, `ShadowNote` in `StaffDrawing.tsx`). `TabPalette.tsx`
 draws the pencil.

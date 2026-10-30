@@ -4,7 +4,7 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { isRest, type Part } from './clip';
+import { isRest, type Duration, type Part } from './clip';
 import { clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
@@ -14,6 +14,7 @@ import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, s
 import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { setValue } from './noteEdits';
+import { lengthOf, stepLength } from './inputLength';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
@@ -47,6 +48,9 @@ export interface EditorKeys {
    */
   inputMode: boolean;
   setInputMode: (on: boolean) => void;
+  /** Note input's length (`inputLength.ts`): the next note entered on a rest takes it. */
+  inputLength: Duration;
+  setInputLength: (length: Duration) => void;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Part, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
@@ -122,18 +126,28 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     editor.setInputMode(false);
     return;
   }
-  // Shift and a digit's key set the length on the tab, in either mode (MuseScore's tab keys): Shift+5 a quarter.
+  // Shift and a digit's key set the length on the tab (MuseScore's tab keys): Shift+5 a quarter. In note
+  // input that is the next note's length; in normal mode, the selected notes'.
   const shiftedDigit = e.shiftKey && plain && editor.staffPitch === null ? digitOfCode(e.code) : null;
   if (shiftedDigit !== null) {
     handled();
     const value = valueForDigit(shiftedDigit);
-    if (value) commit(setValue(clip, target, value));
+    if (value && editor.inputMode) editor.setInputLength(lengthOf(value));
+    else if (value) commit(setValue(clip, target, value));
     return;
   }
   if (!editor.inputMode) {
     if (normalKeyDown(e, editor)) handled();
     if (e.defaultPrevented) return;
   } else {
+    // On the staff in note input a digit is the next note's length, as in MuseScore: 5 a quarter, 3 a
+    // sixteenth (8, 9 and 0 are none). It never types a fret there.
+    if (editor.staffPitch !== null && /^[0-9]$/.test(key) && plain) {
+      handled();
+      const value = valueForDigit(Number(key));
+      if (value) editor.setInputLength(lengthOf(value));
+      return;
+    }
     if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
       handled();
       return;
@@ -167,15 +181,17 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     // A fret goes on a string; with none picked, ↑ ↓ or a press picks one first.
     if (columnOnly) return;
     const digit = Number(key);
+    // A fret typed on a rest in note input makes a note of note input's length.
+    const length = editor.inputMode ? editor.inputLength : undefined;
     const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
     const before = lastDigit.current;
     const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
     if (joined !== null && joined <= MAX_FRET) {
       lastDigit.current = null;
-      commit(setFret(clip, cursor, joined));
+      commit(setFret(clip, cursor, joined, length));
     } else {
       lastDigit.current = { spot, digit, at: e.timeStamp };
-      commit(setFret(clip, cursor, digit));
+      commit(setFret(clip, cursor, digit, length));
     }
     editor.hearNote(cursor);
     return;
@@ -231,7 +247,9 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   const longer = key === '+' || key === 'w';
   if (longer || key === '-' || key === 'q') {
     handled();
-    commit(stepDuration(clip, target, longer ? 1 : -1));
+    // In note input they change the next note's length; in normal mode, the selected notes'.
+    if (editor.inputMode) editor.setInputLength(stepLength(editor.inputLength, longer ? 1 : -1));
+    else commit(stepDuration(clip, target, longer ? 1 : -1));
     return;
   }
   if (key === 'Insert') {
@@ -393,7 +411,7 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     return true;
   }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {
-    const edit = toggleStaffNote(clip, cursor, pitch);
+    const edit = toggleStaffNote(clip, cursor, pitch, editor.inputLength);
     toPitch(edit.clip, cursor, pitch, editor.selection);
     if (edit.string !== null) editor.hearNote({ ...cursor, string: edit.string });
     if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });

@@ -101,7 +101,7 @@ export function ShadowNote({ x, step, value, score }: { x: number; step: number;
   const stemTop = stepY(score, step + STEM_STEPS);
   const flag = FLAGS[value]?.[0];
   return (
-    <g data-testid="shadow-note" pointerEvents="none" opacity={0.45} fill="var(--primary)" stroke="var(--primary)">
+    <g data-testid="shadow-note" data-value={value} pointerEvents="none" opacity={0.45} fill="var(--primary)" stroke="var(--primary)">
       {ledgerSteps(step).map(ls => (
         <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} strokeWidth={1} />
       ))}
