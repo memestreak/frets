@@ -46,8 +46,8 @@ Tuner page's panel in a dialog.
     reducer, init from storage), `quizFlow.ts` (miss/solve/pause scoring),
     `stats.ts`, `attempt.ts` (miss and out-of-range dots, answer-button
     state, feedback text), the header, answer card/grid, board frame with
-    hint toggle, `SettingsDialog` and its field parts,
-    `Modal` (the native modal `<dialog>` shell it and the tuner share), `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
+    hint toggle, `SettingsDialog` and its field parts (in `src/components/Modal.tsx`, the
+    native modal `<dialog>` shell), `SessionStatsCard`, and the hooks: `useTrainer` wires a reducer
     to `useQuizKeyboard`, `useAutoAdvance` and `usePersist`, owns the hint
     and settings-dialog flags, and suspends the first two while the dialog
     is open.

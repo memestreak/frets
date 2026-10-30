@@ -7,6 +7,8 @@ import { Fretboard } from '@/components/fretboard/Fretboard';
 import { arpeggioDots, mutedStrings, voicingDots } from '@/components/chords/chordDots';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
+import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import type { ShortcutGroup } from '@/lib/shortcuts';
 import { TUNING, type Position } from '@/lib/music';
 import { loadJson } from '@/lib/storage';
 import {
@@ -79,6 +81,16 @@ function startFromUrl(): Start {
  * the Arpeggio switch and the saved neck settings live here, so they stay
  * through them.
  */
+/** The page's keys, for the `?` overlay: `useSpaceKey` below, `VoicingGroups` and `ChordPickers`. */
+const SHORTCUTS: readonly ShortcutGroup[] = [{
+  title: 'Chords',
+  shortcuts: [
+    { keys: ['/'], does: 'Find a chord by name' },
+    { keys: ['Left', 'Right'], does: 'Last or next shape' },
+    { keys: ['Space'], does: 'Arpeggio on or off' },
+  ],
+}];
+
 export default function ChordsPage() {
   const [entry, setEntry] = useState(0);
   const [arpeggio, setArpeggio] = useState(false);
@@ -203,6 +215,7 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
     if (hasChord) onArpeggio(!arpeggio);
   }, [hasChord, arpeggio, onArpeggio]);
   useSpaceKey(toggleArpeggio);
+  useShortcuts(SHORTCUTS);
   const shapeExport = useShapeExport();
   // The neck exports what is played, whether or not the arpeggio is showing.
   const neckExport = chord && !isMuted(frets)

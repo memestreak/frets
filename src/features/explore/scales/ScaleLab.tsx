@@ -5,6 +5,8 @@ import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
+import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import type { ShortcutGroup } from '@/lib/shortcuts';
 import { prettyNote } from '@/lib/theory/notes';
 import { loadJson } from '@/lib/storage';
 import { ChordLadder } from './ChordLadder';
@@ -41,7 +43,18 @@ function toDot(n: NeckNote, labels: DotLabels): FretDot {
   };
 }
 
+/** The page's keys, for the `?` overlay: `DiatonicChords`, `PositionShapes` and the Esc below. */
+const SHORTCUTS: readonly ShortcutGroup[] = [{
+  title: 'Scale lab',
+  shortcuts: [
+    { keys: ['Left', 'Right'], does: 'Last or next chord of the scale' },
+    { keys: ['Up', 'Down'], does: 'Last or next shape of the chord' },
+    { keys: ['Esc'], does: 'Let the chord go' },
+  ],
+}];
+
 export default function ScaleLab() {
+  useShortcuts(SHORTCUTS);
   const [set, setSet] = useState(
     () => parseScaleLabSettings(loadJson(SCALE_LAB_STORAGE_KEY)),
   );

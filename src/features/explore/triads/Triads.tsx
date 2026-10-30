@@ -8,6 +8,8 @@ import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
+import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import type { ShortcutGroup } from '@/lib/shortcuts';
 import { chordOf, chordRootOf } from '@/lib/theory/chords';
 import { loadJson } from '@/lib/storage';
 import {
@@ -22,6 +24,15 @@ import {
 const FADED = 0.25;
 const OFF_SET_STRING = 0.35;
 
+/** The page's keys, for the `?` overlay. */
+const SHORTCUTS: readonly ShortcutGroup[] = [{
+  title: 'Triads',
+  shortcuts: [
+    { keys: ['Space'], does: 'Arpeggio on or off' },
+    { keys: ['Esc'], does: 'Show every shape again' },
+  ],
+}];
+
 export default function Triads() {
   const [set, setSet] = useState(() => parseTriadsSettings(loadJson(TRIADS_STORAGE_KEY)));
   // The picked grip, by index into `grips`; not saved.
@@ -30,6 +41,7 @@ export default function Triads() {
   const [arpeggio, setArpeggio] = useState(false);
   const toggleArpeggio = useCallback(() => setArpeggio(on => !on), []);
   useSpaceKey(toggleArpeggio);
+  useShortcuts(SHORTCUTS);
   usePersist(TRIADS_STORAGE_KEY, set);
 
   // Anything that changes the grips clears the pick.

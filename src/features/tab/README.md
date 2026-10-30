@@ -35,7 +35,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   the edits that add, move or remove columns and bars, `normalize` keeping ties, hammer-ons and
   slides true, cut, copy and paste at the cursor; the palette's changes to notes are in
   `noteEdits.ts`, to words and bars in `barEdits.ts`), `tools.ts` (the symbol palette's table, shared
-  with the keys) and `TabPalette.tsx`, `BarTimePanel.tsx` (it and `BarKeyPanel.tsx` keep inside the tab and close
+  with the keys and the `?` overlay's list in `shortcuts.ts`, which also lists `editorKeys.ts`'s keys by hand) and `TabPalette.tsx`, `BarTimePanel.tsx` (it and `BarKeyPanel.tsx` keep inside the tab and close
   with `barPanel.ts`) with
   `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
   press on a drawn one or the palette; nothing in the header sets it),

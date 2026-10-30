@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AppFooter } from './AppFooter';
 import { AppNav } from './AppNav';
 import { LetGoAfterUse } from './LetGoAfterUse';
+import { ShortcutsOverlay } from './shortcuts/ShortcutsOverlay';
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <AppFooter />
+      <ShortcutsOverlay />
     </div>
   );
 }

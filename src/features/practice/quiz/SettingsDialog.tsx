@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Modal } from './Modal';
+import { Modal } from '@/components/Modal';
 
 interface SettingsDialogProps {
   open: boolean;

@@ -42,6 +42,13 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   or a finger lets go of the focus, so no widget stays outlined or keeps
   the page's keys; keyboard use keeps it; see
   `docs/specs/2026-10-30-let-go-after-use-design.md`).
+- `src/components/shortcuts/` — the keyboard shortcuts overlay (issue #180,
+  `docs/specs/2026-10-30-keyboard-shortcuts-design.md`): `?` anywhere but a
+  field shows the page's shortcuts, mounted once by `AppShell`. A page hands
+  its list to `useShortcuts` (a module constant; the Tab page's is
+  `src/features/tab/shortcuts.ts`, its palette rows read from `tools.ts`).
+  `src/components/Modal.tsx` is the native modal `<dialog>` shell it, the
+  trainers' dialogs and the Tab page's dialogs share.
 - `src/components/settings/` — the Settings dialog (issue #195,
   `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
   of groups and sections, on a phone a group picker and a strip of sections;
