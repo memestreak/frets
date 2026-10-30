@@ -370,9 +370,26 @@ export default function TabPage() {
     setNotice(null);
     setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
   };
+  /** Note input on or off; going in, the keys come to the tab. */
+  const enterInput = (on: boolean) => {
+    setInputMode(on);
+    if (on) {
+      setInputLength(startLength(clip, cursor));
+      editorRef.current?.focus();
+    }
+  };
+
   // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
-    if (view === 'tab') lineKeyDown(e, { clip, count, line: markAt, selection, select: setSelection, placeLine, editAtLine });
+    if (view !== 'tab') return;
+    // N anywhere on the page goes into note input and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
+    const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
+      e.preventDefault();
+      enterInput(!inputMode);
+      return;
+    }
+    lineKeyDown(e, { clip, count, line: markAt, selection, select: setSelection, placeLine, editAtLine });
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => onLineKey(e);
@@ -567,14 +584,6 @@ export default function TabPage() {
    * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
    * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
    */
-  /** Note input on or off; going in, the keys come to the tab. */
-  const enterInput = (on: boolean) => {
-    setInputMode(on);
-    if (on) {
-      setInputLength(startLength(clip, cursor));
-      editorRef.current?.focus();
-    }
-  };
 
   const startRegion = () => {
     setColumnOnly(true);

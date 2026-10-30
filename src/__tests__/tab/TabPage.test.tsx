@@ -757,6 +757,25 @@ describe('TabPage', () => {
         expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
       });
 
+      it('N anywhere on the page goes into note input, but not in a text field', () => {
+        renderAt();
+        const pencil = () => screen.getByRole('button', { name: 'Note input' });
+        fireEvent.keyDown(document.body, { key: 'n' });
+        expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+        expect(editor()).toHaveFocus();
+        keys('n');
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+        act(() => editor().blur());
+        fireEvent.keyDown(document.body, { key: 'n' });
+        fireEvent.keyDown(document.body, { key: 'n' });
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+        const field = document.createElement('input');
+        document.body.append(field);
+        fireEvent.keyDown(field, { key: 'n' });
+        expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+        field.remove();
+      });
+
       it('Shift+N steps the harmonic, as N did', () => {
         renderAt();
         act(() => editor().focus());
