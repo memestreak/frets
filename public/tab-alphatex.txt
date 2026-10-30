@@ -47,6 +47,7 @@ edits and plays one at a time, picked from a list over the clip.
     \capo <fret>                      optional; 1 to 12
     \multiBarRest                     optional; bars of rest in a row
                                       are drawn as one, with their count
+                                      (always, with several tracks)
     \systemsLayout (<bars> <bars> ...) optional; how many bars each line
                                       holds, first line first
     \defaultSystemsLayout <bars>      optional; bars on each line past
@@ -77,7 +78,9 @@ write them in the first track's bars only. Each track is one staff of
 six strings with one voice. Frets keeps every track and writes them back,
 and shows, edits and plays one at a time: the reader picks it from a list
 over the clip, by the names \track gives, and a link always opens on the
-first.
+first. In a clip of several tracks a track's bars of rest in a row are
+always drawn as one multi-bar rest with their count, \multiBarRest or
+not: write "r.1 |" for each bar a part sits out.
 
     \title "Two guitars"
     \track "Gtr I"

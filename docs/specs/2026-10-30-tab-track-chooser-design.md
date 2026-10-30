@@ -55,7 +55,9 @@ the two tracks"). A part of a clip of several tracks carries the others as
 layout gives each bar the room the widest track's bar there asks for, and
 the least room the most any needs, spreading the bar's own columns over it;
 so every track breaks its lines at the same bars, each bar at the same
-place. A multi-bar rest gathers only bars that are rests in every track.
+place. A track's own runs of rests are gathered into multi-bar rests whatever the
+other tracks play there (`2026-10-30-tab-track-rests-design.md`), so a track
+that sits bars out is drawn shorter by those bars.
 The rows over the staff (a chord name, a section) are still each track's
 own, so a line may be a little taller in one track; step 2 draws the tracks
 together.
