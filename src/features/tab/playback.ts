@@ -681,6 +681,11 @@ export class TabPlayer {
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
    */
   private ended = true;
+  /**
+   * The string of the note the synthesizer sounds on its own (`hear`), until it ends or a Play;
+   * null while it plays the clip or nothing.
+   */
+  private hearing: number | null = null;
   /** Whether the loop points are ahead of the playhead, so playing past the end one goes back to the start one. */
   private looping = false;
   /** The loop's ticks while `looping`. */
@@ -736,6 +741,7 @@ export class TabPlayer {
         return;
       }
       this.ended = true;
+      this.hearing = null;
       onView({ state: 'idle', column: null });
     });
   }
@@ -764,6 +770,7 @@ export class TabPlayer {
   async play(clip: Part, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound, until: number | null = null) {
     await this.loadFont(sound);
     this.endRest();
+    this.quietNotesHeard();
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
@@ -788,15 +795,16 @@ export class TabPlayer {
   halt() {
     this.ended = true;
     this.endRest();
+    this.quietNotesHeard();
     this.synth.pause();
     this.onView({ state: 'idle', column: null });
   }
 
-  /** Stops and forgets the clip, as after an edit. */
+  /** Stops and forgets the clip, as after an edit; a note heard on its own (`hear`) rings on. */
   stop() {
     this.ended = true;
     this.endRest();
-    this.synth.stop();
+    if (this.hearing === null) this.synth.stop();
     this.clip = null;
     this.performance = null;
     this.onView({ state: 'idle', column: null });
@@ -1101,8 +1109,12 @@ export class TabPlayer {
     // A sound's own soundfont shows Loading on Play while it loads; heard, it goes back to Play.
     if (await this.loadFont(sound)) this.onView({ state: 'idle' });
     if (!this.ended) return;
-    // A note still sounding fades out (the output's own fade) before this one starts.
+    // The note heard before rings on, as on a guitar (issue #258), unless it is on this note's
+    // string, which sounds one note at a time: then it fades out (the output's own fade).
+    this.output.choke(string);
+    if (this.hearing !== null && this.hearing !== string) this.output.ringOn(this.hearing);
     this.synth.stop();
+    this.hearing = string;
     this.sound = sound;
     this.clip = null;
     this.performance = null;
@@ -1126,6 +1138,12 @@ export class TabPlayer {
     this.moveTo(tickOf(this.clip, this.performance, index));
     this.setLoop(this.loop);
     if (resting) this.synth.play();
+  }
+
+  /** Fades out every note heard on its own (`hear`) still sounding, for a Play or a Stop. */
+  private quietNotesHeard() {
+    this.hearing = null;
+    this.output.chokeAll();
   }
 
   destroy() {
