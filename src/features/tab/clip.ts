@@ -182,8 +182,8 @@ export function isWhammy(v: unknown): v is number[] {
 export type Fermata = 'short' | 'medium' | 'long';
 export const FERMATAS: readonly Fermata[] = ['short', 'medium', 'long'];
 
-export interface Bar {
-  columns: Column[];
+/** What every track's bar shares: alphaTab's master bar. */
+export interface MasterBar {
   /** A new time signature from this bar on; the clip's own `time` holds until the first one. */
   time?: TimeSignature;
   /** A key signature from this bar on (the first bar's is the clip's own); C major until the first one. */
@@ -204,8 +204,22 @@ export interface Bar {
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
-  /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\section "Chorus"'). */
+}
+
+/** A track's own bar: its notes, and what Frets keeps of it without drawing it. */
+export interface TrackBar {
+  columns: Column[];
+  /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\clef F4'). */
   extra?: string[];
+}
+
+/** A part's bar: its track's notes with the bar marks every track shares. */
+export interface Bar extends MasterBar, TrackBar {
+  /**
+   * Which of the clip's bars this one was made from (`partOf`), so `withPart` keeps the other tracks'
+   * bars with it when edits add or take away bars; none on a bar an edit added.
+   */
+  origin?: number;
 }
 
 export interface Tempo {
@@ -280,7 +294,7 @@ export function keyTex(key: Key): string {
 }
 
 /** The key signature in force in a bar: the latest one at or before it. */
-export function keyAt(clip: Pick<Clip, 'bars'>, index: number): Key {
+export function keyAt(clip: Pick<Part, 'bars'>, index: number): Key {
   for (let b = Math.min(index, clip.bars.length - 1); b >= 0; b--) {
     const key = clip.bars[b].key;
     if (key) return key;
@@ -289,7 +303,7 @@ export function keyAt(clip: Pick<Clip, 'bars'>, index: number): Key {
 }
 
 /** Whether a bar starts a key signature different from the one before it (the first bar: any but C major). */
-export function changesKey(clip: Pick<Clip, 'bars'>, index: number): boolean {
+export function changesKey(clip: Pick<Part, 'bars'>, index: number): boolean {
   const key = clip.bars[index]?.key;
   if (!key) return false;
   return !sameKey(key, index === 0 ? C_MAJOR : keyAt(clip, index - 1));
@@ -300,15 +314,19 @@ export const STANDARD_TUNING: readonly string[] = ['E', 'A', 'D', 'G', 'B', 'E']
 /** What a clip with no name is called. */
 export const UNTITLED = 'Untitled clip';
 
+/**
+ * A clip: one or more tracks (guitar parts, alphaTex `\track`) played together, over bars they share
+ * (issue #237; `docs/specs/2026-10-30-tab-tracks-design.md`). What every track's bar `b` has in common
+ * (its time and key signatures, repeats, endings, tempo, section) is `masterBars[b]`, as alphaTab's
+ * master bars hold it; each track's own bar `b` holds only its notes. The tracks all have as many bars.
+ */
 export interface Clip {
   name: string;
   time: TimeSignature;
-  /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
-  tuning: string[];
-  bars: Bar[];
-  /** The fret the capo is on, if any; frets are counted from it, as tab is written. */
-  capo?: number;
-  /** alphaTex score and staff metadata Frets doesn't use, kept as written ('\artist "Me"'). */
+  masterBars: MasterBar[];
+  /** One at least; the first is the one the page shows, edits and plays (`partOf`) until tracks are drawn. */
+  tracks: Track[];
+  /** alphaTex score metadata Frets doesn't use, kept as written ('\artist "Me"'), before any `\track`. */
   header?: string[];
   /**
    * How many bars each line holds, first line first (alphaTex `\systemsLayout`); lines past the list hold
@@ -319,12 +337,50 @@ export interface Clip {
   defaultSystemsLayout?: number;
   /** Bars of rest in a row are drawn as one, with their count over it, as printed parts have them (alphaTex's `\multiBarRest`). */
   multiBarRests?: boolean;
+  /** The playback FX the clip is heard with, from its `// frets:fx` line (`fxLine.ts`); none set, all off. */
+  fx?: FxSettings;
+}
+
+/** One part of a clip ("Gtr I"): its own strings, sound and notes. */
+export interface Track {
+  /** As its `\track` names it; '' for none. */
+  name: string;
+  /** Its `\track` line as written, with whatever it sets past the name; none when the clip has no `\track`. */
+  tag?: string;
+  /** alphaTex staff metadata after its `\track` that Frets doesn't use, kept as written ('\staff {score tabs}'). */
+  header?: string[];
+  /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
+  tuning: string[];
+  /** The fret the capo is on, if any; frets are counted from it, as tab is written. */
+  capo?: number;
   /**
-   * The General MIDI program the clip names (`instrument.ts`), and its `\instrument` tag as written;
-   * no tag when a kept `\track` line names it. None named, it plays as the steel guitar.
+   * The General MIDI program the track names (`instrument.ts`), and its `\instrument` tag as written;
+   * no tag when its `\track` line names it. None named, it plays as the steel guitar.
    */
   instrument?: { program: number; tag?: string };
-  /** The playback FX the clip is heard with, from its `// frets:fx` line (`fxLine.ts`); none set, all off. */
+  /** As many as the clip's `masterBars`. */
+  bars: TrackBar[];
+}
+
+/**
+ * One track as the editor sees it: the clip's own fields, that track's tuning, capo and sound, and its
+ * bars with the clip's bar marks in them. The layout, the drawing, the edits and playback all work on a
+ * part; `partOf` makes one from a clip and `withPart` puts an edited one back.
+ */
+export interface Part {
+  name: string;
+  time: TimeSignature;
+  /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
+  tuning: string[];
+  bars: Bar[];
+  /** The fret the capo is on, if any; frets are counted from it, as tab is written. */
+  capo?: number;
+  /** The clip's `header`. */
+  header?: string[];
+  systemsLayout?: number[];
+  defaultSystemsLayout?: number;
+  multiBarRests?: boolean;
+  instrument?: { program: number; tag?: string };
   fx?: FxSettings;
 }
 
@@ -402,7 +458,7 @@ export function barLength(bar: Bar): number {
 }
 
 /** The time signature bar `index` is in: the last one set at or before it, else the clip's. */
-export function timeAt(clip: Pick<Clip, 'time' | 'bars'>, index: number): TimeSignature {
+export function timeAt(clip: Pick<Part, 'time' | 'bars'>, index: number): TimeSignature {
   for (let b = Math.min(index, clip.bars.length - 1); b > 0; b--) {
     const time = clip.bars[b].time;
     if (time) return time;
@@ -411,7 +467,7 @@ export function timeAt(clip: Pick<Clip, 'time' | 'bars'>, index: number): TimeSi
 }
 
 /** Whether bar `index` starts a new time signature, one that differs from the bar before it. */
-export function changesTime(clip: Clip, index: number): boolean {
+export function changesTime(clip: Pick<Part, 'time' | 'bars'>, index: number): boolean {
   const time = clip.bars[index]?.time;
   if (index === 0 || !time) return false;
   const before = timeAt(clip, index - 1);
@@ -419,7 +475,7 @@ export function changesTime(clip: Clip, index: number): boolean {
 }
 
 /** Whether a bar starts a run of free-time bars, so it says "Free time" with its time signature in brackets. */
-export function startsFreeTime(clip: Pick<Clip, 'bars'>, index: number): boolean {
+export function startsFreeTime(clip: Pick<Part, 'bars'>, index: number): boolean {
   return !!clip.bars[index]?.freeTime && !clip.bars[index - 1]?.freeTime;
 }
 
@@ -427,14 +483,14 @@ export function startsFreeTime(clip: Pick<Clip, 'bars'>, index: number): boolean
  * A bar whose durations don't fill its time signature exactly. An emptied bar is short too (Jeremy,
  * 2026-10-26); only a clip with nothing in it yet, one empty bar, isn't.
  */
-export function isUneven(clip: Pick<Clip, 'time' | 'bars'>, index: number): boolean {
+export function isUneven(clip: Pick<Part, 'time' | 'bars'>, index: number): boolean {
   const bar = clip.bars[index];
   if (bar.columns.length === 0 && clip.bars.every(b => b.columns.length === 0)) return false;
   return barLength(bar) !== barTicks(timeAt(clip, index));
 }
 
 /** How far a bar is from filling its time signature, in words ("1 beat and a 32nd"), and which way; null when it fills it. */
-export function unevenBy(clip: Pick<Clip, 'time' | 'bars'>, index: number): { words: string; over: boolean } | null {
+export function unevenBy(clip: Pick<Part, 'time' | 'bars'>, index: number): { words: string; over: boolean } | null {
   const time = timeAt(clip, index);
   const off = barLength(clip.bars[index]) - barTicks(time);
   return off === 0 ? null : { words: timeInWords(Math.abs(off), time), over: off > 0 };
@@ -493,7 +549,7 @@ export function listed(numbers: readonly (number | string)[]): string {
  * up to 4/4: 1 beat short; bar 3: 1 beat short; bar 5 doesn't add up to 3/4: a 16th over."), or null
  * when every bar adds up.
  */
-export function unevenMessage(clip: Pick<Clip, 'time' | 'bars'>): string | null {
+export function unevenMessage(clip: Pick<Part, 'time' | 'bars'>): string | null {
   const parts: string[] = [];
   let lastTime = '';
   clip.bars.forEach((bar, i) => {
@@ -575,7 +631,7 @@ export function tupletGroups(columns: Column[]): { from: number; to: number; dur
 }
 
 /** The line that names every tuplet missing notes or with extra ones, or null when every one is whole. */
-export function brokenTupletMessage(clip: Pick<Clip, 'bars'>): string | null {
+export function brokenTupletMessage(clip: Pick<Part, 'bars'>): string | null {
   const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, b));
   return lines.length > 0 ? lines.join(' ') : null;
 }
@@ -589,7 +645,7 @@ function amountText(by: { words: string; over: boolean } | null): string {
  * Each bar with something wrong (it doesn't add up, a tuplet in it isn't whole) and what, in
  * sentences: the tip on the warning drawn under the bar's start.
  */
-export function barErrors(clip: Pick<Clip, 'time' | 'bars'>): Map<number, string> {
+export function barErrors(clip: Pick<Part, 'time' | 'bars'>): Map<number, string> {
   const errors = new Map<number, string>();
   clip.bars.forEach((bar, b) => {
     const time = timeAt(clip, b);
@@ -633,7 +689,7 @@ export function columnMordent(column: Column): Note['mordent'] {
  * as the frets do (from a dead note, or with no note before it, it counts as from below); 'below'
  * goes up and 'above' down.
  */
-export function slideDirections(clip: Clip): Map<Note, 'up' | 'down'> {
+export function slideDirections(clip: Pick<Part, 'bars'>): Map<Note, 'up' | 'down'> {
   const out = new Map<Note, 'up' | 'down'>();
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
   for (const bar of clip.bars) {
@@ -659,7 +715,7 @@ export function slideDirections(clip: Clip): Map<Note, 'up' | 'down'> {
  * be that, as a note still sounding can't be bent before it is picked. The note before must end bent:
  * a bend up, or a hold.
  */
-export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'release'> {
+export function bendCarries(clip: Pick<Part, 'bars'>): Map<Note, 'hold' | 'release'> {
   const out = new Map<Note, 'hold' | 'release'>();
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
   for (const bar of clip.bars) {
@@ -683,7 +739,7 @@ export function bendCarries(clip: Pick<Clip, 'bars'>): Map<Note, 'hold' | 'relea
  * release that stops part of the way down (`Bend.to`) lands a step lower, where the note after it goes
  * on ("full", down to "½", back up to "full"). Notes on the usual line are left out.
  */
-export function bendRaises(clip: Pick<Clip, 'bars'>): Map<Note, number> {
+export function bendRaises(clip: Pick<Part, 'bars'>): Map<Note, number> {
   const carries = bendCarries(clip);
   const out = new Map<Note, number>();
   // The line the next tied note on each string starts from.
@@ -706,7 +762,7 @@ export function bendRaises(clip: Pick<Clip, 'bars'>): Map<Note, number> {
 }
 
 /** Tied notes that carry on a bend from where the note before let it down part of the way (`Bend.to`). */
-export function bendLandings(clip: Pick<Clip, 'bars'>): Set<Note> {
+export function bendLandings(clip: Pick<Part, 'bars'>): Set<Note> {
   const carries = bendCarries(clip);
   const out = new Set<Note>();
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
@@ -723,7 +779,7 @@ export function bendLandings(clip: Pick<Clip, 'bars'>): Set<Note> {
 }
 
 /** Notes a hammer-on, pull-off or legato slide leaves from: the note before one on its string. */
-export function legatoStarts(clip: Pick<Clip, 'bars'>): Set<Note> {
+export function legatoStarts(clip: Pick<Part, 'bars'>): Set<Note> {
   const out = new Set<Note>();
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
   for (const bar of clip.bars) {
@@ -754,7 +810,7 @@ export function whammySemitones(quarters: number): number {
  * The columns whose whammy bar starts down where the column before left it: a tied note going on under
  * a dive, held or returning. Any other whammy bar that starts down is pre-dipped.
  */
-export function whammyGoesOn(clip: Pick<Clip, 'bars'>): Set<Column> {
+export function whammyGoesOn(clip: Pick<Part, 'bars'>): Set<Column> {
   const out = new Set<Column>();
   let before: number[] | undefined;
   for (const column of clip.bars.flatMap(b => b.columns)) {
@@ -769,8 +825,110 @@ export function isStandardTuning(tuning: readonly string[]): boolean {
   return tuning.every((n, i) => n === STANDARD_TUNING[i]);
 }
 
+/** A clip of one track in standard tuning, with one empty bar. */
 export function emptyClip(): Clip {
-  return { name: '', time: COMMON_TIME, tuning: [...STANDARD_TUNING], bars: [{ columns: [] }] };
+  return { name: '', time: COMMON_TIME, masterBars: [{}], tracks: [{ name: '', tuning: [...STANDARD_TUNING], bars: [{ columns: [] }] }] };
+}
+
+/** `emptyClip`'s one part. */
+export function emptyPart(): Part {
+  return partOf(emptyClip());
+}
+
+/* — a clip's tracks as parts, and back (issue #237) — */
+
+/** The fields a part's bar takes from the clip's bar, the ones every track shares. */
+const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section'] as const;
+/** The clip's own fields a part carries as they are. */
+const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests', 'fx'] as const;
+/** The track's own fields a part carries and an edit may change. */
+const TRACK_FIELDS = ['capo', 'instrument'] as const;
+
+/** `to` with `from`'s value for each key that has one, and none for each that hasn't. */
+function copied<T extends object>(to: T, from: object, keys: readonly string[]): T {
+  const out = { ...to } as Record<string, unknown>;
+  const source = from as Record<string, unknown>;
+  for (const key of keys) {
+    if (source[key] === undefined) delete out[key];
+    else out[key] = source[key];
+  }
+  return out as T;
+}
+
+/**
+ * Track `index` of the clip as a part. With more than one track each bar says which of the clip's
+ * bars it is (`Bar.origin`), so `withPart` can keep the other tracks in step with bars an edit adds or
+ * takes away; a clip of one track needs none.
+ */
+export function partOf(clip: Clip, index = 0): Part {
+  const track = clip.tracks[index];
+  const bars = partBars(clip.masterBars, track.bars, clip.tracks.length > 1);
+  const part: Part = { name: clip.name, time: clip.time, tuning: track.tuning, bars };
+  return copied(copied(part, clip, CLIP_FIELDS), track, TRACK_FIELDS);
+}
+
+/**
+ * A part's bars, made once for the same bars: a change of FX or sound keeps them, so whatever goes by
+ * their identity (playback carrying on, the drawing's caches) sees the same music.
+ */
+const madeBars = new WeakMap<MasterBar[], WeakMap<TrackBar[], { counted: boolean; bars: Bar[] }>>();
+function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boolean): Bar[] {
+  const forMaster = madeBars.get(masterBars) ?? new WeakMap<TrackBar[], { counted: boolean; bars: Bar[] }>();
+  madeBars.set(masterBars, forMaster);
+  const made = forMaster.get(trackBars);
+  if (made && made.counted === counted) return made.bars;
+  const bars = masterBars.map((master, b): Bar => {
+    const bar: Bar = { ...master, ...trackBars[b] };
+    if (counted) bar.origin = b;
+    return bar;
+  });
+  forMaster.set(trackBars, { counted, bars });
+  return bars;
+}
+
+/**
+ * The clip with `part` as its track `index`: the part's bar marks become every track's, and its notes,
+ * tuning, capo and sound that track's. Each other track keeps its own bar where the part's came from
+ * (`Bar.origin`), and has a bar of rests where an edit added one; a bar the edit took away goes from
+ * every track.
+ */
+export function withPart(clip: Clip, part: Part, index = 0): Clip {
+  const track = clip.tracks[index];
+  // Bars the edit left alone (a new sound, tuning or title) stay the very same, so the music reads as unchanged.
+  if (part.bars === partBars(clip.masterBars, track.bars, clip.tracks.length > 1)) {
+    const tracks = clip.tracks.map((t, i) => (i === index ? copied({ ...t, tuning: part.tuning }, part, TRACK_FIELDS) : t));
+    return copied({ ...clip, name: part.name, time: part.time, tracks }, part, CLIP_FIELDS);
+  }
+  const masterBars = part.bars.map(bar => copied({}, bar, MASTER_FIELDS) as MasterBar);
+  // Which of the clip's bars each of the part's came from; a second copy of one counts as added.
+  const seen = new Set<number>();
+  const from = part.bars.map(({ origin }) => {
+    if (origin === undefined || seen.has(origin) || origin >= clip.masterBars.length) return null;
+    seen.add(origin);
+    return origin;
+  });
+  const inStep = from.length === clip.masterBars.length && from.every((o, b) => o === b);
+  const tracks = clip.tracks.map((other, t): Track => {
+    if (t === index) {
+      const bars = part.bars.map(bar => copied({ columns: bar.columns }, bar, ['extra']) as TrackBar);
+      return copied({ ...other, tuning: part.tuning, bars }, part, TRACK_FIELDS);
+    }
+    if (inStep) return other;
+    return { ...other, bars: from.map((o, b) => (o === null ? restBar(part, b) : other.bars[o])) };
+  });
+  const whole: Clip = { ...clip, name: part.name, time: part.time, masterBars, tracks };
+  return copied(whole, part, CLIP_FIELDS);
+}
+
+/** A bar of rests for bar `b` of the part, as long as its time signature makes it. */
+function restBar(part: Part, b: number): TrackBar {
+  const columns = fewestRests(barTicks(timeAt(part, b))).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
+  return { columns };
+}
+
+/** A clip of the part alone, one unnamed track: what is copied, played or written as ASCII. */
+export function asClip(part: Part): Clip {
+  return withPart({ ...emptyClip(), masterBars: [] }, part);
 }
 
 /** The plain or dotted duration nearest to `t` ticks (ties go to the plain one). */
@@ -856,8 +1014,8 @@ function isColumn(v: unknown): v is Column {
     && optStrings(v.extra);
 }
 
-function isBar(v: unknown): v is Bar {
-  return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn)
+function isMasterBar(v: unknown): v is MasterBar {
+  return isObj(v)
     && (v.time === undefined || (isObj(v.time) && isTimeSignature(v.time.beats, v.time.value)))
     && (v.key === undefined || isKey(v.key))
     && optBool(v.repeatStart)
@@ -866,8 +1024,11 @@ function isBar(v: unknown): v is Bar {
     && optBool(v.freeTime)
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
-    && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
-    && optStrings(v.extra);
+    && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)));
+}
+
+function isTrackBar(v: unknown): v is TrackBar {
+  return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn) && optStrings(v.extra);
 }
 
 /** A line's bar count, as `systemsLayout` holds it: a whole number from 1. */
@@ -882,10 +1043,22 @@ export const DEFAULT_BARS_PER_LINE = 3;
  * How many bars the clip's line `line` (from 0) holds, or null when the clip doesn't set its own line
  * breaks and lines fill by width.
  */
-export function barsPerLine(clip: Clip, line: number): number | null {
+export function barsPerLine(clip: Pick<Part, 'systemsLayout' | 'defaultSystemsLayout'>, line: number): number | null {
   const list = clip.systemsLayout ?? [];
   if (list.length === 0 && clip.defaultSystemsLayout === undefined) return null;
   return line < list.length ? list[line] : (clip.defaultSystemsLayout ?? DEFAULT_BARS_PER_LINE);
+}
+
+function isInstrument(v: unknown): boolean {
+  return v === undefined || (isObj(v) && Number.isInteger(v.program)
+    && (v.program as number) >= 0 && (v.program as number) <= 127 && optString(v.tag));
+}
+
+function isTrack(v: unknown, bars: number): v is Track {
+  return isObj(v) && typeof v.name === 'string' && optString(v.tag) && optStrings(v.header)
+    && Array.isArray(v.tuning) && v.tuning.length === STRING_COUNT && v.tuning.every(n => typeof n === 'string')
+    && (v.capo === undefined || isCapo(v.capo)) && isInstrument(v.instrument)
+    && Array.isArray(v.bars) && v.bars.length === bars && v.bars.every(isTrackBar);
 }
 
 /** A stored clip, checked field by field; null when anything is off. */
@@ -893,17 +1066,13 @@ export function parseClip(v: unknown): Clip | null {
   if (!isObj(v) || typeof v.name !== 'string') return null;
   const time = v.time;
   if (!isObj(time) || !isTimeSignature(time.beats, time.value)) return null;
-  if (!Array.isArray(v.tuning) || v.tuning.length !== STRING_COUNT || !v.tuning.every(n => typeof n === 'string')) return null;
-  if (!Array.isArray(v.bars) || v.bars.length === 0 || !v.bars.every(isBar)) return null;
+  if (!Array.isArray(v.masterBars) || v.masterBars.length === 0 || !v.masterBars.every(isMasterBar)) return null;
+  const bars = v.masterBars.length;
+  if (!Array.isArray(v.tracks) || v.tracks.length === 0 || !v.tracks.every(t => isTrack(t, bars))) return null;
   if (!optStrings(v.header)) return null;
-  if (v.capo !== undefined && !isCapo(v.capo)) return null;
   if (!optBool(v.multiBarRests)) return null;
   if (v.systemsLayout !== undefined && !(Array.isArray(v.systemsLayout) && v.systemsLayout.every(isBarsPerLine))) return null;
   if (v.defaultSystemsLayout !== undefined && !isBarsPerLine(v.defaultSystemsLayout)) return null;
-  const instrument = v.instrument;
-  if (instrument !== undefined && !(isObj(instrument) && Number.isInteger(instrument.program)
-    && (instrument.program as number) >= 0 && (instrument.program as number) <= 127
-    && (instrument.tag === undefined || typeof instrument.tag === 'string'))) return null;
   // The FX, each setting checked on its own, as the FX line's are.
   if (v.fx !== undefined) return { ...v, fx: parseEffects(v.fx) } as unknown as Clip;
   return v as unknown as Clip;

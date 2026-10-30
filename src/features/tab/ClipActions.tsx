@@ -4,7 +4,7 @@ import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
 import { writeAlphaTex } from './alphatex';
 import { writeAscii } from './ascii';
-import type { Clip } from './clip';
+import { partOf, type Clip } from './clip';
 import { tabSvg, type TabExportStyle } from './exportTab';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
@@ -23,6 +23,7 @@ const PRESSED_AWAY_MS = 500;
  * outside the card, so the focus moving into them counts as leaving the tab.
  */
 export function useClipActions({ clip, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
+  /** The whole clip, every track: copied as a link and saved as alphaTex. */
   clip: Clip;
   view: View;
   parts: Parts;
@@ -35,6 +36,8 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   shownText: string;
   onNotice: (notice: Notice) => void;
 }): { buttons: ReactNode; popups: ReactNode } {
+  // The track the page shows (issue #237), drawn in the images and written as ASCII tab.
+  const part = partOf(clip);
   /** The View options panel, open under its button (its right edge at x). */
   const [viewPanelAt, setViewPanelAt] = useState<{ x: number; y: number } | null>(null);
   /** When a press away last closed it, so the press on its own button doesn't open it again. */
@@ -70,7 +73,7 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   };
 
   /** The picture as the Export dialog makes it, with its saved choices. */
-  const picture = () => tabSvg(clip, exportStyle, clip.name, parts, shown);
+  const picture = () => tabSvg(part, exportStyle, clip.name, parts, shown);
 
   /** The ASCII and alphaTex views copy their text; the Notation view copies the picture as the Export dialog's PNG. */
   const copy = async () => {
@@ -105,7 +108,7 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
-    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(clip, { rhythm: shown.asciiRhythm }))) },
+    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm }))) },
     { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
   ];
   /** In Notation the save button lists the formats; the ASCII Tab view saves its text, and the AlphaTex view its text as typed. */
@@ -144,7 +147,7 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
         // Pressed, it leaves the focus (and the cursor) on the tab.
         onMouseDown={e => e.preventDefault()}
         onClick={e => {
-          if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(clip, { rhythm: shown.asciiRhythm })));
+          if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm })));
           if (view === 'alphatex') return save(SAVE_KINDS.alphatex, () => asText(alphaTexText));
           const r = e.currentTarget.getBoundingClientRect();
           if (Date.now() - saveMenuPressedAway.current < PRESSED_AWAY_MS) return;

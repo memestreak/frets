@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { readAscii } from '@/features/tab/ascii';
-import type { Clip } from '@/features/tab/clip';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
   DEFAULT_TAB_EXPORT, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
+import { type Clip, partOf } from '@/features/tab/clip';
 
-const clip = (readAscii([
+const clip = partOf((readAscii([
   'Title: Riff',
   'e|--5-7-5-7--|5-7-5-7--|5-7-5-7--|5-7-5-7--|',
   'B|-----------|---------|---------|---------|',
@@ -16,7 +16,7 @@ const clip = (readAscii([
   'D|-----------|---------|---------|---------|',
   'A|-----------|---------|---------|---------|',
   'E|-----------|---------|---------|---------|',
-].join('\n')) as { clip: Clip }).clip;
+].join('\n')) as { clip: Clip }).clip);
 
 describe('parseTabExportStyle', () => {
   it('keeps valid choices and defaults the rest', () => {
@@ -66,7 +66,7 @@ describe('the tab as an image', () => {
   it('draws a let ring or P.M. shorter than its label as the label alone, with nothing through the word', () => {
     const read = readAlphaTexWith(alphaTab, '0.6{lr}.16 0.6.16 0.6.8 0.6.4 0.6{pm}.4 0.6{pm}.4 0.6{pm}.4 |');
     if (!read.ok) throw new Error(read.errors.join('\n'));
-    const svg = tabSvg(read.clip, { width: 800, transparent: true, name: false }, '');
+    const svg = tabSvg(partOf(read.clip), { width: 800, transparent: true, name: false }, '');
     const group = (id: string) => svg.match(new RegExp(`<g data-testid="${id}">(.*?)</g>`))![1];
     expect(group('let-ring')).not.toContain('<line');
     expect(group('palm-mute').match(/<line/g)).toHaveLength(2);
@@ -76,7 +76,7 @@ describe('the tab as an image', () => {
     const draw = (tex: string) => {
       const read = readAlphaTexWith(alphaTab, tex);
       if (!read.ok) throw new Error(read.errors.join('\n'));
-      return tabSvg(read.clip, { width: 800, transparent: true, name: false }, '');
+      return tabSvg(partOf(read.clip), { width: 800, transparent: true, name: false }, '');
     };
     expect(draw('5.3{sl}.4 7.3.4 r.2 |').match(/data-testid="legato"/g)).toHaveLength(1);
     expect(draw('5.3{ss}.4 7.3.4 r.2 |')).not.toContain('data-testid="legato"');

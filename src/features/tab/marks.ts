@@ -3,7 +3,7 @@
  * `docs/specs/2026-10-27-tab-pick-marks-design.md`): where each one is, which palette tool sets it,
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
-import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Clip, type Note } from './clip';
+import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Part, type Note } from './clip';
 import { BEND_LABEL_STEP, BEND_RISE, bendShape, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
 import { previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
@@ -215,7 +215,7 @@ export function markBox(layout: Layout, hit: MarkHit): Box | null {
 }
 
 /** The note a mark is on, or the column's notes for a mark over the whole column. */
-function markNotes(clip: Clip, hit: MarkHit): Note[] {
+function markNotes(clip: Part, hit: MarkHit): Note[] {
   const column = columnAtIndex(clip, hit.index);
   if (!column) return [];
   if (hit.string !== null) {
@@ -225,7 +225,7 @@ function markNotes(clip: Clip, hit: MarkHit): Note[] {
   return column.notes.filter((n): n is Note => n !== null);
 }
 
-function columnAtIndex(clip: Clip, index: number) {
+function columnAtIndex(clip: Part, index: number) {
   let left = index;
   for (const bar of clip.bars) {
     if (left < bar.columns.length) return bar.columns[left];
@@ -235,7 +235,7 @@ function columnAtIndex(clip: Clip, index: number) {
 }
 
 /** The palette tool that sets a mark as it is now, lit while it is picked; null once it is gone. */
-export function markTool(clip: Clip, hit: MarkHit): ToolId | null {
+export function markTool(clip: Part, hit: MarkHit): ToolId | null {
   const column = columnAtIndex(clip, hit.index);
   const notes = markNotes(clip, hit);
   const note = hit.string !== null ? notes[0] : undefined;

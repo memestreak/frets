@@ -1,25 +1,25 @@
 /** The clip's own line breaks and bar shares: `\systemsLayout`, `\defaultSystemsLayout` and `\scale`. */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { layoutClip } from '@/features/tab/layout';
-import { barsPerLine, parseClip, type Clip } from '@/features/tab/clip';
+import { barsPerLine, parseClip, type Part, partOf, asClip } from '@/features/tab/clip';
 import { DEFAULT_VIEW, laidOut, parseNotation } from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = read(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
   expect(result.warnings).toEqual([]);
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const BAR = '0.6.8 2.6.8 3.6.8 5.6.8 3.6.8 2.6.8 0.6.8 2.6.8 |';
 const bars = (n: number, tags: (b: number) => string = () => '') =>
   Array.from({ length: n }, (_, b) => `${tags(b)}${BAR}`).join('\n');
-const lineCounts = (clip: Clip, width: number, parts: 'tab' | 'staff' | 'both' = 'tab') =>
+const lineCounts = (clip: Part, width: number, parts: 'tab' | 'staff' | 'both' = 'tab') =>
   layoutClip(clip, width, parts).systems.map(s => s.bars.length);
-const widths = (clip: Clip, width: number) =>
+const widths = (clip: Part, width: number) =>
   layoutClip(clip, width).systems.map(s => s.bars.map(b => b.x1 - b.x0));
 
 describe('reading and writing the line breaks', () => {
@@ -29,13 +29,13 @@ describe('reading and writing the line breaks', () => {
     expect(clip.systemsLayout).toEqual([2, 3, 1]);
     expect(clip.defaultSystemsLayout).toBe(4);
     expect(clip.header).toBeUndefined();
-    expect(writeAlphaTex(clip)).toBe(text);
+    expect(writePart(clip)).toBe(text);
   });
 
   it('keeps \\scale and \\width as written but doesn\'t use them: Frets spaces bars by their notes', () => {
     const result = read(`\\scale 2 \\width 300 ${BAR}`);
     if (!result.ok) throw new Error('not read');
-    expect(result.clip.bars[0].extra).toEqual(['\\scale 2', '\\width 300']);
+    expect(partOf(result.clip).bars[0].extra).toEqual(['\\scale 2', '\\width 300']);
     expect(writeAlphaTex(result.clip)).toContain('\\scale 2 \\width 300 ');
   });
 
@@ -49,9 +49,9 @@ describe('reading and writing the line breaks', () => {
 
   it('checks the stored fields', () => {
     const clip = clipOf(`\\systemsLayout (2)\n${BAR}`);
-    expect(parseClip(clip)).not.toBeNull();
-    expect(parseClip({ ...clip, systemsLayout: [2, 1.5] })).toBeNull();
-    expect(parseClip({ ...clip, defaultSystemsLayout: 0 })).toBeNull();
+    expect(parseClip(asClip(clip))).not.toBeNull();
+    expect(parseClip(asClip({ ...clip, systemsLayout: [2, 1.5] }))).toBeNull();
+    expect(parseClip(asClip({ ...clip, defaultSystemsLayout: 0 }))).toBeNull();
   });
 });
 
@@ -150,7 +150,7 @@ describe('the Clip\'s line breaks view option', () => {
     expect(lineCounts(off, 1200)).toEqual([3, 1]);
     expect(lineCounts(laidOut(clip, { ...DEFAULT_VIEW, lineBreaks: true }), 1200)).toEqual([1, 2, 1]);
     // The clip itself keeps them, so they are still written.
-    expect(writeAlphaTex(clip)).toContain('\\systemsLayout (1 2)');
+    expect(writePart(clip)).toContain('\\systemsLayout (1 2)');
     const plain = clipOf(BAR);
     expect(laidOut(plain, DEFAULT_VIEW)).toBe(plain);
   });

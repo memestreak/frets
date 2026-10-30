@@ -9,7 +9,7 @@
  * `TabView` for the drawing, the text views and the exports.
  */
 
-import type { Clip } from './clip';
+import type { Part } from './clip';
 import { PARTS, type Parts } from './layout';
 
 export const NOTATION_KEY = 'frets.tab.notation';
@@ -182,7 +182,7 @@ export function showsBarNumber(barNumbers: BarNumbers, firstOnLine: boolean): bo
 }
 
 /** The clip as the view lays it out: without its own line breaks unless the view keeps them. */
-export function laidOut(clip: Clip, view: TabView): Clip {
+export function laidOut(clip: Part, view: TabView): Part {
   if (view.lineBreaks || (clip.systemsLayout === undefined && clip.defaultSystemsLayout === undefined)) return clip;
   return { ...clip, systemsLayout: undefined, defaultSystemsLayout: undefined };
 }

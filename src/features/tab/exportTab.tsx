@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
-import type { Clip, Tempo } from './clip';
+import type { Part, Tempo } from './clip';
 import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { tempoParts } from './layoutText';
@@ -68,7 +68,7 @@ interface Head {
   tempo: Tempo | null;
 }
 
-function headOf(clip: Clip, style: TabExportStyle, title: string): Head {
+function headOf(clip: Part, style: TabExportStyle, title: string): Head {
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
   const { artist, lines } = creditsOf(clip);
   return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning: tuningBlock(clip.tuning), tempo: clip.bars[0]?.tempo ?? null };
@@ -145,7 +145,7 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
+export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const tab = layoutClip(laidOut(clip, view), (style.width - 2 * PAD) / zoom, parts);
   return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title), zoom) };
@@ -156,7 +156,7 @@ export function tabImageSize(clip: Clip, style: TabExportStyle, title: string, p
  * it (the title only if the style shows the name), on white unless transparent; the staff, the tab or
  * both, as the page shows them, at the View options' size. The Export dialog's preview draws the same.
  */
-export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Clip; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
+export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
   const { width, height } = tabImageSize(clip, style, title, parts, view);
   // At a View options size the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
@@ -181,7 +181,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Clip, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
+export function tabSvg(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
   const host = document.createElement('div');
   const root = createRoot(host);
   flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view })));

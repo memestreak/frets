@@ -4,7 +4,7 @@
  * An index under `LIBRARY_KEY` lists the folders and the arrangements (name, folder, last change)
  * and names the open one; each clip has a key of its own, so an edit writes only its own clip.
  */
-import { emptyClip, parseClip, type Clip } from './clip';
+import { emptyClip, parseClip, partOf, type Clip } from './clip';
 import { isEmpty } from './editing';
 import { loadJson, saveJson } from '@/lib/storage';
 
@@ -89,7 +89,7 @@ export function newArrangementId(): string {
 
 /** A clip with nothing in it, not even a title, isn't added to the list. */
 export function worthKeeping(clip: Clip): boolean {
-  return !isEmpty(clip) || clip.name.trim() !== '';
+  return clip.tracks.some((_, t) => !isEmpty(partOf(clip, t))) || clip.name.trim() !== '';
 }
 
 /**

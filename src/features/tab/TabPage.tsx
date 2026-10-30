@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
@@ -10,7 +10,8 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, unevenMessage, MAX_CAPO, UNTITLED, type Clip } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Part } from './clip';
+import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, START, type Cursor, type Selection } from './editing';
@@ -72,8 +73,16 @@ const COLUMN_REACH = 16;
 export default function TabPage() {
   // The open arrangement, saved as it is edited, and the others kept (My arrangements).
   const arrangements = useArrangements();
-  const { state, dispatch } = arrangements;
-  const { clip } = state;
+  const { state, dispatch: dispatchClip } = arrangements;
+  // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
+  const whole = state.clip;
+  // The track the page shows, edits and plays (issue #237: the first, until tracks are drawn); its edits
+  // go back into the whole clip through `dispatch`.
+  const clip = useMemo(() => partOf(whole), [whole]);
+  const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action));
+  /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
+  const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part));
+  const tracksNote = hiddenTracksNote(whole);
   // The example or sample shown in place of the clip (only its id is needed here); its edits are never saved.
   const example = state.example;
   const [choosing, setChoosing] = useState(false);
@@ -87,7 +96,7 @@ export default function TabPage() {
   const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   const fillBars = prefs.editing.fillBars;
-  const leaveBar = (from: Clip, bar: number) => (fillBars ? fillBar(from, bar) : from);
+  const leaveBar = (from: Part, bar: number) => (fillBars ? fillBar(from, bar) : from);
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
@@ -127,7 +136,7 @@ export default function TabPage() {
    * clip is written out again in Frets' own layout, without comments (Jeremy, 2026-10-27).
    */
   const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
-  const alphaTexText = draft && draft.clip === clip ? draft.text : writeAlphaTex(clip);
+  const alphaTexText = draft && draft.clip === whole ? draft.text : writeAlphaTex(whole);
   // What the text views show and copy.
   const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
 
@@ -165,9 +174,9 @@ export default function TabPage() {
    * Edit) gives the keys back to the tab when it closes.
    */
   const [headPanel, setHeadPanel] = useState<
-    | { kind: 'credits'; x: number; y: number; from: Clip; field: HeadField }
+    | { kind: 'credits'; x: number; y: number; from: Part; field: HeadField }
     | { kind: 'tuning'; x: number; y: number }
-    | { kind: 'tempo'; x: number; y: number; from: Clip; bar: number; fromTab: boolean }
+    | { kind: 'tempo'; x: number; y: number; from: Part; bar: number; fromTab: boolean }
     | null
   >(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -225,7 +234,7 @@ export default function TabPage() {
     onStopAt: column => {
       if (!playbackSettings.stopAtPlayhead) return;
       setSelection(null);
-      setPlayMark({ index: column, clip, cursor: cursorAsSet, selection: null });
+      setPlayMark({ index: column, clip: whole, cursor: cursorAsSet, selection: null });
     },
   });
   /** A note just entered: it sounds, alone, with "Hear notes as you enter them" on and the controls showing. */
@@ -246,13 +255,13 @@ export default function TabPage() {
   };
   /** A clip read from the AlphaTex view's text: one undo step, and the text stays as typed. */
   const applyAlphaTex = (next: Clip, text: string) => {
-    dispatch({ type: 'replace', clip: next });
+    dispatchClip({ type: 'replace', clip: next });
     setDraft(d => (d && d.text === text ? { text, clip: next } : d));
   };
   /** The AlphaTex view's ×: the text and the clip emptied, one undo step (Jeremy, 2026-10-27). */
   const clearAlphaTex = () => {
     const empty = emptyClip();
-    dispatch({ type: 'replace', clip: empty });
+    dispatchClip({ type: 'replace', clip: empty });
     setDraft({ text: '', clip: empty });
   };
   const showPlaybackControls = (shown: boolean) => {
@@ -266,7 +275,7 @@ export default function TabPage() {
   };
   const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
   const selectedColumns = selection ? selectedRange(selection) : null;
-  const markAt = playMark && playMark.clip === clip && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
+  const markAt = playMark && playMark.clip === whole && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
   // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
   // A line past the clip's end plays its last column.
@@ -298,15 +307,16 @@ export default function TabPage() {
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
     // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
-    let left = clip;
+    let left = whole;
     if (editing) {
       // Leaving fills the cursor's bar when Settings says to (as `onEditorBlur` would), but not while playing, as an edit stops playback;
       // a line past that bar moves on by the rests added.
       const playing = playback.view.state === 'playing';
-      left = playing ? clip : leaveBar(clip, cursor.bar);
+      const leftPart = playing ? clip : leaveBar(clip, cursor.bar);
       const barEnd = clip.bars.slice(0, cursor.bar + 1).reduce((n, b) => n + b.columns.length, 0);
-      if (gap >= barEnd) index += columnCount(left) - count;
-      if (left !== clip) dispatch({ type: 'replace', clip: left });
+      if (gap >= barEnd) index += columnCount(leftPart) - count;
+      left = wholeWith(leftPart);
+      if (left !== whole) dispatchClip({ type: 'replace', clip: left });
       quietBlur.current = true;
       editorRef.current?.blur();
       quietBlur.current = false;
@@ -315,13 +325,14 @@ export default function TabPage() {
     setPlayMark({ index, clip: left, cursor: cursorAsSet, selection: null });
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
-  const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip, cursor: cursorAsSet, selection: null });
+  const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip: whole, cursor: cursorAsSet, selection: null });
   /** An edit made off the tab, from the playback line: one undo step, the line held at a gap of the new clip. */
-  const editAtLine = (next: Clip, index: number) => {
-    if (next !== clip) dispatch({ type: 'replace', clip: next });
+  const editAtLine = (next: Part, index: number) => {
+    const edited = wholeWith(next);
+    if (edited !== whole) dispatchClip({ type: 'replace', clip: edited });
     setSelection(null);
     setNotice(null);
-    setPlayMark({ index, clip: next, cursor: cursorAsSet, selection: null });
+    setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
   };
   // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
@@ -337,8 +348,8 @@ export default function TabPage() {
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
-  const commit = (next: Clip, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
-    if (next !== clip) dispatch({ type: 'replace', clip: next });
+  const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
+    if (next !== clip) dispatch({ type: 'replacePart', part: next });
     setCursor(nextCursor);
     setSelection(nextSelection);
     setPicked(null);
@@ -382,13 +393,13 @@ export default function TabPage() {
   };
 
   /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
-  const commitKeepingMark = (next: Clip) => {
+  const commitKeepingMark = (next: Part) => {
     commit(next);
     if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
   };
 
   /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
-  const onPanelChoice = (apply: () => Clip) => {
+  const onPanelChoice = (apply: () => Part) => {
     if (editing) commitKeepingMark(apply());
   };
 
@@ -534,7 +545,7 @@ export default function TabPage() {
   };
 
   /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
-  const toPitch = (next: Clip, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
+  const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
     const string = stringAtPitch(next, at, pitch);
     commit(next, { ...at, string: string ?? at.string }, nextSelection);
     setColumnOnly(string === null);
@@ -569,7 +580,7 @@ export default function TabPage() {
    * A drag of a note head on the staff (issue #174): the clip it started from, the selection it carries
    * (when the head pressed is in one), and the last move that worked, shown while the drag goes on.
    */
-  const dragFrom = useRef<{ clip: Clip; selection: Selection | null; good: { clip: Clip; pitch: number } | null } | null>(null);
+  const dragFrom = useRef<{ clip: Part; selection: Selection | null; good: { clip: Part; pitch: number } | null } | null>(null);
 
   /**
    * A note head dragged up or down: the note moves with the pointer (with ⌘ or Ctrl its whole chord,
@@ -599,9 +610,9 @@ export default function TabPage() {
     const string = stringAtPitch(shown.clip, at, shown.pitch) ?? hit.string;
     if (drag.done) {
       dragFrom.current = null;
-      if (shown.clip !== from.clip) dispatch({ type: 'replace', clip: shown.clip, from: from.clip });
-      else dispatch({ type: 'preview', clip: from.clip });
-    } else dispatch({ type: 'preview', clip: shown.clip });
+      if (shown.clip !== from.clip) dispatch({ type: 'replacePart', part: shown.clip, from: from.clip });
+      else dispatch({ type: 'previewPart', part: from.clip });
+    } else dispatch({ type: 'previewPart', part: shown.clip });
     setPicked(null);
     setNotice(null);
     if (from.selection) {
@@ -630,7 +641,7 @@ export default function TabPage() {
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;
     const filled = leaveBar(clip, cursor.bar);
-    if (filled !== clip) dispatch({ type: 'replace', clip: filled });
+    if (filled !== clip) dispatch({ type: 'replacePart', part: filled });
   };
 
   /**
@@ -662,7 +673,7 @@ export default function TabPage() {
       into = cut.clip;
       at = { ...cursor, ...cut.cursor };
     }
-    const pasted = pasteAt(into, at, result.clip);
+    const pasted = pasteAt(into, at, partOf(result.clip));
     commit(pasted.clip, pasted.cursor, null);
     if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
     setView('tab');
@@ -680,7 +691,7 @@ export default function TabPage() {
   });
 
   const { importText, showExample, leaveExample } = useClipImport({
-    dispatch, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
+    dispatch: dispatchClip, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
@@ -701,7 +712,7 @@ export default function TabPage() {
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
       if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
       e.preventDefault();
-      dispatch({ type: e.shiftKey ? 'redo' : 'undo' });
+      dispatchClip({ type: e.shiftKey ? 'redo' : 'undo' });
       setNotice(null);
     };
     document.addEventListener('paste', onPaste);
@@ -714,10 +725,10 @@ export default function TabPage() {
       document.removeEventListener('cut', onCut);
       document.removeEventListener('keydown', onKey);
     };
-  }, [dispatch]);
+  }, [dispatchClip]);
 
   const actions = useClipActions({
-    clip, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
+    clip: whole, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
   });
 
   const name = clip.name.trim() || UNTITLED;
@@ -741,17 +752,17 @@ export default function TabPage() {
     setHeadPanel({ kind: 'tempo', ...at, from: clip, bar, fromTab: true });
   };
   /** The tempo as set: shown at once, kept as one undo step when the panel closes, or put back. */
-  const finishTempo = (from: Clip, kept: Clip | null, fromTab: boolean) => {
+  const finishTempo = (from: Part, kept: Part | null, fromTab: boolean) => {
     setHeadPanel(null);
-    if (kept && kept !== from) dispatch({ type: 'replace', clip: kept, from });
-    else dispatch({ type: 'preview', clip: from });
+    if (kept && kept !== from) dispatch({ type: 'replacePart', part: kept, from });
+    else dispatch({ type: 'previewPart', part: from });
     if (fromTab) editorRef.current?.focus();
   };
   /** The title and credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
-  const finishCredits = (from: Clip, kept: Clip | null) => {
+  const finishCredits = (from: Part, kept: Part | null) => {
     setHeadPanel(null);
-    if (kept && kept !== from) dispatch({ type: 'replace', clip: kept, from });
-    else dispatch({ type: 'preview', clip: from });
+    if (kept && kept !== from) dispatch({ type: 'replacePart', part: kept, from });
+    else dispatch({ type: 'previewPart', part: from });
   };
   /** Deletes from the Arrangements dialog, which stays open; when `ids` hold the open one, another is shown. */
   const removing = (ids: string[], remove: () => void) => {
@@ -784,7 +795,7 @@ export default function TabPage() {
           {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
           {/* An example kept as one of My arrangements, with the edits made to it. */}
           {example && (
-            <button type="button" className="btn btn-secondary" onClick={() => replaceShown(() => { arrangements.openNew(clip); clearExampleHash(); })}>
+            <button type="button" className="btn btn-secondary" onClick={() => replaceShown(() => { arrangements.openNew(whole); clearExampleHash(); })}>
               Keep a copy
             </button>
           )}
@@ -832,6 +843,12 @@ export default function TabPage() {
                 </button>
               ))}
             </div>
+          )}
+          {/* Until tracks are drawn (issue #237), a small "i" says the others are kept; the AlphaTex view has them all. */}
+          {tracksNote && view !== 'alphatex' && (
+            <HoverTips>
+              <span className="tab-tracks-note" role="img" aria-label={tracksNote} data-tip={tracksNote}>i</span>
+            </HoverTips>
           )}
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">
@@ -894,7 +911,7 @@ export default function TabPage() {
               : view === 'alphatex'
                 ? (
                   <HoverTips>
-                    <AlphaTexEditor clip={clip} text={alphaTexText} onText={text => setDraft({ text, clip })} onClip={applyAlphaTex} onClear={clearAlphaTex} lineNumbers={shown.lineNumbers} />
+                    <AlphaTexEditor clip={whole} text={alphaTexText} onText={text => setDraft({ text, clip: whole })} onClip={applyAlphaTex} onClear={clearAlphaTex} lineNumbers={shown.lineNumbers} />
                   </HoverTips>
                 )
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
@@ -924,13 +941,13 @@ export default function TabPage() {
             {view === 'tab' && headPanel?.kind === 'credits' && (
               <CreditsPanel
                 clip={headPanel.from} x={headPanel.x} y={headPanel.y} field={headPanel.field}
-                onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishCredits(headPanel.from, kept)}
+                onChange={next => dispatch({ type: 'previewPart', part: next })} onDone={kept => finishCredits(headPanel.from, kept)}
               />
             )}
             {view === 'tab' && headPanel?.kind === 'tempo' && (
               <TempoPanel
                 clip={headPanel.from} bar={headPanel.bar} x={headPanel.x} y={headPanel.y}
-                onChange={next => dispatch({ type: 'preview', clip: next })} onDone={kept => finishTempo(headPanel.from, kept, headPanel.fromTab)}
+                onChange={next => dispatch({ type: 'previewPart', part: next })} onDone={kept => finishTempo(headPanel.from, kept, headPanel.fromTab)}
               />
             )}
             {view === 'tab' && headPanel?.kind === 'tuning' && (
@@ -986,7 +1003,7 @@ export default function TabPage() {
           clearExampleHash();
         })}
         onNew={() => replaceShown(() => { arrangements.openNew(); clearExampleHash(); })}
-        onDuplicate={() => replaceShown(() => arrangements.openNew(clip))}
+        onDuplicate={() => replaceShown(() => arrangements.openNew(whole))}
         onRename={arrangements.rename}
         onMove={arrangements.move}
         // Deleting the open arrangement opens another, or a new clip.
@@ -1020,7 +1037,7 @@ export default function TabPage() {
       {actions.popups}
       <SettingsDialog groups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
-        clip={clip} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        clip={whole} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
       />
     </div>
@@ -1034,4 +1051,15 @@ function paperVars(colours: ColourPair): CSSProperties {
     '--ink': p.ink, '--ink-muted': p.inkMuted, '--line-strong': p.lineStrong, '--line': p.line, '--surface-raised': p.paper,
     background: p.paper, color: p.ink,
   } as CSSProperties;
+}
+
+/**
+ * What the "i" over a clip of several tracks says (Jeremy, 2026-10-30), or null for one track: the page
+ * shows, edits and plays the first until tracks are drawn (issue #237), and keeps the rest as they are.
+ */
+export function hiddenTracksNote(clip: Clip): string | null {
+  const count = clip.tracks.length;
+  if (count < 2) return null;
+  const first = clip.tracks[0].name;
+  return `This arrangement has ${count} tracks. Frets shows, edits and plays only the first${first ? ` (${first})` : ''} for now; the others are kept as they are.`;
 }

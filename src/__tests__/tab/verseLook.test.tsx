@@ -6,19 +6,19 @@
  */
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { toggleDoubleBar } from '@/features/tab/barEdits';
 import { layoutClip, multiRests, MULTI_REST_WIDTH, prettyChord } from '@/features/tab/layout';
 import { vibratoRuns } from '@/features/tab/runs';
 import { TabClip } from '@/features/tab/TabClip';
+import { type Part, partOf } from '@/features/tab/clip';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = read(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 const EIGHTS = '12.4.8 15.2.8 14.3.8 12.3.8 15.1.8 14.3.8 14.1.8 14.3.8 |';
 const cursor = { bar: 0, column: 0, string: 0 };
@@ -30,7 +30,7 @@ describe('double bars', () => {
     expect(result.ok && result.warnings).toEqual([]);
     const clip = clipOf(text);
     expect(clip.bars.map(b => !!b.doubleBar)).toEqual([true, false]);
-    expect(writeAlphaTex(clip)).toContain('\\db 12.4.8');
+    expect(writePart(clip)).toContain('\\db 12.4.8');
   });
 
   it('are set and taken away from the palette', () => {
@@ -56,7 +56,7 @@ describe('multi-bar rests', () => {
     const clip = clipOf(RESTS);
     expect(clip.multiBarRests).toBe(true);
     expect(clip.header).toBeUndefined();
-    expect(writeAlphaTex(clip)).toContain('\\multiBarRest\n');
+    expect(writePart(clip)).toContain('\\multiBarRest\n');
   });
 
   it('gather two or more plain bars of rest, only when the clip asks for them', () => {

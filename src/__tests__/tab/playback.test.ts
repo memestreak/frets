@@ -5,26 +5,26 @@ import { readFileSync } from 'node:fs';
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { writeAlphaTex } from '@/features/tab/alphatex';
-import type { Clip } from '@/features/tab/clip';
+import { writePart } from '@/features/tab/alphatex';
 import { clickSoundFont, clickWave, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import {
   midiUntil, noteAlone, columnAtTick, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 /** alphaTab's ticks: 960 to a quarter note. */
 const Q = 960;
 
 /** The clip's performance without the metronome's clicks (or the room for a count-in before it). */
-function plain(clip: Clip) {
+function plain(clip: Part) {
   return perform(alphaTab, clip, DEFAULT_SOUND, { clicks: false });
 }
 
@@ -218,7 +218,7 @@ describe('playback', () => {
   it('wobbles the note a held bend ends on round the bend\'s height when it has vibrato', () => {
     const text = '7.3{b (0 4)}.4 -.3{b (4 4) v}.4 r.2 |';
     // Frets writes the held note as a bend of its own, so alphaTab had held it flat.
-    expect(writeAlphaTex(clipOf(text))).toContain('b (4 4) v');
+    expect(writePart(clipOf(text))).toContain('b (4 4) v');
     const held = heightsOf(text, [1, 2]);
     expect(turnsOf(held)).toBeGreaterThan(3);
     for (const h of held) expect(Math.abs(h - 2)).toBeLessThan(0.3);

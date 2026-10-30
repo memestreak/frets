@@ -5,12 +5,12 @@ import { textAt } from '@/features/tab/layoutText';
 import { runAt } from '@/features/tab/runs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAscii(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 /** Eight bars of eighth notes on the low E. */
@@ -84,7 +84,7 @@ describe('rowsFor', () => {
   const rowsOf = (tex: string) => {
     const result = readAlphaTexWith(alphaTab, tex);
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    return rowsFor(result.clip);
+    return rowsFor(partOf(result.clip));
   };
 
   it('has no rows above the staff for plain notes, only room for bends', () => {
@@ -110,7 +110,7 @@ describe('pressing the drawing', () => {
   const clipOf = (tex: string) => {
     const result = readAlphaTexWith(alphaTab, tex);
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    return result.clip;
+    return partOf(result.clip);
   };
   const layout = layoutClip(clipOf('0.6{pm}.8 0.6{pm}.8 0.6.4 r.2 |'), 800);
   const { rows } = layout.systems[0];
@@ -163,7 +163,7 @@ describe('words over the tab', () => {
   const clipOf = (tex: string) => {
     const result = readAlphaTexWith(alphaTab, tex);
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    return result.clip;
+    return partOf(result.clip);
   };
 
   it('gives tempos, sections and chord names rows of their own, over the endings and strokes', () => {
@@ -192,7 +192,7 @@ describe('ending brackets and gaps', () => {
   const tex = (t: string) => {
     const r = readAlphaTexWith(alphaTab, t);
     if (!r.ok) throw new Error(r.errors.join('\n'));
-    return r.clip;
+    return partOf(r.clip);
   };
 
   it('picks a drawn ending bracket by its line, as its run\'s first bar on that line', () => {
@@ -217,7 +217,7 @@ describe('each line\'s own rows', () => {
   const clipOf = (tex: string) => {
     const r = readAlphaTexWith(alphaTab, tex);
     if (!r.ok) throw new Error(r.errors.join('\n'));
-    return r.clip;
+    return partOf(r.clip);
   };
   // Chord names on the first line only, a bend on the second only: four bars of four quarters a line at 600.
   const bars = (n: number, body: string) => Array.from({ length: n }, () => body).join(' ');

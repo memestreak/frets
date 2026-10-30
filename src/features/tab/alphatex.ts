@@ -8,7 +8,7 @@
  * (a clip's `header`, and `extra` on bars, columns and notes) is written
  * back as it was read. Reading is `alphatexRead.ts`.
  */
-import { isRest, isStandardTuning, keyTex, type Bend, type Clip, type Column, type Note } from './clip';
+import { asClip, isRest, isStandardTuning, keyTex, partOf, type Bar, type Bend, type Clip, type Column, type Note, type Part, type Track } from './clip';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
@@ -53,10 +53,10 @@ function bendPoints({ quarters, pre, release, from, to }: Bend, tied: boolean): 
 }
 
 /** For every note, the effects it carries for a later note on its string (h, sl or ss). */
-function originMarks(clip: Clip): Map<string, string[]> {
+function originMarks(bars: readonly Bar[]): Map<string, string[]> {
   const marks = new Map<string, string[]>();
   const last: (At | null)[] = Array(6).fill(null);
-  clip.bars.forEach((bar, b) => bar.columns.forEach((column, c) => column.notes.forEach((note, s) => {
+  bars.forEach((bar, b) => bar.columns.forEach((column, c) => column.notes.forEach((note, s) => {
     if (!note) return;
     const prev = last[s];
     if (prev) {
@@ -133,35 +133,60 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   return `${notes.length === 1 ? notes[0] : `(${notes.join(' ')})`}${after}`;
 }
 
-/** The clip as alphaTex: its FX line, header lines, then the bars, each ending in "|", wrapped at `LINE_WIDTH`. */
+/**
+ * The clip as alphaTex: its FX line and header lines, then each track: its `\track` line when the
+ * clip has more than one or one was written, its own lines, then its bars, each ending in "|", wrapped
+ * at `LINE_WIDTH`. The bar marks every track shares (signatures, repeats, tempo, sections) are written
+ * in the first track's bars only; alphaTab gives them to every track.
+ */
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
   if (clip.fx) lines.push(fxLine(clip.fx));
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
-  if (clip.instrument?.tag) lines.push(clip.instrument.tag);
-  if (clip.multiBarRests) lines.push('\\multiBarRest');
-  if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
-  if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
-  lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
-  if (!isStandardTuning(clip.tuning) || (clip.instrument && !keepsGuitarTuning(clip.instrument.program))) {
-    const notes = clip.tuning.map((n, i) => withOctave(n, i)).reverse();
-    lines.push(`\\tuning (${notes.join(' ')})`);
-  }
-  if (clip.capo) lines.push(`\\capo ${clip.capo}`);
-  lines.push(...wrapBars(barTokens(clip)));
+  const several = clip.tracks.length > 1;
+  clip.tracks.forEach((track, t) => {
+    const tag = track.tag ?? (several ? (track.name ? `\\track ${quoted(track.name)}` : '\\track') : null);
+    if (tag) lines.push(tag);
+    lines.push(...(track.header ?? []));
+    if (track.instrument?.tag) lines.push(track.instrument.tag);
+    if (t === 0) {
+      if (clip.multiBarRests) lines.push('\\multiBarRest');
+      if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
+      if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
+      lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
+    }
+    lines.push(...trackLines(track));
+    lines.push(...wrapBars(barTokens(t === 0 ? partOf(clip).bars : track.bars)));
+  });
   return `${lines.join('\n')}\n`;
 }
 
-/** Each bar on one line, unwrapped: what tests and anything comparing bars want. */
-export function writeBars(clip: Clip): string[] {
-  return barTokens(clip).map(tokens => tokens.join(' '));
+/** The part alone as alphaTex, one track: what is copied, and what playback reads. */
+export function writePart(part: Part): string {
+  return writeAlphaTex(asClip(part));
+}
+
+/** A track's tuning, when it isn't standard or its sound wouldn't take guitar strings, and its capo. */
+function trackLines(track: Track): string[] {
+  const lines: string[] = [];
+  if (!isStandardTuning(track.tuning) || (track.instrument && !keepsGuitarTuning(track.instrument.program))) {
+    const notes = track.tuning.map((n, i) => withOctave(n, i)).reverse();
+    lines.push(`\\tuning (${notes.join(' ')})`);
+  }
+  if (track.capo) lines.push(`\\capo ${track.capo}`);
+  return lines;
+}
+
+/** Each of the part's bars on one line, unwrapped: what tests and anything comparing bars want. */
+export function writeBars(part: Pick<Part, 'bars'>): string[] {
+  return barTokens(part.bars).map(tokens => tokens.join(' '));
 }
 
 /** Each bar's marks, beats and closing bar line, as the tokens a line break may go between. */
-function barTokens(clip: Clip): string[][] {
-  const marks = originMarks(clip);
-  return clip.bars.map((bar, b) => {
+function barTokens(bars: readonly Bar[]): string[][] {
+  const marks = originMarks(bars);
+  return bars.map((bar, b) => {
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
     if (bar.key) meta.push(`\\ks ${keyTex(bar.key)}`);

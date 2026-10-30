@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/notation';
 import { usePanelClose, usePanelInside } from './barPanel';
-import { changesKey, keyAt, keyTonic, MAJOR_NAMES, MAX_FIFTHS, MINOR_NAMES, type Clip, type Key } from './clip';
+import { changesKey, keyAt, keyTonic, MAJOR_NAMES, MAX_FIFTHS, MINOR_NAMES, type Part, type Key } from './clip';
 
 const PITCH: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 function pitchClass(name: string): number {
@@ -26,7 +26,7 @@ export function keyOfTonic(tonic: string, minor: boolean): Key {
  * is: Major or Minor, and the key on the shared piano `KeyPicker`.
  */
 export function BarKeyPanel({ clip, bar, x, y, onChange, onClose }: {
-  clip: Clip;
+  clip: Part;
   bar: number;
   x: number;
   y: number;

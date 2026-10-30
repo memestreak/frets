@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { PlayIcon } from '@/components/icons';
-import type { Clip } from './clip';
+import type { Part } from './clip';
 import { columnCount, placeOf } from './editing';
 import { layoutClip, type Layout, type Parts } from './layout';
 import { columnAt } from './hitTest';
@@ -131,7 +131,7 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, onStopAt }: {
+export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
@@ -276,7 +276,7 @@ export function usePlayback(clip: Clip, sound: Sound, volume: number, { loopPaus
 }
 
 /** The clip's own tempo at a column: the last \\tempo at or before its bar, else alphaTab's 120. */
-function tempoAt(clip: Clip, index: number): number {
+function tempoAt(clip: Part, index: number): number {
   const bar = placeOf(clip, Math.min(index, Math.max(0, columnCount(clip) - 1))).bar;
   let bpm = 120;
   for (let b = 0; b <= bar && b < clip.bars.length; b++) bpm = clip.bars[b].tempo?.bpm ?? bpm;
@@ -328,7 +328,7 @@ function LoopIcon() {
  * that shows the playback controls beside it, and with a plain minus hides them. It stays put either way.
  */
 export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
-  clip: Clip;
+  clip: Part;
   playback: Playback;
   /** The sound the clip plays in, picked at the end of the controls. */
   sound: Sound;
@@ -513,7 +513,7 @@ function useReleaseFocusOnPressOutside(row: RefObject<HTMLElement | null>) {
  * points, a bracket.
  */
 export function Playhead({ clip, width, parts, playback, mark, markOnly = false, layer }: {
-  clip: Clip; width: number; parts: Parts; playback: Playback; mark: number | null;
+  clip: Part; width: number; parts: Parts; playback: Playback; mark: number | null;
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
   markOnly?: boolean;
   /**
@@ -630,7 +630,7 @@ function loopBracket(layout: Layout, loop: [number, number]): { system: number; 
  * The ends of the loop bracket as handles over the tab: drag either one forwards or backwards to
  * move that loop point, a column at a time (Jeremy, 2026-10-27). The start never passes the end.
  */
-export function LoopHandles({ clip, width, parts, playback }: { clip: Clip; width: number; parts: Parts; playback: Playback }) {
+export function LoopHandles({ clip, width, parts, playback }: { clip: Part; width: number; parts: Parts; playback: Playback }) {
   const drag = useRef<'start' | 'end' | null>(null);
   const loop = Array.isArray(playback.loop) ? playback.loop : null;
   if (!loop) return null;

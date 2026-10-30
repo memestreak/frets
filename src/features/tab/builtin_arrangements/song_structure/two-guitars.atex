@@ -1,0 +1,12 @@
+\title "Two guitars"
+\track "Gtr I"
+\instrument electricguitarclean
+\ts (4 4)
+\section "Riff" \ro 0.6.8 3.6.8 5.6.8 0.6.8 3.6.8 6.6.8 5.6.8 3.6.8 |
+\rc 2 0.6.8 3.6.8 5.6.8 3.6.8 0.6.8 5.5.8 3.6.8 0.6.8 |
+\section "Answer" 7.3.4 5.3.8 7.3.8 8.3.4 7.3.4 | 5.3.2 r.2 |
+\track "Gtr II"
+\instrument acousticguitarsteel
+r.1 | (2.4 2.5 0.6).2 (0.4 2.5 3.6).2 | (2.4 2.5 0.6).1{ch "Em"} |
+(0.3 0.4 2.5 3.6).1{ch "G"} |
+

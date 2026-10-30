@@ -4,11 +4,9 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
-import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
+import { writePart, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import {
-  barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, timeInWords, tupletGroups, unevenMessage, WHOLE, type Clip, type TimeSignature,
-} from '@/features/tab/clip';
+import { barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, timeInWords, tupletGroups, unevenMessage, WHOLE, type TimeSignature, type Part, partOf, asClip } from '@/features/tab/clip';
 import { copyText, moveColumn, pasteAt, sliceClip, type Cursor } from '@/features/tab/editing';
 import { setBarTime } from '@/features/tab/barEdits';
 import { cycleTremolo, setTremolo, setTuplet, toggleGrace, toggleTuplet } from '@/features/tab/noteEdits';
@@ -18,12 +16,12 @@ import { textAt } from '@/features/tab/layoutText';
 import { applyCyclingKey, applyTool, applyTupletKey, isOn, toolForKey } from '@/features/tab/tools';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = read(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
-const bars = (clip: Clip) => writeBars(clip).join('\n');
+const bars = (clip: Part) => writeBars(clip).join('\n');
 const at = (bar: number, column: number, string: number): Cursor => ({ bar, column, string });
 const only = (cursor: Cursor) => ({ cursor, selection: null });
 const all = (cursor: Cursor, to: number) => ({ cursor, selection: { anchor: 0, focus: to } });
@@ -71,7 +69,7 @@ describe('tuplets', () => {
     const thirteen = read(`${Array(13).fill('5.3.32{tu (13 8)}').join(' ')} r.4 r.2 |`);
     expect(thirteen.ok).toBe(true);
     if (!thirteen.ok) return;
-    expect(thirteen.clip.bars[0].columns[0]).toMatchObject({ duration: { value: 32, dots: 0 }, extra: ['tu (13 8)'] });
+    expect(partOf(thirteen.clip).bars[0].columns[0]).toMatchObject({ duration: { value: 32, dots: 0 }, extra: ['tu (13 8)'] });
     expect(thirteen.warnings.join(' ')).toMatch(/tu \(tuplet\) ×13/);
   });
 
@@ -102,8 +100,8 @@ describe('tuplets', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.warnings).toEqual([]);
-    expect(result.clip.bars[0].columns.map(c => c.duration.tuplet ?? null)).toEqual([5, 5, 5, 5, 5, null, null]);
-    expect(writeAscii(result.clip)).toContain('s5');
+    expect(partOf(result.clip).bars[0].columns.map(c => c.duration.tuplet ?? null)).toEqual([5, 5, 5, 5, 5, null, null]);
+    expect(writeAscii(partOf(result.clip))).toContain('s5');
   });
 
   it('read and write two-digit tuplets and ratios in ASCII tab', () => {
@@ -114,7 +112,7 @@ describe('tuplets', () => {
     const back = readAscii(ascii);
     expect(back.ok && back.warnings).toEqual([]);
     if (!back.ok) return;
-    expect(back.clip.bars[0].columns.map(c => c.duration)).toEqual(clip.bars[0].columns.map(c => c.duration));
+    expect(partOf(back.clip).bars[0].columns.map(c => c.duration)).toEqual(clip.bars[0].columns.map(c => c.duration));
   });
 });
 
@@ -131,7 +129,7 @@ describe('incomplete tuplets', () => {
 
   it('flag an emptied bar, but not a clip with nothing in it yet', () => {
     const clip = clipOf('5.3.1 | r.1 |');
-    const emptied: Clip = { ...clip, bars: [clip.bars[0], { ...clip.bars[1], columns: [] }] };
+    const emptied: Part = { ...clip, bars: [clip.bars[0], { ...clip.bars[1], columns: [] }] };
     expect(barErrors(emptied).get(1)).toBe("Bar 2 doesn't add up to 4/4: 4 beats short.");
     expect(barErrors({ ...clip, bars: [{ columns: [] }] }).size).toBe(0);
   });
@@ -267,7 +265,7 @@ describe('time signature changes', () => {
     expect(clip.bars.map(b => b.time ?? null)).toEqual([null, { beats: 3, value: 4 }, null, { beats: 4, value: 4 }]);
     expect([0, 1, 2, 3].map(i => `${timeAt(clip, i).beats}/${timeAt(clip, i).value}`)).toEqual(['4/4', '3/4', '3/4', '4/4']);
     expect([0, 1, 2, 3].map(i => changesTime(clip, i))).toEqual([false, true, false, true]);
-    expect(writeAlphaTex(clip)).toBe(tex);
+    expect(writePart(clip)).toBe(tex);
   });
 
   it('drop a \\ts that repeats the time already in force', () => {
@@ -326,25 +324,25 @@ describe('time signature changes', () => {
 
   it('are kept by a stored clip, and a bad one refused', () => {
     const clip = clipOf(tex);
-    expect(parseClip(JSON.parse(JSON.stringify(clip)))).toEqual(clip);
+    expect(parseClip(JSON.parse(JSON.stringify(asClip(clip))))).toEqual(asClip(clip));
     const bad = JSON.parse(JSON.stringify(clip));
     bad.bars[1].time = { beats: 3, value: 3 };
-    expect(parseClip(bad)).toBeNull();
+    expect(parseClip(asClip(bad))).toBeNull();
   });
 });
 
 describe('a stored clip', () => {
   it('keeps tuplets, grace notes and tremolo picking, and refuses ones Frets does not offer', () => {
     const clip = clipOf('5.3.8{gr} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.16{tu 5} 5.3.4{tp 16} r.2 |');
-    expect(parseClip(JSON.parse(JSON.stringify(clip)))).toEqual(clip);
+    expect(parseClip(JSON.parse(JSON.stringify(asClip(clip))))).toEqual(asClip(clip));
     for (const change of [
-      (c: Clip) => { c.bars[0].columns[1].duration.tuplet = 4 as never; },
-      (c: Clip) => { c.bars[0].columns[0].grace = 'after' as never; },
-      (c: Clip) => { c.bars[0].columns[6].tremolo = 64 as never; },
+      (c: Part) => { c.bars[0].columns[1].duration.tuplet = 4 as never; },
+      (c: Part) => { c.bars[0].columns[0].grace = 'after' as never; },
+      (c: Part) => { c.bars[0].columns[6].tremolo = 64 as never; },
     ]) {
-      const copy = JSON.parse(JSON.stringify(clip)) as Clip;
+      const copy = JSON.parse(JSON.stringify(clip)) as Part;
       change(copy);
-      expect(parseClip(copy)).toBeNull();
+      expect(parseClip(asClip(copy))).toBeNull();
     }
   });
 });

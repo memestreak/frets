@@ -1,17 +1,17 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { choosePlace, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(body: string): Clip {
+function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const E4 = 64;
 const at = (column: number) => ({ bar: 0, column });
-const frets = (clip: Clip, column: number) => clip.bars[0].columns[column].notes.map(n => (n ? n.fret : null));
+const frets = (clip: Part, column: number) => clip.bars[0].columns[column].notes.map(n => (n ? n.fret : null));
 
 describe('the staff cursor\'s pitch', () => {
   it('takes the key\'s note on a line or space, and steps through the key', () => {

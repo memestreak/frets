@@ -9,7 +9,7 @@ import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { emptyClip } from '@/features/tab/clip';
+import { partOf, emptyPart } from '@/features/tab/clip';
 import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 import { ScoreHead } from '@/features/tab/ScoreHead';
 import { TabClip } from '@/features/tab/TabClip';
@@ -25,7 +25,7 @@ vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
 const clipOf = (tex: string) => {
   const result = readAlphaTexWith(alphaTab, tex);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 };
 function renderAt(hash = '') {
   window.history.replaceState(null, '', `/tab${hash}`);
@@ -83,7 +83,7 @@ describe('tempoFrom', () => {
 describe("the score head's tempo", () => {
   it('reads "= 120" when the clip names none, and the label and bpm when it does', () => {
     const onEdit = vi.fn();
-    const { rerender } = render(<ScoreHead clip={emptyClip()} onEditTempo={onEdit} />);
+    const { rerender } = render(<ScoreHead clip={emptyPart()} onEditTempo={onEdit} />);
     expect(tempoButton()).toHaveAccessibleName('Tempo: 120 bpm');
     expect(tempoButton()).toHaveTextContent(/^= 120$/);
     fireEvent.click(tempoButton());
@@ -102,7 +102,7 @@ describe("the score head's tempo", () => {
 
   it('is printed in the picture when set, and left unsaid when not', () => {
     const style = parseTabExportStyle(null);
-    expect(tabSvg({ ...emptyClip(), name: 'Riff' }, style, 'Riff')).not.toContain('score-tempo-drawn');
+    expect(tabSvg({ ...emptyPart(), name: 'Riff' }, style, 'Riff')).not.toContain('score-tempo-drawn');
     const svg = tabSvg({ ...clipOf('\\tempo (92 "Slowly") 0.6.4 |'), name: 'Riff' }, style, 'Riff');
     expect(svg).toContain('score-tempo-drawn');
     expect(svg).toContain(' = 92');

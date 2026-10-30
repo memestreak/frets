@@ -9,8 +9,8 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, isWhammy, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
-  TREMOLO_VALUES, tupletFields, type TimeSignature, type Bar, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata, isBarsPerLine,
+  TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
+  type NoteValue, type Fermata, isBarsPerLine, partOf, type MasterBar, type Track, type TrackBar,
 } from './clip';
 import { readFxLine } from './fxLine';
 import { STANDARD_TUNING_TEX } from './instrument';
@@ -20,6 +20,8 @@ type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
 type AtBeat = AlphaTabModule.model.Beat;
 type AtNote = AlphaTabModule.model.Note;
+type AtBar = AlphaTabModule.model.Bar;
+type AtStaff = AlphaTabModule.model.Staff;
 
 let loading: Promise<AlphaTab> | null = null;
 /** alphaTab, imported once and only when first needed. */
@@ -218,7 +220,7 @@ function whammyOf(effects: PropertiesNode | undefined): number[] | null {
 }
 
 /** Joins hammer-ons, pull-offs and slides to the note they lead to, the next on the same string. */
-function joinToNext(bars: Bar[], origins: Map<Note, AtNote>, at: AlphaTab, warn: (w: string) => void) {
+function joinToNext(bars: TrackBar[], origins: Map<Note, AtNote>, at: AlphaTab, warn: (w: string) => void) {
   const notes = bars.flatMap(b => b.columns.map(c => c.notes));
   for (let s = 0; s < STRING_COUNT; s++) {
     const onString = notes.map(ns => ns[s]).filter((n): n is Note => n !== null);
@@ -289,18 +291,23 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     const { errors, spots } = errorsOf(importer, text);
     return { ok: false, errors: errors.length > 0 ? errors : ['This is not alphaTex Frets can read.'], spots };
   }
-  const track = score.tracks[0];
-  const staff = track?.staves[0];
-  if (!tree || !staff || score.tracks.length > 1 || track.staves.length > 1) {
-    return { ok: false, errors: ['Frets reads one track with one staff.'] };
+  // Each track's bars in the parse tree: a `\track` after the first bar starts the next track's.
+  const starts = [0, ...tree?.bars.flatMap((bar, i) => (i > 0 && hasTag(bar, 'track') ? [i] : [])) ?? []];
+  if (!tree || starts.length !== score.tracks.length) return { ok: false, errors: ['This is not alphaTex Frets can read.'] };
+  for (const track of score.tracks) {
+    const staff = track.staves[0];
+    if (!staff || track.staves.length > 1) return { ok: false, errors: ['Frets reads one staff in each track.'] };
+    if (staff.bars.some(b => b.voices.slice(1).some(v => !v.isEmpty))) {
+      return { ok: false, errors: ['Frets reads one voice; this has more.'] };
+    }
+    const strings = staff.stringTuning.tunings.length;
+    if (strings !== STRING_COUNT) return { ok: false, errors: [`Frets reads six-string tab; this has ${strings} strings.`] };
   }
-  if (staff.bars.some(b => b.voices.slice(1).some(v => !v.isEmpty))) {
-    return { ok: false, errors: ['Frets reads one voice; this has more.'] };
-  }
-  const tunings = staff.stringTuning.tunings;
-  if (tunings.length !== STRING_COUNT) {
-    return { ok: false, errors: [`Frets reads six-string tab; this has ${tunings.length} strings.`] };
-  }
+  /** Track `t`'s bar `b` in the tree; a track written with fewer bars than the score has none past its last. */
+  const nodeOf = (t: number, b: number): BarNode => {
+    const index = starts[t] + b;
+    return index < (starts[t + 1] ?? tree.bars.length) ? tree.bars[index] : { metaData: [], beats: [] };
+  };
 
   const warnings: string[] = [];
   const warn = (w: string) => { if (!warnings.includes(w)) warnings.push(w); };
@@ -313,7 +320,6 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   else warn(`Frets doesn't offer ${beats}/${value}; read as 4/4.`);
 
   const header: string[] = [];
-  let instrumentTag: string | undefined;
   // Line breaks, as alphaTab reads them into the score; a bad value is kept as written and named.
   const firstTags = tree.bars[0]?.metaData.map(m => m.tag.tag.text.toLowerCase()) ?? [];
   const layoutOk = new Set<string>();
@@ -325,128 +331,170 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     if (isBarsPerLine(score.defaultSystemsLayout)) layoutOk.add('defaultsystemslayout');
     else warn('\\defaultSystemsLayout takes a whole number from 1; kept as written but not used.');
   }
-  const origins = new Map<Note, AtNote>();
+
+  // The bar marks every track shares, from alphaTab's master bars and the tags any track wrote for them.
+  const firstStaff = score.tracks[0].staves[0];
   let timeNow = time;
-  const bars: Bar[] = tree.bars.map((barNode, b) => {
-    const master = score.masterBars[b];
-    const atBar = staff.bars[b];
-    const bar: Bar = { columns: [] };
-    if (master?.isRepeatStart) bar.repeatStart = true;
-    if (master && master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
-    if (master?.isDoubleBar) bar.doubleBar = true;
-    if (master?.isFreeTime) bar.freeTime = true;
-    if (master && master.alternateEndings > 0) bar.ending = Math.log2(master.alternateEndings & -master.alternateEndings) + 1;
-    const tags = barNode.metaData.map(m => m.tag.tag.text.toLowerCase());
-    if (master && tags.includes('section') && master.section) {
+  const masterBars: MasterBar[] = score.masterBars.map((master, b) => {
+    const bar: MasterBar = {};
+    const tags = new Set(score.tracks.flatMap((_, t) => nodeOf(t, b).metaData.map(m => m.tag.tag.text.toLowerCase())));
+    if (master.isRepeatStart) bar.repeatStart = true;
+    if (master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
+    if (master.isDoubleBar) bar.doubleBar = true;
+    if (master.isFreeTime) bar.freeTime = true;
+    if (master.alternateEndings > 0) bar.ending = Math.log2(master.alternateEndings & -master.alternateEndings) + 1;
+    if (tags.has('section') && master.section) {
       bar.section = { text: master.section.text };
       if (master.section.marker) bar.section.marker = master.section.marker;
     }
-    const tempo = master?.tempoAutomations[0];
-    if (tags.includes('tempo') && tempo) {
+    const tempo = master.tempoAutomations[0];
+    if (tags.has('tempo') && tempo) {
       const bpm = Math.round(Math.min(MAX_BPM, Math.max(MIN_BPM, tempo.value)));
       if (bpm !== tempo.value) warn(`Read a tempo of ${tempo.value} as ${bpm}; Frets offers ${MIN_BPM} to ${MAX_BPM}.`);
       bar.tempo = { bpm };
       if (tempo.text) bar.tempo.label = tempo.text;
     }
-    if (master && master.tempoAutomations.length > 1) warn('Frets draws one tempo a bar; read the first.');
-    if (master && b > 0 && tags.includes('ts')) {
+    if (master.tempoAutomations.length > 1) warn('Frets draws one tempo a bar; read the first.');
+    if (b > 0 && tags.has('ts')) {
       const later = { beats: master.timeSignatureNumerator, value: master.timeSignatureDenominator } as TimeSignature;
       if (!isTimeSignature(later.beats, later.value)) warn(`Frets doesn't offer ${later.beats}/${later.value}; bar ${b + 1} keeps ${timeNow.beats}/${timeNow.value}.`);
       else if (later.beats !== timeNow.beats || later.value !== timeNow.value) bar.time = timeNow = later;
     }
     // A key signature as written, even one the bar before already had, so the text reads back the same.
-    if (atBar && tags.includes('ks')) {
+    const atBar = firstStaff.bars[b];
+    if (atBar && tags.has('ks')) {
       bar.key = { fifths: atBar.keySignature as number };
       if ((atBar.keySignatureType as number) === 1) bar.key.minor = true;
     }
-    for (const meta of barNode.metaData) {
-      const tag = meta.tag.tag.text.toLowerCase();
-      if (TAGS.has(tag)) continue;
-      if (LAYOUT_TAGS.has(tag) && b === 0 && layoutOk.has(tag)) continue;
-      if (b === 0 && tag === 'instrument') {
-        instrumentTag = written(text, meta);
-        continue;
-      }
-      if (b === 0 && CREDIT_TAGS.has(tag)) {
-        header.push(written(text, meta));
-        continue;
-      }
-      kept.set(`\\${tag}`, (kept.get(`\\${tag}`) ?? 0) + 1);
-      if (b === 0 && !BAR_TAGS.has(tag)) header.push(written(text, meta));
-      else (bar.extra ??= []).push(written(text, meta));
-    }
-
-    // The tree's beats, one per beat alphaTab made (a beat written "*3" stands for three).
-    const beatNodes = barNode.beats.flatMap(n => Array<BeatNode>(n.beatMultiplierValue?.value ?? 1).fill(n));
-    const atBeats = beatNodes.length === 0 ? [] : (atBar?.voices[0]?.beats ?? []);
-    atBeats.forEach((beat, i) => {
-      const node = beatNodes[i];
-      const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };
-      if (beat.pickStroke === at.model.PickStroke.Down) column.stroke = 'down';
-      if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
-      if (beat.wahPedal === at.model.WahPedal.Open) column.wah = 'open';
-      if (beat.wahPedal === at.model.WahPedal.Closed) column.wah = 'closed';
-      if (beat.crescendo === at.model.CrescendoType.Crescendo) column.hairpin = 'crescendo';
-      if (beat.crescendo === at.model.CrescendoType.Decrescendo) column.hairpin = 'decrescendo';
-      if (beat.fermata) column.fermata = FERMATA_OF[beat.fermata.type as number];
-      const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
-      if (chord?.name) column.chord = chord.name;
-      if (beat.text) column.text = beat.text;
-      for (const note of beat.notes) {
-        const s = STRING_COUNT - note.string;
-        const n = noteOf(note, at);
-        if (beat.tap) n.tap = true;
-        const noteNode = node?.notes?.notes.find(nn => nn.noteString?.value === s + 1);
-        // A whammy bar written with a note is the beat's, written back with the beat (`tb` after its length).
-        const whammy = column.whammy || whammyOf(node?.beatEffects) ? null : whammyOf(noteNode?.noteEffects);
-        if (whammy) column.whammy = whammy;
-        const extra = keptEffects(text, noteNode?.noteEffects, whammy ? new Set([...NOTE_EFFECTS, 'tb']) : NOTE_EFFECTS, kept);
-        if (extra.length > 0) n.extra = extra;
-        column.notes[s] = n;
-        origins.set(n, note);
-      }
-      const extra = keptEffects(text, node?.beatEffects, beatReads(beat, column, at, node), kept);
-      if (extra.length > 0) column.extra = extra;
-      bar.columns.push(column);
-    });
     return bar;
   });
-  joinToNext(bars, origins, at, warn);
+
+  const tracks = score.tracks.map((atTrack, t): Track => {
+    const staff = atTrack.staves[0];
+    const origins = new Map<Note, AtNote>();
+    const trackHeader: string[] = [];
+    let tag: string | undefined;
+    let instrumentTag: string | undefined;
+    const bars = score.masterBars.map((_, b): TrackBar => {
+      const barNode = nodeOf(t, b);
+      const atBar = staff.bars[b];
+      const bar: TrackBar = { columns: [] };
+      for (const meta of barNode.metaData) {
+        const name = meta.tag.tag.text.toLowerCase();
+        if (TAGS.has(name)) continue;
+        if (LAYOUT_TAGS.has(name) && t === 0 && b === 0 && layoutOk.has(name)) continue;
+        if (b === 0 && name === 'instrument') {
+          instrumentTag = written(text, meta);
+          continue;
+        }
+        if (b === 0 && name === 'track') {
+          tag = written(text, meta);
+          continue;
+        }
+        if (b === 0 && CREDIT_TAGS.has(name)) {
+          header.push(written(text, meta));
+          continue;
+        }
+        kept.set(`\\${name}`, (kept.get(`\\${name}`) ?? 0) + 1);
+        // The first track's lines before its `\track` are the clip's; the rest are the track's.
+        if (b === 0 && !BAR_TAGS.has(name)) (t === 0 && tag === undefined ? header : trackHeader).push(written(text, meta));
+        else (bar.extra ??= []).push(written(text, meta));
+      }
+      bar.columns = columnsOf(text, barNode, atBar, staff, at, origins, kept, warn);
+      return bar;
+    });
+    joinToNext(bars, origins, at, warn);
+
+    const track: Track = {
+      name: tag === undefined ? '' : atTrack.name,
+      tuning: [...staff.stringTuning.tunings].reverse().map(m => SHARP_NAMES[m % 12]),
+      bars,
+    };
+    if (tag !== undefined) track.tag = tag;
+    if (trackHeader.length > 0) track.header = trackHeader;
+    // The instrument, from its tag or a `\track` line that names one.
+    if (instrumentTag || (tag && /\binstrument\b/i.test(tag))) {
+      track.instrument = { program: atTrack.playbackInfo.program };
+      if (instrumentTag) track.instrument.tag = instrumentTag;
+      // alphaTab reads a name it doesn't know as program 0, the piano, without a word.
+      const value = instrumentTag?.replace(/^\\instrument\s*/i, '').replace(/["']/g, '').trim().toLowerCase();
+      if (value !== undefined && track.instrument.program === 0 && value !== '0' && value !== 'acousticgrandpiano') {
+        warn(`Frets doesn't know the instrument ${value}; it plays as Acoustic Grand Piano.`);
+      }
+    }
+    if (hasTag(nodeOf(t, 0), 'capo') && staff.capo > 0) {
+      track.capo = Math.min(MAX_CAPO, staff.capo);
+      if (staff.capo > MAX_CAPO) warn(`Read capo ${staff.capo} as ${MAX_CAPO}, the highest Frets offers.`);
+    }
+    return track;
+  });
 
   const clip: Clip = {
     name: score.title,
     time,
-    tuning: [...tunings].reverse().map(m => SHARP_NAMES[m % 12]),
-    bars: bars.length > 0 ? bars : [{ columns: [] }],
+    masterBars: masterBars.length > 0 ? masterBars : [{}],
+    tracks: masterBars.length > 0 ? tracks : tracks.map(track => ({ ...track, bars: [{ columns: [] }] })),
   };
   if (header.length > 0) clip.header = header;
-  // The instrument, from its tag or a kept `\track` line that names one.
-  if (instrumentTag || header.some(h => /^\\track\b/i.test(h) && /\binstrument\b/i.test(h))) {
-    clip.instrument = { program: track.playbackInfo.program };
-    if (instrumentTag) clip.instrument.tag = instrumentTag;
-    // alphaTab reads a name it doesn't know as program 0, the piano, without a word.
-    const value = instrumentTag?.replace(/^\\instrument\s*/i, '').replace(/["']/g, '').trim().toLowerCase();
-    if (value !== undefined && clip.instrument.program === 0 && value !== '0' && value !== 'acousticgrandpiano') {
-      warn(`Frets doesn't know the instrument ${value}; it plays as Acoustic Grand Piano.`);
-    }
-  }
   const fx = fxOf(tree);
   if (fx) clip.fx = fx;
   if (layoutOk.has('systemslayout')) clip.systemsLayout = [...score.systemsLayout];
   if (layoutOk.has('defaultsystemslayout')) clip.defaultSystemsLayout = score.defaultSystemsLayout;
-  if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'multibarrest')) clip.multiBarRests = true;
-  if (tree.bars[0]?.metaData.some(m => m.tag.tag.text.toLowerCase() === 'capo') && staff.capo > 0) {
-    clip.capo = Math.min(MAX_CAPO, staff.capo);
-    if (staff.capo > MAX_CAPO) warn(`Read capo ${staff.capo} as ${MAX_CAPO}, the highest Frets offers.`);
-  }
+  if (hasTag(tree.bars[0], 'multibarrest')) clip.multiBarRests = true;
 
   if (kept.size > 0) {
     const list = [...kept].map(([k, n]) => `${k}${KEPT_NAMES[k] ? ` (${KEPT_NAMES[k]})` : ''}${n > 1 ? ` ×${n}` : ''}`);
     warnings.push(`Kept but not drawn yet: ${list.join(', ')}.`);
   }
-  const uneven = unevenMessage(clip);
-  if (uneven) warnings.push(uneven);
+  clip.tracks.forEach((track, t) => {
+    const uneven = unevenMessage(partOf(clip, t));
+    if (uneven) warnings.push(clip.tracks.length > 1 ? `${track.name || `Track ${t + 1}`}: ${uneven}` : uneven);
+  });
   return { ok: true, clip, warnings };
+}
+
+/** Whether a bar of the tree carries the tag. */
+function hasTag(bar: BarNode | undefined, tag: string): boolean {
+  return !!bar?.metaData.some(m => m.tag.tag.text.toLowerCase() === tag);
+}
+
+/** A bar's columns: the tree's beats, one per beat alphaTab made (a beat written "*3" stands for three). */
+function columnsOf(
+  text: string, barNode: BarNode, atBar: AtBar | undefined, staff: AtStaff, at: AlphaTab,
+  origins: Map<Note, AtNote>, kept: Map<string, number>, warn: (w: string) => void,
+): Column[] {
+  const beatNodes = barNode.beats.flatMap(n => Array<BeatNode>(n.beatMultiplierValue?.value ?? 1).fill(n));
+  const atBeats = beatNodes.length === 0 ? [] : (atBar?.voices[0]?.beats ?? []);
+  return atBeats.map((beat, i) => {
+    const node = beatNodes[i];
+    const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };
+    if (beat.pickStroke === at.model.PickStroke.Down) column.stroke = 'down';
+    if (beat.pickStroke === at.model.PickStroke.Up) column.stroke = 'up';
+    if (beat.wahPedal === at.model.WahPedal.Open) column.wah = 'open';
+    if (beat.wahPedal === at.model.WahPedal.Closed) column.wah = 'closed';
+    if (beat.crescendo === at.model.CrescendoType.Crescendo) column.hairpin = 'crescendo';
+    if (beat.crescendo === at.model.CrescendoType.Decrescendo) column.hairpin = 'decrescendo';
+    if (beat.fermata) column.fermata = FERMATA_OF[beat.fermata.type as number];
+    const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
+    if (chord?.name) column.chord = chord.name;
+    if (beat.text) column.text = beat.text;
+    for (const note of beat.notes) {
+      const s = STRING_COUNT - note.string;
+      const n = noteOf(note, at);
+      if (beat.tap) n.tap = true;
+      const noteNode = node?.notes?.notes.find(nn => nn.noteString?.value === s + 1);
+      // A whammy bar written with a note is the beat's, written back with the beat (`tb` after its length).
+      const whammy = column.whammy || whammyOf(node?.beatEffects) ? null : whammyOf(noteNode?.noteEffects);
+      if (whammy) column.whammy = whammy;
+      const extra = keptEffects(text, noteNode?.noteEffects, whammy ? new Set([...NOTE_EFFECTS, 'tb']) : NOTE_EFFECTS, kept);
+      if (extra.length > 0) n.extra = extra;
+      column.notes[s] = n;
+      origins.set(n, note);
+    }
+    const extra = keptEffects(text, node?.beatEffects, beatReads(beat, column, at, node), kept);
+    if (extra.length > 0) column.extra = extra;
+    return column;
+  });
 }
 
 /**

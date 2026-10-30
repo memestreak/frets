@@ -11,6 +11,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
+import { partOf } from '@/features/tab/clip';
 
 const DIR = join(__dirname, 'fixtures');
 const UPDATE = process.env.UPDATE_FIXTURES === '1';
@@ -21,7 +22,7 @@ function outcome(input: string): string {
   const result = readAscii(input);
   if (!result.ok) return `${result.errors.map(e => `x ${e}`).join('\n')}\n`;
   const notes = result.warnings.map(w => `! ${w}`).join('\n');
-  return `${notes}\n\n${writeAscii(result.clip)}\n`;
+  return `${notes}\n\n${writeAscii(partOf(result.clip))}\n`;
 }
 
 describe('ASCII fixtures', () => {
@@ -42,7 +43,7 @@ describe('ASCII fixtures', () => {
     if (ascii) {
       const again = readAscii(ascii);
       expect(again.ok && again.warnings.filter(w => !/add up to/.test(w))).toEqual([]);
-      if (again.ok) expect(`${writeAscii(again.clip)}\n`).toBe(ascii);
+      if (again.ok) expect(`${writeAscii(partOf(again.clip))}\n`).toBe(ascii);
     }
   });
 });

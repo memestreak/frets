@@ -6,7 +6,7 @@
  * straight down from its number, and a return a line back up. Pure; `TabClip.tsx` draws it and
  * `marks.ts` picks it.
  */
-import { isRest, type Clip, type Column } from './clip';
+import { isRest, type Part, type Column } from './clip';
 import { BEND_PEAK, DIVES_ROOM, stringY, type Layout, type PlacedColumn, type Rows } from './layout';
 
 /** The shapes the palette's Whammy bar button sets, as alphaTex points (quarter tones), in its panel's order. */
@@ -91,7 +91,7 @@ function held(points: number[]): boolean {
  * number, even where a bar starts, as the book prints Stop's bar 3 (the line says it); a returning
  * one has its number, for the line to climb back to (Stop, Gtr. 4, bar 13).
  */
-export function whammyJoins(clip: Pick<Clip, 'bars'>): Map<Column, 'hold' | 'return'> {
+export function whammyJoins(clip: Pick<Part, 'bars'>): Map<Column, 'hold' | 'return'> {
   const out = new Map<Column, 'hold' | 'return'>();
   const columns = clip.bars.flatMap(b => b.columns);
   columns.forEach((column, i) => {

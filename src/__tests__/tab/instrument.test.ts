@@ -3,19 +3,25 @@
  * nearest of Frets' three sounds for one it doesn't have, kept as written.
  */
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { sameMusic } from '@/features/tab/clipState';
-import { parseClip, type Clip } from '@/features/tab/clip';
+import { parseClip, partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
 import { instrumentName, instrumentTag, keepsGuitarTuning, soundFor, substituteNote } from '@/features/tab/instrument';
 import { perform } from '@/features/tab/playback';
 
 const BARS = '\\ts (4 4)\n5.6.4 7.6.4 r.2 |\n';
 
-function clipOf(text: string): Clip {
+function wholeOf(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
   return result.clip;
+}
+
+function clipOf(text: string): Part {
+  const result = readAlphaTexWith(alphaTab, text);
+  if (!result.ok) throw new Error(result.errors.join('\n'));
+  return partOf(result.clip);
 }
 
 describe('the sound for an instrument', () => {
@@ -57,7 +63,7 @@ describe('the instrument in a clip\'s alphaTex', () => {
     const clip = clipOf(`\\instrument distortionguitar\n${BARS}`);
     expect(clip.instrument).toEqual({ program: 30, tag: '\\instrument distortionguitar' });
     expect(clip.header).toBeUndefined();
-    expect(writeAlphaTex(clip)).toBe(`\\instrument distortionguitar\n${BARS}`);
+    expect(writePart(clip)).toBe(`\\instrument distortionguitar\n${BARS}`);
   });
 
   it('warns of a name alphaTab doesn\'t know, which it reads as the piano', () => {
@@ -70,7 +76,7 @@ describe('the instrument in a clip\'s alphaTex', () => {
   it('writes no instrument for a clip that names none', () => {
     const clip = clipOf(BARS);
     expect(clip.instrument).toBeUndefined();
-    expect(writeAlphaTex(clip)).toBe(BARS);
+    expect(writePart(clip)).toBe(BARS);
   });
 
   it('reads a piano with no tuning as guitar tab in standard tuning, and writes the tuning with it', () => {
@@ -78,7 +84,7 @@ describe('the instrument in a clip\'s alphaTex', () => {
     const clip = clipOf(`\\instrument acousticgrandpiano\n${BARS}`);
     expect(clip.instrument?.program).toBe(0);
     expect(clip.tuning).toEqual(['E', 'A', 'D', 'G', 'B', 'E']);
-    const written = writeAlphaTex(clip);
+    const written = writePart(clip);
     expect(written).toBe(`\\instrument acousticgrandpiano\n\\ts (4 4)\n\\tuning (E4 B3 G3 D3 A2 E2)\n5.6.4 7.6.4 r.2 |\n`);
     expect(clipOf(written)).toEqual(clip);
   });
@@ -90,11 +96,12 @@ describe('the instrument in a clip\'s alphaTex', () => {
   });
 
   it('takes the program of a kept \\track line that names one, without a tag of its own', () => {
-    const clip = clipOf(`\\track "Lead" { instrument 29 }\n${BARS}`);
+    const whole = wholeOf(`\\track "Lead" { instrument 29 }\n${BARS}`);
+    const clip = partOf(whole);
     expect(clip.instrument).toEqual({ program: 29 });
-    expect(writeAlphaTex(clip)).toBe(`\\track "Lead" { instrument 29 }\n${BARS}`);
+    expect(writeAlphaTex(whole)).toBe(`\\track "Lead" { instrument 29 }\n${BARS}`);
     // A Sound picked writes its tag after it, which wins.
-    const picked = { ...clip, instrument: { program: 27, tag: instrumentTag(27) } };
+    const picked = withPart(whole, { ...clip, instrument: { program: 27, tag: instrumentTag(27) } });
     expect(clipOf(writeAlphaTex(picked)).instrument?.program).toBe(27);
   });
 
@@ -109,10 +116,12 @@ describe('the instrument in a clip\'s alphaTex', () => {
 
 describe('the instrument in a saved clip', () => {
   const clip = clipOf(BARS);
+  const whole = wholeOf(BARS);
+  const withSound = (instrument: unknown) => ({ ...whole, tracks: [{ ...whole.tracks[0], instrument }] });
   it('is checked', () => {
-    expect(parseClip({ ...clip, instrument: { program: 30, tag: '\\instrument 30' } })?.instrument).toEqual({ program: 30, tag: '\\instrument 30' });
-    expect(parseClip({ ...clip, instrument: { program: 128 } })).toBeNull();
-    expect(parseClip({ ...clip, instrument: { program: 27, tag: 3 } })).toBeNull();
+    expect(parseClip(withSound({ program: 30, tag: '\\instrument 30' }))?.tracks[0].instrument).toEqual({ program: 30, tag: '\\instrument 30' });
+    expect(parseClip(withSound({ program: 128 }))).toBeNull();
+    expect(parseClip(withSound({ program: 27, tag: 3 }))).toBeNull();
   });
 
   it('is no change to the music: a new sound doesn\'t stop playback', () => {

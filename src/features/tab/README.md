@@ -3,7 +3,12 @@
 Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 - `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
-  not in `sections.ts` until it is ready): `clip.ts` (the model: bars of
+  not in `sections.ts` until it is ready): `clip.ts` (the model: a clip of one or more tracks, `\track`,
+  over the bars they share, `masterBars` holding each bar's signatures, repeats, tempo and section and each
+  track's `bars` its notes; `Part` is one track with those marks in its bars, what the layout, drawing,
+  edits and playback work on, made by `partOf` and put back by `withPart`, which keeps the other tracks'
+  bars in step; the page shows, edits and plays the first track, with an "i" over a clip of more,
+  `hiddenTracksNote` in `TabPage.tsx`; `docs/specs/2026-10-30-tab-tracks-design.md`; bars of
   columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
   thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
   tu 3 … 12, or any ratio `tu (n d)`) are whole numbers too; grace notes take no time; a bar may change the time signature, `timeAt`;
@@ -40,7 +45,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
   `TabExportDialog.tsx` (the Export options button; the Tab view's copy button copies the PNG;
   `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
-  helpers), and `TabPage.tsx` (the editor, with its parts in `editorKeys.ts` (the keys on the
+  helpers), and `TabPage.tsx` (the editor, keeping the whole clip and editing its first track as a part through `clipAction` in `clipState.ts`, with its parts in `editorKeys.ts` (the keys on the
   tab, the staff cursor and the playback line), `useClipImport.ts` (import, examples, links and
   drops), `TabDialogs.tsx` (the Import dialog), `ArrangementsDialog.tsx` (Arrangements…: My arrangements, in folders one level deep, then the built-in ones in theirs, one line each by name), `arrangements.ts` and `useArrangements.ts` (My arrangements in the browser, one key per clip, the open one saved as it is edited; imports, drops and `#tab=` links open as new ones; `docs/specs/2026-10-28-tab-arrangements-design.md`), `ClipActions.tsx` (View options,
   copy, Copy link and save; `shareLink.ts` writes the link, the clip's alphaTex compressed in `#tabz=` (its `\instrument` and FX line carry the Sound and FX), and reads it and `#tab=`; `docs/specs/2026-10-29-tab-share-link-design.md`), `WordTools.tsx` (a picked word's Edit and Delete, where fields and panels go),

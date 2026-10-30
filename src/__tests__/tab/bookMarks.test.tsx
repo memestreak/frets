@@ -6,15 +6,15 @@
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import type { Clip } from '@/features/tab/clip';
 import { layoutClip, noteLabel, signRoom, type Parts } from '@/features/tab/layout';
 import { barHeads } from '@/features/tab/notation';
 import { TabClip } from '@/features/tab/TabClip';
+import { type Part, partOf } from '@/features/tab/clip';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${text}\n`);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 const drawn = (text: string, parts: Parts) =>

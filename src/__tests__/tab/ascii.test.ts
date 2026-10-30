@@ -1,10 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
-import {
-  BEND_QUARTERS, isPalmMuted, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks, TUPLETS, unevenMessage,
-  type Bar, type Clip, type Column, type Duration, type Note,
-} from '@/features/tab/clip';
+import { BEND_QUARTERS, isPalmMuted, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks, TUPLETS, unevenMessage, type Bar, type Column, type Duration, type Note, type Part, partOf } from '@/features/tab/clip';
 import { seededRng } from '../helpers/rng';
 
 /** The worked examples in section 8 of the format's definition, as written there. */
@@ -18,7 +15,7 @@ function documentExamples(): string[] {
 function read(text: string) {
   const result = readAscii(text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result;
+  return { ...result, clip: partOf(result.clip) };
 }
 
 const notesOf = (c: Column) => c.notes.map(n => (n ? n.fret : '-'));
@@ -231,7 +228,7 @@ describe('readAscii forgives', () => {
 
 describe('writeAscii and readAscii round trip', () => {
   /** A random clip using every mark, as an editor could make it. */
-  function randomClip(seed: number): Clip {
+  function randomClip(seed: number): Part {
     const rng = seededRng(seed);
     const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rng() * xs.length)];
     const previous: (Note | null)[] = Array(6).fill(null);
@@ -306,13 +303,13 @@ describe('readAscii, smaller marks', () => {
   it('reads a double dot in the rhythm line and writes it back', () => {
     const result = readAscii('Time: 2/4\n\n   q.. s\ne|-5---7-|\nB|-------|\nG|-------|\nD|-------|\nA|-------|\nE|-------|');
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    expect(result.clip.bars[0].columns[0].duration).toEqual({ value: 4, dots: 2 });
-    expect(writeAscii(result.clip)).toContain('q..');
+    expect(partOf(result.clip).bars[0].columns[0].duration).toEqual({ value: 4, dots: 2 });
+    expect(writeAscii(partOf(result.clip))).toContain('q..');
   });
 
   it('mutes only the note marked M', () => {
     const result = readAscii('e|-5M--|\nB|-5---|\nG|-----|\nD|-----|\nA|-----|\nE|-----|');
     if (!result.ok) throw new Error(result.errors.join('\n'));
-    expect(result.clip.bars[0].columns[0].notes.slice(0, 2)).toEqual([{ fret: 5, palmMute: true }, { fret: 5 }]);
+    expect(partOf(result.clip).bars[0].columns[0].notes.slice(0, 2)).toEqual([{ fret: 5, palmMute: true }, { fret: 5 }]);
   });
 });

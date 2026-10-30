@@ -8,9 +8,9 @@
  * See docs/specs/2026-10-26-tab-playback-design.md.
  */
 import type * as AlphaTabModule from '@coderline/alphatab';
-import { writeAlphaTex } from './alphatex';
+import { writePart } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { STRING_COUNT, TREMOLO_VALUES, type Clip, type Note } from './clip';
+import { STRING_COUNT, TREMOLO_VALUES, type Part, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
@@ -163,14 +163,14 @@ function pickAtTremoloValue(score: Score) {
  * the metronome is off; so they keep time with the notes whatever the speed, the loop or the time
  * signature.
  */
-export function perform(at: AlphaTab, clip: Clip, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
+export function perform(at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
   const settings = new at.Settings();
   // alphaTab's wide vibrato is faster as well as wider (a period of 240 ticks to the slight one's
   // 360); a wide vibrato is only wider (Jeremy, 2026-10-29: "it should just be wider").
   settings.player.vibrato.noteWideLength = settings.player.vibrato.noteSlightLength;
   const importer = new at.importer.AlphaTexImporter();
   importer.logErrors = false;
-  importer.initFromString(writeAlphaTex(clip), settings);
+  importer.initFromString(writePart(clip), settings);
   const score = importer.readScore();
   // The chosen sound, whatever instrument the clip's alphaTex names: the track's own program, and
   // the instrument change alphaTab's reader puts on the first beat.
@@ -452,7 +452,7 @@ interface Span {
  *   vibrato, where nothing sounds, so 12 sl 14 sl 12 bent half a step never bent (Jeremy, 2026-10-28).
  * Those pitch bends are moved to the run's key and channel, so the note sounds as written.
  */
-function keepSlidPitch(at: AlphaTab, clip: Clip, performance: Performance) {
+function keepSlidPitch(at: AlphaTab, clip: Part, performance: Performance) {
   const spans: Span[] = [];
   const last: (Note | null)[] = Array(STRING_COUNT).fill(null);
   // Each string's picked note sounding (the start of a run of legato slides): its fret and channel.
@@ -539,7 +539,7 @@ const HEARD_BPM = 120;
  * string of a column as a plain picked note (no tie, slide or bend, which need the notes round it),
  * with the clip's tuning and capo. Null where there is no note.
  */
-export function noteAlone(clip: Clip, bar: number, column: number, string: number): Clip | null {
+export function noteAlone(clip: Part, bar: number, column: number, string: number): Part | null {
   const placed = clip.bars[bar]?.columns[column];
   if (!placed?.notes[string]) return null;
   const note = placed.notes[string]!;
@@ -558,26 +558,26 @@ export function noteAlone(clip: Clip, bar: number, column: number, string: numbe
 }
 
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
-export function columnOfBeat(clip: Clip, beat: Beat): number | null {
+export function columnOfBeat(clip: Part, beat: Beat): number | null {
   const bar = beat.voice.bar.index;
   if (bar >= clip.bars.length || beat.index >= clip.bars[bar].columns.length) return null;
   return indexOf(clip, bar, beat.index);
 }
 
 /** The column sounding at a tick, or null. */
-export function columnAtTick(clip: Clip, performance: Performance, tick: number): number | null {
+export function columnAtTick(clip: Part, performance: Performance, tick: number): number | null {
   const found = performance.lookup.findBeat(new Set([0]), tick - performance.shift);
   return found ? columnOfBeat(clip, found.beat) : null;
 }
 
 /** The score's beat for a column of the clip. */
-function beatOf(performance: Performance, clip: Clip, index: number): Beat | null {
+function beatOf(performance: Performance, clip: Part, index: number): Beat | null {
   const { bar, column } = placeOf(clip, index);
   return performance.score.tracks[0]?.staves[0]?.bars[bar]?.voices[0]?.beats[column] ?? null;
 }
 
 /** The ticks from the start of one column to the end of another, the first time each is played. */
-export function ticksOf(clip: Clip, performance: Performance, [from, to]: [number, number]): { startTick: number; endTick: number } | null {
+export function ticksOf(clip: Part, performance: Performance, [from, to]: [number, number]): { startTick: number; endTick: number } | null {
   const first = beatOf(performance, clip, from);
   const last = beatOf(performance, clip, to);
   if (!first || !last) return null;
@@ -587,7 +587,7 @@ export function ticksOf(clip: Clip, performance: Performance, [from, to]: [numbe
 }
 
 /** The tick a column first starts on. */
-export function tickOf(clip: Clip, performance: Performance, index: number): number {
+export function tickOf(clip: Part, performance: Performance, index: number): number {
   const beat = beatOf(performance, clip, index);
   return (beat ? performance.lookup.getBeatStart(beat) : 0) + performance.shift;
 }
@@ -644,7 +644,7 @@ function rangeWithoutSeek(synth: AlphaTabModule.synth.AlphaSynth, range: AlphaTa
  */
 export class TabPlayer {
   private performance: Performance | null = null;
-  private clip: Clip | null = null;
+  private clip: Part | null = null;
   private sound: Sound = DEFAULT_SOUND;
   private volume = 1;
   /** The sounds' own soundfonts loaded so far, by URL. */
@@ -758,7 +758,7 @@ export class TabPlayer {
    * plays up to them first, and a start after them plays on to the end. `whole` loops the whole clip.
    * With no loop ahead, `until` (a column) is where playback stops: at the end of that column's note.
    */
-  async play(clip: Clip, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound, until: number | null = null) {
+  async play(clip: Part, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound, until: number | null = null) {
     await this.loadFont(sound);
     this.endRest();
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
@@ -1091,7 +1091,7 @@ export class TabPlayer {
    * synthesizer's MIDI in place of the clip's (alphaTab's one-time MIDI files play no notes here), so
    * the next Play loads the clip again.
    */
-  async hear(clip: Clip, bar: number, column: number, string: number, sound: Sound) {
+  async hear(clip: Part, bar: number, column: number, string: number, sound: Sound) {
     if (!this.ended) return;
     const alone = noteAlone(clip, bar, column, string);
     if (!alone) return;

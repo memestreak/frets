@@ -3,9 +3,9 @@
  * read, written back exactly, drawn as one bend on the tab and at the bent pitch on the staff, and played.
  */
 import * as alphaTab from '@coderline/alphatab';
-import { writeAlphaTex } from '@/features/tab/alphatex';
+import { writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { bendCarries, bentSemitones, type Clip } from '@/features/tab/clip';
+import { bendCarries, bentSemitones, type Part, partOf } from '@/features/tab/clip';
 import { barHeads } from '@/features/tab/notation';
 import { perform } from '@/features/tab/playback';
 import { TabClip } from '@/features/tab/TabClip';
@@ -16,19 +16,19 @@ const TEXT = [
   '17.1.8{gr} -.1{b (0 4) v}.2 -.1{b (4 4) v}.4 -.1{b (4 0)}.8 15.1.8 |',
 ].join('\n') + '\n';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
-const notesOn1 = (clip: Clip) => clip.bars[0].columns.map(c => c.notes[0]!);
+const notesOn1 = (clip: Part) => clip.bars[0].columns.map(c => c.notes[0]!);
 
 describe('a held bend', () => {
   it('reads with no warnings and writes back exactly', () => {
     const result = readAlphaTexWith(alphaTab, TEXT);
     expect(result.ok && result.warnings).toEqual([]);
-    expect(writeAlphaTex(clipOf(TEXT))).toBe(TEXT);
+    expect(writePart(clipOf(TEXT))).toBe(TEXT);
   });
 
   it('carries the bend on over the ties: held, then let down', () => {

@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { usePanelClose, usePanelInside } from './barPanel';
-import { changesTime, timeAt, type Clip, type TimeSignature } from './clip';
+import { changesTime, timeAt, type Part, type TimeSignature } from './clip';
 import { TimeSignatureFields } from './TimeSignatureFields';
 
 /**
@@ -12,7 +12,7 @@ import { TimeSignatureFields } from './TimeSignatureFields';
  * back to the time signature before). A click outside or Esc closes it, Esc giving the keys back to the tab.
  */
 export function BarTimePanel({ clip, bar, x, y, onChange, onClose }: {
-  clip: Clip;
+  clip: Part;
   bar: number;
   /** Where the panel's left edge and top go, in the tab's own units. */
   x: number;

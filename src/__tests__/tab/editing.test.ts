@@ -1,20 +1,20 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { writeAlphaTex, writeBars } from '@/features/tab/alphatex';
-import { emptyClip, fewestRests, WHOLE, type Clip } from '@/features/tab/clip';
+import { writePart, writeBars } from '@/features/tab/alphatex';
+import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab/clip';
 import { parseEditing } from '@/features/tab/editingPrefs';
 import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
 
-function clipOf(text: string): Clip {
+function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
   if (!result.ok) throw new Error(result.errors.join('\n'));
-  return result.clip;
+  return partOf(result.clip);
 }
 
 /** The clip's bars as alphaTex, without the header. */
-function bars(clip: Clip): string {
+function bars(clip: Part): string {
   return writeBars(clip).join('\n');
 }
 
@@ -35,7 +35,7 @@ describe('places', () => {
 
 describe('typing', () => {
   it('puts the first fret in an empty clip as a quarter', () => {
-    const clip = setFret(emptyClip(), at(0, 0, 2), 5);
+    const clip = setFret(emptyPart(), at(0, 0, 2), 5);
     expect(bars(clip)).toBe('5.3.4 |');
   });
 
@@ -197,7 +197,7 @@ describe('moving', () => {
 
   it('fills an emptied bar with one rest where one will do', () => {
     const full = clipOf('5.3.1 | \\ts (3 4) 7.3.2 7.3.4 | 9.3.2 9.3.4 |');
-    const clip: Clip = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
+    const clip: Part = { ...full, bars: full.bars.map((b, i) => (i === 1 ? { ...b, columns: [] } : b)) };
     const moved = moveColumn(clip, at(1, 0, 2), 1, FILL);
     expect(bars(moved.clip).split('\n')[1]).toBe('\\ts (3 4) r.2{d} |');
     expect(moved.cursor).toEqual(at(1, 0, 2));
@@ -232,7 +232,7 @@ describe('moving', () => {
     expect(bars(moveColumn(clipOf('5.3.2 5.3.4{d} |'), at(0, 1, 2), 1).clip)).toBe('5.3.2 5.3.4{d} r.8 |');
     // An emptied bar gets one rest, as long as the last column before it.
     const emptied = clipOf('5.3.4 | 9.3.1 |');
-    const blank: Clip = { ...emptied, bars: [emptied.bars[0], { ...emptied.bars[1], columns: [] }] };
+    const blank: Part = { ...emptied, bars: [emptied.bars[0], { ...emptied.bars[1], columns: [] }] };
     expect(bars(moveColumn(blank, at(1, 0, 2), 1).clip)).toBe('5.3.4 |\nr.4 |');
   });
 
@@ -354,7 +354,7 @@ describe('cut, copy and paste', () => {
 
   it('pastes a whole clip into an empty one, with its name and time', () => {
     const pasted = clipOf('\\title "Lick"\n\\ts (3 4)\n5.3.2{d} |');
-    const result = pasteAt(emptyClip(), at(0, 0, 0), pasted);
+    const result = pasteAt(emptyPart(), at(0, 0, 0), pasted);
     expect(result.clip.name).toBe('Lick');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
   });
@@ -375,12 +375,12 @@ describe('words over the tab', () => {
     clip = setSection(clip, 0, 'Intro');
     clip = setTempo(clip, 0, { bpm: 80 });
     clip = setCapo(clip, 2);
-    expect(writeAlphaTex(clip)).toBe('\\ts (4 4)\n\\capo 2\n\\section "Intro" \\tempo 80 5.3.2 7.3.2{ch "Am7"} |\n');
+    expect(writePart(clip)).toBe('\\ts (4 4)\n\\capo 2\n\\section "Intro" \\tempo 80 5.3.2 7.3.2{ch "Am7"} |\n');
     clip = setChordName(clip, at(0, 1, 2), '');
     clip = setSection(clip, 0, ' ');
     clip = setTempo(clip, 0, null);
     clip = setCapo(clip, null);
-    expect(writeAlphaTex(clip)).toBe('\\ts (4 4)\n5.3.2 7.3.2 |\n');
+    expect(writePart(clip)).toBe('\\ts (4 4)\n5.3.2 7.3.2 |\n');
   });
 
   it('keeps a rehearsal mark when only the section name changes', () => {

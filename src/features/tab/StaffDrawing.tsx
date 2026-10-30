@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Clip, type Column, type Fermata, type TimeSignature } from './clip';
+import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
 import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { accidentalLanes, keySigns, STAFF_LINES, type Accidental, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
@@ -18,7 +18,7 @@ import { TapSign } from './TapSign';
 export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false }: {
   system: System;
   score: ScoreRows;
-  clip: Clip;
+  clip: Part;
   look: TabLook;
   lastBar: number;
   /** The line's technique marks, ties and tuplet numbers (`staffMarks.ts`). */

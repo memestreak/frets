@@ -11,13 +11,13 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { setTempo } from './barEdits';
-import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Clip, type Tempo } from './clip';
+import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part, type Tempo } from './clip';
 import { NumberField, resetOnDoubleClick } from './NumberField';
 import { addTap, tapBpm } from './tapTempo';
 import { usePopover } from './usePopover';
 
 /** The tempo in effect at a bar: the last one set at or before it, else alphaTab's 120. */
-export function tempoFrom(clip: Clip, bar: number): Tempo {
+export function tempoFrom(clip: Part, bar: number): Tempo {
   for (let b = Math.min(bar, clip.bars.length - 1); b >= 0; b--) {
     const tempo = clip.bars[b].tempo;
     if (tempo) return tempo;
@@ -27,15 +27,15 @@ export function tempoFrom(clip: Clip, bar: number): Tempo {
 
 export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
   /** The clip as it was when the panel opened. */
-  clip: Clip;
+  clip: Part;
   /** The bar the tempo starts at. */
   bar: number;
   x: number;
   y: number;
   /** The clip with the tempo as set so far, shown while the panel is open. */
-  onChange: (clip: Clip) => void;
+  onChange: (clip: Part) => void;
   /** Closed: the clip to keep, or null to put it back as it was (Esc). */
-  onDone: (clip: Clip | null) => void;
+  onDone: (clip: Part | null) => void;
 }) {
   const start = clip.bars[bar]?.tempo ?? { bpm: tempoFrom(clip, bar).bpm };
   const [bpm, setBpm] = useState(start.bpm);
