@@ -363,7 +363,12 @@ export default function TabPage() {
     commit(next.clip, next.cursor, null);
   };
 
+  /**
+   * A palette button or panel choice. Off the tab (after Esc or a press elsewhere) nothing is under the
+   * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
+   */
   const onTool = (id: ToolId) => {
+    if (!editing) return;
     if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') { setPanelAt(null); setTimeBar(cursor.bar); }
@@ -380,6 +385,11 @@ export default function TabPage() {
   const commitKeepingMark = (next: Clip) => {
     commit(next);
     if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
+  };
+
+  /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
+  const onPanelChoice = (apply: () => Clip) => {
+    if (editing) commitKeepingMark(apply());
   };
 
   /**
@@ -805,10 +815,10 @@ export default function TabPage() {
         <TabPalette
           // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
           isOn={id => (pickedTool ? id === pickedTool : lit && isOn(clip, cursor, id, columnOnly))} kinds={paletteKinds}
-          onTool={onTool} onBend={quarters => commitKeepingMark(setBend(clip, target, quarters))}
-          onTuplet={n => commitKeepingMark(setTuplet(clip, target, n))}
-          onOttava={o => commitKeepingMark(setOttava(clip, target, o))}
-          onWhammy={shape => commitKeepingMark(setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'} />
+          onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
+          onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
+          onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
+          onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">

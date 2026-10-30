@@ -103,7 +103,9 @@ groups are:
 A button is pressed when the cursor's column, note or bar has its symbol,
 and a press toggles that symbol. Only while the tab has the cursor: a click
 off the bars or outside the clip leaves no button pressed (Jeremy,
-2026-10-26). Its one-second tip (`HoverTips`, now in
+2026-10-26). Off the tab (after Esc or such a click) a press, or a choice
+in a button's panel, does nothing either: the last note or bar picked is no
+longer under the cursor (Jeremy, 2026-10-30). Its one-second tip (`HoverTips`, now in
 `src/components/`) names the symbol and its key. Pressing a button keeps
 the focus on the tab. In the ASCII and alphaTex views the palette stays in
 place but is disabled. `tools.ts` holds the table that both the palette

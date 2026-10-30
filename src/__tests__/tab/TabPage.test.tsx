@@ -464,6 +464,30 @@ describe('TabPage', () => {
       expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette'))).toEqual([]);
     });
 
+    it('acts on nothing from the palette once the cursor has left the tab, by Esc or a press elsewhere', () => {
+      renderAt();
+      act(() => editor().focus());
+      keys('5', 'ArrowRight', '7');
+      const pressAll = () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+        fireEvent.click(vibrato());
+        fireEvent.click(screen.getByRole('button', { name: 'Insert a bar of rests after this bar' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Bend' }));
+        fireEvent.click(screen.getByRole('button', { name: 'full' }));
+      };
+      keys('Escape');
+      expect(editor()).not.toHaveFocus();
+      pressAll();
+      expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+      // alphaTex() gave the keys back to the tab; a press off it takes them away again.
+      act(() => editor().blur());
+      pressAll();
+      expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+      // Back on the tab, the same buttons change the cursor's note.
+      fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+      expect(alphaTex()).toBe('5.1.4 7.1.8 |');
+    });
+
     it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
       renderAt();
       act(() => editor().focus());
@@ -551,7 +575,8 @@ describe('TabPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
       fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
-      // An empty field, or 0, takes the capo off.
+      // An empty field, or 0, takes the capo off; the palette acts only while the tab has the keys.
+      act(() => editor().focus());
       fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
       const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
       expect(again).toHaveValue('3');
