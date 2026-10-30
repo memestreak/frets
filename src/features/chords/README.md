@@ -7,9 +7,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `src/lib/chords/` and `src/components/chords/`. The frets on the neck are
   the source of truth: picking a chord in `ChordPickers` puts its first
   shape there and keeps that chord, tapping names the notes afresh
-  (`naming.ts`, every name for a set of notes, listed by `NameList`).
+  (`src/lib/theory/chordNames.ts`, every name for a set of notes, listed by `NameList`).
   `ChordPickers` also swaps the Type dropdown for a search box (the
-  magnifier, or `/`); `chordSearch.ts` reads the name typed there.
+  magnifier, or `/`); `src/lib/theory/chordSearch.ts` reads the name typed there.
   `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
   are its parts (space toggles the Arpeggio, `src/hooks/useSpaceKey.ts`); it also
   uses `src/components/chords/export/`, shared with the Scale lab:

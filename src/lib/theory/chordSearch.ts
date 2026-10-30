@@ -1,4 +1,4 @@
-import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from '@/lib/chords/chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from './chords';
 
 /*
  * Reads a chord name typed or pasted into the Chords page's search box

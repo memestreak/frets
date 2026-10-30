@@ -1,10 +1,12 @@
 import { Chord, ChordType, Interval, Note } from 'tonal';
-import { prettyNote } from '@/lib/notation';
+import { semisOf, toneLabel } from './intervals';
+import { mod12, pitchClassOf, prettyNote } from './notes';
 
 /*
- * The Chords section's music theory. tonal supplies the chord types and
+ * Chord types and chords, for every page. tonal supplies the types and
  * spells the notes; this file decides how they are grouped, written and
- * labelled. It is the only file in the section that imports tonal.
+ * labelled. It is Frets' one table of chord symbols: the Scale lab's
+ * diatonic chords take theirs from here too (`chordFromIntervals`).
  */
 
 /** Roots the picker offers: one spelling per pitch, as chord charts write them. */
@@ -55,12 +57,15 @@ const COMMON_IDS = [
 const SYMBOL_OVERRIDES: Record<string, string> = {
   M: '', 'm/ma7': 'm(maj7)', Madd9: 'add9', dim: '°', dim7: '°7', aug: '+',
   Madd11: 'add11', Madd9add11: 'add9(add11)', 'mMaj7#11': 'm(maj7)♯11',
+  oM7: '°(maj7)', 'M7#5sus4': 'maj7♯5sus4', 'mMaj7#5': 'm(maj7)♯5',
 };
 
 /**
  * Types guitarists name that tonal lacks: a major triad with an added 11th,
- * with and without an added 9th (D E F♯ G is Dadd9(add11)), and a minor-major
- * seventh with a ♯11 (F A♭ C E B is Fm(maj7)♯11). Added to tonal so it
+ * with and without an added 9th (D E F♯ G is Dadd9(add11)), a minor-major
+ * seventh with a ♯11 (F A♭ C E B is Fm(maj7)♯11), and two the Scale lab's
+ * harmonic minor and Hungarian major modes stack: a minor-major seventh
+ * with a ♯5 (C E♭ G♯ B) and a sus4 with a ♯5 (C F G♯). Added to tonal so it
  * spells them like the rest.
  */
 const EXTRA_TYPES: readonly { intervals: string[]; aliases: string[]; name: string }[] = [
@@ -75,6 +80,12 @@ const EXTRA_TYPES: readonly { intervals: string[]; aliases: string[]; name: stri
     aliases: ['mMaj7#11', 'm(maj7)#11', 'mmaj7#11', 'mM7#11'],
     name: 'minor-major seventh sharp eleventh',
   },
+  {
+    intervals: ['1P', '3m', '5A', '7M'],
+    aliases: ['mMaj7#5', 'm(maj7)#5', 'mmaj7#5', 'mM7#5'],
+    name: 'minor-major seventh sharp fifth',
+  },
+  { intervals: ['1P', '4P', '5A'], aliases: ['sus4#5', 'sus#5'], name: 'suspended fourth sharp fifth' },
 ];
 for (const { intervals, aliases, name } of EXTRA_TYPES) {
   // Once only: a reloaded module would add them again.
@@ -94,8 +105,6 @@ function groupOf(id: string, intervals: readonly string[]): ChordGroup {
   if (intervals.some(iv => Interval.get(iv).num >= 9)) return 'Extended';
   return 'Sixths and sevenths';
 }
-
-const semisOf = (interval: string) => Interval.get(interval).semitones % 12;
 
 function typeDef(
   aliases: readonly string[], name: string, intervals: readonly string[],
@@ -118,10 +127,6 @@ export const CHORD_TYPES: readonly ChordTypeDef[] = (() => {
 
 export const chordTypeDef = (id: string): ChordTypeDef | undefined =>
   CHORD_TYPES.find(t => t.id === id);
-
-const ACCIDENTALS: Record<number, string> = {
-  [-2]: '𝄫', [-1]: '♭', 0: '', 1: '♯', 2: '𝄪',
-};
 
 export interface ChordTone {
   /** tonal interval name: "3m", "9A". */
@@ -147,12 +152,6 @@ export interface ChordInfo {
   /** Spelled notes, root first: "A", "C", "E", "G". */
   notes: string[];
   tones: ChordTone[];
-}
-
-/** "3m" → "♭3", "9A" → "♯9", "1P" → "R". */
-export function toneLabel(interval: string): string {
-  const { num, alt } = Interval.get(interval);
-  return num === 1 ? 'R' : ACCIDENTALS[alt] + num;
 }
 
 /**
@@ -185,7 +184,7 @@ export function chordOf(root: ChordRoot, typeId: string): ChordInfo {
   const type = chordTypeDef(typeId)!;
   return {
     root,
-    rootPc: Note.get(root).chroma,
+    rootPc: pitchClassOf(root),
     type,
     symbol: prettyNote(root) + type.symbol,
     notes: Chord.getChord(type.id, root).notes.map(prettyNote),
@@ -202,7 +201,7 @@ const PLAIN_INTERVALS = ['1P', '2m', '2M', '3m', '3M', '4P', '5d', '5P', '6m', '
  * tones take plain interval names and are all required.
  */
 export function chordFromTones(rootPc: number, semis: readonly number[]): ChordInfo {
-  const wanted = [...new Set(semis.map(s => ((s % 12) + 12) % 12))].sort((a, b) => a - b);
+  const wanted = [...new Set(semis.map(mod12))].sort((a, b) => a - b);
   const root = CHORD_ROOTS[rootPc];
   const type = CHORD_TYPES.find(t => t.semis.join() === wanted.join());
   if (type) return chordOf(root, type.id);
@@ -230,7 +229,7 @@ const BASS_INTERVALS = ['1P', '9m', '9M', '3m', '3M', '4P', '11A', '5P', '6m', '
  * so the neck can label it. The chord itself if the bass is already a tone.
  */
 export function withBass(chord: ChordInfo, bassPc: number): ChordInfo {
-  const semis = (((bassPc - chord.rootPc) % 12) + 12) % 12;
+  const semis = mod12(bassPc - chord.rootPc);
   if (chord.tones.some(t => t.semis === semis)) return chord;
   const interval = BASS_INTERVALS[semis];
   return {
@@ -243,3 +242,15 @@ export function withBass(chord: ChordInfo, bassPc: number): ChordInfo {
 /** "1 ♭3 5 ♭7": the formula as the title shows it. */
 export const formulaOf = (chord: ChordInfo): string =>
   chord.tones.map(t => (t.label === 'R' ? '1' : t.label)).join(' ');
+
+/**
+ * The chord a stack of spelled intervals above a root makes (tonal names,
+ * root first: "1P", "3M", "5A", "7M"): the type with exactly those
+ * intervals, so C E G♯ B is Cmaj7♯5, not the C E A♭ B its pitches also
+ * spell; else the first type with the same pitches (`chordFromTones`), so a
+ * ♯3 reads as the 4 it sounds as; else an unnamed chord.
+ */
+export function chordFromIntervals(rootPc: number, intervals: readonly string[]): ChordInfo {
+  const exact = CHORD_TYPES.find(t => t.intervals.join() === intervals.join());
+  return exact ? chordOf(CHORD_ROOTS[rootPc], exact.id) : chordFromTones(rootPc, intervals.map(semisOf));
+}

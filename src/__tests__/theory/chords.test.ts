@@ -1,7 +1,8 @@
 import { ChordType } from 'tonal';
 import {
-  CHORD_GROUPS, CHORD_TYPES, chordOf, chordTypeDef, formulaOf, toneLabel, withBass,
-} from '@/lib/chords/chordTypes';
+  CHORD_GROUPS, CHORD_TYPES, chordFromIntervals, chordOf, chordTypeDef, formulaOf, withBass,
+} from '@/lib/theory/chords';
+import { toneLabel } from '@/lib/theory/intervals';
 
 describe('CHORD_TYPES', () => {
   it('lists every tonal chord type once', () => {
@@ -85,5 +86,35 @@ describe('chordOf', () => {
     expect(toneLabel('9A')).toBe('♯9');
     expect(toneLabel('13m')).toBe('♭13');
     expect(toneLabel('7d')).toBe('𝄫7');
+  });
+});
+
+describe('chordFromIntervals', () => {
+  it('names a stack by its spelling, not only its pitches', () => {
+    // C E G♯ B: a maj7♯5, though C E A♭ B (the same pitches) is tonal's M7♭6.
+    expect(chordFromIntervals(0, ['1P', '3M', '5A', '7M']).symbol).toBe('Cmaj7♯5');
+    expect(chordFromIntervals(9, ['1P', '3m', '5P', '7m']).symbol).toBe('Am7');
+  });
+
+  it('reads a stack no type spells by its pitches: a ♯3 sounds as a 4', () => {
+    expect(chordFromIntervals(0, ['1P', '3A', '5A', '7M']).symbol).toBe('Cmaj7♯5sus4');
+    expect(chordFromIntervals(0, ['1P', '3A', '5A']).symbol).toBe('Csus4♯5');
+  });
+
+  it('leaves a stack with no type unnamed', () => {
+    const odd = chordFromIntervals(0, ['1P', '2m', '4A']);
+    expect(odd.type).toBeNull();
+    expect(odd.symbol).toBe('');
+  });
+});
+
+describe('one table of symbols', () => {
+  it('writes the rare sevenths the Scale lab stacks as it does', () => {
+    const symbol = (id: string) => chordTypeDef(id)!.symbol;
+    expect(symbol('oM7')).toBe('°(maj7)');
+    expect(symbol('M7#5sus4')).toBe('maj7♯5sus4');
+    expect(symbol('mMaj7#5')).toBe('m(maj7)♯5');
+    expect(symbol('maj7#5')).toBe('maj7♯5');
+    expect(symbol('sus4#5')).toBe('sus4♯5');
   });
 });

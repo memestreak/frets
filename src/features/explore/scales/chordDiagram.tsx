@@ -1,9 +1,9 @@
 import { DEGREES, type Degree } from '@/components/fretboard/theme';
-import { prettyNote } from '@/lib/notation';
+import { prettyNote } from '@/lib/theory/notes';
 import type { ChordIntervals } from './settings';
-import {
-  intervalWords, type DiatonicChord, type Scale, type ScaleDegree,
-} from './theory';
+import type { DiatonicChord } from '@/lib/theory/diatonic';
+import { intervalWords } from '@/lib/theory/intervals';
+import type { Scale, ScaleDegree } from '@/lib/theory/scales';
 
 /** Chord tones take the colours of root, third, fifth and seventh. */
 const ROLES: readonly Degree[] = ['root', 'third', 'fifth', 'seventh'];

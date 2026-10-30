@@ -1,8 +1,7 @@
 import { isDotLabels, type DotLabels } from '@/components/DotLabels';
 import { LAST_POSITION } from '@/lib/chords/voicings';
-import {
-  modeFamily, ROOTS, scaleDef, type ChordSize, type Root,
-} from './theory';
+import type { ChordSize } from '@/lib/theory/diatonic';
+import { modeFamily, ROOTS, scaleDef, type Root } from '@/lib/theory/scales';
 
 /** How a selected chord is drawn against the scale. */
 export type ChordView = 'ladder' | 'clock';

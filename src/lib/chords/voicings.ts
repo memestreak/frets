@@ -1,5 +1,5 @@
-import { STRING_NAMES, TUNING } from '@/lib/music';
-import type { ChordInfo } from './chordTypes';
+import { isStandardTuning, STRING_NAMES, TUNING, type Tuning } from '@/lib/music';
+import type { ChordInfo } from '@/lib/theory/chords';
 import { publishedShapes } from './publishedShapes';
 
 /*
@@ -10,6 +10,10 @@ import { publishedShapes } from './publishedShapes';
  * function, so changing a rule is a one-line edit. The specs
  * (docs/specs/2026-10-05-chord-library-design.md and
  * docs/specs/2026-10-09-published-chord-shapes-design.md) give the why.
+ *
+ * Shapes are for a guitar in a tuning, standard by default. The published
+ * shapes are written for standard tuning, so another tuning (Tab's drop D,
+ * DADGAD) gets searched shapes only.
  */
 
 /** One entry per string, low E first: a fret number, or null for a muted string. */
@@ -54,7 +58,7 @@ const innerMutes = (v: Voicing) => {
   return strings[strings.length - 1] - strings[0] + 1 - strings.length;
 };
 /** Semitones above the root of the note a string plays. */
-const toneOn = (rootPc: number, s: number, f: number) => mod12(TUNING[s] + f - rootPc);
+const toneOn = (tuning: Tuning, rootPc: number, s: number, f: number) => mod12(tuning[s] + f - rootPc);
 
 /** A stable key for a voicing: "x-0-2-0-1-0". */
 export const voicingKey = (v: Voicing): string =>
@@ -103,11 +107,11 @@ export function difficulty(v: Voicing): number {
   return fingersNeeded(v) + span + 3 * innerMutes(v) - soundingStrings(v).length / 2;
 }
 
-function isPlayable(v: Voicing, chord: ChordInfo): boolean {
+function isPlayable(v: Voicing, chord: ChordInfo, tuning: Tuning): boolean {
   const strings = soundingStrings(v);
   if (strings.length < MIN_STRINGS || innerMutes(v) > MAX_INNER_MUTES) return false;
 
-  const tones = strings.map(s => toneOn(chord.rootPc, s, v[s]!));
+  const tones = strings.map(s => toneOn(tuning, chord.rootPc, s, v[s]!));
   if (tones[0] !== 0) return false; // the root in the bass
   const required = chord.tones.filter(t => t.required).map(t => t.semis);
   if (required.some(semis => !tones.includes(semis))) return false;
@@ -128,11 +132,11 @@ const isMoveable = (v: Voicing) => !v.includes(0);
  * tones. A shape with a muted string in the middle stays: leaving the top
  * string out of 8-x-9-9-8-8 gives 8-x-9-9-8-x, the drop 3 grip players use.
  */
-function dropDoublings(voicings: Voicing[], rootPc: number): Voicing[] {
+function dropDoublings(voicings: Voicing[], rootPc: number, tuning: Tuning): Voicing[] {
   // Worked out once per shape: the lists can run to hundreds of shapes.
   const facts = voicings.map(v => {
     const strings = soundingStrings(v);
-    return { v, strings, tones: new Set(strings.map(s => toneOn(rootPc, s, v[s]!))).size };
+    return { v, strings, tones: new Set(strings.map(s => toneOn(tuning, rootPc, s, v[s]!))).size };
   });
   /** `fuller` is `v` with more strings above the same bass note, adding no new tone: x-3-2-0-1-0 over x-3-2-0-1-x. */
   const doubles = (fuller: typeof facts[number], v: typeof facts[number]) =>
@@ -166,16 +170,16 @@ const byPosition = (a: Voicing, b: Voicing) =>
  * where a string's choices are a mute or a fret in `window` that plays a
  * chord tone.
  */
-function* combinations(window: number[], chord: ChordInfo): Generator<Voicing> {
+function* combinations(window: number[], chord: ChordInfo, tuning: Tuning): Generator<Voicing> {
   const tones = new Set(chord.tones.map(t => t.semis));
-  const choices = TUNING.map((_, s) => [
-    null, ...window.filter(f => tones.has(toneOn(chord.rootPc, s, f))),
+  const choices = tuning.map((_, s) => [
+    null, ...window.filter(f => tones.has(toneOn(tuning, chord.rootPc, s, f))),
   ]);
   function* fromString(s: number, chosen: (number | null)[], hasBass: boolean): Generator<Voicing> {
     if (s === choices.length) { yield chosen; return; }
     for (const c of choices[s]) {
       // The lowest sounding string must play the root; stop early when it doesn't.
-      if (c !== null && !hasBass && toneOn(chord.rootPc, s, c) !== 0) continue;
+      if (c !== null && !hasBass && toneOn(tuning, chord.rootPc, s, c) !== 0) continue;
       yield* fromString(s + 1, [...chosen, c], hasBass || c !== null);
     }
   }
@@ -185,18 +189,19 @@ function* combinations(window: number[], chord: ChordInfo): Generator<Voicing> {
 const cache = new Map<string, Voicings>();
 
 /**
- * The chord's voicings, sorted into open and moveable: the published
- * shapes first where there are any, searched ones otherwise. Cached by
- * root, type and tones.
+ * The chord's voicings in a tuning (standard by default), sorted into open
+ * and moveable: the published shapes first where there are any and the
+ * tuning is standard, searched ones otherwise. Cached by root, type, tones
+ * and tuning.
  */
-export function findVoicings(chord: ChordInfo): Voicings {
+export function findVoicings(chord: ChordInfo, tuning: Tuning = TUNING): Voicings {
   const tones = chord.tones.map(t => `${t.semis}${t.required ? '' : '?'}`);
-  const cacheKey = `${chord.rootPc}:${chord.type?.id ?? ''}:${tones.join(',')}`;
+  const cacheKey = `${chord.rootPc}:${chord.type?.id ?? ''}:${tones.join(',')}:${tuning.join(',')}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const searched = searchVoicings(chord);
-  const published = publishedShapes(chord);
+  const searched = searchVoicings(chord, tuning);
+  const published = isStandardTuning(tuning) ? publishedShapes(chord) : null;
   const result = published ? {
     open: published.open,
     moveable: published.moveable.filter(fitsNeck).sort(byPosition),
@@ -212,23 +217,23 @@ const uniqueShapes = (voicings: Voicing[]) =>
   [...new Map(voicings.map(v => [voicingKey(v), v])).values()];
 
 /** Every playable voicing of the chord found by search. */
-function searchVoicings(chord: ChordInfo): Voicings {
+function searchVoicings(chord: ChordInfo, tuning: Tuning): Voicings {
   // One window per lowest fret, so each shape is found once: the open
   // string and the frets from `low` to `low + MAX_SPAN`.
   const found: Voicing[] = [];
   for (let low = 1; low <= HIGHEST_FRET; low++) {
     const top = Math.min(low + MAX_SPAN, HIGHEST_FRET);
     const window = [0, ...Array.from({ length: top - low + 1 }, (_, i) => low + i)];
-    for (const v of combinations(window, chord)) {
+    for (const v of combinations(window, chord, tuning)) {
       const fretted = frettedNotes(v);
       const lowest = fretted.length ? Math.min(...fretted) : 1; // all-open shapes once, at low 1
-      if (lowest === low && isPlayable(v, chord)) found.push(v);
+      if (lowest === low && isPlayable(v, chord, tuning)) found.push(v);
     }
   }
   const candidates = found;
-  const allMoveable = dropDoublings(candidates.filter(isMoveable), chord.rootPc);
+  const allMoveable = dropDoublings(candidates.filter(isMoveable), chord.rootPc, tuning);
   return {
-    open: dropDoublings(candidates.filter(isOpenShape), chord.rootPc).sort(byEase),
+    open: dropDoublings(candidates.filter(isOpenShape), chord.rootPc, tuning).sort(byEase),
     moveable: easiestPerBass(allMoveable).sort(byPosition),
     allMoveable: allMoveable.sort(byPosition),
   };

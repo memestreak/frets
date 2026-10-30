@@ -1,5 +1,5 @@
 import { TUNING } from '@/lib/music';
-import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/lib/chords/chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/lib/theory/chords';
 import {
   DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, LAST_POSITION, moveShape,
   POSITION_FRETS, shapesInPosition, voicingCaption, voicingKey, type Voicing,
@@ -159,5 +159,35 @@ describe('moveShape', () => {
     expect(moveShape([null, 0, 2, 0, 1, 0], -1, 15)).toBeNull();
     expect(moveShape([null, 13, 15, 13, 14, 13], 1, 15)).toBeNull();
     expect(moveShape([null, null, null, null, null, null], 1, 15)).toBeNull();
+  });
+});
+
+describe('findVoicings in another tuning', () => {
+  const DROP_D = [38, 45, 50, 55, 59, 64];
+  const tonesIn = (tuning: readonly number[], v: Voicing, chord: ChordInfo) =>
+    v.flatMap((f, s) => (f === null ? [] : [(tuning[s] + f - chord.rootPc + 120) % 12]));
+
+  it('finds shapes whose notes are chord tones in that tuning, root in the bass', () => {
+    const d = chordOf('D', 'M');
+    const found = findVoicings(d, DROP_D);
+    const all = [...found.open, ...found.allMoveable];
+    expect(all.length).toBeGreaterThan(0);
+    for (const v of all) {
+      const tones = tonesIn(DROP_D, v, d);
+      expect(tones[0]).toBe(0);
+      expect(tones.every(t => [0, 4, 7].includes(t))).toBe(true);
+    }
+    // Drop D's open low string is the root: 0-0-0-2-3-2 rings all six.
+    expect(keys(found.open)).toContain('0-0-0-2-3-2');
+  });
+
+  it('offers the published shapes only in standard tuning', () => {
+    const c = chordOf('C', 'M');
+    expect(keys(findVoicings(c).open)).toContain('x-3-2-0-1-0');
+    // E♭ tuning sounds every string a semitone down: the open C shape is a B there.
+    const down = TUNING.map(m => m - 1);
+    expect(keys(findVoicings(c, down).open)).not.toContain('x-3-2-0-1-0');
+    // Standard tuning an octave up is still standard tuning.
+    expect(findVoicings(c, TUNING.map(m => m + 12))).toEqual(findVoicings(c));
   });
 });

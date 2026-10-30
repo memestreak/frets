@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Interval, Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
-import { CHORD_TYPES } from '@/lib/chords/chordTypes';
+import { CHORD_TYPES } from '@/lib/theory/chords';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
 import { AGENT_GUIDES } from '@/features/agents/agentGuides';
 

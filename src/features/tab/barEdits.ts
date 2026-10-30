@@ -3,7 +3,8 @@
  * (repeats, endings, double bars, time and key signatures). Pure: each returns a new clip.
  */
 
-import { C_MAJOR, keyAt, sameKey, type Part, type Key, type TimeSignature, type Tempo } from './clip';
+import { C_MAJOR, sameKey, type Key } from '@/lib/theory/keys';
+import { keyAt, type Part, type TimeSignature, type Tempo } from './clip';
 import { type Cursor, columnAt, normalize, replaceBar, withColumn, without } from './editing';
 
 /** The free text over the cursor's column; empty or blank clears it. */

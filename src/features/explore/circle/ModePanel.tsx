@@ -1,6 +1,7 @@
 import { DEGREES } from '@/components/fretboard/theme';
 import { PanelSection } from './ChordChips';
-import type { ModeId, ModeWheel, ParallelRow } from './circle';
+import type { ModeId } from '@/lib/theory/modes';
+import type { ModeWheel, ParallelRow } from './circle';
 
 interface ModePanelProps {
   wheel: ModeWheel;

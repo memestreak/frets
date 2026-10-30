@@ -1,6 +1,7 @@
 import {
   CHORD_ROOTS, CHORD_TYPES, chordOf, withBass, type ChordInfo, type ChordTypeDef,
-} from '@/lib/chords/chordTypes';
+} from './chords';
+import { mod12 } from './notes';
 
 /*
  * Every name for a set of notes, for the Chord lab's "Name it". Each note
@@ -18,7 +19,12 @@ export interface ChordName {
   chord: ChordInfo;
 }
 
-const mod12 = (n: number) => ((n % 12) + 12) % 12;
+/**
+ * The types a name may be: all but the sus4♯5, which only the Scale lab's
+ * Hungarian major stacks. Over a bass it would read every inverted 6th
+ * chord as one (G B E over G as Bsus4♯5/F𝄪).
+ */
+const NAMING_TYPES = CHORD_TYPES.filter(t => t.id !== 'sus4#5');
 
 interface Match {
   type: ChordTypeDef;
@@ -28,7 +34,7 @@ interface Match {
 
 /** Types with exactly these tones above the root. */
 function exactMatches(tones: ReadonlySet<number>): Match[] {
-  return CHORD_TYPES
+  return NAMING_TYPES
     .filter(t => t.semis.length === tones.size && t.semis.every(s => tones.has(s)))
     .map(type => ({ type, missing: [] }));
 }
@@ -38,7 +44,7 @@ function exactMatches(tones: ReadonlySet<number>): Match[] {
  * optional tones are missing. Only those missing the fewest are kept.
  */
 function matchesMissingOptional(rootPc: number, tones: ReadonlySet<number>): Match[] {
-  const matches = CHORD_TYPES.flatMap(type => {
+  const matches = NAMING_TYPES.flatMap(type => {
     if (![...tones].every(s => type.semis.includes(s))) return [];
     const unplayed = unplayedTones(chordOf(CHORD_ROOTS[rootPc], type.id), tones);
     if (unplayed.some(t => t.required)) return [];

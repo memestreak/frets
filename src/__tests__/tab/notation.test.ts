@@ -1,8 +1,9 @@
-import { barHeads, keySigns, openStrings, spell, staffStep } from '@/features/tab/notation';
+import { barHeads, keySigns, openStrings, staffStep } from '@/features/tab/notation';
+import { spellPitch } from '@/lib/theory/keys';
 import { type Part, partOf } from '@/features/tab/clip';
 
 const name = (midi: number, fifths: number, minor = false) => {
-  const n = spell(midi, minor ? { fifths, minor: true } : { fifths });
+  const n = spellPitch(midi, minor ? { fifths, minor: true } : { fifths });
   return `${'CDEFGAB'[n.letter]}${['bb', 'b', '', '#', '##'][n.accidental + 2]}${n.octave}`;
 };
 
@@ -37,10 +38,10 @@ describe('spell', () => {
 
 describe('staffStep', () => {
   it('counts half spaces up from the bottom line, E4', () => {
-    expect(staffStep(spell(64, { fifths: 0 }))).toBe(0);
-    expect(staffStep(spell(77, { fifths: 0 }))).toBe(8);
+    expect(staffStep(spellPitch(64, { fifths: 0 }))).toBe(0);
+    expect(staffStep(spellPitch(77, { fifths: 0 }))).toBe(8);
     // The low E string, written an octave up (E3), hangs under three ledger lines.
-    expect(staffStep(spell(52, { fifths: 0 }))).toBe(-7);
+    expect(staffStep(spellPitch(52, { fifths: 0 }))).toBe(-7);
   });
 });
 

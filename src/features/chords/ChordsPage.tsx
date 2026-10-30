@@ -11,7 +11,7 @@ import { TUNING, type Position } from '@/lib/music';
 import { loadJson } from '@/lib/storage';
 import {
   CHORD_ROOTS, chordFromTones, chordOf, formulaOf, type ChordInfo, type ChordRoot,
-} from '@/lib/chords/chordTypes';
+} from '@/lib/theory/chords';
 import {
   CHORD_PARAM, chordFromSlug, chordHref, DEFAULT_CHORD, SHAPE_PARAM, shapeFromKey,
 } from '@/lib/chords/chordUrls';
@@ -20,7 +20,7 @@ import {
 } from '@/lib/chords/voicings';
 import { ChordHeader } from './ChordHeader';
 import { ChordPickers } from './ChordPickers';
-import { nameNotes } from './naming';
+import { nameNotes } from '@/lib/theory/chordNames';
 import { NECK_STORAGE_KEY, parseNeckSettings } from './neckSettings';
 import { NameList } from './NameList';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';

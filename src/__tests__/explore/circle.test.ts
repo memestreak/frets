@@ -1,7 +1,9 @@
 import {
-  ALL_CELLS, cellId, cellName, cellOf, keyForMode, keySignature, keyWheel, modeForKey,
-  modeWheel, numeralOf, parallelKey, parentKey, rootPc, signatureTip, type Cell, type CellLook,
+  ALL_CELLS, cellId, cellName, cellNumeral, cellOf, keyWheel, modeWheel, parallelKey, rootPc,
+  signatureTip, spokeSignature, type Cell, type CellLook,
 } from '@/features/explore/circle/circle';
+import { keyOnSpoke } from '@/lib/theory/keys';
+import { keyForMode, modeForKey, parentKey } from '@/lib/theory/modes';
 
 const OFF = { parallel: false, dominants: false, allNumerals: false };
 
@@ -29,30 +31,30 @@ describe('the wheel', () => {
   });
 
   it('gives each spoke its key signature', () => {
-    expect(keySignature(0).notes).toEqual([]);
-    expect(keySignature(2)).toEqual({ sharps: true, notes: ['F♯', 'C♯'] });
-    expect(keySignature(9)).toEqual({ sharps: false, notes: ['B♭', 'E♭', 'A♭'] });
+    expect(spokeSignature(0).notes).toEqual([]);
+    expect(spokeSignature(2)).toEqual({ sharps: true, notes: ['F♯', 'C♯'] });
+    expect(spokeSignature(9)).toEqual({ sharps: false, notes: ['B♭', 'E♭', 'A♭'] });
     expect(signatureTip(2)).toBe('D major and B minor: F♯ C♯.');
   });
 
   it('numbers any chord against a tonic by its plainest degree', () => {
-    expect(numeralOf(cell('major', 4), 0)).toEqual({ numeral: 'III', degree: 3 });
-    expect(numeralOf(cell('major', 6), 0)).toEqual({ numeral: '♭V', degree: 5 });
-    expect(numeralOf(cell('minor', 2), 0).numeral).toBe('vii');
-    expect(numeralOf(cell('dim', 7), 0).numeral).toBe('i°');
+    expect(cellNumeral(cell('major', 4), 0)).toEqual({ numeral: 'III', degree: 3 });
+    expect(cellNumeral(cell('major', 6), 0)).toEqual({ numeral: '♭V', degree: 5 });
+    expect(cellNumeral(cell('minor', 2), 0).numeral).toBe('vii');
+    expect(cellNumeral(cell('dim', 7), 0).numeral).toBe('i°');
   });
 });
 
 describe('keyWheel', () => {
   it('fills D major’s seven chords with their numerals', () => {
-    expect(filled(keyWheel({ spoke: 2, minor: false }, OFF).cells))
+    expect(filled(keyWheel(keyOnSpoke(2, false), OFF).cells))
       .toEqual(['G IV', 'D I', 'A V', 'Em ii', 'Bm vi', 'F♯m iii', 'C♯° vii°']);
     // The ring of notes is the Mode view's only.
-    expect(keyWheel({ spoke: 2, minor: false }, OFF).notes).toEqual([]);
+    expect(keyWheel(keyOnSpoke(2, false), OFF).notes).toEqual([]);
   });
 
   it('numbers a minor key against the major scale and adds its major V', () => {
-    const w = keyWheel({ spoke: 0, minor: true }, OFF);
+    const w = keyWheel(keyOnSpoke(0, true), OFF);
     expect(w.title).toBe('A minor');
     expect(filled(w.cells))
       .toEqual(['C ♭III', 'G ♭VII', 'F ♭VI', 'Am i', 'Em v', 'Dm iv', 'B° ii°']);
@@ -60,14 +62,14 @@ describe('keyWheel', () => {
   });
 
   it('explains the relative minor and the leading-tone chord', () => {
-    const w = keyWheel({ spoke: 2, minor: false }, OFF);
+    const w = keyWheel(keyOnSpoke(2, false), OFF);
     expect(w.cells.get('minor:2')!.tip).toMatch(/^Bm: vi in D major\. Also the tonic of B minor/);
     expect(w.cells.get('dim:2')!.tip).toMatch(/Built on C♯, the 7th degree, the leading tone/);
   });
 
   it('borrows from the parallel key', () => {
-    expect(parallelKey({ spoke: 0, minor: false })).toEqual({ spoke: 9, minor: true });
-    const w = keyWheel({ spoke: 0, minor: false }, { ...OFF, parallel: true });
+    expect(parallelKey(keyOnSpoke(0, false))).toEqual(keyOnSpoke(9, true));
+    const w = keyWheel(keyOnSpoke(0, false), { ...OFF, parallel: true });
     expect(w.parallelName).toBe('C minor');
     expect(w.borrowed.map(c => `${c.numeral} ${c.name}`))
       .toEqual(['i Cm', 'ii° D°', '♭III E♭', 'iv Fm', 'v Gm', '♭VI A♭', '♭VII B♭']);
@@ -75,7 +77,7 @@ describe('keyWheel', () => {
   });
 
   it('marks secondary dominants and what each resolves to', () => {
-    const w = keyWheel({ spoke: 0, minor: false }, { ...OFF, dominants: true });
+    const w = keyWheel(keyOnSpoke(0, false), { ...OFF, dominants: true });
     expect(w.dominants.map(c => `${c.numeral} ${c.name}`))
       .toEqual(['V/ii A7', 'V/iii B7', 'V/IV C7', 'V/V D7', 'V/vi E7']);
     expect(w.cells.get('major:3')!.ring).toBe('dashed');
@@ -88,7 +90,7 @@ describe('keyWheel', () => {
   });
 
   it('numbers every other chord with All numerals', () => {
-    const w = keyWheel({ spoke: 0, minor: false }, { ...OFF, allNumerals: true });
+    const w = keyWheel(keyOnSpoke(0, false), { ...OFF, allNumerals: true });
     expect(ALL_CELLS.every(c => w.cells.get(cellId(c))?.numeral)).toBe(true);
     expect(w.cells.get('major:4')).toMatchObject({ numeral: 'III' });
     expect(w.cells.get('major:4')!.fill).toBeUndefined();
@@ -121,15 +123,15 @@ describe('modeWheel', () => {
   });
 
   it('spells a mode from its parent key: D♭ Locrian is C♯ Locrian', () => {
-    expect(parentKey('Db', 'locrian')).toEqual({ spoke: 2, key: 'D', root: 'C#' });
+    expect(parentKey('Db', 'locrian')).toEqual({ spoke: 2, tonic: 'D', root: 'C#' });
     const w = modeWheel('Db', 'locrian', off);
     expect(w.title).toBe('C♯ Locrian');
     expect(filled(w.cells)).toEqual(['G ♭V', 'D ♭II', 'A ♭VI', 'Em ♭iii', 'Bm ♭vii', 'F♯m iv', 'C♯° i°']);
   });
 
   it('keeps the root’s name where the key’s other spelling allows it', () => {
-    expect(parentKey('F#', 'lydian')).toEqual({ spoke: 7, key: 'C#', root: 'F#' });
-    expect(parentKey('F', 'locrian')).toEqual({ spoke: 6, key: 'Gb', root: 'F' });
+    expect(parentKey('F#', 'lydian')).toEqual({ spoke: 7, tonic: 'C#', root: 'F#' });
+    expect(parentKey('F', 'locrian')).toEqual({ spoke: 6, tonic: 'Gb', root: 'F' });
     const w = modeWheel('F#', 'lydian', off);
     expect(w.title).toBe('F♯ Lydian');
     // The wheel's cells take the mode's spelling: C♯, not D♭.
@@ -159,8 +161,8 @@ describe('modeWheel', () => {
 
 describe('switching views', () => {
   it('keeps the root', () => {
-    expect(modeForKey({ spoke: 0, minor: true })).toEqual({ root: 'A', mode: 'aeolian' });
-    expect(keyForMode('A', 'aeolian')).toEqual({ spoke: 0, minor: true });
-    expect(keyForMode('C', 'dorian')).toEqual({ spoke: 0, minor: false });
+    expect(modeForKey(keyOnSpoke(0, true))).toEqual({ root: 'A', mode: 'aeolian' });
+    expect(keyForMode('A', 'aeolian')).toEqual(keyOnSpoke(0, true));
+    expect(keyForMode('C', 'dorian')).toEqual(keyOnSpoke(0, false));
   });
 });

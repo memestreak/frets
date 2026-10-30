@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, type KeyboardEvent } from 'react';
-import { prettyNote } from '@/lib/notation';
+import { prettyNote } from '@/lib/theory/notes';
 
 /** Twelve columns, as on a piano: a natural, or a sharp over its flat. */
 const COLUMNS: readonly (string | readonly [string, string])[] = [

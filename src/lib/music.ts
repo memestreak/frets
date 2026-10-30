@@ -1,15 +1,20 @@
+import { FLAT_NOTES, prettyNote, SHARP_NOTES } from '@/lib/theory/notes';
+
+/** A guitar's open strings as MIDI notes, low string (0) first. */
+export type Tuning = readonly number[];
 /** Standard tuning, low E (string 0) to high e (string 5), as MIDI notes. */
 export const TUNING = [40, 45, 50, 55, 59, 64] as const;
+/** Whether a tuning tunes every string to standard tuning's notes, in any octave. */
+export const isStandardTuning = (tuning: Tuning): boolean =>
+  tuning.length === TUNING.length && tuning.every((m, s) => (m - TUNING[s]) % 12 === 0);
 export const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'] as const;
 export const STRING_COUNT = 6;
 export const STRINGS = [0, 1, 2, 3, 4, 5] as const;
 
-export const SHARP_NAMES = [
-  'C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B',
-] as const;
-export const FLAT_NAMES = [
-  'C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B',
-] as const;
+/** Each pitch class with sharps, as shown: "C♯". */
+export const SHARP_NAMES: readonly string[] = SHARP_NOTES.map(prettyNote);
+/** Each pitch class with flats, as shown: "D♭". */
+export const FLAT_NAMES: readonly string[] = FLAT_NOTES.map(prettyNote);
 /** Both spellings on one label: "C♯/D♭". */
 export const NOTE_LABELS = SHARP_NAMES.map((s, i) =>
   s === FLAT_NAMES[i] ? s : `${s}/${FLAT_NAMES[i]}`,

@@ -3,7 +3,7 @@ import { ResetIcon } from '@/components/icons';
 import { KeyPicker } from '@/components/KeyPicker';
 import {
   SCALE_GROUPS, SCALES, type Root, type Scale,
-} from './theory';
+} from '@/lib/theory/scales';
 
 interface ScalePickersProps {
   scale: Scale;

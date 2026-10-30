@@ -1,7 +1,7 @@
-import { STRINGS } from '@/lib/music';
+import { STRINGS, type Tuning } from '@/lib/music';
 import { toneAt, toneColor } from './chordDots';
 import type { DotColor } from '@/components/fretboard/theme';
-import type { ChordInfo, ChordTone } from '@/lib/chords/chordTypes';
+import type { ChordInfo, ChordTone } from '@/lib/theory/chords';
 import { DIAGRAM_FRETS, diagramStartFret, type Voicing } from '@/lib/chords/voicings';
 
 /* Geometry of one small diagram, in SVG units. */
@@ -61,6 +61,8 @@ interface ChordDiagramProps {
   startFret?: number;
   /** By default `PAGE_LOOK`; an export passes concrete colours. */
   look?: DiagramLook;
+  /** The guitar's tuning, which colours each dot by its tone; standard by default. */
+  tuning?: Tuning;
 }
 
 /**
@@ -71,7 +73,7 @@ interface ChordDiagramProps {
  * carry the degree colour and no text (`ToneKey` names the colours); the
  * root is square.
  */
-export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: ChordDiagramProps) {
+export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK, tuning }: ChordDiagramProps) {
   const start = startFret ?? diagramStartFret(voicing);
   const { width, height, frets } = diagramSize(voicing, Boolean(look.title), start);
   const boardWidth = frets * CELL;
@@ -132,7 +134,7 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK }: Ch
             </text>
           );
         }
-        const tone = toneAt(chord, s, fret);
+        const tone = toneAt(chord, s, fret, tuning);
         const { fill, fg } = look.tone(tone);
         const isRoot = tone.label === 'R';
         const cx = x(fret);

@@ -3,6 +3,7 @@
  * no React. Strings are numbered from the highest (index 0, the high e)
  * to the lowest (index 5), the order tab is written in.
  */
+import { C_MAJOR, isKey, keyTonic, sameKey, type Key } from '@/lib/theory/keys';
 import { parseEffects, type FxSettings } from './effects';
 
 /** A note value: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth, 32 thirty-second, 64 sixty-fourth. */
@@ -258,34 +259,6 @@ export const COMMON_TIME: TimeSignature = { beats: 4, value: 4 };
 export function isTimeSignature(beats: unknown, value: unknown): boolean {
   return Number.isInteger(beats) && (beats as number) >= 1 && (beats as number) <= MAX_BEATS
     && TIME_VALUES.includes(value as TimeValue);
-}
-
-/**
- * A key signature: how many sharps (1 to 7) or flats (-1 to -7) it has, and whether it names the
- * minor key with them (E minor, one sharp) rather than the major (G major).
- */
-export interface Key {
-  fifths: number;
-  minor?: true;
-}
-export const C_MAJOR: Key = { fifths: 0 };
-export const MAX_FIFTHS = 7;
-
-export function isKey(v: unknown): v is Key {
-  return isObj(v) && Number.isInteger(v.fifths) && Math.abs(v.fifths as number) <= MAX_FIFTHS
-    && (v.minor === undefined || v.minor === true);
-}
-
-export function sameKey(a: Key, b: Key): boolean {
-  return a.fifths === b.fifths && !a.minor === !b.minor;
-}
-
-export const MAJOR_NAMES = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
-export const MINOR_NAMES = ['Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#'];
-
-/** The key's tonic as alphaTex and Frets spell it, "F#" or "Bb", without major or minor. */
-export function keyTonic(key: Key): string {
-  return (key.minor ? MINOR_NAMES : MAJOR_NAMES)[key.fifths + MAX_FIFTHS];
 }
 
 /** The key as alphaTex writes it after \ks: "G", "Bb", "Eminor". */

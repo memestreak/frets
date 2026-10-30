@@ -6,6 +6,7 @@
  * clip back loses nothing. `public/tab-alphatex.txt` is the agents' guide.
  */
 import type * as AlphaTabModule from '@coderline/alphatab';
+import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
   BEND_QUARTERS, isWhammy, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
@@ -113,8 +114,6 @@ function keptEffects(text: string, node: PropertiesNode | undefined, reads: Set<
 }
 
 /* — from alphaTab's score to the clip — */
-
-const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 function nearestQuarters(q: number): BendQuarters {
   return BEND_QUARTERS.reduce((best, b) => (Math.abs(b - q) < Math.abs(best - q) ? b : best));
@@ -407,7 +406,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
 
     const track: Track = {
       name: tag === undefined ? '' : atTrack.name,
-      tuning: [...staff.stringTuning.tunings].reverse().map(m => SHARP_NAMES[m % 12]),
+      tuning: [...staff.stringTuning.tunings].reverse().map(m => SHARP_NOTES[mod12(m)]),
       bars,
     };
     if (tag !== undefined) track.tag = tag;

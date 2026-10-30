@@ -5,7 +5,7 @@ import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES } from '@/components/fretboard/theme';
 import { usePersist } from '@/hooks/usePersist';
-import { prettyNote } from '@/lib/notation';
+import { prettyNote } from '@/lib/theory/notes';
 import { loadJson } from '@/lib/storage';
 import { ChordLadder } from './ChordLadder';
 import { DiatonicChords } from './DiatonicChords';
@@ -16,10 +16,11 @@ import {
   parseScaleLabSettings, SCALE_LAB_MAX_FRET, SCALE_LAB_STORAGE_KEY,
   type ScaleLabSettings,
 } from './settings';
+import { diatonicChords, type DiatonicChord } from '@/lib/theory/diatonic';
 import {
-  diatonicChords, modeFamily, neckNotes, rotateMode, scaleDef, scaleOf,
-  type DiatonicChord, type NeckNote, type Root, type ScaleDef,
-} from './theory';
+  modeFamily, rotateMode, scaleDef, scaleOf, type Root, type ScaleDef,
+} from '@/lib/theory/scales';
+import { neckNotes, type NeckNote } from './neckNotes';
 
 /** What a click may land on without clearing the selected chord. */
 const CONTROLS = 'a, button, input, select, textarea, label, summary, dialog, [role="button"]';
@@ -105,8 +106,8 @@ export default function ScaleLab() {
   };
 
   const inPosition = useMemo(
-    () => chordsInPosition(scale, chords, set.position),
-    [scale, chords, set.position],
+    () => chordsInPosition(chords, set.position),
+    [chords, set.position],
   );
   const picksFor = `${scale.root} ${scale.type.id} ${set.chordSize} ${set.position}`;
   const shapeIndexOf = (index: number) =>

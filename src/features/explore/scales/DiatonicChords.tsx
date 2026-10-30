@@ -4,7 +4,8 @@ import { ChordOverScale } from './ChordOverScale';
 import { PositionShapes, PositionStepper } from './PositionShapes';
 import type { PositionChord } from './positions';
 import type { ChordIntervals, ChordView } from './settings';
-import type { ChordSize, DiatonicChord, Scale } from './theory';
+import type { ChordSize, DiatonicChord } from '@/lib/theory/diatonic';
+import type { Scale } from '@/lib/theory/scales';
 
 const SIZE_OPTS = [[3, 'Triads'], [4, 'Sevenths']] as const;
 

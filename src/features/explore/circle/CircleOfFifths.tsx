@@ -3,9 +3,10 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Segmented } from '@/components/controls';
+import { C_MAJOR, keyOnSpoke, type Key } from '@/lib/theory/keys';
+import { keyForMode, modeForKey, type ModeId } from '@/lib/theory/modes';
 import {
-  keyForMode, keyWheel, MAJOR_KEYS, modeForKey, modeWheel,
-  type Cell, type Key, type KeyOptions, type ModeId, type Ring, type RingNote,
+  keyWheel, MAJOR_KEYS, modeWheel, type Cell, type KeyOptions, type Ring, type RingNote,
 } from './circle';
 import { CircleWheel } from './CircleWheel';
 import { HoverTips } from '@/components/HoverTips';
@@ -19,7 +20,6 @@ const VIEW_OPTS = [['key', 'Circle'], ['advanced', 'Advanced']] as const;
 /** The rings a tap can pick from: the Circle's major and minor keys, the Advanced view's roots. */
 const PICKABLE: Record<View, readonly Ring[]> = { key: ['major', 'minor'], advanced: ['major'] };
 
-const C_MAJOR: Key = { spoke: 0, minor: false };
 /** The Advanced view's mode: its root in tonal ASCII ("C#", "E#") and the mode. */
 interface Modal {
   root: string;
@@ -65,7 +65,7 @@ export default function CircleOfFifths() {
   const model = view === 'key' ? keyModel : modeModel;
 
   const pickCell = (cell: Cell) => {
-    if (view === 'key') setKey({ spoke: cell.spoke, minor: cell.ring === 'minor' });
+    if (view === 'key') setKey(keyOnSpoke(cell.spoke, cell.ring === 'minor'));
     else setModal(m => ({ ...m, root: MAJOR_KEYS[cell.spoke] }));
   };
   const pickNote = (note: RingNote) => {

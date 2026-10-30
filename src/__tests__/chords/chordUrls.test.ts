@@ -1,4 +1,4 @@
-import { CHORD_ROOTS, CHORD_TYPES } from '@/lib/chords/chordTypes';
+import { CHORD_ROOTS, CHORD_TYPES } from '@/lib/theory/chords';
 import {
   chordFromSlug, chordHref, chordSlug, DEFAULT_CHORD, shapeFromKey,
 } from '@/lib/chords/chordUrls';

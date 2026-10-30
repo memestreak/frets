@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ToneKey } from '@/components/chords/ToneKey';
-import type { ChordInfo } from '@/lib/chords/chordTypes';
+import type { ChordInfo } from '@/lib/theory/chords';
 import type { ShapeExportTriggerProps } from '@/components/chords/export/useShapeExport';
 import { voicingCaption, voicingKey, type Voicing, type Voicings } from '@/lib/chords/voicings';
 
