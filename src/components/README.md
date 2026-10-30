@@ -36,7 +36,12 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (the Interval / Note / None control and its type), `src/components/KeyPicker.tsx`
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
-  Arpeggio, on the Chords and Triads pages).
+  Arpeggio, on the Chords and Triads pages),
+  `src/components/LetGoAfterUse.tsx` and `src/hooks/useLetGoAfterUse.ts`
+  (mounted once by `AppShell`: a button, link or list used with the mouse
+  or a finger lets go of the focus, so no widget stays outlined or keeps
+  the page's keys; keyboard use keeps it; see
+  `docs/specs/2026-10-30-let-go-after-use-design.md`).
 - `src/components/settings/` — the Settings dialog (issue #195,
   `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
   of groups and sections, on a phone a group picker and a strip of sections;

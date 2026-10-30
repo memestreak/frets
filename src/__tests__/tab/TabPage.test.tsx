@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
+import { LetGoAfterUse } from '@/components/LetGoAfterUse';
 import { readAscii } from '@/features/tab/ascii';
 import { arrangementKey, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
 import { DOUBLE_TAP_MS, DRAG_TYPE } from '@/features/tab/ArrangementsDialog';
@@ -48,7 +49,8 @@ vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
 /** Renders the page at /tab plus `hash`. */
 function renderAt(hash = '') {
   window.history.replaceState(null, '', `/tab${hash}`);
-  return render(<TabPage />);
+  // As in the app, where `AppShell` mounts it on every page.
+  return render(<><LetGoAfterUse /><TabPage /></>);
 }
 
 const heading = () => screen.getByRole('heading', { level: 1 });
@@ -1087,6 +1089,7 @@ describe('TabPage playback', () => {
   it('lets go of the focus after a sound is picked, after Enter in a field, and on a press on the tab', () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
     const sound = screen.getByRole('combobox', { name: 'Sound' });
+    fireEvent.pointerDown(sound);
     act(() => sound.focus());
     fireEvent.change(sound, { target: { value: '0' } });
     expect(sound).not.toHaveFocus();
@@ -1925,6 +1928,18 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toContain('\\track "Gtr II"');
     expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
+  });
+
+  it('lets go of the focus once a track is picked from the list, so the page keys work again', async () => {
+    renderAt(`#tab=${encodeURIComponent(TWO)}`);
+    await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    fireEvent.pointerDown(trackList());
+    act(() => trackList().focus());
+    fireEvent.change(trackList(), { target: { value: '1' } });
+    expect(trackList()).not.toHaveFocus();
+    expect(trackList().value).toBe('1');
+    fireEvent.keyDown(document.body, { key: ' ' });
+    expect(screen.getByRole('button', { name: /Loading the sound|Stop/ })).toBeInTheDocument();
   });
 
   it('goes back to the first track when another arrangement opens', async () => {

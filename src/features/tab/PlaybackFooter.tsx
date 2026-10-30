@@ -475,11 +475,8 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           <div className="tab-track-box" role="group" aria-label={`Track: ${track.name.trim() || `Track ${track.index + 1}`}`}>
           <label className="tab-sound">
             <span className="tab-track-name" data-tip={label === fullName ? undefined : fullName}>{label}</span>
-            <select className="input" aria-label="Sound" value={sound} onChange={e => {
-              onSound(Number(e.target.value));
-              // A sound picked, the list lets go of the focus, so Space plays again (Jeremy, 2026-10-28).
-              e.currentTarget.blur();
-            }}>
+            {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
+            <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
               {SOUND_FAMILIES.map(([family, sounds]) => (
                 <optgroup key={family} label={family}>
                   {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
