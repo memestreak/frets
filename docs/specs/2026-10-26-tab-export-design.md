@@ -63,9 +63,10 @@ It follows the Chords page's Export dialog:
   - **Name:** what the title says. It starts as the clip's name and can be
     changed for this export only.
 - **Actions:** Copy PNG, Copy SVG, Download PNG, Download SVG. Under them,
-  "As text": Download alphaTex (`<name>.alphatex.txt`), Download ASCII
-  (`<name>.txt`) and Download MusicXML (`<name>.musicxml`, every track;
-  `2026-10-30-tab-musicxml-export-design.md`). A line says what happened. It stays open after an action; Done, × or Esc close
+  "Other formats" (first "As text"): Download alphaTex (`<name>.alphatex.txt`), Download ASCII
+  (`<name>.txt`), Download MusicXML (`<name>.musicxml`, every track;
+  `2026-10-30-tab-musicxml-export-design.md`) and Download Guitar Pro (`<name>.gp`, every track;
+  `2026-10-30-tab-guitar-pro-export-design.md`). A line says what happened. It stays open after an action; Done, × or Esc close
   it.
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,

@@ -10,6 +10,7 @@ import { writeAscii } from './ascii';
 import { musicXmlLosses, writeMusicXml } from './musicxml';
 import { SAVE_KINDS } from './saveFile';
 import { partOf, type Clip } from './clip';
+import { writeGuitarPro } from './guitarPro';
 import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
@@ -24,15 +25,16 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * The Tab page's Export dialog, as the Chords page's: a preview of the
  * image as it will be with its size in pixels, the choices (width,
  * transparent, the name above the tab and what it says), and Copy PNG,
- * Copy SVG, Download PNG and Download SVG, then the clip as text (Download
- * alphaTex, Download ASCII, Download MusicXML, with a red ⚠ after it when the
- * file can't hold all of the clip), with a line saying what happened. The page's
+ * Copy SVG, Download PNG and Download SVG, then the clip in other formats
+ * (Download alphaTex, Download ASCII, Download MusicXML and Download Guitar Pro,
+ * each of the last two with a red ⚠ after it when the file can't hold all of the
+ * clip), with a line saying what happened. The page's
  * Export button opens it, as does the tab's right-click menu. The name
  * starts as the clip's and can be changed for this export. It stays open
  * after an action; Done, × or Esc close it.
  */
 export function TabExportDialog({ clip, track, parts, view, open, style, onStyle, onClose }: {
-  /** The whole clip, every track: downloaded as alphaTex and MusicXML; the images and ASCII tab are of the track the page shows. */
+  /** The whole clip, every track: downloaded as alphaTex, MusicXML and Guitar Pro; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
   /** The track the page shows. */
   track: number;
@@ -81,6 +83,8 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   const fileName = tabFileName(title || clip.name);
   const losses = musicXmlLosses(clip);
   const lossNote = losses.length ? `The MusicXML file leaves out ${losses.join(' and ')}.` : null;
+  // alphaTab reads the alphaTex Frets keeps without drawing, so the Guitar Pro file loses only the FX.
+  const gpLossNote = clip.tracks.some(t => t.fx?.on) ? 'The Guitar Pro file leaves out the FX.' : null;
 
   return (
     <dialog
@@ -145,18 +149,37 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
               Download SVG
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="tab-export-text-label">As text</span>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
-              Download alphaTex
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
-              Download ASCII
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.musicxml`, writeMusicXml(clip), SAVE_KINDS.musicxml.mime))}>
-              Download MusicXML
-            </button>
-            {lossNote && <span className="tab-sound-note" role="img" aria-label={lossNote} data-tip={lossNote}>⚠</span>}
+          {/* The label on the left; the buttons wrap under one another beside it, each ⚠ kept with its button. */}
+          <div className="flex items-baseline gap-2">
+            <span className="tab-export-text-label shrink-0">Other formats</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.alphatex.txt`, writeAlphaTex(clip)))}>
+                Download alphaTex
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.txt`, writeAscii(part, { rhythm: view.asciiRhythm })))}>
+                Download ASCII
+              </button>
+              <span className="inline-flex items-center gap-2">
+                <button type="button" className="btn btn-ghost" onClick={() => setStatus(downloadText(`${fileName}.musicxml`, writeMusicXml(clip), SAVE_KINDS.musicxml.mime))}>
+                  Download MusicXML
+                </button>
+                {lossNote && <span className="tab-sound-note" role="img" aria-label={lossNote} data-tip={lossNote}>⚠</span>}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <button
+                  type="button" className="btn btn-ghost"
+                  onClick={() => {
+                    writeGuitarPro(clip).then(
+                      bytes => setStatus(download(`${fileName}.gp`, new Blob([bytes as Uint8Array<ArrayBuffer>], { type: SAVE_KINDS.guitarPro.mime }))),
+                      (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`),
+                    );
+                  }}
+                >
+                  Download Guitar Pro
+                </button>
+                {gpLossNote && <span className="tab-sound-note" role="img" aria-label={gpLossNote} data-tip={gpLossNote}>⚠</span>}
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-(--ink-muted)" role="status">{status}</span>
@@ -171,7 +194,12 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
 
 /** Saves `text` as a file (plain text unless `type` says otherwise); returns the line the dialog shows. */
 function downloadText(fileName: string, text: string, type = 'text/plain'): string {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+  return download(fileName, new Blob([text], { type }));
+}
+
+/** Downloads `blob` as `fileName`; returns the line the dialog shows. */
+function download(fileName: string, blob: Blob): string {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;
