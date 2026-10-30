@@ -33,9 +33,9 @@ const section = (name: string) => inDialog().getByRole('treeitem', { name });
 const saved = (key: string) => JSON.parse(localStorage.getItem(key) ?? 'null');
 
 describe('Settings', () => {
-  it('opens from the gear after Export options at Tab › Playback, with Tab open and General shut', () => {
+  it('opens from the gear after Export at Tab › Playback, with Tab open and General shut', () => {
     render(<TabPage />);
-    const actions = screen.getByRole('button', { name: 'Export options' }).parentElement!;
+    const actions = screen.getByRole('button', { name: 'Export' }).parentElement!;
     expect([...actions.querySelectorAll('button')].at(-1)).toHaveAccessibleName('Settings');
     openSettings();
     expect(pane()).toHaveTextContent('Tab › Playback');

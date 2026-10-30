@@ -1,4 +1,4 @@
-# Tab: export options
+# Tab: export
 
 Part of PR 3 of `2026-10-24-tab-editor-design.md` (images). Jeremy asked on
 2026-10-26 for an "Export options" dialog on the Tab page, "something like
@@ -29,7 +29,8 @@ button (Jeremy, 2026-10-27; it had been at the bottom right). He first asked for
 menus; after trying three mocks he chose a button instead.
 
 - **Standard:** the button opens a list of PNG image…, SVG image…, ASCII
-  tab… and alphaTex…. PNG and SVG use the Export dialog's saved choices.
+  tab…, alphaTex… and MusicXML… (`2026-10-30-tab-musicxml-export-design.md`).
+  PNG and SVG use the Export dialog's saved choices.
 - **ASCII Tab:** the button saves the text, `<name>.txt`.
 - **AlphaTex:** the button saves the text as typed, comments included,
   `<name>.alphatex.txt`.
@@ -38,10 +39,11 @@ Chrome and Edge open their own Save As dialog (`showSaveFilePicker`), so the
 name and folder can be chosen. Other browsers download the file
 (`saveFile.ts`). The line under the clip says what happened.
 
-## The Export options button
+## The Export button
 
 The header's **Download** button became **Export options** (first written
-"Export…"; Jeremy renamed it the same day), which opens the same
+"Export…"; Jeremy renamed it the same day), and then **Export** (Jeremy,
+2026-10-30, with the MusicXML download), which opens the same
 dialog (Jeremy, 2026-10-26: one way to do a thing). The text downloads it
 used to make moved into the dialog, so nothing is lost.
 
@@ -61,8 +63,9 @@ It follows the Chords page's Export dialog:
   - **Name:** what the title says. It starts as the clip's name and can be
     changed for this export only.
 - **Actions:** Copy PNG, Copy SVG, Download PNG, Download SVG. Under them,
-  "As text": Download alphaTex (`<name>.alphatex.txt`) and Download ASCII
-  (`<name>.txt`). A line says what happened. It stays open after an action; Done, × or Esc close
+  "As text": Download alphaTex (`<name>.alphatex.txt`), Download ASCII
+  (`<name>.txt`) and Download MusicXML (`<name>.musicxml`, every track;
+  `2026-10-30-tab-musicxml-export-design.md`). A line says what happened. It stays open after an action; Done, × or Esc close
   it.
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,

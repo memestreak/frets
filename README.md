@@ -51,5 +51,8 @@ check on every pull request and every push to `main`.
   font, Steinberg Media Technologies GmbH,
   [SIL OFL 1.1](https://openfontlicense.org), as packaged in
   [VexFlow](https://github.com/vexflow/vexflow), [MIT](https://opensource.org/licenses/MIT).
+- The MusicXML export is checked against the
+  [MusicXML 4.0](https://github.com/w3c/musicxml) schema, W3C Music Notation
+  Community Group, [W3C Community Final Specification Agreement](https://www.w3.org/community/about/agreements/final/).
 
 See `NOTICE.md` for the details and the changes made.

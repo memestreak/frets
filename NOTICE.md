@@ -82,3 +82,14 @@ packaged in [VexFlow](https://github.com/vexflow/vexflow) 4.2.5, Copyright (c)
 [MIT License](https://opensource.org/licenses/MIT). Changes: each outline was
 converted from VexFlow's units to SVG paths in staff spaces by
 `scripts/smufl-glyphs.mjs`; no font file is shipped.
+
+## MusicXML 4.0 schema: W3C Music Notation Community Group
+
+`src/__tests__/tab/musicxml/` holds the MusicXML 4.0 XSD (`musicxml.xsd`,
+`xml.xsd`, `xlink.xsd`) from [w3c/musicxml](https://github.com/w3c/musicxml),
+Copyright © 2004-2021 the Contributors to the MusicXML Specification,
+published under the
+[W3C Community Final Specification Agreement](https://www.w3.org/community/about/agreements/final/).
+The tests use it to check the Tab page's MusicXML export; it is not shipped
+in the app. Changes: `musicxml.xsd`'s two `schemaLocation`s point at the
+files beside it. See `src/__tests__/tab/musicxml/README.md`.

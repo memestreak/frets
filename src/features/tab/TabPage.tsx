@@ -834,7 +834,7 @@ export default function TabPage() {
           )}
           <button type="button" className="btn btn-secondary" onClick={() => { arrangements.forgetDeleted(); setChoosing(true); }}>Arrangements…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export options</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
           {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
           <button
             type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"

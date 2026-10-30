@@ -163,7 +163,7 @@ describe('TabPage', () => {
     expect(heading()).toHaveTextContent('Other');
     fireEvent.keyDown(again, { key: 'Escape' });
     expect(heading()).toHaveTextContent('Riff');
-    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
     expect(savedClip().name).toBe('Riff');
   });
@@ -1604,7 +1604,7 @@ describe('TabPage export', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
     const menu = screen.getByRole('menu', { name: 'Save as' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…', 'MusicXML…']);
     fireEvent.keyDown(menu, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.getByRole('button', { name: 'Save as text file' })).not.toHaveAttribute('aria-haspopup');
@@ -1612,10 +1612,10 @@ describe('TabPage export', () => {
     expect(screen.getByRole('button', { name: 'Save as alphaTex file' })).toBeInTheDocument();
   });
 
-  it('opens Export options from the header, and remembers its choices', async () => {
+  it('opens Export from the header, and remembers its choices', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
-    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);
@@ -1730,11 +1730,11 @@ describe('TabPage export', () => {
     expect(screen.getByRole('button', { name: 'Copy as text' })).toBeInTheDocument();
   });
 
-  it('opens Export options from the Export options button, which also downloads the clip as text', () => {
+  it('opens the Export dialog from the Export button, which also downloads the clip as text', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Export options' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
     const saved: string[] = [];
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
@@ -1744,9 +1744,20 @@ describe('TabPage export', () => {
     URL.revokeObjectURL = vi.fn();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Download alphaTex' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Download ASCII' }));
-    expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt']);
-    expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.txt');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Download MusicXML' }));
+    expect(saved).toEqual(['Riff.alphatex.txt', 'Riff.txt', 'Riff.musicxml']);
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.musicxml');
+    // The file holds all of this clip, so no ⚠ says otherwise.
+    expect(within(dialog).queryByRole('img', { name: /MusicXML file leaves out/ })).toBeNull();
     click.mockRestore();
+  });
+
+  it('marks Download MusicXML with a ⚠ when the file can\'t hold all of the clip', async () => {
+    renderAt('#example=oceanic-speedy-down-run');
+    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: /^Export/ });
+    expect(within(dialog).getByRole('img', { name: 'The MusicXML file leaves out the FX.' })).toHaveTextContent('⚠');
   });
 });
 

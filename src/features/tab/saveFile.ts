@@ -24,6 +24,7 @@ export const SAVE_KINDS = {
   svg: { description: 'SVG image', mime: 'image/svg+xml', extension: '.svg' },
   ascii: { description: 'ASCII tab', mime: 'text/plain', extension: '.txt' },
   alphatex: { description: 'alphaTex', mime: 'text/plain', extension: '.alphatex.txt' },
+  musicxml: { description: 'MusicXML', mime: 'application/vnd.recordare.musicxml+xml', extension: '.musicxml' },
 } satisfies Record<string, SaveKind>;
 
 /**
