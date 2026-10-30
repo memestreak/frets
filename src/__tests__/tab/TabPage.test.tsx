@@ -2133,6 +2133,25 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
     });
 
+    it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {
+      await open();
+      press(headAt(2));
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
+      // In note input too.
+      fireEvent.keyDown(editor(), { key: 'n' });
+      expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
+      expect(screen.queryByTestId('input-cursor')).toBeNull();
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      // The tab's 3 on the D string, pressed.
+      const three = screen.getAllByText('3').find(t => t.closest('[data-testid="tab-system"]'))!;
+      const top = Number(/translate\(0 ([\d.-]+)\)/.exec(three.closest('[data-testid="tab-system"]')!.getAttribute('transform')!)![1]);
+      press({ clientX: Number(three.getAttribute('x')), clientY: top + Number(three.getAttribute('y')) - 4 });
+      expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+      expect(screen.queryByTestId('staff-selected')).toBeNull();
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    });
+
     it('in normal mode a press beside the heads selects the column and enters nothing', async () => {
       await open();
       press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });

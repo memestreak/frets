@@ -217,7 +217,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         <g transform={`translate(0 ${top})`} data-testid="tab-cursor">
           {/* No band behind the cursor's column: only Shift's selection draws one (Jeremy, 2026-10-28). */}
           {/* While a run of columns is selected, only its band shows: no box follows the cursor (Jeremy, 2026-10-28). */}
-          {!highlight.range && !highlight.columnOnly && rows.tab && (
+          {/* Only the part pressed lights: while the staff has the keys, its own cursor shows the note (Jeremy, 2026-10-30). */}
+          {!highlight.range && !highlight.columnOnly && highlight.staffPitch == null && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
               fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5}

@@ -21,7 +21,9 @@ input.
 
 What the cursor is on is **selected**: a note's box on the tab is filled (`--primary-soft`), and a
 selected staff note is filled in `--primary`, as MuseScore colours one. A column with no string picked
-has the same filled box round its strings (round the staff's lines with the staff alone).
+has the same filled box round its strings (round the staff's lines with the staff alone). Only the
+part pressed lights (Jeremy, 2026-10-30): a note selected on the staff is not boxed on the tab, nor a
+note selected on the tab coloured on the staff; the same goes for note input's cursors.
 
 | Input | Does |
 | --- | --- |
