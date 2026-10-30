@@ -35,11 +35,22 @@ export function applyTheme(choice: ThemeChoice): void {
   else root.setAttribute('data-theme', choice);
 }
 
+/** The link parameter that picks a theme, e.g. `?theme=light`. */
+export const THEME_PARAM = 'theme';
+
 /**
  * Runs in <head> before first paint, so a saved Light or Dark never flashes
- * the other theme. The value is JSON, as `saveJson` writes it. Kept in step
- * with `parseAppearance` and `applyTheme` by hand.
+ * the other theme. A `?theme=auto|light|dark` in the link is saved first, as
+ * if picked, and dropped from the address: each PR preview is a new site with
+ * nothing saved, so preview links carry it. The value is JSON, as `saveJson`
+ * writes it. Kept in step with `parseAppearance` and `applyTheme` by hand.
  */
 export const THEME_BOOT_SCRIPT =
-  `(function(){try{var a=JSON.parse(localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})),t=a&&a.theme;` +
-  `if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`;
+  `(function(){var k=${JSON.stringify(APPEARANCE_KEY)},n=${JSON.stringify(THEME_PARAM)},t=null;` +
+  // The link's choice: applied even when it can't be saved (private mode).
+  `try{var u=new URL(location.href),p=u.searchParams.get(n);` +
+  `if(p==='auto'||p==='light'||p==='dark'){t=p;u.searchParams.delete(n);` +
+  `history.replaceState(history.state,'',u.href);localStorage.setItem(k,JSON.stringify({theme:p}))}}catch(e){}` +
+  // Otherwise the saved choice.
+  `try{if(t===null){var a=JSON.parse(localStorage.getItem(k));t=a&&a.theme}}catch(e){}` +
+  `if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)})()`;
