@@ -34,16 +34,36 @@ Frets already has. It lands in two PRs: the keys first, then picking several thi
 - Plain Home and End, which MuseScore doesn't bind, stay unbound.
 - Shift+W and Shift+Q (MuseScore's dots) are not taken: `.` steps the dots.
 
-## PR 2: picking several things (after the modes)
+## PR 2: the rectangle and stepping through marks
 
 Jeremy moved step 3, normal mode and note input, ahead of this
-(`2026-10-30-tab-note-input-mode-design.md`).
+(`2026-10-30-tab-note-input-mode-design.md`), and on 2026-10-30 moved Ctrl/⌘+click list selection and
+right-click → Select similar to their own issue (#260).
 
-Ctrl/⌘+click list selection of notes and marks, Shift+drag rectangle from blank space, Alt+← → through
-marks and words, right-click → Select similar.
+- **Shift+drag from blank space** (not on a note, mark or word; a staff line or space, a string with no
+  note there, or the band round the lines) draws a dashed rectangle, filled `--primary-soft`. On letting
+  go, the columns drawn inside it, on any line whose staff or tab it crosses, become the selection, from
+  the first to the last, as Shift+arrows select. A rectangle that takes in no column changes nothing.
+  A Shift+press there that moves less than 4 pixels extends the selection as before.
+- **Alt+← →** step through everything a press can pick, in reading order: in each column, its bar's
+  words when it opens the bar (capo, section, tempo, ending), its chord name and text, its notes from the
+  high string down (or the rest), then its marks. Each is picked as a press picks it: a note selected
+  (on the staff when the staff had the keys), a rest's column alone, a mark or word outlined with its
+  Delete (and Edit). From a column with no string picked, → goes to its first note. Nothing is past
+  either end. P.M. and let ring lines are runs, picked by a press only.
+- Holding a modifier key down on its own no longer lets a picked mark or word go.
+
+### Reading
+
+- MuseScore's rectangle selects the notes inside it; Frets selects runs of columns, so the rectangle
+  selects the run from the first column inside to the last, as #238 says.
+- The order inside a column (words, notes, marks) is my choice; MuseScore's next-element order varies
+  with the element.
 
 ## Code
 
 `jumps.ts` (pure): `jumpCursor`, `jumpFocus` and `jumpForKey`. `editorKeys.ts` takes them in
 `jumpKeyDown`, with the drawn lines' first and last columns from `TabPage.tsx` (`drawnLines`, laid out
-only when Shift+Home or End asks).
+only when Shift+Home or End asks). `rectangle.ts` (pure: `columnsInRectangle`) and `TabClip.tsx`'s
+`onPickRect` draw and read the rectangle; `elements.ts` (pure: `elementsOf`, `stepElement`) lists what
+Alt+← → step through, and `TabPage.tsx`'s `stepToElement` picks it.

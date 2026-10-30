@@ -51,6 +51,8 @@ export interface EditorKeys {
   /** Note input's length (`inputLength.ts`): the next note entered on a rest takes it. */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
+  /** Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
+  stepElement: (step: 1 | -1) => void;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Part, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
@@ -77,6 +79,14 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   const { clip, cursor, selection, target, columnOnly, picked, lastDigit, commit } = editor;
   const { key } = e;
   const count = columnCount(clip);
+  // A modifier on its own does nothing: holding Alt (or Shift) to step leaves a picked mark or word picked.
+  if (key === 'Alt' || key === 'Shift' || key === 'Control' || key === 'Meta') return;
+  // Alt+← → step through notes, rests, marks and words, as MuseScore's do (issue #238), from a picked one too.
+  if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    editor.stepElement(key === 'ArrowRight' ? 1 : -1);
+    return;
+  }
   // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
   if (picked?.kind === 'mark') {
     if (key === 'Delete' || key === 'Backspace') {

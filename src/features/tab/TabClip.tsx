@@ -10,6 +10,7 @@ import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
 import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks';
+import { columnsInRectangle, type Rectangle } from './rectangle';
 import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
 import { TempoNote } from './TempoNote';
@@ -38,7 +39,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onPickRect, onMiss, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -78,6 +79,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * still `onPickStaff`, when the pointer lets go.
    */
   onDragStaff?: (drag: StaffDrag) => void;
+  /**
+   * Shift+drag from blank space (issue #238): the first and last column the rectangle took in. A
+   * Shift+press there that doesn't move still extends the selection, as before.
+   */
+  onPickRect?: (from: number, to: number) => void;
   /**
    * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
@@ -122,6 +128,18 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
     const { run, text, mark, staff, hit, column, px, py } = target(e);
+    // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
+    const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+    if (onPickRect && e.shiftKey && e.button === 0 && !run && !text && !mark && !onNote) {
+      const press = () => {
+        if (staff) onPickStaff!(staff, true);
+        else if (hit) onPick(hit, true);
+        else if (column !== null) onPickColumn!(column, true);
+      };
+      rectPress.current = { x: px, y: py, clientX: e.clientX, clientY: e.clientY, press };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      return;
+    }
     if (staff && staff.string !== null && onDragStaff && e.button === 0) {
       // A head: a drag or a press, told apart when the pointer moves or lets go.
       headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, last: null };
@@ -135,6 +153,34 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
+  };
+  /** A Shift+press on blank space: where it started, and what a press there does if it doesn't move. */
+  const rectPress = useRef<{ x: number; y: number; clientX: number; clientY: number; press: () => void } | null>(null);
+  /** The rectangle being drawn, in the drawing's units. */
+  const [rect, setRect] = useState<Rectangle | null>(null);
+  const drawRect = (e: PointerEvent<SVGSVGElement>) => {
+    const from = rectPress.current;
+    if (!from) return false;
+    // Past a few pixels it is a drag, not a press.
+    if (!rect && Math.hypot(e.clientX - from.clientX, e.clientY - from.clientY) < RECT_START) return true;
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    setRect({ x0: from.x, y0: from.y, x1: (e.clientX - box.left) * scale, y1: (e.clientY - box.top) * scale });
+    return true;
+  };
+  const dropRect = (e: PointerEvent<SVGSVGElement>, cancelled: boolean) => {
+    const from = rectPress.current;
+    if (!from) return false;
+    rectPress.current = null;
+    setRect(null);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (cancelled) return true;
+    if (!rect) from.press();
+    else {
+      const range = columnsInRectangle(layout, rect);
+      if (range) onPickRect!(range[0], range[1]);
+    }
+    return true;
   };
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
   const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; last: StaffDrag | null } | null>(null);
@@ -195,9 +241,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined}
-      onPointerMove={onDragStaff || shadow !== null ? dragHead : undefined}
-      onPointerLeave={shadow !== null ? () => setHover(null) : undefined} onPointerUp={onDragStaff ? e => dropHead(e, false) : undefined}
-      onPointerCancel={onDragStaff ? e => dropHead(e, true) : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerMove={onDragStaff || shadow !== null || onPickRect ? e => { if (!drawRect(e)) dragHead(e); } : undefined}
+      onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
+      onPointerUp={onDragStaff || onPickRect ? e => { if (!dropRect(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onPickRect ? e => { if (!dropRect(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (
@@ -205,6 +252,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         <rect x={0} y={-columnReach} width={width} height={layout.height + 2 * columnReach} fill="transparent" data-testid="column-reach" />
       )}
       {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
+      {rect && (
+        <rect
+          x={Math.min(rect.x0, rect.x1)} y={Math.min(rect.y0, rect.y1)} width={Math.abs(rect.x1 - rect.x0)} height={Math.abs(rect.y1 - rect.y0)}
+          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1} strokeDasharray="4 3" pointerEvents="none" data-testid="select-rectangle"
+        />
+      )}
       {pickedBox && (
         <rect
           x={pickedBox.x} y={pickedBox.y} width={pickedBox.width} height={pickedBox.height} rx={4}
@@ -286,6 +339,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
 }
 
 /** A bar's number: its size, and how far in from the bar's opening line it starts. */
+/** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
+const RECT_START = 4;
 const BAR_NUMBER_SIZE = 9;
 const BAR_NUMBER_INSET = 2;
 

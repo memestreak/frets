@@ -825,6 +825,62 @@ describe('TabPage', () => {
         act(() => editor().focus());
       };
 
+      it('Shift+drag from blank space draws a rectangle that selects the columns in it; a Shift+press there still extends', async () => {
+        localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+        await open();
+        const read = readAlphaTexWith(alphaTab, THREE_BARS);
+        if (!read.ok) throw new Error(read.errors.join('\n'));
+        const layout = layoutClip(partOf(read.clip), 800, 'tab');
+        const { top, rows } = layout.systems[0];
+        const xs = layout.systems[0].bars.flatMap(b => b.columns.map(c => c.x));
+        const svg = screen.getByRole('img', { name: /drawn as/ });
+        // From above the lines, left of the second column, to the lines' middle, right of the fourth.
+        const from = { clientX: xs[1] - 6, clientY: top + rows.staffTop - 12 };
+        const to = { clientX: xs[3] + 6, clientY: top + rows.staffTop + 30 };
+        fireEvent.pointerDown(svg, { ...from, button: 0, shiftKey: true });
+        fireEvent.pointerMove(svg, { ...to, shiftKey: true });
+        expect(screen.getByTestId('select-rectangle')).toBeInTheDocument();
+        fireEvent.pointerUp(svg, { ...to, shiftKey: true });
+        expect(screen.queryByTestId('select-rectangle')).toBeNull();
+        expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |');
+        // A Shift+press on a blank string, not moved, extends the selection to there as before.
+        fireEvent.pointerDown(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, button: 0, shiftKey: true });
+        fireEvent.pointerUp(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, shiftKey: true });
+        expect(screen.queryByTestId('select-rectangle')).toBeNull();
+        expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
+      });
+
+      it('Alt+← → step through notes, rests, marks and words, picking each', async () => {
+        renderAt(`#tab=${encodeURIComponent('\\title "Steps"\n\\ts (4 4)\n5.1.4{ch "A"} 7.3{v}.4 r.4 3.4.4 |')}`);
+        await screen.findByRole('heading', { name: 'Steps' }, SLOW);
+        act(() => editor().focus());
+        const alt = (key: string) => keys({ key, altKey: true });
+        const before = alphaTex();
+        // From the first note: the next note, then its vibrato, picked as a press picks it.
+        alt('ArrowRight');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        alt('ArrowRight');
+        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        // Holding Alt down on its own lets nothing go.
+        keys({ key: 'Alt', altKey: true });
+        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        // Delete takes the picked vibrato away.
+        keys('Delete');
+        expect(alphaTex()).not.toBe(before);
+        expect(alphaTex()).not.toContain('{v}');
+        // Then the rest, with the column alone lit, and back past the first note to its chord name.
+        alt('ArrowRight');
+        expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+        alt('ArrowLeft');
+        alt('ArrowLeft');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        alt('ArrowLeft');
+        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+        // At the start nothing is before it: the chord name stays picked.
+        alt('ArrowLeft');
+        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+      });
+
       it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {
         await open();
         keys({ key: 'ArrowRight', ctrlKey: true }, '1');
