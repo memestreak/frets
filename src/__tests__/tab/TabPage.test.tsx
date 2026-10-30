@@ -1056,9 +1056,9 @@ describe('TabPage examples', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Samples' }));
     await settle();
     const calls = fetched.mock.calls.length;
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Hello, sample' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
     expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
-    await screen.findByRole('heading', { name: 'Hello, sample' }, SLOW);
+    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     // The text came with the dialog's list: nothing more was fetched, and closing it read nothing again.
     expect(fetched.mock.calls.length).toBe(calls);
   });
@@ -1292,12 +1292,12 @@ describe('TabPage arrangements', () => {
     const folders = builtIn.getAllByRole('button', { expanded: false }).map(b => b.textContent);
     expect(folders).toEqual(expect.arrayContaining(['Articulations', 'Rhythm', 'Samples', 'Song structure']));
     fireEvent.click(builtIn.getByRole('button', { name: 'Samples' }));
-    fireEvent.click(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Hello, sample' }));
-    await screen.findByRole('heading', { name: 'Hello, sample' }, SLOW);
-    expect(window.location.hash).toBe('#example=hello-sample');
+    fireEvent.click(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
+    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
+    expect(window.location.hash).toBe('#example=oceanic-speedy-down-run');
     // Opened again, the dialog shows the folder of what is shown.
     const again = openDialog();
-    expect(within(within(again).getByRole('list', { name: 'Built-in' })).getByRole('button', { name: 'Hello, sample' })).toHaveAttribute('aria-current', 'true');
+    expect(within(within(again).getByRole('list', { name: 'Built-in' })).getByRole('button', { name: 'Oceanic Speedy Down Run' })).toHaveAttribute('aria-current', 'true');
   });
 
   it('keeps a copy of an example, with its edits, as a new arrangement', async () => {
