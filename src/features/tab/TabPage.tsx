@@ -375,6 +375,9 @@ export default function TabPage() {
     setInputMode(on);
     if (on) {
       setInputLength(startLength(clip, cursor));
+      // No string is picked for you (Jeremy, 2026-10-30): off a note the cursor takes its column alone
+      // until ↑ ↓ or a press picks one, and digits wait for it.
+      if (!noteAt(clip, cursor)) setColumnOnly(true);
       editorRef.current?.focus();
     }
   };
@@ -978,7 +981,7 @@ export default function TabPage() {
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
                   ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
                   aria-label={inputMode
-                    ? 'Tab editor, note input: type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
+                    ? 'Tab editor, note input: ↑ ↓ pick a string and digits type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
                     : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input; Shift+F10 to insert a bar'}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.

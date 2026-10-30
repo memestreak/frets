@@ -49,6 +49,12 @@ The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
 lines and spaces; Alt+↑ ↓ move notes; Enter on the staff adds or takes away a note; → past a short bar
 adds a rest to type on. The tab's cursor is outlined, as before; the staff's is the faint outlined head.
 
+- **No string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
+  the column alone, or the column with digits going to the last note's string): going in on a note,
+  its string stays picked; anywhere else the column alone is lit, and digits do nothing until ↑ ↓ (which
+  first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
+  then ↓, then the fret.
+
 - **The shadow note** (Q2, Jeremy: "your cursor changes to the note representation"): under the
   pointer, over the staff, a faint note of the length a press would enter, on the line or space
   pointed at, with its ledger lines, stem and flag; over the tab, a faint 0 on the string pointed at.
