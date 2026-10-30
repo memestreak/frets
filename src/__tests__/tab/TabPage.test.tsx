@@ -1798,7 +1798,7 @@ describe('TabPage export', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
     const menu = screen.getByRole('menu', { name: 'Save as' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…', 'MusicXML…']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…', 'MusicXML…', 'Guitar Pro…']);
     fireEvent.keyDown(menu, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.getByRole('button', { name: 'Save as text file' })).not.toHaveAttribute('aria-haspopup');
@@ -1946,12 +1946,49 @@ describe('TabPage export', () => {
     click.mockRestore();
   });
 
-  it('marks Download MusicXML with a ⚠ when the file can\'t hold all of the clip', async () => {
+  it('marks Download MusicXML and Download Guitar Pro with a ⚠ when the file can\'t hold all of the clip', async () => {
     renderAt('#example=oceanic-speedy-down-run');
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: /^Export/ });
     expect(within(dialog).getByRole('img', { name: 'The MusicXML file leaves out the FX.' })).toHaveTextContent('⚠');
+    expect(within(dialog).getByRole('img', { name: 'The Guitar Pro file leaves out the FX.' })).toHaveTextContent('⚠');
+  });
+
+  it('downloads the whole clip as a Guitar Pro file from Export and from Notation\'s Save as list', async () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    const saved: { name: string; blob: Blob }[] = [];
+    const blobs = new Map<string, Blob>();
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      const url = `blob:${blobs.size}`;
+      blobs.set(url, blob);
+      return url;
+    });
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      saved.push({ name: this.download, blob: blobs.get(this.href)! });
+    });
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+      const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
+      // The riff has no FX, so nothing is left out.
+      expect(within(dialog).queryByRole('img', { name: /Guitar Pro file leaves out/ })).toBeNull();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Download Guitar Pro' }));
+      await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.gp'), SLOW);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+      fireEvent.click(within(screen.getByRole('menu', { name: 'Save as' })).getByRole('menuitem', { name: 'Guitar Pro…' }));
+      await waitFor(() => expect(saved).toHaveLength(2), SLOW);
+      expect(saved.map(s => s.name)).toEqual(['Riff.gp', 'Riff.gp']);
+      for (const { blob } of saved) {
+        const score = alphaTab.importer.ScoreLoader.loadScoreFromBytes(new Uint8Array(await blob.arrayBuffer()), new alphaTab.Settings());
+        expect(score.title).toBe('Riff');
+        expect(score.tracks[0].staves[0].bars.length).toBeGreaterThan(0);
+      }
+    } finally {
+      click.mockRestore();
+    }
   });
 });
 

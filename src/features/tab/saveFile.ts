@@ -25,6 +25,7 @@ export const SAVE_KINDS = {
   ascii: { description: 'ASCII tab', mime: 'text/plain', extension: '.txt' },
   alphatex: { description: 'alphaTex', mime: 'text/plain', extension: '.alphatex.txt' },
   musicxml: { description: 'MusicXML', mime: 'application/vnd.recordare.musicxml+xml', extension: '.musicxml' },
+  guitarPro: { description: 'Guitar Pro file', mime: 'application/octet-stream', extension: '.gp' },
 } satisfies Record<string, SaveKind>;
 
 /**

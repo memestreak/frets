@@ -7,6 +7,7 @@ import { writeAscii } from './ascii';
 import { partOf, type Clip } from './clip';
 import { tabSvg, type TabExportStyle } from './exportTab';
 import { writeMusicXml } from './musicxml';
+import { writeGuitarPro } from './guitarPro';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
@@ -107,12 +108,14 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
     );
   };
   const asText = (text: string) => new Blob([text], { type: 'text/plain' });
+  const asBytes = (bytes: Uint8Array) => new Blob([bytes as Uint8Array<ArrayBuffer>], { type: SAVE_KINDS.guitarPro.mime });
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
     { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm }))) },
     { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
     { label: 'MusicXML…', onSelect: () => save(SAVE_KINDS.musicxml, () => new Blob([writeMusicXml(clip)], { type: SAVE_KINDS.musicxml.mime })) },
+    { label: 'Guitar Pro…', onSelect: () => save(SAVE_KINDS.guitarPro, async () => asBytes(await writeGuitarPro(clip))) },
   ];
   /** In Notation the save button lists the formats; the ASCII Tab view saves its text, and the AlphaTex view its text as typed. */
   const saveLabel = { tab: 'Save as…', ascii: 'Save as text file', alphatex: 'Save as alphaTex file' }[view];
