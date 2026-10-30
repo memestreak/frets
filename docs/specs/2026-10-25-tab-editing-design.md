@@ -46,6 +46,10 @@ readers pass keys through to it.
 
 ## Keys
 
+These are note input's keys since issue #238 split normal mode from note input
+(`2026-10-30-tab-note-input-mode-design.md`); N turns note input on, and normal mode has MuseScore's.
+
+
 | Key | Does |
 | --- | --- |
 | 0–9 | Fret on the cursor's string. A second digit within a second, on the same spot, makes a two-digit fret, up to 24. A typed fret keeps the note's marks but drops a tie or a dead note. |
@@ -65,7 +69,7 @@ readers pass keys through to it.
 | / | Steps the slide: from the note before (sl), shift slide (ss), in from below (sib), in from above (sia), none. The kinds from the note before are skipped when there isn't one. |
 | B | Steps the bend amount: ¼, ½, full, 1½, 2, none. |
 | Shift+B | Steps the bend shape: release, pre-bend, pre-bend and release, plain. |
-| V M X N T | Vibrato, palm mute, dead note, natural harmonic, tap. |
+| V M X Shift+N T | Vibrato, palm mute, dead note, natural harmonic, tap. |
 | D U | Down or up stroke. |
 | [ ] E | Repeat start; repeat end, ×2, ×3, ×4, then none; ending 1., 2., then none. |
 | Ctrl+C, X, V | Copy, cut, paste (below). |

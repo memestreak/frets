@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { accidentalLanes, keySigns, STAFF_LINES, type Accidental, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
@@ -57,27 +57,57 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
   return <g data-testid="staff">{parts}</g>;
 }
 
-/**
- * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
- * its ledger lines and, when the key doesn't give it, its sharp, flat or natural.
- */
-export function StaffCursor({ x, step, sign, score }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows }) {
-  const y = stepY(score, step);
-  const left = x - HEAD_WIDTH / 2;
+/** The ledger lines a head on a step needs, above or below the staff. */
+function ledgerSteps(step: number): number[] {
   const ledgers: number[] = [];
   for (let ls = -2; ls >= step; ls -= 2) ledgers.push(ls);
   for (let ls = 10; ls <= step; ls += 2) ledgers.push(ls);
+  return ledgers;
+}
+
+/**
+ * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
+ * its ledger lines and, when the key doesn't give it, its sharp, flat or natural. In normal mode (issue
+ * #238) it marks the selected note instead, `selected`: the head filled in the primary colour, as
+ * MuseScore colours a selected note.
+ */
+export function StaffCursor({ x, step, sign, score, selected = false }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean }) {
+  const y = stepY(score, step);
+  const left = x - HEAD_WIDTH / 2;
   const signGlyph: GlyphName | null = sign === null ? null : sign > 0 ? 'accidentalSharp' : sign < 0 ? 'accidentalFlat' : 'accidentalNatural';
   return (
-    <g data-testid="staff-cursor" pointerEvents="none">
-      {ledgers.map(ls => (
+    <g data-testid={selected ? 'staff-selected' : 'staff-cursor'} pointerEvents="none">
+      {ledgerSteps(step).map(ls => (
         <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--primary)" strokeWidth={1} />
       ))}
       <path
         d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`}
-        fill="var(--primary)" fillOpacity={0.3} stroke="var(--primary)" strokeWidth={1.5 / SPACE}
+        fill="var(--primary)" fillOpacity={selected ? 1 : 0.3} stroke={selected ? 'none' : 'var(--primary)'} strokeWidth={1.5 / SPACE}
       />
       {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--primary)" />}
+    </g>
+  );
+}
+
+/**
+ * The shadow note under the pointer in note input (issue #238, as MuseScore shows one): a faint note of
+ * the length a press would enter, its head on the line or space pointed at, its stem up and flag.
+ */
+export function ShadowNote({ x, step, value, score }: { x: number; step: number; value: number; score: ScoreRows }) {
+  const y = stepY(score, step);
+  const left = x - HEAD_WIDTH / 2;
+  const head = HEADS[Math.min(2, Math.log2(value))];
+  const stemX = left + HEAD_WIDTH - 0.6;
+  const stemTop = stepY(score, step + STEM_STEPS);
+  const flag = FLAGS[value]?.[0];
+  return (
+    <g data-testid="shadow-note" data-value={value} pointerEvents="none" opacity={0.45} fill="var(--primary)" stroke="var(--primary)">
+      {ledgerSteps(step).map(ls => (
+        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} strokeWidth={1} />
+      ))}
+      <path d={GLYPHS[head].d} transform={`translate(${left} ${y}) scale(${SPACE})`} stroke="none" />
+      {value >= 2 && <line x1={stemX} x2={stemX} y1={y} y2={stemTop} strokeWidth={1.2} />}
+      {flag && <path d={GLYPHS[flag].d} transform={`translate(${stemX - 0.6} ${stemTop}) scale(${SPACE})`} stroke="none" />}
     </g>
   );
 }

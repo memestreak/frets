@@ -373,12 +373,12 @@ describe('an artificial harmonic (round 9, the book\'s bar 158)', () => {
     }
   });
 
-  it('comes after pinch in the N key\'s cycle, and is picked and deleted, lighting no tool', () => {
+  it('comes after pinch in the Shift+N key\'s cycle, and is picked and deleted, lighting no tool', () => {
     const target = { cursor: { bar: 0, column: 0, string: 1 }, selection: null };
     let clip = clipOf('\\ts (4 4)\n8.2.4 r.4 r.2 |\n');
     const kinds = [];
     for (let i = 0; i < 4; i++) {
-      clip = applyCyclingKey(clip, target, 'n')!;
+      clip = applyCyclingKey(clip, target, 'N')!;
       kinds.push(clip.bars[0].columns[0].notes[1]!.harmonic ?? null);
     }
     expect(kinds).toEqual(['natural', 'pinch', 'artificial', null]);

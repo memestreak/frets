@@ -85,8 +85,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'letRing', label: 'Let ring', key: 'L' },
       { id: 'dead', label: 'Dead note', key: 'X' },
       { id: 'ghost', label: 'Ghost note', key: 'G' },
-      { id: 'harmonic', label: 'Natural harmonic', key: 'N' },
-      { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'N' },
+      { id: 'harmonic', label: 'Natural harmonic', key: 'Shift+N' },
+      { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'Shift+N' },
       { id: 'tap', label: 'Tap', key: 'T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
@@ -131,6 +131,11 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
 const VALUE: Partial<Record<ToolId, NoteValue>> = {
   whole: 1, half: 2, quarter: 4, eighth: 8, sixteenth: 16, thirtySecond: 32, sixtyFourth: 64,
 };
+/** The note value a Duration button sets, or undefined for any other tool. */
+export function toolValue(id: ToolId): NoteValue | undefined {
+  return VALUE[id];
+}
+
 const TREMOLO: Partial<Record<ToolId, TremoloValue>> = { tremolo8: 8, tremolo16: 16, tremolo32: 32 };
 
 /** The vibrato kinds the V key and the Vibrato button step through, then off. */
@@ -212,7 +217,7 @@ export function applyCyclingKey(clip: Part, target: Target, key: string): Part |
   if (key === '/') return cycleSlide(clip, cursor);
   if (key === '\\') return cycleMark(clip, target, 'slideOut', ['down', 'up']);
   if (key === 'v') return cycleMark(clip, target, 'vibrato', VIBRATOS);
-  if (key === 'n') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
+  if (key === 'N') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
   if (key === 'T') return cycleTremolo(clip, target);
   return null;

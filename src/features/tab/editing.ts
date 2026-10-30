@@ -187,11 +187,14 @@ export function replaceBar(clip: Part, index: number, bar: Bar): Part {
   return { ...clip, bars: clip.bars.map((b, i) => (i === index ? bar : b)) };
 }
 
-/** The clip with the cursor's column changed by `change`; in an empty bar a column is made first. */
-export function withColumn(clip: Part, cursor: Cursor, change: (column: Column) => Column): Part {
+/**
+ * The clip with the cursor's column changed by `change`; in an empty bar a column is made first, `length`
+ * long when given, else as long as the column nearest before it.
+ */
+export function withColumn(clip: Part, cursor: Cursor, change: (column: Column) => Column, length?: Duration): Part {
   const bar = clip.bars[cursor.bar];
   if (bar.columns.length === 0) {
-    return replaceBar(clip, cursor.bar, { ...bar, columns: [change(emptyColumn(durationNear(clip, cursor)))] });
+    return replaceBar(clip, cursor.bar, { ...bar, columns: [change(emptyColumn(length ?? durationNear(clip, cursor)))] });
   }
   return replaceBar(clip, cursor.bar, {
     ...bar,
@@ -224,7 +227,8 @@ export function changeColumns(clip: Part, { cursor, selection }: Target, change:
 }
 
 /** The length of the last column with a note before the cursor's, in the clip; a quarter when none. */
-function lastNoteLength(clip: Part, cursor: Cursor): Duration {
+/** The length of the last note before the cursor's column, or a quarter with none. */
+export function lastNoteLength(clip: Part, cursor: Cursor): Duration {
   for (let b = cursor.bar; b >= 0; b--) {
     const columns = clip.bars[b].columns;
     for (let c = (b === cursor.bar ? cursor.column : columns.length) - 1; c >= 0; c--) {
@@ -234,33 +238,46 @@ function lastNoteLength(clip: Part, cursor: Cursor): Duration {
   return { value: 4, dots: 0 };
 }
 
+function isPlainRest(column: Column): boolean {
+  return !column.grace && !column.duration.tuplet && !column.notes.some(Boolean);
+}
+
 /**
  * Before a note goes on a plain rest longer than the note before it (as → fills a bar with), the
  * rest is split: its first part takes that note's length and the rest of its time stays rests, the
  * fewest that fill it. So a run of quarters types on as before (Jeremy, 2026-10-26).
+ *
+ * With a `length` (note input's, issue #238) the note takes that length instead, shorter or longer: a
+ * longer one takes its time from the plain rests after it in the bar, and past them runs over the bar.
  */
-function splitRest(clip: Part, cursor: Cursor): Part {
+function splitRest(clip: Part, cursor: Cursor, length?: Duration): Part {
   const column = columnAt(clip, cursor);
-  if (!column || column.grace || column.duration.tuplet || column.notes.some(Boolean)) return clip;
-  const length = lastNoteLength(clip, cursor);
-  const room = ticks(column.duration);
-  if (ticks(length) >= room) return clip;
+  if (!column || !isPlainRest(column)) return clip;
+  const want = length ?? lastNoteLength(clip, cursor);
   const bar = clip.bars[cursor.bar];
+  let room = ticks(column.duration);
+  if (!length && ticks(want) >= room) return clip;
+  let end = cursor.column + 1;
+  while (room < ticks(want) && end < bar.columns.length && isPlainRest(bar.columns[end])) room += ticks(bar.columns[end++].duration);
   const columns = [...bar.columns];
-  columns.splice(cursor.column, 1, { ...column, duration: length }, ...fewestRests(room - ticks(length)).map(emptyColumn));
+  const after = room > ticks(want) ? fewestRests(room - ticks(want)).map(emptyColumn) : [];
+  columns.splice(cursor.column, end - cursor.column, { ...column, duration: { ...want } }, ...after);
   return replaceBar(clip, cursor.bar, { ...bar, columns });
 }
 
-/** Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. */
-export function setFret(clip: Part, cursor: Cursor, fret: number): Part {
-  return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
+/**
+ * Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. On a rest
+ * the note is the last note's length, or `length` when given (note input's, issue #238).
+ */
+export function setFret(clip: Part, cursor: Cursor, fret: number, length?: Duration): Part {
+  return normalize(withColumn(splitRest(clip, cursor, length), cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => {
       if (s !== cursor.string) return note;
       const rest = without(note ?? { fret }, 'tie');
       return { ...rest, fret };
     }),
-  })));
+  }), length));
 }
 
 /** A dead note (x) on the cursor's string. */
