@@ -681,6 +681,8 @@ export class TabPlayer {
    * synthesizer still reports positions for a moment after; they must not bring the playhead back.
    */
   private ended = true;
+  /** Whether the synthesizer sounds a note on its own (`hear`), until it ends or a Play. */
+  private hearing = false;
   /** Whether the loop points are ahead of the playhead, so playing past the end one goes back to the start one. */
   private looping = false;
   /** The loop's ticks while `looping`. */
@@ -736,6 +738,7 @@ export class TabPlayer {
         return;
       }
       this.ended = true;
+      this.hearing = false;
       onView({ state: 'idle', column: null });
     });
   }
@@ -764,6 +767,7 @@ export class TabPlayer {
   async play(clip: Part, from: number, loop: [number, number] | 'whole' | null, speed: number, sound: Sound, until: number | null = null) {
     await this.loadFont(sound);
     this.endRest();
+    this.quietNotesHeard();
     if (clip !== this.clip || sound !== this.sound || !this.performance) {
       this.clip = clip;
       this.sound = sound;
@@ -788,15 +792,16 @@ export class TabPlayer {
   halt() {
     this.ended = true;
     this.endRest();
+    this.quietNotesHeard();
     this.synth.pause();
     this.onView({ state: 'idle', column: null });
   }
 
-  /** Stops and forgets the clip, as after an edit. */
+  /** Stops and forgets the clip, as after an edit; a note heard on its own (`hear`) rings on. */
   stop() {
     this.ended = true;
     this.endRest();
-    this.synth.stop();
+    if (!this.hearing) this.synth.stop();
     this.clip = null;
     this.performance = null;
     this.onView({ state: 'idle', column: null });
@@ -1101,8 +1106,11 @@ export class TabPlayer {
     // A sound's own soundfont shows Loading on Play while it loads; heard, it goes back to Play.
     if (await this.loadFont(sound)) this.onView({ state: 'idle' });
     if (!this.ended) return;
-    // A note still sounding fades out (the output's own fade) before this one starts.
+    // The note heard before rings on to its end (issue #258), even on the same string (Jeremy,
+    // 2026-10-30: "They should ring the same. The ring is for the preview").
+    if (this.hearing) this.output.ringOn();
     this.synth.stop();
+    this.hearing = true;
     this.sound = sound;
     this.clip = null;
     this.performance = null;
@@ -1126,6 +1134,12 @@ export class TabPlayer {
     this.moveTo(tickOf(this.clip, this.performance, index));
     this.setLoop(this.loop);
     if (resting) this.synth.play();
+  }
+
+  /** Fades out every note heard on its own (`hear`) still sounding, for a Play or a Stop. */
+  private quietNotesHeard() {
+    this.hearing = false;
+    this.output.chokeAll();
   }
 
   destroy() {

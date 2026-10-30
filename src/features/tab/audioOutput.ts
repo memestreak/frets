@@ -36,6 +36,15 @@ const FADE_SECONDS = 0.03;
 /** How long Stop fades the sound out (Jeremy, 2026-10-27: "the notes stop with a glitch"). */
 const STOP_FADE_SECONDS = 0.06;
 
+/** The longest a sound left to ring on (`ringOn`) is rendered for; a heard note ends well before. */
+const RING_SECONDS = 4;
+
+/** An audio node playing the synthesizer's samples, and the gain it fades through. */
+interface Sounding {
+  node: ScriptProcessorNode;
+  gain: GainNode;
+}
+
 /** A block of interleaved stereo samples: the main ones, and the dry ones beside them, if any. */
 interface Chunk {
   main: Float32Array;
@@ -110,6 +119,8 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private effectSettings: EffectSettings = NO_EFFECTS;
   private volume = 1;
   private samples = new SampleQueue();
+  /** Sounds left to ring on (`ringOn`), each on its own node. */
+  private readonly ringing = new Set<Sounding>();
   /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
   private lastBlock: { playbackTime: number; seconds: number } | null = null;
   /** Requests made and not yet answered by `addSamples`. */
@@ -164,29 +175,82 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
    * from what was queued, alone, while its gain fades to nothing; then it is disconnected.
    */
   pause() {
-    const { context, node, gain } = this;
+    const { node, gain } = this;
     this.node = null;
     this.gain = null;
     if (!node || !gain) return;
+    const tail = this.samples;
+    this.samples = new SampleQueue();
+    this.fadeAway({ node, gain }, tail);
+  }
+
+  /**
+   * Lets what is sounding now ring out on its own (issue #258: a note heard while editing, not cut
+   * off by the next one, even on the same string: Jeremy, 2026-10-30, "they should ring the same").
+   * The synthesizer renders the rest of it at once, until it answers with nothing; the node plays that
+   * to the end, apart from the next sound, which starts on a node of its own. `chokeAll` stops it sooner.
+   */
+  ringOn() {
+    const { context, node, gain } = this;
+    if (!context || context.state !== 'running' || !node || !gain) return;
+    this.node = null;
+    this.gain = null;
+    const most = RING_SECONDS * this.sampleRate * 2;
+    while (!this.answeredEmpty && this.samples.size < most) {
+      this.pending++;
+      this.sampleRequest.trigger();
+    }
+    // Stopped short of its end (it never is, in practice): faded, so it doesn't click.
+    if (!this.answeredEmpty) this.fadeQueueOut();
+    const tail = this.samples;
+    this.samples = new SampleQueue();
+    this.pending = 0;
+    const ringing = { node, gain };
+    this.ringing.add(ringing);
+    node.onaudioprocess = e => {
+      if (tail.drainInto(channelsOf(e.outputBuffer)) > 0) return;
+      node.onaudioprocess = null;
+      this.ringing.delete(ringing);
+      this.disconnectLater(ringing);
+    };
+  }
+
+  /** Fades out everything ringing on (`ringOn`), as Play or Stop does. */
+  chokeAll() {
+    for (const ringing of this.ringing) this.fadeAway(ringing, null);
+    this.ringing.clear();
+  }
+
+  /**
+   * Fades a node's sound to nothing and disconnects it: the node plays on from `tail` (or what it
+   * was playing, when null) while its gain fades.
+   */
+  private fadeAway({ node, gain }: Sounding, tail: SampleQueue | null) {
+    const context = this.context;
     if (!context || context.state !== 'running') {
       node.onaudioprocess = null;
       node.disconnect();
+      gain.disconnect();
       return;
     }
-    const tail = this.samples;
-    this.samples = new SampleQueue();
-    node.onaudioprocess = e => tail.drainInto(channelsOf(e.outputBuffer));
+    if (tail) node.onaudioprocess = e => tail.drainInto(channelsOf(e.outputBuffer));
     const now = context.currentTime;
     gain.gain.cancelScheduledValues(now);
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.linearRampToValueAtTime(0, now + STOP_FADE_SECONDS);
-    // Long enough for the fade to reach the speakers through the node's own buffer.
+    this.disconnectLater({ node, gain }, STOP_FADE_SECONDS);
+  }
+
+  /** Disconnects a node once what it has handed over (`after` seconds more) has reached the speakers. */
+  private disconnectLater({ node, gain }: Sounding, after = 0) {
+    const sampleRate = this.context?.sampleRate ?? SAMPLE_RATE;
     setTimeout(() => {
       node.onaudioprocess = null;
       node.disconnect();
       gain.disconnect();
-    }, (STOP_FADE_SECONDS + (2 * NODE_SIZE) / context.sampleRate) * 1000);
+    }, (after + (2 * NODE_SIZE) / sampleRate) * 1000);
   }
+
   /** Sets the effects (`effects.ts`); what is playing follows at once. */
   setEffects(settings: EffectSettings) {
     this.effectSettings = settings;
@@ -202,6 +266,7 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   }
   destroy() {
     this.pause();
+    this.chokeAll();
     void this.context?.close();
     this.context = null;
     this.effects = null;

@@ -17,7 +17,10 @@ little toggle button for this."
 - The note sounds as a plain picked note (no ties, slides or bends, which need
   the notes round them; harmonics, palm mutes and ghost notes kept) for a
   quarter note at 120 bpm, in the chosen Sound and Volume, then rings out.
-  The next note entered fades the last one out first.
+  The next note entered lets the last one ring out to its end (issue #258,
+  Jeremy, 2026-10-30: "the previous note gets cut off by the new one"), even
+  on the same string ("They should ring the same. The ring is for the
+  preview"). Play fades out any still ringing.
 - Nothing sounds while the clip plays (an edit stops it anyway), nor with the
   controls hidden.
 
@@ -28,4 +31,9 @@ little toggle button for this."
 next Play loads the clip again. alphaTab's one-time MIDI files
 (`playOneTimeMidiFile`) played no notes in testing, so they aren't used.
 `usePlayback().hear(bar, column)` asks for it from the edit; it sounds once
-the edit has drawn, after the clip change has stopped any playback.
+the edit has drawn, after the clip change has stopped any playback. That stop
+(`TabPlayer.stop`) leaves a note heard on its own sounding. To let it ring
+beside the next one, `WebAudioOutput.ringOn` has the synthesizer render the
+rest of it at once (it ends with the note's MIDI, under two seconds) and plays
+that on its own audio node; the next note then loads into the synthesizer and
+starts on a new node. `chokeAll` fades the ringing nodes out on Play.
