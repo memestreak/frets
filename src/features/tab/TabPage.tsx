@@ -85,6 +85,9 @@ export default function TabPage() {
   /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
   const parts = notation.show;
   const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
+  // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
+  const fillBars = prefs.editing.fillBars;
+  const leaveBar = (from: Clip, bar: number) => (fillBars ? fillBar(from, bar) : from);
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
@@ -297,10 +300,10 @@ export default function TabPage() {
     // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
     let left = clip;
     if (editing) {
-      // Leaving fills the cursor's bar (as `onEditorBlur` would), but not while playing, as an edit stops playback;
+      // Leaving fills the cursor's bar when Settings says to (as `onEditorBlur` would), but not while playing, as an edit stops playback;
       // a line past that bar moves on by the rests added.
       const playing = playback.view.state === 'playing';
-      left = playing ? clip : fillBar(clip, cursor.bar);
+      left = playing ? clip : leaveBar(clip, cursor.bar);
       const barEnd = clip.bars.slice(0, cursor.bar + 1).reduce((n, b) => n + b.columns.length, 0);
       if (gap >= barEnd) index += columnCount(left) - count;
       if (left !== clip) dispatch({ type: 'replace', clip: left });
@@ -446,7 +449,7 @@ export default function TabPage() {
     const { bar, column } = placeOf(clip, hit.index);
     const at = { bar, column, string: hit.string ?? cursor.string };
     lastDigit.current = null;
-    const left = editing && bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+    const left = editing && bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
     commit(left, at, hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
     setColumnOnly(hit.string === null);
     setPicked(hit);
@@ -489,7 +492,7 @@ export default function TabPage() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -513,9 +516,9 @@ export default function TabPage() {
       commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
       startRegion();
     } else {
-      // A press in another bar leaves the cursor's bar, which fills up; the rests go after its last
+      // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
-      const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+      const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
       commit(left, hit, null);
     }
   };
@@ -548,7 +551,7 @@ export default function TabPage() {
       startRegion();
       return;
     }
-    const left = editing && hit.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
+    const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
     toPitch(left, at, pitch);
   };
 
@@ -603,7 +606,7 @@ export default function TabPage() {
   };
 
   /**
-   * The tab losing the focus leaves the cursor's bar, which fills up (Jeremy, 2026-10-27): a press
+   * The tab losing the focus leaves the cursor's bar, which fills up when Settings says to (Jeremy, 2026-10-27): a press
    * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
    * time signature panel) or goes to the palette, nor when the whole window loses it.
    */
@@ -616,7 +619,7 @@ export default function TabPage() {
     const to = e.relatedTarget;
     if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
     if (!document.hasFocus()) return;
-    const filled = fillBar(clip, cursor.bar);
+    const filled = leaveBar(clip, cursor.bar);
     if (filled !== clip) dispatch({ type: 'replace', clip: filled });
   };
 

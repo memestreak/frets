@@ -11,6 +11,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { BUILTIN_URL, builtinsFrom } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { layoutClip } from '@/features/tab/layout';
 import { markBoxes, type MarkHit } from '@/features/tab/marks';
 
@@ -80,7 +81,10 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 /** A press on the time signature drawn in front of the first line (jsdom places the drawing at 0, 0). */
 function pressFirstTimeSignature() {
@@ -397,9 +401,31 @@ describe('TabPage', () => {
       renderAt();
       act(() => editor().focus());
       keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
+      // → adds one rest as long as the note before, to type on; the bar stays short.
+      expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 |');
+      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    });
+
+    it('fills a short bar with rests when Settings says to', () => {
+      localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
+      renderAt();
+      act(() => editor().focus());
+      keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
       // → fills the bar with a dotted half rest; 14 splits it, a quarter like the note before.
       expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 r.2 |');
-      expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    });
+
+    it('fills the bar it leaves when Settings says to', () => {
+      localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
+      renderAt();
+      act(() => editor().focus());
+      // jsdom's window never has the focus; the blur only fills while it does.
+      vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+      // → fills at once; Delete takes the rest away again, and leaving the tab puts it back.
+      keys('5', 'ArrowRight', '7', 'ArrowRight', 'Delete');
+      expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+      keys('Escape');
+      expect(alphaTex()).toBe('5.1.4 7.1.4 r.2 |');
     });
 
     it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
@@ -430,7 +456,7 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'h', '-');
       fireEvent.click(vibrato());
-      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.2 |');
+      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
       // Off the tab, no button is lit.
@@ -546,7 +572,7 @@ describe('TabPage', () => {
       act(() => { editor().dispatchEvent(copy); });
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
       keys('Backspace');
-      expect(alphaTex()).toBe('5.1.4 r.4 |');
+      expect(alphaTex()).toBe('5.1.4 |');
     });
 
     it('Esc drops a selection and leaves the tab, with nothing drawn', () => {
@@ -560,6 +586,7 @@ describe('TabPage', () => {
     });
 
     it('Esc on a note leaves the tab at once, with no box left round its column', () => {
+      vi.spyOn(document, 'hasFocus').mockReturnValue(true);
       renderAt();
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7');
@@ -568,7 +595,8 @@ describe('TabPage', () => {
       expect(screen.queryByTestId('tab-cursor')).toBeNull();
       expect(screen.queryByTestId('column-cursor')).toBeNull();
       expect(editor()).not.toHaveFocus();
-      expect(alphaTex()).toBe('5.1.4 7.1.4 r.2 |');
+      // Leaving the tab leaves the short bar short (Settings' "Fill short bars with rests" is off).
+      expect(alphaTex()).toBe('5.1.4 7.1.4 |');
     });
 
     it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
@@ -577,9 +605,9 @@ describe('TabPage', () => {
       keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
       // On string 3, under a column whose notes are on strings 1 and 2.
       keys('ArrowLeft', 'Delete');
-      expect(alphaTex()).toBe('r.4 3.2.4 r.2 |');
+      expect(alphaTex()).toBe('r.4 3.2.4 |');
       keys('Delete');
-      expect(alphaTex()).toBe('3.2.4 r.2 |');
+      expect(alphaTex()).toBe('3.2.4 |');
     });
 
     it('sets the time signature from the palette, each change one undo step', () => {
@@ -872,6 +900,7 @@ describe('TabPage playback', () => {
   });
 
   it('takes the rest just before the line on Delete or Backspace, off the tab', () => {
+    localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
     renderAt();
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());

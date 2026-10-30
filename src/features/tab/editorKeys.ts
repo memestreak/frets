@@ -34,6 +34,8 @@ export interface EditorKeys {
   /** The notation staff is drawn (Staff or Both), so Alt+↑ ↓ on a selection move its notes' pitch. */
   staffShown: boolean;
   lastDigit: RefObject<LastDigit>;
+  /** Settings' "Fill short bars with rests": → and ← complete a short bar they leave. */
+  fillBars: boolean;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Clip, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
@@ -153,12 +155,12 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     const step = key === 'ArrowLeft' ? -1 : 1;
     if (e.shiftKey) {
       if (!columnAt(clip, cursor)) return;
-      const moved = moveColumn(clip, cursor, step, false).cursor;
+      const moved = moveColumn(clip, cursor, step, { grow: false }).cursor;
       const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
       commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
       editor.startRegion();
     } else {
-      const moved = moveColumn(clip, cursor, step);
+      const moved = moveColumn(clip, cursor, step, { fillBars: editor.fillBars });
       commit(moved.clip, moved.cursor, null);
     }
     return;

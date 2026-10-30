@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { METRONOME_KEY, PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
+import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { APPEARANCE_KEY } from '@/lib/theme';
@@ -44,7 +45,7 @@ describe('Settings', () => {
     // Most used first (G3).
     const tab = inDialog().getByRole('treeitem', { name: /^Tab/ });
     expect(within(tab).getAllByRole('treeitem').map(i => i.textContent))
-      .toEqual(['Playback', 'Metronome', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Export']);
+      .toEqual(['Playback', 'Metronome', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export']);
   });
 
   it('stages changes: Apply saves and stays, Cancel drops them, and Apply is enabled only while something differs', () => {
@@ -99,6 +100,17 @@ describe('Settings', () => {
     expect(screen.getByRole('button', { name: 'Metronome' })).toHaveAttribute('aria-pressed', 'true');
     expect(saved(METRONOME_KEY)).toEqual({ on: true, countIn: false, countInBars: 1, clickVolume: 0.8 });
     expect(saved(PLAYBACK_KEY)).not.toHaveProperty('metronome');
+  });
+
+  it('turns on filling short bars with rests under Tab › Editing, off by default', () => {
+    render(<TabPage />);
+    openSettings();
+    fireEvent.click(section('Editing'));
+    const fill = inDialog().getByRole('checkbox', { name: 'Fill short bars with rests' });
+    expect(fill).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(fill);
+    fireEvent.click(button('OK'));
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: true });
   });
 
   it('resets a field to its default on a double-click on its label, staged, but never on its control', () => {
