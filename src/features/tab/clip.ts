@@ -386,6 +386,11 @@ export interface Part {
   instrument?: { program: number; tag?: string };
   /** The track's FX. */
   fx?: FxSettings;
+  /**
+   * The clip's other tracks, only read: the layout gives each bar the room the widest track's needs, so
+   * every track breaks its lines at the same bars and keeps its length when another is picked (issue #243).
+   */
+  alongside?: Part[];
 }
 
 export const STRING_COUNT = 6;
@@ -865,6 +870,13 @@ function copied<T extends object>(to: T, from: object, keys: readonly string[]):
  * takes away; a clip of one track needs none.
  */
 export function partOf(clip: Clip, index = 0): Part {
+  const part = trackPart(clip, index);
+  if (clip.tracks.length > 1) part.alongside = clip.tracks.flatMap((_, t) => (t === index ? [] : [trackPart(clip, t)]));
+  return part;
+}
+
+/** Track `index` as a part, by itself. */
+function trackPart(clip: Clip, index: number): Part {
   const track = clip.tracks[index];
   const bars = partBars(clip.masterBars, track.bars, clip.tracks.length > 1);
   const part: Part = { name: clip.name, time: clip.time, tuning: track.tuning, bars };
@@ -893,10 +905,13 @@ function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boole
 /**
  * The clip with `part` as its track `index`: the part's bar marks become every track's, and its notes,
  * tuning, capo and sound that track's. Each other track keeps its own bar where the part's came from
- * (`Bar.origin`), and has a bar of rests where an edit added one; a bar the edit took away goes from
- * every track.
+ * (`Bar.origin`), and has a bar of rests where an edit added one. A bar the edit took away goes from
+ * every track, unless another track has more than rests there: then it stays, a bar of rests in this
+ * track, so an edit never takes away music that isn't shown (Jeremy, 2026-10-30).
  */
 export function withPart(clip: Clip, part: Part, index = 0): Clip {
+  const kept = keptBars(clip, part, index);
+  if (kept.length > 0) return withPart(clip, keepingBars(clip, part, index, kept), index);
   const track = clip.tracks[index];
   // Bars the edit left alone (a new sound, tuning or title) stay the very same, so the music reads as unchanged.
   if (part.bars === partBars(clip.masterBars, track.bars, clip.tracks.length > 1)) {
@@ -924,10 +939,45 @@ export function withPart(clip: Clip, part: Part, index = 0): Clip {
   return copied(whole, part, CLIP_FIELDS);
 }
 
+/** The clip's bars that the edit `part` took away but another track has more than rests in. */
+function keptBars(clip: Clip, part: Part, index: number): number[] {
+  if (clip.tracks.length < 2) return [];
+  const left = new Set(part.bars.map(bar => bar.origin));
+  return clip.masterBars.map((_, b) => b).filter(b =>
+    !left.has(b) && clip.tracks.some((track, t) => t !== index && !onlyRests(track.bars[b])));
+}
+
+/** Whether a track's bar holds nothing but rests: no notes, and nothing written over them. */
+function onlyRests(bar: TrackBar): boolean {
+  return bar.columns.every(column => isRest(column) && Object.keys(column).every(key => key === 'duration' || key === 'notes'));
+}
+
+/** `part` with the clip's bars `kept` put back where they were, each a bar of rests in it. */
+function keepingBars(clip: Clip, part: Part, index: number, kept: number[]): Part {
+  const before = partOf(clip, index);
+  const restored = (b: number): Bar => ({ ...clip.masterBars[b], ...restBar(before, b), origin: b });
+  const waiting = [...kept];
+  const bars: Bar[] = [];
+  for (const bar of part.bars) {
+    // The empty bar left when every bar went is not needed with these back.
+    if (bar.origin === undefined && bar.columns.length === 0) continue;
+    // A kept bar goes back before the first bar that came from after it.
+    while (bar.origin !== undefined && waiting.length > 0 && waiting[0] < bar.origin) bars.push(restored(waiting.shift()!));
+    bars.push(bar);
+  }
+  bars.push(...waiting.map(restored));
+  return { ...part, bars };
+}
+
 /** A bar of rests for bar `b` of the part, as long as its time signature makes it. */
 function restBar(part: Part, b: number): TrackBar {
   const columns = fewestRests(barTicks(timeAt(part, b))).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
   return { columns };
+}
+
+/** Track `index`'s name, as the track list and messages give it: its own, else "Track N". */
+export function trackName(clip: Clip, index: number): string {
+  return clip.tracks[index].name.trim() || `Track ${index + 1}`;
 }
 
 /** A clip of the part alone, one unnamed track: what is copied, played or written as ASCII. */

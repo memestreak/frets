@@ -340,6 +340,34 @@ function plainRest(bar: Bar): boolean {
   return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
 }
 
+/** The other tracks' bars drawn in step with the part's bar `b` (`Part.alongside`). */
+function alongsideBars(clip: Part, b: number): Bar[] {
+  const origin = clip.bars[b].origin;
+  if (origin === undefined || !clip.alongside) return [];
+  return clip.alongside.flatMap(other => (other.bars[origin] ? [other.bars[origin]] : []));
+}
+
+/** The most room the other tracks' bars in step with bar `b` ask for, and the least they can take. */
+function alongsideRoom(clip: Part, b: number, staff: boolean): { inner: number; least: number } {
+  const origin = clip.bars[b].origin;
+  let inner = 0;
+  let least = 0;
+  if (origin === undefined || !clip.alongside) return { inner, least };
+  for (const other of clip.alongside) {
+    const bar = other.bars[origin];
+    if (!bar) continue;
+    if (bar.columns.length === 0) {
+      inner = Math.max(inner, EMPTY_BAR);
+      least = Math.max(least, EMPTY_BAR);
+      continue;
+    }
+    const heads = staff ? barHeads(other, origin, writtenStrings(other.tuning)) : bar.columns.map(() => []);
+    inner = Math.max(inner, bar.columns.reduce((sum, c, k) => sum + (staff ? staffWidth(c, heads[k]) : columnWidth(c)), 0));
+    least = Math.max(least, bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[k], staff), 0));
+  }
+  return { inner, least };
+}
+
 /**
  * The multi-bar rests of a clip that asks for them, as the count at each one's first bar: two or more
  * plain bars of rest in a row. The first may start a section, a tempo, a signature or a repeat, and the
@@ -348,7 +376,8 @@ function plainRest(bar: Bar): boolean {
 export function multiRests(clip: Part): Map<number, number> {
   const runs = new Map<number, number>();
   if (!clip.multiBarRests) return runs;
-  const { bars } = clip;
+  // A bar another track plays in is not a rest.
+  const bars = clip.bars.map((bar, b) => (alongsideBars(clip, b).every(plainRest) ? bar : { ...bar, columns: [] }));
   const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar || !!bar.freeTime;
   const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart || bar.freeTime);
   let b = 0;
@@ -555,7 +584,11 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     if (count) run = { span: { x0: 0, x1: 0 }, count, end: index + count - 1, share: MULTI_REST_WIDTH / count };
     const inRun = run !== null && index <= run.end;
     // A multi-bar rest's bars share its room: the first takes its lead, the last the closing room.
-    const inner = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
+    const own = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
+    // As wide as the widest track's bar, its columns spread to fill it, so every track has the same lines.
+    const company = inRun ? { inner: 0, least: 0 } : alongsideRoom(clip, index, staff);
+    const inner = Math.max(own, company.inner);
+    const spread = bar.columns.length > 0 ? inner / own : 1;
     const closing = BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     const widthWith = (keyRoom: number) => (inRun && !count ? 0 : barLead(bar, timeChange, keyRoom, freeStart)) + inner + (inRun && index < run!.end ? 0 : closing);
     let w = widthWith(keyChange);
@@ -564,7 +597,8 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     // A multi-bar rest counts as one bar of the clip's line breaks, as it is drawn as one.
     const restOn = inRun && !count;
     const lineFull = modelled && wanted <= 0 && !restOn;
-    const leastInner = inRun || bar.columns.length === 0 ? inner : bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0);
+    const leastInner = inRun || bar.columns.length === 0 ? inner
+      : Math.max(company.least, bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0));
     const overflows = modelled ? xLeast + (asks - inner + leastInner) > width : x + asks > width;
     if (current.length > 0 && (lineFull || overflows)) {
       finish();
@@ -587,7 +621,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
       const columnHeads = heads[index][k];
-      const cw = inRun ? inner : Math.max(minColumnWidth(column), widthOf(column, index, k) * squeeze);
+      const cw = inRun ? inner : Math.max(minColumnWidth(column), widthOf(column, index, k) * spread * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);

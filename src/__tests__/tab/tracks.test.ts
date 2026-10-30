@@ -1,6 +1,6 @@
 /**
- * A clip of several tracks (issue #237, step 1): read, kept, written and stored with every track,
- * while the page shows, edits and plays the first as a part.
+ * A clip of several tracks (issue #237): read, kept, written and stored with every track,
+ * while the page shows, edits and plays one of them as a part (#243).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,11 +8,11 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setSection } from '@/features/tab/barEdits';
-import { asClip, emptyClip, parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
+import { asClip, emptyClip, parseClip, partOf, trackName, withPart, type Clip, type Part } from '@/features/tab/clip';
 import { clipAction, sameMusic } from '@/features/tab/clipState';
-import { deleteColumns, indexOf, insertBar, setFret } from '@/features/tab/editing';
+import { deleteColumns, indexOf, insertBar, removeEmptyBar, setFret } from '@/features/tab/editing';
+import { columnWidth, layoutClip, multiRests } from '@/features/tab/layout';
 import { perform } from '@/features/tab/playback';
-import { hiddenTracksNote } from '@/features/tab/TabPage';
 
 /** Two guitars: the first with the repeat, section and tempo every track shares; the second in drop D, capo 2. */
 const TWO = [
@@ -112,9 +112,33 @@ describe('the first track as a part', () => {
     expect(notes(added)).toEqual(['5.3.2 7.3.2 | r.1 | 8.3.1 |', '0.6.1 | r.1 | 3.6.1 |']);
     expect(added.masterBars).toEqual([clip.masterBars[0], {}, clip.masterBars[1]]);
     const shown = partOf(added);
-    const first = indexOf(shown, 0, 0);
-    const gone = withPart(added, deleteColumns(shown, [first, indexOf(shown, 1, 0)]).clip);
-    expect(notes(gone)).toEqual(['8.3.1 |', '3.6.1 |']);
+    const emptied = deleteColumns(shown, [indexOf(shown, 1, 0), indexOf(shown, 1, 0)]).clip;
+    const gone = withPart(added, removeEmptyBar(emptied, 1).clip);
+    expect(notes(gone)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', '0.6.1 | 3.6.1 |']);
+  });
+
+  it('keeps a bar an edit empties while another track has music in it, as rests in the edited track', () => {
+    const added = withPart(clip, insertBar(part, { bar: 0, column: 0, string: 0 }, 'after').clip);
+    const shown = partOf(added);
+    // Bars 1 and 2 go from Gtr I: Gtr II has only rests in the first, a note in the other.
+    const gone = withPart(added, deleteColumns(shown, [indexOf(shown, 0, 0), indexOf(shown, 1, 0)]).clip);
+    expect(notes(gone)).toEqual(['r.1 | 8.3.1 |', '0.6.1 | 3.6.1 |']);
+    expect(gone.masterBars).toEqual(clip.masterBars);
+    // From Gtr II, which shares the bars with Gtr I's music, nothing goes but its notes.
+    const second = partOf(clip, 1);
+    const cleared = withPart(clip, deleteColumns(second, [0, 1]).clip, 1);
+    expect(notes(cleared)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', 'r.1 | r.1 |']);
+    expect(cleared.masterBars).toEqual(clip.masterBars);
+  });
+
+  it('edits any track, the others kept', () => {
+    const second = partOf(clip, 1);
+    expect(second.tuning).toEqual(clip.tracks[1].tuning);
+    const edited = withPart(clip, setFret(second, { bar: 0, column: 0, string: 5 }, 2), 1);
+    expect(notes(edited)).toEqual(['5.3.2 7.3.2 | 8.3.1 |', '2.6.1 | 3.6.1 |']);
+    expect(edited.tracks[0]).toBe(clip.tracks[0]);
+    const action = clipAction(clip, { type: 'replacePart', part: setFret(second, { bar: 0, column: 0, string: 5 }, 2) }, 1);
+    expect(action.type === 'replace' && notes(action.clip)).toEqual(notes(edited));
   });
 
   it('makes a bar mark set on it every track\'s', () => {
@@ -168,10 +192,41 @@ describe('a stored clip of several tracks', () => {
   });
 });
 
-describe('the "i" over the clip', () => {
-  it('says how many tracks there are and that the first is shown, only when there are more', () => {
-    expect(hiddenTracksNote(read(TWO))).toBe('This arrangement has 2 tracks. Frets shows, edits and plays only the first (Gtr I) for now; the others are kept as they are.');
-    expect(hiddenTracksNote(emptyClip())).toBeNull();
+describe('every track laid out in step (#243)', () => {
+  const clip = read([
+    '\\track "Gtr I"', '\\ts (4 4)',
+    ':16 ' + '0.6 '.repeat(16) + '| ' + ':16 ' + '3.6 '.repeat(16) + '| ' + ':16 ' + '5.6 '.repeat(16) + '| r.1 |',
+    '\\track "Gtr II"', 'r.1 | 0.6.1 | r.1 | ' + ':16 ' + '7.5 '.repeat(16) + '|',
+  ].join('\n'));
+  const lines = (part: Part, parts: 'tab' | 'both') =>
+    layoutClip(part, 700, parts).systems.map(s => s.bars.map(b => [b.index, Math.round(b.x0), Math.round(b.x1)]));
+
+  it('breaks every track\'s lines at the same bars, each bar as wide as the widest track\'s', () => {
+    for (const parts of ['tab', 'both'] as const) {
+      expect(lines(partOf(clip, 1), parts)).toEqual(lines(partOf(clip, 0), parts));
+    }
+    // Alone, the second track's sparse bars would take less room.
+    const alone = { ...partOf(clip, 1), alongside: undefined };
+    expect(lines(alone, 'tab')).not.toEqual(lines(partOf(clip, 0), 'tab'));
+  });
+
+  it('spreads a bar\'s own columns over the room another track\'s bar asks for', () => {
+    const bar = layoutClip(partOf(clip, 1), 700).systems.flatMap(s => s.bars).find(b => b.index === 1)!;
+    expect(bar.columns[0].width).toBeGreaterThan(columnWidth(bar.columns[0].column));
+  });
+
+  it('gathers no multi-bar rest over bars another track plays in', () => {
+    const rests = read('\\multiBarRest\n\\track "A"\nr.1 | r.1 | r.1 |\n\\track "B"\nr.1 | 0.6.1 | r.1 |');
+    expect(multiRests(partOf(rests, 0)).size).toBe(0);
+    expect(multiRests({ ...partOf(rests, 0), alongside: undefined }).get(0)).toBe(3);
+  });
+});
+
+describe('a track\'s name', () => {
+  it('is its own, else its number', () => {
+    const clip = read(TWO);
+    expect(trackName(clip, 1)).toBe('Gtr II');
+    expect(trackName({ ...clip, tracks: [clip.tracks[0], { ...clip.tracks[1], name: ' ' }] }, 1)).toBe('Track 2');
   });
 });
 

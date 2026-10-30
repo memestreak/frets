@@ -15,8 +15,8 @@ picture: nothing has to line up in columns.
 One voice, six strings. Riffs, solos, double stops and strummed chords fit;
 fingerstyle with a bass line held under moving notes does not (write the
 moving part and give held notes as ties). Several guitar parts may be
-written as tracks (see "Tracks" below): Frets keeps them all, but for now
-shows, edits and plays only the first.
+written as tracks (see "Tracks" below): Frets keeps them all and shows,
+edits and plays one at a time, picked from a list over the clip.
 
 
 1. THE WHOLE TEXT
@@ -75,8 +75,9 @@ own lines. Every track has the same number of bars. Time and key
 signatures, repeats, endings, sections and tempos belong to every track:
 write them in the first track's bars only. Each track is one staff of
 six strings with one voice. Frets keeps every track and writes them back,
-but shows, edits and plays only the first for now, with a small "i" over
-the clip saying so.
+and shows, edits and plays one at a time: the reader picks it from a list
+over the clip, by the names \track gives, and a link always opens on the
+first.
 
     \title "Two guitars"
     \track "Gtr I"

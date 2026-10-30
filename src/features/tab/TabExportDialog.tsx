@@ -27,9 +27,11 @@ const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
  * starts as the clip's and can be changed for this export. It stays open
  * after an action; Done, × or Esc close it.
  */
-export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClose }: {
+export function TabExportDialog({ clip, track, parts, view, open, style, onStyle, onClose }: {
   /** The whole clip, every track: downloaded as alphaTex; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
+  /** The track the page shows. */
+  track: number;
   /** What the page shows, which the image draws too: the staff, the tab or both. */
   parts: Parts;
   /** The View options as the page shows them: bar numbers and size for the image, the rhythm line for ASCII. */
@@ -43,7 +45,7 @@ export function TabExportDialog({ clip, parts, view, open, style, onStyle, onClo
   const headingId = useId();
   const nameId = useId();
   const [status, setStatus] = useState('');
-  const part = partOf(clip);
+  const part = partOf(clip, track);
   const [title, setTitle] = useState(clip.name);
   // Each opening starts on the clip's own name and a blank status line.
   const [wasOpen, setWasOpen] = useState(open);

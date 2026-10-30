@@ -1888,29 +1888,48 @@ describe('dragging notes on the staff (issue #174)', () => {
   });
 });
 
-describe('TabPage with several tracks (issue #237)', () => {
-  const TWO = '\\title "Two"\n\\track "Gtr I"\n\\ts (4 4)\n5.3.1 |\n\\track "Gtr II"\n0.6.1 |\n';
+describe('TabPage with several tracks (issues #237, #243)', () => {
+  const TWO = '\\title "Two"\n\\track "Gtr I"\n\\ts (4 4)\n5.3.1 |\n\\track "Gtr II"\n0.6.1 2.6.1 |\n';
+  const trackList = () => screen.getByRole('combobox', { name: 'Track' }) as HTMLSelectElement;
 
-  it('shows and edits the first track, keeps the second, and says so in an "i"', async () => {
+  it('shows, edits and plays the track picked from the list, keeping the others', async () => {
     renderAt(`#tab=${encodeURIComponent(TWO)}`);
     await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    expect([...trackList().options].map(o => o.text)).toEqual(['Gtr I', 'Gtr II']);
+    expect(trackList().value).toBe('0');
     expect(screen.getAllByTestId('tab-column')).toHaveLength(1);
-    expect(screen.getByRole('img', { name: /has 2 tracks.*only the first \(Gtr I\)/ })).toHaveAttribute('data-tip');
+    fireEvent.change(trackList(), { target: { value: '1' } });
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(2);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: '7' });
     const saved = savedClip() as unknown as Clip;
-    expect(saved.tracks).toHaveLength(2);
-    expect(saved.tracks[1].bars[0].columns[0].notes[5]).toEqual({ fret: 0 });
-    // The AlphaTex view has every track, so no "i" there.
+    expect(saved.tracks[0].bars[0].columns).toHaveLength(1);
+    expect(saved.tracks[0].bars[0].columns[0].notes[2]).toEqual({ fret: 5 });
+    expect(saved.tracks[1].bars[0].columns[0].notes[0]).toEqual({ fret: 7 });
+    // The ASCII view is of the track picked; the AlphaTex view has every track, so no list there.
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(screen.getByTestId('tab-ascii').textContent).toMatch(/^E\|-*0-+2/m);
+    expect(trackList().value).toBe('1');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-    expect(alphaTexText()).toContain('\\track "Gtr II"\n0.6.1 |');
-    expect(screen.queryByRole('img', { name: /has 2 tracks/ })).toBeNull();
+    expect(alphaTexText()).toContain('\\track "Gtr II"');
+    expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
   });
 
-  it('shows no "i" for one track', async () => {
+  it('goes back to the first track when another arrangement opens', async () => {
+    renderAt(`#tab=${encodeURIComponent(TWO)}`);
+    await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    fireEvent.change(trackList(), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Arrangements' })).getByRole('button', { name: 'Duplicate' }));
+    await settle();
+    expect(trackList().value).toBe('0');
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(1);
+  });
+
+  it('shows no track list for one track', async () => {
     renderAt(`#tab=${encodeURIComponent(TEX)}`);
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
-    expect(screen.queryByRole('img', { name: /tracks/ })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
   });
 });

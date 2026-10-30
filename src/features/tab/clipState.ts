@@ -47,12 +47,12 @@ export type PartAction =
   | { type: 'replacePart'; part: Part; from?: Part }
   | { type: 'previewPart'; part: Part };
 
-/** The action on the whole clip `clip` that a part's edit makes; any other action as it is. */
-export function clipAction(clip: Clip, action: ClipAction | PartAction): ClipAction {
+/** The action on the whole clip `clip` that an edit of its track `track` makes; any other action as it is. */
+export function clipAction(clip: Clip, action: ClipAction | PartAction, track = 0): ClipAction {
   if (action.type === 'replacePart') {
-    return { type: 'replace', clip: withPart(clip, action.part), from: action.from && withPart(clip, action.from) };
+    return { type: 'replace', clip: withPart(clip, action.part, track), from: action.from && withPart(clip, action.from, track) };
   }
-  if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part) };
+  if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part, track) };
   return action;
 }
 
@@ -101,10 +101,10 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
 
 /**
  * Whether two clips, or two parts, differ in nothing but their tracks' FX and sounds: the same music,
- * in another sound.
+ * in another sound. A part's other tracks (`alongside`) aren't its music.
  */
 export function sameMusic<T extends Clip | Part>(a: T, b: T): boolean {
-  if (!sameBut(a, b, ['fx', 'instrument', 'tracks'])) return false;
+  if (!sameBut(a, b, ['fx', 'instrument', 'tracks', 'alongside'])) return false;
   const tracksA = 'tracks' in a ? a.tracks : [];
   const tracksB = 'tracks' in b ? b.tracks : [];
   return tracksA.length === tracksB.length && tracksA.every((track, t) => sameBut(track, tracksB[t], ['fx', 'instrument']));

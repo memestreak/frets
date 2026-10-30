@@ -22,9 +22,11 @@ const PRESSED_AWAY_MS = 500;
  * (issue #206) and save (Jeremy, 2026-10-27/28). `buttons` go in the card's bar; `popups`, their panel and menu, go
  * outside the card, so the focus moving into them counts as leaving the tab.
  */
-export function useClipActions({ clip, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
+export function useClipActions({ clip, track, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
   /** The whole clip, every track: copied as a link and saved as alphaTex. */
   clip: Clip;
+  /** The track the page shows: drawn in the images and written as ASCII tab. */
+  track: number;
   view: View;
   parts: Parts;
   shown: TabView;
@@ -36,8 +38,7 @@ export function useClipActions({ clip, view, parts, shown, onShown, exportStyle,
   shownText: string;
   onNotice: (notice: Notice) => void;
 }): { buttons: ReactNode; popups: ReactNode } {
-  // The track the page shows (issue #237), drawn in the images and written as ASCII tab.
-  const part = partOf(clip);
+  const part = partOf(clip, track);
   /** The View options panel, open under its button (its right edge at x). */
   const [viewPanelAt, setViewPanelAt] = useState<{ x: number; y: number } | null>(null);
   /** When a press away last closed it, so the press on its own button doesn't open it again. */

@@ -10,7 +10,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
@@ -77,16 +77,21 @@ export default function TabPage() {
   const { state, dispatch: dispatchClip } = arrangements;
   // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
   const whole = state.clip;
-  // The track the page shows, edits and plays (issue #237: the first, until tracks are drawn); its edits
-  // go back into the whole clip through `dispatch`. Its FX are the ones playback goes through.
-  const shownTrack = 0;
-  const clip = useMemo(() => partOf(whole, shownTrack), [whole]);
-  const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action));
-  /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
-  const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part));
-  const tracksNote = hiddenTracksNote(whole);
   // The example or sample shown in place of the clip (only its id is needed here); its edits are never saved.
   const example = state.example;
+  /**
+   * The track the page shows, edits and plays (issue #243), picked from the list over the clip: the
+   * viewer's, not saved, and back to the first when another arrangement or example opens. An edit in
+   * the AlphaTex view that takes tracks away leaves the last one shown. Its FX are the ones playback goes through.
+   */
+  const opened = example ? `example:${example.id}` : state.id;
+  const [trackPick, setTrackPick] = useState({ opened, track: 0 });
+  const track = trackPick.opened === opened ? Math.min(trackPick.track, whole.tracks.length - 1) : 0;
+  // Its edits go back into the whole clip through `dispatch`.
+  const clip = useMemo(() => partOf(whole, track), [whole, track]);
+  const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action, track));
+  /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
+  const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part, track));
   const [choosing, setChoosing] = useState(false);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -254,6 +259,24 @@ export default function TabPage() {
       setPicked(null);
     }
     setView(next);
+  };
+  /**
+   * Another track from the list over the clip: playback stops, the selection, the playback line and
+   * anything picked or open go, and the cursor moves to the same bar of the new track.
+   */
+  const chooseTrack = (next: number) => {
+    playback.stop();
+    setTrackPick({ opened, track: next });
+    setSelection(null);
+    setPlayMark(null);
+    setPicked(null);
+    setWord(null);
+    setHeadPanel(null);
+    setTimeBar(null);
+    setKeyBar(null);
+    setBarMenu(null);
+    setStaffPitch(null);
+    setCursor(c => ({ ...c, column: 0 }));
   };
   /** A clip read from the AlphaTex view's text: one undo step, and the text stays as typed. */
   const applyAlphaTex = (next: Clip, text: string) => {
@@ -738,7 +761,7 @@ export default function TabPage() {
   }, [dispatchClip]);
 
   const actions = useClipActions({
-    clip: whole, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
+    clip: whole, track, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
   });
 
   const name = clip.name.trim() || UNTITLED;
@@ -845,21 +868,23 @@ export default function TabPage() {
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both at the top left (Notation only); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
-          {view === 'tab' && (
-            <div className="seg tab-parts" role="group" aria-label="Show">
-              {PARTS.map(p => (
-                <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
-                  {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* Until tracks are drawn (issue #237), a small "i" says the others are kept; the AlphaTex view has them all. */}
-          {tracksNote && view !== 'alphatex' && (
-            <HoverTips>
-              <span className="tab-tracks-note" role="img" aria-label={tracksNote} data-tip={tracksNote}>i</span>
-            </HoverTips>
-          )}
+          <div className="tab-card-start">
+            {view === 'tab' && (
+              <div className="seg tab-parts" role="group" aria-label="Show">
+                {PARTS.map(p => (
+                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
+                    {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* With several tracks, the one shown (issue #243); the AlphaTex view has them all. */}
+            {whole.tracks.length > 1 && view !== 'alphatex' && (
+              <select className="input tab-track-pick" aria-label="Track" value={track} onChange={e => chooseTrack(Number(e.target.value))}>
+                {whole.tracks.map((_, i) => <option key={i} value={i}>{trackName(whole, i)}</option>)}
+              </select>
+            )}
+          </div>
           <div className="tab-card-end">
             <div className="seg" role="group" aria-label="View">
               {VIEWS.map(v => (
@@ -980,13 +1005,13 @@ export default function TabPage() {
           <PlaybackFooter
             clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
             shown={showPlayback} onShow={showPlaybackControls}
-            track={{ name: whole.tracks[shownTrack].name, index: shownTrack }}
+            track={{ name: whole.tracks[track].name, index: track }}
             sound={sound} soundNote={substituteNote(clip.instrument?.program)}
             onSound={next => commit({ ...clip, instrument: { program: next, tag: instrumentTag(next) } })}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}
             transpose={playbackSettings.transpose} onTranspose={transpose => setPlaybackSettings(s => ({ ...s, transpose }))}
-            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', track: shownTrack, fx })}
+            effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', track, fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={metronome.on} onMetronome={on => setMetronome(m => ({ ...m, on }))}
             countIn={metronome.countIn} onCountIn={countIn => setMetronome(m => ({ ...m, countIn }))}
@@ -1048,7 +1073,7 @@ export default function TabPage() {
       {actions.popups}
       <SettingsDialog groups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
-        clip={whole} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        clip={whole} track={track} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
       />
     </div>
@@ -1062,15 +1087,4 @@ function paperVars(colours: ColourPair): CSSProperties {
     '--ink': p.ink, '--ink-muted': p.inkMuted, '--line-strong': p.lineStrong, '--line': p.line, '--surface-raised': p.paper,
     background: p.paper, color: p.ink,
   } as CSSProperties;
-}
-
-/**
- * What the "i" over a clip of several tracks says (Jeremy, 2026-10-30), or null for one track: the page
- * shows, edits and plays the first until tracks are drawn (issue #237), and keeps the rest as they are.
- */
-export function hiddenTracksNote(clip: Clip): string | null {
-  const count = clip.tracks.length;
-  if (count < 2) return null;
-  const first = clip.tracks[0].name;
-  return `This arrangement has ${count} tracks. Frets shows, edits and plays only the first${first ? ` (${first})` : ''} for now; the others are kept as they are.`;
 }
