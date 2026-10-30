@@ -52,6 +52,11 @@ right-click → Select similar to their own issue (#260).
   Delete (and Edit). From a column with no string picked, → goes to its first note. Nothing is past
   either end. P.M. and let ring lines are runs, picked by a press only.
 - Holding a modifier key down on its own no longer lets a picked mark or word go.
+- **A selection lights its notes, with no band** (Jeremy, 2026-10-30: "only the notes (annotations)
+  highlighted"): every selection, made any way (Shift+arrows, Ctrl+A, Shift+press, the rectangle), draws
+  its columns' fret numbers, marks, staff heads, signs, stems and rests in `--primary`, as MuseScore
+  colours selected notes. This replaces the band of `2026-10-28-tab-fewer-bands-design.md`, which the
+  selections had kept.
 
 ### Reading
 

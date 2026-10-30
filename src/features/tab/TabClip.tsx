@@ -251,7 +251,6 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         // Takes the presses just above and below the drawing; nothing is drawn.
         <rect x={0} y={-columnReach} width={width} height={layout.height + 2 * columnReach} fill="transparent" data-testid="column-reach" />
       )}
-      {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
       {rect && (
         <rect
           x={Math.min(rect.x0, rect.x1)} y={Math.min(rect.y0, rect.y1)} width={Math.abs(rect.x1 - rect.x0)} height={Math.abs(rect.y1 - rect.y0)}
@@ -299,9 +298,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            selected={highlight?.range ?? null}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} />
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} />
           )}
           {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
             <StaffCursor x={spot.x} score={rows.score} selected={!highlight.input} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
@@ -362,31 +362,7 @@ function Warning({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
-/**
- * A soft band behind the selected columns: one unbroken band on each line of tab, from the first
- * selected column there to the last, so it runs across the bar lines between them (Jeremy, 2026-10-26).
- */
-function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<typeof layoutClip>; range: [number, number] }) {
-  return (
-    <g data-testid="tab-selection">
-      {layout.systems.map((system, si) => {
-        const chosen = system.bars.flatMap(bar => bar.columns).filter(c => c.index >= from && c.index <= to);
-        if (chosen.length === 0) return null;
-        const first = chosen[0];
-        const last = chosen[chosen.length - 1];
-        const x0 = first.start;
-        return (
-          <rect
-            key={si} x={x0} y={system.top + system.rows.bandTop} width={last.start + last.width - x0}
-            height={system.rows.bandBottom - system.rows.bandTop} fill="var(--primary-soft)"
-          />
-        );
-      })}
-    </g>
-  );
-}
-
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -402,11 +378,13 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   /** This line's whammy bar lines, under the tab. */
   whammy: WhammyDrawing[];
   lastBar: number;
+  /** The selected run of columns: their numbers and marks are drawn in `--primary` (issue #238). */
+  selected: [number, number] | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
   const words = <SystemWords system={system} rows={rows} clip={clip} look={look} />;
-  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} />;
+  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
 
@@ -483,7 +461,8 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index} look={look}
+          key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index}
+          look={selected && placed.index >= selected[0] && placed.index <= selected[1] ? { ...look, ink: 'var(--primary)' } : look}
           previous={previous} slides={slides} joins={joins} staffStart={system.staffStart}
         />,
       );
@@ -506,7 +485,7 @@ function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: 
 }
 
 /** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
-function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; look: TabLook }) {
+function SystemRowMarks({ system, rows, look, selected = null }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null }) {
   const parts: ReactNode[] = [];
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
   for (const { mark, label, has } of RUN_MARKS) {
@@ -570,7 +549,8 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
   if (rows.vibrato !== null) {
     for (const run of vibratoRuns(system)) {
       const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
-      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
+      const lit = selected !== null && run.from.index >= selected[0] && run.from.index <= selected[1];
+      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={lit ? 'var(--primary)' : look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }
 

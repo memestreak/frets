@@ -16,7 +16,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null }: {
   system: System;
   score: ScoreRows;
   clip: Part;
@@ -26,6 +26,8 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
   marks: StaffMark[];
   /** The staff without the tab: its bends' arrows show a let-down bend coming back, so no head does. */
   alone?: boolean;
+  /** The selected run of columns (places in the clip): their heads are drawn in `--primary`, as MuseScore colours selected notes. */
+  selected?: [number, number] | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
@@ -51,10 +53,12 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} />);
     parts.push(
-      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} />,
+      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} />,
     );
   }
-  marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={look} />));
+  const litLook = { ...look, ink: 'var(--primary)' };
+  const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
+  marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={inRun(mark.hit.index) ? litLook : look} />));
   return <g data-testid="staff">{parts}</g>;
 }
 
@@ -260,7 +264,8 @@ export function ghostChord(column: Column, heads: Head[]): boolean {
 }
 
 /** One bar's notes on the staff. */
-function StaffBar({ bar, score, look, alone }: { bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean }) {
+function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null }) {
+  const look = barLook;
   if (bar.restRun) {
     const { first, span, count } = bar.restRun;
     return first ? <MultiRest span={span} count={count} y={stepY(score, 4)} countY={score.top - 8} look={look} reach={SPACE} /> : null;
@@ -270,6 +275,9 @@ function StaffBar({ bar, score, look, alone }: { bar: PlacedBar; score: ScoreRow
 
   for (const placed of bar.columns) {
     const { column, x, heads } = placed;
+    // A selected column's heads, signs, ledger lines and rest are drawn in the primary colour, as MuseScore colours selected notes.
+    const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
+    const look = lit ? { ...barLook, ink: 'var(--primary)' } : barLook;
     const { value, dots } = column.duration;
     const key = `${placed.index}`;
     const grace = column.grace ? GRACE_SCALE : 1;
@@ -325,7 +333,11 @@ function StaffBar({ bar, score, look, alone }: { bar: PlacedBar; score: ScoreRow
         const sy = sideHead(h.bendBack, left, 'back');
         parts.push(<line key={`back-line-${key}-${k}`} x1={start} y1={y} x2={left - PAREN_LEFT - 2} y2={sy - 2} stroke={look.ink} strokeWidth={1} data-testid="staff-bend-line" />);
       }
-      parts.push(<g key={`head-${key}-${k}`} data-testid="staff-head"><Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} /></g>);
+      parts.push(
+        <g key={`head-${key}-${k}`} data-testid="staff-head" data-selected={lit || undefined}>
+          <Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} />
+        </g>,
+      );
       // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
       if ((note?.ghost && !chord) || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;

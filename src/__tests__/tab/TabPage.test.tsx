@@ -100,6 +100,9 @@ function pressFirstTimeSignature() {
   fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
 }
 
+/** The fret numbers drawn selected (in the primary colour): a selection lights its notes, with no band. */
+const litFrets = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--primary)"]')];
+
 describe('TabPage', () => {
   it("draws the title, credits and tuning as the score's head, in the clip's card, and shows bar numbers as the View options say", async () => {
     renderAt('#example=tuned-down');
@@ -469,21 +472,21 @@ describe('TabPage', () => {
       keys('5', 'ArrowRight', '7');
       const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
       expect(band()).toBeNull();
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowLeft', shiftKey: true });
-      expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+      expect(litFrets().length).toBeGreaterThan(0);
       // Starting it let the note go: no box follows the cursor through it, and none is picked after.
       expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
       keys('ArrowRight');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
       // Moving the cursor, any way, lets the selection go.
       keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowRight');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
     });
 
     it('marks notes and columns from the keys and from the palette', () => {
@@ -634,8 +637,8 @@ describe('TabPage', () => {
       // Typing is note input's (issue #238).
       keys('n', 'ArrowDown');
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
-      // One unbroken band over the two selected columns.
-      expect(screen.getByTestId('tab-selection').children).toHaveLength(1);
+      // The two selected notes are lit, with no band behind them (Jeremy, 2026-10-30).
+      expect(litFrets().map(t => t.textContent)).toEqual(['7', '9']);
       const data = new Map<string, string>();
       const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
@@ -843,6 +846,10 @@ describe('TabPage', () => {
         fireEvent.pointerUp(svg, { ...to, shiftKey: true });
         expect(screen.queryByTestId('select-rectangle')).toBeNull();
         expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |');
+        // The notes inside are drawn selected, in the primary colour; the ones outside are not.
+        const fill = (fret: string) => screen.getAllByText(fret).find(t => t.closest('[data-testid="tab-system"]'))!.getAttribute('fill');
+        expect([fill('7'), fill('8'), fill('9')]).toEqual(['var(--primary)', 'var(--primary)', 'var(--primary)']);
+        expect(fill('5')).toBe('var(--ink)');
         // A Shift+press on a blank string, not moved, extends the selection to there as before.
         fireEvent.pointerDown(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, button: 0, shiftKey: true });
         fireEvent.pointerUp(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, shiftKey: true });
@@ -899,7 +906,7 @@ describe('TabPage', () => {
       it('Ctrl/⌘+Shift+← → grow a selection by bars, Ctrl/⌘+Shift+Home / End to the clip’s ends', async () => {
         await open();
         keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
-        expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+        expect(litFrets().length).toBeGreaterThan(0);
         expect(copied()).toBe('5.1.2 7.1.2 |');
         keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
         expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |');
@@ -909,7 +916,7 @@ describe('TabPage', () => {
         expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 5.2.2 |');
         // Moving lets the selection go.
         keys({ key: 'ArrowLeft', ctrlKey: true });
-        expect(screen.queryByTestId('tab-selection')).toBeNull();
+        expect(litFrets()).toHaveLength(0);
       });
 
       it('Shift+Home / End grow a selection to the ends of the line of tab', async () => {
@@ -946,7 +953,7 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
       keys('Escape');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       expect(screen.queryByTestId('tab-cursor')).toBeNull();
       expect(editor()).not.toHaveFocus();
     });
@@ -2167,7 +2174,7 @@ describe('picking a technique mark (issue #128)', () => {
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots - 1);
     await settle();
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
-    expect(screen.queryByTestId('tab-selection')).toBeNull();
+    expect(litFrets()).toHaveLength(0);
     undo();
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
   });
@@ -2313,6 +2320,17 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('selected-note')).toBeInTheDocument();
       expect(screen.queryByTestId('staff-selected')).toBeNull();
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    });
+
+    it('draws the heads of a selected run in the primary colour', async () => {
+      await open();
+      press(headAt(2));
+      fireEvent.keyDown(editor(), { key: 'ArrowRight', shiftKey: true });
+      const lit = () => screen.getAllByTestId('staff-head').map(h => h.hasAttribute('data-selected'));
+      // The chord's two heads, then the D string's 3 and the rest: the run is the 3 and the rest.
+      expect(lit()).toEqual([false, false, true]);
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(lit()).toEqual([false, false, false]);
     });
 
     it('in normal mode a press beside the heads selects the column and enters nothing', async () => {
