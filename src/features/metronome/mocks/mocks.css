@@ -1,0 +1,70 @@
+/* Look mocks for the Metronome page (issue #149). */
+.mm { display: grid; gap: 16px; }
+.mm-switch { justify-self: center; flex-wrap: wrap; }
+.mm-card { width: 100%; max-width: 560px; margin-inline: auto; padding: clamp(14px, 4vw, 24px); display: grid; gap: 18px; }
+.mm-card-wide { max-width: 860px; }
+.mm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.mm-row-center { justify-content: center; }
+.mm-row-top-line { padding-top: 16px; border-top: 1px solid var(--line); }
+.mm-play { gap: 8px; min-width: 104px; }
+.mm-play-round { min-width: 0; width: 56px; height: 56px; border-radius: 999px; padding: 0; }
+.mm-play-round svg { width: 20px; height: 20px; }
+
+/* The big tempo number. */
+.mm-readout { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.mm-step { width: 48px; height: 48px; font-size: 28px; color: var(--ink-muted); }
+.mm-big { display: grid; justify-items: center; }
+.mm-big-left { justify-items: start; }
+.mm-big-number {
+  font: 500 clamp(72px, 18vw, 112px)/1 var(--font-display); color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.mm-big-unit { font: 400 15px/20px var(--font-sans); color: var(--ink-muted); }
+.mm-tempo-name { margin: -10px 0 0; text-align: center; font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
+
+/* A dot per beat. */
+.mm-dots { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; min-height: 36px; }
+.mm-dot {
+  position: relative; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer;
+}
+.mm-dot::before {
+  content: ''; display: block; border-radius: 999px; background: var(--line-strong);
+  width: 55%; height: 55%; transition: background 60ms, transform 60ms;
+}
+.mm-dot[data-level='accent']::before { width: 100%; height: 100%; }
+.mm-dot[data-level='mute']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.mm-dot[data-on]::before { background: var(--primary); transform: scale(1.12); }
+.mm-dot[data-on][data-level='mute']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--primary); }
+
+/* B: the dial. */
+.mm-dial-wrap { display: flex; justify-content: center; }
+.mm-dial { position: relative; width: 280px; height: 280px; cursor: ns-resize; touch-action: none; border-radius: 999px; }
+.mm-dial:focus { outline: none; }
+.mm-dial-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; pointer-events: none; }
+.mm-dial-center .mm-big-number { font-size: 84px; }
+
+/* C: the pendulum. */
+.mm-pendulum-layout { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; }
+.mm-pyramid { flex: none; }
+.mm-arm { transform-origin: 110px 250px; transition-property: transform; transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+.mm-side { display: grid; gap: 14px; justify-items: start; }
+.mm-side .mm-dots { justify-content: flex-start; }
+
+/* D: the bar of tiles. */
+.mm-bar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mm-bar-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
+.mm-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.mm-tile {
+  display: grid; grid-template-rows: 140px auto; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer;
+}
+.mm-tile-subs { display: flex; align-items: flex-end; gap: 4px; height: 140px; }
+.mm-tile-sub {
+  flex: 1; height: 55%; border-radius: var(--radius-sm); background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line); transition: background 60ms;
+}
+.mm-tile-sub:not([data-first]) { height: 30%; }
+.mm-tile[data-level='accent'] .mm-tile-sub[data-first] { height: 100%; }
+.mm-tile[data-level='mute'] .mm-tile-sub { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
+.mm-tile-sub[data-on] { background: var(--primary); box-shadow: none; }
+.mm-tile[data-level='mute'] .mm-tile-sub[data-on] { background: none; box-shadow: inset 0 0 0 1.5px var(--primary); }
+.mm-tile-count { font: 600 14px/20px var(--font-sans); color: var(--ink-muted); text-align: center; }
