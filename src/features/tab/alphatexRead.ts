@@ -436,8 +436,11 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     tracks: masterBars.length > 0 ? tracks : tracks.map(track => ({ ...track, bars: [{ columns: [] }] })),
   };
   if (header.length > 0) clip.header = header;
-  const fx = fxOf(tree);
-  if (fx) clip.fx = fx;
+  const trackStarts = score.tracks.map((_, t) => {
+    const tag = nodeOf(t, 0).metaData.find(m => m.tag.tag.text.toLowerCase() === 'track');
+    return tag?.start?.offset ?? Infinity;
+  });
+  for (const [t, fx] of fxOf(tree, trackStarts)) clip.tracks[t].fx = fx;
   if (layoutOk.has('systemslayout')) clip.systemsLayout = [...score.systemsLayout];
   if (layoutOk.has('defaultsystemslayout')) clip.defaultSystemsLayout = score.defaultSystemsLayout;
   if (hasTag(tree.bars[0], 'multibarrest')) clip.multiBarRests = true;
@@ -513,11 +516,18 @@ function withGuitarTuning(tree: ScoreNode, text: string): string | null {
 interface CommentNode { text: string; multiLine: boolean; start?: { offset: number } }
 
 /**
- * The FX in the clip's `// frets:fx` line (`fxLine.ts`), wherever it is, the first if there are
- * more; null when there is none. Other comments aren't kept.
+ * Each track's FX, from its `// frets:fx` line (`fxLine.ts`), by track. A line belongs to the track
+ * whose `\track` comes last before it, and a line before the second track's `\track` (or anywhere,
+ * in a clip of one track) to the first; a track's first line counts if it has more. `trackStarts`
+ * holds where each track's `\track` is (the first's is not needed). Other comments aren't kept.
  */
-function fxOf(tree: unknown): FxSettings | null {
-  let first: { at: number; fx: FxSettings } | null = null;
+function fxOf(tree: unknown, trackStarts: number[]): Map<number, FxSettings> {
+  const found = new Map<number, { at: number; fx: FxSettings }>();
+  const trackAt = (at: number) => {
+    let track = 0;
+    trackStarts.forEach((start, t) => { if (t > 0 && start <= at) track = t; });
+    return track;
+  };
   const seen = new Set<object>();
   const stack: unknown[] = [tree];
   while (stack.length > 0) {
@@ -528,13 +538,16 @@ function fxOf(tree: unknown): FxSettings | null {
       if ((key === 'leadingComments' || key === 'trailingComments') && Array.isArray(value)) {
         for (const comment of value as CommentNode[]) {
           const fx = comment.multiLine ? null : readFxLine(comment.text);
+          if (!fx) continue;
           const at = comment.start?.offset ?? 0;
-          if (fx && (!first || at < first.at)) first = { at, fx };
+          const track = trackAt(at);
+          const before = found.get(track);
+          if (!before || at < before.at) found.set(track, { at, fx });
         }
       } else if (typeof value === 'object') stack.push(value);
     }
   }
-  return first?.fx ?? null;
+  return new Map([...found].map(([track, { fx }]) => [track, fx]));
 }
 
 /** Reads alphaTex, loading alphaTab first. */

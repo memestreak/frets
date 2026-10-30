@@ -1,7 +1,8 @@
 /**
- * The clip's FX as one comment line at the top of its alphaTex (Jeremy, 2026-10-29), so they travel
- * with the arrangement. alphaTex has no room for settings of its own: an unknown tag or property
- * stops alphaTab reading the file, but a comment is part of its grammar and other tools skip it.
+ * A track's FX as one comment line in its alphaTex (Jeremy, 2026-10-29), so they travel with the
+ * arrangement: under the track's `\track`, or at the top for a first track without one (2026-10-30).
+ * alphaTex has no room for settings of its own: an unknown tag or property stops alphaTab reading
+ * the file, but a comment is part of its grammar and other tools skip it.
  *
  *   // frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5
  *

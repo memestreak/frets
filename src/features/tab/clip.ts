@@ -337,8 +337,6 @@ export interface Clip {
   defaultSystemsLayout?: number;
   /** Bars of rest in a row are drawn as one, with their count over it, as printed parts have them (alphaTex's `\multiBarRest`). */
   multiBarRests?: boolean;
-  /** The playback FX the clip is heard with, from its `// frets:fx` line (`fxLine.ts`); none set, all off. */
-  fx?: FxSettings;
 }
 
 /** One part of a clip ("Gtr I"): its own strings, sound and notes. */
@@ -358,6 +356,11 @@ export interface Track {
    * no tag when its `\track` line names it. None named, it plays as the steel guitar.
    */
   instrument?: { program: number; tag?: string };
+  /**
+   * The playback FX the track is heard through, from its `// frets:fx` line (`fxLine.ts`); none set,
+   * all off. The metronome's clicks never go through them.
+   */
+  fx?: FxSettings;
   /** As many as the clip's `masterBars`. */
   bars: TrackBar[];
 }
@@ -381,6 +384,7 @@ export interface Part {
   defaultSystemsLayout?: number;
   multiBarRests?: boolean;
   instrument?: { program: number; tag?: string };
+  /** The track's FX. */
   fx?: FxSettings;
 }
 
@@ -840,9 +844,9 @@ export function emptyPart(): Part {
 /** The fields a part's bar takes from the clip's bar, the ones every track shares. */
 const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section'] as const;
 /** The clip's own fields a part carries as they are. */
-const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests', 'fx'] as const;
+const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests'] as const;
 /** The track's own fields a part carries and an edit may change. */
-const TRACK_FIELDS = ['capo', 'instrument'] as const;
+const TRACK_FIELDS = ['capo', 'instrument', 'fx'] as const;
 
 /** `to` with `from`'s value for each key that has one, and none for each that hasn't. */
 function copied<T extends object>(to: T, from: object, keys: readonly string[]): T {
@@ -1073,7 +1077,7 @@ export function parseClip(v: unknown): Clip | null {
   if (!optBool(v.multiBarRests)) return null;
   if (v.systemsLayout !== undefined && !(Array.isArray(v.systemsLayout) && v.systemsLayout.every(isBarsPerLine))) return null;
   if (v.defaultSystemsLayout !== undefined && !isBarsPerLine(v.defaultSystemsLayout)) return null;
-  // The FX, each setting checked on its own, as the FX line's are.
-  if (v.fx !== undefined) return { ...v, fx: parseEffects(v.fx) } as unknown as Clip;
-  return v as unknown as Clip;
+  // Each track's FX, each setting checked on its own, as the FX line's are.
+  const tracks = (v.tracks as Track[]).map(track => (track.fx === undefined ? track : { ...track, fx: parseEffects(track.fx) }));
+  return { ...v, tracks } as unknown as Clip;
 }

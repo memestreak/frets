@@ -3,7 +3,7 @@
  * Links to a clip (issue #206). Copy link writes the clip's alphaTex compressed (deflate, then
  * base64url) into `/tab#tabz=…`, two to seven times shorter than the plain text percent-encoded
  * (more for longer clips).
- * The text carries everything the clip plays with: its `\instrument` and its `// frets:fx` line.
+ * The text carries everything the clip plays with: each track's `\instrument` and `// frets:fx` line.
  * `#tab=<percent-encoded text>` is still read, for links typed by hand or by an agent.
  */
 

@@ -14,6 +14,7 @@ import { STRING_COUNT, TREMOLO_VALUES, type Part, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
+import { keepDry } from './dryChannels';
 import type { EffectSettings } from './effects';
 import { decodeOnMainThread, lastFont, useDecoded } from './soundDecode';
 import { SoundDecoder } from './soundDecoder';
@@ -747,6 +748,8 @@ export class TabPlayer {
     const soundfont = new Uint8Array(await response.arrayBuffer());
     const output = new WebAudioOutput();
     const synth = new at.synth.AlphaSynth(output, 500);
+    // The clicks are heard past the effects, never distorted or in the reverb.
+    keepDry(synth, [METRONOME_CHANNEL, COUNT_IN_CHANNEL], output.dry);
     synth.loadSoundFont(soundfont, false);
     synth.loadSoundFont(clickSoundFont(), true);
     return new TabPlayer(at, synth, output, onView);
@@ -971,7 +974,7 @@ export class TabPlayer {
     this.applyClicks();
   }
 
-  /** Sets the distortion and reverb (`effects.ts`), heard at once, clicks too. */
+  /** Sets the distortion and reverb (`effects.ts`) of the track playing, heard at once; the clicks stay dry. */
   setEffects(settings: EffectSettings) {
     this.output.setEffects(settings);
   }

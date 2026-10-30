@@ -341,7 +341,26 @@ describe('TabPage', () => {
     expect(screen.getByRole('switch', { name: 'All effects' })).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('keeps the FX in the clip: the dialog writes its line, a run of changes is one undo step', async () => {
+  it('boxes the Sound and FX together under the shown track\'s name, cut to ten characters', async () => {
+    const two = '\\title "Duo"\n\\track "Lead Guitar (solo)"\n0.6.1 |\n\\track "Rhythm"\n3.6.1 |\n';
+    renderAt(`#tab=${encodeURIComponent(two)}`);
+    await screen.findByRole('heading', { name: 'Duo' }, SLOW);
+    const box = screen.getByRole('group', { name: 'Track: Lead Guitar (solo)' });
+    expect(within(box).getByText('Lead Guit…')).toHaveAttribute('data-tip', 'Lead Guitar (solo)');
+    expect(within(box).getByRole('combobox', { name: 'Sound' })).toBeInTheDocument();
+    expect(within(box).getByRole('button', { name: 'FX' })).toBeInTheDocument();
+    expect(within(box).getByRole('switch', { name: 'All effects' })).toBeInTheDocument();
+    expect(screen.queryByText('Sound')).toBeNull();
+  });
+
+  it('names an unnamed track by its place over its Sound and FX, with no tip', async () => {
+    renderAt(`#tab=${encodeURIComponent(TEX)}`);
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    const box = screen.getByRole('group', { name: 'Track: Track 1' });
+    expect(within(box).getByText('Track 1')).not.toHaveAttribute('data-tip');
+  });
+
+  it('keeps the FX in the track: the dialog writes its line, a run of changes is one undo step', async () => {
     renderAt(`#tab=${encodeURIComponent(TEX)}`);
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     const firstLine = () => {
@@ -362,7 +381,7 @@ describe('TabPage', () => {
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.6');
     // Saved with the arrangement, not with the viewer's playback settings.
-    expect(savedClip()).toMatchObject({ fx: { on: true, reverbOn: false, decay: 1.6 } });
+    expect(savedClip()).toMatchObject({ tracks: [{ fx: { on: true, reverbOn: false, decay: 1.6 } }] });
     expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('reverb');
     undo();
     expect(light()).toHaveAttribute('aria-checked', 'false');

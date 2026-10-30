@@ -933,6 +933,20 @@ button {
   .tab-knob:focus { outline: none; }
   .tab-knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
   /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
+  /* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30); its name, cut to
+     ten characters, sits right-aligned in a fixed width (room for ten of most letters) so the box doesn't
+     move between tracks. */
+  .tab-track-box {
+    display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 6px;
+    padding: 3px 3px 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-md);
+  }
+  /* As wide as its longest sound, a little narrower than the bare list was, so the boxed row still
+     fits with Volume beside it. */
+  .tab-track-box .tab-sound select { width: auto; }
+  .tab-track-name {
+    width: 80px; flex: none; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted);
+  }
+  .tab-track-box .tab-sound { gap: 6px; }
   .tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
   /* A clip's instrument Frets has no sound for: a small red ⚠ after the list, its tip naming both. */

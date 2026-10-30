@@ -134,20 +134,26 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
 }
 
 /**
- * The clip as alphaTex: its FX line and header lines, then each track: its `\track` line when the
- * clip has more than one or one was written, its own lines, then its bars, each ending in "|", wrapped
- * at `LINE_WIDTH`. The bar marks every track shares (signatures, repeats, tempo, sections) are written
- * in the first track's bars only; alphaTab gives them to every track.
+ * The clip as alphaTex: its header lines, then each track: its `\track` line when the clip has more
+ * than one or one was written, its FX line, its own lines, then its bars, each ending in "|", wrapped
+ * at `LINE_WIDTH`. A first track with no `\track` line has its FX line first in the text, where a
+ * reader finds it before any track starts. The bar marks every track shares (signatures, repeats,
+ * tempo, sections) are written in the first track's bars only; alphaTab gives them to every track.
  */
 export function writeAlphaTex(clip: Clip): string {
   const lines: string[] = [];
-  if (clip.fx) lines.push(fxLine(clip.fx));
+  const several = clip.tracks.length > 1;
+  const tagOf = (track: Track) => track.tag ?? (several ? (track.name ? `\\track ${quoted(track.name)}` : '\\track') : null);
+  const first = clip.tracks[0];
+  if (first.fx && !tagOf(first)) lines.push(fxLine(first.fx));
   if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
   lines.push(...(clip.header ?? []));
-  const several = clip.tracks.length > 1;
   clip.tracks.forEach((track, t) => {
-    const tag = track.tag ?? (several ? (track.name ? `\\track ${quoted(track.name)}` : '\\track') : null);
-    if (tag) lines.push(tag);
+    const tag = tagOf(track);
+    if (tag) {
+      lines.push(tag);
+      if (track.fx) lines.push(fxLine(track.fx));
+    }
     lines.push(...(track.header ?? []));
     if (track.instrument?.tag) lines.push(track.instrument.tag);
     if (t === 0) {

@@ -8,6 +8,13 @@ describe('commentSpots', () => {
     expect(commentSpots(text).map(s => text.slice(s.from, s.to))).toEqual(['// mine', '// frets:fx off']);
   });
 
+  it('leaves out each track\'s first FX line', () => {
+    const text = '// frets:fx on\n\\track "A"\n// frets:fx off\n3.6 |\n\\track "B"\n// frets:fx on\n// frets:fx off\n\\tracks 5.6 |';
+    // The line before the second \track is the first track's, so the one under "A" is a second.
+    expect(commentSpots(text).map(s => text.slice(s.from, s.to))).toEqual(['// frets:fx off', '// frets:fx off']);
+    expect(commentSpots(text)[0].from).toBe(text.indexOf('// frets:fx off'));
+  });
+
   it('finds line and block comments, but not inside quoted text', () => {
     const text = '\\title "a // b" // one\n/* two\nlines */ 5.6 |\n\\title \'c /* d\' x';
     const found = commentSpots(text).map(s => text.slice(s.from, s.to));
