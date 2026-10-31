@@ -24,12 +24,14 @@ export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void
 const DRAG_PX_PER_STEP = 10;
 const DRAG_THRESHOLD_PX = 3;
 
-export function NumberField({ value, min, max, step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
+export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
   value: number;
   min: number;
   max: number;
   /** How far a button or an arrow key steps it. */
   step: number;
+  /** How far a drag steps it; with Shift held, `step` (the Metronome's tempo: 5, Shift 1). */
+  dragStep?: number;
   /** Digits after the point, as shown and as kept. */
   decimals?: number;
   /** Shown after the number, inside the box: `%`, `s`. A long unit goes outside it instead. */
@@ -82,7 +84,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   };
 
   // A press on the number: dragging up or down changes it; a press that stays put starts typing.
-  const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
+  const drag = useRef<{ y: number; from: number; moved: boolean; shift: boolean } | null>(null);
   const onPointerDown = (e: PointerEvent<HTMLInputElement>) => {
     if (disabled || e.button !== 0) return;
     // Keep the caret out (and no text selected) until we know it is a click. Dragging works while
@@ -90,7 +92,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     const typed = draft !== null ? parse(draft) : null;
-    drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false };
+    drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false, shift: e.shiftKey };
   };
   const onPointerMove = (e: PointerEvent<HTMLInputElement>) => {
     const d = drag.current;
@@ -99,8 +101,15 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     if (!d.moved && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
     if (!d.moved) setDraft(null);
     d.moved = true;
+    // Shift pressed or let go mid-drag carries on from where the number is.
+    if (d.shift !== e.shiftKey) {
+      d.shift = e.shiftKey;
+      d.y = e.clientY;
+      d.from = value;
+      return;
+    }
     // Up raises it, a step every few pixels.
-    set(d.from + Math.round(dy / DRAG_PX_PER_STEP) * step);
+    set(d.from + Math.round(dy / DRAG_PX_PER_STEP) * (e.shiftKey ? step : dragStep));
   };
   const onPointerUp = () => {
     const d = drag.current;

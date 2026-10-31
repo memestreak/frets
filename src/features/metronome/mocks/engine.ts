@@ -43,8 +43,6 @@ export interface Section {
 export interface MetronomeState {
   bpm: number;
   beats: number;
-  /** The note a beat is: 4 a quarter, 8 an eighth. */
-  beatUnit: 2 | 4 | 8 | 16;
   /** How the beats group (2+2+3); empty when they don't. Each group's first beat plays B. */
   groups: number[];
   /** Steps in each beat, 1 to 8. */
@@ -75,7 +73,6 @@ export interface MetronomeState {
   counting: Counting;
   spoken: boolean;
   flash: boolean;
-  vibrate: boolean;
   tapAlong: boolean;
 
   /* Setlist */
@@ -83,6 +80,7 @@ export interface MetronomeState {
   playSections: boolean;
 }
 
+export const MAX_BEATS = 32;
 export const MIN_BPM = 20;
 export const MAX_BPM = 400;
 const LOOKAHEAD_S = 0.12;
@@ -113,11 +111,11 @@ const DEFAULT_VOICES: Voice[] = [
 export function initialState(): MetronomeState {
   const subs = [1, 1, 1, 1];
   return {
-    bpm: 96, beats: 4, beatUnit: 4, groups: [], subs, steps: defaultSteps(4, subs, []), swing: 50,
+    bpm: 96, beats: 4, groups: [], subs, steps: defaultSteps(4, subs, []), swing: 50,
     voices: DEFAULT_VOICES, poly: { count: 0, sound: 'cowbell', level: 0.6 }, volume: 0.8,
     trainer: { on: false, to: 140, by: 4, every: 4, end: 'hold' },
     playBars: 4, silentBars: 0, randomMute: 0, countIn: 0, stopAfterBars: 0, stopAfterMinutes: 0,
-    counting: 'numbers', spoken: false, flash: false, vibrate: false, tapAlong: false,
+    counting: 'numbers', spoken: false, flash: false, tapAlong: false,
     sections: [
       { name: 'Intro', bars: 4, bpm: 90, beats: 4 },
       { name: 'Verse', bars: 16, bpm: 96, beats: 4 },
@@ -129,7 +127,7 @@ export function initialState(): MetronomeState {
 
 /* — presets — */
 
-type Rhythm = Pick<MetronomeState, 'beats' | 'beatUnit' | 'groups' | 'subs' | 'steps' | 'swing'> & { poly: number };
+type Rhythm = Pick<MetronomeState, 'beats' | 'groups' | 'subs' | 'steps' | 'swing'> & { poly: number };
 
 /** A bar of `beats` beats with `sub` steps each, voice `on` at the listed steps (counted across the bar), D on other beats. */
 function hits(beats: number, sub: number, at: number[], on: VoiceId = 0): Rhythm {
@@ -139,12 +137,12 @@ function hits(beats: number, sub: number, at: number[], on: VoiceId = 0): Rhythm
     if (at.includes(i)) return on;
     return s === 0 ? 3 : null;
   }));
-  return { beats, beatUnit: 4, groups: [], subs, steps, swing: 50, poly: 0 };
+  return { beats, groups: [], subs, steps, swing: 50, poly: 0 };
 }
 
-function even(beats: number, sub: number, beatUnit: Rhythm['beatUnit'] = 4, groups: number[] = [], swing = 50, poly = 0): Rhythm {
+function even(beats: number, sub: number, groups: number[] = [], swing = 50, poly = 0): Rhythm {
   const subs = Array(beats).fill(sub);
-  return { beats, beatUnit, groups, subs, steps: defaultSteps(beats, subs, groups), swing, poly };
+  return { beats, groups, subs, steps: defaultSteps(beats, subs, groups), swing, poly };
 }
 
 export const PRESETS: { group: string; items: [string, () => Rhythm][] }[] = [
@@ -153,7 +151,7 @@ export const PRESETS: { group: string; items: [string, () => Rhythm][] }[] = [
     ['Sixteenths', () => even(4, 4)], ['Quintuplets', () => even(4, 5)], ['Sextuplets', () => even(4, 6)],
   ] },
   { group: 'Feel', items: [
-    ['Shuffle', () => even(4, 2, 4, [], 67)], ['Swing sixteenths', () => even(4, 4, 4, [], 60)],
+    ['Shuffle', () => even(4, 2, [], 67)], ['Swing sixteenths', () => even(4, 4, [], 60)],
     ['Backbeat (2 and 4)', () => {
       const r = even(4, 1);
       r.steps = [[1], [0], [1], [0]];
@@ -166,9 +164,9 @@ export const PRESETS: { group: string; items: [string, () => Rhythm][] }[] = [
     }],
   ] },
   { group: 'Odd and compound', items: [
-    ['3/4', () => even(3, 1)], ['5/4 (3+2)', () => even(5, 1, 4, [3, 2])], ['6/8 (3+3)', () => even(6, 1, 8, [3, 3])],
-    ['7/8 (2+2+3)', () => even(7, 1, 8, [2, 2, 3])], ['9/8 (2+2+2+3)', () => even(9, 1, 8, [2, 2, 2, 3])],
-    ['12/8 (3+3+3+3)', () => even(12, 1, 8, [3, 3, 3, 3])],
+    ['3/4', () => even(3, 1)], ['5/4 (3+2)', () => even(5, 1, [3, 2])], ['6/8 (3+3)', () => even(6, 1, [3, 3])],
+    ['7/8 (2+2+3)', () => even(7, 1, [2, 2, 3])], ['9/8 (2+2+2+3)', () => even(9, 1, [2, 2, 2, 3])],
+    ['12/8 (3+3+3+3)', () => even(12, 1, [3, 3, 3, 3])],
   ] },
   { group: 'Clave and world', items: [
     ['Son clave 3-2', () => hits(4, 4, [0, 3, 6, 10, 12])], ['Son clave 2-3', () => hits(4, 4, [2, 4, 8, 11, 14])],
@@ -176,9 +174,9 @@ export const PRESETS: { group: string; items: [string, () => Rhythm][] }[] = [
     ['Tresillo', () => hits(4, 2, [0, 3, 6])], ['Cinquillo', () => hits(4, 2, [0, 2, 3, 5, 6])],
   ] },
   { group: 'Polyrhythm', items: [
-    ['3 over 2', () => even(2, 1, 4, [], 50, 3)], ['4 over 3', () => even(3, 1, 4, [], 50, 4)],
-    ['5 over 4', () => even(4, 1, 4, [], 50, 5)], ['3 over 4', () => even(4, 1, 4, [], 50, 3)],
-    ['7 over 4', () => even(4, 1, 4, [], 50, 7)],
+    ['3 over 2', () => even(2, 1, [], 50, 3)], ['4 over 3', () => even(3, 1, [], 50, 4)],
+    ['5 over 4', () => even(4, 1, [], 50, 5)], ['3 over 4', () => even(4, 1, [], 50, 3)],
+    ['7 over 4', () => even(4, 1, [], 50, 7)],
   ] },
 ];
 
@@ -459,7 +457,6 @@ export function useMetronome() {
           if (shown.poly !== null) setNow(n => (n ? { ...n, poly: shown.poly } : n));
           else setNow(n => ({ ...shown, poly: n?.poly ?? null }));
           if (flash) setFlashKey(k => k + 1);
-          if (s.vibrate && e.step === 0 && e.voice !== 'poly') navigator.vibrate?.(e.beat === 0 ? 40 : 15);
           setElapsed(a.ctx.currentTime - startedAt.current);
         }, wait);
       }
@@ -580,7 +577,7 @@ export function useMetronome() {
     const groups = text.split('+').map(x => Number(x.trim())).filter(n => Number.isInteger(n) && n > 0);
     setState(s => {
       if (groups.length < 2) return { ...s, groups: [], steps: defaultSteps(s.beats, s.subs, []) };
-      const beats = groups.reduce((x, y) => x + y, 0);
+      const beats = Math.min(MAX_BEATS, groups.reduce((x, y) => x + y, 0));
       const subs = Array.from({ length: beats }, (_, b) => s.subs[b] ?? s.subs[0] ?? 1);
       return { ...s, beats, groups, subs, steps: defaultSteps(beats, subs, groups) };
     });
