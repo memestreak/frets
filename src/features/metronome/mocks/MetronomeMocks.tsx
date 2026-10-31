@@ -6,7 +6,8 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { NumberField } from '@/features/tab/NumberField';
-import { MAX_BPM, MIN_BPM, tempoName, useMetronome, type Level, type Metronome, type Subdivision } from './engine';
+import { VolumeKnob } from '@/features/tab/VolumeKnob';
+import { defaultLevels, MAX_BPM, MIN_BPM, SOUNDS, tempoName, useMetronome, type Level, type Metronome, type SoundId, type Subdivision } from './engine';
 import './mocks.css';
 
 const MOCKS = {
@@ -98,20 +99,121 @@ function SubdivisionSeg({ m }: { m: Metronome }) {
   );
 }
 
-const LEVEL_NAME: Record<Level, string> = { accent: 'accented', beat: 'normal', mute: 'silent' };
+const LEVEL_NAME: Record<Level, string> = { accent: 'accented', beat: 'normal', soft: 'soft', mute: 'silent' };
 
-/** A dot per beat: big for an accent, small for a beat, a ring when silent. Press to change. */
+/** The sound and its volume. */
+function SoundControls({ m }: { m: Metronome }) {
+  return (
+    <>
+      <label className="tab-speed">
+        <span className="text-(--ink-muted)">Sound</span>
+        <select className="input mm-select" value={m.sound} onChange={e => m.setSound(e.target.value as SoundId)}>
+          {SOUNDS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+      </label>
+      <div className="tab-volume">
+        <span className="text-(--ink-muted)" id="mm-volume-label">Volume</span>
+        <VolumeKnob value={m.volume} onChange={volume => m.set({ volume })} labelledBy="mm-volume-label" />
+      </div>
+    </>
+  );
+}
+
+/** Whether a click is the one sounding now. */
+const isNow = (m: Metronome, beat: number, sub: number) => m.now?.beat === beat && m.now.sub === sub;
+
+/** The pattern: a tile per click, grouped by beat; press one to cycle accent, normal, soft, silent. */
+function PatternGrid({ m }: { m: Metronome }) {
+  return (
+    <div className="mm-pattern" role="group" aria-label="Pattern (press a click to change it)">
+      {Array.from({ length: m.beats }, (_, beat) => (
+        <div key={beat} className="mm-pattern-beat">
+          <div className="mm-pattern-clicks">
+            {Array.from({ length: m.subdivision }, (_, sub) => {
+              const i = beat * m.subdivision + sub;
+              const level = m.levels[i];
+              return (
+                <button
+                  key={sub} type="button" className="mm-cell" data-level={level} data-on={isNow(m, beat, sub) || undefined}
+                  aria-label={`Beat ${beat + 1}${m.subdivision > 1 ? `, click ${sub + 1}` : ''}: ${LEVEL_NAME[level]}`}
+                  data-tip={LEVEL_NAME[level]} onClick={() => m.cycleLevel(i)}
+                ><span /></button>
+              );
+            })}
+          </div>
+          <span className="mm-pattern-count">{beat + 1}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** "Advanced": the pattern, and silent bars for practising time. Closed at first. */
+function Advanced({ m, pattern = true }: { m: Metronome; pattern?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mm-advanced">
+      <button type="button" className="mm-advanced-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        Advanced
+      </button>
+      {open && (
+        <div className="mm-advanced-body">
+          {pattern && (
+            <div className="mm-advanced-section">
+              <div className="mm-advanced-head">
+                <span className="text-(--ink-muted)">Pattern</span>
+                <button type="button" className="btn btn-ghost mm-reset" onClick={() => m.set({ levels: defaultLevels(m.beats, m.subdivision) })}>Reset</button>
+              </div>
+              <PatternGrid m={m} />
+            </div>
+          )}
+          <div className="mm-row">
+            <div className="tab-speed">
+              <span className="text-(--ink-muted)">Click for</span>
+              <NumberField value={m.playBars} min={1} max={16} step={1} label="Bars that click" upLabel="More" downLabel="Fewer" onChange={playBars => m.set({ playBars })} />
+              <span className="text-(--ink-muted)">bars, then silent for</span>
+              <NumberField value={m.silentBars} min={0} max={16} step={1} label="Silent bars" upLabel="More" downLabel="Fewer" onChange={silentBars => m.set({ silentBars })} />
+              <span className="text-(--ink-muted)">bars</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A small dot per beat, its size from the beat's level (C). */
 function BeatDots({ m, size = 22 }: { m: Metronome; size?: number }) {
   return (
-    <div className="mm-dots" role="group" aria-label="Beats (press to accent or silence)">
-      {m.levels.map((level, i) => (
-        <button
-          key={i} type="button" className="mm-dot" data-level={level} data-on={m.now?.beat === i || undefined}
-          style={{ width: size, height: size }}
-          aria-label={`Beat ${i + 1}, ${LEVEL_NAME[level]}`} data-tip={`Beat ${i + 1}: ${LEVEL_NAME[level]}`}
-          onClick={() => m.cycleLevel(i)}
-        />
+    <div className="mm-dots" aria-hidden="true">
+      {Array.from({ length: m.beats }, (_, beat) => (
+        <span key={beat} className="mm-dot" data-level={m.levels[beat * m.subdivision]} data-on={m.now?.beat === beat || undefined} style={{ width: size, height: size }} />
       ))}
+    </div>
+  );
+}
+
+/** A's beat display: a big pad per beat that flashes and ripples on its beat, with the clicks between beats as small dots under it. */
+function BeatPads({ m }: { m: Metronome }) {
+  return (
+    <div className="mm-pads" aria-hidden="true" data-silent={m.now?.silent || undefined}>
+      {Array.from({ length: m.beats }, (_, beat) => {
+        const on = m.now?.beat === beat && m.now.sub === 0;
+        return (
+          <div key={beat} className="mm-pad-col">
+            <span className="mm-pad" data-level={m.levels[beat * m.subdivision]} data-on={on || undefined} data-lit={m.now?.beat === beat || undefined}>
+              {/* A new key each time the beat comes round restarts the ripple. */}
+              {on && <span key={`${m.now!.bar}`} className="mm-ripple" />}
+            </span>
+            <span className="mm-pad-subs">
+              {m.subdivision > 1 && Array.from({ length: m.subdivision }, (_, sub) => (
+                <span key={sub} className="mm-pad-sub" data-level={m.levels[beat * m.subdivision + sub]} data-on={isNow(m, beat, sub) || undefined} />
+              ))}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -127,12 +229,11 @@ function Readout() {
         <button type="button" className="btn btn-ghost mm-step" aria-label="Slower" onClick={() => m.set({ bpm: Math.max(MIN_BPM, m.bpm - 1) })}>−</button>
         <div className="mm-big">
           <span className="mm-big-number">{m.bpm}</span>
-          <span className="mm-big-unit">bpm</span>
+          <span className="mm-big-unit">bpm · {tempoName(m.bpm)}</span>
         </div>
         <button type="button" className="btn btn-ghost mm-step" aria-label="Faster" onClick={() => m.set({ bpm: Math.min(MAX_BPM, m.bpm + 1) })}>+</button>
       </div>
-      <p className="mm-tempo-name">{tempoName(m.bpm)}</p>
-      <BeatDots m={m} size={26} />
+      <BeatPads m={m} />
       <div className="mm-row mm-row-center">
         <PlayButton m={m} />
         <TapButton m={m} />
@@ -141,13 +242,17 @@ function Readout() {
         <BeatsField m={m} />
         <SubdivisionSeg m={m} />
       </div>
+      <div className="mm-row mm-row-center">
+        <SoundControls m={m} />
+      </div>
+      <Advanced m={m} />
     </section>
   );
 }
 
 /* — B: Dial, a big tempo knob with the beats round it — */
 
-const DIAL = 280;
+const DIAL = 340;
 const SWEEP = 280;
 
 function dialPoint(turn: number, r: number): [number, number] {
@@ -160,11 +265,19 @@ function dialArc(from: number, to: number, r: number) {
   return `M${x0} ${y0} A${r} ${r} 0 ${(to - from) * SWEEP > 180 ? 1 : 0} 1 ${x1} ${y1}`;
 }
 
+/** An arc of the full circle round the dial, in degrees clockwise from the top. */
+function ringArc(from: number, to: number, r: number) {
+  const at = (deg: number) => [DIAL / 2 + r * Math.sin((deg * Math.PI) / 180), DIAL / 2 - r * Math.cos((deg * Math.PI) / 180)];
+  const [x0, y0] = at(from);
+  const [x1, y1] = at(to);
+  return `M${x0} ${y0} A${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${x1} ${y1}`;
+}
+
 function Dial() {
   const m = useMetronome();
   const turn = (m.bpm - MIN_BPM) / (MAX_BPM - MIN_BPM);
   const drag = useRef<{ y: number; bpm: number } | null>(null);
-  const [kx, ky] = dialPoint(turn, 112);
+  const [kx, ky] = dialPoint(turn, 130);
   return (
     <section className="card mm-card" aria-labelledby="mm-title">
       <h1 id="mm-title" className="m-0">Metronome</h1>
@@ -186,9 +299,23 @@ function Dial() {
           }}
         >
           <svg width={DIAL} height={DIAL} viewBox={`0 0 ${DIAL} ${DIAL}`} aria-hidden="true">
-            <path d={dialArc(0, 1, 124)} fill="none" stroke="var(--surface-sunken)" strokeWidth={10} strokeLinecap="round" />
-            <path d={dialArc(0, Math.max(0.001, turn), 124)} fill="none" stroke="var(--primary)" strokeWidth={10} strokeLinecap="round" />
-            <circle cx={DIAL / 2} cy={DIAL / 2} r={104} fill="var(--surface-raised)" stroke="var(--line-strong)" strokeWidth={1.5} />
+            {/* The beat ring: a segment per beat, all the way round, lit on its beat. */}
+            {Array.from({ length: m.beats }, (_, beat) => {
+              const level = m.levels[beat * m.subdivision];
+              const lit = m.now?.beat === beat;
+              const span = 360 / m.beats;
+              const gap = Math.min(6, span / 4);
+              return (
+                <path
+                  key={beat} d={ringArc(beat * span + gap / 2, (beat + 1) * span - gap / 2, 158)} fill="none"
+                  className="mm-ring-seg" data-level={level} data-on={lit || undefined}
+                  strokeWidth={level === 'accent' ? 16 : 10}
+                />
+              );
+            })}
+            <path d={dialArc(0, 1, 130)} fill="none" stroke="var(--surface-sunken)" strokeWidth={6} strokeLinecap="round" />
+            <path d={dialArc(0, Math.max(0.001, turn), 130)} fill="none" stroke="var(--ink-muted)" strokeWidth={6} strokeLinecap="round" />
+            <circle cx={DIAL / 2} cy={DIAL / 2} r={114} className="mm-dial-face" data-on={(m.now && m.now.sub === 0) || undefined} data-accent={(m.now && m.now.sub === 0 && m.levels[m.now.beat * m.subdivision] === 'accent') || undefined} />
             <circle cx={kx} cy={ky} r={5} fill="var(--ink)" />
           </svg>
           <div className="mm-dial-center">
@@ -197,7 +324,6 @@ function Dial() {
           </div>
         </div>
       </div>
-      <BeatDots m={m} size={18} />
       <div className="mm-row mm-row-center">
         <TapButton m={m} />
         <PlayButton m={m} round />
@@ -206,6 +332,10 @@ function Dial() {
       <div className="mm-row mm-row-center">
         <SubdivisionSeg m={m} />
       </div>
+      <div className="mm-row mm-row-center mm-row-top-line">
+        <SoundControls m={m} />
+      </div>
+      <Advanced m={m} />
     </section>
   );
 }
@@ -251,6 +381,9 @@ function Pendulum() {
           <BpmField m={m} />
           <BeatsField m={m} />
           <SubdivisionSeg m={m} />
+          <div className="mm-row">
+            <SoundControls m={m} />
+          </div>
           <BeatDots m={m} size={18} />
           <div className="mm-row">
             <PlayButton m={m} />
@@ -258,6 +391,7 @@ function Pendulum() {
           </div>
         </div>
       </div>
+      <Advanced m={m} />
     </section>
   );
 }
@@ -279,21 +413,14 @@ function Bar() {
         <BeatsField m={m} />
         <SubdivisionSeg m={m} />
       </div>
-      <div className="mm-bar" role="group" aria-label="Beats (press to accent or silence)">
-        {m.levels.map((level, i) => (
-          <button
-            key={i} type="button" className="mm-tile" data-level={level} onClick={() => m.cycleLevel(i)}
-            aria-label={`Beat ${i + 1}, ${LEVEL_NAME[level]}`} data-tip={`Beat ${i + 1}: ${LEVEL_NAME[level]}`}
-          >
-            <span className="mm-tile-subs">
-              {Array.from({ length: m.subdivision }, (_, s) => (
-                <span key={s} className="mm-tile-sub" data-first={s === 0 || undefined} data-on={(m.now?.beat === i && m.now.sub === s) || undefined} />
-              ))}
-            </span>
-            <span className="mm-tile-count">{i + 1}</span>
-          </button>
-        ))}
+      <div className="mm-bar-pattern">
+        <PatternGrid m={m} />
       </div>
+      <div className="mm-row mm-row-top-line">
+        <SoundControls m={m} />
+      </div>
+      {/* D's tiles are the pattern already, so Advanced holds only the silent bars. */}
+      <Advanced m={m} pattern={false} />
     </section>
   );
 }
