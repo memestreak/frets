@@ -648,13 +648,11 @@ describe('TabPage', () => {
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
       act(() => { editor().dispatchEvent(copy); });
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
-      // Bars stay full (issue #238): Backspace leaves rests, and nothing stays selected; note input keeps the cursor.
+      // Bars stay full (issue #238): Backspace leaves rests, the selection still there; Ctrl+Backspace takes the time.
       keys('Backspace');
-      expect(litFrets()).toHaveLength(0);
-      expect(editor()).toHaveFocus();
       expect(alphaTex()).toBe('5.1.4 r.4 r.4 |');
-      // Selected again, Ctrl+Backspace takes the time.
-      keys({ key: 'ArrowRight', shiftKey: true }, { key: 'Backspace', ctrlKey: true });
+      expect(litFrets()).toHaveLength(0);
+      keys({ key: 'Backspace', ctrlKey: true });
       expect(alphaTex()).toBe('5.1.4 |');
     });
 
@@ -681,13 +679,12 @@ describe('TabPage', () => {
       await paste('8.3.4 |');
       await settle();
       expect(alphaTex()).toBe('1.1.4 9.2.4 8.3.4 7.3.4 4.1.4 |');
-      // Cut leaves rests where the notes were, and nothing selected: the tab lets go, so no box or lit note is left.
+      // Cut leaves rests where the notes were, still selected; no box is left round a column.
       keys({ key: 'ArrowRight', shiftKey: true });
       const cut = new Event('cut', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
       cut.clipboardData = { setData: () => {} };
       act(() => { editor().dispatchEvent(cut); });
-      expect(screen.queryByTestId('tab-cursor')).toBeNull();
-      expect(litFrets()).toHaveLength(0);
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
       expect(alphaTex()).toBe('1.1.4 9.2.4 r.4 r.4 4.1.4 |');
     }, 20000);
 
@@ -2387,19 +2384,19 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
     });
 
-    it('Delete on a staff note in normal mode leaves nothing selected or lit (Jeremy, 2026-10-31)', async () => {
+    it('Delete on a staff note in normal mode leaves its rest selected, with no head kept lit (Jeremy, 2026-10-31)', async () => {
       await open();
       // The 3 alone in its column; Delete leaves a rest there.
       press(headAt(2));
       expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
       fireEvent.keyDown(editor(), { key: 'Delete' });
-      expect(screen.getAllByTestId('staff-head')).toHaveLength(2);
-      // The tab lets go, as Esc does: no head, box or lit rest is left.
-      expect(editor()).not.toHaveFocus();
       expect(screen.queryByTestId('staff-selected')).toBeNull();
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
-      expect(screen.queryByTestId('tab-cursor')).toBeNull();
-      expect(screen.getAllByTestId('staff-rest').filter(r => r.querySelector('[fill="var(--primary)"]'))).toHaveLength(0);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(2);
+      // Esc lets the rest go: nothing is left drawn.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
     });
 
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {

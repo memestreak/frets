@@ -838,12 +838,10 @@ export default function TabPage() {
     e.clipboardData.setData('text/plain', copyText(clip, range));
     if (!cut) return;
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
-    // Nothing stays selected after a delete (Jeremy's rule): the tab lets go, as Esc does, so nothing is left lit.
-    commit(makeRest(clip, { cursor, selection: { anchor: range[0], focus: range[1] } }), cursor, null);
-    if (!inputMode) {
-      startRegion();
-      editorRef.current?.blur();
-    }
+    // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
+    const cutRange = { anchor: range[0], focus: range[1] };
+    commit(makeRest(clip, { cursor, selection: cutRange }), cursor, cutRange);
+    startRegion();
   });
 
   const { importText, showExample, leaveExample } = useClipImport({

@@ -235,15 +235,17 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   if (key === 'Backspace' || key === 'Delete') {
     handled();
     const column = columnAt(clip, cursor);
-    // In normal mode nothing stays selected after a delete (Jeremy's rule; 2026-10-31 a staff head stayed lit
-    // over its rest): the tab lets go, as Esc does, so nothing is left drawn. Note input keeps the cursor
-    // where it is, to type on.
+    // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
+    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). Note input keeps
+    // the cursor where it is, to type on.
     const leave = (next: Part, at: Cursor) => {
-      commit(next, at, null);
-      if (editor.inputMode) return;
+      if (editor.inputMode || !columnAt(next, at)) {
+        commit(next, at, null);
+        return;
+      }
+      const i = indexOf(next, at.bar, at.column);
+      commit(next, at, { anchor: i, focus: i });
       editor.startRegion();
-      editor.dropLine();
-      editor.leave();
     };
     // Bars stay full (issue #238, as MuseScore): Delete leaves rests; Ctrl/⌘+Delete takes the time away too.
     if (e.ctrlKey || e.metaKey) {
@@ -260,7 +262,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         leave(cut.clip, { ...cursor, ...cut.cursor });
       }
     } else if (selection) {
-      leave(makeRest(clip, target), cursor);
+      commit(makeRest(clip, target), cursor, selection);
     } else if (!columnOnly && noteAt(clip, cursor)) {
       leave(clearNote(clip, cursor), cursor);
     } else if (column && !isRest(column)) {
