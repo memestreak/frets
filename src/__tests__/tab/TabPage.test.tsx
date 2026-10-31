@@ -100,6 +100,9 @@ function pressFirstTimeSignature() {
   fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
 }
 
+/** The fret numbers drawn selected (in the primary colour): a selection lights its notes, with no band. */
+const litFrets = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--primary)"]')];
+
 describe('TabPage', () => {
   it("draws the title, credits and tuning as the score's head, in the clip's card, and shows bar numbers as the View options say", async () => {
     renderAt('#example=tuned-down');
@@ -469,21 +472,22 @@ describe('TabPage', () => {
       keys('5', 'ArrowRight', '7');
       const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
       expect(band()).toBeNull();
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowLeft', shiftKey: true });
-      expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+      expect(litFrets().length).toBeGreaterThan(0);
       // Starting it let the note go: no box follows the cursor through it, and none is picked after.
       expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
       keys('ArrowRight');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
-      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      expect(litFrets()).toHaveLength(0);
+      // In note input no box goes round the column (Jeremy, 2026-10-31).
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
       // Moving the cursor, any way, lets the selection go.
       keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowRight');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
     });
 
     it('marks notes and columns from the keys and from the palette', () => {
@@ -634,8 +638,8 @@ describe('TabPage', () => {
       // Typing is note input's (issue #238).
       keys('n', 'ArrowDown');
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
-      // One unbroken band over the two selected columns.
-      expect(screen.getByTestId('tab-selection').children).toHaveLength(1);
+      // The two selected notes are lit, with no band behind them (Jeremy, 2026-10-30).
+      expect(litFrets().map(t => t.textContent)).toEqual(['7', '9']);
       const data = new Map<string, string>();
       const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
@@ -696,7 +700,8 @@ describe('TabPage', () => {
         act(() => editor().focus());
         keys('5', 'ArrowRight', 'ArrowRight');
         expect(alphaTex()).toBe('5.1.4 |');
-        keys('n', 'ArrowRight', '7');
+        // Going in picks no string; ↑ picks the last one back.
+        keys('n', 'ArrowUp', 'ArrowRight', '7');
         expect(alphaTex()).toBe('5.1.4 7.1.4 |');
         // Back in normal mode, ← on a column with no note on the string selects the column.
         keys('Escape', 'ArrowDown');
@@ -723,7 +728,7 @@ describe('TabPage', () => {
         // In note input the note already there keeps its length; the next one takes the new one.
         keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
         expect(alphaTex()).toBe('5.1.2 |');
-        keys('ArrowRight', '7');
+        keys('ArrowUp', 'ArrowRight', '7');
         expect(alphaTex()).toMatch(/^5\.1\.2 7\.1\.8 /);
       });
 
@@ -753,16 +758,17 @@ describe('TabPage', () => {
         renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 r.4 r.4 r.4 |')}`);
         await waitFor(() => expect(alphaTex()).toBe('5.1.4 r.4 r.4 r.4 |'), SLOW);
         act(() => editor().focus());
-        keys('n', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
+        keys('n', 'ArrowDown', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
         expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
       });
 
-      it('going into note input picks no string where the cursor has no note (Jeremy, 2026-10-30)', () => {
+      it('going into note input picks no string, on a note or off one (Jeremy, 2026-10-30, 2026-10-31)', () => {
         renderAt();
         act(() => editor().focus());
         keys('n');
+        // No box goes round the column either: the shadow square under the mouse is the cursor (Jeremy, 2026-10-31).
         expect(screen.queryByTestId('input-cursor')).toBeNull();
-        expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+        expect(screen.queryByTestId('column-cursor')).toBeNull();
         // A digit types nothing until ↑ ↓ or a press picks a string.
         keys('5');
         expect(alphaTex()).toBe('|');
@@ -771,8 +777,14 @@ describe('TabPage', () => {
         // Off a note again (the B string, empty), going back in picks nothing.
         keys('ArrowDown', 'Escape', 'n');
         expect(screen.queryByTestId('input-cursor')).toBeNull();
-        // On a note, its string stays picked (the first ↑ picks the B string back, the second goes up to the 5).
-        keys('ArrowUp', 'ArrowUp', 'Escape', 'n');
+        // On a note, too, nothing is picked (the first ↑ picks the B string back, the second goes up to the 5).
+        keys('ArrowUp', 'ArrowUp', 'Escape');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        keys('n');
+        expect(screen.queryByTestId('input-cursor')).toBeNull();
+        expect(screen.queryByTestId('selected-note')).toBeNull();
+        // ↑ ↓ pick the string back.
+        keys('ArrowUp');
         expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
         // The palette's pencil does the same as N.
         keys('ArrowDown', 'Escape');
@@ -825,6 +837,94 @@ describe('TabPage', () => {
         act(() => editor().focus());
       };
 
+      it('Shift+drag from blank space draws a rectangle that selects the columns in it; a Shift+press there still extends', async () => {
+        localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+        await open();
+        const read = readAlphaTexWith(alphaTab, THREE_BARS);
+        if (!read.ok) throw new Error(read.errors.join('\n'));
+        const layout = layoutClip(partOf(read.clip), 800, 'tab');
+        const { top, rows } = layout.systems[0];
+        const xs = layout.systems[0].bars.flatMap(b => b.columns.map(c => c.x));
+        const svg = screen.getByRole('img', { name: /drawn as/ });
+        // From above the lines, left of the second column, to the lines' middle, right of the fourth.
+        const from = { clientX: xs[1] - 6, clientY: top + rows.staffTop - 12 };
+        const to = { clientX: xs[3] + 6, clientY: top + rows.staffTop + 30 };
+        fireEvent.pointerDown(svg, { ...from, button: 0, shiftKey: true });
+        fireEvent.pointerMove(svg, { ...to, shiftKey: true });
+        expect(screen.getByTestId('select-rectangle')).toBeInTheDocument();
+        fireEvent.pointerUp(svg, { ...to, shiftKey: true });
+        expect(screen.queryByTestId('select-rectangle')).toBeNull();
+        expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |');
+        // The notes inside are drawn selected, in the primary colour; the ones outside are not.
+        const fill = (fret: string) => screen.getAllByText(fret).find(t => t.closest('[data-testid="tab-system"]'))!.getAttribute('fill');
+        expect([fill('7'), fill('8'), fill('9')]).toEqual(['var(--primary)', 'var(--primary)', 'var(--primary)']);
+        expect(fill('5')).toBe('var(--ink)');
+        // A Shift+press on a blank string, not moved, extends the selection to there as before.
+        fireEvent.pointerDown(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, button: 0, shiftKey: true });
+        fireEvent.pointerUp(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, shiftKey: true });
+        expect(screen.queryByTestId('select-rectangle')).toBeNull();
+        expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
+      });
+
+      it('in note input a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
+        localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+        await open();
+        const read = readAlphaTexWith(alphaTab, THREE_BARS);
+        if (!read.ok) throw new Error(read.errors.join('\n'));
+        const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+        const xs = bars.flatMap(b => b.columns.map(c => c.x));
+        const svg = screen.getByRole('img', { name: /drawn as/ });
+        // The fifth column's A string is empty.
+        const over = { clientX: xs[4], clientY: top + rows.staffTop + 4 * 14 };
+        fireEvent.pointerMove(svg, over);
+        expect(screen.queryByTestId('shadow-fret')).toBeNull();
+        keys('n');
+        fireEvent.pointerMove(svg, over);
+        expect(screen.getByTestId('shadow-fret').tagName).toBe('rect');
+        fireEvent.pointerDown(svg, { ...over, button: 0 });
+        fireEvent.pointerUp(svg, { ...over, button: 0 });
+        expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+        expect(alphaTex()).toContain('(3.2 0.5).2');
+        keys('7');
+        expect(alphaTex()).toContain('(3.2 7.5).2');
+        const drawing = screen.getByRole('img', { name: /drawn as/ });
+        fireEvent.pointerMove(drawing, over);
+        expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+        fireEvent.pointerLeave(drawing);
+        expect(screen.queryByTestId('shadow-fret')).toBeNull();
+      });
+
+      it('Alt+← → step through notes, rests, marks and words, picking each', async () => {
+        renderAt(`#tab=${encodeURIComponent('\\title "Steps"\n\\ts (4 4)\n5.1.4{ch "A"} 7.3{v}.4 r.4 3.4.4 |')}`);
+        await screen.findByRole('heading', { name: 'Steps' }, SLOW);
+        act(() => editor().focus());
+        const alt = (key: string) => keys({ key, altKey: true });
+        const before = alphaTex();
+        // From the first note: the next note, then its vibrato, picked as a press picks it.
+        alt('ArrowRight');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        alt('ArrowRight');
+        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        // Holding Alt down on its own lets nothing go.
+        keys({ key: 'Alt', altKey: true });
+        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        // Delete takes the picked vibrato away.
+        keys('Delete');
+        expect(alphaTex()).not.toBe(before);
+        expect(alphaTex()).not.toContain('{v}');
+        // Then the rest, with the column alone lit, and back past the first note to its chord name.
+        alt('ArrowRight');
+        expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+        alt('ArrowLeft');
+        alt('ArrowLeft');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        alt('ArrowLeft');
+        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+        // At the start nothing is before it: the chord name stays picked.
+        alt('ArrowLeft');
+        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+      });
+
       it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {
         await open();
         keys({ key: 'ArrowRight', ctrlKey: true }, '1');
@@ -843,7 +943,7 @@ describe('TabPage', () => {
       it('Ctrl/⌘+Shift+← → grow a selection by bars, Ctrl/⌘+Shift+Home / End to the clip’s ends', async () => {
         await open();
         keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
-        expect(screen.getByTestId('tab-selection')).toBeInTheDocument();
+        expect(litFrets().length).toBeGreaterThan(0);
         expect(copied()).toBe('5.1.2 7.1.2 |');
         keys({ key: 'ArrowRight', ctrlKey: true, shiftKey: true });
         expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |');
@@ -853,7 +953,7 @@ describe('TabPage', () => {
         expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 5.2.2 |');
         // Moving lets the selection go.
         keys({ key: 'ArrowLeft', ctrlKey: true });
-        expect(screen.queryByTestId('tab-selection')).toBeNull();
+        expect(litFrets()).toHaveLength(0);
       });
 
       it('Shift+Home / End grow a selection to the ends of the line of tab', async () => {
@@ -890,7 +990,7 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
       keys('Escape');
-      expect(screen.queryByTestId('tab-selection')).toBeNull();
+      expect(litFrets()).toHaveLength(0);
       expect(screen.queryByTestId('tab-cursor')).toBeNull();
       expect(editor()).not.toHaveFocus();
     });
@@ -2111,7 +2211,7 @@ describe('picking a technique mark (issue #128)', () => {
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots - 1);
     await settle();
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
-    expect(screen.queryByTestId('tab-selection')).toBeNull();
+    expect(litFrets()).toHaveLength(0);
     undo();
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
   });
@@ -2245,8 +2345,12 @@ describe('dragging notes on the staff (issue #174)', () => {
       press(headAt(2));
       expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
       expect(screen.queryByTestId('selected-note')).toBeNull();
-      // In note input too.
+      // Going into note input picks nothing on either part (Jeremy, 2026-10-31).
       fireEvent.keyDown(editor(), { key: 'n' });
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.queryByTestId('input-cursor')).toBeNull();
+      // A press on the staff gives it the keys again, and only it lights.
+      press(headAt(2));
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'Escape' });
@@ -2257,6 +2361,17 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('selected-note')).toBeInTheDocument();
       expect(screen.queryByTestId('staff-selected')).toBeNull();
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    });
+
+    it('draws the heads of a selected run in the primary colour', async () => {
+      await open();
+      press(headAt(2));
+      fireEvent.keyDown(editor(), { key: 'ArrowRight', shiftKey: true });
+      const lit = () => screen.getAllByTestId('staff-head').map(h => h.hasAttribute('data-selected'));
+      // The chord's two heads, then the D string's 3 and the rest: the run is the 3 and the rest.
+      expect(lit()).toEqual([false, false, true]);
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(lit()).toEqual([false, false, false]);
     });
 
     it('in normal mode a press beside the heads selects the column and enters nothing', async () => {

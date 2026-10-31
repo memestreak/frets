@@ -45,6 +45,8 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
+import { elementsOf, stepElement } from './elements';
+import { pitchAt } from './normalMode';
 import { ScoreHead } from './ScoreHead';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
@@ -377,9 +379,10 @@ export default function TabPage() {
     setInputMode(on);
     if (on) {
       setInputLength(startLength(clip, cursor));
-      // No string is picked for you (Jeremy, 2026-10-30): off a note the cursor takes its column alone
-      // until ↑ ↓ or a press picks one, and digits wait for it.
-      if (!noteAt(clip, cursor)) setColumnOnly(true);
+      // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
+      // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
+      setColumnOnly(true);
+      setStaffPitch(null);
       editorRef.current?.focus();
     }
   };
@@ -580,8 +583,53 @@ export default function TabPage() {
     return places.length ? [[Math.min(...places), Math.max(...places)] as [number, number]] : [];
   });
 
+  /** A Shift+drag's rectangle (issue #238): the columns it took in are selected, as Shift+arrows select them. */
+  const onPickRect = (from: number, to: number) => {
+    lastDigit.current = null;
+    setPicked(null);
+    setPlayMark(null);
+    commit(clip, { ...cursor, ...placeOf(clip, to) }, { anchor: from, focus: to });
+    startRegion();
+    editorRef.current?.focus();
+  };
+
+  /** Alt+← → (issue #238): the next or last thing a press can pick, picked as a press would. */
+  const stepToElement = (step: 1 | -1) => {
+    const list = elementsOf(drawn, layoutClip(drawn, clipWidth, parts));
+    const index = indexOf(clip, cursor.bar, cursor.column);
+    const note = !columnOnly && noteAt(clip, cursor);
+    const current = picked ? picked
+      : note ? { kind: 'note' as const, index, string: cursor.string } : { kind: 'column' as const, index };
+    const next = stepElement(list, current, step);
+    if (!next) return;
+    if (next.kind === 'mark') return onPickMark(next);
+    const at = { ...cursor, ...('index' in next ? placeOf(clip, next.index) : { bar: next.bar, column: 0 }) };
+    lastDigit.current = null;
+    if (next.kind === 'note') {
+      const string = next.string;
+      // On the staff, its cursor goes to the note's pitch (a dead note has none, so the tab takes it).
+      const pitch = staffPitch !== null ? pitchAt(clip, { ...at, string }) : null;
+      setPicked(null);
+      if (pitch !== null) toPitch(clip, { ...at, string }, pitch, null);
+      else {
+        setStaffPitch(null);
+        commit(clip, { ...at, string }, null);
+        setColumnOnly(false);
+      }
+    } else if (next.kind === 'rest') {
+      setPicked(null);
+      setStaffPitch(null);
+      commit(clip, at, null);
+      setColumnOnly(true);
+    } else {
+      setStaffPitch(null);
+      commit(clip, at, null);
+      setPicked(next);
+    }
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, stepElement: stepToElement,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -998,7 +1046,7 @@ export default function TabPage() {
                   <HoverTips>
                     <TabClip
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff}
+                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                       highlight={{

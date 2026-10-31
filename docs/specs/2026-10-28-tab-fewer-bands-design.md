@@ -19,7 +19,7 @@ still be able to create regions with shift arrow."
   alone; it is now one `--primary` box, no fill, round the column's six
   strings. When the staff's cursor has the keys it already shows the
   column, so the tab draws nothing more.
-- **Selections** keep their band: Shift+← →, Ctrl+A and Shift+press
+- **Selections** keep their band (replaced on 2026-10-30 by lighting the selected notes, `2026-10-30-tab-musescore-selection-design.md`): Shift+← →, Ctrl+A and Shift+press
   (on the tab, the staff, or above or below it) still select a run of
   columns, drawn as one unbroken band per line.
   Starting a run lets go of the note the cursor was on (Jeremy,

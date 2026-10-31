@@ -10,6 +10,7 @@ import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
 import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks';
+import { columnsInRectangle, type Rectangle } from './rectangle';
 import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
 import { TempoNote } from './TempoNote';
@@ -38,7 +39,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onMiss, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onPickRect, onMiss, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -78,6 +79,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * still `onPickStaff`, when the pointer lets go.
    */
   onDragStaff?: (drag: StaffDrag) => void;
+  /**
+   * Shift+drag from blank space (issue #238): the first and last column the rectangle took in. A
+   * Shift+press there that doesn't move still extends the selection, as before.
+   */
+  onPickRect?: (from: number, to: number) => void;
   /**
    * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
@@ -122,6 +128,18 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
     const { run, text, mark, staff, hit, column, px, py } = target(e);
+    // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
+    const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+    if (onPickRect && e.shiftKey && e.button === 0 && !run && !text && !mark && !onNote) {
+      const press = () => {
+        if (staff) onPickStaff!(staff, true);
+        else if (hit) onPick(hit, true);
+        else if (column !== null) onPickColumn!(column, true);
+      };
+      rectPress.current = { x: px, y: py, clientX: e.clientX, clientY: e.clientY, press };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      return;
+    }
     if (staff && staff.string !== null && onDragStaff && e.button === 0) {
       // A head: a drag or a press, told apart when the pointer moves or lets go.
       headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, last: null };
@@ -135,6 +153,34 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     else if (hit) onPick(hit, e.shiftKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
+  };
+  /** A Shift+press on blank space: where it started, and what a press there does if it doesn't move. */
+  const rectPress = useRef<{ x: number; y: number; clientX: number; clientY: number; press: () => void } | null>(null);
+  /** The rectangle being drawn, in the drawing's units. */
+  const [rect, setRect] = useState<Rectangle | null>(null);
+  const drawRect = (e: PointerEvent<SVGSVGElement>) => {
+    const from = rectPress.current;
+    if (!from) return false;
+    // Past a few pixels it is a drag, not a press.
+    if (!rect && Math.hypot(e.clientX - from.clientX, e.clientY - from.clientY) < RECT_START) return true;
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    setRect({ x0: from.x, y0: from.y, x1: (e.clientX - box.left) * scale, y1: (e.clientY - box.top) * scale });
+    return true;
+  };
+  const dropRect = (e: PointerEvent<SVGSVGElement>, cancelled: boolean) => {
+    const from = rectPress.current;
+    if (!from) return false;
+    rectPress.current = null;
+    setRect(null);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (cancelled) return true;
+    if (!rect) from.press();
+    else {
+      const range = columnsInRectangle(layout, rect);
+      if (range) onPickRect!(range[0], range[1]);
+    }
+    return true;
   };
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
   const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; last: StaffDrag | null } | null>(null);
@@ -195,16 +241,22 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined}
-      onPointerMove={onDragStaff || shadow !== null ? dragHead : undefined}
-      onPointerLeave={shadow !== null ? () => setHover(null) : undefined} onPointerUp={onDragStaff ? e => dropHead(e, false) : undefined}
-      onPointerCancel={onDragStaff ? e => dropHead(e, true) : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerMove={onDragStaff || shadow !== null || onPickRect ? e => { if (!drawRect(e)) dragHead(e); } : undefined}
+      onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
+      onPointerUp={onDragStaff || onPickRect ? e => { if (!dropRect(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onPickRect ? e => { if (!dropRect(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (
         // Takes the presses just above and below the drawing; nothing is drawn.
         <rect x={0} y={-columnReach} width={width} height={layout.height + 2 * columnReach} fill="transparent" data-testid="column-reach" />
       )}
-      {highlight?.range && <SelectionBands layout={layout} range={highlight.range} />}
+      {rect && (
+        <rect
+          x={Math.min(rect.x0, rect.x1)} y={Math.min(rect.y0, rect.y1)} width={Math.abs(rect.x1 - rect.x0)} height={Math.abs(rect.y1 - rect.y0)}
+          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1} strokeDasharray="4 3" pointerEvents="none" data-testid="select-rectangle"
+        />
+      )}
       {pickedBox && (
         <rect
           x={pickedBox.x} y={pickedBox.y} width={pickedBox.width} height={pickedBox.height} rx={4}
@@ -226,13 +278,14 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             />
           )}
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
-          {!highlight.range && highlight.columnOnly && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
+          {/* Not in note input: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
+          {!highlight.range && highlight.columnOnly && !highlight.input && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
             // Round the tab's six strings; with the staff alone, round its five lines.
             const [top, bottom] = rows.tab ? [stringY(rows, 0) - 9, stringY(rows, STRING_COUNT - 1) + 9] : [rows.score!.top - 9, rows.score!.bottom + 9];
             return (
               <rect
                 x={spot.x - 12} y={top} width={24} height={bottom - top} rx={4}
-                fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
+                fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
               />
             );
           })()}
@@ -246,9 +299,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
+            selected={highlight?.range ?? null}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} />
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} />
           )}
           {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
             <StaffCursor x={spot.x} score={rows.score} selected={!highlight.input} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
@@ -256,11 +310,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
           )}
+          {/* A dim copy of the input cursor's box: a press there places a 0 to type over. */}
           {shadow !== null && hover?.system === si && hover.string !== null && rows.tab && (
-            <text
-              x={hover.x} y={stringY(rows, hover.string) + 4.5} textAnchor="middle" fontSize={13} fontWeight={600}
-              fill="var(--primary)" fillOpacity={0.45} pointerEvents="none" data-testid="shadow-fret"
-            >0</text>
+            <rect
+              x={hover.x - 12} y={stringY(rows, hover.string) - 9} width={24} height={18} rx={4}
+              fill="none" stroke="var(--primary)" strokeWidth={1.5} strokeOpacity={0.4} pointerEvents="none" data-testid="shadow-fret"
+            />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (!bar.restRun || bar.restRun.first) && (
@@ -286,6 +341,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
 }
 
 /** A bar's number: its size, and how far in from the bar's opening line it starts. */
+/** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
+const RECT_START = 4;
 const BAR_NUMBER_SIZE = 9;
 const BAR_NUMBER_INSET = 2;
 
@@ -307,31 +364,7 @@ function Warning({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
-/**
- * A soft band behind the selected columns: one unbroken band on each line of tab, from the first
- * selected column there to the last, so it runs across the bar lines between them (Jeremy, 2026-10-26).
- */
-function SelectionBands({ layout, range: [from, to] }: { layout: ReturnType<typeof layoutClip>; range: [number, number] }) {
-  return (
-    <g data-testid="tab-selection">
-      {layout.systems.map((system, si) => {
-        const chosen = system.bars.flatMap(bar => bar.columns).filter(c => c.index >= from && c.index <= to);
-        if (chosen.length === 0) return null;
-        const first = chosen[0];
-        const last = chosen[chosen.length - 1];
-        const x0 = first.start;
-        return (
-          <rect
-            key={si} x={x0} y={system.top + system.rows.bandTop} width={last.start + last.width - x0}
-            height={system.rows.bandBottom - system.rows.bandTop} fill="var(--primary-soft)"
-          />
-        );
-      })}
-    </g>
-  );
-}
-
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -347,11 +380,13 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   /** This line's whammy bar lines, under the tab. */
   whammy: WhammyDrawing[];
   lastBar: number;
+  /** The selected run of columns: their numbers and marks are drawn in `--primary` (issue #238). */
+  selected: [number, number] | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
   const words = <SystemWords system={system} rows={rows} clip={clip} look={look} />;
-  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} />;
+  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
 
@@ -428,7 +463,8 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     for (const placed of bar.columns) {
       parts.push(
         <ColumnDrawing
-          key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index} look={look}
+          key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index}
+          look={selected && placed.index >= selected[0] && placed.index <= selected[1] ? { ...look, ink: 'var(--primary)' } : look}
           previous={previous} slides={slides} joins={joins} staffStart={system.staffStart}
         />,
       );
@@ -451,7 +487,7 @@ function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: 
 }
 
 /** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
-function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; look: TabLook }) {
+function SystemRowMarks({ system, rows, look, selected = null }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null }) {
   const parts: ReactNode[] = [];
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
   for (const { mark, label, has } of RUN_MARKS) {
@@ -515,7 +551,8 @@ function SystemRowMarks({ system, rows, look }: { system: System; rows: Rows; lo
   if (rows.vibrato !== null) {
     for (const run of vibratoRuns(system)) {
       const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
-      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
+      const lit = selected !== null && run.from.index >= selected[0] && run.from.index <= selected[1];
+      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={lit ? 'var(--primary)' : look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }
 
