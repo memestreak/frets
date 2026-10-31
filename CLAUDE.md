@@ -72,6 +72,12 @@ Agents outside the repo write for Frets from the guides and skills in
 what the Tab page draws, updates that page's guide in the same PR, and its
 `public/skills/*/SKILL.md` if the rules summarised there change.
 
+Every page's keyboard shortcuts are listed in the `?` overlay
+(`docs/specs/2026-10-30-keyboard-shortcuts-design.md`): a PR that adds,
+changes or removes a key updates that page's `useShortcuts` list in the same
+PR (Tab: `src/features/tab/shortcuts.ts`; a palette key comes from `tools.ts`
+on its own).
+
 Third-party material (the chord shapes, the tuner's recordings) is listed
 with its licence in `NOTICE.md` and credited in the README's Credits; add
 both for anything new.
