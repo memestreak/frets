@@ -6,10 +6,10 @@
  */
 import { useEffect, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
-import { useShortcuts } from '@/components/shortcuts/useShortcuts';
-import { usePersist } from '@/hooks/usePersist';
+import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { usePersist, usePreferenceSaveProblem } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
-import { ViewChoice } from './controls';
+import { HeadEnd, ViewChoice } from './controls';
 import { METRONOME_SHORTCUTS } from './shortcuts';
 import { DISPLAY_KEY, parseDisplay, type Display } from './storage';
 import { useMetronome } from './useMetronome';
@@ -36,9 +36,31 @@ export default function MetronomePage() {
 
   return (
     <ViewChoice.Provider value={{ view: display.view, setView: view => setDisplay({ view }) }}>
-      <HoverTips>
-        <MetronomeView view={display.view} m={m} />
-      </HoverTips>
+      <HeadEnd.Provider value={<PageHeadEnd />}>
+        <HoverTips>
+          <MetronomeView view={display.view} m={m} />
+        </HoverTips>
+      </HeadEnd.Provider>
     </ViewChoice.Provider>
+  );
+}
+
+/** The head's end on the page: the ⚠ while the view can't be saved, and the shortcuts' `?`. */
+function PageHeadEnd() {
+  const saveProblem = usePreferenceSaveProblem();
+  return (
+    <>
+      {saveProblem && (
+        <span
+          className="settings-save-problem" role="img" aria-label={`The view couldn't be saved: ${saveProblem}`}
+          title={`The view couldn't be saved: ${saveProblem}`}
+        >
+          ⚠{'\uFE0E'}
+        </span>
+      )}
+      <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" data-tip="Shortcuts (?)" onClick={showShortcuts}>
+        <span aria-hidden="true" className="shortcuts-button-mark">?</span>
+      </button>
+    </>
   );
 }
