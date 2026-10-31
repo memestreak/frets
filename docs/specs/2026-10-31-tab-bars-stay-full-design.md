@@ -19,11 +19,10 @@ modifier.
 | Paste (Ctrl/⌘+V) | Writes over the time from the cursor's column, or the selection's start. | Put the columns in before the cursor, over the selection. |
 | Insert paste (right-click menu, Ctrl/⌘+Shift+V) | Puts the columns in before the cursor's column: the old paste. | — |
 
-What is left is selected, as MuseScore leaves it (Jeremy, 2026-10-31: a staff note deleted left its
-head lit): in normal mode, after Delete of a note the column it was in (its rest, or the chord's other
-notes) is selected and lit, with no note or staff head kept picked; after Ctrl/⌘+Delete, the column
-the cursor lands on; a cut keeps its rests selected; a paste or Insert paste selects what it put in.
-Note input keeps the cursor where it is, to type on.
+Nothing stays selected after a delete (Jeremy's standing rule; 2026-10-31 a deleted staff note left
+its head lit over the new rest): in normal mode, Delete, Ctrl/⌘+Delete and cut let the tab go, as Esc
+does, so no note, staff head, box or rest is left lit. Note input keeps the cursor where it is, to type
+on. A paste or Insert paste selects what it put in, as MuseScore's does.
 
 Off the tab, with the playback line, Delete and Backspace follow the same rules
 (`deleteAtLine`): the column before the line becomes a rest, a rest stays, and Ctrl/⌘ takes it away.
