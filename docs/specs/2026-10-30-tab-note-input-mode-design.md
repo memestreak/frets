@@ -28,7 +28,7 @@ note selected on the tab coloured on the staff; the same goes for note input's c
 | Input | Does |
 | --- | --- |
 | Press on a note (tab number or staff head) | Selects it. |
-| Press beside the notes (an empty string, a blank line or space) | Selects the column; adds nothing. |
+| Press beside the notes (an empty string, a blank line or space) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. |
 | Digit, a staff note selected | Sets its length, MuseScore's numbers: 1 a 64th, 2 a 32nd, 3 a 16th, 4 an eighth, 5 a quarter, 6 a half, 7 a whole (Q1, Jeremy). |
 | Digit, a tab note selected | Types its fret, two digits joining as before, and the staff follows (Q1, Jeremy). |
 | ↑ ↓, tab | The selected notes a fret higher or lower on their own strings; nothing moves when one would pass 0 or 24. |

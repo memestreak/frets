@@ -229,18 +229,21 @@ describe('TabPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
-  it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
+  it('takes a paste whole into an empty clip, then pastes over at the cursor; undo and redo step back and forth', async () => {
     renderAt();
     await paste(RIFF);
     expect(heading()).toHaveTextContent('Riff');
-    const columns = screen.getAllByTestId('tab-column').length;
+    const frets = () => screen.getAllByTestId('tab-column').map(c => c.textContent).join(' ');
+    const before = frets();
     await paste(OTHER);
     expect(heading()).toHaveTextContent('Riff');
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
+    // It writes over the riff's start (issue #238), keeping the name.
+    const after = frets();
+    expect(after).not.toBe(before);
     undo();
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns);
+    expect(frets()).toBe(before);
     undo(true);
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
+    expect(frets()).toBe(after);
   });
 
   it('says what a paste that is not tab got wrong, and keeps the clip', async () => {
@@ -456,8 +459,8 @@ describe('TabPage', () => {
       keys('n', 'ArrowDown');
       // jsdom's window never has the focus; the blur only fills while it does.
       vi.spyOn(document, 'hasFocus').mockReturnValue(true);
-      // → fills at once; Delete takes the rest away again, and leaving the tab puts it back.
-      keys('5', 'ArrowRight', '7', 'ArrowRight', 'Delete');
+      // → fills at once; Ctrl+Delete takes the rest away again, and leaving the tab puts it back.
+      keys('5', 'ArrowRight', '7', 'ArrowRight', { key: 'Delete', ctrlKey: true });
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
       // The first Esc leaves note input, the second the tab.
       keys('Escape', 'Escape');
@@ -632,7 +635,7 @@ describe('TabPage', () => {
       expect(screen.queryByTestId('capo')).toBeNull();
     });
 
-    it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
+    it('selects with Shift+arrows, copies the selection as alphaTex, makes rests of it and deletes it', () => {
       renderAt();
       act(() => editor().focus());
       // Typing is note input's (issue #238).
@@ -645,9 +648,45 @@ describe('TabPage', () => {
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
       act(() => { editor().dispatchEvent(copy); });
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
+      // Bars stay full (issue #238): Backspace leaves rests, the selection still there; Ctrl+Backspace takes the time.
       keys('Backspace');
+      expect(alphaTex()).toBe('5.1.4 r.4 r.4 |');
+      expect(litFrets()).toHaveLength(0);
+      keys({ key: 'Backspace', ctrlKey: true });
       expect(alphaTex()).toBe('5.1.4 |');
     });
+
+    it('pastes over the time from the cursor, Ctrl/⌘+Shift+V inserts, and a cut leaves rests (issue #238)', async () => {
+      renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |')}`);
+      await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
+      act(() => editor().focus());
+      keys('ArrowRight');
+      await paste('9.2.4 10.2.4 |');
+      // alphaTex() changes the page, so it is read after the paste settles, not polled.
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 4.1.4 |');
+      // What was pasted is selected, as MuseScore leaves it (Jeremy, 2026-10-31).
+      expect(litFrets().map(t => t.textContent)).toEqual(['9', '10']);
+      // Esc lets the selection go, the cursor on its last column; → goes on to the 4, and Insert paste goes before it.
+      keys('Escape');
+      act(() => editor().focus());
+      keys('ArrowRight', { key: 'V', ctrlKey: true, shiftKey: true });
+      await paste('7.3.4 |');
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 7.3.4 4.1.4 |');
+      // A plain paste writes over again: ← selects the 10, which the 8 replaces.
+      keys('ArrowLeft');
+      await paste('8.3.4 |');
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 8.3.4 7.3.4 4.1.4 |');
+      // Cut leaves rests where the notes were, still selected; no box is left round a column.
+      keys({ key: 'ArrowRight', shiftKey: true });
+      const cut = new Event('cut', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+      cut.clipboardData = { setData: () => {} };
+      act(() => { editor().dispatchEvent(cut); });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 r.4 r.4 4.1.4 |');
+    }, 20000);
 
     describe('normal mode and note input (issue #238)', () => {
       const pencil = () => screen.getByRole('button', { name: 'Note input' });
@@ -1012,7 +1051,7 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
     });
 
-    it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
+    it('Delete off the notes of a column makes it a rest, which stays; Ctrl/⌘+Delete removes it', () => {
       renderAt();
       act(() => editor().focus());
       // Typing is note input's (issue #238).
@@ -1022,6 +1061,8 @@ describe('TabPage', () => {
       keys('ArrowLeft', 'Delete');
       expect(alphaTex()).toBe('r.4 3.2.4 |');
       keys('Delete');
+      expect(alphaTex()).toBe('r.4 3.2.4 |');
+      keys({ key: 'Delete', metaKey: true });
       expect(alphaTex()).toBe('3.2.4 |');
     });
 
@@ -1031,7 +1072,7 @@ describe('TabPage', () => {
       // Typing is note input's (issue #238).
       keys('n', 'ArrowDown');
       // Three quarters: the rest → filled the bar with is deleted.
-      keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', 'Delete');
+      keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', { key: 'Delete', ctrlKey: true });
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 1 beat short.');
       // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
@@ -1327,9 +1368,12 @@ describe('TabPage playback', () => {
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     const firstBar = () => partOf(savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
-    // The line to the bar's end: Delete takes the rest, then Backspace turns the 7 into a rest.
+    // The line to the bar's end: Delete leaves the rest (bars stay full, issue #238), Ctrl+Delete takes it,
+    // then Backspace turns the 7 into a rest.
     for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
     fireEvent.keyDown(document.body, { key: 'Delete' });
+    expect(firstBar()).toEqual(['note', 'note', 'rest']);
+    fireEvent.keyDown(document.body, { key: 'Delete', ctrlKey: true });
     expect(firstBar()).toEqual(['note', 'note']);
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: 'Backspace' });
@@ -1859,12 +1903,12 @@ describe('TabPage arrangements', () => {
 });
 
 describe('TabPage export', () => {
-  it('offers only bar insertion on a right-click on the tab', () => {
+  it('offers only bar insertion and Insert paste on a right-click on the tab', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
     const menu = screen.getByRole('menu', { name: 'Tab' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after', 'Insert paste']);
   });
 
   it('opens only the bar menu on a right-click on a drawn signature, not its panel too', () => {
@@ -2340,6 +2384,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
     });
 
+    it('Delete on a staff note in normal mode leaves its rest selected, with no head kept lit (Jeremy, 2026-10-31)', async () => {
+      await open();
+      // The 3 alone in its column; Delete leaves a rest there.
+      press(headAt(2));
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+      fireEvent.keyDown(editor(), { key: 'Delete' });
+      expect(screen.queryByTestId('staff-selected')).toBeNull();
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(2);
+      // Esc lets the rest go: nothing is left drawn.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
+    });
+
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {
       await open();
       press(headAt(2));
@@ -2374,11 +2433,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(lit()).toEqual([false, false, false]);
     });
 
-    it('in normal mode a press beside the heads selects the column and enters nothing', async () => {
+    it('in normal mode a press beside the heads selects the bar, as MuseScore’s does, and enters nothing (Jeremy, 2026-10-31)', async () => {
       await open();
       press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
       expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
-      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.getAllByTestId('staff-head').map(h => h.getAttribute('data-selected'))).toEqual(['true', 'true', 'true']);
+      // On the tab too: a press on an empty string lights the bar's notes, with no box round the column.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      const three = screen.getAllByText('3').find(t => t.closest('[data-testid="tab-system"]'))!;
+      const top = Number(/translate\(0 ([\d.-]+)\)/.exec(three.closest('[data-testid="tab-system"]')!.getAttribute('transform')!)![1]);
+      press({ clientX: Number(three.getAttribute('x')), clientY: top + Number(three.getAttribute('y')) - 4 - 14 });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
+      const lit = screen.getAllByText(/^[357]$/).filter(t => t.closest('[data-testid="tab-system"]') && t.getAttribute('fill') === 'var(--primary)');
+      expect(lit.map(t => t.textContent).sort()).toEqual(['3', '5', '7']);
     });
   });
 

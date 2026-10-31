@@ -33,7 +33,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-27-tab-pick-marks-design.md`), `clipState.ts` (the clip
   with undo and redo), `editing.ts` (pure: the cursor, selection, frets and
   the edits that add, move or remove columns and bars, `normalize` keeping ties, hammer-ons and
-  slides true, cut, copy and paste at the cursor; the palette's changes to notes are in
+  slides true, cut, copy, paste over the time from the cursor (`pasteOver`) and Insert paste (`insertPaste`), with bars staying full as MuseScore keeps them: Delete leaves rests, Ctrl/⌘+Delete takes the time (`docs/specs/2026-10-31-tab-bars-stay-full-design.md`); the palette's changes to notes are in
   `noteEdits.ts`, to words and bars in `barEdits.ts`), `tools.ts` (the symbol palette's table, shared
   with the keys and the `?` overlay's list in `shortcuts.ts`, which also lists `editorKeys.ts`'s keys by hand) and `TabPalette.tsx`, `BarTimePanel.tsx` (it and `BarKeyPanel.tsx` keep inside the tab and close
   with `barPanel.ts`) with

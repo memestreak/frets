@@ -14,9 +14,9 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart,
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
-import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, fillBar, isEmpty, noteAt, pasteOver, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
-import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { makeRest, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
@@ -644,6 +644,9 @@ export default function TabPage() {
     setStaffPitch(null);
   };
 
+  /** Every column of a bar, selected. */
+  const barSelection = (of: Part, bar: number): Selection => ({ anchor: indexOf(of, bar, 0), focus: indexOf(of, bar, of.bars[bar].columns.length - 1) });
+
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
     setStaffPitch(null);
@@ -662,9 +665,12 @@ export default function TabPage() {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
         commit(setFret(left, hit, 0, inputLength), hit, null);
         hearNote(hit);
+      } else if (!inputMode && !there && hasColumn) {
+        // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
+        commit(left, hit, barSelection(left, hit.bar));
+        startRegion();
       } else {
         commit(left, hit, null);
-        // In normal mode a press beside the notes selects the column (Jeremy, 2026-10-30, issue #238).
         if (!inputMode && !there) setColumnOnly(true);
       }
     }
@@ -710,8 +716,8 @@ export default function TabPage() {
     } else if (inputMode) {
       toPitch(left, at, pitch);
     } else {
-      // In normal mode a press beside the heads selects the column.
-      commit(left, at, null);
+      // In normal mode a press beside the heads selects the bar, as on the tab.
+      commit(left, at, left.bars[hit.bar].columns.length > 0 ? barSelection(left, hit.bar) : null);
       startRegion();
     }
   };
@@ -799,35 +805,43 @@ export default function TabPage() {
     commit(clip, { ...place, string }, { anchor: from, focus: to });
   };
 
-  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
-  const pasteText = useEffectEvent(async (text: string) => {
+  /**
+   * Puts pasted tab over the time from the cursor, or from the selection's start (issue #238: bars stay
+   * full, as MuseScore pastes); `insert` puts it in before the cursor's column instead, as Insert paste
+   * does. Says why it can't when the text isn't tab.
+   */
+  const pasteTab = async (text: string, insert = false) => {
     const result = await readTab(text);
     if (!result.ok) {
       setNotice({ tone: 'error', lines: result.errors });
       return;
     }
-    let into = clip;
-    let at = cursor;
-    if (selection) {
-      const cut = deleteColumns(clip, selectedRange(selection));
-      into = cut.clip;
-      at = { ...cursor, ...cut.cursor };
+    const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
+    const pasted = (insert ? insertPaste : pasteOver)(clip, at, partOf(result.clip));
+    if (inputMode) commit(pasted.clip, pasted.cursor, null);
+    else {
+      // In normal mode what was pasted is selected, as MuseScore leaves it (Jeremy, 2026-10-31).
+      const start = isEmpty(clip) ? 0 : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
+      commit(pasted.clip, pasted.cursor, { anchor: start, focus: indexOf(pasted.clip, pasted.cursor.bar, pasted.cursor.column) });
+      startRegion();
     }
-    const pasted = pasteAt(into, at, partOf(result.clip));
-    commit(pasted.clip, pasted.cursor, null);
     if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
     setView('tab');
-  });
+  };
+  const pasteText = useEffectEvent((text: string, insert: boolean) => pasteTab(text, insert));
 
-  /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also removes them. */
+  /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also makes them rests. */
   const copyOrCut = useEffectEvent((e: ClipboardEvent, cut: boolean) => {
     const range = copiedRange();
     if (!range || !e.clipboardData) return;
     e.preventDefault();
     e.clipboardData.setData('text/plain', copyText(clip, range));
     if (!cut) return;
-    const left = deleteColumns(clip, range);
-    commit(left.clip, { ...cursor, ...left.cursor }, null);
+    // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
+    // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
+    const cutRange = { anchor: range[0], focus: range[1] };
+    commit(makeRest(clip, { cursor, selection: cutRange }), cursor, cutRange);
+    startRegion();
   });
 
   const { importText, showExample, leaveExample } = useClipImport({
@@ -835,20 +849,27 @@ export default function TabPage() {
     toStart: () => { setCursor(START); setSelection(null); },
   });
 
+  /** Whether the next paste is Insert paste, from Ctrl/⌘+Shift+V. */
+  const insertNext = useRef(false);
+
   // Paste anywhere on the page; copy and cut in the editor; undo and redo.
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
       const text = e.clipboardData?.getData('text/plain');
+      const insert = insertNext.current;
+      insertNext.current = false;
       if (!text) return;
       e.preventDefault();
-      void pasteText(text);
+      void pasteText(text, insert);
     };
     // Copy and cut belong to the editor only; elsewhere they copy the page's own selected text.
     const inEditor = (e: Event) => editorRef.current !== null && editorRef.current.contains(e.target as Node);
     const onCopy = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, false); };
     const onCut = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, true); };
     const onKey = (e: KeyboardEvent) => {
+      // Ctrl/⌘+Shift+V is Insert paste: the paste it makes goes in before the cursor (issue #238).
+      insertNext.current = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v';
       // Ctrl+Y redoes too, as in MuseScore and Windows (issue #238); ⌘+Y is left to the browser.
       const redoY = e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === 'y';
       if (!redoY && (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z')) return;
@@ -1184,6 +1205,8 @@ export default function TabPage() {
             // The bar under a right-click already has the cursor: the press put it there.
             { label: 'Insert bar before', onSelect: () => addBar('before') },
             { label: 'Insert bar after', onSelect: () => addBar('after') },
+            // Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238).
+            { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) },
           ]}
         />
       )}
