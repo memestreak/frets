@@ -700,7 +700,8 @@ describe('TabPage', () => {
         act(() => editor().focus());
         keys('5', 'ArrowRight', 'ArrowRight');
         expect(alphaTex()).toBe('5.1.4 |');
-        keys('n', 'ArrowRight', '7');
+        // Going in picks no string; ↑ picks the last one back.
+        keys('n', 'ArrowUp', 'ArrowRight', '7');
         expect(alphaTex()).toBe('5.1.4 7.1.4 |');
         // Back in normal mode, ← on a column with no note on the string selects the column.
         keys('Escape', 'ArrowDown');
@@ -727,7 +728,7 @@ describe('TabPage', () => {
         // In note input the note already there keeps its length; the next one takes the new one.
         keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
         expect(alphaTex()).toBe('5.1.2 |');
-        keys('ArrowRight', '7');
+        keys('ArrowUp', 'ArrowRight', '7');
         expect(alphaTex()).toMatch(/^5\.1\.2 7\.1\.8 /);
       });
 
@@ -757,11 +758,11 @@ describe('TabPage', () => {
         renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 r.4 r.4 r.4 |')}`);
         await waitFor(() => expect(alphaTex()).toBe('5.1.4 r.4 r.4 r.4 |'), SLOW);
         act(() => editor().focus());
-        keys('n', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
+        keys('n', 'ArrowDown', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
         expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
       });
 
-      it('going into note input picks no string where the cursor has no note (Jeremy, 2026-10-30)', () => {
+      it('going into note input picks no string, on a note or off one (Jeremy, 2026-10-30, 2026-10-31)', () => {
         renderAt();
         act(() => editor().focus());
         keys('n');
@@ -776,8 +777,14 @@ describe('TabPage', () => {
         // Off a note again (the B string, empty), going back in picks nothing.
         keys('ArrowDown', 'Escape', 'n');
         expect(screen.queryByTestId('input-cursor')).toBeNull();
-        // On a note, its string stays picked (the first ↑ picks the B string back, the second goes up to the 5).
-        keys('ArrowUp', 'ArrowUp', 'Escape', 'n');
+        // On a note, too, nothing is picked (the first ↑ picks the B string back, the second goes up to the 5).
+        keys('ArrowUp', 'ArrowUp', 'Escape');
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        keys('n');
+        expect(screen.queryByTestId('input-cursor')).toBeNull();
+        expect(screen.queryByTestId('selected-note')).toBeNull();
+        // ↑ ↓ pick the string back.
+        keys('ArrowUp');
         expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
         // The palette's pencil does the same as N.
         keys('ArrowDown', 'Escape');
@@ -2338,8 +2345,12 @@ describe('dragging notes on the staff (issue #174)', () => {
       press(headAt(2));
       expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
       expect(screen.queryByTestId('selected-note')).toBeNull();
-      // In note input too.
+      // Going into note input picks nothing on either part (Jeremy, 2026-10-31).
       fireEvent.keyDown(editor(), { key: 'n' });
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.queryByTestId('input-cursor')).toBeNull();
+      // A press on the staff gives it the keys again, and only it lights.
+      press(headAt(2));
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'Escape' });

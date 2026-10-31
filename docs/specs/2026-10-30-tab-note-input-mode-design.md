@@ -52,8 +52,8 @@ lines and spaces; Alt+↑ ↓ move notes; Enter on the staff adds or takes away 
 adds a rest to type on. The tab's cursor is outlined, as before; the staff's is the faint outlined head.
 
 - **No string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
-  the column alone, or the column with digits going to the last note's string): going in on a note,
-  its string stays picked; anywhere else nothing is drawn round the column (Jeremy, 2026-10-31: no
+  the column alone, or the column with digits going to the last note's string): going in, on a note
+  or off one, picks no string and no staff line (Jeremy, 2026-10-31); nothing is drawn round the column (Jeremy, 2026-10-31: no
   box round the whole tab column; the shadow under the mouse is the cursor), and digits do nothing until ↑ ↓ (which
   first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
   then ↓, then the fret.

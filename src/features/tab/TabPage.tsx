@@ -379,9 +379,10 @@ export default function TabPage() {
     setInputMode(on);
     if (on) {
       setInputLength(startLength(clip, cursor));
-      // No string is picked for you (Jeremy, 2026-10-30): off a note the cursor takes its column alone
-      // until ↑ ↓ or a press picks one, and digits wait for it.
-      if (!noteAt(clip, cursor)) setColumnOnly(true);
+      // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
+      // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
+      setColumnOnly(true);
+      setStaffPitch(null);
       editorRef.current?.focus();
     }
   };
