@@ -3,7 +3,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writePart, writeBars } from '@/features/tab/alphatex';
 import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab/clip';
 import { parseEditing } from '@/features/tab/editingPrefs';
-import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, pasteAt, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
+import { clampCursor, copyText, deleteColumns, fillBar, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
 
@@ -347,14 +347,14 @@ describe('cut, copy and paste', () => {
 
   it('pastes before the cursor column, as at a caret', () => {
     const pasted = clipOf('1.1.8 2.1.8 | 3.1.4 |');
-    const result = pasteAt(clip, at(0, 1, 0), pasted);
+    const result = insertPaste(clip, at(0, 1, 0), pasted);
     expect(bars(result.clip)).toBe('5.3.4 1.1.8 2.1.8 |\n3.1.4 7.3{h}.8 9.3.8 |\n0.6.2 |');
     expect(result.cursor).toEqual(at(1, 0, 0));
   });
 
   it('pastes a whole clip into an empty one, with its name and time', () => {
     const pasted = clipOf('\\title "Lick"\n\\ts (3 4)\n5.3.2{d} |');
-    const result = pasteAt(emptyPart(), at(0, 0, 0), pasted);
+    const result = insertPaste(emptyPart(), at(0, 0, 0), pasted);
     expect(result.clip.name).toBe('Lick');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
   });

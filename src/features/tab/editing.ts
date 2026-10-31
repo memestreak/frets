@@ -468,12 +468,13 @@ export function isEmpty(clip: Part): boolean {
 }
 
 /**
+ * Insert paste (issue #238: the right-click menu's "Insert paste", Ctrl/⌘+Shift+V).
  * `pasted` put in at the cursor, before the cursor's column, as text is pasted at a caret: its
  * first bar's columns join the cursor's bar, each later bar is a new bar, and the rest of the
  * cursor's bar follows its last one. Into an empty clip, the pasted clip comes whole, with its
  * name, time and tuning. The cursor ends on the last pasted column.
  */
-export function pasteAt(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
+export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
   if (isEmpty(clip)) {
@@ -496,4 +497,73 @@ export function pasteAt(clip: Part, cursor: Cursor, pasted: Part): { clip: Part;
     clip: normalize({ ...clip, bars }),
     cursor: { ...cursor, bar: cursor.bar + made.length - 1, column: lastColumn },
   };
+}
+
+/** The time a column takes in its bar: a grace note takes none. */
+function span(column: Column): number {
+  return column.grace ? 0 : ticks(column.duration);
+}
+
+/** A note as it goes on over a bar line: the same fret, tied, with none of its marks. */
+function tiedOn(column: Column): Column {
+  return { duration: column.duration, notes: column.notes.map(n => (n ? { fret: n.fret, tie: true } : null)) };
+}
+
+/**
+ * Paste, as MuseScore pastes (issue #238: bars stay full): `pasted` goes over the clip's time from the
+ * cursor's column on, bar lines and all, so no bar gets longer or shorter. A column it covers in part
+ * leaves the rest of its time as rests; a pasted note that would cross a bar line is split there and
+ * tied over (a tuplet isn't split, so its bar runs over); bars of rests are added past the clip's end.
+ * Into an empty clip the pasted clip comes whole, with its name, time and tuning. The cursor ends on
+ * the last pasted column.
+ */
+export function pasteOver(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
+  const incoming = pasted.bars.filter(b => b.columns.length > 0);
+  if (incoming.length === 0) return { clip, cursor };
+  if (isEmpty(clip)) return insertPaste(clip, cursor, pasted);
+  const queue = incoming.flatMap(b => b.columns.map(c => ({ ...c })));
+  const bars = clip.bars.map(b => ({ ...b, columns: [...b.columns] }));
+  let bar = cursor.bar;
+  let column = bars[bar].columns.length === 0 ? 0 : cursor.column;
+  let last = { bar, column };
+  while (queue.length > 0) {
+    if (bar === bars.length) {
+      const time = timeAt({ ...clip, bars }, bar - 1);
+      bars.push({ columns: fewestRests(barTicks(time)).map(emptyColumn) });
+    }
+    const here = bars[bar];
+    const head = here.columns.slice(0, column);
+    const old = here.columns.slice(column);
+    // The time this bar has from the column on: its columns', and what a short bar still lacks.
+    const start = head.reduce((sum, c) => sum + span(c), 0);
+    const room = Math.max(barTicks(timeAt({ ...clip, bars }, bar)), barLength(here)) - start;
+    const placed: Column[] = [];
+    let used = 0;
+    while (queue.length > 0 && (used < room || span(queue[0]) === 0)) {
+      const next = queue.shift()!;
+      const length = span(next);
+      const fits = fewestRests(room - used);
+      if (used + length <= room || next.duration.tuplet || fits.length === 0) {
+        placed.push(next);
+        used += length;
+        continue;
+      }
+      // Split at the bar line: what fits here, then the rest tied on into the next bar.
+      const [first, ...more] = fits;
+      const after = fewestRests(used + length - room);
+      placed.push({ ...next, duration: first }, ...more.map(d => ({ ...tiedOn(next), duration: d })));
+      queue.unshift(...after.map(d => ({ ...tiedOn(next), duration: d })));
+      used = room;
+    }
+    // The old columns the paste covered go; one it covers in part leaves the rest of its time as rests.
+    let covered = 0;
+    let k = 0;
+    while (k < old.length && covered < used) covered += span(old[k++]);
+    const leftover = covered > used ? fewestRests(covered - used).map(emptyColumn) : [];
+    here.columns = [...head, ...placed, ...leftover, ...old.slice(k)];
+    if (placed.length > 0) last = { bar, column: head.length + placed.length - 1 };
+    bar++;
+    column = 0;
+  }
+  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, ...last } };
 }

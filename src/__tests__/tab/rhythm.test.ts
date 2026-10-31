@@ -7,7 +7,7 @@ import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writePart, writeBars } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, timeInWords, tupletGroups, unevenMessage, WHOLE, type TimeSignature, type Part, partOf, asClip } from '@/features/tab/clip';
-import { copyText, moveColumn, pasteAt, sliceClip, type Cursor } from '@/features/tab/editing';
+import { copyText, moveColumn, insertPaste, sliceClip, type Cursor } from '@/features/tab/editing';
 import { setBarTime } from '@/features/tab/barEdits';
 import { cycleTremolo, setTremolo, setTuplet, toggleGrace, toggleTuplet } from '@/features/tab/noteEdits';
 import { layoutClip } from '@/features/tab/layout';
@@ -306,7 +306,7 @@ describe('time signature changes', () => {
     const clip = clipOf(tex);
     expect(sliceClip(clip, [2, 3]).time).toEqual({ beats: 3, value: 4 });
     expect(copyText(clip, [2, 3])).toBe('\\ts (3 4)\n0.5.2{d} | \\ts (4 4) 0.6.1 |\n');
-    const pasted = pasteAt(clipOf('\\ts (4 4)\n0.6.1 |\n'), at(0, 1, 0), clipOf('\\ts (4 4)\n0.6.1 |\n\\ts (3 4) 0.5.2{d} |\n'));
+    const pasted = insertPaste(clipOf('\\ts (4 4)\n0.6.1 |\n'), at(0, 1, 0), clipOf('\\ts (4 4)\n0.6.1 |\n\\ts (3 4) 0.5.2{d} |\n'));
     expect(pasted.clip.bars[1].time).toEqual({ beats: 3, value: 4 });
   });
 

@@ -456,8 +456,8 @@ describe('TabPage', () => {
       keys('n', 'ArrowDown');
       // jsdom's window never has the focus; the blur only fills while it does.
       vi.spyOn(document, 'hasFocus').mockReturnValue(true);
-      // → fills at once; Delete takes the rest away again, and leaving the tab puts it back.
-      keys('5', 'ArrowRight', '7', 'ArrowRight', 'Delete');
+      // → fills at once; Ctrl+Delete takes the rest away again, and leaving the tab puts it back.
+      keys('5', 'ArrowRight', '7', 'ArrowRight', { key: 'Delete', ctrlKey: true });
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
       // The first Esc leaves note input, the second the tab.
       keys('Escape', 'Escape');
@@ -632,7 +632,7 @@ describe('TabPage', () => {
       expect(screen.queryByTestId('capo')).toBeNull();
     });
 
-    it('selects with Shift+arrows, copies the selection as alphaTex and deletes it', () => {
+    it('selects with Shift+arrows, copies the selection as alphaTex, makes rests of it and deletes it', () => {
       renderAt();
       act(() => editor().focus());
       // Typing is note input's (issue #238).
@@ -645,9 +645,35 @@ describe('TabPage', () => {
       copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
       act(() => { editor().dispatchEvent(copy); });
       expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
+      // Bars stay full (issue #238): Backspace leaves rests, the selection still there; Ctrl+Backspace takes the time.
       keys('Backspace');
+      expect(alphaTex()).toBe('5.1.4 r.4 r.4 |');
+      expect(litFrets()).toHaveLength(0);
+      keys({ key: 'Backspace', ctrlKey: true });
       expect(alphaTex()).toBe('5.1.4 |');
     });
+
+    it('pastes over the time from the cursor, Ctrl/⌘+Shift+V inserts, and a cut leaves rests (issue #238)', async () => {
+      renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |')}`);
+      await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
+      act(() => editor().focus());
+      keys('ArrowRight');
+      await paste('9.2.4 10.2.4 |');
+      await waitFor(() => expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 4.1.4 |'), SLOW);
+      keys({ key: 'V', ctrlKey: true, shiftKey: true });
+      await paste('7.3.4 |');
+      await waitFor(() => expect(alphaTex()).toBe('1.1.4 9.2.4 7.3.4 10.2.4 4.1.4 |'), SLOW);
+      // A plain paste after it writes over again.
+      keys('ArrowLeft');
+      await paste('8.3.4 |');
+      await waitFor(() => expect(alphaTex()).toBe('1.1.4 8.3.4 7.3.4 10.2.4 4.1.4 |'), SLOW);
+      // Cut leaves rests where the notes were.
+      keys({ key: 'ArrowRight', shiftKey: true });
+      const cut = new Event('cut', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+      cut.clipboardData = { setData: () => {} };
+      act(() => { editor().dispatchEvent(cut); });
+      expect(alphaTex()).toBe('1.1.4 r.4 r.4 10.2.4 4.1.4 |');
+    }, 20000);
 
     describe('normal mode and note input (issue #238)', () => {
       const pencil = () => screen.getByRole('button', { name: 'Note input' });
@@ -1012,7 +1038,7 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
     });
 
-    it('Delete off the notes of a column makes it a rest, then a second Delete removes the rest', () => {
+    it('Delete off the notes of a column makes it a rest, which stays; Ctrl/⌘+Delete removes it', () => {
       renderAt();
       act(() => editor().focus());
       // Typing is note input's (issue #238).
@@ -1022,6 +1048,8 @@ describe('TabPage', () => {
       keys('ArrowLeft', 'Delete');
       expect(alphaTex()).toBe('r.4 3.2.4 |');
       keys('Delete');
+      expect(alphaTex()).toBe('r.4 3.2.4 |');
+      keys({ key: 'Delete', metaKey: true });
       expect(alphaTex()).toBe('3.2.4 |');
     });
 
@@ -1031,7 +1059,7 @@ describe('TabPage', () => {
       // Typing is note input's (issue #238).
       keys('n', 'ArrowDown');
       // Three quarters: the rest → filled the bar with is deleted.
-      keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', 'Delete');
+      keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', { key: 'Delete', ctrlKey: true });
       const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
       expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 1 beat short.');
       // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
@@ -1327,9 +1355,12 @@ describe('TabPage playback', () => {
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     const firstBar = () => partOf(savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
-    // The line to the bar's end: Delete takes the rest, then Backspace turns the 7 into a rest.
+    // The line to the bar's end: Delete leaves the rest (bars stay full, issue #238), Ctrl+Delete takes it,
+    // then Backspace turns the 7 into a rest.
     for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
     fireEvent.keyDown(document.body, { key: 'Delete' });
+    expect(firstBar()).toEqual(['note', 'note', 'rest']);
+    fireEvent.keyDown(document.body, { key: 'Delete', ctrlKey: true });
     expect(firstBar()).toEqual(['note', 'note']);
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: 'Backspace' });
@@ -1859,12 +1890,12 @@ describe('TabPage arrangements', () => {
 });
 
 describe('TabPage export', () => {
-  it('offers only bar insertion on a right-click on the tab', () => {
+  it('offers only bar insertion and Insert paste on a right-click on the tab', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
     const menu = screen.getByRole('menu', { name: 'Tab' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after', 'Insert paste']);
   });
 
   it('opens only the bar menu on a right-click on a drawn signature, not its panel too', () => {

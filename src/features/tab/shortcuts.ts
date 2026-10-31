@@ -13,7 +13,10 @@ const PAGE: ShortcutGroup = {
     { keys: ['N'], does: 'Note input on or off' },
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },
-    { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut, paste' },
+    { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut (leaving rests), paste over' },
+    { keys: ['Mod+Shift+V'], does: 'Insert paste' },
+    { keys: ['Delete'], does: 'Make rests of the notes' },
+    { keys: ['Mod+Delete'], does: 'Take the time away' },
   ],
 };
 
@@ -38,7 +41,6 @@ const INPUT: ShortcutGroup = {
     { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter next note' },
     { keys: ['Shift+1–7'], does: 'Next note’s length (Shift+5 a quarter)' },
     { keys: ['Insert'], does: 'Insert a column' },
-    { keys: ['Delete', 'Backspace'], does: 'Clear the note, then the column' },
     { keys: ['Esc'], does: 'Leave note input' },
   ],
 };
@@ -73,7 +75,8 @@ const LINE: ShortcutGroup = {
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Move the playback line' },
     { keys: ['Shift+Left', 'Shift+Right'], does: 'Select from the line' },
-    { keys: ['Delete', 'Backspace'], does: 'Take away the column before the line' },
+    { keys: ['Delete', 'Backspace'], does: 'Make a rest of the column before the line' },
+    { keys: ['Mod+Delete'], does: 'Take that column away' },
     { keys: ['Esc'], does: 'Drop the selection, then the line' },
   ],
 };

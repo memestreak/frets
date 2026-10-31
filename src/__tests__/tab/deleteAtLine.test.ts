@@ -17,8 +17,12 @@ describe('deleteAtLine', () => {
   // A bar ending in an eighth rest, as in his picture, then a second bar.
   const clip = clipOf(':4 5.3 :2 r{d} :8 7.3 r | :1 3.2 |');
 
-  it('takes the rest just before the line, and the line steps back over it', () => {
-    const cut = deleteAtLine(clip, 4, null)!;
+  it('leaves a rest just before the line as it is: bars stay full (issue #238)', () => {
+    expect(deleteAtLine(clip, 4, null)).toBeNull();
+  });
+
+  it('with Ctrl/⌘ takes the rest just before the line, and the line steps back over it', () => {
+    const cut = deleteAtLine(clip, 4, null, true)!;
     expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 :2 r{d} :8 7.3 | :1 3.2 |')));
     expect(cut.line).toBe(3);
   });
@@ -41,15 +45,18 @@ describe('deleteAtLine', () => {
     expect(deleteAtLine(clipOf('|'), 0, null)).toBeNull();
   });
 
-  it('takes a selection made from the line, the line where it began', () => {
-    const cut = deleteAtLine(clip, null, { anchor: 3, focus: 1 })!;
+  it('makes rests of a selection, and with Ctrl/⌘ takes it away, the line where it began', () => {
+    const rests = deleteAtLine(clip, null, { anchor: 3, focus: 1 })!;
+    expect(bars(rests.clip)).toBe(bars(clipOf(':4 5.3 :2 r{d} :8 r r | :1 3.2 |')));
+    expect(rests.line).toBe(1);
+    const cut = deleteAtLine(clip, null, { anchor: 3, focus: 1 }, true)!;
     expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 | :1 3.2 |')));
     expect(cut.line).toBe(1);
   });
 
-  it('leaves a bar empty when its only rest goes', () => {
+  it('with Ctrl/⌘ leaves a bar empty when its only rest goes', () => {
     const one = clipOf(':4 5.3 5.3 5.3 5.3 | :1 r | :1 3.2 |');
-    const cut = deleteAtLine(one, 5, null)!;
+    const cut = deleteAtLine(one, 5, null, true)!;
     expect(cut.clip.bars.map(b => b.columns.length)).toEqual([4, 0, 1]);
     expect(cut.line).toBe(4);
   });
