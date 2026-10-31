@@ -36,7 +36,6 @@ describe('rhythmFromInput', () => {
     const r = made.state.rhythm;
     expect(r).toMatchObject({ bpm: 92, beats: 7, groups: [2, 2, 3] });
     expect(r.steps.map(s => s[0])).toEqual([0, 2, 1, 2, 1, 2, 2]);
-    expect(made.state.view).toBe('readout');
   });
 
   it('takes the beats from the groups when beats are left out', () => {
@@ -102,7 +101,7 @@ describe('the server', () => {
     const client = await connectedClient();
     const result = await client.callTool({ name: TOOL_NAME, arguments: { bpm: 92, beats: 7, groups: '2+2+3' } });
     expect(result.isError).toBeFalsy();
-    expect(result.structuredContent).toMatchObject({ rhythm: { bpm: 92, beats: 7, groups: [2, 2, 3] }, view: 'readout' });
+    expect(result.structuredContent).toMatchObject({ rhythm: { bpm: 92, beats: 7, groups: [2, 2, 3] } });
     expect((result.content as { text: string }[])[0].text).toContain('92 bpm, 7 beats grouped 2+2+3');
   });
 
@@ -139,14 +138,23 @@ async function mountApp() {
 }
 
 describe('the app', () => {
-  it('shows the tool’s rhythm, takes the host’s theme, and saves nothing', async () => {
+  it('shows the tool’s rhythm in its one layout, takes the host’s theme, and saves nothing', async () => {
     const { bridge } = await mountApp();
-    await act(() => bridge.sendToolInput({ arguments: { bpm: 92, beats: 7, view: 'bar' } }));
-    await waitFor(() => expect(screen.getByRole('spinbutton', { name: 'Tempo' })).toHaveValue('92'));
-    expect(screen.getAllByRole('button', { name: /^Beat \d step 1/ })).toHaveLength(7);
+    await act(() => bridge.sendToolInput({ arguments: { bpm: 92, beats: 7 } }));
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveTextContent('92'));
+    expect(document.querySelectorAll('.metronome-pad')).toHaveLength(7);
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Metronome' })).toBeNull();
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(screen.queryByRole('button', { name: 'Shortcuts' })).toBeNull();
     expect(localStorage.length).toBe(0);
+  });
+
+  it('keeps Sound and Volume in Advanced', async () => {
+    await mountApp();
+    expect(screen.queryByRole('combobox', { name: 'Sound' })).toBeNull();
+    act(() => screen.getByRole('button', { name: 'Advanced' }).click());
+    expect(screen.getByRole('combobox', { name: 'Sound' })).toBeInTheDocument();
   });
 
   it('tells the model what the user changes, once they stop, and not what the host gave', async () => {

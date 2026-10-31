@@ -7,7 +7,7 @@ grouped 2+2+3", the model calls a tool, and the host (Claude, ChatGPT,
 VS Code and others) shows the Frets metronome inline with that rhythm loaded.
 The page doesn't change.
 
-Settled with Jeremy on 2026-10-31, in twelve questions (Q1 to Q12 below).
+Settled with Jeremy on 2026-10-31, in thirteen questions (Q1 to Q13 below).
 Built in two PRs: #273 split the metronome's core from the page, and this
 one adds the app and the server.
 
@@ -24,14 +24,13 @@ something it doesn't do, since the metronome opens stopped). Its input:
 | `groups` | `"2+2+3"` | Must add up to `beats`; sets `beats` if that's left out. |
 | `subdivision` | 1–8 | Clicks per beat, every beat alike (Q1). |
 | `swing` | 50–75 | Splits plain beats in two, as on the page. |
-| `view` | readout, dial, pendulum, bar | Which view opens; the user can switch. |
 
 The fields apply in that order on top of `rhythm` (or the default rhythm),
 and the result goes through `parseRhythm`, the check the page runs on a
 saved rhythm. So the page and the tool share one set of rules. Groups that
 don't add up are refused with a message.
 
-The result is the checked rhythm and view as `structuredContent`, plus one
+The result is the checked rhythm as `structuredContent`, plus one
 line of text for hosts that can't show apps: "Metronome ready (stopped):
 92 bpm, 7 beats grouped 2+2+3, 1 click a beat."
 
@@ -50,8 +49,8 @@ them back:
 - About a second after the user's last change, the app sends
   `ui/update-model-context`. That's one line ("The user's metronome is now
   at 97 bpm, 7 beats grouped 2+2+3, 1 click a beat, playing. To change it,
-  call show_metronome with this rhythm as `rhythm`.") plus the rhythm, view
-  and playing state as data (Q7). A drag sends one update, not forty. What
+  call show_metronome with this rhythm as `rhythm`.") plus the rhythm and
+  playing state as data (Q7). A drag sends one update, not forty. What
   the host itself gave isn't echoed back.
 - The tool's description tells the model to pass that rhythm back as
   `rhythm`, with only the fields it wants to change. So "push me up 5"
@@ -59,11 +58,16 @@ them back:
 
 ## The app
 
-- The same four views and the Readout | Dial | Pendulum | Bar switch as the
-  page, with `view` picking the first (Q5). Advanced works as on the page:
-  closed at first, and opening it grows the frame (Q6). The views' phone
-  rules are viewport media queries, and inside the frame the viewport is
-  the chat column, so they fit a narrow chat with no changes.
+- One compact layout for a chat column (Q13). Jeremy first chose the page's
+  four views with their switch (Q5), then, after trying it in claude.ai,
+  asked to "scale the UI to better suit" the chat. He picked one of three
+  mocks (A tighter, B one row, C scaled): B, about 280px tall against 710px
+  for the page's Readout. It has the pads, then one row with the tempo
+  between − and + (drag it as on the page), Start, Tap and Beats.
+  Advanced works as on the page, closed at first, and opening it grows the
+  frame (Q6). Sound and Volume sit at its top. There's no title (the host
+  labels the app) and no view switch. The page keeps its four views, and
+  the tool has no `view`.
 - No storage: the app starts from the tool's rhythm and volume 80%, and
   saves nothing. No ⚠ and no `?` in the head (both need the page). Space
   starts and stops, and T taps, once the frame has focus.

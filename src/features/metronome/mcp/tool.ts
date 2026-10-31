@@ -12,7 +12,7 @@ import {
   MAX_BEATS, MAX_BPM, MAX_STEPS, MAX_SWING, MIN_BPM, MIN_SWING, clampBpm, defaultRhythm, parseGroups, withAllSubs,
   withBeats, withGroups, withSwing, type Rhythm,
 } from '../rhythm';
-import { DEFAULT_DISPLAY, VIEWS, parseRhythm, type ViewId } from '../storage';
+import { parseRhythm } from '../storage';
 
 export const TOOL_NAME = 'show_metronome';
 export const APP_URI = 'ui://metronome/app.html';
@@ -36,8 +36,6 @@ export const toolInput = {
     .describe(`Clicks per beat, every beat alike, 1–${MAX_STEPS}: 2 eighths, 3 triplets, 4 sixteenths.`),
   swing: z.number().int().min(MIN_SWING).max(MAX_SWING).optional()
     .describe(`${MIN_SWING} is straight, 67 a triplet shuffle, up to ${MAX_SWING}. Splits plain beats in two.`),
-  view: z.enum(VIEWS.map(([id]) => id) as [ViewId, ...ViewId[]]).optional()
-    .describe('How it looks at first: readout (default), dial, pendulum or bar. The user can switch.'),
 };
 
 export type ToolInput = z.infer<z.ZodObject<typeof toolInput>>;
@@ -45,7 +43,6 @@ export type ToolInput = z.infer<z.ZodObject<typeof toolInput>>;
 /** What the tool returns, and what the app reports back. */
 export interface MetronomeState {
   rhythm: Rhythm;
-  view: ViewId;
 }
 
 /**
@@ -68,7 +65,7 @@ export function rhythmFromInput(input: ToolInput): { ok: true; state: MetronomeS
   if (input.subdivision !== undefined) r = withAllSubs(r, input.subdivision);
   if (input.swing !== undefined) r = withSwing(r, input.swing);
   if (input.bpm !== undefined) r = { ...r, bpm: clampBpm(input.bpm) };
-  return { ok: true, state: { rhythm: parseRhythm(r), view: input.view ?? DEFAULT_DISPLAY.view } };
+  return { ok: true, state: { rhythm: parseRhythm(r) } };
 }
 
 /** One line for the model: "92 bpm, 7 beats grouped 2+2+3, 2 clicks a beat, swing 60". */

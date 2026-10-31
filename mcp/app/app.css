@@ -21,35 +21,12 @@
 html, body { margin: 0; background: transparent; }
 body { padding: 1px; }
 
-/* MOCK (2026-10-31): layouts for Claude's chat column, picked with the switch under the card. */
-.mcp-mock { display: flex; margin: 8px auto 0; width: fit-content; }
-.mcp-mock .seg-opt { font-size: 12px; padding-inline: 10px; }
-
-/* A, Tighter: no title (the host labels the app), a smaller tempo, less room. */
-.mcp-app[data-layout='a'] .metronome-card,
-.mcp-app[data-layout='b'] .metronome-card { padding: 14px 16px; gap: 12px; }
-.mcp-app[data-layout='a'] #metronome-title { display: none; }
-.mcp-app[data-layout='a'] .metronome-head-end { margin-left: 0; flex: 1; justify-content: center; }
-.mcp-app[data-layout='a'] .metronome-pads,
-.mcp-app[data-layout='b'] .metronome-pads { height: 72px; }
-.mcp-app[data-layout='a'] .metronome-big-number { font-size: 64px; }
-.mcp-app[data-layout='a'] .metronome-dial { width: 230px; }
-.mcp-app[data-layout='a'] .metronome-dial-center .metronome-big-number { font-size: 56px; }
-.mcp-app[data-layout='a'] .metronome-pyramid { width: 150px; height: auto; }
-.mcp-app[data-layout='a'] .metronome-tiles-steps { height: 90px; }
-.mcp-app[data-layout='a'] .metronome-rule { padding-top: 10px; }
-.mcp-app[data-layout='a'] .metronome-play,
-.mcp-app[data-layout='a'] .metronome-tap,
-.mcp-app[data-layout='b'] .metronome-play,
-.mcp-app[data-layout='b'] .metronome-tap { height: 40px; min-width: 88px; font-size: 15px; }
-.mcp-app[data-layout='a'] .metronome-round { height: 48px; width: 48px; min-width: 0; }
-
-/* B, One row. */
+/* The one layout (`Strip.tsx`), sized for a chat column. */
+.mcp-strip { padding: 14px 16px; gap: 12px; }
+.mcp-strip .metronome-pads { height: 72px; }
 .mcp-strip-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; }
 .mcp-strip .metronome-big { min-width: 96px; }
 .mcp-strip .metronome-big-number { font-size: 48px; }
 .mcp-strip .metronome-big-unit { font-size: 12px; line-height: 16px; }
 .mcp-strip .metronome-nudge { width: 32px; height: 40px; font-size: 22px; }
-
-/* C, Scaled: the card as on the page, shrunk evenly. */
-.mcp-app[data-layout='c'] .metronome-card { zoom: 0.72; }
+.mcp-strip .metronome-play, .mcp-strip .metronome-tap { height: 40px; min-width: 88px; font-size: 15px; }

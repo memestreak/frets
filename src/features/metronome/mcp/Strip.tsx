@@ -1,7 +1,8 @@
 /**
- * MOCK B for the MCP App (Jeremy, 2026-10-31: "scale the UI to better suit" Claude's chat): the
- * metronome in one row. The pads, then the tempo with − and +, Start, Tap and Beats; Sound and
- * Volume move into Advanced. No title and no view switch.
+ * The MCP App's one layout, sized for a chat column (Jeremy picked it from three mocks, 2026-10-31):
+ * the pads, then one row with the tempo between − and +, Start, Tap and Beats. Sound and Volume
+ * sit at the top of Advanced. No title (the host labels the app) and no view switch: the page's
+ * four views stay on the page.
  */
 import { Advanced } from '../Advanced';
 import { BeatsField, PlayButton, SoundControls, TapButton, useBpmDrag } from '../controls';

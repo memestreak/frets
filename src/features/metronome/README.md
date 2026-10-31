@@ -55,13 +55,15 @@ A model calls `show_metronome`, and the host shows this metronome with that
 rhythm in a sandboxed frame. It opens stopped.
 
 - `mcp/tool.ts`: the tool's name, description and input (bpm, beats, groups,
-  subdivision, swing, view, and an optional whole `rhythm` to start from).
+  subdivision, swing, and an optional whole `rhythm` to start from).
   It also turns input into a rhythm through `parseRhythm`, and holds the
   one-line description. Pure, shared by the server and the app.
 - `mcp/server.ts`: `createMetronomeServer(appHtml)`, the tool plus the
   `ui://metronome/app.html` resource. Stateless.
-- `mcp/MetronomeApp.tsx`: the app, which is the core, the views and the
-  view switch, with no storage. It shows the tool's input at once, then the
+- `mcp/MetronomeApp.tsx`: the app, which is the core shown in one compact
+  layout, `mcp/Strip.tsx` (pads, then the tempo, Start, Tap and Beats in a
+  row; Sound and Volume at the top of Advanced). It has no storage, and the
+  page's four views stay on the page. It shows the tool's input at once, then the
   server's result. About a second after the user's last change, it tells the
   model the whole rhythm (`ui/update-model-context`). It follows the host's
   theme and stops and closes the audio on teardown. Space and T work as on
