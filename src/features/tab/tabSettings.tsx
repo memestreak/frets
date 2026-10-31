@@ -194,7 +194,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         id: 'export', name: 'Export', value: prefs.exportStyle, defaults: DEFAULT_TAB_EXPORT, save: prefs.setExportStyle,
         fields: [
           choiceField('width', 'Size (px wide)', TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const)),
-          twoWayField('transparent', 'Transparent', 'On', 'Off'),
+          twoWayField('transparent', 'Transparent background', 'On', 'Off'),
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
         ],
       }),

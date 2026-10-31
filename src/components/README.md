@@ -40,7 +40,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `src/components/LetGoAfterUse.tsx` and `src/hooks/useLetGoAfterUse.ts`
   (mounted once by `AppShell`: a button, link or list used with the mouse
   or a finger lets go of the focus, so no widget stays outlined or keeps
-  the page's keys; keyboard use keeps it; see
+  the page's keys, and a button that opened a dialog lets go again when
+  it closes; keyboard use keeps it; see
   `docs/specs/2026-10-30-let-go-after-use-design.md`).
 - `src/components/shortcuts/` — the keyboard shortcuts overlay (issue #180,
   `docs/specs/2026-10-30-keyboard-shortcuts-design.md`): `?` anywhere but a
