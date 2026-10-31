@@ -1634,6 +1634,41 @@ describe('TabPage arrangements', () => {
     expect(unsaved()).toBe(true);
   });
 
+  it('saves into a new folder made in Save as, and makes none on Cancel or after going back to the list', async () => {
+    renderAt();
+    await paste(RIFF);
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    let dialog = saveAsDialog();
+    // Esc in the new folder's name goes back to the list, the dialog still open.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'New folder name' }), { key: 'Escape' });
+    expect(within(dialog).getByRole('combobox', { name: 'Folder' })).toBeInTheDocument();
+    // So does the ×.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pick a folder instead' }));
+    expect(within(dialog).getByRole('combobox', { name: 'Folder' })).toHaveValue('');
+    // Cancel leaves no folder behind.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'New folder name' }), { target: { value: 'Riffs' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(loadLibrary().folders).toEqual([]);
+    // Saved, the folder is made and the arrangement goes in it.
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    dialog = saveAsDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'New folder name' }), { target: { value: 'Riffs' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Riffs']);
+    expect(loadLibrary().items).toMatchObject([{ name: 'Riff', folder: loadLibrary().folders[0].id }]);
+    // A name left empty is "New folder".
+    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+    dialog = saveAsDialog();
+    expect(within(dialog).getByRole('combobox', { name: 'Folder' })).toHaveValue(loadLibrary().folders[0].id);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().folders.map(f => f.name).sort()).toEqual(['New folder', 'Riffs']);
+  });
+
   it('saves with Ctrl/⌘+S, opens Save as with Shift, and Arrangements… with Ctrl/⌘+O, anywhere on the page', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();

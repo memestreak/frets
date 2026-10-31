@@ -1232,10 +1232,10 @@ export default function TabPage() {
         open={savingAs !== null} name={whole.name}
         folder={arrangements.library.items.find(i => i.id === state.id)?.folder} folders={arrangements.library.folders}
         onClose={() => setSavingAs(null)}
-        onSave={(name, folder) => {
+        onSave={(name, into) => {
           const then = savingAs?.then;
           setSavingAs(null);
-          arrangements.saveAs(name, folder);
+          arrangements.saveAs(name, typeof into === 'object' ? arrangements.createFolder(into.newFolder) : into);
           then?.();
         }}
       />
