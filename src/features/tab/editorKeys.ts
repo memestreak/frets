@@ -171,7 +171,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     return;
   }
-  if (e.ctrlKey || e.metaKey) {
+  // Ctrl/⌘+Delete goes on to Delete below, which takes the time away with it.
+  if ((e.ctrlKey || e.metaKey) && key !== 'Delete' && key !== 'Backspace') {
     if (key === 'Enter') {
       e.preventDefault();
       editor.addBar(e.shiftKey ? 'before' : 'after');
@@ -234,23 +235,41 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   if (key === 'Backspace' || key === 'Delete') {
     handled();
     const column = columnAt(clip, cursor);
-    if (selection) {
-      const cut = deleteColumns(clip, selectedRange(selection));
-      commit(cut.clip, { ...cursor, ...cut.cursor }, null);
+    // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
+    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). Note input keeps
+    // the cursor where it is, to type on.
+    const leave = (next: Part, at: Cursor) => {
+      if (editor.inputMode || !columnAt(next, at)) {
+        commit(next, at, null);
+        return;
+      }
+      const i = indexOf(next, at.bar, at.column);
+      commit(next, at, { anchor: i, focus: i });
+      editor.startRegion();
+    };
+    // Bars stay full (issue #238, as MuseScore): Delete leaves rests; Ctrl/⌘+Delete takes the time away too.
+    if (e.ctrlKey || e.metaKey) {
+      if (selection) {
+        const cut = deleteColumns(clip, selectedRange(selection));
+        leave(cut.clip, { ...cursor, ...cut.cursor });
+      } else if (column) {
+        const i = indexOf(clip, cursor.bar, cursor.column);
+        const cut = deleteColumns(clip, [i, i]);
+        leave(cut.clip, { ...cursor, ...cut.cursor });
+      } else {
+        // An empty bar: the bar itself goes.
+        const cut = removeEmptyBar(clip, cursor.bar);
+        leave(cut.clip, { ...cursor, ...cut.cursor });
+      }
+    } else if (selection) {
+      commit(makeRest(clip, target), cursor, selection);
     } else if (!columnOnly && noteAt(clip, cursor)) {
-      commit(clearNote(clip, cursor));
+      leave(clearNote(clip, cursor), cursor);
     } else if (column && !isRest(column)) {
-      // On an empty string of a column with notes: the column becomes a rest first (Jeremy, 2026-10-27).
-      commit(makeRest(clip, { cursor, selection: null }));
-    } else if (column) {
-      const i = indexOf(clip, cursor.bar, cursor.column);
-      const cut = deleteColumns(clip, [i, i]);
-      commit(cut.clip, { ...cursor, ...cut.cursor }, null);
-    } else {
-      // An empty bar: Delete takes the bar itself away.
-      const cut = removeEmptyBar(clip, cursor.bar);
-      commit(cut.clip, { ...cursor, ...cut.cursor }, null);
+      // On an empty string of a column with notes: the column becomes a rest (Jeremy, 2026-10-27).
+      leave(makeRest(clip, { cursor, selection: null }), cursor);
     }
+    // A rest, or an empty bar, stays: only Ctrl/⌘+Delete takes time away.
     return;
   }
   // W and Q are MuseScore's longer and shorter (issue #238), beside + and −.
@@ -493,24 +512,27 @@ export interface LineKeys {
 }
 
 /**
- * Delete or Backspace off the tab (Jeremy, 2026-10-29), as on a column with no string picked: a
- * selection goes, the line where it began; else the column just before the line becomes a rest
- * if it holds notes, or, a rest already, goes, and the line steps back over it. Null when there
- * is nothing to take: no line, or the line at the clip's start.
+ * Delete or Backspace off the tab (Jeremy, 2026-10-29), as on a column with no string picked, and
+ * bars stay full (issue #238): a selection becomes rests, the line staying where it is; else the
+ * column just before the line becomes a rest if it holds notes. With `removeTime` (Ctrl/⌘) the
+ * selection goes, the line where it began, or the column before the line goes and the line steps
+ * back over it. Null when there is nothing to take: no line, the line at the clip's start, or a rest
+ * without Ctrl/⌘.
  */
-export function deleteAtLine(clip: Part, line: number | null, selection: Selection | null): { clip: Part; line: number } | null {
+export function deleteAtLine(clip: Part, line: number | null, selection: Selection | null, removeTime = false): { clip: Part; line: number } | null {
   if (selection) {
     const range = selectedRange(selection);
-    return { clip: deleteColumns(clip, range).clip, line: range[0] };
+    if (removeTime) return { clip: deleteColumns(clip, range).clip, line: range[0] };
+    const start = placeOf(clip, range[0]);
+    return { clip: makeRest(clip, { cursor: { ...start, string: 0 }, selection }), line: line ?? range[0] };
   }
   if (line === null || line <= 0) return null;
   const before = Math.min(line, columnCount(clip)) - 1;
   if (before < 0) return null;
   const { bar, column } = placeOf(clip, before);
-  if (!isRest(clip.bars[bar].columns[column])) {
-    return { clip: makeRest(clip, { cursor: { bar, column, string: 0 }, selection: null }), line: before + 1 };
-  }
-  return { clip: deleteColumns(clip, [before, before]).clip, line: before };
+  if (removeTime) return { clip: deleteColumns(clip, [before, before]).clip, line: before };
+  if (isRest(clip.bars[bar].columns[column])) return null;
+  return { clip: makeRest(clip, { cursor: { bar, column, string: 0 }, selection: null }), line: before + 1 };
 }
 
 /**
@@ -519,11 +541,13 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
  * made so), Delete and Backspace take what is before it (`deleteAtLine`), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
  */
 export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, select, placeLine, editAtLine }: LineKeys) {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const remove = e.key === 'Delete' || e.key === 'Backspace';
+  // Ctrl/⌘ only with Delete, which then takes the time away (issue #238).
+  if (e.altKey || ((e.ctrlKey || e.metaKey) && !remove)) return;
   const target = e.target as Element | null;
   if (target?.closest?.('input, select, textarea, dialog, [role="dialog"], [role="menu"], [role="slider"], .tab-editor')) return;
-  if (e.key === 'Delete' || e.key === 'Backspace') {
-    const cut = deleteAtLine(clip, line, selection);
+  if (remove) {
+    const cut = deleteAtLine(clip, line, selection, e.ctrlKey || e.metaKey);
     if (!cut) return;
     editAtLine(cut.clip, cut.line);
     e.preventDefault();
