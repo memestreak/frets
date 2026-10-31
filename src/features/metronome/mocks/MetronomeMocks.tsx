@@ -5,12 +5,17 @@
  * metronome (Space starts and stops) so the feel can be judged, not only the look. Advanced is
  * the same in all four.
  */
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { CheckBox } from '@/components/settings/fields';
+import { createContext, useContext, useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { HoverTips } from '@/components/HoverTips';
+import { GearIcon } from '@/components/icons';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
+import { CheckBox, choiceField } from '@/components/settings/fields';
+import { useGeneralGroup } from '@/components/settings/general';
+import { section, type SettingsGroup } from '@/components/settings/types';
 import { NumberField } from '@/features/tab/NumberField';
 import { VolumeKnob } from '@/features/tab/VolumeKnob';
 import {
-  MAX_BPM, MIN_BPM, PRESETS, SOUNDS, VOICE_NAMES, syllable, tempoName, useMetronome,
+  MAX_BEATS, MAX_BPM, MIN_BPM, PRESETS, SOUNDS, VOICE_NAMES, syllable, tempoName, useMetronome,
   type Counting, type Metronome, type SoundId, type Step, type TrainerEnd, type VoiceId,
 } from './engine';
 import './mocks.css';
@@ -23,8 +28,16 @@ const MOCKS = {
 } as const;
 type MockId = keyof typeof MOCKS;
 
+/** Opens Settings, from the gear by each view's title. */
+const OpenSettings = createContext<() => void>(() => {});
+
+interface Display extends Record<string, unknown> {
+  view: MockId;
+}
+
 export default function MetronomeMocks() {
   const [mock, setMock] = useState<MockId>('a');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get('mock');
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read once after hydration (static export)
@@ -36,32 +49,94 @@ export default function MetronomeMocks() {
     url.searchParams.set('mock', m);
     window.history.replaceState(null, '', url);
   };
+  // The view is a preference: Settings › Metronome › Display (frets.metronome.display on the real page).
+  const metronomeGroup: SettingsGroup = {
+    id: 'metronome', name: 'Metronome',
+    sections: [section<Display>({
+      id: 'display', name: 'Display', value: { view: mock }, defaults: { view: 'a' },
+      save: v => choose(v.view),
+      fields: [choiceField<Display, 'view', MockId>('view', 'View', (Object.keys(MOCKS) as MockId[]).map(id => [id, MOCKS[id]] as const))],
+    })],
+  };
+  const groups = [useGeneralGroup(), metronomeGroup];
   return (
-    <div className="mm">
-      <div className="mm-switch seg" role="group" aria-label="Mock">
-        {(Object.keys(MOCKS) as MockId[]).map(m => (
-          <button key={m} type="button" className="seg-opt" aria-pressed={mock === m} onClick={() => choose(m)}>
-            {m.toUpperCase()} · {MOCKS[m]}
-          </button>
-        ))}
-      </div>
-      {/* A fresh metronome per mock, so one stops when another is picked. */}
-      {mock === 'a' && <Readout />}
-      {mock === 'b' && <Dial />}
-      {mock === 'c' && <Pendulum />}
-      {mock === 'd' && <Bar />}
-    </div>
+    <OpenSettings.Provider value={() => setSettingsOpen(true)}>
+      <HoverTips>
+        <div className="mm">
+          <div className="mm-switch seg" role="group" aria-label="Mock">
+            {(Object.keys(MOCKS) as MockId[]).map(m => (
+              <button key={m} type="button" className="seg-opt" aria-pressed={mock === m} onClick={() => choose(m)}>
+                {m.toUpperCase()} · {MOCKS[m]}
+              </button>
+            ))}
+          </div>
+          {/* A fresh metronome per view, so one stops when another is picked. */}
+          {mock === 'a' && <Readout />}
+          {mock === 'b' && <Dial />}
+          {mock === 'c' && <Pendulum />}
+          {mock === 'd' && <Bar />}
+        </div>
+      </HoverTips>
+      <SettingsDialog groups={groups} open={settingsOpen} at={{ group: 'metronome', section: 'display' }} onClose={() => setSettingsOpen(false)} />
+    </OpenSettings.Provider>
   );
 }
 
 /* — shared bits — */
 
-/** The tempo playing now: the trainer or the setlist may have moved it. */
+/** The title, with the gear for Settings at the row's end. */
+function Head({ children }: { children?: ReactNode }) {
+  const open = useContext(OpenSettings);
+  return (
+    <div className="mm-head">
+      <h1 id="mm-title" className="m-0">Metronome</h1>
+      <span className="mm-head-end">
+        {children}
+        <button type="button" className="btn btn-secondary btn-icon" aria-label="Settings" data-tip="Settings" onClick={open}><GearIcon /></button>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Drag up or down on a tempo to change it, wherever it is shown: 5 bpm a step, 1 with Shift held.
+ * Spread on the element that shows it.
+ */
+function useBpmDrag(m: Metronome) {
+  const drag = useRef<{ y: number; acc: number } | null>(null);
+  const PX = 8;
+  return {
+    onPointerDown: (e: PointerEvent<Element>) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { y: e.clientY, acc: 0 };
+    },
+    onPointerMove: (e: PointerEvent<Element>) => {
+      const d = drag.current;
+      if (!d) return;
+      d.acc += d.y - e.clientY;
+      d.y = e.clientY;
+      const steps = Math.trunc(d.acc / PX);
+      if (steps === 0) return;
+      d.acc -= steps * PX;
+      const by = steps * (e.shiftKey ? 1 : 5);
+      m.set({ bpm: Math.min(MAX_BPM, Math.max(MIN_BPM, m.bpm + by)) });
+    },
+    onPointerUp: () => { drag.current = null; },
+    onPointerCancel: () => { drag.current = null; },
+  };
+}
+
+/** The tempo playing now: the trainer or the song may have moved it. */
 const liveBpm = (m: Metronome) => m.now?.bpm ?? m.bpm;
 
 function PlayButton({ m, round }: { m: Metronome; round?: boolean }) {
   return (
-    <button type="button" className={`btn btn-primary mm-play${round ? ' mm-play-round' : ''}`} onClick={m.toggle} aria-label={m.playing ? 'Stop' : 'Start'}>
+    <button
+      type="button" className={`btn mm-play${m.playing ? ' btn-primary' : ' mm-start'}${round ? ' mm-play-round' : ''}`}
+      onClick={m.toggle} aria-label={m.playing ? 'Stop' : 'Start'} data-tip={m.playing ? 'Stop (Space)' : 'Start (Space)'}
+    >
       {m.playing ? (
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
       ) : (
@@ -72,30 +147,42 @@ function PlayButton({ m, round }: { m: Metronome; round?: boolean }) {
   );
 }
 
-function TapButton({ m }: { m: Metronome }) {
-  return <button type="button" className="btn btn-secondary" onClick={m.tap}>Tap</button>;
+/** Tap tempo: green, lighter than Start, and it pulses on every press. */
+function TapButton({ m, round }: { m: Metronome; round?: boolean }) {
+  const [pulse, setPulse] = useState(0);
+  const press = () => { m.tap(); setPulse(p => p + 1); };
+  return (
+    <button
+      type="button" className={`btn mm-tap${round ? ' mm-play-round' : ''}`} data-tip="Tap twice or more in time to set the tempo"
+      onPointerDown={press} onKeyDown={e => { if (e.key === 'Enter') press(); }}
+    >
+      {pulse > 0 && <span key={pulse} className="mm-tap-pulse" aria-hidden="true" />}
+      Tap
+    </button>
+  );
 }
 
+
 /** A label, a number field and what follows it, in a row. */
-function Num({ label, value, min, max, step = 1, unit, after, onChange }: {
-  label: string; value: number; min: number; max: number; step?: number; unit?: string; after?: ReactNode;
+function Num({ label, value, min, max, step = 1, dragStep, unit, after, onChange }: {
+  label: string; value: number; min: number; max: number; step?: number; dragStep?: number; unit?: string; after?: ReactNode;
   onChange: (v: number) => void;
 }) {
   return (
     <div className="tab-speed">
       {label && <span className="text-(--ink-muted)">{label}</span>}
-      <NumberField value={value} min={min} max={max} step={step} unit={unit} label={label || 'Number'} upLabel="More" downLabel="Less" onChange={onChange} />
+      <NumberField value={value} min={min} max={max} step={step} dragStep={dragStep} unit={unit} label={label || 'Number'} upLabel="More" downLabel="Less" onChange={onChange} />
       {after && <span className="text-(--ink-muted)">{after}</span>}
     </div>
   );
 }
 
 function BpmField({ m }: { m: Metronome }) {
-  return <Num label="Tempo" value={m.bpm} min={MIN_BPM} max={MAX_BPM} after="bpm" onChange={bpm => m.set({ bpm })} />;
+  return <Num label="Tempo" value={m.bpm} min={MIN_BPM} max={MAX_BPM} dragStep={5} after="bpm" onChange={bpm => m.set({ bpm })} />;
 }
 
 function BeatsField({ m }: { m: Metronome }) {
-  return <Num label="Beats" value={m.beats} min={1} max={16} onChange={beats => m.set({ beats })} />;
+  return <Num label="Beats" value={m.beats} min={1} max={MAX_BEATS} onChange={beats => m.set({ beats })} />;
 }
 
 const SUBDIVISIONS: [number, string][] = [[1, 'Quarters'], [2, 'Eighths'], [3, 'Triplets'], [4, 'Sixteenths']];
@@ -209,8 +296,8 @@ function BeatDots({ m, size = 22 }: { m: Metronome; size?: number }) {
 
 /* — Advanced — */
 
-type AdvancedTab = 'rhythm' | 'tempo' | 'practice' | 'setlist';
-const TABS: [AdvancedTab, string][] = [['rhythm', 'Rhythm'], ['tempo', 'Tempo'], ['practice', 'Practice'], ['setlist', 'Setlist']];
+type AdvancedTab = 'rhythm' | 'tempo' | 'practice';
+const TABS: [AdvancedTab, string][] = [['rhythm', 'Rhythm'], ['tempo', 'Tempo'], ['practice', 'Practice']];
 
 /** "Advanced": closed at first; four tabs. */
 function Advanced({ m }: { m: Metronome }) {
@@ -239,7 +326,6 @@ function Advanced({ m }: { m: Metronome }) {
           {tab === 'rhythm' && <RhythmTab m={m} />}
           {tab === 'tempo' && <TempoTab m={m} />}
           {tab === 'practice' && <PracticeTab m={m} />}
-          {tab === 'setlist' && <SetlistTab m={m} />}
         </div>
       )}
     </div>
@@ -294,12 +380,8 @@ function RhythmTab({ m }: { m: Metronome }) {
             </select>
           </label>
           <div className="tab-speed">
-            <span className="text-(--ink-muted)">Time</span>
-            <NumberField value={m.beats} min={1} max={16} step={1} label="Beats" upLabel="More beats" downLabel="Fewer beats" onChange={beats => { m.set({ beats }); setGroupsText(''); }} />
-            <span className="text-(--ink-muted)">/</span>
-            <select className="input mm-select-narrow" aria-label="Beat note" value={m.beatUnit} onChange={e => m.set({ beatUnit: Number(e.target.value) as 2 | 4 | 8 | 16 })}>
-              {[2, 4, 8, 16].map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
+            <span className="text-(--ink-muted)">Beats</span>
+            <NumberField value={m.beats} min={1} max={MAX_BEATS} step={1} label="Beats" upLabel="More beats" downLabel="Fewer beats" onChange={beats => { m.set({ beats }); setGroupsText(''); }} />
           </div>
           <label className="tab-speed">
             <span className="text-(--ink-muted)">Groups</span>
@@ -440,7 +522,7 @@ function TempoTab({ m }: { m: Metronome }) {
       <Group title="Tempo trainer" note="Speeds up (or slows down) in steps as you play, from the tempo above to a target.">
         <Check on={t.on} onChange={on => setT({ on })} label="Change the tempo as I play" />
         <div className="mm-row">
-          <span className="text-(--ink-muted)">From {m.bpm} bpm</span>
+          <FromBpm m={m} />
           <Num label="to" value={t.to} min={MIN_BPM} max={MAX_BPM} after="bpm," onChange={to => setT({ to })} />
           <Num label="by" value={t.by} min={1} max={40} after="bpm" onChange={by => setT({ by })} />
           <Num label="every" value={t.every} min={1} max={64} after="bars, then" onChange={every => setT({ every })} />
@@ -456,9 +538,9 @@ function TempoTab({ m }: { m: Metronome }) {
           <button type="button" className="btn btn-secondary" onClick={() => m.set({ bpm: Math.min(MAX_BPM, m.bpm * 2) })}>Double</button>
           <button type="button" className="btn btn-secondary" onClick={() => m.set({ bpm: Math.max(MIN_BPM, m.bpm - 5) })}>−5</button>
           <button type="button" className="btn btn-secondary" onClick={() => m.set({ bpm: Math.min(MAX_BPM, m.bpm + 5) })}>+5</button>
-          <TapButton m={m} />
         </div>
       </Group>
+      <SongGroup m={m} />
     </div>
   );
 }
@@ -530,7 +612,6 @@ function PracticeTab({ m }: { m: Metronome }) {
       <Group title="Feel">
         <div className="mm-row">
           <Check on={m.flash} onChange={flash => m.set({ flash })} label="Flash the screen on each beat" />
-          <Check on={m.vibrate} onChange={vibrate => m.set({ vibrate })} label="Vibrate (phones)" />
         </div>
       </Group>
       <Group title="Tap along" note="Tap with the beat (press J, or the pad) and see how early or late each tap was.">
@@ -566,42 +647,32 @@ function TapAlong({ m }: { m: Metronome }) {
   );
 }
 
-/* Setlist: sections played in order, saved settings. */
+/** "From 96 bpm": the tempo, draggable like every tempo shown. */
+function FromBpm({ m }: { m: Metronome }) {
+  const drag = useBpmDrag(m);
+  return <span className="text-(--ink-muted)">From <span className="mm-bpm-drag mm-bpm-inline" {...drag}>{m.bpm}</span> bpm</span>;
+}
 
-function SetlistTab({ m }: { m: Metronome }) {
-  const [saved, setSaved] = useState(['Warm-up 7/8', 'Clave 3-2 at 90', 'Shuffle ladder 80→120']);
+/** A song: sections played in order, each with its own tempo and beats. */
+function SongGroup({ m }: { m: Metronome }) {
   const setSection = (i: number, patch: Partial<Metronome['sections'][number]>) =>
     m.set({ sections: m.sections.map((s, k) => (k === i ? { ...s, ...patch } : s)) });
   return (
-    <div className="mm-tab">
-      <Group title="Song" note="Sections played in order, each with its own tempo and beats, for a whole tune.">
-        <Check on={m.playSections} onChange={playSections => m.set({ playSections })} label="Play these sections in order" />
-        <div className="mm-sections">
-          {m.sections.map((s, i) => (
-            <div key={i} className="mm-section" data-now={m.now?.section === i || undefined}>
-              <input className="input mm-section-name" aria-label="Section name" value={s.name} onChange={e => setSection(i, { name: e.target.value })} />
-              <Num label="" value={s.bars} min={1} max={256} after="bars" onChange={bars => setSection(i, { bars })} />
-              <Num label="" value={s.bpm} min={MIN_BPM} max={MAX_BPM} after="bpm" onChange={bpm => setSection(i, { bpm })} />
-              <Num label="" value={s.beats} min={1} max={16} after="beats" onChange={beats => setSection(i, { beats })} />
-              <button type="button" className="btn btn-ghost mm-remove" aria-label={`Remove ${s.name}`} data-tip="Remove" onClick={() => m.set({ sections: m.sections.filter((_, k) => k !== i) })}>×</button>
-            </div>
-          ))}
-          <button type="button" className="btn btn-ghost mm-add" onClick={() => m.set({ sections: [...m.sections, { name: `Section ${m.sections.length + 1}`, bars: 8, bpm: m.bpm, beats: m.beats }] })}>+ Add a section</button>
-        </div>
-      </Group>
-      <Group title="Saved metronomes" note="Everything on this page saved under a name, to come back to.">
-        <div className="mm-saved">
-          {saved.map(name => <button key={name} type="button" className="mm-saved-item">{name}</button>)}
-          <button type="button" className="btn btn-secondary" onClick={() => setSaved(s => [...s, `Saved ${s.length + 1}`])}>Save as…</button>
-        </div>
-      </Group>
-      <Group title="Take it elsewhere">
-        <div className="mm-row">
-          <button type="button" className="btn btn-secondary">Download click track…</button>
-          <button type="button" className="btn btn-secondary">Copy link</button>
-        </div>
-      </Group>
-    </div>
+    <Group title="Song" note="Sections played in order, each with its own tempo and beats, for a whole tune.">
+      <Check on={m.playSections} onChange={playSections => m.set({ playSections })} label="Play these sections in order" />
+      <div className="mm-sections">
+        {m.sections.map((s, i) => (
+          <div key={i} className="mm-section" data-now={m.now?.section === i || undefined}>
+            <input className="input mm-section-name" aria-label="Section name" value={s.name} onChange={e => setSection(i, { name: e.target.value })} />
+            <Num label="" value={s.bars} min={1} max={256} after="bars" onChange={bars => setSection(i, { bars })} />
+            <Num label="" value={s.bpm} min={MIN_BPM} max={MAX_BPM} dragStep={5} after="bpm" onChange={bpm => setSection(i, { bpm })} />
+            <Num label="" value={s.beats} min={1} max={MAX_BEATS} after="beats" onChange={beats => setSection(i, { beats })} />
+            <button type="button" className="btn btn-ghost mm-remove" aria-label={`Remove ${s.name}`} data-tip="Remove" onClick={() => m.set({ sections: m.sections.filter((_, k) => k !== i) })}>×</button>
+          </div>
+        ))}
+        <button type="button" className="btn btn-ghost mm-add" onClick={() => m.set({ sections: [...m.sections, { name: `Section ${m.sections.length + 1}`, bars: 8, bpm: m.bpm, beats: m.beats }] })}>+ Add a section</button>
+      </div>
+    </Group>
   );
 }
 
@@ -609,19 +680,20 @@ function SetlistTab({ m }: { m: Metronome }) {
 
 function Readout() {
   const m = useMetronome();
+  const drag = useBpmDrag(m);
   return (
     <section className="card mm-card" aria-labelledby="mm-title">
       <Flash m={m} />
-      <h1 id="mm-title" className="m-0">Metronome</h1>
+      <Head />
+      <BeatPads m={m} />
       <div className="mm-readout">
         <button type="button" className="btn btn-ghost mm-step" aria-label="Slower" onClick={() => m.set({ bpm: Math.max(MIN_BPM, m.bpm - 1) })}>−</button>
-        <div className="mm-big">
+        <div className="mm-big mm-bpm-drag" data-tip="Drag up or down: 5 bpm a step, 1 with Shift" {...drag}>
           <span className="mm-big-number">{liveBpm(m)}</span>
           <span className="mm-big-unit">bpm · {tempoName(liveBpm(m))}</span>
         </div>
         <button type="button" className="btn btn-ghost mm-step" aria-label="Faster" onClick={() => m.set({ bpm: Math.min(MAX_BPM, m.bpm + 1) })}>+</button>
       </div>
-      <BeatPads m={m} />
       <CountWord m={m} />
       <div className="mm-row mm-row-center">
         <PlayButton m={m} />
@@ -666,29 +738,23 @@ function Dial() {
   const m = useMetronome();
   const bpm = liveBpm(m);
   const turn = (bpm - MIN_BPM) / (MAX_BPM - MIN_BPM);
-  const drag = useRef<{ y: number; bpm: number } | null>(null);
+  const drag = useBpmDrag(m);
   const [kx, ky] = dialPoint(turn, 130);
   const n = m.now;
   const onBeat = n !== null && n.step === 0;
   return (
     <section className="card mm-card" aria-labelledby="mm-title">
       <Flash m={m} />
-      <h1 id="mm-title" className="m-0">Metronome</h1>
+      <Head />
       <div className="mm-dial-wrap">
         <div
           className="mm-dial" role="slider" tabIndex={0} aria-label="Tempo" aria-valuemin={MIN_BPM} aria-valuemax={MAX_BPM} aria-valuenow={m.bpm}
-          onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { y: e.clientY, bpm: m.bpm }; }}
-          onPointerMove={e => {
-            if (!drag.current) return;
-            const next = Math.round(drag.current.bpm + (drag.current.y - e.clientY) / 2);
-            m.set({ bpm: Math.min(MAX_BPM, Math.max(MIN_BPM, next)) });
-          }}
-          onPointerUp={() => { drag.current = null; }}
+          {...drag}
           onKeyDown={e => {
             const by = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
             if (by === undefined) return;
             e.preventDefault();
-            m.set({ bpm: Math.min(MAX_BPM, Math.max(MIN_BPM, m.bpm + by)) });
+            m.set({ bpm: Math.min(MAX_BPM, Math.max(MIN_BPM, m.bpm + by * (e.shiftKey ? 1 : 5))) });
           }}
         >
           <svg width={DIAL} height={DIAL} viewBox={`0 0 ${DIAL} ${DIAL}`} aria-hidden="true">
@@ -720,7 +786,7 @@ function Dial() {
       </div>
       <CountWord m={m} />
       <div className="mm-row mm-row-center">
-        <TapButton m={m} />
+        <TapButton m={m} round />
         <PlayButton m={m} round />
         <BeatsField m={m} />
       </div>
@@ -740,6 +806,7 @@ function Dial() {
 
 function Pendulum() {
   const m = useMetronome();
+  const drag = useBpmDrag(m);
   const bpm = liveBpm(m);
   // The arm leans to one side on even beats, the other on odd ones, swinging across in one beat.
   const lean = !m.playing || !m.now ? 0 : m.now.beat % 2 === 0 ? 24 : -24;
@@ -750,9 +817,9 @@ function Pendulum() {
   return (
     <section className="card mm-card mm-card-wide" aria-labelledby="mm-title">
       <Flash m={m} />
-      <h1 id="mm-title" className="m-0">Metronome</h1>
+      <Head />
       <div className="mm-pendulum-layout">
-        <svg className="mm-pyramid" width="220" height="300" viewBox="0 0 220 300" aria-hidden="true">
+        <svg className="mm-pyramid mm-bpm-drag" width="220" height="300" viewBox="0 0 220 300" aria-hidden="true" {...drag}>
           <path d="M80 12 L140 12 L196 292 L24 292 Z" fill="var(--fretboard)" />
           <path d="M90 30 L130 30 L166 236 L54 236 Z" fill="var(--surface-sunken)" opacity="0.12" />
           {marks.map(b => {
@@ -798,10 +865,7 @@ function Bar() {
   return (
     <section className="card mm-card mm-card-wide" aria-labelledby="mm-title">
       <Flash m={m} />
-      <div className="mm-bar-head">
-        <h1 id="mm-title" className="m-0">Metronome</h1>
-        <span className="mm-bar-name">{tempoName(liveBpm(m))}</span>
-      </div>
+      <Head><span className="mm-bar-name">{tempoName(liveBpm(m))}</span></Head>
       <div className="mm-row mm-row-top-line">
         <PlayButton m={m} />
         <BpmField m={m} />

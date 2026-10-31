@@ -34,7 +34,7 @@
 .mm-tempo-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
 
 /* A: big beat pads. */
-.mm-pads { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 18px; padding: 8px 0; }
+.mm-pads { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 18px; padding: 8px 0 0; }
 .mm-pad-col { display: grid; justify-items: center; gap: 10px; }
 .mm-pad {
   position: relative; display: block; width: 52px; height: 52px; border-radius: 999px;
@@ -89,7 +89,7 @@
 .mm-side { display: grid; gap: 14px; justify-items: start; }
 
 /* D: the bar of tiles, and its head. */
-.mm-bar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mm-bar-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mm-bar-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
 .mm-pattern { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
 .mm-pattern-beat { display: grid; gap: 4px; }
@@ -205,3 +205,30 @@
   .mm-voice-list { display: grid; gap: 6px; }
   .mm-voice-controls { display: none; }
 }
+
+/* — round 4 — */
+.mm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mm-head-end { display: flex; align-items: center; gap: 16px; }
+/* Start: a muted green (Fretwood's secondary); running, it turns primary and says Stop. */
+.mm-start { background: var(--secondary); color: var(--on-secondary); }
+.mm-start:hover { background: color-mix(in oklab, var(--secondary) 85%, var(--ink)); }
+/* Tap: as big as Start, a lighter green; it pulses on every press. */
+.mm-tap {
+  position: relative; overflow: hidden; min-width: 104px; gap: 8px;
+  background: color-mix(in oklab, var(--secondary) 28%, var(--surface-raised)); color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--secondary) 60%, var(--surface-raised));
+  transition: transform 80ms ease-out;
+}
+.mm-tap:hover { background: color-mix(in oklab, var(--secondary) 38%, var(--surface-raised)); }
+.mm-tap:active { transform: scale(0.95); }
+.mm-tap-pulse {
+  position: absolute; inset: 0; border-radius: inherit; background: var(--secondary); pointer-events: none;
+  animation: mm-tap-pulse 260ms ease-out forwards;
+}
+@keyframes mm-tap-pulse { from { opacity: 0.55; } to { opacity: 0; } }
+.mm-play, .mm-tap { height: 48px; font-size: 16px; }
+.mm-play-round { height: 56px; }
+/* Anywhere a tempo shows, a drag changes it. */
+.mm-bpm-drag { cursor: ns-resize; user-select: none; touch-action: none; }
+.mm-bpm-inline { color: var(--ink); font-weight: 600; border-bottom: 1px dashed var(--line-strong); }
+.mm-tap.mm-play-round { min-width: 0; width: 56px; padding: 0; }
