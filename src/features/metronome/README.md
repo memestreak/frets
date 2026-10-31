@@ -5,12 +5,12 @@ and menu (`sections.ts`) until Jeremy calls it ready.
 
 - `MetronomePage.tsx`: the page, which loads on the client only through
   `MetronomeLoader.tsx`. It holds one metronome and shows it in the view
-  picked in Settings › Metronome › Display. It also holds the Settings
-  group, the `?` list (`shortcuts.ts`) and T for Tap.
+  picked by the switch in the head (no Settings dialog). It also holds the
+  `?` list (`shortcuts.ts`) and T for Tap.
 - `views.tsx`: the four views, Readout, Dial, Pendulum and Bar. Each shows
   the beat at the top, in a box that keeps its size whatever the beats.
 - `controls.tsx`: what the views share:
-  - the head (gear, ⚠, `?`)
+  - the head (the view switch, ⚠, `?`)
   - Start and Tap
   - Tempo and Beats (`NumberField`), with a double-click putting back 120
     and 4

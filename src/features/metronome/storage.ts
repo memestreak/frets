@@ -4,7 +4,8 @@
  *
  * - `frets.metronome.works.current`: the rhythm, the page's work (tempo, beats, the click pattern,
  *   the sounds). One for now; saved metronomes would join it under `frets.metronome.works`.
- * - `frets.metronome.display`: Settings › Metronome › Display, the view.
+ * - `frets.metronome.display`: the view, chosen by the switch in every view's head. The page has
+ *   no Settings: there is too little to set (Jeremy, 2026-10-31).
  * - `frets.metronome.playback`: the volume, a live control on the page, so not in Settings.
  */
 import {

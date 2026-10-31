@@ -8,8 +8,12 @@ Designed with Jeremy over seven rounds of mocks, 2026-10-30 to 2026-10-31
 
 ## Views
 
-The same metronome can be shown four ways. The view is a preference,
-Settings › Metronome › Display › View, and Readout is the default.
+The same metronome can be shown four ways, chosen with a Readout | Dial |
+Pendulum | Bar switch in every view's head, where a Settings gear would be.
+Readout is the default. The page has no Settings dialog: there is too little
+to set (Jeremy, 2026-10-31). Every view's card is the same width, so the
+switch stays put when it changes the view. On a phone the switch has a line
+of its own under the title.
 
 - **Readout**, the Tuner's sibling: a pad per beat, then the tempo as a big
   number with − and + either side (1 bpm), then Start and Tap. Below a rule:
@@ -120,12 +124,12 @@ The sounds are synthesized. The wood block is Tab's metronome click
 - Space starts and stops (`useSpaceKey`).
 - T taps the tempo, but not while typing in a field or in a dialog.
 
-Both are listed in the `?` overlay. The head has the Settings gear, then
-`?`, as on the Tab page.
+Both are listed in the `?` overlay. The head ends with the view switch,
+then `?`.
 
 ## Saved
 
-Following the settings philosophy
+Following the settings philosophy, except that there is no Settings dialog
 (`docs/specs/2026-10-29-settings-design.md`), and listed in
 `src/lib/README.md`:
 
@@ -133,7 +137,8 @@ Following the settings philosophy
   voices and the polyrhythm. This is the page's work, a single one for now.
   Saved metronomes would join it under `frets.metronome.works`, with an
   index.
-- `frets.metronome.display` holds `{ view }`, in Settings.
+- `frets.metronome.display` holds `{ view }`, set by the view switch. The
+  page has no Settings dialog, so this preference is set on the page alone.
 - `frets.metronome.playback` holds `{ volume }`. Volume is a live control,
   set only on its knob, so it is not in Settings.
 

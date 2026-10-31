@@ -1233,15 +1233,20 @@ button {
  */
 @layer components {
   .metronome-card {
-    position: relative; width: 100%; max-width: 640px; margin-inline: auto; padding: clamp(14px, 4vw, 24px);
+    /* One width for every view, so the view switch stays put when it changes the view. */
+    position: relative; width: 100%; max-width: 760px; margin-inline: auto; padding: clamp(14px, 4vw, 24px);
     display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px;
   }
   .metronome-card > * { min-width: 0; }
-  .metronome-card-wide { max-width: 900px; }
-  .metronome-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .metronome-head-end { display: flex; align-items: center; gap: 12px; }
+  .metronome-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .metronome-head-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  /* On a phone the switch has a line of its own under the title. */
+  @media (max-width: 640px) {
+    .metronome-head-end { flex-basis: 100%; }
+    .metronome-views { flex: 1; }
+    .metronome-views .seg-opt { flex: 1 1 0; justify-content: center; text-align: center; padding-inline: 4px; }
+  }
   /* Bar's tempo name, in its head, goes where there is no room for it. */
-  @media (max-width: 480px) { .metronome-head .metronome-tempo-name { display: none; } }
   .metronome-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
   .metronome-center { justify-content: center; text-align: center; }
   .metronome-rule { padding-top: 16px; border-top: 1px solid var(--line); }

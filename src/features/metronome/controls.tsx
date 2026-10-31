@@ -2,7 +2,6 @@
 
 /** The controls every view shares: the head, Start, Tap, the number fields, the sound, the status. */
 import { createContext, useContext, useRef, useState, type PointerEvent, type ReactNode } from 'react';
-import { GearIcon } from '@/components/icons';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { VolumeKnob } from '@/components/VolumeKnob';
@@ -11,29 +10,35 @@ import {
   DEFAULT_BEATS, DEFAULT_BPM, MAX_BEATS, MAX_BPM, MIN_BPM, SOUNDS, VOICE_NAMES, clampBpm, withAllSubs, withBeats,
   withSound, type SoundId, type Step,
 } from './rhythm';
+import { VIEWS, type ViewId } from './storage';
 import type { Metronome } from './useMetronome';
 
-/** Opens Settings, from the gear in each view's head. */
-export const OpenSettings = createContext<() => void>(() => {});
+/** The view shown, and how to change it, for the switch in every view's head. */
+export const ViewChoice = createContext<{ view: ViewId; setView: (view: ViewId) => void }>({ view: 'readout', setView: () => {} });
 
-/** The title, then the gear for Settings (and its ⚠ while a save fails) and the shortcuts' ?. */
+/**
+ * The title, then the view switch (Jeremy, 2026-10-31: in the head, in place of a Settings gear),
+ * the ⚠ while the view can't be saved, and the shortcuts' ?.
+ */
 export function Head({ children }: { children?: ReactNode }) {
-  const openSettings = useContext(OpenSettings);
+  const { view, setView } = useContext(ViewChoice);
   const saveProblem = usePreferenceSaveProblem();
   return (
     <div className="metronome-head">
       <h1 id="metronome-title" className="m-0">Metronome</h1>
+      {children}
       <span className="metronome-head-end">
-        {children}
-        <button type="button" className="btn btn-secondary btn-icon" aria-label="Settings" data-tip="Settings" onClick={openSettings}>
-          <GearIcon />
-        </button>
+        <div className="seg metronome-views" role="group" aria-label="View">
+          {VIEWS.map(([id, name]) => (
+            <button key={id} type="button" className="seg-opt" aria-pressed={view === id} onClick={() => setView(id)}>{name}</button>
+          ))}
+        </div>
         {saveProblem && (
           <span
-            className="settings-save-problem" role="img" aria-label={`Settings couldn't be saved: ${saveProblem}`}
-            title={`Settings couldn't be saved: ${saveProblem}`}
+            className="settings-save-problem" role="img" aria-label={`The view couldn't be saved: ${saveProblem}`}
+            title={`The view couldn't be saved: ${saveProblem}`}
           >
-            ⚠{'︎'}
+            ⚠{'\uFE0E'}
           </span>
         )}
         <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" data-tip="Shortcuts (?)" onClick={showShortcuts}>

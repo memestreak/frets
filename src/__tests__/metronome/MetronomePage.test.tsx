@@ -37,14 +37,22 @@ describe('MetronomePage', () => {
     expect(screen.getAllByRole('button', { name: /^Beat \d step 1/ })).toHaveLength(4);
   });
 
-  it('changes the view from Settings › Metronome › Display, and saves it', () => {
+  it('changes the view from the switch in its head, and saves it', () => {
     const { container } = render(<MetronomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    const dialog = screen.getByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Pendulum' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
+    const views = within(screen.getByRole('group', { name: 'View' }));
+    expect(views.getByRole('button', { name: 'Readout' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(views.getByRole('button', { name: 'Pendulum' }));
     expect(container.querySelector('.metronome-pyramid')).not.toBeNull();
+    expect(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Pendulum' })).toHaveAttribute('aria-pressed', 'true');
     expect(JSON.parse(localStorage.getItem(DISPLAY_KEY)!)).toEqual({ view: 'pendulum' });
+  });
+
+  it('keeps the rhythm when the view changes', () => {
+    render(<MetronomePage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Bar' }));
+    expect(screen.getByRole('spinbutton', { name: 'Tempo' })).toHaveValue('121');
   });
 
   it('Start turns into Stop, and Space does the same', () => {

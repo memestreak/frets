@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The Metronome's four views, picked in Settings › Metronome › Display. Each shows the beat at the
+ * The Metronome's four views, picked by the switch in each one's head. Each shows the beat at the
  * top, in a box that keeps its size whatever the beats, so nothing else moves (Jeremy, 2026-10-31).
  * Advanced is the same under all four.
  */
@@ -221,7 +221,7 @@ function Pendulum({ m }: { m: Metronome }) {
   const lean = !m.now || m.now.beat < 0 ? 0 : m.now.beat % 2 === 0 ? LEAN : -LEAN;
   const y = weightY(bpm);
   return (
-    <section className="card metronome-card metronome-card-wide" aria-labelledby="metronome-title">
+    <section className="card metronome-card" aria-labelledby="metronome-title">
       <Head />
       <div className="metronome-pendulum">
         <svg
@@ -268,7 +268,7 @@ function Pendulum({ m }: { m: Metronome }) {
 function Bar({ m }: { m: Metronome }) {
   const { subs, steps, bpm } = m.rhythm;
   return (
-    <section className="card metronome-card metronome-card-wide" aria-labelledby="metronome-title">
+    <section className="card metronome-card" aria-labelledby="metronome-title">
       <Head><span className="metronome-tempo-name">{tempoName(bpm)}</span></Head>
       <div className="metronome-tiles" role="group" aria-label="Steps (press to change the voice)">
         {subs.map((n, beat) => (
