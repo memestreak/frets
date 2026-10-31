@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
-    "build": "next build",
+    "build": "npm run mcp:build && next build",
+    "mcp:build": "vite build --config mcp/vite.config.mts && vite build --config mcp/vite.server.config.mts",
+    "mcp:preview": "npm run mcp:build && vite --config mcp/vite.preview.config.mts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -17,12 +19,16 @@
   },
   "dependencies": {
     "@coderline/alphatab": "1.8.4",
+    "@modelcontextprotocol/ext-apps": "^2.0.4",
+    "@modelcontextprotocol/server": "^2.4.0",
     "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "tonal": "6.4.3"
+    "tonal": "6.4.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -37,6 +43,8 @@
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^4.1.0",
     "xmllint-wasm": "^5.3.0"
   }

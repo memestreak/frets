@@ -43,11 +43,13 @@ folder's `README.md`; update that instead:
 ```bash
 npm run dev      # Dev server at localhost:3000
 npm run dev:https  # Same over https (self-signed), for the mic from another device
-npm run build    # Static export to out/
+npm run build    # The MCP App (mcp:build), then the static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
 npm run icons    # Re-render every icon and favicon.ico after changing the mark's SVGs
+npm run mcp:build  # The metronome's MCP App and stdio server, to mcp/dist/
+npm run mcp:preview  # A stand-in MCP host for the metronome app, at localhost:5174
 ```
 
 `.github/workflows/ci.yml` runs all four checks for every pull request and
@@ -64,6 +66,9 @@ binds a local port).
 - `src/lib/`, `src/components/`, `src/hooks/` — shared by more than one
   section.
 - `src/features/<section>/` — everything only one section uses.
+- `mcp/` — build entries for the metronome's MCP App (Vite, outside the
+  Next.js export); `functions/` — Cloudflare Pages Functions (`/mcp`).
+  The app's code lives in `src/features/metronome/mcp/`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
