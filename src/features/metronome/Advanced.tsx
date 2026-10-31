@@ -14,7 +14,8 @@ import {
 } from './rhythm';
 import type { Metronome } from './useMetronomeCore';
 
-export function Advanced({ m }: { m: Metronome }) {
+/** `first`: anything shown at the top of Advanced when open (the MCP App's one-row layout puts Sound there). */
+export function Advanced({ m, first }: { m: Metronome; first?: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="metronome-advanced">
@@ -26,6 +27,7 @@ export function Advanced({ m }: { m: Metronome }) {
       </button>
       {open && (
         <div className="metronome-advanced-body">
+          {first}
           <Group title="Meter"><Meter m={m} /></Group>
           <Group title="Click pattern" note="Each beat is split into steps; each step plays one voice, A to D, or nothing. Press a cell to put that voice there.">
             <VoiceGrid m={m} />

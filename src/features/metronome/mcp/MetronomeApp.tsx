@@ -14,6 +14,7 @@ import { useMetronomeCore, type Metronome } from '../useMetronomeCore';
 import { useTapKey } from '../useTapKey';
 import { MetronomeView } from '../views';
 import { listenToHost } from './host';
+import { Strip } from './Strip';
 import { describeRhythm, rhythmFromInput, type MetronomeState, type ToolInput } from './tool';
 
 /** How long after the last change the model is told: a drag sends one update, not forty. */
@@ -93,16 +94,28 @@ function useHost(app: App, m: Metronome, view: ViewId, setView: (v: ViewId) => v
   }, [app, connected, rhythm, view, playing]);
 }
 
+/** MOCK (2026-10-31): the layouts Jeremy is choosing between for Claude's chat column. */
+const LAYOUTS = [['now', 'Now'], ['a', 'A Tighter'], ['b', 'B One row'], ['c', 'C Scaled']] as const;
+type Layout = (typeof LAYOUTS)[number][0];
+
 export function MetronomeApp({ app }: { app: App }) {
   const m = useMetronomeCore(() => ({ rhythm: defaultRhythm(), volume: DEFAULT_PLAYBACK.volume }));
   const [view, setView] = useState<ViewId>(DEFAULT_DISPLAY.view);
+  const [layout, setLayout] = useState<Layout>('a');
   useHost(app, m, view, setView);
   useSpaceKey(m.toggle);
   useTapKey(m.tap);
   return (
     <ViewChoice.Provider value={{ view, setView }}>
       <HoverTips>
-        <MetronomeView view={view} m={m} />
+        <div className="mcp-app" data-layout={layout}>
+          {layout === 'b' ? <Strip m={m} /> : <MetronomeView view={view} m={m} />}
+          <div className="seg mcp-mock" role="group" aria-label="Layout (mock)">
+            {LAYOUTS.map(([id, name]) => (
+              <button key={id} type="button" className="seg-opt" aria-pressed={layout === id} onClick={() => setLayout(id)}>{name}</button>
+            ))}
+          </div>
+        </div>
       </HoverTips>
     </ViewChoice.Provider>
   );
