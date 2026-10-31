@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * A small number field with up and down buttons, for the playback footer's speed (Jeremy's ask,
- * 2026-10-26) and the pause between loops. Type a number (it takes effect on Enter or on leaving the
+ * A small number field with up and down buttons (Jeremy's ask, 2026-10-26: first Tab's speed, now
+ * every numeric field in Tab and the Metronome). Type a number (it takes effect on Enter or on leaving the
  * field), press the buttons or ↑ ↓ to step it, or press on the number and drag up or down, even
  * while typing. A press that doesn't move selects the number to type over it.
  */
@@ -24,12 +24,14 @@ export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void
 const DRAG_PX_PER_STEP = 10;
 const DRAG_THRESHOLD_PX = 3;
 
-export function NumberField({ value, min, max, step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
+export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
   value: number;
   min: number;
   max: number;
   /** How far a button or an arrow key steps it. */
   step: number;
+  /** How far a drag steps it; with Shift held, `step` (the Metronome's tempo: 5, Shift 1). */
+  dragStep?: number;
   /** Digits after the point, as shown and as kept. */
   decimals?: number;
   /** Shown after the number, inside the box: `%`, `s`. A long unit goes outside it instead. */
@@ -82,7 +84,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   };
 
   // A press on the number: dragging up or down changes it; a press that stays put starts typing.
-  const drag = useRef<{ y: number; from: number; moved: boolean } | null>(null);
+  const drag = useRef<{ y: number; from: number; moved: boolean; shift: boolean } | null>(null);
   const onPointerDown = (e: PointerEvent<HTMLInputElement>) => {
     if (disabled || e.button !== 0) return;
     // Keep the caret out (and no text selected) until we know it is a click. Dragging works while
@@ -90,7 +92,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     const typed = draft !== null ? parse(draft) : null;
-    drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false };
+    drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false, shift: e.shiftKey };
   };
   const onPointerMove = (e: PointerEvent<HTMLInputElement>) => {
     const d = drag.current;
@@ -99,8 +101,15 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
     if (!d.moved && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
     if (!d.moved) setDraft(null);
     d.moved = true;
+    // Shift pressed or let go mid-drag carries on from where the number is.
+    if (d.shift !== e.shiftKey) {
+      d.shift = e.shiftKey;
+      d.y = e.clientY;
+      d.from = value;
+      return;
+    }
     // Up raises it, a step every few pixels.
-    set(d.from + Math.round(dy / DRAG_PX_PER_STEP) * step);
+    set(d.from + Math.round(dy / DRAG_PX_PER_STEP) * (e.shiftKey ? step : dragStep));
   };
   const onPointerUp = () => {
     const d = drag.current;
@@ -115,7 +124,7 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
   // Room for the longest value, its sign included.
   const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
-    <span className="tab-number-field" data-disabled={disabled || undefined}>
+    <span className="number-field" data-disabled={disabled || undefined}>
       <input disabled={disabled}
         ref={input} type="text" inputMode={signed ? 'text' : decimals > 0 ? 'decimal' : 'numeric'} aria-label={label}
         role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={value}
@@ -125,8 +134,8 @@ export function NumberField({ value, min, max, step, decimals = 0, unit, label, 
         onPointerDown={onPointerDown} onPointerMove={onPointerMove}
         onPointerUp={onPointerUp} onPointerCancel={() => { drag.current = null; }}
       />
-      <span className="tab-number-unit" aria-hidden="true">{unit ?? ''}</span>
-      <span className="tab-number-steps">
+      <span className="number-field-unit" aria-hidden="true">{unit ?? ''}</span>
+      <span className="number-field-steps">
         <button type="button" aria-label={upLabel} tabIndex={-1} disabled={disabled} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>

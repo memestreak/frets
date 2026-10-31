@@ -7,7 +7,7 @@
  * A small menu at the press, like the shapes' menu; it stays open while its options are changed, and
  * a press elsewhere, a scroll or Esc closes it.
  */
-import { NumberField } from './NumberField';
+import { NumberField } from '@/components/NumberField';
 import { usePopover } from './usePopover';
 
 /** The rest between loops, in seconds: its range and step. */

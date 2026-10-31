@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The playback footer's volume: a small rotary knob (Jeremy picked it over a slider, 2026-10-26).
+ * A volume or level: a small rotary knob (Jeremy picked it over a slider, 2026-10-26).
  * Drag up or down, scroll, or use the arrow keys to turn it; it sweeps 270°, from 0 at lower left
  * to 100% at lower right, with the level on hover.
  */
@@ -65,7 +65,7 @@ export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
   const [tipX, tipY] = pointAt(value, 4);
   return (
     <div
-      ref={ref} className="tab-knob" role="slider" tabIndex={0} aria-labelledby={labelledBy}
+      ref={ref} className="knob" role="slider" tabIndex={0} aria-labelledby={labelledBy}
       aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={text}
       data-tip={`${name} ${text}`}
       // A press leaves the focus (and so the cursor) on the tab; the keys still reach the knob by Tab.

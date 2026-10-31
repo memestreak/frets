@@ -8,10 +8,10 @@
  */
 import { useRef, useState } from 'react';
 import { DECAY_SECONDS, type FxSettings } from './effects';
-import { NumberField } from './NumberField';
+import { NumberField } from '@/components/NumberField';
 import { usePopover } from './usePopover';
 import { Toggle } from './ViewOptions';
-import { VolumeKnob } from './VolumeKnob';
+import { VolumeKnob } from '@/components/VolumeKnob';
 
 /** How soon after a press away closed the dialog a click on FX is that same press, and leaves it shut. */
 const PRESSED_AWAY_MS = 500;
