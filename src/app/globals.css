@@ -1067,6 +1067,29 @@ button {
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
   .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }
+  /* Arrangements… as a file chooser (issue #259 mocks): b, places | files | preview; c, a path over the list and the preview. */
+  .settings-dialog:has(.tab-chooser-wide) { width: min(1120px, calc(100vw - 32px)); }
+  .settings-dialog:has(.tab-chooser-narrow) { width: min(760px, calc(100vw - 32px)); }
+  .tab-chooser-panes { display: grid; grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; min-height: 360px; }
+  .tab-chooser-places { border-right: 1px solid var(--line); padding-right: 12px; }
+  .tab-chooser-sub { list-style: none; padding-left: 16px; }
+  .tab-chooser-place > svg { flex: none; color: var(--ink-muted); }
+  .tab-chooser-places .tab-chooser-place[aria-current='true'] { border-color: transparent; background: var(--surface-sunken); }
+  .tab-chooser-files { display: grid; align-content: start; gap: 8px; min-width: 0; }
+  .tab-chooser-list { max-height: 50dvh; overflow-y: auto; align-content: start; }
+  .tab-chooser-list:has(+ .tab-chooser-preview) { max-height: 28dvh; }
+  .tab-chooser-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 0 4px; font-size: 0.9375rem; }
+  .tab-chooser-crumb { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-muted); }
+  .tab-chooser-crumb .btn { min-height: 0; padding: 2px 6px; }
+  .tab-chooser-crumb [aria-current] { padding: 2px 6px; color: var(--ink); font-weight: 600; }
+  .tab-chooser-enter { margin-left: auto; display: inline-flex; color: var(--ink-muted); }
+  .tab-chooser-preview { display: grid; align-content: start; gap: 8px; min-width: 0; }
+  .tab-chooser-sheet {
+    min-height: 160px; max-height: 50dvh; overflow: auto; padding: 12px;
+    border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  }
+  .tab-chooser-back { justify-self: start; }
+  .tab-chooser-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .tab-rows { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .tab-folder-items { padding-left: 22px; }
   .tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
