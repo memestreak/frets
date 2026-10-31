@@ -47,15 +47,14 @@ handlers; it is left for later.
 Not listed yet: ⌘S, ⇧⌘S and ⌘O, which the Arrangements redesign (#259) adds;
 that PR adds them to the Tab page's Page group.
 
-## Looks to choose from
+## Look
 
-While the look is open, `?mock=` picks one:
+A dialog over a dimmed page (Jeremy picked it from three mocks, 2026-10-31),
+the groups in two columns where there is room, one on a phone; the whole list
+scrolls. Each group's title sits on a band so the groups stand apart. While
+the band is open, `?mock=` picks one:
 
-- **a** (default): a dialog over a dimmed page, the groups in two columns
-  where there is room, one on a phone; the whole list scrolls.
-- **b**: a sheet down the right side, over the page without dimming it, one
-  column, so the page stays in view while reading.
-- **c**: a small dialog showing one group at a time, chosen on a segmented
-  control.
+- **a** (default): a sunken band (`--surface-sunken`), ink text.
+- **b**: a rosewood band (`--fretboard`), string-coloured text (`--string`).
 
-Once Jeremy picks one, the others and the `?mock=` switch go.
+Once Jeremy picks one, the other and the `?mock=` switch go.

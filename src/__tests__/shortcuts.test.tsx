@@ -107,29 +107,14 @@ describe('ShortcutsOverlay', () => {
     expect(within(overlay()!).getByText('Show or hide this list')).toBeTruthy();
   });
 
-  it('shows one group at a time in mock c', () => {
-    setMock('c');
+  it('draws the groups’ titles as a sunken band, or rosewood in mock b', () => {
     render(<><Page /><ShortcutsOverlay /></>);
     press('?');
-    const dialog = overlay()!;
-    expect(within(dialog).getByText('Arpeggio on or off')).toBeTruthy();
-    expect(within(dialog).queryByText('Show or hide this list')).toBeNull();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Everywhere' }));
-    expect(within(dialog).getByText('Show or hide this list')).toBeTruthy();
-  });
-
-  it('closes the side sheet of mock b on Esc and on a press outside it', () => {
+    expect(overlay()!.querySelector('.shortcuts-titles-a')).not.toBeNull();
+    press('?', overlay()!);
     setMock('b');
-    render(<><Page /><ShortcutsOverlay /></>);
     press('?');
-    expect(overlay()).not.toBeNull();
-    press('Escape');
-    expect(overlay()).toBeNull();
-    press('?');
-    act(() => {
-      fireEvent.pointerDown(document.body);
-    });
-    expect(overlay()).toBeNull();
+    expect(overlay()!.querySelector('.shortcuts-titles-b')).not.toBeNull();
   });
 });
 
