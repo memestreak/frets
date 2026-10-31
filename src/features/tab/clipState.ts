@@ -1,12 +1,11 @@
 /**
- * The Tab page's clip and its undo history, which arrangement it is (`arrangements.ts`), and the
- * example clip open in its place, if any. An example's edits are never saved: the page saves the
- * clip only while no example is open, and leaving the example brings back the clip and history it
- * set aside.
+ * The Tab page's clip and its undo history, which arrangement it is (`arrangements.ts`), and the clip
+ * as it was last saved or opened (`base`): the clip has unsaved changes while it isn't that very clip,
+ * so undoing back to it leaves nothing unsaved (issue #259).
  */
 import { withPart, type Clip, type Part } from './clip';
 import type { FxSettings } from './effects';
-import { openOnLoad, type Library } from './arrangements';
+import { openOnLoad, type Draft, type Library } from './arrangements';
 
 /** A clip with its undo history. */
 interface History {
@@ -18,10 +17,10 @@ interface History {
 }
 
 export interface ClipState extends History {
-  /** The arrangement the clip is saved as; while an example is shown, the one it set aside. */
+  /** The arrangement the clip is saved as (it may not be in My arrangements yet). */
   id: string;
-  /** The example being shown (a built-in arrangement's id, `builtins.ts`) and the clip it set aside; null for the saved clip. */
-  example: { id: string; mine: History } | null;
+  /** The clip as it was last saved or opened. */
+  base: Clip;
 }
 
 export type ClipAction =
@@ -33,14 +32,12 @@ export type ClipAction =
   | { type: 'preview'; clip: Clip }
   | { type: 'undo' }
   | { type: 'redo' }
-  /** An example in place of the clip, with a history of its own. */
-  | { type: 'openExample'; id: string; clip: Clip }
-  /** Back to the clip an example set aside. */
-  | { type: 'leaveExample' }
-  /** A new title for the arrangement: one undo step; while an example is shown, in the clip it set aside. */
-  | { type: 'rename'; name: string }
-  /** Another arrangement (a kept one, a new one, an import or a copy) in place of the clip, with a fresh history. */
-  | { type: 'open'; id: string; clip: Clip };
+  /** Another arrangement (a saved one, a new one, a built-in, an import or a link) in place of the clip, with a fresh history. */
+  | { type: 'open'; id: string; clip: Clip }
+  /** The clip saved as `id` (Save, or Save As… under a new id), as `clip`: nothing is unsaved; the history stays. */
+  | { type: 'saved'; id: string; clip: Clip }
+  /** The arrangement renamed in Arrangements…, which saves the name at once: other unsaved changes stay unsaved. */
+  | { type: 'renameSaved'; name: string };
 
 /** An edit or a preview made on the part the page shows, which goes back into the whole clip (`withPart`). */
 export type PartAction =
@@ -82,20 +79,16 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
       if (!clip) return state;
       return { ...state, clip, past: [...state.past, state.clip], future: state.future.slice(0, -1) };
     }
-    case 'openExample': {
-      const mine = state.example?.mine ?? { clip: state.clip, past: state.past, future: state.future };
-      return { clip: action.clip, past: [], future: [], id: state.id, example: { id: action.id, mine } };
-    }
-    case 'leaveExample':
-      return state.example ? { ...state.example.mine, id: state.id, example: null } : state;
-    case 'rename': {
-      if (!state.example) return clipReducer(state, { type: 'replace', clip: { ...state.clip, name: action.name } });
-      const { mine } = state.example;
-      const renamed = { clip: { ...mine.clip, name: action.name }, past: [...mine.past, mine.clip], future: [] };
-      return { ...state, example: { ...state.example, mine: renamed } };
-    }
     case 'open':
-      return { clip: action.clip, past: [], future: [], id: action.id, example: null };
+      return { clip: action.clip, past: [], future: [], id: action.id, base: action.clip };
+    case 'saved':
+      return { ...state, id: action.id, clip: action.clip, base: action.clip };
+    case 'renameSaved': {
+      const base = { ...state.base, name: action.name };
+      // The saved clip, wherever it is in the history, stays the very one saved, so undoing back to it leaves nothing unsaved.
+      const named = (clip: Clip) => (clip === state.base ? base : { ...clip, name: action.name });
+      return { ...state, clip: named(state.clip), base, past: state.past.map(named), future: state.future.map(named) };
+    }
   }
 }
 
@@ -118,7 +111,12 @@ function sameBut(a: object, b: object, skip: string[]): boolean {
   return [...keys].every(key => skip.includes(key) || x[key] === y[key]);
 }
 
-/** The open arrangement, or a new empty clip. */
-export function initClipState(library: Library): ClipState {
-  return { ...openOnLoad(library), past: [], future: [], example: null };
+/**
+ * The page's clip on load (issue #259): the clip as it was left when it had unsaved changes or was
+ * never saved (`draft`), else the open arrangement, else a new empty clip.
+ */
+export function initClipState({ library, draft }: { library: Library; draft: Draft | null }): ClipState {
+  if (draft) return { id: draft.id, clip: draft.clip, base: draft.base, past: [], future: [] };
+  const { id, clip } = openOnLoad(library);
+  return { id, clip, base: clip, past: [], future: [] };
 }

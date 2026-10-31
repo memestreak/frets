@@ -1,9 +1,9 @@
-import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import { emptyClip, type Clip } from './clip';
 import { clipReducer, initClipState } from './clipState';
 import {
-  addFolder, dropArrangements, dropFolder, libraryStore, loadArrangement, moveArrangement, newArrangementId, renameFolder,
-  storeArrangement, worthKeeping, type ArrangementInfo, type FolderInfo,
+  addFolder, clearDraft, dropArrangements, dropFolder, libraryStore, loadArrangement, loadDraft, moveArrangement, newArrangementId,
+  renameFolder, saveDraft, storeArrangement, type ArrangementInfo, type FolderInfo,
 } from './arrangements';
 
 /** What was just deleted, kept until the dialog closes so Undo can bring it back. */
@@ -16,86 +16,86 @@ export interface Deleted {
 }
 
 /**
- * The clip with its undo history, and My arrangements (issue #187): the open arrangement is saved as
- * it is edited (never an example shown in its place); the others can be opened, renamed, moved
- * between folders and deleted.
+ * The clip with its undo history, and My arrangements (issues #187, #259): the open arrangement is
+ * written only on Save or Save As…; until then it has unsaved changes, kept as a draft so a reload
+ * brings them back. The saved ones can be opened, renamed, moved between folders and deleted.
  */
 export function useArrangements() {
   const [store] = useState(libraryStore);
   const library = useSyncExternalStore(store.subscribe, store.get, store.get);
-  const [state, dispatch] = useReducer(clipReducer, library, initClipState);
+  const [state, dispatch] = useReducer(clipReducer, null, () => initClipState({ library: store.get(), draft: loadDraft(store.get()) }));
   const [deleted, setDeleted] = useState<Deleted | null>(null);
 
-  // The arrangement last read or written, so opening one doesn't count as a change.
-  const saved = useRef({ id: state.id, clip: state.clip });
-  // Where a new arrangement goes when it joins the list: the folder it was started in.
-  const newFolder = useRef<string | undefined>(undefined);
-  // The open arrangement is saved as it changes; the index names it, so a reload opens it again.
+  /** Whether the open arrangement is one of My arrangements. */
+  const kept = library.items.some(i => i.id === state.id);
+  /** Whether the clip differs from the one last saved or opened. */
+  const unsaved = state.clip !== state.base;
+
+  // The index names the open arrangement; the draft holds it while it isn't saved as it is.
   useEffect(() => {
-    const { id, clip, example } = state;
     const known = store.get();
-    let next = known;
-    if (!example && (saved.current.id !== id || saved.current.clip !== clip)) {
-      saved.current = { id, clip };
-      // A new clip joins the list once it has something in it.
-      if (known.items.some(i => i.id === id) || worthKeeping(clip)) {
-        next = storeArrangement(known, id, clip, Date.now(), newFolder.current);
-      }
-    }
-    if (next !== known || known.open !== id) store.set({ ...next, open: id });
-  }, [state, store]);
+    if (known.open !== state.id) store.set({ ...known, open: state.id });
+    if (kept && !unsaved) clearDraft();
+    else saveDraft({ id: state.id, clip: state.clip, base: state.base }, kept);
+  }, [state, kept, unsaved, store]);
 
-  /** The clip the arrangement `id` holds now: the open one's from the page, else from storage. */
-  const clipOf = (id: string): Clip | null =>
-    id === state.id ? (state.example?.mine.clip ?? state.clip) : loadArrangement(id);
-
-  /** Opens a kept arrangement in place of what is shown; false when its clip can't be read. */
+  /** Opens a saved arrangement in place of the clip; false when its clip can't be read. */
   const open = (id: string): boolean => {
-    if (id === state.id && !state.example) return true;
-    const clip = clipOf(id);
+    const clip = loadArrangement(id);
     if (!clip) return false;
-    saved.current = { id, clip };
     dispatch({ type: 'open', id, clip });
     return true;
   };
 
-  /** `clip` (an empty one when none) as a new arrangement, opened; it joins `folder` when kept. */
-  const openNew = (clip: Clip = emptyClip(), folder?: string) => {
-    newFolder.current = folder;
-    dispatch({ type: 'open', id: newArrangementId(), clip });
+  /** `clip` (an empty one when none) as a new arrangement, not saved yet; its id. */
+  const openNew = (clip: Clip = emptyClip()): string => {
+    const id = newArrangementId();
+    dispatch({ type: 'open', id, clip });
+    return id;
   };
 
-  /** A new name for a kept arrangement; the open one's is an undo step, as a click on the title. */
+  /** Saves the open arrangement where it is; false when it was never saved, which Save As… does first. */
+  const save = (): boolean => {
+    if (!kept) return false;
+    store.set(storeArrangement(store.get(), state.id, state.clip, Date.now()));
+    dispatch({ type: 'saved', id: state.id, clip: state.clip });
+    return true;
+  };
+
+  /**
+   * Saves the open clip named `name` into `folder` (the top level with none): a saved arrangement as
+   * a new one, which the page then shows (the saved one stays as it was); one never saved, as itself.
+   */
+  const saveAs = (name: string, folder: string | undefined) => {
+    const id = kept ? newArrangementId() : state.id;
+    const clip = { ...state.clip, name };
+    store.set(storeArrangement(store.get(), id, clip, Date.now(), folder));
+    dispatch({ type: 'saved', id, clip });
+  };
+
+  /** A new name for a saved arrangement, saved at once; the open one's title follows, its other changes still unsaved. */
   const rename = (id: string, name: string) => {
-    if (id === state.id) {
-      dispatch({ type: 'rename', name });
-      // Behind an example the clip isn't saved until the example is left; the list shows the name now.
-      if (!state.example) return;
-    }
     const clip = loadArrangement(id);
-    if (clip) store.set(storeArrangement(library, id, { ...clip, name }, Date.now()));
+    if (clip) store.set(storeArrangement(store.get(), id, { ...clip, name }, Date.now()));
+    if (id === state.id) dispatch({ type: 'renameSaved', name });
   };
 
-  /** After deleting, the open arrangement if it is still kept, else the latest other, else a new clip. */
+  /** After deleting, the open arrangement if it is still saved, else the latest other, else a new clip. */
   const reopen = (gone: string[]) => {
     if (!gone.includes(state.id)) return;
     const next = store.get().items.map(i => ({ id: i.id, clip: loadArrangement(i.id) })).find(i => i.clip);
-    if (next?.clip) {
-      saved.current = { id: next.id, clip: next.clip };
-      dispatch({ type: 'open', id: next.id, clip: next.clip });
-    } else {
-      openNew();
-    }
+    if (next?.clip) dispatch({ type: 'open', id: next.id, clip: next.clip });
+    else openNew();
   };
 
-  /** The arrangements `infos` with their clips, for Undo. */
+  /** The arrangements `infos` with their saved clips, for Undo. */
   const withClips = (infos: ArrangementInfo[]) =>
     infos.flatMap(info => {
-      const clip = clipOf(info.id);
+      const clip = loadArrangement(info.id);
       return clip ? [{ info, clip }] : [];
     });
 
-  /** Deletes kept arrangements; deleting the open one opens the latest other, or a new clip. */
+  /** Deletes saved arrangements; deleting the open one opens the latest other, or a new clip. */
   const remove = (ids: string[]) => {
     const infos = library.items.filter(i => ids.includes(i.id));
     if (infos.length === 0) return;
@@ -132,7 +132,8 @@ export function useArrangements() {
   };
 
   return {
-    state, dispatch, library, deleted, open, openNew, rename, remove, removeFolder, undoDelete, createFolder,
+    state, dispatch, library, kept, unsaved, deleted, open, openNew, save, saveAs, rename, remove, removeFolder, undoDelete,
+    createFolder,
     renameFolder: (id: string, name: string) => store.set(renameFolder(library, id, name)),
     /** Moves the arrangements `ids` into `folder`, or to the top level with none. */
     move: (ids: string[], folder: string | undefined) =>

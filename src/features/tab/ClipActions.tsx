@@ -100,11 +100,11 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
   };
   const copyLabel = { tab: 'Copy as PNG', ascii: 'Copy as text', alphatex: 'Copy as text' }[view];
 
-  /** Saves the clip in one format, through the browser's Save As dialog where it has one. */
+  /** Downloads the clip in one format, through the browser's Save As dialog where it has one. */
   const save = (kind: SaveKind, make: () => Blob | Promise<Blob>) => {
     saveFile(clip.name.trim() || 'tab', kind, make).then(
       line => { if (line) onNotice({ tone: 'info', lines: [line] }); },
-      (e: unknown) => onNotice({ tone: 'error', lines: [`Couldn't save: ${e instanceof Error ? e.message : String(e)}`] }),
+      (e: unknown) => onNotice({ tone: 'error', lines: [`Couldn't download: ${e instanceof Error ? e.message : String(e)}`] }),
     );
   };
   const asText = (text: string) => new Blob([text], { type: 'text/plain' });
@@ -117,8 +117,8 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
     { label: 'MusicXML…', onSelect: () => save(SAVE_KINDS.musicxml, () => new Blob([writeMusicXml(clip)], { type: SAVE_KINDS.musicxml.mime })) },
     { label: 'Guitar Pro…', onSelect: () => save(SAVE_KINDS.guitarPro, async () => asBytes(await writeGuitarPro(clip))) },
   ];
-  /** In Notation the save button lists the formats; the ASCII Tab view saves its text, and the AlphaTex view its text as typed. */
-  const saveLabel = { tab: 'Save as…', ascii: 'Save as text file', alphatex: 'Save as alphaTex file' }[view];
+  /** In Notation the Download button lists the formats; the ASCII Tab view downloads its text, and the AlphaTex view its text as typed (issue #259: "Save" keeps an arrangement). */
+  const saveLabel = { tab: 'Download…', ascii: 'Download text file', alphatex: 'Download alphaTex file' }[view];
 
   const buttons = (
     <>
@@ -169,7 +169,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
     <>
       {saveMenu && (
         <ShapeMenu
-          x={saveMenu.x} y={saveMenu.y} align="end" label="Save as"
+          x={saveMenu.x} y={saveMenu.y} align="end" label="Download"
           onClose={refocus => {
             if (!refocus) saveMenuPressedAway.current = Date.now();
             setSaveMenu(null);
