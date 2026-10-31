@@ -1463,13 +1463,15 @@ describe('TabPage built-in arrangements (issue #259)', () => {
     const dialog = openDialog();
     await place(dialog, 'Samples');
     await settle();
-    const calls = fetched.mock.calls.length;
+    // The sound font may load meanwhile; only the built-ins' list counts.
+    const builtinCalls = () => fetched.mock.calls.filter(c => c[0] === BUILTIN_URL).length;
+    const calls = builtinCalls();
     doubleClick(within(dialog).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
     expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
     expect(window.location.hash).toBe('#example=oceanic-speedy-down-run');
     // The text came with the dialog's list: only the reading on opening fetched it again.
-    expect(fetched.mock.calls.length).toBe(calls);
+    expect(builtinCalls()).toBe(calls);
   });
 
   it('opens the example in an #example= link and keeps the link until the clip changes', async () => {
@@ -1491,10 +1493,13 @@ describe('TabPage built-in arrangements (issue #259)', () => {
     const pageColumns = () => within(editor()).getAllByTestId('tab-column');
     const columns = pageColumns().length;
     const dialog = openDialog();
-    expect(within(dialog).queryByRole('img', { name: /a preview/ })).toBeNull();
+    // No preview pane until a file is picked.
+    expect(within(dialog).queryByRole('region', { name: 'Preview' })).toBeNull();
     await place(dialog, 'Song structure');
+    expect(within(dialog).queryByRole('region', { name: 'Preview' })).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Drop D' }), { detail: 1 });
     expect(await within(dialog).findByRole('img', { name: 'Drop D, a preview' }, SLOW)).toBeInTheDocument();
+    expect(within(dialog).getByRole('region', { name: 'Preview' })).toHaveClass('tab-preview-extend');
     // The page is as it was until Insert.
     expect(pageColumns()).toHaveLength(columns);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Insert' }));
@@ -1804,6 +1809,38 @@ describe('TabPage arrangements', () => {
     // The built-in ones say nothing of the kind.
     fireEvent.click(await places(dialog).findByRole('button', { name: 'Rhythm' }));
     expect(files(dialog, 'Rhythm').queryAllByTestId('changed')).toEqual([]);
+  });
+
+  it('folds My arrangements and Built-in away when the one shown is pressed again', async () => {
+    keepMany(['Riff']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    const field = within(dialog).getByRole('textbox', { name: 'Folder name' });
+    fireEvent.change(field, { target: { value: 'Riffs' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    const mine = places(dialog).getByRole('button', { name: 'My arrangements' });
+    expect(mine).toHaveAttribute('aria-expanded', 'true');
+    // Shown already, a press folds its folders away; its files stay in the middle.
+    fireEvent.click(mine);
+    expect(mine).toHaveAttribute('aria-expanded', 'false');
+    expect(places(dialog).queryByRole('button', { name: 'Riffs' })).toBeNull();
+    expect(names(dialog)).toEqual(['Riff']);
+    fireEvent.click(mine);
+    expect(places(dialog).getByRole('button', { name: 'Riffs' })).toBeInTheDocument();
+    // Built-in: the first press shows it, the next folds it, another place leaves it as it is.
+    const builtin = places(dialog).getByRole('button', { name: 'Built-in' });
+    await places(dialog).findByRole('button', { name: 'Rhythm' });
+    fireEvent.click(builtin);
+    expect(builtin).toHaveAttribute('aria-current', 'true');
+    expect(builtin).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(builtin);
+    expect(places(dialog).queryByRole('button', { name: 'Rhythm' })).toBeNull();
+    fireEvent.click(mine);
+    expect(builtin).toHaveAttribute('aria-expanded', 'false');
+    // Folded from somewhere else, a press shows it and unfolds it.
+    fireEvent.click(builtin);
+    expect(places(dialog).getByRole('button', { name: 'Rhythm' })).toBeInTheDocument();
   });
 
   it('keeps arrangements in folders on the left, one level deep, and deletes a folder with what is in it', async () => {

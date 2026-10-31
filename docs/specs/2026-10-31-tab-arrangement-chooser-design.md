@@ -64,11 +64,15 @@ Jeremy picked the two panes (mock b, over one folder at a time) on 2026-10-31.
 - **Places** on the left: My arrangements, its folders under it (each with Rename
   and Delete, and each takes dragged arrangements, My arrangements too), then
   Built-in and its folders. The open arrangement's folder is shown on opening.
+  Pressing My arrangements or Built-in while it is the place shown folds its
+  folders away, or back (a small chevron says which); pressing it from elsewhere
+  shows it unfolded (Jeremy, 2026-10-31).
 - **Files** in the middle: the chosen place's arrangements, one line each by name,
   a saved one with its last change, Rename and Delete. Picking, Shift ranges,
   Cmd/Ctrl, Delete/Backspace and dragging the picked ones work as in #187.
   "Nothing saved here yet." in an empty folder.
-- **Preview** on the right: a single picked file drawn read-only (Staff, Tab or
+- **Preview** on the right, not there until a single file is picked (Jeremy: no
+  empty sheet); it then extends out from the list, left to right. The file is drawn read-only (Staff, Tab or
   Both as the page draws), coming in with a short fade and rise (Jeremy: animate
   it in, don't pop it). Under it, **Insert** puts the whole file in at the page's
   cursor (as a paste: one undo step, an edit of the open arrangement, no "Save
