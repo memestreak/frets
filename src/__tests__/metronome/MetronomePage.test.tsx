@@ -63,6 +63,9 @@ describe('MetronomePage', () => {
     fireEvent.click(start);
     expect(screen.getByRole('button', { name: 'Stop' })).toHaveAttribute('data-tip', 'Stop (Space)');
     expect(started).toBeGreaterThan(0);
+    // No bar count or time while running (Jeremy, 2026-10-31).
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(screen.queryByText(/^Bar \d/)).toBeNull();
     act(() => { fireEvent.keyDown(window, { key: ' ' }); });
     expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
     vi.useRealTimers();

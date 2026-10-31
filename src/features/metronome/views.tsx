@@ -7,7 +7,7 @@
  */
 import { Advanced } from './Advanced';
 import {
-  BeatsField, BpmField, Head, PlayButton, SoundControls, Status, SubdivisionSeg, TapButton, beatVoice, isNow,
+  BeatsField, BpmField, Head, PlayButton, SoundControls, SubdivisionSeg, TapButton, beatVoice, isNow,
   useBpmDrag, voiceAttr,
 } from './controls';
 import { MAX_BPM, MIN_BPM, VOICE_NAMES, clampBpm, cycleCell, tempoName } from './rhythm';
@@ -88,7 +88,6 @@ function Readout({ m }: { m: Metronome }) {
         <PlayButton m={m} />
         <TapButton m={m} />
       </div>
-      <Status m={m} />
       <div className="metronome-row metronome-center metronome-rule">
         <BeatsField m={m} />
         <SubdivisionSeg m={m} />
@@ -183,7 +182,6 @@ function Dial({ m }: { m: Metronome }) {
         <PlayButton m={m} round />
         <BeatsField m={m} />
       </div>
-      <Status m={m} />
       <div className="metronome-row metronome-center">
         <SubdivisionSeg m={m} />
       </div>
@@ -249,7 +247,6 @@ function Pendulum({ m }: { m: Metronome }) {
         <PlayButton m={m} />
         <TapButton m={m} />
       </div>
-      <Status m={m} />
       <div className="metronome-row metronome-center metronome-rule">
         <BpmField m={m} />
         <BeatsField m={m} />
@@ -298,7 +295,6 @@ function Bar({ m }: { m: Metronome }) {
         <BeatsField m={m} />
         <SubdivisionSeg m={m} />
       </div>
-      <Status m={m} />
       <div className="metronome-row metronome-rule">
         <SoundControls m={m} />
       </div>

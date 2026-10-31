@@ -1,6 +1,6 @@
 'use client';
 
-/** The controls every view shares: the head, Start, Tap, the number fields, the sound, the status. */
+/** The controls every view shares: the head, Start, Tap, the number fields, and the sound. */
 import { createContext, useContext, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
@@ -192,13 +192,6 @@ export function SoundControls({ m }: { m: Metronome }) {
       </div>
     </>
   );
-}
-
-/** The bar and the time since Start, quietly; a blank line while stopped, so nothing moves. */
-export function Status({ m }: { m: Metronome }) {
-  if (!m.playing || !m.now) return <p className="metronome-status">&nbsp;</p>;
-  const t = Math.floor(m.elapsed);
-  return <p className="metronome-status">Bar {m.now.bar + 1} · {Math.floor(t / 60)}:{String(t % 60).padStart(2, '0')}</p>;
 }
 
 /** The voice a beat starts with, as the beat displays mark it: A, B, C, D or none. */

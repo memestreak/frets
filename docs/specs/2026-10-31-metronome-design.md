@@ -63,8 +63,7 @@ Every view:
   Hi-hat, Clave, Kick), and plays it so it can be judged. It shows "Mixed"
   when Advanced gave the voices different sounds.
 - **Volume** is a knob.
-- Under Start, a quiet line shows the bar and the time since Start while
-  running. It is a blank line while stopped, so nothing moves.
+- There is no bar count or time readout (Jeremy, 2026-10-31).
 
 There is no note value (the 4 of 4/4): bpm counts the beat, so it would
 change no sound (Jeremy agreed, round 4).

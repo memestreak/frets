@@ -1253,10 +1253,6 @@ button {
   .metronome-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .metronome-field > span { white-space: nowrap; }
   .metronome-select { width: auto; min-width: 120px; }
-  .metronome-status {
-    margin: -8px 0 0; text-align: center; font: 400 13px/18px var(--font-sans); color: var(--ink-muted);
-    font-variant-numeric: tabular-nums;
-  }
   .metronome-tempo-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
   /* Anywhere a tempo shows, a drag up or down changes it. */
   .metronome-bpm-drag { cursor: ns-resize; user-select: none; touch-action: none; }

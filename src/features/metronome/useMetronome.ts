@@ -43,8 +43,6 @@ export function useMetronome() {
   const [volume, setVolume] = useState(() => parsePlayback(loadJson(PLAYBACK_KEY)).volume);
   const [playing, setPlaying] = useState(false);
   const [now, setNow] = useState<Now | null>(null);
-  /** Seconds since Start, as of the last click shown. */
-  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     saveJson(RHYTHM_KEY, rhythm);
@@ -153,12 +151,10 @@ export function useMetronome() {
           setNow(n => (c.poly !== null
             ? { ...(n ?? { bar: shownBar, beat: -1, step: -1 }), poly: c.poly }
             : { bar: shownBar, beat: c.beat, step: c.step, poly: polyShown }));
-          setElapsed(ctx.currentTime - startedAt);
         }, Math.max(0, (at - ctx.currentTime) * 1000));
         shows.current.add(id);
       }
     };
-    setElapsed(0);
     schedule();
     timer.current = window.setInterval(schedule, TICK_MS);
     setPlaying(true);
@@ -187,7 +183,7 @@ export function useMetronome() {
     void audio.current?.ctx.close();
   }, []);
 
-  return { rhythm, setRhythm, volume, setVolume, playing, now, elapsed, toggle, tap, preview };
+  return { rhythm, setRhythm, volume, setVolume, playing, now, toggle, tap, preview };
 }
 
 export type Metronome = ReturnType<typeof useMetronome>;
