@@ -915,6 +915,55 @@ describe('TabPage', () => {
         expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
       });
 
+      it('in normal mode a fret number dragged to another string keeps its pitch; off the drawing it goes back', async () => {
+        localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+        await open();
+        const read = readAlphaTexWith(alphaTab, THREE_BARS);
+        if (!read.ok) throw new Error(read.errors.join('\n'));
+        const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+        const xs = bars.flatMap(b => b.columns.map(c => c.x));
+        // The drawing is made again each time alphaTex() goes to the text view and back.
+        const svg = () => screen.getByRole('img', { name: /drawn as/ });
+        const onString = (string: number) => ({ clientX: xs[0], clientY: top + rows.staffTop + string * 14 });
+        // The first 5 on the high e (A4), pressed: selected at once.
+        fireEvent.pointerDown(svg(), { ...onString(0), button: 0 });
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        // Down to the B string while still dragging: a 10 there.
+        fireEvent.pointerMove(svg(), onString(1));
+        expect(screen.getAllByText('10').some(t => t.closest('[data-testid="tab-system"]'))).toBe(true);
+        // On to the G string and let go: a 14, one undo step.
+        fireEvent.pointerMove(svg(), onString(2));
+        fireEvent.pointerUp(svg(), onString(2));
+        expect(alphaTex()).toMatch(/^14.3.2 7.1.2 \|/);
+        expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+        undo();
+        expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
+        // The low E can't reach A4 (its 29th fret): dragged there, the note stays on the A string's 24th.
+        fireEvent.pointerDown(svg(), { ...onString(0), button: 0 });
+        fireEvent.pointerMove(svg(), onString(5));
+        fireEvent.pointerUp(svg(), onString(5));
+        expect(alphaTex()).toMatch(/^24.5.2 7.1.2 \|/);
+        undo();
+        // Let go off the drawing (jsdom draws nothing, so the drawing is given its size here): the note goes back.
+        const drawing = svg();
+        drawing.getBoundingClientRect = () => ({ left: 0, top: 0, right: 800, bottom: 400, width: 800, height: 400, x: 0, y: 0, toJSON: () => ({}) });
+        fireEvent.pointerDown(drawing, { ...onString(0), button: 0 });
+        fireEvent.pointerMove(drawing, onString(2));
+        fireEvent.pointerUp(drawing, { clientX: -50, clientY: -50 });
+        expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
+        // So does a pointer the browser takes away.
+        fireEvent.pointerDown(svg(), { ...onString(0), button: 0 });
+        fireEvent.pointerMove(svg(), onString(2));
+        fireEvent.pointerCancel(svg(), onString(2));
+        expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
+        // In note input a press on a note doesn't drag it.
+        keys('n');
+        fireEvent.pointerDown(svg(), { ...onString(0), button: 0 });
+        fireEvent.pointerMove(svg(), onString(2));
+        fireEvent.pointerUp(svg(), onString(2));
+        expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
+      });
+
       it('in note input a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
         localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
         await open();

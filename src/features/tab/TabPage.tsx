@@ -22,12 +22,12 @@ import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
-import { type StaffDrag, type StaffHit } from './hitTest';
+import { type FretDrag, type StaffDrag, type StaffHit } from './hitTest';
 import { type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, notesToMove, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
@@ -777,6 +777,36 @@ export default function TabPage() {
     if (!drag.done && shown.pitch !== heardBefore) hearNote({ ...at, string });
   };
 
+  /** A fret number being dragged to another string: the clip it started from, and the string it last landed on. */
+  const fretFrom = useRef<{ clip: Part; string: number } | null>(null);
+
+  /**
+   * A fret number dragged up or down the tab in normal mode (issue #238, as MuseScore's Ctrl/⌘+↑ ↓): the
+   * note goes to the string under the pointer at the same pitch, its fret worked out again. Over a string
+   * that has a note in the column or can't play the pitch, it goes to the nearest one back that can. Each new
+   * string sounds (with Hear notes on); letting go makes it one undo step, off the drawing it goes back.
+   */
+  const onDragFret = (drag: FretDrag) => {
+    const { hit } = drag;
+    if (!fretFrom.current) fretFrom.current = { clip, string: hit.string };
+    const from = fretFrom.current;
+    // The string under the pointer, else the nearest one back toward where the note started that can take it.
+    const toward = Math.sign(hit.string - drag.string);
+    let landing = drag.string;
+    while (landing !== hit.string && !noteToString(from.clip, hit, landing)) landing += toward;
+    const moved = landing !== from.string;
+    if (!drag.cancelled) from.string = landing;
+    const shown = drag.cancelled ? from.clip : noteToString(from.clip, hit, from.string)!;
+    const string = drag.cancelled ? hit.string : from.string;
+    if (drag.done) {
+      fretFrom.current = null;
+      if (shown !== from.clip) dispatch({ type: 'replacePart', part: shown, from: from.clip });
+      else dispatch({ type: 'previewPart', part: from.clip });
+    } else dispatch({ type: 'previewPart', part: shown });
+    setCursor({ ...hit, string });
+    if (moved && !drag.done) hearNote({ ...hit, string });
+  };
+
   /**
    * The tab losing the focus leaves the cursor's bar, which fills up when Settings says to (Jeremy, 2026-10-27): a press
    * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
@@ -1129,7 +1159,7 @@ export default function TabPage() {
                   <HoverTips>
                     <TabClip
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onPickRect={onPickRect}
+                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                       onPickColumn={pickColumn} columnReach={COLUMN_REACH}
                       // Out of note input, a double-click on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.

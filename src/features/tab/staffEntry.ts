@@ -140,19 +140,30 @@ export function toggleStaffNote(clip: Part, at: Place, pitch: number, length?: D
 export function moveToString(clip: Part, at: Place, pitch: number, direction: -1 | 1): StaffEdit {
   const from = stringAtPitch(clip, at, pitch);
   if (from === null) return { clip, string: null };
-  const open = writtenStrings(clip.tuning);
-  const capo = clip.capo ?? 0;
-  const column = columnAt(clip, { ...at, string: 0 })!;
   for (let s = from + direction; s >= 0 && s < STRING_COUNT; s += direction) {
-    const fret = pitch - open[s] - capo;
-    if (column.notes[s] || fret < 0 || fret > MAX_FRET) continue;
-    const notes = column.notes.map((n, k) => (k === from ? null : k === s ? { ...column.notes[from]!, fret } : n));
-    const bar = clip.bars[at.bar];
-    const columns = bar.columns.map((c, i) => (i === at.column ? { ...c, notes } : c));
-    const bars = clip.bars.map((b, i) => (i === at.bar ? { ...b, columns } : b));
-    return { clip: normalize({ ...clip, bars }), string: s };
+    const moved = noteToString(clip, { ...at, string: from }, s);
+    if (moved) return { clip: moved, string: s };
   }
   return { clip, string: from };
+}
+
+/**
+ * The fretted note at `at` moved to string `to` at the same pitch, its fret worked out again and its
+ * marks kept (issue #238: Ctrl/⌘+↑ ↓, and dragging a fret number to another string). Null when `to`
+ * already has a note in the column or can't play the pitch between the open string and the 24th fret.
+ */
+export function noteToString(clip: Part, at: Cursor, to: number): Part | null {
+  const column = columnAt(clip, at);
+  const note = column?.notes[at.string];
+  if (!column || !note || note.fret === null || to < 0 || to >= STRING_COUNT) return null;
+  if (to === at.string) return clip;
+  const fret = pitchOf(clip, at.string, note.fret) - writtenStrings(clip.tuning)[to] - (clip.capo ?? 0);
+  if (column.notes[to] || fret < 0 || fret > MAX_FRET) return null;
+  const notes = column.notes.map((n, k) => (k === at.string ? null : k === to ? { ...note, fret } : n));
+  const bar = clip.bars[at.bar];
+  const columns = bar.columns.map((c, i) => (i === at.column ? { ...c, notes } : c));
+  const bars = clip.bars.map((b, i) => (i === at.bar ? { ...b, columns } : b));
+  return normalize({ ...clip, bars });
 }
 
 /** Where the staff cursor is drawn for a pitch: its step, and the sign it shows when the key doesn't give it. */

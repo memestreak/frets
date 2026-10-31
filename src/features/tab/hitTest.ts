@@ -68,6 +68,18 @@ export interface StaffDrag {
 }
 
 /**
+ * A fret number on the tab dragged up or down to another string (issue #238, normal mode): the note
+ * pressed, the string the pointer is over now, and `done` when it lets go (`cancelled` when it let go
+ * off the drawing, or the browser took the pointer).
+ */
+export interface FretDrag {
+  hit: Hit;
+  string: number;
+  done: boolean;
+  cancelled: boolean;
+}
+
+/**
  * A press on the notation staff (issue #136): on a note head, that note; else the nearest column of
  * the bar and the line or space pressed, up to two ledger lines past the staff. Null anywhere else.
  */
