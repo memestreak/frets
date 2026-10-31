@@ -1,76 +1,37 @@
-/* Look mocks for the Metronome page (issue #149). */
+/* Look mocks for the Metronome page (issue #149). Voices: A accent, B beat, C soft, D softer. */
 .mm { display: grid; gap: 16px; }
 .mm-switch { justify-self: center; flex-wrap: wrap; }
-.mm-card { width: 100%; max-width: 560px; margin-inline: auto; padding: clamp(14px, 4vw, 24px); display: grid; gap: 18px; }
-.mm-card-wide { max-width: 860px; }
+.mm-card { position: relative; width: 100%; max-width: 640px; margin-inline: auto; padding: clamp(14px, 4vw, 24px); display: grid; gap: 18px; }
+.mm-card-wide { max-width: 900px; }
 .mm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .mm-row-center { justify-content: center; }
 .mm-row-top-line { padding-top: 16px; border-top: 1px solid var(--line); }
 .mm-play { gap: 8px; min-width: 104px; }
 .mm-play-round { min-width: 0; width: 56px; height: 56px; border-radius: 999px; padding: 0; }
 .mm-play-round svg { width: 20px; height: 20px; }
+.mm-select { width: auto; min-width: 120px; }
+.mm-select-narrow { width: auto; min-width: 64px; }
+.mm-status { margin: -8px 0 0; text-align: center; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.mm-side .mm-status { text-align: left; margin: 0; }
+.mm-count { margin: -8px 0 -4px; text-align: center; font: italic 500 28px/32px var(--font-display); color: var(--ink-muted); min-height: 32px; }
+
+/* The flash over the whole screen. */
+.mm-flash {
+  position: fixed; inset: 0; z-index: 50; pointer-events: none; background: var(--primary);
+  animation: mm-flash 180ms ease-out forwards;
+}
+@keyframes mm-flash { from { opacity: 0.22; } to { opacity: 0; } }
 
 /* The big tempo number. */
 .mm-readout { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .mm-step { width: 48px; height: 48px; font-size: 28px; color: var(--ink-muted); }
 .mm-big { display: grid; justify-items: center; }
-.mm-big-left { justify-items: start; }
 .mm-big-number {
   font: 500 clamp(72px, 18vw, 112px)/1 var(--font-display); color: var(--ink);
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .mm-big-unit { font: 400 15px/20px var(--font-sans); color: var(--ink-muted); }
-.mm-tempo-name { margin: -10px 0 0; text-align: center; font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
-
-/* A dot per beat. */
-.mm-dots { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; min-height: 36px; }
-.mm-dot {
-  position: relative; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer;
-}
-.mm-dot::before {
-  content: ''; display: block; border-radius: 999px; background: var(--line-strong);
-  width: 55%; height: 55%; transition: background 60ms, transform 60ms;
-}
-.mm-dot[data-level='accent']::before { width: 100%; height: 100%; }
-.mm-dot[data-level='mute']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
-.mm-dot[data-on]::before { background: var(--primary); transform: scale(1.12); }
-.mm-dot[data-on][data-level='mute']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--primary); }
-
-/* B: the dial. */
-.mm-dial-wrap { display: flex; justify-content: center; }
-.mm-dial { position: relative; cursor: ns-resize; touch-action: none; border-radius: 999px; }
-.mm-dial:focus { outline: none; }
-.mm-dial-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; pointer-events: none; }
-.mm-dial-center .mm-big-number { font-size: 84px; }
-
-/* C: the pendulum. */
-.mm-pendulum-layout { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; }
-.mm-pyramid { flex: none; }
-.mm-arm { transform-origin: 110px 250px; transition-property: transform; transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-.mm-side { display: grid; gap: 14px; justify-items: start; }
-.mm-side .mm-dots { justify-content: flex-start; }
-
-/* D: the bar of tiles. */
-.mm-bar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.mm-bar-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
-.mm-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
-.mm-tile {
-  display: grid; grid-template-rows: 140px auto; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer;
-}
-.mm-tile-subs { display: flex; align-items: flex-end; gap: 4px; height: 140px; }
-.mm-tile-sub {
-  flex: 1; height: 55%; border-radius: var(--radius-sm); background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--line); transition: background 60ms;
-}
-.mm-tile-sub:not([data-first]) { height: 30%; }
-.mm-tile[data-level='accent'] .mm-tile-sub[data-first] { height: 100%; }
-.mm-tile[data-level='mute'] .mm-tile-sub { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
-.mm-tile-sub[data-on] { background: var(--primary); box-shadow: none; }
-.mm-tile[data-level='mute'] .mm-tile-sub[data-on] { background: none; box-shadow: inset 0 0 0 1.5px var(--primary); }
-.mm-tile-count { font: 600 14px/20px var(--font-sans); color: var(--ink-muted); text-align: center; }
-
-/* — round 2: sound, Advanced, stronger beat display — */
-.mm-select { width: auto; min-width: 140px; }
+.mm-tempo-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
 
 /* A: big beat pads. */
 .mm-pads { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 18px; padding: 8px 0; }
@@ -80,12 +41,12 @@
   background: var(--surface-sunken); box-shadow: inset 0 0 0 1.5px var(--line);
   transition: background 90ms ease-out, transform 90ms ease-out;
 }
-.mm-pad[data-level='accent'] { box-shadow: inset 0 0 0 3px var(--line-strong); }
-.mm-pad[data-level='mute'] { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
-.mm-pad[data-level='soft'] { transform: scale(0.8); }
+.mm-pad[data-voice='A'] { box-shadow: inset 0 0 0 3px var(--line-strong); }
+.mm-pad[data-voice='C'], .mm-pad[data-voice='D'] { transform: scale(0.8); }
+.mm-pad[data-voice='none'] { background: none; box-shadow: inset 0 0 0 1.5px var(--line); }
 .mm-pad[data-on] { background: var(--primary); box-shadow: none; transform: scale(1.12); transition: none; }
-.mm-pad[data-on][data-level='accent'] { background: var(--accent); }
-.mm-pad[data-on][data-level='mute'] { background: none; box-shadow: inset 0 0 0 3px var(--primary); }
+.mm-pad[data-on][data-voice='A'] { background: var(--accent); }
+.mm-pad[data-on][data-voice='none'] { background: none; box-shadow: inset 0 0 0 3px var(--primary); }
 .mm-pads[data-silent] .mm-pad[data-on] { background: none; box-shadow: inset 0 0 0 3px var(--ink-muted); }
 .mm-ripple {
   position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 0 2px var(--primary);
@@ -94,21 +55,54 @@
 @keyframes mm-ripple { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.9); opacity: 0; } }
 .mm-pad-subs { display: flex; gap: 6px; height: 8px; }
 .mm-pad-sub { width: 8px; height: 8px; border-radius: 999px; background: var(--line); }
-.mm-pad-sub[data-level='mute'] { background: none; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mm-pad-sub[data-voice='none'] { background: none; box-shadow: inset 0 0 0 1px var(--line-strong); }
 .mm-pad-sub[data-on] { background: var(--primary); }
 
-/* B: the beat ring and the face that flashes on each beat. */
-.mm-dial { width: 340px; height: 340px; max-width: 100%; }
+/* C: small dots. */
+.mm-dots { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-height: 30px; }
+.mm-dot { display: grid; place-items: center; }
+.mm-dot::before { content: ''; display: block; border-radius: 999px; background: var(--line-strong); width: 55%; height: 55%; }
+.mm-dot[data-voice='A']::before { width: 100%; height: 100%; }
+.mm-dot[data-voice='none']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.mm-dot[data-on]::before { background: var(--primary); transform: scale(1.12); }
+
+/* B: the dial, its beat ring, and the face that flashes on each beat. */
+.mm-dial-wrap { display: flex; justify-content: center; }
+.mm-dial { position: relative; width: 340px; height: 340px; max-width: 100%; cursor: ns-resize; touch-action: none; border-radius: 999px; }
 .mm-dial svg { max-width: 100%; height: auto; }
+.mm-dial:focus { outline: none; }
+.mm-dial-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; pointer-events: none; }
+.mm-dial-center .mm-big-number { font-size: 96px; }
 .mm-ring-seg { stroke: var(--surface-sunken); transition: stroke 120ms ease-out; }
-.mm-ring-seg[data-level='accent'] { stroke: var(--line); }
-.mm-ring-seg[data-level='mute'] { stroke: var(--surface-sunken); opacity: 0.4; }
+.mm-ring-seg[data-voice='A'] { stroke: var(--line); }
+.mm-ring-seg[data-voice='none'] { opacity: 0.4; }
 .mm-ring-seg[data-on] { stroke: var(--primary); opacity: 1; transition: none; }
-.mm-ring-seg[data-on][data-level='accent'] { stroke: var(--accent); }
+.mm-ring-seg[data-on][data-voice='A'] { stroke: var(--accent); }
 .mm-dial-face { fill: var(--surface-raised); stroke: var(--line-strong); stroke-width: 1.5; transition: fill 220ms ease-out; }
 .mm-dial-face[data-on] { fill: var(--primary-soft); transition: none; }
 .mm-dial-face[data-accent] { fill: var(--accent); }
-.mm-dial-center .mm-big-number { font-size: 96px; }
+
+/* C: the pendulum. */
+.mm-pendulum-layout { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; }
+.mm-pyramid { flex: none; }
+.mm-arm { transform-origin: 110px 250px; transition-property: transform; transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+.mm-side { display: grid; gap: 14px; justify-items: start; }
+
+/* D: the bar of tiles, and its head. */
+.mm-bar-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mm-bar-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
+.mm-pattern { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.mm-pattern-beat { display: grid; gap: 4px; }
+.mm-pattern-clicks { display: flex; gap: 3px; height: 140px; }
+.mm-cell { flex: 1; display: flex; align-items: flex-end; padding: 0; border: 0; background: none; cursor: pointer; min-width: 0; }
+.mm-cell > span { display: block; width: 100%; border-radius: 4px; background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mm-cell[data-voice='A'] > span { height: 100%; background: var(--line-strong); }
+.mm-cell[data-voice='B'] > span { height: 70%; background: var(--line); }
+.mm-cell[data-voice='C'] > span { height: 42%; }
+.mm-cell[data-voice='D'] > span { height: 24%; }
+.mm-cell[data-voice='none'] > span { height: 8%; background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.mm-cell[data-on] > span { background: var(--primary); box-shadow: none; }
+.mm-pattern-count { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); text-align: center; }
 
 /* Advanced. */
 .mm-advanced { border-top: 1px solid var(--line); padding-top: 12px; }
@@ -119,25 +113,95 @@
 .mm-advanced-toggle:hover { color: var(--ink); }
 .mm-advanced-toggle svg { transition: transform 120ms; }
 .mm-advanced-toggle[aria-expanded='true'] svg { transform: rotate(90deg); }
-.mm-advanced-body { display: grid; gap: 16px; padding-top: 12px; }
-.mm-advanced-section { display: grid; gap: 8px; }
-.mm-advanced-head { display: flex; align-items: center; justify-content: space-between; font: 400 14px/20px var(--font-sans); }
+.mm-advanced-body { display: grid; gap: 18px; padding-top: 12px; }
+.mm-tabs { justify-self: start; flex-wrap: wrap; }
+.mm-tab { display: grid; gap: 22px; }
+.mm-group { display: grid; gap: 10px; }
+.mm-group-title { margin: 0; font: 600 14px/20px var(--font-sans); color: var(--ink); }
+.mm-group-note { color: var(--ink-muted); font-weight: 400; cursor: help; }
+.mm-check { display: inline-flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); cursor: pointer; }
 .mm-reset { height: 28px; font-size: 13px; }
-
-/* The pattern grid. */
-.mm-pattern { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
-.mm-pattern-beat { display: grid; gap: 4px; }
-.mm-pattern-clicks { display: flex; gap: 3px; height: 56px; }
-.mm-cell { flex: 1; display: flex; align-items: flex-end; padding: 0; border: 0; background: none; cursor: pointer; min-width: 0; }
-.mm-cell > span {
-  display: block; width: 100%; border-radius: 4px; background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-.mm-cell[data-level='accent'] > span { height: 100%; background: var(--line-strong); }
-.mm-cell[data-level='beat'] > span { height: 66%; background: var(--line); }
-.mm-cell[data-level='soft'] > span { height: 33%; }
-.mm-cell[data-level='mute'] > span { height: 10%; background: none; box-shadow: inset 0 0 0 1px var(--line); }
-.mm-cell[data-on] > span { background: var(--primary); box-shadow: none; }
-.mm-pattern-count { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); text-align: center; }
-.mm-bar-pattern .mm-pattern-clicks { height: 140px; }
 .mm-advanced .tab-speed { flex-wrap: wrap; }
 .mm-advanced .tab-speed > span { white-space: nowrap; }
+.mm-groups { width: 96px; }
+
+/* The voice grid, after REAPER's click pattern. */
+.mm-grid-wrap { display: flex; gap: 12px; align-items: stretch; }
+.mm-voices { display: grid; grid-template-rows: 24px repeat(4, 40px) 34px 18px; flex: none; }
+.mm-voice { display: flex; align-items: center; gap: 6px; }
+.mm-voice-name { width: 16px; font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.mm-voice .mm-select { min-width: 112px; height: 32px; padding-block: 0; font-size: 13px; }
+.mm-pitch {
+  height: 28px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: none; cursor: pointer;
+  font: 500 12px/16px var(--font-sans); color: var(--ink-muted); width: 44px;
+}
+.mm-pitch:hover { color: var(--ink); }
+.mm-grid-scroll { overflow-x: auto; flex: 1; min-width: 0; }
+.mm-grid { display: grid; grid-template-rows: 24px repeat(4, 40px) 34px 18px; grid-auto-flow: row; min-width: min-content; }
+.mm-grid-beat { display: flex; align-items: center; justify-content: flex-start; padding-left: 4px; font: 600 14px/20px var(--font-sans); color: var(--ink-muted); border-left: 1.5px solid transparent; }
+.mm-grid-beat[data-group-start] { color: var(--ink); }
+.mm-grid-cell {
+  position: relative; padding: 0; background: var(--surface-raised); cursor: pointer;
+  border: 0; border-top: 1px solid var(--line-strong); border-left: 1px dashed var(--line);
+}
+.mm-grid-cell[data-beat-start] { border-left: 1.5px solid var(--line-strong); }
+.mm-grid-cell[data-now] { background: var(--primary-soft); }
+.mm-grid-cell:hover { background: var(--surface-sunken); }
+.mm-grid-dot { position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 999px; background: var(--ink); }
+.mm-grid-dot[data-voice='C'], .mm-grid-dot[data-voice='D'] { width: 12px; height: 12px; }
+.mm-grid-foot { display: flex; align-items: flex-end; border-top: 1px solid var(--line-strong); border-left: 1.5px solid transparent; padding-left: 2px; }
+.mm-steps {
+  height: 26px; padding: 0 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised);
+  color: var(--ink-muted); font: 500 12px/16px var(--font-sans);
+}
+.mm-grid-syl { text-align: center; font: 400 12px/18px var(--font-sans); color: var(--ink-muted); }
+
+/* The poly layer. */
+.mm-poly { display: grid; gap: 8px; padding: 6px 4px; }
+.mm-poly-row { position: relative; height: 18px; border-bottom: 1px solid var(--line); }
+.mm-poly-mark { position: absolute; bottom: 0; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: var(--line-strong); }
+.mm-poly-mark:first-child { margin-left: 0; }
+.mm-poly-mark-alt { border-radius: 2px; background: var(--secondary); opacity: 0.55; }
+.mm-poly-mark[data-on] { background: var(--primary); opacity: 1; }
+
+/* The trainer's staircase. */
+.mm-trainer { width: 100%; height: 90px; overflow: visible; }
+.mm-trainer path { stroke: var(--primary); }
+.mm-trainer[data-off] path { stroke: var(--line-strong); }
+.mm-trainer text { font: 400 11px var(--font-sans); fill: var(--ink-muted); }
+.mm-trainer-now { stroke: var(--ink); stroke-width: 1.5; }
+
+/* Tap along. */
+.mm-tapalong { display: grid; gap: 10px; }
+.mm-tap-pad {
+  justify-self: start; width: 140px; height: 64px; border-radius: var(--radius-md); border: 1.5px solid var(--line-strong);
+  background: var(--surface-sunken); color: var(--ink); font: 600 15px/20px var(--font-sans); cursor: pointer; touch-action: manipulation;
+}
+.mm-tap-pad:active { background: var(--primary-soft); }
+.mm-tap-strip { position: relative; height: 36px; border-radius: var(--radius-sm); background: var(--surface-sunken); }
+.mm-tap-zero { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--line-strong); }
+.mm-tap-dot { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 999px; background: var(--primary); }
+.mm-tap-label { position: absolute; top: 50%; transform: translateY(-50%); font: 400 11px/14px var(--font-sans); color: var(--ink-muted); }
+.mm-tap-label-left { left: 8px; }
+.mm-tap-label-right { right: 8px; }
+.mm-tap-sum { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+/* The setlist. */
+.mm-sections { display: grid; gap: 8px; }
+.mm-section { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 6px 8px; border-radius: var(--radius-sm); }
+.mm-section[data-now] { background: var(--primary-soft); }
+.mm-section-name { width: 130px; }
+.mm-remove { width: 32px; font-size: 18px; color: var(--ink-muted); }
+.mm-add { justify-self: start; }
+.mm-saved { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mm-saved-item {
+  height: var(--control-height); padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line);
+  background: var(--surface-sunken); color: var(--ink); font: 500 14px/20px var(--font-sans); cursor: pointer;
+}
+
+.mm-voice-controls { display: contents; }
+.mm-voice-list { display: none; }
+@media (max-width: 640px) {
+  .mm-voice-list { display: grid; gap: 6px; }
+  .mm-voice-controls { display: none; }
+}
