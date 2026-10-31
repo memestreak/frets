@@ -1229,9 +1229,8 @@ export default function TabPage() {
         onUndoDelete={arrangements.undoDelete}
       />
       <SaveAsDialog
-        open={savingAs !== null} name={whole.name}
-        folder={arrangements.library.items.find(i => i.id === state.id)?.folder} folders={arrangements.library.folders}
-        onClose={() => setSavingAs(null)}
+        open={savingAs !== null} name={whole.name} folders={arrangements.library.folders}
+        onClose={() => setSavingAs(null)} onCreateFolder={arrangements.createFolder}
         onSave={(name, into) => {
           const then = savingAs?.then;
           setSavingAs(null);
