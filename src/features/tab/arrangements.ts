@@ -1,11 +1,11 @@
 /**
- * My arrangements (issue #187): the clips kept in the browser, at the top level or in a folder (one
- * level, no folders in folders). The open one is saved as it is edited; the rest wait in the list.
- * An index under `LIBRARY_KEY` lists the folders and the arrangements (name, folder, last change)
- * and names the open one; each clip has a key of its own, so an edit writes only its own clip.
+ * My arrangements (issues #187, #259): the clips saved in the browser, at the top level or in a folder
+ * (one level, no folders in folders). An arrangement is written only when it is saved (Save, Save
+ * As…). An index under `LIBRARY_KEY` lists the folders and the arrangements (name, folder, last
+ * change) and names the open one; each clip has a key of its own. The open clip, while it has unsaved
+ * changes or was never saved, is kept under `DRAFT_KEY` so a reload brings it back as it was.
  */
-import { emptyClip, parseClip, partOf, type Clip } from './clip';
-import { isEmpty } from './editing';
+import { emptyClip, parseClip, type Clip } from './clip';
 import { loadJson, saveJson } from '@/lib/storage';
 
 /** The index: which arrangement is open, and every kept one. */
@@ -87,11 +87,6 @@ export function newArrangementId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** A clip with nothing in it, not even a title, isn't added to the list. */
-export function worthKeeping(clip: Clip): boolean {
-  return clip.tracks.some((_, t) => !isEmpty(partOf(clip, t))) || clip.name.trim() !== '';
-}
-
 /**
  * `clip` written under `id`, and the index with it, changed at `changed`, latest change first. It
  * stays in its folder, or goes into `folder` when it is new to the list.
@@ -135,6 +130,53 @@ export function dropFolder(library: Library, id: string): Library {
   return { ...dropArrangements(library, inside), folders: library.folders.filter(f => f.id !== id) };
 }
 
+/** The open clip while it isn't saved as it is: unsaved changes, or never saved. */
+export const DRAFT_KEY = 'frets.tab.draft';
+
+/** The open clip as it was left, and the clip it is a change of. */
+export interface Draft {
+  id: string;
+  clip: Clip;
+  /** As last saved or opened: the saved arrangement's clip when `id` is saved, else kept with the draft. */
+  base: Clip;
+}
+
+/** What the draft key holds: the base only for an arrangement not saved (a saved one's is in its own key). */
+interface StoredDraft {
+  id: string;
+  clip: unknown;
+  base?: unknown;
+}
+
+/**
+ * The draft as it was left, its base read from the saved arrangement when there is one; null when
+ * there is none or it can't be read. A clip that is its base again is that very clip, so nothing shows
+ * as unsaved.
+ */
+export function loadDraft(library: Library): Draft | null {
+  const stored = loadJson(DRAFT_KEY) as StoredDraft | null;
+  if (typeof stored !== 'object' || stored === null || typeof stored.id !== 'string' || stored.id === '') return null;
+  const clip = parseClip(stored.clip);
+  if (!clip) return null;
+  const saved = library.items.some(i => i.id === stored.id) ? loadArrangement(stored.id) : null;
+  const base = saved ?? parseClip(stored.base) ?? emptyClip();
+  return { id: stored.id, clip: JSON.stringify(clip) === JSON.stringify(base) ? base : clip, base };
+}
+
+/** Keeps the open clip as a draft; `saved` when its arrangement is saved, whose clip is then its base. */
+export function saveDraft(draft: Draft, saved: boolean): void {
+  const stored: StoredDraft = saved ? { id: draft.id, clip: draft.clip } : { id: draft.id, clip: draft.clip, base: draft.base };
+  saveJson(DRAFT_KEY, stored);
+}
+
+export function clearDraft(): void {
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // Storage blocked: there is no draft.
+  }
+}
+
 /** The open arrangement's clip on load: the one the index names, else a new empty clip. */
 export function openOnLoad(library: Library): { id: string; clip: Clip } {
   const clip = library.open ? loadArrangement(library.open) : null;
@@ -142,10 +184,7 @@ export function openOnLoad(library: Library): { id: string; clip: Clip } {
   return { id: newArrangementId(), clip: emptyClip() };
 }
 
-/**
- * The index as a small store the page subscribes to (`useSyncExternalStore`): saving the open
- * arrangement as it is edited writes here from an effect, as to any storage outside React.
- */
+/** The index as a small store the page subscribes to (`useSyncExternalStore`). */
 export function libraryStore() {
   let library = loadLibrary();
   const listeners = new Set<() => void>();

@@ -356,9 +356,9 @@ anywhere on that page, or make a link that opens it directly:
 Percent-encode as JavaScript's encodeURIComponent does: a line break is
 %0A, a space %20, "\" %5C, "{" %7B, "}" %7D, "|" %7C, "(" and ")" are left
 as is. Keep the link under about 8,000 characters. The part after "#" is
-never sent to a server. Opening it adds the tab to My arrangements as a
-new arrangement and shows it. If the text can't be read, Frets says why, with
-the line and column.
+never sent to a server. Opening it shows the tab as a new arrangement, not
+saved until the person presses Save (it asks first if they have unsaved
+changes). If the text can't be read, Frets says why, with the line and column.
 
 When you can run code, make a shorter link: compress the text and put it
 after #tabz= instead. Take the text as UTF-8, deflate it raw (no zlib

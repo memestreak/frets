@@ -1,5 +1,8 @@
 # Tab: My arrangements (issue #187)
 
+> Saving (autosave), the one-list dialog and built-ins shown in place of the clip
+> are replaced by `2026-10-31-tab-arrangement-chooser-design.md` (issue #259).
+
 Jeremy, 2026-10-28. The Tab page kept one clip; now it keeps any number, and one
 dialog, **Arrangements…**, replaces Examples….
 

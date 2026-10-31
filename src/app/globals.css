@@ -1066,7 +1066,48 @@ button {
   .tab-panel-choice { min-width: 36px; }
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
-  .settings-dialog:has(.tab-examples-dialog) { width: min(560px, calc(100vw - 32px)); }
+  /* Arrangements… as a file chooser (issue #259): places | files | preview, one height whatever it shows; the panes scroll. */
+  .settings-dialog:has(.tab-save-as) { width: min(376px, calc(100vw - 32px)); }
+  .settings-dialog:has(.tab-chooser) { width: min(1120px, calc(100vw - 32px)); height: min(640px, calc(100dvh - 32px)); }
+  .tab-chooser { height: 100%; }
+  .tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  .tab-chooser-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
+  .tab-chooser-places { min-height: 0; overflow-y: auto; border-right: 1px solid var(--line); padding-right: 12px; }
+  .tab-chooser-sub { list-style: none; padding-left: 12px; }
+  .tab-chooser-place > svg { flex: none; color: var(--ink-muted); }
+  .tab-chooser-places .tab-chooser-place[aria-current='true'] { border-color: transparent; background: var(--surface-sunken); }
+  .tab-chooser-files { min-height: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .tab-chooser-list { flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
+  .tab-chooser-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 0 4px; font-size: 0.9375rem; }
+  .tab-chooser-crumb { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-muted); }
+  .tab-chooser-crumb .btn { min-height: 0; padding: 2px 6px; color: var(--ink-muted); font-weight: 400; }
+  .tab-chooser-crumb [aria-current] { padding: 2px 6px; color: var(--ink); font-weight: 600; }
+  .tab-chooser-where { min-width: 0; flex-wrap: nowrap; font-size: 1rem; }
+  .tab-chooser-where .tab-chooser-crumb { white-space: nowrap; }
+  .tab-chooser-where [aria-current] { font-weight: 400; }
+  .tab-chooser-where .btn { font-size: inherit; }
+  .tab-chooser-enter { margin-left: auto; display: inline-flex; color: var(--ink-muted); }
+  .tab-chooser-preview { min-height: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .tab-chooser-sheet {
+    flex: 1; min-height: 0; overflow: auto; padding: 12px;
+    border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  }
+  .tab-chooser-back { align-self: flex-start; }
+  /* My arrangements' and Built-in's fold: pointing down while their folders show, right while folded away. */
+  .tab-chooser-fold { display: inline-flex; flex: none; margin-left: -4px; color: var(--ink-muted); }
+  .tab-chooser-fold svg { width: 14px; height: 14px; }
+  .tab-chooser-folded { transform: rotate(-90deg); }
+  /* A thin scroll bar in the theme's colours, for panes that scroll. */
+  .tab-scroll { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+  .tab-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .tab-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+  .tab-scroll::-webkit-scrollbar-track { background: transparent; }
+  .tab-chooser-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  /* Save, with a small muted dot at its corner while there are unsaved changes (issue #259). */
+  .tab-save { position: relative; }
+  .tab-unsaved-dot {
+    position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-muted);
+  }
   .tab-rows { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .tab-folder-items { padding-left: 22px; }
   .tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }

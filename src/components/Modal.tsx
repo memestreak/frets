@@ -9,6 +9,8 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** Shown to the right of the title, e.g. where in the dialog the person is. */
+  besideTitle?: ReactNode;
   children: ReactNode;
   /** Extra class on the inner panel, e.g. to size it. */
   className?: string;
@@ -19,7 +21,7 @@ interface ModalProps {
  * trap, inert page and Esc; a click on the backdrop closes it too. The
  * parent owns `open`; every way of closing reports through `onClose`.
  */
-export function Modal({ open, onClose, title, children, className = '' }: ModalProps) {
+export function Modal({ open, onClose, title, besideTitle, children, className = '' }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
 
@@ -77,7 +79,10 @@ export function Modal({ open, onClose, title, children, className = '' }: ModalP
     >
       <div className={`settings-dialog-inner ${className}`}>
         <div className="flex items-center justify-between gap-3">
-          <h3 id={headingId} className="dialog-title m-0">{title}</h3>
+          <div className="flex min-w-0 items-center gap-1">
+            <h3 id={headingId} className="dialog-title m-0">{title}</h3>
+            {besideTitle}
+          </div>
           <button
             type="button"
             className="btn btn-ghost btn-icon"

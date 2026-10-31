@@ -130,7 +130,7 @@ describe('the FX in a saved clip', () => {
 });
 
 describe('FX changes and undo', () => {
-  const start: ClipState = { clip: wholeOf(BARS), past: [], future: [], id: 'a', example: null };
+  const start: ClipState = { clip: wholeOf(BARS), past: [], future: [], id: 'a', base: wholeOf(BARS) };
 
   it('makes a run of FX changes one undo step', () => {
     let state = clipReducer(start, { type: 'fx', track: 0, fx: { ...DEFAULT_FX, on: true } });
@@ -143,7 +143,7 @@ describe('FX changes and undo', () => {
 
   it('starts a new step after any other edit', () => {
     let state = clipReducer(start, { type: 'fx', track: 0, fx: { ...DEFAULT_FX, on: true } });
-    state = clipReducer(state, { type: 'rename', name: 'Other' });
+    state = clipReducer(state, { type: 'replace', clip: { ...state.clip, name: 'Other' } });
     state = clipReducer(state, { type: 'fx', track: 0, fx: { ...DEFAULT_FX, on: false } });
     expect(state.past).toHaveLength(3);
   });
