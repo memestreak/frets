@@ -13,7 +13,8 @@ import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { ArrangementsDialog } from './ArrangementsDialog';
+import { ArrangementChooser } from './ArrangementChooser';
+import { SaveAsDialog, SaveChangesDialog } from './SaveDialogs';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
@@ -55,41 +56,41 @@ import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
-import { clearExampleHash, useClipImport } from './useClipImport';
+import { useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
+/** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
+const MOD = isMac() ? '⌘' : 'Ctrl+';
 
 
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
 
 /**
- * The Tab page: one clip, the open one of My arrangements (Arrangements…), saved as it is edited;
- * Import, a drop or a `#tab=` link open as a new one, a paste goes in at the cursor. One of the
- * examples may be shown in its place (Arrangements… or a `#example=` link; never saved, Back to
- * my clip brings the clip back, Keep a copy makes it an arrangement), edited
+ * The Tab page: one clip, an arrangement saved with Save or Save As… into My arrangements and opened
+ * from Arrangements… (issue #259); New, a built-in arrangement, Import, a drop or a `#tab=` link open
+ * as a new one, not saved until Save, and a paste or Insert goes in at the cursor. Edited
  * on the tab with the keys and the symbol palette, and shown drawn, as
  * alphaTex or as ASCII. See `docs/specs/2026-10-24-tab-editor-design.md` and
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
 export default function TabPage() {
-  // The open arrangement, saved as it is edited, and the others kept (My arrangements).
+  // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
   const { state, dispatch: dispatchClip } = arrangements;
   // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
   const whole = state.clip;
-  // The example or sample shown in place of the clip (only its id is needed here); its edits are never saved.
-  const example = state.example;
   /**
    * The track the page shows, edits and plays (issue #243), picked from the list over the clip: the
-   * viewer's, not saved, and back to the first when another arrangement or example opens. An edit in
+   * viewer's, not saved, and back to the first when another arrangement opens. An edit in
    * the AlphaTex view that takes tracks away leaves the last one shown. Its FX are the ones playback goes through.
    */
-  const opened = example ? `example:${example.id}` : state.id;
+  const opened = state.id;
   const [trackPick, setTrackPick] = useState({ opened, track: 0 });
   const track = trackPick.opened === opened ? Math.min(trackPick.track, whole.tracks.length - 1) : 0;
   // Its edits go back into the whole clip through `dispatch`.
@@ -98,6 +99,10 @@ export default function TabPage() {
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
   const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part, track));
   const [choosing, setChoosing] = useState(false);
+  // "Save changes to ‹name›?", and what runs once they are saved or let go.
+  const [leaving, setLeaving] = useState<{ then: () => void; onCancel?: () => void } | null>(null);
+  // Save As…, and what runs once it has saved (after "Save changes?").
+  const [savingAs, setSavingAs] = useState<{ then?: () => void } | null>(null);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
@@ -799,13 +804,8 @@ export default function TabPage() {
     commit(clip, { ...place, string }, { anchor: from, focus: to });
   };
 
-  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
-  const pasteText = useEffectEvent(async (text: string) => {
-    const result = await readTab(text);
-    if (!result.ok) {
-      setNotice({ tone: 'error', lines: result.errors });
-      return;
-    }
+  /** Puts a clip in at the cursor, over the selection if there is one: a paste, or Insert in Arrangements…. */
+  const insertAtCursor = (inserted: Clip) => {
     let into = clip;
     let at = cursor;
     if (selection) {
@@ -813,11 +813,22 @@ export default function TabPage() {
       into = cut.clip;
       at = { ...cursor, ...cut.cursor };
     }
-    const pasted = pasteAt(into, at, partOf(result.clip));
+    const pasted = pasteAt(into, at, partOf(inserted));
     commit(pasted.clip, pasted.cursor, null);
-    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
     setView('tab');
+  };
+
+  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
+  const pasteText = useEffectEvent(async (text: string) => {
+    const result = await readTab(text);
+    if (!result.ok) {
+      setNotice({ tone: 'error', lines: result.errors });
+      return;
+    }
+    insertAtCursor(result.clip);
+    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
   });
+
 
   /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also removes them. */
   const copyOrCut = useEffectEvent((e: ClipboardEvent, cut: boolean) => {
@@ -830,10 +841,53 @@ export default function TabPage() {
     commit(left.clip, { ...cursor, ...left.cursor }, null);
   });
 
-  const { importText, showExample, leaveExample } = useClipImport({
-    dispatch: dispatchClip, openNew: arrangements.openNew, onNotice: setNotice, showTab: () => setView('tab'),
-    toStart: () => { setCursor(START); setSelection(null); },
+  /** Opens Arrangements…, without the Undo of a delete made the time before. */
+  const openChooser = () => {
+    arrangements.forgetDeleted();
+    setChoosing(true);
+  };
+  /** Runs `then` once unsaved changes are saved or let go, asking first when there are some; `onCancel` when they're kept. */
+  const confirmLeave = (then: () => void, onCancel?: () => void) => {
+    if (arrangements.unsaved) setLeaving({ then, onCancel });
+    else then();
+  };
+  /** Saves the open arrangement, then runs `then`; one never saved asks for a name and a folder first. */
+  const save = (then?: () => void) => {
+    if (arrangements.kept && !arrangements.unsaved) then?.();
+    else if (arrangements.save()) then?.();
+    else setSavingAs({ then });
+  };
+
+  const { importText, openBuiltin } = useClipImport({
+    openNew: arrangements.openNew, confirmLeave, open: { id: state.id, unsaved: arrangements.unsaved, kept: arrangements.kept },
+    onNotice: setNotice, showTab: () => setView('tab'), toStart: () => { setCursor(START); setSelection(null); },
   });
+
+  // ⌘S (Ctrl+S) saves, ⇧⌘S is Save As…, ⌘O opens Arrangements…, anywhere on the page, in place of the browser's own.
+  const onFileKey = useEffectEvent((e: KeyboardEvent) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key !== 's' && key !== 'o') return;
+    e.preventDefault();
+    // Not over another dialog.
+    if (document.querySelector('dialog[open]')) return;
+    if (key === 'o') openChooser();
+    else if (e.shiftKey) setSavingAs({});
+    else save();
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => onFileKey(e);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Closing or reloading the browser tab with unsaved changes asks first; the draft brings them back either way.
+  useEffect(() => {
+    if (!arrangements.unsaved) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [arrangements.unsaved]);
 
   // Paste anywhere on the page; copy and cut in the editor; undo and redo.
   useEffect(() => {
@@ -912,10 +966,10 @@ export default function TabPage() {
       remove();
       return;
     }
-    replaceShown(() => { remove(); clearExampleHash(); });
+    replaceShown(remove);
     setChoosing(true);
   };
-  /** What is shown in place of the open arrangement, from the Arrangements dialog. */
+  /** What is shown in place of the open arrangement: from the Arrangements dialog, or New. */
   const replaceShown = (open: () => void) => {
     open();
     setCursor(START);
@@ -925,7 +979,6 @@ export default function TabPage() {
     setChoosing(false);
   };
   const empty = isEmpty(clip);
-  const exampleNote = <p className="m-0 mb-3 text-(--ink-muted)" data-testid="example-note">Example: edits aren&apos;t saved</p>;
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
 
@@ -934,15 +987,18 @@ export default function TabPage() {
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          {example && <button type="button" className="btn btn-primary" onClick={leaveExample}>Back to my clip</button>}
-          {/* An example kept as one of My arrangements, with the edits made to it. */}
-          {example && (
-            <button type="button" className="btn btn-secondary" onClick={() => replaceShown(() => { arrangements.openNew(whole); clearExampleHash(); })}>
-              Keep a copy
-            </button>
-          )}
-          <button type="button" className="btn btn-secondary" onClick={() => { arrangements.forgetDeleted(); setChoosing(true); }}>Arrangements…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)}>Import…</button>
+          {/* The file buttons (issue #259); a dot on Save while there are unsaved changes. */}
+          <button type="button" className="btn btn-secondary" onClick={() => confirmLeave(() => replaceShown(() => arrangements.openNew()))}>New</button>
+          <button type="button" className="btn btn-secondary" title={`Arrangements… (${MOD}O)`} onClick={openChooser}>Arrangements…</button>
+          <button
+            type="button" className="btn btn-secondary tab-save" title={`Save (${MOD}S)`}
+            aria-label={arrangements.unsaved ? 'Save, unsaved changes' : 'Save'} onClick={() => save()}
+          >
+            Save
+            {arrangements.unsaved && <span className="tab-unsaved-dot" data-testid="unsaved" aria-hidden="true" />}
+          </button>
+          <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={() => setSavingAs({})}>Save as…</button>
+          <button type="button" className="btn btn-secondary" onClick={() => confirmLeave(() => setImporting(true))}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
           {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
           <button
@@ -1017,7 +1073,7 @@ export default function TabPage() {
           {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
           {view === 'tab'
             ? <ScoreHead
-                clip={clip} note={example && exampleNote}
+                clip={clip}
                 onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
                 onEditTempo={(x, y) => setHeadPanel({ kind: 'tempo', x, y, from: clip, bar: 0, fromTab: false })}
@@ -1025,7 +1081,6 @@ export default function TabPage() {
             : <>
               {/* The page keeps its heading for screen readers. */}
               <h1 className="sr-only">{name}</h1>
-              {example && exampleNote}
             </>}
           <div className="relative">
             {/* Under the editor: the loop bracket. */}
@@ -1148,15 +1203,20 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
-      <ArrangementsDialog
-        open={choosing} library={arrangements.library} openId={state.id} exampleId={example?.id ?? null}
-        deleted={arrangements.deleted} onClose={() => setChoosing(false)}
-        onOpen={id => replaceShown(() => {
-          if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
-          clearExampleHash();
-        })}
-        onNew={() => replaceShown(() => { arrangements.openNew(); clearExampleHash(); })}
-        onDuplicate={() => replaceShown(() => arrangements.openNew(whole))}
+      <ArrangementChooser
+        open={choosing} library={arrangements.library} openId={state.id}
+        deleted={arrangements.deleted} parts={parts} onClose={() => setChoosing(false)}
+        onOpen={id => {
+          setChoosing(false);
+          confirmLeave(() => replaceShown(() => {
+            if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
+          }));
+        }}
+        onOpenBuiltin={builtin => {
+          setChoosing(false);
+          confirmLeave(() => void openBuiltin(builtin).then(error => { if (error) setNotice({ tone: 'error', lines: [error] }); }));
+        }}
+        onInsert={inserted => { setChoosing(false); insertAtCursor(inserted); }}
         onRename={arrangements.rename}
         onMove={arrangements.move}
         // Deleting the open arrangement opens another, or a new clip.
@@ -1167,11 +1227,22 @@ export default function TabPage() {
           arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
         )}
         onUndoDelete={arrangements.undoDelete}
-        onOpenExample={async builtin => {
-          setChoosing(false);
-          const error = await showExample(builtin);
-          if (error) setNotice({ tone: 'error', lines: [error] });
+      />
+      <SaveAsDialog
+        open={savingAs !== null} name={whole.name} folders={arrangements.library.folders}
+        onClose={() => setSavingAs(null)} onCreateFolder={arrangements.createFolder}
+        onSave={(name, into) => {
+          const then = savingAs?.then;
+          setSavingAs(null);
+          arrangements.saveAs(name, typeof into === 'object' ? arrangements.createFolder(into.newFolder) : into);
+          then?.();
         }}
+      />
+      <SaveChangesDialog
+        open={leaving !== null} name={whole.name}
+        onSave={() => { const then = leaving?.then; setLeaving(null); save(then); }}
+        onDiscard={() => { const then = leaving?.then; setLeaving(null); then?.(); }}
+        onCancel={() => { const cancel = leaving?.onCancel; setLeaving(null); cancel?.(); }}
       />
       {barMenu && (
         <ShapeMenu

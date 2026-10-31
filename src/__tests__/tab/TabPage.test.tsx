@@ -3,8 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import TabPage from '@/features/tab/TabPage';
 import { LetGoAfterUse } from '@/components/LetGoAfterUse';
 import { readAscii } from '@/features/tab/ascii';
-import { arrangementKey, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
-import { DOUBLE_TAP_MS, DRAG_TYPE } from '@/features/tab/ArrangementsDialog';
+import { arrangementKey, DRAFT_KEY, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
+import { DOUBLE_TAP_MS, DRAG_TYPE } from '@/features/tab/ArrangementChooser';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import * as alphaTab from '@coderline/alphatab';
@@ -76,8 +76,11 @@ function keepOpen(clip: unknown) {
   localStorage.setItem(arrangementKey('kept'), JSON.stringify(clip));
   localStorage.setItem(LIBRARY_KEY, JSON.stringify({ open: 'kept', items: [{ id: 'kept', name: (clip as { name: string }).name, changed: 1 }] }));
 }
-/** The open arrangement's clip as saved. */
-const savedClip = () => JSON.parse(localStorage.getItem(arrangementKey(loadLibrary().open!))!) as { name: string };
+/** The open clip as the page keeps it: the draft while it has unsaved changes or was never saved, else as saved. */
+const pageClip = () => {
+  const draft = localStorage.getItem(DRAFT_KEY);
+  return (draft ? JSON.parse(draft).clip : JSON.parse(localStorage.getItem(arrangementKey(loadLibrary().open!))!)) as Clip;
+};
 /** A double click, as a browser sends it: two clicks, the second counted as the second. */
 const doubleClick = (el: Element) => {
   fireEvent.click(el, { detail: 1 });
@@ -170,14 +173,20 @@ describe('TabPage', () => {
     expect(heading()).toHaveTextContent('Riff');
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(within(screen.getByRole('dialog')).getByRole('img', { name: /Riff/ })).toBeInTheDocument();
-    expect(savedClip().name).toBe('Riff');
+    expect(pageClip().name).toBe('Riff');
   });
 
-  it('imports the tab in a #tab= link, then clears the link', async () => {
-    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+  it('opens the tab in a #tab= link, unsaved, keeping the link in the address until the clip is edited', async () => {
+    const hash = `#tab=${encodeURIComponent(OTHER)}`;
+    renderAt(hash);
     await settle();
     expect(screen.getAllByTestId('tab-column')).toHaveLength(2);
+    expect(window.location.hash).toBe(hash);
+    expect(loadLibrary().items).toHaveLength(0);
+    expect(screen.queryByTestId('unsaved')).toBeNull();
+    await paste(OTHER);
     expect(window.location.hash).toBe('');
+    expect(screen.getByTestId('unsaved')).toBeInTheDocument();
   });
 
   it('reads alphaTex as well as ASCII', async () => {
@@ -194,7 +203,7 @@ describe('TabPage', () => {
     });
     await settle();
     expect(heading()).toHaveTextContent('Riff');
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toContain('#tab=');
   });
 
   it('says why a link\'s tab could not be read and keeps the saved clip', async () => {
@@ -336,10 +345,11 @@ describe('TabPage', () => {
     localStorage.clear();
     renderAt(link.hash);
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
-    expect(window.location.hash).toBe('');
+    expect(window.location.hash).toBe(link.hash);
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toBe(before);
-    expect(loadLibrary().items).toHaveLength(1);
+    // Not saved until Save.
+    expect(loadLibrary().items).toHaveLength(0);
     // The sound and FX came with the text.
     fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
     expect(screen.getByRole('combobox', { name: 'Sound' })).toHaveValue('27');
@@ -386,7 +396,7 @@ describe('TabPage', () => {
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.6');
     // Saved with the arrangement, not with the viewer's playback settings.
-    expect(savedClip()).toMatchObject({ tracks: [{ fx: { on: true, reverbOn: false, decay: 1.6 } }] });
+    expect(pageClip()).toMatchObject({ tracks: [{ fx: { on: true, reverbOn: false, decay: 1.6 } }] });
     expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('reverb');
     undo();
     expect(light()).toHaveAttribute('aria-checked', 'false');
@@ -1140,7 +1150,7 @@ describe('TabPage playback', () => {
     const sound = () => screen.getByRole('combobox', { name: 'Sound' });
     expect(sound()).toHaveValue('25');
     fireEvent.change(sound(), { target: { value: '0' } });
-    expect(partOf(savedClip() as unknown as Clip)).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
+    expect(partOf(pageClip() as unknown as Clip)).toMatchObject({ instrument: { program: 0, tag: '\\instrument acousticgrandpiano' } });
     expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('sound');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     // A piano brings no strings of its own, so the tuning is written too.
@@ -1325,7 +1335,7 @@ describe('TabPage playback', () => {
     for (const key of ['n', 'ArrowDown', '5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
     // Placing the line fills the bar with a rest after the 5 and the 7.
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
-    const firstBar = () => partOf(savedClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
+    const firstBar = () => partOf(pageClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
     // The line to the bar's end: Delete takes the rest, then Backspace turns the 7 into a rest.
     for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
@@ -1411,33 +1421,37 @@ describe('TabPage playback', () => {
   });
 });
 
-describe('TabPage examples', () => {
-  const saved = () => savedClip().name;
+describe('TabPage built-in arrangements (issue #259)', () => {
   const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
-
-  it('shows an example in place of the clip, never saves its edits, and goes back to the clip', async () => {
-    renderAt(`#tab=${encodeURIComponent(TEX)}`);
-    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+  const openDialog = () => {
     fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
-    const dialog = screen.getByRole('dialog', { name: 'Arrangements' });
-    fireEvent.click(await within(dialog).findByRole('button', { name: 'Articulations' }));
+    return screen.getByRole('dialog', { name: 'Arrangements' });
+  };
+  const place = async (dialog: HTMLElement, name: string) =>
+    fireEvent.click(await within(within(dialog).getByRole('navigation', { name: 'Places' })).findByRole('button', { name }));
+
+  it('opens a built-in as a new arrangement, not saved, its link in the address until it is edited', async () => {
+    renderAt();
+    const dialog = openDialog();
+    await place(dialog, 'Articulations');
     doubleClick(within(dialog).getByRole('button', { name: 'Bends and vibrato' }));
     await screen.findByRole('heading', { name: 'Bends and vibrato' }, SLOW);
-    expect(screen.getByTestId('example-note')).toHaveTextContent("Example: edits aren't saved");
     expect(window.location.hash).toBe('#example=bends');
-    // An edit changes the example on the page, not the saved clip.
+    expect(loadLibrary().items).toEqual([]);
+    expect(screen.queryByTestId('unsaved')).toBeNull();
     act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: 'n' });
+    fireEvent.keyDown(editor(), { key: 'ArrowDown' });
     fireEvent.keyDown(editor(), { key: '9' });
-    await settle();
-    expect(saved()).toBe('Tex riff');
-    fireEvent.click(screen.getByRole('button', { name: 'Back to my clip' }));
-    expect(heading()).toHaveTextContent('Tex riff');
-    expect(screen.queryByTestId('example-note')).toBeNull();
+    expect(screen.getByTestId('unsaved')).toBeInTheDocument();
     expect(window.location.hash).toBe('');
-    // The clip's own history is back: the 9 typed into the example is not in it.
-    undo();
-    expect(heading()).toHaveTextContent('Tex riff');
-    expect(saved()).toBe('Tex riff');
+    // Save asks for a name, the built-in's to start with, and keeps it.
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    const saveAs = screen.getByRole('dialog', { name: 'Save as' });
+    expect(within(saveAs).getByRole('textbox', { name: 'Name' })).toHaveValue('Bends and vibrato');
+    fireEvent.click(within(saveAs).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().items.map(i => i.name)).toEqual(['Bends and vibrato']);
+    expect(screen.queryByTestId('unsaved')).toBeNull();
   });
 
   it('lists the built-ins at once and opens one without fetching again, closing the dialog at the press', async () => {
@@ -1446,40 +1460,69 @@ describe('TabPage examples', () => {
     // Read when the page opens, so the first opening already lists them.
     await waitFor(() => expect(fetched).toHaveBeenCalledWith(BUILTIN_URL, expect.anything()));
     await settle();
-    fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
-    const dialog = screen.getByRole('dialog', { name: 'Arrangements' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Samples' }));
+    const dialog = openDialog();
+    await place(dialog, 'Samples');
     await settle();
-    const calls = fetched.mock.calls.length;
+    // The sound font may load meanwhile; only the built-ins' list counts.
+    const builtinCalls = () => fetched.mock.calls.filter(c => c[0] === BUILTIN_URL).length;
+    const calls = builtinCalls();
     doubleClick(within(dialog).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
     expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
     await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
-    // The text came with the dialog's list: nothing more was fetched, and closing it read nothing again.
-    expect(fetched.mock.calls.length).toBe(calls);
+    expect(window.location.hash).toBe('#example=oceanic-speedy-down-run');
+    // The text came with the dialog's list: only the reading on opening fetched it again.
+    expect(builtinCalls()).toBe(calls);
   });
 
-  it('opens the example in an #example= link and keeps the link while it is shown', async () => {
+  it('opens the example in an #example= link and keeps the link until the clip changes', async () => {
     renderAt('#example=repeats');
     await screen.findByRole('heading', { name: 'Repeats and endings' }, SLOW);
     expect(window.location.hash).toBe('#example=repeats');
     expect(screen.getAllByTestId('repeat-start').length).toBeGreaterThan(0);
   });
 
-  it('says so when a link names no example', async () => {
+  it('says so when a link names no example, and takes the link out', async () => {
     renderAt('#example=nope');
     await waitFor(() => expect(notice()).toHaveTextContent('There is no example called "nope".'), SLOW);
+    expect(window.location.hash).toBe('');
   });
 
-  it('makes an import over an example the saved clip', async () => {
-    renderAt('#example=drop-d');
-    await screen.findByRole('heading', { name: 'Drop D' }, SLOW);
-    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
-    fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: TEX } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
-    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
-    expect(screen.queryByTestId('example-note')).toBeNull();
-    expect(window.location.hash).toBe('');
-    await waitFor(() => expect(saved()).toBe('Tex riff'));
+  it('shows a picked file in a preview, from which Insert puts it in at the cursor as one undo step', async () => {
+    keepOpen((readAscii(OTHER) as { clip: unknown }).clip);
+    renderAt();
+    const pageColumns = () => within(editor()).getAllByTestId('tab-column');
+    const columns = pageColumns().length;
+    const dialog = openDialog();
+    // No preview pane until a file is picked.
+    expect(within(dialog).queryByRole('region', { name: 'Preview' })).toBeNull();
+    await place(dialog, 'Song structure');
+    expect(within(dialog).queryByRole('region', { name: 'Preview' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Drop D' }), { detail: 1 });
+    expect(await within(dialog).findByRole('img', { name: 'Drop D, a preview' }, SLOW)).toBeInTheDocument();
+    expect(within(dialog).getByRole('region', { name: 'Preview' })).toBeInTheDocument();
+    // The page is as it was until Insert.
+    expect(pageColumns()).toHaveLength(columns);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Insert' }));
+    expect(dialog).not.toHaveAttribute('open');
+    expect(pageColumns().length).toBeGreaterThan(columns);
+    // Inserting is an edit of the open arrangement, not a new one.
+    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(screen.getByTestId('unsaved')).toBeInTheDocument();
+    undo();
+    expect(pageColumns()).toHaveLength(columns);
+    expect(screen.queryByTestId('unsaved')).toBeNull();
+  });
+
+  it('copies a picked file as alphaTex from its preview', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderAt();
+    const dialog = openDialog();
+    await place(dialog, 'Song structure');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Drop D' }), { detail: 1 });
+    await within(dialog).findByRole('img', { name: 'Drop D, a preview' }, SLOW);
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Copy alphaTex' })); });
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('\\title "Drop D"'));
   });
 });
 
@@ -1489,8 +1532,11 @@ describe('TabPage arrangements', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
     return screen.getByRole('dialog', { name: 'Arrangements' });
   };
-  const mine = (dialog: HTMLElement) => within(within(dialog).getByRole('list', { name: 'My arrangements' }));
-  const names = (dialog: HTMLElement) => mine(dialog).getAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.firstChild?.textContent);
+  const places = (dialog: HTMLElement) => within(within(dialog).getByRole('navigation', { name: 'Places' }));
+  /** The list in the middle, showing `name`'s files. */
+  const files = (dialog: HTMLElement, name = 'My arrangements') => within(within(dialog).getByRole('list', { name }));
+  const names = (dialog: HTMLElement, list = 'My arrangements') =>
+    files(dialog, list).queryAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.querySelector('.tab-row-text')?.textContent);
   /** A drag's data, as the browser carries it. */
   const dataTransfer = (data: Record<string, string>) => ({
     get types() { return Object.keys(data); },
@@ -1505,113 +1551,287 @@ describe('TabPage arrangements', () => {
     fireEvent.drop(to, { dataTransfer: carried });
     fireEvent.dragEnd(from, { dataTransfer: carried });
   };
-  const importTab = async (text: string, title: string) => {
-    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
-    fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: text } });
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
-    await screen.findByRole('heading', { name: title }, SLOW);
+  const typeNine = () => {
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: 'n' });
+    fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+    fireEvent.keyDown(editor(), { key: '9' });
+    fireEvent.keyDown(editor(), { key: 'Escape' });
   };
+  const unsaved = () => screen.queryByTestId('unsaved') !== null;
+  const saveAsDialog = () => screen.getByRole('dialog', { name: 'Save as' });
+  const savedColumns = (id: string) =>
+    (JSON.parse(localStorage.getItem(arrangementKey(id))!) as Clip).tracks[0].bars.flatMap(b => b.columns).length;
 
-  it('saves the open arrangement as it is edited, and opens it again on the next visit', async () => {
+  it('saves nothing until Save, and brings back unsaved changes after a reload, still unsaved', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
-    act(() => editor().focus());
-    fireEvent.keyDown(editor(), { key: '9' });
+    const before = savedColumns('kept');
+    expect(unsaved()).toBe(false);
+    typeNine();
     const columns = screen.getAllByTestId('tab-column').length;
+    expect(unsaved()).toBe(true);
     await settle();
+    expect(savedColumns('kept')).toBe(before);
     cleanup();
     renderAt();
     expect(heading()).toHaveTextContent('Riff');
     expect(screen.getAllByTestId('tab-column')).toHaveLength(columns);
+    expect(unsaved()).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    await settle();
+    expect(unsaved()).toBe(false);
+    expect(savedColumns('kept')).toBe(columns);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    // Saved, it opens again on the next visit.
+    cleanup();
+    renderAt();
+    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns);
+    expect(unsaved()).toBe(false);
+  });
+
+  it('has nothing unsaved once undo goes back to the clip as saved', () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    typeNine();
+    expect(unsaved()).toBe(true);
+    undo();
+    expect(unsaved()).toBe(false);
+    undo(true);
+    expect(unsaved()).toBe(true);
+  });
+
+  it('saves a new clip under a name and in a folder, and Save as… saves a copy that the page then shows', async () => {
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify({ open: null, folders: [{ id: 'f', name: 'Riffs' }], items: [] }));
+    renderAt();
+    await paste(RIFF);
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    let dialog = saveAsDialog();
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Riff A' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Folder' }), { target: { value: 'f' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(heading()).toHaveTextContent('Riff A');
+    expect(unsaved()).toBe(false);
+    expect(loadLibrary().items).toMatchObject([{ name: 'Riff A', folder: 'f' }]);
+    const first = loadLibrary().items[0].id;
+    // Save as… a saved one: a copy, which the page shows from then on; the first stays as saved.
+    typeNine();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+    dialog = saveAsDialog();
+    // My arrangements to start with, whatever folder the open one is in.
+    expect(within(dialog).getByRole('combobox', { name: 'Folder' })).toHaveValue('');
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Folder' }), { target: { value: 'f' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Riff B' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(heading()).toHaveTextContent('Riff B');
+    expect(loadLibrary().items.map(i => i.name)).toEqual(['Riff B', 'Riff A']);
+    expect(loadLibrary().open).not.toBe(first);
+    expect(savedColumns(first)).toBeLessThan(screen.getAllByTestId('tab-column').length);
+    // Cancel saves nothing.
+    typeNine();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+    fireEvent.click(within(saveAsDialog()).getByRole('button', { name: 'Cancel' }));
+    expect(loadLibrary().items).toHaveLength(2);
+    expect(unsaved()).toBe(true);
+  });
+
+  it('makes a new folder in Save as with Enter, picks it and gives the focus to the list, not saving', async () => {
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify({ open: null, folders: [{ id: 'f', name: 'Riffs' }], items: [] }));
+    renderAt();
+    await paste(RIFF);
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    let dialog = saveAsDialog();
+    // The folder comes before the name, My arrangements to start with.
+    const folderList = () => within(dialog).getByRole('combobox', { name: 'Folder' });
+    expect(folderList().compareDocumentPosition(within(dialog).getByRole('textbox', { name: 'Name' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(folderList()).toHaveValue('');
+    // Esc in the new folder's name goes back to the list, the dialog still open.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'New folder name' }), { key: 'Escape' });
+    expect(folderList()).toHaveFocus();
+    // So does the ×, making nothing.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pick a folder instead' }));
+    expect(loadLibrary().folders).toHaveLength(1);
+    // Enter makes the folder and picks it, the focus on the list; nothing is saved and the dialog stays.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    const field = within(dialog).getByRole('textbox', { name: 'New folder name' });
+    fireEvent.change(field, { target: { value: 'Licks' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    const licks = loadLibrary().folders.find(f => f.name === 'Licks')!;
+    expect(folderList()).toHaveValue(licks.id);
+    expect(folderList()).toHaveFocus();
+    expect(dialog).toHaveAttribute('open');
+    expect(loadLibrary().items).toEqual([]);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().items).toMatchObject([{ name: 'Riff', folder: licks.id }]);
+    // Save with a new folder's name still open makes it too; left empty it is "New folder".
+    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
+    dialog = saveAsDialog();
+    expect(folderList()).toHaveValue('');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().folders.map(f => f.name).sort()).toEqual(['Licks', 'New folder', 'Riffs']);
+  });
+
+  it('saves with Ctrl/⌘+S, opens Save as with Shift, and Arrangements… with Ctrl/⌘+O, anywhere on the page', () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    typeNine();
+    const save = fireEvent.keyDown(document.body, { key: 's', metaKey: true });
+    // The browser's own Save Page doesn't open.
+    expect(save).toBe(false);
+    expect(unsaved()).toBe(false);
+    fireEvent.keyDown(editor(), { key: 'S', ctrlKey: true, shiftKey: true });
+    expect(saveAsDialog()).toBeInTheDocument();
+    // Not over another dialog.
+    fireEvent.keyDown(saveAsDialog(), { key: 'o', ctrlKey: true });
+    expect(screen.queryByRole('dialog', { name: 'Arrangements' })).toBeNull();
+    fireEvent.click(within(saveAsDialog()).getByRole('button', { name: 'Cancel' }));
+    expect(fireEvent.keyDown(document.body, { key: 'o', ctrlKey: true })).toBe(false);
+    expect(screen.getByRole('dialog', { name: 'Arrangements' })).toBeInTheDocument();
+  });
+
+  it('asks before unsaved changes are replaced: Cancel keeps them, Don\'t save lets them go, Save keeps them first', async () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    const before = savedColumns('kept');
+    typeNine();
+    const edited = screen.getAllByTestId('tab-column').length;
+    // New: Cancel keeps the clip as it is.
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    let ask = screen.getByRole('dialog', { name: 'Save changes?' });
+    expect(ask).toHaveTextContent('Save changes to “Riff”?');
+    fireEvent.click(within(ask).getByRole('button', { name: 'Cancel' }));
+    expect(heading()).toHaveTextContent('Riff');
+    expect(unsaved()).toBe(true);
+    // Don't save: the new clip, the saved one as it was.
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Save changes?' })).getByRole('button', { name: 'Don\'t save' }));
+    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(savedColumns('kept')).toBe(before);
+    // A clip with nothing changed opens another without asking.
+    let dialog = openDialog();
+    doubleClick(files(dialog).getByRole('button', { name: /^Riff / }));
+    expect(screen.queryByRole('dialog', { name: 'Save changes?' })).toBeNull();
+    expect(heading()).toHaveTextContent('Riff');
+    // Save, from Import…: saved, then the Import dialog opens.
+    typeNine();
+    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
+    ask = screen.getByRole('dialog', { name: 'Save changes?' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'Save' }));
+    expect(savedColumns('kept')).toBe(edited);
+    // The import, asked about at Import…, goes on in its dialog.
+    fireEvent.change(screen.getByRole('textbox', { name: /Tab, as alphaTex or ASCII/ }), { target: { value: TEX } });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
+    // An import is a new arrangement, not saved yet.
+    expect(loadLibrary().items.map(i => i.name)).toEqual(['Riff']);
+    // Opening from Arrangements… asks too, after the dialog closes; a clip never saved asks for a name first.
+    typeNine();
+    dialog = openDialog();
+    doubleClick(files(dialog).getByRole('button', { name: /^Riff / }));
+    expect(dialog).not.toHaveAttribute('open');
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Save changes?' })).getByRole('button', { name: 'Save' }));
+    fireEvent.click(within(saveAsDialog()).getByRole('button', { name: 'Save' }));
+    expect(loadLibrary().items.map(i => i.name).sort()).toEqual(['Riff', 'Tex riff']);
+    expect(heading()).toHaveTextContent('Riff');
+  });
+
+  it('warns on closing the browser tab only while there are unsaved changes', () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    const leave = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(leave()).toBe(false);
+    typeNine();
+    expect(leave()).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
+    expect(leave()).toBe(false);
+  });
+
+  it('opens a dropped file as a new arrangement once unsaved changes are let go', async () => {
+    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    renderAt();
+    typeNine();
+    const drop = new Event('drop', { bubbles: true, cancelable: true }) as Event & { dataTransfer: unknown };
+    drop.dataTransfer = { files: [], getData: () => TEX };
+    await act(async () => { document.body.dispatchEvent(drop); });
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Save changes?' })).getByRole('button', { name: 'Don\'t save' }));
+    await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     expect(loadLibrary().items.map(i => i.name)).toEqual(['Riff']);
   });
 
-  it('lists nothing for a new, empty clip, and lists it once something is in it', async () => {
+  it('lists only what is saved, and says so while nothing is', async () => {
     renderAt();
-    expect(within(openDialog()).getByText(/Nothing kept yet/)).toBeInTheDocument();
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
-    await paste(RIFF);
-    await settle();
-    expect(names(openDialog())).toEqual(['Riff']);
-  });
-
-  it('opens an import as a new arrangement, keeping the open one in the list', async () => {
-    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
-    renderAt();
-    await importTab(TEX, 'Tex riff');
-    const dialog = openDialog();
-    expect(names(dialog)).toEqual(['Riff', 'Tex riff']);
-    expect(mine(dialog).getByRole('button', { name: /^Tex riff/ })).toHaveAttribute('aria-current', 'true');
-    doubleClick(mine(dialog).getByRole('button', { name: /^Riff/ }));
-    expect(heading()).toHaveTextContent('Riff');
-    expect(dialog).not.toHaveAttribute('open');
-    // Opening one is no change: the list keeps its order.
-    expect(loadLibrary().items.map(i => i.name)).toEqual(['Tex riff', 'Riff']);
-    expect(loadLibrary().open).toBe('kept');
-  });
-
-  it('starts a new arrangement and copies the open one', async () => {
-    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
-    renderAt();
-    fireEvent.click(within(openDialog()).getByRole('button', { name: 'Duplicate' }));
-    await settle();
-    expect(heading()).toHaveTextContent('Riff');
-    expect(loadLibrary().items).toHaveLength(2);
-    fireEvent.click(within(openDialog()).getByRole('button', { name: 'New arrangement' }));
-    expect(heading()).toHaveTextContent('Untitled clip');
-    expect(notice()).toHaveTextContent(/Click the tab and type frets/);
-    // A new one has nothing to duplicate yet.
-    expect(within(openDialog()).queryByRole('button', { name: 'Duplicate' })).toBeNull();
-  });
-
-  it('renames from the list: the open one as an undo step, another in place', async () => {
-    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
-    renderAt();
-    await importTab(TEX, 'Tex riff');
     let dialog = openDialog();
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Rename Tex riff' }));
+    expect(files(dialog).getByText('Nothing saved here yet.')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await paste(RIFF);
+    dialog = openDialog();
+    expect(names(dialog)).toEqual([]);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    fireEvent.keyDown(document.body, { key: 's', ctrlKey: true });
+    fireEvent.click(within(saveAsDialog()).getByRole('button', { name: 'Save' }));
+    dialog = openDialog();
+    expect(names(dialog)).toEqual(['Riff']);
+    expect(files(dialog).getByRole('button', { name: /^Riff / })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('renames from the list, saving the name at once: the open one\'s title follows, its other changes still unsaved', async () => {
+    keepMany(['Riff', 'Lick']);
+    renderAt();
+    typeNine();
+    const dialog = openDialog();
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Riff' }));
     const field = within(dialog).getByRole('textbox', { name: 'Arrangement name' });
-    fireEvent.change(field, { target: { value: 'Lick' } });
+    fireEvent.change(field, { target: { value: 'Old riff' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(heading()).toHaveTextContent('Lick');
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Rename Riff' }));
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Old riff' } });
-    // Esc gives up the rename and leaves the dialog open.
+    expect(heading()).toHaveTextContent('Old riff');
+    expect(JSON.parse(localStorage.getItem(arrangementKey('a'))!).name).toBe('Old riff');
+    expect(unsaved()).toBe(true);
+    // Esc gives up a rename and leaves the dialog open.
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Lick' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Other' } });
     fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { key: 'Escape' });
-    expect(mine(dialog).getByRole('button', { name: /^Riff/ })).toBeInTheDocument();
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Rename Riff' }));
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Old riff' } });
-    fireEvent.blur(within(dialog).getByRole('textbox', { name: 'Arrangement name' }));
-    await settle();
-    dialog = screen.getByRole('dialog');
     expect(names(dialog).sort()).toEqual(['Lick', 'Old riff']);
-    expect(heading()).toHaveTextContent('Lick');
-    fireEvent.keyDown(dialog, { key: 'Escape' });
+    // Another one is renamed where it is saved; leaving the field keeps the name.
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Lick' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Lick 2' } });
+    fireEvent.blur(within(dialog).getByRole('textbox', { name: 'Arrangement name' }));
+    expect(names(dialog).sort()).toEqual(['Lick 2', 'Old riff']);
+    expect(heading()).toHaveTextContent('Old riff');
+    // Undo takes back the 9, not the name.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     undo();
-    expect(heading()).toHaveTextContent('Tex riff');
+    expect(heading()).toHaveTextContent('Old riff');
+    expect(unsaved()).toBe(false);
   });
 
   it('deletes with an undo; deleting the open one opens the next', async () => {
-    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+    keepMany(['Riff', 'Tex riff']);
     renderAt();
-    await importTab(TEX, 'Tex riff');
     const dialog = openDialog();
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Riff' }));
-    expect(names(dialog)).toEqual(['Tex riff']);
-    expect(localStorage.getItem(arrangementKey('kept'))).toBeNull();
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Delete Tex riff' }));
+    expect(names(dialog)).toEqual(['Riff']);
+    expect(localStorage.getItem(arrangementKey('b'))).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
     expect(names(dialog)).toEqual(['Riff', 'Tex riff']);
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Tex riff' }));
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Delete Riff' }));
     await settle();
-    expect(heading()).toHaveTextContent('Riff');
+    expect(heading()).toHaveTextContent('Tex riff');
     expect(dialog).toHaveAttribute('open');
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Riff' }));
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Delete Tex riff' }));
     await settle();
     expect(heading()).toHaveTextContent('Untitled clip');
     expect(loadLibrary().items).toEqual([]);
   });
 
-  it('says when each kept arrangement last changed, so two of one name can be told apart', async () => {
+  it('says when each saved arrangement last changed, so two of one name can be told apart', async () => {
     const riff = (readAscii(RIFF) as { clip: { name: string } }).clip;
     localStorage.setItem(arrangementKey('old'), JSON.stringify(riff));
     localStorage.setItem(arrangementKey('new'), JSON.stringify(riff));
@@ -1623,37 +1843,82 @@ describe('TabPage arrangements', () => {
     ] }));
     renderAt();
     const dialog = openDialog();
-    expect(mine(dialog).getAllByTestId('changed').map(c => c.textContent)).toEqual([
+    expect(files(dialog).getAllByTestId('changed').map(c => c.textContent)).toEqual([
       today.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
       `${new Date(2025, 2, 14).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}, ${new Date(2025, 2, 14, 18, 30).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`,
     ]);
     // The built-in ones say nothing of the kind.
-    fireEvent.click(await within(dialog).findByRole('button', { name: 'Rhythm' }));
-    expect(within(within(dialog).getByRole('list', { name: 'Rhythm' })).queryAllByTestId('changed')).toEqual([]);
+    fireEvent.click(await places(dialog).findByRole('button', { name: 'Rhythm' }));
+    expect(files(dialog, 'Rhythm').queryAllByTestId('changed')).toEqual([]);
   });
 
-  it('keeps arrangements in folders, one level deep, and deletes a folder with what is in it', async () => {
-    keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
+  it('says beside the title where the list is, and goes back up from there', async () => {
     renderAt();
-    await importTab(TEX, 'Tex riff');
+    const dialog = openDialog();
+    const where = () => within(within(dialog).getByRole('navigation', { name: 'Where' }));
+    expect(where().getByText('My arrangements')).toHaveAttribute('aria-current', 'location');
+    fireEvent.click(await places(dialog).findByRole('button', { name: 'Rhythm' }));
+    expect(where().getByText('Rhythm')).toHaveAttribute('aria-current', 'location');
+    // Each file has a file icon.
+    for (const line of files(dialog, 'Rhythm').getAllByRole('button')) expect(line.querySelector('svg')).not.toBeNull();
+    fireEvent.click(where().getByRole('button', { name: 'Built-in' }));
+    expect(where().getByText('Built-in')).toHaveAttribute('aria-current', 'location');
+    expect(files(dialog, 'Built-in').getByRole('button', { name: 'Rhythm' })).toBeInTheDocument();
+  });
+
+  it('folds My arrangements and Built-in away when the one shown is pressed again', async () => {
+    keepMany(['Riff']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
+    const field = within(dialog).getByRole('textbox', { name: 'Folder name' });
+    fireEvent.change(field, { target: { value: 'Riffs' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    const mine = places(dialog).getByRole('button', { name: 'My arrangements' });
+    expect(mine).toHaveAttribute('aria-expanded', 'true');
+    // Shown already, a press folds its folders away; its files stay in the middle.
+    fireEvent.click(mine);
+    expect(mine).toHaveAttribute('aria-expanded', 'false');
+    expect(places(dialog).queryByRole('button', { name: 'Riffs' })).toBeNull();
+    expect(names(dialog)).toEqual(['Riff']);
+    fireEvent.click(mine);
+    expect(places(dialog).getByRole('button', { name: 'Riffs' })).toBeInTheDocument();
+    // Built-in: the first press shows it, the next folds it, another place leaves it as it is.
+    const builtin = places(dialog).getByRole('button', { name: 'Built-in' });
+    await places(dialog).findByRole('button', { name: 'Rhythm' });
+    fireEvent.click(builtin);
+    expect(builtin).toHaveAttribute('aria-current', 'true');
+    expect(builtin).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(builtin);
+    expect(places(dialog).queryByRole('button', { name: 'Rhythm' })).toBeNull();
+    fireEvent.click(mine);
+    expect(builtin).toHaveAttribute('aria-expanded', 'false');
+    // Folded from somewhere else, a press shows it and unfolds it.
+    fireEvent.click(builtin);
+    expect(places(dialog).getByRole('button', { name: 'Rhythm' })).toBeInTheDocument();
+  });
+
+  it('keeps arrangements in folders on the left, one level deep, and deletes a folder with what is in it', async () => {
+    keepMany(['Riff', 'Tex riff']);
+    renderAt();
     const dialog = openDialog();
     fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
     const field = within(dialog).getByRole('textbox', { name: 'Folder name' });
     expect(field).toHaveValue('New folder');
     fireEvent.change(field, { target: { value: 'Riffs' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    const folder = mine(dialog).getByRole('button', { name: 'Riffs' });
-    expect(folder).toHaveAttribute('aria-expanded', 'true');
-    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getByText('Empty')).toBeInTheDocument();
-    // Dragged onto the folder's line, Riff goes in.
-    const row = (name: RegExp) => mine(dialog).getByRole('button', { name }).closest('li')!;
+    const folder = places(dialog).getByRole('button', { name: 'Riffs' });
+    // Dragged onto the folder on the left, Riff goes in.
+    const row = (name: RegExp) => files(dialog).getByRole('button', { name }).closest('li')!;
     drag(row(/^Riff /), folder);
-    const inFolder = within(within(dialog).getByRole('list', { name: 'Riffs' }));
-    expect(inFolder.getByRole('button', { name: /^Riff / })).toBeInTheDocument();
+    expect(names(dialog)).toEqual(['Tex riff']);
     expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBe(loadLibrary().folders[0].id);
-    // Dragged onto the list outside any folder, it comes back out to the top level.
-    drag(row(/^Riff /), within(dialog).getByRole('list', { name: 'My arrangements' }));
+    fireEvent.click(folder);
+    expect(names(dialog, 'Riffs')).toEqual(['Riff']);
+    // Dragged onto My arrangements, it comes back out to the top level.
+    drag(files(dialog, 'Riffs').getByRole('button', { name: /^Riff / }).closest('li')!, places(dialog).getByRole('button', { name: 'My arrangements' }));
     expect(loadLibrary().items.find(i => i.name === 'Riff')?.folder).toBeUndefined();
+    expect(files(dialog, 'Riffs').getByText('Nothing saved here yet.')).toBeInTheDocument();
     // A drag that carries no arrangement (text from elsewhere) lights no folder.
     fireEvent.dragOver(folder, { dataTransfer: dataTransfer({ 'text/plain': 'e|-5-|' }) });
     expect(folder.closest('li')).not.toHaveClass('tab-drop');
@@ -1661,52 +1926,44 @@ describe('TabPage arrangements', () => {
     expect(folder.closest('li')).toHaveClass('tab-drop');
     fireEvent.dragLeave(folder.closest('li')!, { relatedTarget: document.body });
     expect(folder.closest('li')).not.toHaveClass('tab-drop');
-    // A folder closes and opens with a press.
-    fireEvent.click(folder);
-    expect(within(dialog).queryByRole('list', { name: 'Riffs' })).toBeNull();
-    fireEvent.click(folder);
-    // Moving the open one in, then deleting the folder, opens the other.
-    drag(row(/^Tex riff /), folder);
-    drag(row(/^Riff /), folder);
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete Riffs' }));
+    // Renamed on the left.
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Rename Riffs' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Folder name' }), { target: { value: 'Licks' } });
+    fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Folder name' }), { key: 'Enter' });
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Licks']);
+    // Moving both in, then deleting the folder, opens a new clip.
+    fireEvent.click(places(dialog).getByRole('button', { name: 'My arrangements' }));
+    drag(row(/^Tex riff /), places(dialog).getByRole('button', { name: 'Licks' }));
+    drag(row(/^Riff /), places(dialog).getByRole('button', { name: 'Licks' }));
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Delete Licks' }));
     await settle();
     expect(loadLibrary().folders).toEqual([]);
     expect(loadLibrary().items).toEqual([]);
     expect(heading()).toHaveTextContent('Untitled clip');
-    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Riffs.');
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Licks.');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
-    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Riffs']);
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Licks']);
     expect(loadLibrary().items.map(i => i.name).sort()).toEqual(['Riff', 'Tex riff']);
-    expect(within(within(dialog).getByRole('list', { name: 'Riffs' })).getAllByRole('button', { name: /^(Riff|Tex riff) / })).toHaveLength(2);
   });
 
-  it('lists the built-in arrangements in their folders, the samples among them, one line each by name', async () => {
+  it('lists the built-in arrangements in their folders on the left, the samples among them, one line each by name', async () => {
     renderAt();
     const dialog = openDialog();
-    const builtIn = within(await within(dialog).findByRole('list', { name: 'Built-in' }));
-    const folders = builtIn.getAllByRole('button', { expanded: false }).map(b => b.textContent);
-    expect(folders).toEqual(expect.arrayContaining(['Articulations', 'Rhythm', 'Samples', 'Song structure']));
-    fireEvent.click(builtIn.getByRole('button', { name: 'Samples' }));
-    doubleClick(within(builtIn.getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' }));
-    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
-    expect(window.location.hash).toBe('#example=oceanic-speedy-down-run');
-    // Opened again, the dialog shows the folder of what is shown.
-    const again = openDialog();
-    expect(within(within(again).getByRole('list', { name: 'Built-in' })).getByRole('button', { name: 'Oceanic Speedy Down Run' })).toHaveAttribute('aria-current', 'true');
+    await places(dialog).findByRole('button', { name: 'Samples' });
+    expect(places(dialog).getAllByRole('button', { name: /^(?!Rename|Delete|My arrangements)/ }).map(b => b.textContent))
+      .toEqual(expect.arrayContaining(['Articulations', 'Rhythm', 'Samples', 'Song structure']));
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Samples' }));
+    expect(places(dialog).getByRole('button', { name: 'Samples' })).toHaveAttribute('aria-current', 'true');
+    expect(names(dialog, 'Samples')).toContain('Oceanic Speedy Down Run');
+    // Built-ins can't be renamed, deleted or picked several at a time.
+    expect(files(dialog, 'Samples').queryAllByRole('button', { name: /^(Rename|Delete)/ })).toEqual([]);
+    const lines = files(dialog, 'Samples').getAllByRole('button');
+    fireEvent.click(lines[0], { detail: 1 });
+    fireEvent.click(lines[1], { detail: 1, shiftKey: true });
+    expect(files(dialog, 'Samples').getAllByRole('button', { pressed: true })).toEqual([lines[1]]);
   });
 
-  it('keeps a copy of an example, with its edits, as a new arrangement', async () => {
-    renderAt('#example=drop-d');
-    await screen.findByRole('heading', { name: 'Drop D' }, SLOW);
-    fireEvent.click(screen.getByRole('button', { name: 'Keep a copy' }));
-    await settle();
-    expect(screen.queryByTestId('example-note')).toBeNull();
-    expect(window.location.hash).toBe('');
-    expect(loadLibrary().items.map(i => i.name)).toEqual(['Drop D']);
-    expect(savedClip().name).toBe('Drop D');
-  });
-
-  /** Kept arrangements named `names` (ids a, b, c…), the first open, in `folder` where given. */
+  /** Saved arrangements named `names` (ids a, b, c…), the first open, in `folder` where given. */
   const keepMany = (names: string[], folders: { id: string; name: string; holds: string[] }[] = []) => {
     const riff = (readAscii(RIFF) as { clip: { name: string } }).clip;
     const ids = names.map((_, i) => String.fromCharCode(97 + i));
@@ -1717,14 +1974,18 @@ describe('TabPage arrangements', () => {
       items: names.map((name, i) => ({ id: ids[i], name, changed: 100 - i, ...(folderOf(name) ? { folder: folderOf(name) } : {}) })),
     }));
   };
-  const line = (dialog: HTMLElement, name: string) => mine(dialog).getByRole('button', { name: new RegExp(`^${name} `) });
+  const line = (dialog: HTMLElement, name: string, list = 'My arrangements') => files(dialog, list).getByRole('button', { name: new RegExp(`^${name} `) });
   const pickedNames = (dialog: HTMLElement) =>
-    mine(dialog).queryAllByRole('button', { pressed: true }).map(b => b.firstChild?.textContent);
+    files(dialog).queryAllByRole('button', { pressed: true }).map(b => b.querySelector('.tab-row-text')?.textContent);
 
-  it('picks a line with a click and opens it only with a double click, a double tap or the keyboard', async () => {
+  it('picks a line with a click and opens it only with a double click, a double tap, the keyboard or Open', async () => {
     keepMany(['One', 'Two']);
     renderAt();
     let dialog = openDialog();
+    // Open is never greyed; with nothing picked it does nothing.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(dialog).toHaveAttribute('open');
+    expect(heading()).toHaveTextContent('One');
     // A click picks Two and leaves One open.
     fireEvent.click(line(dialog, 'Two'), { detail: 1 });
     expect(dialog).toHaveAttribute('open');
@@ -1749,6 +2010,12 @@ describe('TabPage arrangements', () => {
     dialog = openDialog();
     fireEvent.click(line(dialog, 'Two'), { detail: 0 });
     expect(heading()).toHaveTextContent('Two');
+    // So does Open, on the line picked.
+    dialog = openDialog();
+    fireEvent.click(line(dialog, 'One'), { detail: 1 });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(heading()).toHaveTextContent('One');
+    expect(dialog).not.toHaveAttribute('open');
   });
 
   it('does not open on two taps far apart', () => {
@@ -1771,6 +2038,10 @@ describe('TabPage arrangements', () => {
     fireEvent.click(line(dialog, 'A2'), { detail: 1 });
     fireEvent.click(line(dialog, 'A4'), { detail: 1, shiftKey: true });
     expect(pickedNames(dialog)).toEqual(['A2', 'A3', 'A4']);
+    // Several picked show no preview, and Open opens nothing.
+    expect(within(dialog).queryByRole('button', { name: 'Insert' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(dialog).toHaveAttribute('open');
     // Shift again ranges from the same start, upward too.
     fireEvent.click(line(dialog, 'A1'), { detail: 1, shiftKey: true });
     expect(pickedNames(dialog)).toEqual(['A1', 'A2']);
@@ -1783,7 +2054,7 @@ describe('TabPage arrangements', () => {
     fireEvent.click(line(dialog, 'A4'), { detail: 1, ctrlKey: true });
     expect(pickedNames(dialog)).toEqual(['A1', 'A2', 'A4']);
     // A picked line's Delete (each picked line has one) deletes every picked one, the open one among them.
-    const deletes = mine(dialog).getAllByRole('button', { name: 'Delete 3 arrangements' });
+    const deletes = files(dialog).getAllByRole('button', { name: 'Delete 3 arrangements' });
     expect(deletes).toHaveLength(3);
     fireEvent.click(deletes[1]);
     await settle();
@@ -1803,8 +2074,7 @@ describe('TabPage arrangements', () => {
     const dialog = openDialog();
     fireEvent.click(line(dialog, 'A2'), { detail: 1 });
     fireEvent.click(line(dialog, 'A3'), { detail: 1, shiftKey: true });
-    expect(mine(dialog).getByRole('button', { name: 'Delete A4' })).toBeInTheDocument();
-    fireEvent.click(mine(dialog).getByRole('button', { name: 'Delete A4' }));
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Delete A4' }));
     expect(names(dialog)).toEqual(['A1', 'A2', 'A3']);
     expect(pickedNames(dialog)).toEqual([]);
     fireEvent.click(line(dialog, 'A1'), { detail: 1 });
@@ -1818,43 +2088,19 @@ describe('TabPage arrangements', () => {
     expect(names(dialog)).toEqual(['A3']);
   });
 
-  it('ranges over the lines shown, leaving out a closed folder, and drags the picked ones together', () => {
-    keepMany(['Top 1', 'Top 2', 'Inside'], [{ id: 'f', name: 'Riffs', holds: ['Inside'] }]);
+  it('shows the open arrangement\'s folder on opening, lets go of picks on leaving a folder, and drags the picked ones together', () => {
+    keepMany(['Inside', 'Top 1', 'Top 2'], [{ id: 'f', name: 'Riffs', holds: ['Inside'] }]);
     renderAt();
     const dialog = openDialog();
-    const folder = mine(dialog).getByRole('button', { name: 'Riffs' });
-    expect(folder).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(line(dialog, 'Top 2'), { detail: 1 });
-    fireEvent.click(line(dialog, 'Top 1'), { detail: 1, shiftKey: true });
-    expect(pickedNames(dialog)).toEqual(['Top 1', 'Top 2']);
-    // Opened, the folder's lines come first, so a range from inside it takes in Top 1.
-    fireEvent.click(folder);
-    fireEvent.click(line(dialog, 'Inside'), { detail: 1 });
-    fireEvent.click(line(dialog, 'Top 1'), { detail: 1, shiftKey: true });
-    expect(pickedNames(dialog)).toEqual(['Inside', 'Top 1']);
-    // Closing the folder lets go of what is in it.
-    fireEvent.click(folder);
-    expect(pickedNames(dialog)).toEqual(['Top 1']);
+    expect(places(dialog).getByRole('button', { name: 'Riffs' })).toHaveAttribute('aria-current', 'true');
+    fireEvent.click(line(dialog, 'Inside', 'Riffs'), { detail: 1 });
+    fireEvent.click(places(dialog).getByRole('button', { name: 'My arrangements' }));
+    expect(pickedNames(dialog)).toEqual([]);
+    fireEvent.click(line(dialog, 'Top 1'), { detail: 1 });
     fireEvent.click(line(dialog, 'Top 2'), { detail: 1, metaKey: true });
     // Dragging one picked line carries both into the folder.
-    drag(line(dialog, 'Top 1').closest('li')!, folder);
+    drag(line(dialog, 'Top 1').closest('li')!, places(dialog).getByRole('button', { name: 'Riffs' }));
     expect(loadLibrary().items.filter(i => i.folder === 'f').map(i => i.name).sort()).toEqual(['Inside', 'Top 1', 'Top 2']);
-  });
-
-  it('picks one built-in line at a time, and opens it with a double click', async () => {
-    keepMany(['One']);
-    renderAt();
-    const dialog = openDialog();
-    fireEvent.click(await within(dialog).findByRole('button', { name: 'Samples' }));
-    const sample = within(within(dialog).getByRole('list', { name: 'Samples' })).getByRole('button', { name: 'Oceanic Speedy Down Run' });
-    fireEvent.click(line(dialog, 'One'), { detail: 1 });
-    // Shift on a built-in picks only it, and lets go of the kept ones: they are never deleted together.
-    fireEvent.click(sample, { detail: 1, shiftKey: true });
-    expect(sample).toHaveAttribute('aria-pressed', 'true');
-    expect(pickedNames(dialog)).toEqual([]);
-    expect(dialog).toHaveAttribute('open');
-    doubleClick(sample);
-    await screen.findByRole('heading', { name: 'Oceanic Speedy Down Run' }, SLOW);
   });
 });
 
@@ -1893,17 +2139,17 @@ describe('TabPage export', () => {
     }
   });
 
-  it('saves from a button at the clip\'s bottom right: a list of formats in Standard, the text in the text views', () => {
+  it('downloads from a button at the clip\'s top right: a list of formats in Standard, the text in the text views', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
-    fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
-    const menu = screen.getByRole('menu', { name: 'Save as' });
+    fireEvent.click(screen.getByRole('button', { name: 'Download…' }));
+    const menu = screen.getByRole('menu', { name: 'Download' });
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['PNG image…', 'SVG image…', 'ASCII tab…', 'alphaTex…', 'MusicXML…', 'Guitar Pro…']);
     fireEvent.keyDown(menu, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
-    expect(screen.getByRole('button', { name: 'Save as text file' })).not.toHaveAttribute('aria-haspopup');
+    expect(screen.getByRole('button', { name: 'Download text file' })).not.toHaveAttribute('aria-haspopup');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-    expect(screen.getByRole('button', { name: 'Save as alphaTex file' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download alphaTex file' })).toBeInTheDocument();
   });
 
   it('opens Export from the header, and remembers its choices', async () => {
@@ -2124,7 +2370,7 @@ describe('TabPage export', () => {
     expect(within(dialog).queryByRole('img', { name: /leaves out/ })).toBeNull();
   });
 
-  it('downloads the whole clip as a Guitar Pro file from Export and from Notation\'s Save as list', async () => {
+  it('downloads the whole clip as a Guitar Pro file from Export and from Notation\'s Download list', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     const saved: { name: string; blob: Blob }[] = [];
@@ -2147,8 +2393,8 @@ describe('TabPage export', () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Download' }));
       await waitFor(() => expect(within(dialog).getByRole('status')).toHaveTextContent('Downloaded Riff.gp'), SLOW);
       fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
-      fireEvent.click(within(screen.getByRole('menu', { name: 'Save as' })).getByRole('menuitem', { name: 'Guitar Pro…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Download…' }));
+      fireEvent.click(within(screen.getByRole('menu', { name: 'Download' })).getByRole('menuitem', { name: 'Guitar Pro…' }));
       await waitFor(() => expect(saved).toHaveLength(2), SLOW);
       expect(saved.map(s => s.name)).toEqual(['Riff.gp', 'Riff.gp']);
       for (const { blob } of saved) {
@@ -2427,7 +2673,7 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: '7' });
-    const saved = savedClip() as unknown as Clip;
+    const saved = pageClip() as unknown as Clip;
     expect(saved.tracks[0].bars[0].columns).toHaveLength(1);
     expect(saved.tracks[0].bars[0].columns[0].notes[2]).toEqual({ fret: 5 });
     expect(saved.tracks[1].bars[0].columns[0].notes[0]).toEqual({ fret: 7 });
@@ -2456,11 +2702,17 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     renderAt(`#tab=${encodeURIComponent(TWO)}`);
     await screen.findByRole('heading', { name: 'Two' }, SLOW);
     fireEvent.change(trackList(), { target: { value: '1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Arrangements…' }));
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Arrangements' })).getByRole('button', { name: 'Duplicate' }));
+    // Picking a track is the viewer's, not a change: New opens without asking.
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
     await settle();
+    expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
+    // Opened again, the clip shows its first track.
+    await act(async () => {
+      window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(TWO)}`);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    await screen.findByRole('heading', { name: 'Two' }, SLOW);
     expect(trackList().value).toBe('0');
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(1);
   });
 
   it('shows no track list for one track', async () => {
