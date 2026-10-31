@@ -1890,7 +1890,10 @@ describe('TabPage arrangements', () => {
     keepMany(['One', 'Two']);
     renderAt();
     let dialog = openDialog();
-    expect(within(dialog).getByRole('button', { name: 'Open' })).toBeDisabled();
+    // Open is never greyed; with nothing picked it does nothing.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(dialog).toHaveAttribute('open');
+    expect(heading()).toHaveTextContent('One');
     // A click picks Two and leaves One open.
     fireEvent.click(line(dialog, 'Two'), { detail: 1 });
     expect(dialog).toHaveAttribute('open');
@@ -1945,7 +1948,8 @@ describe('TabPage arrangements', () => {
     expect(pickedNames(dialog)).toEqual(['A2', 'A3', 'A4']);
     // Several picked show no preview, and Open opens nothing.
     expect(within(dialog).queryByRole('button', { name: 'Insert' })).toBeNull();
-    expect(within(dialog).getByRole('button', { name: 'Open' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(dialog).toHaveAttribute('open');
     // Shift again ranges from the same start, upward too.
     fireEvent.click(line(dialog, 'A1'), { detail: 1, shiftKey: true });
     expect(pickedNames(dialog)).toEqual(['A1', 'A2']);
