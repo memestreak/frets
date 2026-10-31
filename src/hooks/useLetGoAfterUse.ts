@@ -9,6 +9,8 @@ import { useEffect } from 'react';
  *   keyboard (Enter or Space, `detail` 0) keeps the focus, so a keyboard user keeps their place.
  * - A list (`<select>`) let go once a choice is made in it, when it was opened by a press. Tabbed to
  *   and stepped with the arrows, it keeps the focus, so each arrow doesn't drop it.
+ * - A button that opened a dialog with a press is let go again when the dialog closes (by ×, Esc or
+ *   its own buttons), as the browser hands the focus back to it. Opened from the keyboard, it keeps it.
  *
  * Left alone: anything in a dialog or menu (they keep the focus inside them), radio groups (their
  * arrow keys move from the pressed tile) and anything under `[data-keep-focus]`. A handler that
@@ -18,6 +20,8 @@ export function useLetGoAfterUse() {
   useEffect(() => {
     // The list last pressed, so a choice made with the arrows in a list tabbed to keeps the focus.
     let pressedList: HTMLSelectElement | null = null;
+    // The widget last pressed (not clicked from the keyboard), which a closing dialog hands the focus back to.
+    let pressedWidget: HTMLElement | null = null;
     const onPointerDown = (e: PointerEvent) => {
       const list = (e.target as Element | null)?.closest?.('select');
       pressedList = list instanceof HTMLSelectElement ? list : null;
@@ -32,9 +36,13 @@ export function useLetGoAfterUse() {
       if (document.activeElement === list) list.blur();
     };
     const onClick = (e: MouseEvent) => {
-      if (e.detail === 0) return;
       const widget = (e.target as Element | null)?.closest?.('button, a[href], [role="button"]');
+      if (e.detail === 0) {
+        if (widget) pressedWidget = null;
+        return;
+      }
       if (!(widget instanceof HTMLElement) || keepsFocus(widget)) return;
+      pressedWidget = widget;
       // After the click's own handlers and what they drew, which may have moved the focus on.
       window.setTimeout(() => {
         if (document.activeElement === widget) widget.blur();
@@ -43,8 +51,19 @@ export function useLetGoAfterUse() {
     document.addEventListener('pointerdown', onPointerDown, { capture: true });
     document.addEventListener('keydown', onKeyDown, { capture: true });
     document.addEventListener('change', onChange);
+    const onDialogClose = () => {
+      const widget = pressedWidget;
+      if (!widget) return;
+      // After the browser (or the page) has given the focus back.
+      window.setTimeout(() => {
+        if (document.activeElement === widget) widget.blur();
+      }, 0);
+    };
     document.addEventListener('click', onClick, { capture: true });
+    // A dialog's close doesn't bubble, so it is heard on the way down.
+    document.addEventListener('close', onDialogClose, { capture: true });
     return () => {
+      document.removeEventListener('close', onDialogClose, { capture: true });
       document.removeEventListener('pointerdown', onPointerDown, { capture: true });
       document.removeEventListener('keydown', onKeyDown, { capture: true });
       document.removeEventListener('change', onChange);

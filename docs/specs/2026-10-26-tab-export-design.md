@@ -61,10 +61,9 @@ For PNG and SVG the dialog also shows, as the Chords page's does:
   - **Size (px wide):** 480, 640, 800, 1000 or 1200 (default 800). This is
     the image's width. The tab wraps onto more lines to fit it, so a
     narrower image is taller.
-  - **Transparent:** Off (default, white behind the tab) or On.
-  - **Clip name:** Show (default) or Hide, above the tab.
-  - **Name:** what the title says. It starts as the clip's name and can be
-    changed for this export only.
+  - **Transparent background:** Off (default, white behind the tab) or On.
+  - **Clip name:** Show (default) or Hide, above the tab. The name is the
+    clip's own; it can't be changed in the dialog.
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,
 so they are left out. The image is black ink, as the chords' black and

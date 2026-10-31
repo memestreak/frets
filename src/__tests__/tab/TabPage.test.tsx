@@ -146,7 +146,7 @@ describe('TabPage', () => {
     expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
   });
 
-  it('renames the clip from its title, which the export Name starts on', () => {
+  it('renames the clip from its title, which the export image prints', () => {
     renderAt();
     fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled clip' }));
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
@@ -166,7 +166,7 @@ describe('TabPage', () => {
     fireEvent.keyDown(again, { key: 'Escape' });
     expect(heading()).toHaveTextContent('Riff');
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    expect(within(screen.getByRole('dialog')).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    expect(within(screen.getByRole('dialog')).getByRole('img', { name: /Riff/ })).toBeInTheDocument();
     expect(savedClip().name).toBe('Riff');
   });
 
@@ -1811,17 +1811,20 @@ describe('TabPage export', () => {
     renderAt();
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: 'Export Riff' });
-    expect(within(dialog).getByRole('combobox', { name: 'Format' })).toHaveValue('png');
-    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveValue('Riff');
+    const format = within(dialog).getByRole('combobox', { name: 'Format' });
+    expect(format).toHaveValue('png');
+    // The Format list comes before the image's choices; the name can be hidden but not edited here.
+    const size = within(dialog).getByRole('group', { name: 'Size' });
+    expect(format.compareDocumentPosition(size) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(dialog).queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);
     // A choice changes the preview's size line and is remembered.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Size' })).getByRole('button', { name: '480' }));
-    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent' })).getByRole('button', { name: 'On' }));
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent background' })).getByRole('button', { name: 'On' }));
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^480 × \d+ px, transparent$/);
     await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ width: 480, transparent: true }));
-    // Hiding the name greys out its field.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Clip name' })).getByRole('button', { name: 'Hide' }));
-    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeDisabled();
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ name: false }));
     // One way to close: × (or Esc); no Done.
     expect(within(dialog).queryByRole('button', { name: 'Done' })).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
@@ -1837,6 +1840,7 @@ describe('TabPage export', () => {
     expect(within(format).getAllByRole('option').map(o => o.textContent)).toEqual(['PNG image', 'SVG image', 'ASCII tab', 'alphaTex', 'MusicXML', 'Guitar Pro']);
     const shows = () => ({
       preview: within(dialog).queryByTestId('export-preview') !== null,
+      choices: ['Size', 'Transparent background', 'Clip name'].filter(g => within(dialog).queryByRole('group', { name: g })).length,
       copy: within(dialog).queryByRole('button', { name: 'Copy' }) !== null,
       downloads: within(dialog).getAllByRole('button', { name: /Download/ }).length,
     });
@@ -1846,12 +1850,12 @@ describe('TabPage export', () => {
       seen[f] = shows();
     }
     expect(seen).toEqual({
-      png: { preview: true, copy: true, downloads: 1 },
-      svg: { preview: true, copy: true, downloads: 1 },
-      ascii: { preview: false, copy: true, downloads: 1 },
-      alphatex: { preview: false, copy: true, downloads: 1 },
-      musicxml: { preview: false, copy: false, downloads: 1 },
-      guitarPro: { preview: false, copy: false, downloads: 1 },
+      png: { preview: true, choices: 3, copy: true, downloads: 1 },
+      svg: { preview: true, choices: 3, copy: true, downloads: 1 },
+      ascii: { preview: false, choices: 0, copy: true, downloads: 1 },
+      alphatex: { preview: false, choices: 0, copy: true, downloads: 1 },
+      musicxml: { preview: false, choices: 0, copy: false, downloads: 1 },
+      guitarPro: { preview: false, choices: 0, copy: false, downloads: 1 },
     });
     // Closed and opened again, it is still on the format last picked.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));

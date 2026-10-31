@@ -38,8 +38,9 @@ const isImage = (format: TabExportFormat) => format === 'png' || format === 'svg
  * one, as the card's Save as… list does. Copy, beside it, copies the images
  * and the two text formats; the other two can't be pasted, so it isn't there
  * for them. For the images the dialog also shows the preview with its size
- * in pixels and the image's choices (width, transparent, the name above the
- * tab and what it says). A red ⚠ after the list says when the file can't
+ * in pixels above the list, and under it the image's choices (width,
+ * transparent background, the clip's name above the tab or not). A red ⚠
+ * before the list says when the file can't
  * hold all of the clip. The images and ASCII tab are of the track the page
  * shows; alphaTex, MusicXML and Guitar Pro hold every track. A line says what
  * happened. The page's Export button opens it, as does the tab's right-click
@@ -62,21 +63,18 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
-  const nameId = useId();
   const formatId = useId();
   const [status, setStatus] = useState('');
   // Kept while the page is open, so the dialog opens again on the format last used.
   const [format, setFormat] = useState<TabExportFormat>('png');
   const part = partOf(clip, track);
-  const [title, setTitle] = useState(clip.name);
-  // Each opening starts on the clip's own name and a blank status line.
+  // The image's title is the clip's name, shown or hidden by Clip name.
+  const title = clip.name;
+  // Each opening starts on a blank status line.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) {
-      setTitle(clip.name);
-      setStatus('');
-    }
+    if (open) setStatus('');
   }
 
   useEffect(() => {
@@ -94,7 +92,7 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   const svg = () => tabSvg(part, style, title, parts, view);
   const ascii = () => writeAscii(part, { rhythm: view.asciiRhythm });
   const { width, height } = tabImageSize(part, style, title, parts, view);
-  const baseName = tabFileName(title || clip.name);
+  const baseName = tabFileName(clip.name);
 
   /** What each format saves: its kind (name ending, type) and the file. */
   const files: Record<TabExportFormat, { kind: SaveKind; make: () => Blob | Promise<Blob> }> = {
@@ -150,6 +148,17 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
             </button>
           </div>
           <div className="settings-dialog-body">
+            {isImage(format) && (
+              <>
+                <div className="export-preview" data-testid="export-preview">
+                  <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
+                </div>
+                <p className="export-size" data-testid="export-size">
+                  {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
+                </p>
+              </>
+            )}
+            {/* Format first; under it the image's choices, only for PNG and SVG. */}
             <div className="export-choices">
               <label htmlFor={formatId}>Format</label>
               <span className="tab-export-format">
@@ -164,21 +173,13 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
                   {TAB_EXPORT_FORMATS.map(f => <option key={f} value={f}>{FORMAT_LABELS[f]}</option>)}
                 </select>
               </span>
-            </div>
-            {isImage(format) && (
-              <>
-                <div className="export-preview" data-testid="export-preview">
-                  <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
-                </div>
-                <p className="export-size" data-testid="export-size">
-                  {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
-                </p>
-                <div className="export-choices">
+              {isImage(format) && (
+                <>
                   <span>Size<span className="export-unit"> (px wide)</span></span>
                   <Segmented label="Size" value={style.width} onChange={w => set({ width: w })} options={WIDTHS} />
-                  <span>Transparent</span>
+                  <span>Transparent background</span>
                   <Segmented
-                    label="Transparent" value={style.transparent ? 'on' : 'off'}
+                    label="Transparent background" value={style.transparent ? 'on' : 'off'}
                     onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
                   />
                   <span>Clip name</span>
@@ -186,19 +187,9 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
                     label="Clip name" value={style.name ? 'show' : 'hide'}
                     onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
                   />
-                  <label htmlFor={nameId}>Name</label>
-                  <input
-                    id={nameId} type="text" className="input export-name" aria-label="Name"
-                    value={title} placeholder="No name" disabled={!style.name}
-                    autoComplete="off" spellCheck={false}
-                    onChange={e => {
-                      setTitle(e.target.value);
-                      setStatus('');
-                    }}
-                  />
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="mr-auto text-(--ink-muted)" role="status">{status}</span>

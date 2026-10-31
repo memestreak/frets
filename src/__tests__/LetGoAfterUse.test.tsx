@@ -88,4 +88,34 @@ describe('LetGoAfterUse', () => {
     fireEvent.change(list, { target: { value: '0' } });
     expect(list).toHaveFocus();
   });
+
+  it('lets go of a pressed button again when the dialog it opened closes and hands the focus back', () => {
+    render(
+      <>
+        <LetGoAfterUse />
+        <button type="button" onClick={() => (document.getElementById('d') as HTMLDialogElement).showModal()}>Export</button>
+        <dialog id="d" aria-label="Export"><button type="button">Inside</button></dialog>
+      </>,
+    );
+    const opener = screen.getByRole('button', { name: 'Export' });
+    const dialog = document.getElementById('d') as HTMLDialogElement;
+    /** Closes the dialog as Esc does, the browser giving the focus back to the opener. */
+    const close = () => {
+      act(() => {
+        dialog.close();
+        dialog.dispatchEvent(new Event('close'));
+        opener.focus();
+      });
+      act(() => { vi.runAllTimers(); });
+    };
+    press(opener);
+    close();
+    expect(opener).not.toHaveFocus();
+
+    // Opened from the keyboard, it keeps the focus when the dialog closes.
+    act(() => opener.focus());
+    fireEvent.click(opener, { detail: 0 });
+    close();
+    expect(opener).toHaveFocus();
+  });
 });
