@@ -3,9 +3,10 @@
 /**
  * A volume or level: a small rotary knob (Jeremy picked it over a slider, 2026-10-26).
  * Drag up or down, scroll, or use the arrow keys to turn it; it sweeps 270°, from 0 at lower left
- * to 100% at lower right, with the level on hover.
+ * to 100% at lower right, with the level on hover. With `reset`, a double-click puts that level back.
  */
 import { useEffect, useRef } from 'react';
+import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 
 /** The knob's size, its sweep, and how far a drag, a key or a scroll turns it. */
 const SIZE = 32;
@@ -30,20 +31,24 @@ function arc(from: number, to: number, radius: number): string {
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
+export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume', reset, disabled = false }: {
   /** 0 to 1. */
   value: number;
   onChange: (value: number) => void;
   labelledBy: string;
   /** What it turns, named in its tip; the FX dialog's knobs share it (Drive, Tone, Amount). */
   name?: string;
+  /** What a double-click puts back (the Metronome's knobs: 100%). */
+  reset?: number;
+  /** Shown greyed, and turned by nothing. */
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; value: number } | null>(null);
   // The latest value and handler, for the scroll listener added once.
-  const latest = useRef({ value, onChange });
+  const latest = useRef({ value, onChange, disabled });
   useEffect(() => {
-    latest.current = { value, onChange };
+    latest.current = { value, onChange, disabled };
   });
 
   // Scrolling turns the knob instead of the page; React's wheel listener can't stop the scroll.
@@ -51,8 +56,9 @@ export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
     const el = ref.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
+      const { value: now, onChange: change, disabled: off } = latest.current;
+      if (off) return;
       e.preventDefault();
-      const { value: now, onChange: change } = latest.current;
       change(clamp(Math.round((now + (e.deltaY < 0 ? STEP : -STEP)) * 100) / 100));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -65,12 +71,15 @@ export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
   const [tipX, tipY] = pointAt(value, 4);
   return (
     <div
-      ref={ref} className="knob" role="slider" tabIndex={0} aria-labelledby={labelledBy}
+      ref={ref} className="knob" role="slider" tabIndex={disabled ? -1 : 0} aria-labelledby={labelledBy}
       aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={text}
-      data-tip={`${name} ${text}`}
+      aria-disabled={disabled || undefined} data-disabled={disabled || undefined}
+      data-tip={`${name} ${text}${reset !== undefined && !disabled ? ` (double-click: ${Math.round(reset * 100)}%)` : ''}`}
       // A press leaves the focus (and so the cursor) on the tab; the keys still reach the knob by Tab.
       onMouseDown={e => e.preventDefault()}
       onPointerDown={e => {
+        if (disabled) return;
+        letGoOfFields();
         e.currentTarget.setPointerCapture(e.pointerId);
         drag.current = { y: e.clientY, value };
       }}
@@ -81,7 +90,11 @@ export function VolumeKnob({ value, onChange, labelledBy, name = 'Volume' }: {
       }}
       onPointerUp={() => { drag.current = null; }}
       onPointerCancel={() => { drag.current = null; }}
+      onDoubleClick={() => {
+        if (reset !== undefined && !disabled) onChange(reset);
+      }}
       onKeyDown={e => {
+        if (disabled) return;
         const by = { ArrowUp: STEP, ArrowRight: STEP, ArrowDown: -STEP, ArrowLeft: -STEP }[e.key];
         if (by !== undefined) onChange(clamp(Math.round((value + by) * 100) / 100));
         else if (e.key === 'Home') onChange(0);

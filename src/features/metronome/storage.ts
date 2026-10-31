@@ -59,8 +59,10 @@ function parseVoice(raw: unknown, fallback: Voice): Voice {
 function parsePoly(raw: unknown, fallback: Poly): Poly {
   const f = fieldsOf(raw);
   return {
-    count: isInt(f.count, 0, MAX_POLY) ? f.count : fallback.count,
+    on: typeof f.on === 'boolean' ? f.on : fallback.on,
+    count: isInt(f.count, 1, MAX_POLY) ? f.count : fallback.count,
     sound: isSound(f.sound) ? f.sound : fallback.sound,
+    high: typeof f.high === 'boolean' ? f.high : fallback.high,
     level: isLevel(f.level) ? f.level : fallback.level,
   };
 }

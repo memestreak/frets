@@ -7,6 +7,7 @@
  * while typing. A press that doesn't move selects the number to type over it.
  */
 import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 
 /**
  * A double-click on a number field's row (its label, number or what follows it) puts it back to its
@@ -90,6 +91,7 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
     // Keep the caret out (and no text selected) until we know it is a click. Dragging works while
     // typing too (Jeremy, 2026-10-29): the number being typed is settled first.
     e.preventDefault();
+    letGoOfFields(e.currentTarget.parentElement);
     e.currentTarget.setPointerCapture(e.pointerId);
     const typed = draft !== null ? parse(draft) : null;
     drag.current = { y: e.clientY, from: typed !== null ? clamp(typed) : value, moved: false, shift: e.shiftKey };
@@ -121,6 +123,13 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
     }
   };
 
+  // A step button keeps the focus where it was if that is this field (a number being typed); any
+  // other field lets go of it.
+  const keepFocusInField = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    letGoOfFields(e.currentTarget.closest('.number-field'));
+  };
+
   // Room for the longest value, its sign included.
   const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
@@ -136,10 +145,10 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
       />
       <span className="number-field-unit" aria-hidden="true">{unit ?? ''}</span>
       <span className="number-field-steps">
-        <button type="button" aria-label={upLabel} tabIndex={-1} disabled={disabled} onMouseDown={e => e.preventDefault()} onClick={() => set(value + step)}>
+        <button type="button" aria-label={upLabel} tabIndex={-1} disabled={disabled} onMouseDown={keepFocusInField} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
-        <button type="button" aria-label={downLabel} tabIndex={-1} disabled={disabled} onMouseDown={e => e.preventDefault()} onClick={() => set(value - step)}>
+        <button type="button" aria-label={downLabel} tabIndex={-1} disabled={disabled} onMouseDown={keepFocusInField} onClick={() => set(value - step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 0.5 4 4l3.5-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
       </span>

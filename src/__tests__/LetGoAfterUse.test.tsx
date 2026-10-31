@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { LetGoAfterUse } from '@/components/LetGoAfterUse';
+import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 
 afterEach(cleanup);
 
@@ -117,5 +118,32 @@ describe('LetGoAfterUse', () => {
     fireEvent.click(opener, { detail: 0 });
     close();
     expect(opener).toHaveFocus();
+  });
+
+  it('lets go of a list opened by a press and closed with no choice, at the mouse’s next move', () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+    render(<><LetGoAfterUse /><select aria-label="Sound"><option>A</option></select><p>Page</p></>);
+    const list = screen.getByRole('combobox', { name: 'Sound' });
+    fireEvent.pointerDown(list);
+    act(() => list.focus());
+    // A move as the list opens isn't one over the page.
+    fireEvent.pointerMove(screen.getByText('Page'), { pointerType: 'mouse' });
+    expect(list).toHaveFocus();
+    now.mockReturnValue(1000);
+    fireEvent.pointerMove(screen.getByText('Page'), { pointerType: 'mouse' });
+    expect(list).not.toHaveFocus();
+    now.mockRestore();
+  });
+
+  it('letGoOfFields lets go of a field being typed in, but not its own', () => {
+    render(<><input aria-label="Swing" /><span data-testid="field"><input aria-label="Clicks" /></span></>);
+    const swing = screen.getByRole('textbox', { name: 'Swing' });
+    act(() => swing.focus());
+    letGoOfFields();
+    expect(swing).not.toHaveFocus();
+    const clicks = screen.getByRole('textbox', { name: 'Clicks' });
+    act(() => clicks.focus());
+    letGoOfFields(screen.getByTestId('field'));
+    expect(clicks).toHaveFocus();
   });
 });

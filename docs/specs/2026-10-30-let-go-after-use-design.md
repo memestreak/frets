@@ -53,3 +53,21 @@ already passed. So the hook remembers the last widget pressed, and when any
 dialog closes (`close` heard in the capture phase, as it doesn't bubble) it
 lets go of that widget if the focus came back to it. A button clicked from
 the keyboard clears the memory, so a keyboard user keeps their place.
+
+## A list closed with no choice, and a field under a knob (2026-10-31, #270)
+
+Jeremy, on the Metronome: "None of the widgets should retain focus after you
+make a selection or click off of them." Two cases kept it:
+
+- **A list opened with a press and closed with no choice** (Esc, or a click
+  off it). The open list swallows that click, so the page never hears it and
+  the list kept the focus and its ring. An open list takes the mouse to
+  itself, so the hook lets go of it at the mouse's next move over the page
+  (300 ms or more after the press, so a move as it opens doesn't count).
+- **A field being typed in, then a knob pressed.** The controls that keep a
+  press from taking the focus (the knob, a number's step buttons, the
+  Metronome's drags) left the field focused under them. They now call
+  `letGoOfFields()` when pressed: a text field or list with the focus lets
+  go, as a press anywhere else would make it. Nothing else is touched, so
+  the Tab editor still keeps its keys. A number field's own steps leave its
+  own number being typed alone.

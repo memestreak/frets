@@ -41,13 +41,15 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `src/components/NumberField.tsx` (a number with up and down buttons:
   type, step, or drag up or down, `dragStep` a drag's step and Shift the
   button step; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a
-  small rotary knob for a volume or level), shared by Tab and the
-  Metronome,
+  small rotary knob for a volume or level; `reset` for a double-click,
+  `disabled` to grey it), shared by Tab and the Metronome,
   `src/components/LetGoAfterUse.tsx` and `src/hooks/useLetGoAfterUse.ts`
   (mounted once by `AppShell`: a button, link or list used with the mouse
   or a finger lets go of the focus, so no widget stays outlined or keeps
   the page's keys, and a button that opened a dialog lets go again when
-  it closes; keyboard use keeps it; see
+  it closes; keyboard use keeps it. A list closed with no choice lets go
+  at the mouse's next move, and `letGoOfFields` is for a control that keeps
+  the focus off itself, so a field typed in lets go when it is pressed; see
   `docs/specs/2026-10-30-let-go-after-use-design.md`).
 - `src/components/shortcuts/` — the keyboard shortcuts overlay (issue #180,
   `docs/specs/2026-10-30-keyboard-shortcuts-design.md`): `?` anywhere but a
