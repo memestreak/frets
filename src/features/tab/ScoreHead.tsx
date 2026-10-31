@@ -11,7 +11,7 @@
  * the first bar's tempo ("♩ = 120" when none is set), whose press opens the tempo panel
  * (`docs/specs/2026-10-29-tab-tempo-button-design.md`).
  */
-import type { MouseEvent, ReactNode } from 'react';
+import type { MouseEvent } from 'react';
 import { DEFAULT_BPM, UNTITLED, type Part, type Tempo } from './clip';
 import type { HeadField } from './CreditsPanel';
 import { creditsOf, HEAD, tuningBlock } from './credits';
@@ -30,10 +30,8 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, note, onEditCredits, onEditTuning, onEditTempo }: {
+export function ScoreHead({ clip, onEditCredits, onEditTuning, onEditTempo }: {
   clip: Part;
-  /** A line under the title, as the example note ("Example: edits aren't saved"). */
-  note?: ReactNode;
   /** Opens the Title and credits panel with `field`'s field focused. */
   onEditCredits?: (x: number, y: number, field: HeadField) => void;
   onEditTuning?: OpenAt;
@@ -59,7 +57,6 @@ export function ScoreHead({ clip, note, onEditCredits, onEditTuning, onEditTempo
       <h1 className="m-0 tab-title">
         <button type="button" className="tab-title-text" onClick={editTitle} disabled={!editTitle}>{clip.name.trim() || UNTITLED}</button>
       </h1>
-      {note}
       {hasCredits && (
         <button type="button" className="score-credits" onClick={editCredits} disabled={!editCredits}>
           {artist && <span className="score-artist">{artist}</span>}

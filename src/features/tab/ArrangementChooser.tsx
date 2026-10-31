@@ -1,16 +1,16 @@
 'use client';
 
 /**
- * Arrangements… as a file chooser (issue #259), in two layouts to choose from (`?mock=b`, `?mock=c`):
- * b, two panes as in an OS Open dialog (the places on the left, the chosen folder's files on the
- * right, the picked file's preview beside them); c, one folder at a time under a path ("Arrangements ›
- * My arrangements › Blues", the preview below the list). A press on a file picks it and shows its
- * preview, from which Insert puts it in at the page's cursor and Copy alphaTex copies its text; a
- * double click, Enter or Open opens it, and the dialog closes. On a phone the preview takes the whole
- * dialog, with a Back button.
+ * Arrangements… as a file chooser (issue #259; Jeremy picked the two panes, 2026-10-31): the places on
+ * the left (My arrangements and its folders, then the built-in folders), the chosen folder's files in
+ * the middle, the picked file's preview on the right. A press on a file picks it and shows its preview,
+ * from which Insert puts it in at the page's cursor and Copy alphaTex copies its text; a double click,
+ * Enter or Open opens it, and the dialog closes. The dialog keeps one height whatever it shows; the
+ * panes scroll. On a phone it shows one folder at a time under a path ("Arrangements › Built-in ›
+ * Rhythm"), and a tapped file's preview takes the whole dialog, with a Back button.
  */
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react';
-import { Modal } from '@/features/practice/quiz/Modal';
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { Modal } from '@/components/Modal';
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { loadArrangement, type ArrangementInfo, type Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
@@ -20,10 +20,12 @@ import { readTab } from './readTab';
 import { TabClip } from './TabClip';
 import type { Parts } from './layout';
 import { useWidth } from './useWidth';
-import { changedText, DOUBLE_TAP_MS, DRAG_TYPE, IconButton, NameField } from './ArrangementsDialog';
 import type { Deleted } from './useArrangements';
 
-export type ChooserLayout = 'panes' | 'path';
+/** What a dragged arrangement carries: its id (the picked ones', a line each), under a type of Frets' own (a drop elsewhere imports text). */
+export const DRAG_TYPE = 'application/x-frets-arrangement';
+/** Two taps on one line this close together open it, where a browser doesn't count a double tap as a double click. */
+export const DOUBLE_TAP_MS = 400;
 
 const NEW_FOLDER = 'New folder';
 /** Narrower than this, the chooser shows one thing at a time: the list, or the picked file's preview. */
@@ -33,7 +35,7 @@ const PREVIEW_ZOOM = 0.75;
 /** The preview sheet's padding, both sides (`.tab-chooser-sheet`). */
 const SHEET_PADDING = 24;
 
-/** Where the list is: the top (layout c only), My arrangements (a folder of it, or its top level), or the built-ins. */
+/** Where the list is: the top (on a phone only), My arrangements (a folder of it, or its top level), or the built-ins. */
 type Place =
   | { kind: 'root' }
   | { kind: 'mine'; folder?: string }
@@ -47,24 +49,65 @@ type FileKey = `mine:${string}` | `builtin:${string}`;
 
 const byName = <T,>(name: (t: T) => string) => (a: T, b: T) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' });
 
+/** A name typed in place of a row: Enter or leaving keeps it, Esc gives it up (and leaves the dialog open). */
+export function NameField({ name, label, onDone }: { name: string; label: string; onDone: (name: string | null) => void }) {
+  const [draft, setDraft] = useState(name);
+  const done = useRef(false);
+  const finish = (next: string | null) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(next === null ? null : next.trim());
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      finish(null);
+    } else if (e.key === 'Enter') finish(draft);
+  };
+  return (
+    <input
+      type="text" className="input tab-row-name" aria-label={label} placeholder={UNTITLED} value={draft}
+      // eslint-disable-next-line jsx-a11y/no-autofocus -- it opens on a press of the pencil, to type in
+      autoFocus onFocus={e => e.currentTarget.select()}
+      onChange={e => setDraft(e.target.value)} onBlur={() => finish(draft)} onKeyDown={onKeyDown}
+    />
+  );
+}
+
+export function IconButton({ label, onClick, children }: { label: string; onClick: (e: MouseEvent<HTMLButtonElement>) => void; children: ReactNode }) {
+  return <button type="button" className="btn btn-ghost btn-icon tab-row-tool" aria-label={label} onClick={onClick}>{children}</button>;
+}
+
+/**
+ * When a saved arrangement last changed, short enough for the end of its line and exact enough to
+ * tell two of one name apart: the time today, else the day and time (and the year, from another).
+ */
+export function changedText(ms: number, now = Date.now()): string {
+  const date = new Date(ms);
+  const today = new Date(now);
+  const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (date.toDateString() === today.toDateString()) return time;
+  const year = date.getFullYear() === today.getFullYear() ? undefined : 'numeric';
+  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year })}, ${time}`;
+}
+
 /** A file's clip for the preview: read from storage, or from a built-in's text. */
 type Preview = { key: FileKey; clip: Clip } | { key: FileKey; error: string };
 
 export function ArrangementChooser({
-  layout, open, library, openId, exampleId, deleted, parts, onClose, onOpen, onOpenExample, onInsert, onRename, onDelete,
+  open, library, openId, deleted, parts, onClose, onOpen, onOpenBuiltin, onInsert, onRename, onDelete,
   onMove, onCreateFolder, onRenameFolder, onDeleteFolder, onUndoDelete,
 }: {
-  layout: ChooserLayout;
   open: boolean;
   library: Library;
   openId: string;
-  exampleId: string | null;
   deleted: Deleted | null;
   /** How the page draws the clip (tab, staff or both), so the preview looks the same. */
   parts: Parts;
   onClose: () => void;
   onOpen: (id: string) => void;
-  onOpenExample: (builtin: Builtin) => void;
+  /** Opens a built-in arrangement as a new one, not saved. */
+  onOpenBuiltin: (builtin: Builtin) => void;
   /** Puts a clip in at the page's cursor, as a paste does. */
   onInsert: (clip: Clip) => void;
   onRename: (id: string, name: string) => void;
@@ -84,14 +127,8 @@ export function ArrangementChooser({
     return () => { live = false; };
   }, [open]);
 
-  // Where the list starts: the open arrangement's folder (or the shown example's).
-  const startPlace = (): Place => {
-    if (exampleId !== null) {
-      const folder = builtins.find(b => b.id === exampleId)?.folder;
-      return { kind: 'builtin', folder };
-    }
-    return { kind: 'mine', folder: library.items.find(i => i.id === openId)?.folder };
-  };
+  // Where the list starts: the open arrangement's folder.
+  const startPlace = (): Place => ({ kind: 'mine', folder: library.items.find(i => i.id === openId)?.folder });
   const [place, setPlace] = useState<Place>(startPlace);
   const [picked, setPicked] = useState<FileKey[]>([]);
   const [anchor, setAnchor] = useState<FileKey | null>(null);
@@ -168,7 +205,7 @@ export function ArrangementChooser({
     if (key.startsWith('mine:')) onOpen(key.slice(5));
     else {
       const builtin = builtinOf(key);
-      if (builtin) onOpenExample(builtin);
+      if (builtin) onOpenBuiltin(builtin);
     }
   };
 
@@ -307,7 +344,7 @@ export function ArrangementChooser({
         onDragEnd={() => setDropAt(null)}
       >
         <button
-          type="button" className="tab-row-main" aria-current={(exampleId === null && info.id === openId) || undefined}
+          type="button" className="tab-row-main" aria-current={info.id === openId || undefined}
           aria-pressed={isPicked} onClick={e => pressFile(key, e)}
         >
           <span className="tab-row-text">{name}</span>{' '}
@@ -327,8 +364,7 @@ export function ArrangementChooser({
     return (
       <li key={key} className="tab-row">
         <button
-          type="button" className="tab-row-main" aria-current={b.id === exampleId || undefined}
-          aria-pressed={pickedHere.includes(key)} onClick={e => pressFile(key, e)}
+          type="button" className="tab-row-main" aria-pressed={pickedHere.includes(key)} onClick={e => pressFile(key, e)}
         >
           <span className="tab-row-text">{b.title}</span>
         </button>
@@ -350,8 +386,8 @@ export function ArrangementChooser({
       ];
     }
     if (place.kind === 'mine') {
-      // In the two panes the folders are on the left; one folder at a time, they head the list.
-      const folderLines = place.folder === undefined && (layout === 'path' || phone)
+      // In the two panes the folders are on the left; on a phone, they head the list.
+      const folderLines = place.folder === undefined && phone
         ? folders.map(f => folderLine(`folder:${f.id}`, f.name, () => goTo({ kind: 'mine', folder: f.id }), f.id))
         : [];
       return [...folderLines, ...mineIn(place.folder).map(mineLine)];
@@ -367,7 +403,7 @@ export function ArrangementChooser({
   const list = (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Delete or Backspace from a picked line, a button inside
     <ul
-      className={`tab-rows tab-chooser-list m-0 p-0${dropAt === '' && place.kind === 'mine' && place.folder === undefined ? ' tab-drop' : ''}`}
+      className={`tab-rows tab-chooser-list tab-scroll m-0 p-0${dropAt === '' && place.kind === 'mine' && place.folder === undefined ? ' tab-drop' : ''}`}
       aria-label={placeName(place)} onKeyDown={onListKeyDown}
       {...(place.kind === 'mine' ? dropTarget(place.folder) : {})}
     >
@@ -375,7 +411,7 @@ export function ArrangementChooser({
     </ul>
   );
 
-  // ---- The path (layout c, and phones) ----
+  // ---- The path (phones) ----
 
   const trail: Place[] = place.kind === 'root' ? [place]
     : [{ kind: 'root' }, { kind: place.kind }, ...(place.folder !== undefined ? [place] : [])];
@@ -392,29 +428,49 @@ export function ArrangementChooser({
     </nav>
   );
 
-  // ---- The places (layout b) ----
+  // ---- The places ----
 
+  /** A place on the left; a folder of My arrangements (`mineFolder`) takes dropped arrangements and can be renamed and deleted. */
   const placeButton = (p: Place, name: string, mineFolder?: string | null) => {
     const dropKey = mineFolder === null ? '' : mineFolder;
     const takesDrops = mineFolder !== undefined;
+    const key = `${p.kind}:${'folder' in p ? p.folder ?? '' : ''}`;
+    if (mineFolder && renaming === mineFolder) {
+      return (
+        <li key={key} className="tab-row">
+          <NameField name={name} label="Folder name" onDone={next => {
+            setRenaming(null);
+            if (next !== null && next !== name) onRenameFolder(mineFolder, next || NEW_FOLDER);
+          }} />
+        </li>
+      );
+    }
     return (
       <li
-        key={`${p.kind}:${'folder' in p ? p.folder ?? '' : ''}`}
-        className={takesDrops && dropAt === dropKey ? 'tab-drop' : undefined}
+        key={key} className={`tab-row${takesDrops && dropAt === dropKey ? ' tab-drop' : ''}`}
         {...(takesDrops ? dropTarget(mineFolder ?? undefined) : {})}
       >
         <button
-          type="button" className={`tab-row-main tab-chooser-place${mineFolder === null || p.kind === 'builtin' && p.folder === undefined ? ' tab-folder' : ''}`}
+          type="button" className={`tab-row-main tab-chooser-place${mineFolder === null ? ' tab-folder' : ''}`}
           aria-current={samePlace(p, place) || undefined} onClick={() => goTo(p)}
         >
           <FolderIcon />
           <span className="tab-row-text">{name}</span>
         </button>
+        {mineFolder && (
+          <>
+            <IconButton label={`Rename ${name}`} onClick={() => setRenaming(mineFolder)}><PencilIcon /></IconButton>
+            <IconButton label={`Delete ${name}`} onClick={() => {
+              if (place.kind === 'mine' && place.folder === mineFolder) goTo({ kind: 'mine' });
+              onDeleteFolder(mineFolder);
+            }}><TrashIcon /></IconButton>
+          </>
+        )}
       </li>
     );
   };
   const places = (
-    <nav className="tab-chooser-places" aria-label="Places">
+    <nav className="tab-chooser-places tab-scroll" aria-label="Places">
       <ul className="tab-rows m-0 p-0">
         {placeButton({ kind: 'mine' }, 'My arrangements', null)}
         {folders.map(f => (
@@ -451,7 +507,7 @@ export function ArrangementChooser({
 
   const footer = (
     <div className="tab-chooser-footer">
-      {place.kind === 'mine' && place.folder === undefined && !previewing && (
+      {(!phone || place.kind === 'mine' && place.folder === undefined) && !previewing && (
         <button type="button" className="btn btn-secondary" onClick={newFolder}>New folder</button>
       )}
       <div className="flex gap-2 ml-auto">
@@ -471,13 +527,12 @@ export function ArrangementChooser({
         {previewPane}
       </>
     );
-  } else if (phone || layout === 'path') {
+  } else if (phone) {
     body = (
       <>
         {path}
         {deletedNote}
         {list}
-        {!phone && previewPane}
       </>
     );
   } else {
@@ -494,11 +549,11 @@ export function ArrangementChooser({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Arrangements" className={layout === 'panes' && !phone ? 'tab-chooser-wide' : 'tab-chooser-narrow'}>
-      <div ref={bodyRef} className="settings-dialog-body grid gap-3">
+    <Modal open={open} onClose={onClose} title="Arrangements" className="tab-chooser">
+      <div ref={bodyRef} className="tab-chooser-body">
         {body}
-        {footer}
       </div>
+      {footer}
     </Modal>
   );
 }
@@ -527,17 +582,18 @@ function PreviewPane({ name, preview, parts, onInsert }: {
 
   return (
     <section className="tab-chooser-preview" aria-label="Preview">
-      <div ref={ref} className="tab-chooser-sheet">
-        {preview && 'error' in preview && <p className="m-0 tab-examples-note">⚠ {preview.error}</p>}
-        {clip && width > 0 && (
-          <div style={{ zoom: PREVIEW_ZOOM }}>
+      <div ref={ref} className="tab-chooser-sheet tab-scroll">
+        {/* Keyed by the file, so each one picked comes in with the same short fade and rise. */}
+        {preview && 'error' in preview && <p key={preview.key} className="m-0 tab-examples-note tab-preview-in">⚠ {preview.error}</p>}
+        {clip && width > 0 && preview && (
+          <div key={preview.key} className="tab-preview-in" style={{ zoom: PREVIEW_ZOOM }}>
             <p className="m-0 mb-2 font-semibold">{name}</p>
             <TabClip clip={partOf(clip)} width={(width - SHEET_PADDING) / PREVIEW_ZOOM} parts={parts} title={`${name}, a preview`} />
           </div>
         )}
       </div>
-      {clip && (
-        <div className="flex gap-2">
+      {clip && preview && (
+        <div key={preview.key} className="flex gap-2 tab-preview-in">
           <button type="button" className="btn btn-secondary" onClick={() => onInsert(clip)} title="Put it in at the cursor">Insert</button>
           <button type="button" className="btn btn-secondary" onClick={() => void copy()}>
             {copied ? <CheckIcon /> : <CopyIcon />} Copy alphaTex

@@ -8,8 +8,9 @@ to add a folder, add a directory. Nothing else lists them.
 
 Open one with `/tab#example=<file name without extension>`
 (`articulations/bends.atex` is `/tab#example=bends`), so file names must be
-different across all folders. An example opens in place of your own
-arrangement and is never saved; Keep a copy makes it one of yours.
+different across all folders. One opens as a new arrangement, not saved
+until Save. Picked in Arrangements…, it shows in a preview, from which
+Insert puts it in at the cursor and Copy alphaTex copies its text.
 
 Every folder but `samples/` holds tests (`src/__tests__/tab/examples.test.ts`):
 each file must read with no warnings and every bar full, and Frets must write

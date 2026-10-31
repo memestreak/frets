@@ -14,6 +14,9 @@ const PAGE: ShortcutGroup = {
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },
     { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut, paste' },
+    { keys: ['Mod+S'], does: 'Save' },
+    { keys: ['Mod+Shift+S'], does: 'Save as…' },
+    { keys: ['Mod+O'], does: 'Arrangements…' },
   ],
 };
 
