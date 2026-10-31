@@ -125,6 +125,19 @@ describe('MetronomePage', () => {
     expect(tempo).toHaveTextContent('130');
   });
 
+  it('a double-click on the big tempo or the dial puts back 120', () => {
+    render(<MetronomePage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
+    fireEvent.doubleClick(screen.getByRole('slider', { name: 'Tempo' }));
+    expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveTextContent('120');
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Dial' }));
+    act(() => { screen.getByRole('slider', { name: 'Tempo' }).focus(); });
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'Tempo' }), { key: 'ArrowUp' });
+    expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveAttribute('aria-valuenow', '125');
+    fireEvent.doubleClick(screen.getByRole('slider', { name: 'Tempo' }));
+    expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveAttribute('aria-valuenow', '120');
+  });
+
   it('the pendulum’s weight stays under the pointer: down is faster', () => {
     Element.prototype.setPointerCapture ??= () => {};
     localStorage.setItem(DISPLAY_KEY, JSON.stringify({ view: 'pendulum' }));

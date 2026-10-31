@@ -46,9 +46,9 @@ Every view:
 ## Controls
 
 - **Tempo**, 20 to 400 bpm. On the big number, the dial or a Tempo field, a
-  drag up or down changes it: 5 bpm a step, or 1 with Shift held, up faster.
-  A Tempo field also steps by 1 with its buttons and the arrow keys, and a
-  double-click on it puts back 120.
+  drag up or down changes it: 5 bpm a step, or 1 with Shift held, up faster,
+  and a double-click puts back 120. A Tempo field also steps by 1 with its
+  buttons and the arrow keys.
 - The **pendulum's weight** is the thing moved (#270): pressed and dragged,
   it stays under the pointer, and the tempo is where it sits on the scale,
   to 5 bpm (1 with Shift). Lower is faster, as on a real one. It is measured

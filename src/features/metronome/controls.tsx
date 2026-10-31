@@ -56,7 +56,7 @@ export const DRAG_BPM = 5;
 
 /**
  * Drag up or down on a tempo, wherever it is shown, to change it: 5 bpm a step, 1 with Shift held,
- * up faster. Spread the result on the element that shows the tempo. (The pendulum's weight follows
+ * up faster, and a double-click puts back 120. Spread the result on the element that shows the tempo. (The pendulum's weight follows
  * the pointer instead: `views.tsx`.)
  */
 export function useBpmDrag(m: Metronome) {
@@ -85,6 +85,8 @@ export function useBpmDrag(m: Metronome) {
     },
     onPointerUp: end,
     onPointerCancel: end,
+    // A double-click puts back 120, as on the Tempo field.
+    onDoubleClick: () => m.setRhythm(r => ({ ...r, bpm: DEFAULT_BPM })),
   };
 }
 

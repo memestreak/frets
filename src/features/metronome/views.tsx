@@ -73,7 +73,7 @@ function Readout({ m }: { m: Metronome }) {
         <div
           className="metronome-big metronome-bpm-drag" role="slider" tabIndex={0} aria-label="Tempo"
           aria-valuemin={MIN_BPM} aria-valuemax={MAX_BPM} aria-valuenow={bpm} aria-valuetext={`${bpm} bpm`}
-          data-tip="Drag up or down: 5 bpm a step, 1 with Shift" {...drag}
+          data-tip="Drag up or down: 5 bpm a step, 1 with Shift. Double-click: 120" {...drag}
           onKeyDown={e => {
             const by = ({ ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 } as Record<string, number>)[e.key];
             if (by === undefined) return;
@@ -145,7 +145,7 @@ function Dial({ m }: { m: Metronome }) {
         <div
           className="metronome-dial metronome-bpm-drag" role="slider" tabIndex={0} aria-label="Tempo"
           aria-valuemin={MIN_BPM} aria-valuemax={MAX_BPM} aria-valuenow={bpm} aria-valuetext={`${bpm} bpm`}
-          data-tip="Drag up or down: 5 bpm a step, 1 with Shift" {...drag}
+          data-tip="Drag up or down: 5 bpm a step, 1 with Shift. Double-click: 120" {...drag}
           onKeyDown={e => {
             const by = ({ ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 } as Record<string, number>)[e.key];
             if (by === undefined) return;
