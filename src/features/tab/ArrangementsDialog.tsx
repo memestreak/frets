@@ -43,7 +43,7 @@ interface DropTarget {
 const byName = <T,>(name: (t: T) => string) => (a: T, b: T) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' });
 
 /** A name typed in place of a row: Enter or leaving keeps it, Esc gives it up (and leaves the dialog open). */
-function NameField({ name, label, onDone }: { name: string; label: string; onDone: (name: string | null) => void }) {
+export function NameField({ name, label, onDone }: { name: string; label: string; onDone: (name: string | null) => void }) {
   const [draft, setDraft] = useState(name);
   const done = useRef(false);
   const finish = (next: string | null) => {
@@ -67,7 +67,7 @@ function NameField({ name, label, onDone }: { name: string; label: string; onDon
   );
 }
 
-function IconButton({ label, onClick, children }: { label: string; onClick: (e: MouseEvent<HTMLButtonElement>) => void; children: ReactNode }) {
+export function IconButton({ label, onClick, children }: { label: string; onClick: (e: MouseEvent<HTMLButtonElement>) => void; children: ReactNode }) {
   return <button type="button" className="btn btn-ghost btn-icon tab-row-tool" aria-label={label} onClick={onClick}>{children}</button>;
 }
 

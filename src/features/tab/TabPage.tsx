@@ -14,6 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart,
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementsDialog } from './ArrangementsDialog';
+import { ArrangementChooser, type ChooserLayout } from './ArrangementChooser';
 import { clampCursor, columnAt, columnCount, copyText, deleteColumns, indexOf, insertBar, fillBar, isEmpty, noteAt, pasteAt, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
 import { removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
@@ -98,6 +99,11 @@ export default function TabPage() {
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
   const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part, track));
   const [choosing, setChoosing] = useState(false);
+  // Mocks of Arrangements… as a file chooser (issue #259): ?mock=b two panes, ?mock=c one folder at a time.
+  const [chooserMock] = useState<ChooserLayout | null>(() => {
+    const mock = new URLSearchParams(window.location.search).get('mock');
+    return mock === 'b' ? 'panes' : mock === 'c' ? 'path' : null;
+  });
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
@@ -799,13 +805,8 @@ export default function TabPage() {
     commit(clip, { ...place, string }, { anchor: from, focus: to });
   };
 
-  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
-  const pasteText = useEffectEvent(async (text: string) => {
-    const result = await readTab(text);
-    if (!result.ok) {
-      setNotice({ tone: 'error', lines: result.errors });
-      return;
-    }
+  /** Puts a clip in at the cursor, over the selection if there is one: a paste, or Insert in Arrangements…. */
+  const insertAtCursor = (inserted: Clip) => {
     let into = clip;
     let at = cursor;
     if (selection) {
@@ -813,11 +814,22 @@ export default function TabPage() {
       into = cut.clip;
       at = { ...cursor, ...cut.cursor };
     }
-    const pasted = pasteAt(into, at, partOf(result.clip));
+    const pasted = pasteAt(into, at, partOf(inserted));
     commit(pasted.clip, pasted.cursor, null);
-    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
     setView('tab');
+  };
+
+  /** Puts pasted tab in at the cursor, over the selection if there is one, or says why it can't. */
+  const pasteText = useEffectEvent(async (text: string) => {
+    const result = await readTab(text);
+    if (!result.ok) {
+      setNotice({ tone: 'error', lines: result.errors });
+      return;
+    }
+    insertAtCursor(result.clip);
+    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
   });
+
 
   /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also removes them. */
   const copyOrCut = useEffectEvent((e: ClipboardEvent, cut: boolean) => {
@@ -1148,7 +1160,31 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
-      <ArrangementsDialog
+      {chooserMock ? (
+        <ArrangementChooser
+          layout={chooserMock} open={choosing} library={arrangements.library} openId={state.id} exampleId={example?.id ?? null}
+          deleted={arrangements.deleted} parts={parts} onClose={() => setChoosing(false)}
+          onOpen={id => replaceShown(() => {
+            if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
+            clearExampleHash();
+          })}
+          onOpenExample={async builtin => {
+            setChoosing(false);
+            const error = await showExample(builtin);
+            if (error) setNotice({ tone: 'error', lines: [error] });
+          }}
+          onInsert={inserted => { setChoosing(false); insertAtCursor(inserted); }}
+          onRename={arrangements.rename}
+          onMove={arrangements.move}
+          onDelete={ids => removing(ids, () => arrangements.remove(ids))}
+          onCreateFolder={arrangements.createFolder}
+          onRenameFolder={arrangements.renameFolder}
+          onDeleteFolder={id => removing(
+            arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
+          )}
+          onUndoDelete={arrangements.undoDelete}
+        />
+      ) : <ArrangementsDialog
         open={choosing} library={arrangements.library} openId={state.id} exampleId={example?.id ?? null}
         deleted={arrangements.deleted} onClose={() => setChoosing(false)}
         onOpen={id => replaceShown(() => {
@@ -1172,7 +1208,7 @@ export default function TabPage() {
           const error = await showExample(builtin);
           if (error) setNotice({ tone: 'error', lines: [error] });
         }}
-      />
+      />}
       {barMenu && (
         <ShapeMenu
           x={barMenu.x} y={barMenu.y} label="Tab"
