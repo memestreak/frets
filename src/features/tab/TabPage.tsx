@@ -644,6 +644,9 @@ export default function TabPage() {
     setStaffPitch(null);
   };
 
+  /** Every column of a bar, selected. */
+  const barSelection = (of: Part, bar: number): Selection => ({ anchor: indexOf(of, bar, 0), focus: indexOf(of, bar, of.bars[bar].columns.length - 1) });
+
   const onPick = (hit: Cursor, extend: boolean) => {
     lastDigit.current = null;
     setStaffPitch(null);
@@ -662,9 +665,12 @@ export default function TabPage() {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
         commit(setFret(left, hit, 0, inputLength), hit, null);
         hearNote(hit);
+      } else if (!inputMode && !there && hasColumn) {
+        // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
+        commit(left, hit, barSelection(left, hit.bar));
+        startRegion();
       } else {
         commit(left, hit, null);
-        // In normal mode a press beside the notes selects the column (Jeremy, 2026-10-30, issue #238).
         if (!inputMode && !there) setColumnOnly(true);
       }
     }
@@ -710,8 +716,8 @@ export default function TabPage() {
     } else if (inputMode) {
       toPitch(left, at, pitch);
     } else {
-      // In normal mode a press beside the heads selects the column.
-      commit(left, at, null);
+      // In normal mode a press beside the heads selects the bar, as on the tab.
+      commit(left, at, left.bars[hit.bar].columns.length > 0 ? barSelection(left, hit.bar) : null);
       startRegion();
     }
   };

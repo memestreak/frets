@@ -2405,11 +2405,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(lit()).toEqual([false, false, false]);
     });
 
-    it('in normal mode a press beside the heads selects the column and enters nothing', async () => {
+    it('in normal mode a press beside the heads selects the bar, as MuseScore’s does, and enters nothing (Jeremy, 2026-10-31)', async () => {
       await open();
       press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
       expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
-      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.getAllByTestId('staff-head').map(h => h.getAttribute('data-selected'))).toEqual(['true', 'true', 'true']);
+      // On the tab too: a press on an empty string lights the bar's notes, with no box round the column.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      const three = screen.getAllByText('3').find(t => t.closest('[data-testid="tab-system"]'))!;
+      const top = Number(/translate\(0 ([\d.-]+)\)/.exec(three.closest('[data-testid="tab-system"]')!.getAttribute('transform')!)![1]);
+      press({ clientX: Number(three.getAttribute('x')), clientY: top + Number(three.getAttribute('y')) - 4 - 14 });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
+      const lit = screen.getAllByText(/^[357]$/).filter(t => t.closest('[data-testid="tab-system"]') && t.getAttribute('fill') === 'var(--primary)');
+      expect(lit.map(t => t.textContent).sort()).toEqual(['3', '5', '7']);
     });
   });
 
