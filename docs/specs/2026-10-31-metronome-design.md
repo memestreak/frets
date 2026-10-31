@@ -45,7 +45,8 @@ Every view:
 
 - **Tempo**, 20 to 400 bpm. Anywhere it is shown (the big number, the dial,
   the pendulum, a Tempo field), a drag up or down changes it: 5 bpm a step,
-  or 1 with Shift held. A Tempo field also steps by 1 with its buttons and
+  or 1 with Shift held. Up is faster, except on the pendulum, whose weight
+  sits lower the faster the tempo: dragging it down speeds it up. A Tempo field also steps by 1 with its buttons and
   the arrow keys, and a double-click on it puts back 120.
 - **Start**: a muted green (Fretwood's `--secondary`). While running it
   turns the primary colour and says Stop. Its tip is "Start (Space)" or

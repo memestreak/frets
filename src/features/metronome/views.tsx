@@ -215,7 +215,7 @@ function BeatDots({ m }: { m: Metronome }) {
 }
 
 function Pendulum({ m }: { m: Metronome }) {
-  const drag = useBpmDrag(m);
+  const drag = useBpmDrag(m, { downIsFaster: true });
   const { bpm } = m.rhythm;
   // The arm leans one way on even beats and the other on odd ones, swinging across in one beat.
   const lean = !m.now || m.now.beat < 0 ? 0 : m.now.beat % 2 === 0 ? LEAN : -LEAN;
@@ -226,7 +226,7 @@ function Pendulum({ m }: { m: Metronome }) {
       <div className="metronome-pendulum">
         <svg
           className="metronome-pyramid metronome-bpm-drag" width="220" height="300" viewBox="0 0 220 300" role="img"
-          aria-label={`Pendulum at ${bpm} bpm`} data-tip="Drag up or down: 5 bpm a step, 1 with Shift" {...drag}
+          aria-label={`Pendulum at ${bpm} bpm`} data-tip="Drag the weight down to go faster: 5 bpm a step, 1 with Shift" {...drag}
         >
           <path d="M80 12 L140 12 L196 292 L24 292 Z" fill="var(--fretboard)" />
           <path d="M90 30 L130 30 L166 236 L54 236 Z" fill="var(--surface-sunken)" opacity="0.12" />

@@ -55,9 +55,11 @@ const DRAG_BPM = 5;
 
 /**
  * Drag up or down on a tempo, wherever it is shown, to change it: 5 bpm a step, 1 with Shift held.
- * Spread the result on the element that shows the tempo.
+ * Up is faster, except with `downIsFaster`: the pendulum's weight sits lower the faster the tempo,
+ * so dragging it down speeds it up (Jeremy, 2026-10-31). Spread the result on the element that
+ * shows the tempo.
  */
-export function useBpmDrag(m: Metronome) {
+export function useBpmDrag(m: Metronome, { downIsFaster = false } = {}) {
   const drag = useRef<{ y: number; moved: number } | null>(null);
   const end = () => {
     drag.current = null;
@@ -77,7 +79,7 @@ export function useBpmDrag(m: Metronome) {
       const steps = Math.trunc(d.moved / DRAG_PX);
       if (steps === 0) return;
       d.moved -= steps * DRAG_PX;
-      const by = steps * (e.shiftKey ? 1 : DRAG_BPM);
+      const by = steps * (e.shiftKey ? 1 : DRAG_BPM) * (downIsFaster ? -1 : 1);
       m.setRhythm(r => ({ ...r, bpm: clampBpm(r.bpm + by) }));
     },
     onPointerUp: end,

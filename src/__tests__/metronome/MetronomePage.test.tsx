@@ -113,4 +113,20 @@ describe('MetronomePage', () => {
     expect(beats().value).toBe('7');
     expect(screen.getByRole('textbox', { name: 'Groups' })).toHaveValue('2+2+3');
   });
+
+  it('a drag up on the big tempo speeds it up; a drag down on the pendulum’s weight does', () => {
+    Element.prototype.setPointerCapture ??= () => {};
+    const drag = (el: Element, dy: number) => {
+      fireEvent.pointerDown(el, { button: 0, clientY: 100, pointerId: 1 });
+      fireEvent.pointerMove(el, { clientY: 100 + dy, pointerId: 1 });
+      fireEvent.pointerUp(el, { pointerId: 1 });
+    };
+    const { container } = render(<MetronomePage />);
+    const tempo = screen.getByRole('slider', { name: 'Tempo' });
+    drag(tempo, -16);
+    expect(tempo).toHaveTextContent('130');
+    fireEvent.click(within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name: 'Pendulum' }));
+    drag(container.querySelector('.metronome-pyramid')!, 16);
+    expect(screen.getByRole('spinbutton', { name: 'Tempo' })).toHaveValue('140');
+  });
 });
