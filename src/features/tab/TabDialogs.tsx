@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Modal } from '@/features/practice/quiz/Modal';
+import { Modal } from '@/components/Modal';
 import { TAB_FILE_TYPES } from './readTab';
 
 export function ImportDialog({ open, onClose, onImport }: {

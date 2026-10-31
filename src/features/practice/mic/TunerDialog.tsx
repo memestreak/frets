@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Modal } from '@/features/practice/quiz/Modal';
+import { Modal } from '@/components/Modal';
 import type { MicListener, MicStatus } from '@/components/tuner/listener';
 import { TunerPanel } from '@/components/tuner/TunerPanel';
 

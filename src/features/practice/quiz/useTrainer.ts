@@ -8,6 +8,8 @@ import { sameSettings } from '@/features/practice/quiz/quizFlow';
 import { useAutoAdvance } from './useAutoAdvance';
 import { usePersist } from '@/hooks/usePersist';
 import { useQuizKeyboard } from './useQuizKeyboard';
+import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import type { ShortcutGroup } from '@/lib/shortcuts';
 
 interface TrainerOptions<S, Q> {
   reducer: (state: TrainerState<S, Q>, action: TrainerAction<S, Q>) => TrainerState<S, Q>;
@@ -25,6 +27,18 @@ interface TrainerOptions<S, Q> {
   /** Opens the tuner, on T; a trainer without one leaves it out. */
   onTuner?: () => void;
 }
+
+const QUIZ_KEYS = [
+  { keys: ['1–9', '0', '-', '='], does: 'Answer, in the order of the buttons' },
+  { keys: ['Left', 'Right'], does: 'Move between the answers' },
+  { keys: ['Enter'], does: 'Next question, once answered' },
+  { keys: ['Space'], does: 'Hint on or off' },
+];
+/** The trainers' keys, for the `?` overlay (`useQuizKeyboard`); T only where there is a tuner. */
+const SHORTCUTS: readonly ShortcutGroup[] = [{ title: 'Trainer', shortcuts: QUIZ_KEYS }];
+const SHORTCUTS_WITH_TUNER: readonly ShortcutGroup[] = [
+  { title: 'Trainer', shortcuts: [...QUIZ_KEYS, { keys: ['T'], does: 'Open the tuner' }] },
+];
 
 /**
  * Everything the trainers share around their reducer: saving settings and
@@ -66,6 +80,7 @@ export function useTrainer<S extends { pause: boolean }, Q>({
   // The quiz waits while a dialog covers it.
   const waiting = settingsOpen || covered;
   useAutoAdvance(waiting ? null : state.advanceMs, next);
+  useShortcuts(onTuner ? SHORTCUTS_WITH_TUNER : SHORTCUTS);
   useQuizKeyboard({
     enabled: !waiting,
     onTuner,

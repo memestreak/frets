@@ -7,7 +7,7 @@
  * and Cmd (Ctrl) pick several, as in a file browser; a double click (or double tap) opens one.
  */
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
-import { Modal } from '@/features/practice/quiz/Modal';
+import { Modal } from '@/components/Modal';
 import { ChevronDownIcon, ChevronRightIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import type { ArrangementInfo, Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';

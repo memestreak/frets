@@ -34,7 +34,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 - `music.ts`: the guitar: standard tuning (`TUNING`, `Tuning`,
   `isStandardTuning`), string names, `positionsOnNeck`, and the trainers'
   intervals and random picks. `fretWindow.ts`, `fretboardGeometry.ts`,
-  `storage.ts`, `theme.ts`.
+  `storage.ts`, `theme.ts`. `shortcuts.ts`: the `?` overlay's types (a page's
+  groups of shortcuts), the keys every page has, how a key is drawn (⌘ on a
+  Mac, Ctrl elsewhere) and which `?` press is meant for the page.
 - `chords/`: chords on the guitar. `publishedShapes.ts` holds the shapes
   guitarists play, from Haus of Chords (`data/haus-of-chords.json`, CC BY
   4.0, credited in `NOTICE.md`; re-import with

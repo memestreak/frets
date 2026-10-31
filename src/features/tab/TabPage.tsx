@@ -55,6 +55,8 @@ import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
 import { clearExampleHash, useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
+import { TAB_SHORTCUTS } from './shortcuts';
+import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
@@ -402,6 +404,7 @@ export default function TabPage() {
   // While the footer shows, Space anywhere on the page plays and stops (Jeremy, 2026-10-26), but not
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
+  useShortcuts(TAB_SHORTCUTS);
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -909,6 +912,10 @@ export default function TabPage() {
               ⚠{'\uFE0E'}
             </span>
           )}
+          {/* Right of the settings (Jeremy, 2026-10-31): the keyboard shortcuts, as the ? key shows them. */}
+          <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" title="Shortcuts (?)" onClick={showShortcuts}>
+            <span aria-hidden="true" className="shortcuts-button-mark">?</span>
+          </button>
         </div>
       </header>
 
