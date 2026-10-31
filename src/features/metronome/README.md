@@ -6,11 +6,13 @@ and menu (`sections.ts`) until Jeremy calls it ready.
 - `MetronomePage.tsx`: the page, which loads on the client only through
   `MetronomeLoader.tsx`. It holds one metronome and shows it in the view
   picked by the switch in the head (no Settings dialog). It also holds the
-  `?` list (`shortcuts.ts`) and T for Tap.
+  `?` list (`shortcuts.ts`), T for Tap, and the head's end (the ⚠ and `?`,
+  passed to the views through `HeadEnd`, so the views don't need the
+  AppShell).
 - `views.tsx`: the four views, Readout, Dial, Pendulum and Bar. Each shows
   the beat at the top, in a box that keeps its size whatever the beats.
 - `controls.tsx`: what the views share:
-  - the head (the view switch, ⚠, `?`)
+  - the head (the title and view switch, then whatever `HeadEnd` holds)
   - Start and Tap
   - Tempo and Beats (`NumberField`), with a double-click putting back 120
     and 4
@@ -29,8 +31,13 @@ and menu (`sections.ts`) until Jeremy calls it ready.
   - `barClicks` (a bar's clicks in beats, swung) and the clock (`timeAt`,
     `retempo`)
   - tap tempo, tempo names and counting syllables
-- `useMetronome.ts`: the saved rhythm and volume, and the Web Audio
-  scheduler, which looks 120 ms ahead every 25 ms. Space starts and stops.
+- `useMetronomeCore.ts`: the metronome with no storage and no page hooks,
+  shared by the page and the MCP App (#269). It holds the rhythm (in with
+  `setRhythm`, out as `rhythm`), the volume, and the Web Audio scheduler,
+  which looks 120 ms ahead every 25 ms. It also has tap, start, stop, and
+  `close` (stop and let the `AudioContext` go).
+- `useMetronome.ts`: the page's metronome, which is the core plus loading
+  and saving the rhythm and volume, and Space to start and stop.
 - `sounds.ts`: the synthesized sounds, high and low. The wood block is
   `src/lib/click.ts`.
 - `storage.ts`: the three keys and their parsers. They are
