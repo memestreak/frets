@@ -14,7 +14,7 @@ import {
 } from './controls';
 import { MAX_BPM, MIN_BPM, VOICE_NAMES, clampBpm, cycleCell, tempoName } from './rhythm';
 import type { ViewId } from './storage';
-import type { Metronome } from './useMetronome';
+import type { Metronome } from './useMetronomeCore';
 
 export function MetronomeView({ view, m }: { view: ViewId; m: Metronome }) {
   switch (view) {

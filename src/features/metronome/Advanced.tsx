@@ -12,7 +12,7 @@ import {
   DEFAULT_POLY_COUNT, MAX_POLY, MAX_STEPS, MAX_SWING, MIN_SWING, PRESETS, RESET_LEVEL, VOICE_NAMES, countSyllable,
   groupStarts, parseGroups, toggleCell, withBeatSubs, withGroups, withPreset, withSwing, withVoice, type Poly, type VoiceId,
 } from './rhythm';
-import type { Metronome } from './useMetronome';
+import type { Metronome } from './useMetronomeCore';
 
 export function Advanced({ m }: { m: Metronome }) {
   const [open, setOpen] = useState(false);
