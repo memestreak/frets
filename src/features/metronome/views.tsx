@@ -198,6 +198,8 @@ function Dial({ m }: { m: Metronome }) {
 /** The scale's marks, and where the weight sits for a tempo: lower the faster, as on a real one. */
 const PENDULUM_MARKS = [40, 60, 80, 120, 160, 200, 240, 280];
 const weightY = (bpm: number) => 56 + ((Math.min(300, Math.max(30, bpm)) - 30) / 270) * 170;
+/** Where the scale's ticks start: just right of the arm, so the labels stay on the lighter panel. */
+const SCALE_X = 113;
 /** How far the arm leans each way, in degrees. */
 const LEAN = 24;
 
@@ -230,8 +232,8 @@ function Pendulum({ m }: { m: Metronome }) {
           <path d="M90 30 L130 30 L166 236 L54 236 Z" fill="var(--surface-sunken)" opacity="0.12" />
           {PENDULUM_MARKS.map(b => (
             <g key={b}>
-              <line x1="118" x2="128" y1={weightY(b)} y2={weightY(b)} stroke="var(--fret-wire)" strokeWidth="1.5" />
-              <text x="132" y={weightY(b) + 3.5} fontSize="10" fill="var(--string)" fontFamily="var(--font-sans)">{b}</text>
+              <line x1={SCALE_X} x2={SCALE_X + 5} y1={weightY(b)} y2={weightY(b)} stroke="var(--fret-wire)" strokeWidth="1.5" />
+              <text x={SCALE_X + 8} y={weightY(b) + 3.5} fontSize="10" fill="var(--string)" fontFamily="var(--font-sans)">{b}</text>
             </g>
           ))}
           <g className="metronome-arm" style={{ transform: `rotate(${lean}deg)`, transitionDuration: `${60 / bpm}s` }}>
