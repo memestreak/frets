@@ -3,7 +3,7 @@
 /**
  * Arrangements… as a file chooser (issue #259; Jeremy picked the two panes, 2026-10-31): the places on
  * the left (My arrangements and its folders, then the built-in folders), the chosen folder's files in
- * the middle, the picked file's preview on the right. A press on a file picks it and shows its preview,
+ * the middle, and the picked file's preview, which slides out to their right once a file is picked. A press on a file picks it and shows its preview,
  * from which Insert puts it in at the page's cursor and Copy alphaTex copies its text; a double click,
  * Enter or Open opens it, and the dialog closes. The dialog keeps one height whatever it shows; the
  * panes scroll. On a phone it shows one folder at a time under a path ("Arrangements › Built-in ›
@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { Modal } from '@/components/Modal';
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { loadArrangement, type ArrangementInfo, type Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
 import { partOf, UNTITLED, type Clip } from './clip';
@@ -136,6 +136,8 @@ export function ArrangementChooser({
   const [dropAt, setDropAt] = useState<string | null>(null);
   // On a phone: the picked file's preview in place of the list.
   const [previewing, setPreviewing] = useState(false);
+  // The places whose folders are hidden on the left: My arrangements, Built-in.
+  const [closed, setClosed] = useState({ mine: false, builtin: false });
   const lastPress = useRef<{ key: string; at: number } | null>(null);
   const [bodyRef, bodyWidth] = useWidth();
   const phone = bodyWidth > 0 && bodyWidth < PHONE_WIDTH;
@@ -145,7 +147,10 @@ export function ArrangementChooser({
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setPlace(startPlace());
+      const start = startPlace();
+      setPlace(start);
+      // The open arrangement's folder is shown.
+      if (start.kind === 'mine' && start.folder !== undefined) setClosed(c => ({ ...c, mine: false }));
       setPicked([]);
       setAnchor(null);
       setRenaming(null);
@@ -432,6 +437,8 @@ export function ArrangementChooser({
 
   /** A place on the left; a folder of My arrangements (`mineFolder`) takes dropped arrangements and can be renamed and deleted. */
   const placeButton = (p: Place, name: string, mineFolder?: string | null) => {
+    // My arrangements and Built-in fold their folders away: a press on the one shown folds or unfolds it.
+    const section = (p.kind === 'mine' || p.kind === 'builtin') && p.folder === undefined ? p.kind : null;
     const dropKey = mineFolder === null ? '' : mineFolder;
     const takesDrops = mineFolder !== undefined;
     const key = `${p.kind}:${'folder' in p ? p.folder ?? '' : ''}`;
@@ -451,9 +458,18 @@ export function ArrangementChooser({
         {...(takesDrops ? dropTarget(mineFolder ?? undefined) : {})}
       >
         <button
-          type="button" className={`tab-row-main tab-chooser-place${mineFolder === null ? ' tab-folder' : ''}`}
-          aria-current={samePlace(p, place) || undefined} onClick={() => goTo(p)}
+          type="button" className={`tab-row-main tab-chooser-place${section ? ' tab-folder' : ''}`}
+          aria-current={samePlace(p, place) || undefined} aria-expanded={section ? !closed[section] : undefined}
+          onClick={() => {
+            if (section === null) goTo(p);
+            else if (samePlace(p, place)) setClosed(c => ({ ...c, [section]: !c[section] }));
+            else {
+              goTo(p);
+              setClosed(c => ({ ...c, [section]: false }));
+            }
+          }}
         >
+          {section && <span className={`tab-chooser-fold${closed[section] ? ' tab-chooser-folded' : ''}`}><ChevronDownIcon /></span>}
           <FolderIcon />
           <span className="tab-row-text">{name}</span>
         </button>
@@ -473,15 +489,17 @@ export function ArrangementChooser({
     <nav className="tab-chooser-places tab-scroll" aria-label="Places">
       <ul className="tab-rows m-0 p-0">
         {placeButton({ kind: 'mine' }, 'My arrangements', null)}
-        {folders.map(f => (
+        {!closed.mine && folders.map(f => (
           <li key={f.id} className="tab-chooser-sub">
             <ul className="tab-rows m-0 p-0">{placeButton({ kind: 'mine', folder: f.id }, f.name, f.id)}</ul>
           </li>
         ))}
-      </ul>
-      <h3 className="tab-examples-heading m-0 mt-3">Built-in</h3>
-      <ul className="tab-rows m-0 p-0">
-        {builtinFolders.map(f => placeButton({ kind: 'builtin', folder: f }, folderTitle(f)))}
+        {placeButton({ kind: 'builtin' }, 'Built-in')}
+        {!closed.builtin && builtinFolders.map(f => (
+          <li key={f} className="tab-chooser-sub">
+            <ul className="tab-rows m-0 p-0">{placeButton({ kind: 'builtin', folder: f }, folderTitle(f))}</ul>
+          </li>
+        ))}
       </ul>
     </nav>
   );
@@ -544,7 +562,8 @@ export function ArrangementChooser({
           {deletedNote}
           {list}
         </div>
-        {previewPane}
+        {/* Only once a file is picked and read: it then slides out from the list. */}
+        {shownPreview && previewPane}
       </div>
     );
   }
@@ -559,7 +578,7 @@ export function ArrangementChooser({
   );
 }
 
-/** The picked file drawn read-only, with Insert and Copy alphaTex; an empty sheet while nothing is picked. */
+/** The picked file drawn read-only, with Insert and Copy alphaTex. */
 function PreviewPane({ name, preview, parts, onInsert }: {
   name: string;
   preview: Preview | null;
@@ -582,7 +601,7 @@ function PreviewPane({ name, preview, parts, onInsert }: {
   };
 
   return (
-    <section className="tab-chooser-preview" aria-label="Preview">
+    <section className="tab-chooser-preview tab-preview-extend" aria-label="Preview">
       <div ref={ref} className="tab-chooser-sheet tab-scroll">
         {/* Keyed by the file, so each one picked comes in with the same short fade and rise. */}
         {preview && 'error' in preview && <p key={preview.key} className="m-0 tab-examples-note tab-preview-in">⚠ {preview.error}</p>}
