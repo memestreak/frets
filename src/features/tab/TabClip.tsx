@@ -39,7 +39,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onPickRect, onMiss, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -84,6 +84,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * Shift+press there that doesn't move still extends the selection, as before.
    */
   onPickRect?: (from: number, to: number) => void;
+  /** A double-click on the drawing, staff or tab (issue #238: it goes into note input, as MuseScore's does). */
+  onDoubleClick?: () => void;
   /**
    * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
@@ -240,7 +242,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     <svg
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick}
       onPointerMove={onDragStaff || shadow !== null || onPickRect ? e => { if (!drawRect(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
       onPointerUp={onDragStaff || onPickRect ? e => { if (!dropRect(e, false) && onDragStaff) dropHead(e, false); } : undefined}
