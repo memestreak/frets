@@ -6,7 +6,7 @@
  * of the Volume knob. A small menu at the press, like Play's options; it stays open while its
  * options are changed, and a press elsewhere, a scroll or Esc closes it.
  */
-import { NumberField } from './NumberField';
+import { NumberField } from '@/components/NumberField';
 import { OptionCheck } from './PlaybackOptions';
 import { usePopover } from './usePopover';
 import { MAX_COUNT_IN_BARS } from './playback';

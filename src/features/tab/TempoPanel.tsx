@@ -12,7 +12,7 @@ import { useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { setTempo } from './barEdits';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part, type Tempo } from './clip';
-import { NumberField, resetOnDoubleClick } from './NumberField';
+import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { addTap, tapBpm } from './tapTempo';
 import { usePopover } from './usePopover';
 

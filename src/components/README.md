@@ -7,7 +7,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `/practice/intervals` and `/practice/notes`, the Scale lab
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords`, the Tuner
-  `/tuner`, the Tab editor `/tab`.
+  `/tuner`, the Tab editor `/tab`, the Metronome `/metronome` (not in
+  `sections.ts` yet: off the home page and menu until Jeremy calls it ready).
 - `src/components/sections.ts` — the app's map: the groups Tools, Practice
   and More (the Agents page), each with its pages (href, title, summary). A group is not a
   path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home
@@ -37,6 +38,11 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
   Arpeggio, on the Chords and Triads pages),
+  `src/components/NumberField.tsx` (a number with up and down buttons:
+  type, step, or drag up or down, `dragStep` a drag's step and Shift the
+  button step; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a
+  small rotary knob for a volume or level), shared by Tab and the
+  Metronome,
   `src/components/LetGoAfterUse.tsx` and `src/hooks/useLetGoAfterUse.ts`
   (mounted once by `AppShell`: a button, link or list used with the mouse
   or a finger lets go of the focus, so no widget stays outlined or keeps

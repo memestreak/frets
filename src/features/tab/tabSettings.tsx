@@ -12,8 +12,8 @@ import { loadJson } from '@/lib/storage';
 import { Segmented } from '@/components/controls';
 import { checkField, choiceField } from '@/components/settings/fields';
 import { section, type SettingsField, type SettingsGroup } from '@/components/settings/types';
-import { NumberField } from './NumberField';
-import { VolumeKnob } from './VolumeKnob';
+import { NumberField } from '@/components/NumberField';
+import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
 import {
   DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_TRANSPOSE, METRONOME_KEY, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
