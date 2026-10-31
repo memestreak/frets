@@ -253,10 +253,11 @@ function Status({ m }: { m: Metronome }) {
 /** A's beat display: a big pad per beat that flashes and ripples on its beat, its steps as small dots under it. */
 function BeatPads({ m }: { m: Metronome }) {
   return (
-    // One row up to 16 beats, then two even rows, so the pads stay big enough to see from a stand.
+    // One row up to 16 beats, then two even rows of smaller pads. The box's height is fixed (mocks.css),
+    // so changing the beats never moves the controls below it.
     <div
       className="mm-pads" aria-hidden="true" data-silent={m.now?.silent || undefined}
-      style={{ gridTemplateColumns: `repeat(${m.beats <= 16 ? m.beats : Math.ceil(m.beats / 2)}, minmax(0, 52px))`, columnGap: m.beats <= 8 ? 18 : 8 }}
+      style={{ gridTemplateColumns: `repeat(${m.beats <= 16 ? m.beats : Math.ceil(m.beats / 2)}, minmax(0, ${m.beats <= 16 ? 52 : 28}px))`, columnGap: m.beats <= 8 ? 18 : 8 }}
     >
       {Array.from({ length: m.beats }, (_, beat) => {
         const on = m.now?.beat === beat && m.now.step === 0;

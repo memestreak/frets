@@ -266,3 +266,20 @@
 @media (max-width: 640px) {
   .mm-pyramid { width: 180px; height: auto; }
 }
+
+/* — round 7: the beat display keeps one size whatever the beats, so nothing else moves — */
+/* Readout: a fixed-height box, the pads centred in it (one row of up to 52px, or two of up to 28px). */
+.mm-pads { height: 100px; padding: 0; align-content: center; align-items: center; }
+/* Pendulum: a fixed four-column box beside the pendulum; more beats add rows downward. */
+.mm-pendulum-layout .mm-dots {
+  flex: none; display: grid; grid-template-columns: repeat(4, 22px); gap: 10px;
+  width: calc(4 * 22px + 3 * 10px); max-width: none; align-content: center;
+}
+.mm-pendulum-layout .mm-dot { width: 22px; height: 22px; }
+@media (max-width: 640px) {
+  .mm-pendulum-layout .mm-dots { row-gap: 7px; }
+}
+/* Bar: the tiles share the width at any beat count, the gap narrowing with them. */
+.mm-pattern { grid-auto-columns: minmax(0, 1fr); gap: clamp(2px, 1.2%, 10px); }
+.mm-pattern-beat { min-width: 0; }
+.mm-pattern-count { overflow: hidden; font-size: clamp(9px, 2.6vw, 13px); }
