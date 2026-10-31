@@ -512,7 +512,8 @@ export function ArrangementChooser({
       )}
       <div className="flex gap-2 ml-auto">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-        <button type="button" className="btn btn-primary" disabled={single === null} onClick={() => { if (single) openFile(single); }}>Open</button>
+        {/* Never greyed (Jeremy's taste): with no single file picked, it does nothing. */}
+        <button type="button" className="btn btn-primary" onClick={() => { if (single) openFile(single); }}>Open</button>
       </div>
     </div>
   );

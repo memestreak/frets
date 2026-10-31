@@ -75,8 +75,8 @@ Jeremy picked the two panes (mock b, over one folder at a time) on 2026-10-31.
   changes?") and closes the dialog, and **Copy alphaTex** copies its text. For
   the built-ins this makes Arrangements… a library of small examples to recall the
   syntax from, copy or insert (Jeremy's use case).
-- **Footer**: New folder; Cancel and **Open** (primary; greyed while no single
-  file is picked). A double click, a double tap or Enter on a line opens too, and
+- **Footer**: New folder; Cancel and **Open** (primary; never greyed: while no
+  single file is picked it does nothing). A double click, a double tap or Enter on a line opens too, and
   the dialog closes.
 - **One height**: the dialog is as tall as it can be up to 640 px whatever it
   shows, and the panes scroll inside it with thin scroll bars in the theme's
