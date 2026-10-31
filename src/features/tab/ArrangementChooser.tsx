@@ -3,7 +3,7 @@
 /**
  * Arrangements… as a file chooser (issue #259; Jeremy picked the two panes, 2026-10-31): the places on
  * the left (My arrangements and its folders, then the built-in folders), the chosen folder's files in
- * the middle, and the picked file's preview, which slides out to their right once a file is picked. A press on a file picks it and shows its preview,
+ * the middle, each with a file icon, and the picked file's preview to their right once a file is picked. A press on a file picks it and shows its preview,
  * from which Insert puts it in at the page's cursor and Copy alphaTex copies its text; a double click,
  * Enter or Open opens it, and the dialog closes. The dialog keeps one height whatever it shows; the
  * panes scroll. On a phone it shows one folder at a time under a path ("Arrangements › Built-in ›
@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { Modal } from '@/components/Modal';
-import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FileIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { loadArrangement, type ArrangementInfo, type Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
 import { partOf, UNTITLED, type Clip } from './clip';
@@ -352,6 +352,7 @@ export function ArrangementChooser({
           type="button" className="tab-row-main" aria-current={info.id === openId || undefined}
           aria-pressed={isPicked} onClick={e => pressFile(key, e)}
         >
+          <FileIcon />
           <span className="tab-row-text">{name}</span>{' '}
           <span className="tab-row-changed" data-testid="changed">{changedText(info.changed)}</span>
         </button>
@@ -371,6 +372,7 @@ export function ArrangementChooser({
         <button
           type="button" className="tab-row-main" aria-pressed={pickedHere.includes(key)} onClick={e => pressFile(key, e)}
         >
+          <FileIcon />
           <span className="tab-row-text">{b.title}</span>
         </button>
       </li>
@@ -426,6 +428,21 @@ export function ArrangementChooser({
         <span key={i} className="tab-chooser-crumb">
           {i > 0 && <ChevronRightIcon />}
           {i === trail.length - 1
+            ? <span aria-current="location">{placeName(p)}</span>
+            : <button type="button" className="btn btn-ghost" onClick={() => goTo(p)}>{placeName(p)}</button>}
+        </span>
+      ))}
+    </nav>
+  );
+
+  // ---- Where the list is, beside the title (two panes): "› Built-in › Rhythm" ----
+
+  const besideTitle = phone ? undefined : (
+    <nav className="tab-chooser-path tab-chooser-where" aria-label="Where">
+      {trail.slice(1).map((p, i, shown) => (
+        <span key={i} className="tab-chooser-crumb">
+          <ChevronRightIcon />
+          {i === shown.length - 1
             ? <span aria-current="location">{placeName(p)}</span>
             : <button type="button" className="btn btn-ghost" onClick={() => goTo(p)}>{placeName(p)}</button>}
         </span>
@@ -562,14 +579,14 @@ export function ArrangementChooser({
           {deletedNote}
           {list}
         </div>
-        {/* Only once a file is picked and read: it then slides out from the list. */}
+        {/* Only once a file is picked and read. */}
         {shownPreview && previewPane}
       </div>
     );
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Arrangements" className="tab-chooser">
+    <Modal open={open} onClose={onClose} title="Arrangements" besideTitle={besideTitle} className="tab-chooser">
       <div ref={bodyRef} className="tab-chooser-body">
         {body}
       </div>
@@ -601,19 +618,18 @@ function PreviewPane({ name, preview, parts, onInsert }: {
   };
 
   return (
-    <section className="tab-chooser-preview tab-preview-extend" aria-label="Preview">
+    <section className="tab-chooser-preview" aria-label="Preview">
       <div ref={ref} className="tab-chooser-sheet tab-scroll">
-        {/* Keyed by the file, so each one picked comes in with the same short fade and rise. */}
-        {preview && 'error' in preview && <p key={preview.key} className="m-0 tab-examples-note tab-preview-in">⚠ {preview.error}</p>}
+        {preview && 'error' in preview && <p className="m-0 tab-examples-note">⚠ {preview.error}</p>}
         {clip && width > 0 && preview && (
-          <div key={preview.key} className="tab-preview-in" style={{ zoom: PREVIEW_ZOOM }}>
+          <div style={{ zoom: PREVIEW_ZOOM }}>
             <p className="m-0 mb-2 font-semibold">{name}</p>
             <TabClip clip={partOf(clip)} width={(width - SHEET_PADDING) / PREVIEW_ZOOM} parts={parts} title={`${name}, a preview`} />
           </div>
         )}
       </div>
       {clip && preview && (
-        <div key={preview.key} className="flex gap-2 tab-preview-in">
+        <div className="flex gap-2">
           <button type="button" className="btn btn-secondary" onClick={() => onInsert(clip)} title="Put it in at the cursor">Insert</button>
           <button type="button" className="btn btn-secondary" onClick={() => void copy()}>
             {copied ? <CheckIcon /> : <CopyIcon />} Copy alphaTex

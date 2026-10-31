@@ -67,14 +67,17 @@ Jeremy picked the two panes (mock b, over one folder at a time) on 2026-10-31.
   Pressing My arrangements or Built-in while it is the place shown folds its
   folders away, or back (a small chevron says which); pressing it from elsewhere
   shows it unfolded (Jeremy, 2026-10-31).
-- **Files** in the middle: the chosen place's arrangements, one line each by name,
+- **Where**: beside the title, the place shown ("Arrangements › Built-in ›
+  Rhythm"); the earlier steps can be pressed.
+- **Files** in the middle: the chosen place's arrangements, one line each by name
+  with a file icon,
   a saved one with its last change, Rename and Delete. Picking, Shift ranges,
   Cmd/Ctrl, Delete/Backspace and dragging the picked ones work as in #187.
   "Nothing saved here yet." in an empty folder.
 - **Preview** on the right, not there until a single file is picked (Jeremy: no
-  empty sheet); it then extends out from the list, left to right. The file is drawn read-only (Staff, Tab or
-  Both as the page draws), coming in with a short fade and rise (Jeremy: animate
-  it in, don't pop it). Under it, **Insert** puts the whole file in at the page's
+  empty sheet). The file is drawn read-only (Staff, Tab or
+  Both as the page draws), with no animation (Jeremy first asked for one, then
+  found it a distraction, 2026-10-31). Under it, **Insert** puts the whole file in at the page's
   cursor (as a paste: one undo step, an edit of the open arrangement, no "Save
   changes?") and closes the dialog, and **Copy alphaTex** copies its text. For
   the built-ins this makes Arrangements… a library of small examples to recall the
