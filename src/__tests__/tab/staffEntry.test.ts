@@ -1,6 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { choosePlace, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
+import { choosePlace, movedPitch, moveNotes, moveToString, notesToMove, noteToString, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
 import { type Part, partOf } from '@/features/tab/clip';
 
 function clipOf(body: string): Part {
@@ -73,6 +73,28 @@ describe('Alt+arrows on the tab', () => {
     expect(moveToString(down.clip, at(0), E4, -1).string).toBe(0);
     // Nowhere higher than the high e: it stays.
     expect(moveToString(clip, at(0), E4, -1)).toEqual({ clip, string: 0 });
+  });
+});
+
+describe('a fret number dragged to another string (issue #238)', () => {
+  it('lands on any string at the same pitch, keeping its marks', () => {
+    const clip = clipOf('5.2{ac}.1 |');
+    // The B string's 5th fret is E4; on the D string that is the 14th.
+    const moved = noteToString(clip, { ...at(0), string: 1 }, 3)!;
+    expect(frets(moved, 0)).toEqual([null, null, null, 14, null, null]);
+    expect(moved.bars[0].columns[0].notes[3]!.accent).toBeTruthy();
+    // Onto its own string: nothing changes.
+    expect(noteToString(clip, { ...at(0), string: 1 }, 1)).toBe(clip);
+  });
+
+  it('won’t land on a string that has a note in the column or can’t reach the pitch', () => {
+    const chord = clipOf('(5.2 5.3).1 |');
+    expect(noteToString(chord, { ...at(0), string: 1 }, 2)).toBeNull();
+    // The high e's 5th fret (A4) would be the low E's 29th.
+    const high = clipOf('5.1.1 |');
+    expect(noteToString(high, { ...at(0), string: 0 }, 5)).toBeNull();
+    // Below an open string: the open B can't go up to the high e.
+    expect(noteToString(clipOf('0.2.1 |'), { ...at(0), string: 1 }, 0)).toBeNull();
   });
 });
 

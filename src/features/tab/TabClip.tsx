@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { boundaryAt, cursorSpot, hitTest, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { boundaryAt, cursorSpot, hitTest, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
@@ -39,7 +39,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -79,6 +79,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * still `onPickStaff`, when the pointer lets go.
    */
   onDragStaff?: (drag: StaffDrag) => void;
+  /**
+   * A fret number on the tab dragged to another string (issue #238, normal mode only). The press itself
+   * is still `onPick`, at once, so the note is selected before it moves.
+   */
+  onDragFret?: (drag: FretDrag) => void;
   /**
    * Shift+drag from blank space (issue #238): the first and last column the rectangle took in. A
    * Shift+press there that doesn't move still extends the selection, as before.
@@ -141,6 +146,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       rectPress.current = { x: px, y: py, clientX: e.clientX, clientY: e.clientY, press };
       e.currentTarget.setPointerCapture?.(e.pointerId);
       return;
+    }
+    if (hit && onDragFret && e.button === 0 && !e.shiftKey && clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]?.fret != null) {
+      // A fret number: selected now, and dragged to another string if the pointer moves up or down.
+      fretPress.current = { hit, y: e.clientY, string: hit.string };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
     }
     if (staff && staff.string !== null && onDragStaff && e.button === 0) {
       // A head: a drag or a press, told apart when the pointer moves or lets go.
@@ -222,6 +232,31 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     else if (!cancelled) onPickStaff!(press.hit, press.shift);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
+  /** A press on a fret number: the note, where the pointer started, and the string it was last over. */
+  const fretPress = useRef<{ hit: Hit; y: number; string: number } | null>(null);
+  const dragFret = (e: PointerEvent<SVGSVGElement>) => {
+    const press = fretPress.current;
+    if (!press) return false;
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    // A string for each string gap the pointer goes down (up toward the high e), as far as the staff goes.
+    const string = Math.min(STRING_COUNT - 1, Math.max(0, press.hit.string + Math.round(((e.clientY - press.y) * scale) / STRING_GAP)));
+    if (string === press.string) return true;
+    press.string = string;
+    onDragFret!({ hit: press.hit, string, done: false, cancelled: false });
+    return true;
+  };
+  const dropFret = (e: PointerEvent<SVGSVGElement>, cancelled: boolean) => {
+    const press = fretPress.current;
+    if (!press) return false;
+    fretPress.current = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    // Let go off the drawing, the note goes back where it was.
+    const box = e.currentTarget.getBoundingClientRect();
+    const outside = box.width > 0 && (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom);
+    if (press.string !== press.hit.string || cancelled || outside) onDragFret!({ hit: press.hit, string: press.string, done: true, cancelled: cancelled || outside });
+    return true;
+  };
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
@@ -243,10 +278,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick}
-      onPointerMove={onDragStaff || shadow !== null || onPickRect ? e => { if (!drawRect(e)) dragHead(e); } : undefined}
+      onPointerMove={onDragStaff || onDragFret || shadow !== null || onPickRect ? e => { if (!drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
-      onPointerUp={onDragStaff || onPickRect ? e => { if (!dropRect(e, false) && onDragStaff) dropHead(e, false); } : undefined}
-      onPointerCancel={onDragStaff || onPickRect ? e => { if (!dropRect(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerUp={onDragStaff || onDragFret || onPickRect ? e => { if (!dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onDragFret || onPickRect ? e => { if (!dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (

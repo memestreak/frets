@@ -33,6 +33,7 @@ note selected on the tab coloured on the staff; the same goes for note input's c
 | Digit, a tab note selected | Types its fret, two digits joining as before, and the staff follows (Q1, Jeremy). |
 | ↑ ↓, tab | The selected notes a fret higher or lower on their own strings; nothing moves when one would pass 0 or 24. |
 | Ctrl/⌘+↑ ↓, tab | The note to the next string up or down that plays the same pitch. |
+| Drag a tab number up or down | The note to the string under the pointer, at the same pitch (`2026-10-31-tab-drag-fret-string-design.md`). |
 | ↑ ↓, staff | The selected notes a semitone up or down (Q4, Jeremy). |
 | Alt+Shift+↑ ↓, staff | A line or space, in the key. |
 | Ctrl/⌘+↑ ↓, staff | An octave. |
