@@ -229,18 +229,21 @@ describe('TabPage', () => {
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'), SLOW);
   });
 
-  it('takes a paste whole into an empty clip, then pastes at the cursor; undo and redo step back and forth', async () => {
+  it('takes a paste whole into an empty clip, then pastes over at the cursor; undo and redo step back and forth', async () => {
     renderAt();
     await paste(RIFF);
     expect(heading()).toHaveTextContent('Riff');
-    const columns = screen.getAllByTestId('tab-column').length;
+    const frets = () => screen.getAllByTestId('tab-column').map(c => c.textContent).join(' ');
+    const before = frets();
     await paste(OTHER);
     expect(heading()).toHaveTextContent('Riff');
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
+    // It writes over the riff's start (issue #238), keeping the name.
+    const after = frets();
+    expect(after).not.toBe(before);
     undo();
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns);
+    expect(frets()).toBe(before);
     undo(true);
-    expect(screen.getAllByTestId('tab-column')).toHaveLength(columns + 2);
+    expect(frets()).toBe(after);
   });
 
   it('says what a paste that is not tab got wrong, and keeps the clip', async () => {
@@ -659,20 +662,30 @@ describe('TabPage', () => {
       act(() => editor().focus());
       keys('ArrowRight');
       await paste('9.2.4 10.2.4 |');
-      await waitFor(() => expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 4.1.4 |'), SLOW);
-      keys({ key: 'V', ctrlKey: true, shiftKey: true });
+      // alphaTex() changes the page, so it is read after the paste settles, not polled.
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 4.1.4 |');
+      // What was pasted is selected, as MuseScore leaves it (Jeremy, 2026-10-31).
+      expect(litFrets().map(t => t.textContent)).toEqual(['9', '10']);
+      // Esc lets the selection go, the cursor on its last column; → goes on to the 4, and Insert paste goes before it.
+      keys('Escape');
+      act(() => editor().focus());
+      keys('ArrowRight', { key: 'V', ctrlKey: true, shiftKey: true });
       await paste('7.3.4 |');
-      await waitFor(() => expect(alphaTex()).toBe('1.1.4 9.2.4 7.3.4 10.2.4 4.1.4 |'), SLOW);
-      // A plain paste after it writes over again.
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 7.3.4 4.1.4 |');
+      // A plain paste writes over again: ← selects the 10, which the 8 replaces.
       keys('ArrowLeft');
       await paste('8.3.4 |');
-      await waitFor(() => expect(alphaTex()).toBe('1.1.4 8.3.4 7.3.4 10.2.4 4.1.4 |'), SLOW);
-      // Cut leaves rests where the notes were.
+      await settle();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 8.3.4 7.3.4 4.1.4 |');
+      // Cut leaves rests where the notes were, still selected; no box is left round a column.
       keys({ key: 'ArrowRight', shiftKey: true });
       const cut = new Event('cut', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
       cut.clipboardData = { setData: () => {} };
       act(() => { editor().dispatchEvent(cut); });
-      expect(alphaTex()).toBe('1.1.4 r.4 r.4 10.2.4 4.1.4 |');
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(alphaTex()).toBe('1.1.4 9.2.4 r.4 r.4 4.1.4 |');
     }, 20000);
 
     describe('normal mode and note input (issue #238)', () => {
@@ -2369,6 +2382,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('shadow-note')).toHaveAttribute('data-value', '16');
       fireEvent.keyDown(editor(), { key: 'Enter' });
       expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
+    });
+
+    it('Delete on a staff note in normal mode leaves its rest selected, with no head kept lit (Jeremy, 2026-10-31)', async () => {
+      await open();
+      // The 3 alone in its column; Delete leaves a rest there.
+      press(headAt(2));
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+      fireEvent.keyDown(editor(), { key: 'Delete' });
+      expect(screen.queryByTestId('staff-selected')).toBeNull();
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(2);
+      // Esc lets the rest go: nothing is left drawn.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+      expect(screen.queryByTestId('selected-note')).toBeNull();
     });
 
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {

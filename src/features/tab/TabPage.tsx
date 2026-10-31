@@ -818,7 +818,13 @@ export default function TabPage() {
     }
     const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     const pasted = (insert ? insertPaste : pasteOver)(clip, at, partOf(result.clip));
-    commit(pasted.clip, pasted.cursor, null);
+    if (inputMode) commit(pasted.clip, pasted.cursor, null);
+    else {
+      // In normal mode what was pasted is selected, as MuseScore leaves it (Jeremy, 2026-10-31).
+      const start = isEmpty(clip) ? 0 : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
+      commit(pasted.clip, pasted.cursor, { anchor: start, focus: indexOf(pasted.clip, pasted.cursor.bar, pasted.cursor.column) });
+      startRegion();
+    }
     if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
     setView('tab');
   };
@@ -832,7 +838,10 @@ export default function TabPage() {
     e.clipboardData.setData('text/plain', copyText(clip, range));
     if (!cut) return;
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
-    commit(makeRest(clip, { cursor, selection: { anchor: range[0], focus: range[1] } }), cursor, null);
+    // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
+    const cutRange = { anchor: range[0], focus: range[1] };
+    commit(makeRest(clip, { cursor, selection: cutRange }), cursor, cutRange);
+    startRegion();
   });
 
   const { importText, showExample, leaveExample } = useClipImport({
