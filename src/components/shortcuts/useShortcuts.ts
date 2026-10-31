@@ -38,3 +38,19 @@ export function useShortcuts(groups: readonly ShortcutGroup[]) {
 export function usePageShortcuts(): readonly ShortcutGroup[] {
   return useSyncExternalStore(subscribe, () => current, () => NONE);
 }
+
+/** What the overlay does when a page's ? button asks for it. */
+let showing: (() => void) | null = null;
+
+/** Opens the shortcuts overlay, as `?` does: for a page's ? button. */
+export function showShortcuts() {
+  showing?.();
+}
+
+/** The overlay's own: `show` runs on `showShortcuts`, until the returned function stops it. */
+export function onShowShortcuts(show: () => void) {
+  showing = show;
+  return () => {
+    if (showing === show) showing = null;
+  };
+}

@@ -1165,12 +1165,11 @@ button {
     font: 600 12px/16px var(--font-sans);
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    /* A sunken band, as the segmented controls' track (Jeremy, 2026-10-31). */
+    color: var(--ink);
+    background: var(--surface-sunken);
     border-radius: var(--radius-sm);
   }
-  /* Mock a: a sunken band, as the segmented controls' track. */
-  .shortcuts-titles-a .shortcuts-group-title { color: var(--ink); background: var(--surface-sunken); }
-  /* Mock b: a rosewood band, the fretboard's colour, its string-coloured text. */
-  .shortcuts-titles-b .shortcuts-group-title { color: var(--string); background: var(--fretboard); }
   /* The rows share the group's columns, so every description starts in line. */
   .shortcuts-list { display: grid; grid-template-columns: fit-content(50%) 1fr; margin: 0; }
   .shortcuts-row {
@@ -1187,6 +1186,8 @@ button {
   .shortcuts-combo { display: inline-flex; align-items: center; gap: 3px; }
   .shortcuts-or { margin: 0 3px; font-size: 12px; color: var(--ink-muted); }
   .shortcuts-does { margin: 0; font-size: 14px; line-height: 20px; color: var(--ink); }
+  /* The ? button after a page's settings gear. */
+  .shortcuts-button-mark { font: 600 17px/1 var(--font-sans); }
   .shortcuts kbd {
     display: inline-block;
     min-width: 22px;

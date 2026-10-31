@@ -36,7 +36,11 @@ describe('Settings', () => {
   it('opens from the gear after Export at Tab › Playback, with Tab open and General shut', () => {
     render(<TabPage />);
     const actions = screen.getByRole('button', { name: 'Export' }).parentElement!;
-    expect([...actions.querySelectorAll('button')].at(-1)).toHaveAccessibleName('Settings');
+    // The gear, then the keyboard shortcuts' ? button right of it (issue #180).
+    const [gear, shortcuts] = [...actions.querySelectorAll('button')].slice(-2);
+    expect(gear).toHaveAccessibleName('Settings');
+    expect(shortcuts).toHaveAccessibleName('Shortcuts');
+    expect(shortcuts).toHaveAttribute('title', 'Shortcuts (?)');
     openSettings();
     expect(pane()).toHaveTextContent('Tab › Playback');
     expect(section('Playback')).toHaveAttribute('aria-selected', 'true');

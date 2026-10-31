@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { ShortcutsOverlay } from '@/components/shortcuts/ShortcutsOverlay';
-import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isHelpKey, keyCaps, type ShortcutGroup } from '@/lib/shortcuts';
 import { paletteShortcuts, TAB_SHORTCUTS } from '@/features/tab/shortcuts';
 
@@ -17,12 +17,6 @@ const press = (key: string, target: Element = document.body) => act(() => {
   fireEvent.keyDown(target, { key });
 });
 const overlay = () => screen.queryByRole('dialog', { name: 'Keyboard shortcuts' });
-
-function setMock(mock: string | null) {
-  window.history.replaceState(null, '', mock ? `/?mock=${mock}` : '/');
-}
-
-afterEach(() => setMock(null));
 
 describe('keyCaps', () => {
   it('draws Mod as ⌘ and the modifiers as symbols on a Mac', () => {
@@ -107,14 +101,18 @@ describe('ShortcutsOverlay', () => {
     expect(within(overlay()!).getByText('Show or hide this list')).toBeTruthy();
   });
 
-  it('draws the groups’ titles as a sunken band, or rosewood in mock b', () => {
-    render(<><Page /><ShortcutsOverlay /></>);
-    press('?');
-    expect(overlay()!.querySelector('.shortcuts-titles-a')).not.toBeNull();
-    press('?', overlay()!);
-    setMock('b');
-    press('?');
-    expect(overlay()!.querySelector('.shortcuts-titles-b')).not.toBeNull();
+  it('opens from a page’s ? button', () => {
+    render(<><Page /><ShortcutsOverlay /><button type="button" onClick={showShortcuts}>?</button></>);
+    const button = screen.getByRole('button', { name: '?' });
+    button.focus();
+    fireEvent.click(button);
+    expect(within(overlay()!).getByText('Arpeggio on or off')).toBeTruthy();
+    // Closed with Esc (the dialog's cancel), the button the browser hands the focus back to lets it go: no focus ring.
+    const dialog = overlay()!;
+    button.focus();
+    fireEvent(dialog, new Event('cancel'));
+    expect(overlay()).toBeNull();
+    expect(document.activeElement).not.toBe(button);
   });
 });
 

@@ -18,7 +18,6 @@ shortcuts."
   the Circle of fifths) shows only that group.
 - Keys are drawn as key caps. `Mod` is ⌘ on a Mac and Ctrl elsewhere, and on
   a Mac Shift, Alt and Ctrl are ⇧ ⌥ ⌃.
-- No visible button opens it yet; `?` is the only way in.
 
 ## One list per page, kept with the keys
 
@@ -51,10 +50,11 @@ that PR adds them to the Tab page's Page group.
 
 A dialog over a dimmed page (Jeremy picked it from three mocks, 2026-10-31),
 the groups in two columns where there is room, one on a phone; the whole list
-scrolls. Each group's title sits on a band so the groups stand apart. While
-the band is open, `?mock=` picks one:
+scrolls. Each group's title sits on a sunken band (`--surface-sunken`, ink
+text), picked over a rosewood one, so the groups stand apart.
 
-- **a** (default): a sunken band (`--surface-sunken`), ink text.
-- **b**: a rosewood band (`--fretboard`), string-coloured text (`--string`).
+## The ? button
 
-Once Jeremy picks one, the other and the `?mock=` switch go.
+The Tab page shows a ? button right of its settings gear (and its ⚠), its tip
+"Shortcuts (?)"; a press opens the same list (`showShortcuts`). It is the only
+page with a gear so far; a page that gains one adds the ? beside it.

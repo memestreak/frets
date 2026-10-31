@@ -56,7 +56,7 @@ import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettin
 import { clearExampleHash, useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
-import { useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 
@@ -912,6 +912,10 @@ export default function TabPage() {
               ⚠{'\uFE0E'}
             </span>
           )}
+          {/* Right of the settings (Jeremy, 2026-10-31): the keyboard shortcuts, as the ? key shows them. */}
+          <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" title="Shortcuts (?)" onClick={showShortcuts}>
+            <span aria-hidden="true" className="shortcuts-button-mark">?</span>
+          </button>
         </div>
       </header>
 

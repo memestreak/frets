@@ -46,7 +46,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-30-keyboard-shortcuts-design.md`): `?` anywhere but a
   field shows the page's shortcuts, mounted once by `AppShell`. A page hands
   its list to `useShortcuts` (a module constant; the Tab page's is
-  `src/features/tab/shortcuts.ts`, its palette rows read from `tools.ts`).
+  `src/features/tab/shortcuts.ts`, its palette rows read from `tools.ts`);
+  a page's ? button (Tab's, right of its gear) calls `showShortcuts`.
   `src/components/Modal.tsx` is the native modal `<dialog>` shell it, the
   trainers' dialogs and the Tab page's dialogs share.
 - `src/components/settings/` — the Settings dialog (issue #195,
