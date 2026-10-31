@@ -928,34 +928,34 @@ button {
   .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
   .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   /* The speed field: the number (drag it up or down, or type), "%", and stacked up and down buttons. */
-  .tab-number-field {
+  .number-field {
     display: inline-flex; align-items: center; height: var(--control-height); padding-left: 10px;
     background: var(--surface-raised); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
     font: 600 15px/20px var(--font-sans);
   }
-  .tab-number-field input {
+  .number-field input {
     width: 3ch; border: 0; padding: 0; margin: 0; background: transparent; color: var(--ink);
     font: inherit; text-align: right; font-variant-numeric: tabular-nums; cursor: ns-resize; touch-action: none;
   }
-  .tab-number-field input:focus { outline: none; cursor: text; }
-  .tab-number-field:focus-within { border-color: var(--primary); }
-  .tab-number-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
-  .tab-number-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
-  .tab-number-steps button {
+  .number-field input:focus { outline: none; cursor: text; }
+  .number-field:focus-within { border-color: var(--primary); }
+  .number-field-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
+  .number-field-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
+  .number-field-steps button {
     display: grid; place-items: center; width: 20px; padding: 0; border: 0; background: transparent;
     color: var(--ink-muted); cursor: pointer;
   }
-  .tab-number-steps button:first-child { border-bottom: 1px solid var(--line); border-top-right-radius: calc(var(--radius-sm) - 1.5px); }
-  .tab-number-steps button:last-child { border-bottom-right-radius: calc(var(--radius-sm) - 1.5px); }
-  .tab-number-steps button:hover { background: var(--surface-sunken); color: var(--ink); }
+  .number-field-steps button:first-child { border-bottom: 1px solid var(--line); border-top-right-radius: calc(var(--radius-sm) - 1.5px); }
+  .number-field-steps button:last-child { border-bottom-right-radius: calc(var(--radius-sm) - 1.5px); }
+  .number-field-steps button:hover { background: var(--surface-sunken); color: var(--ink); }
   /* Wide enough for "300 bpm", so nothing moves as the speed does. */
   .tab-speed-value { width: 60px; flex: none; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
   /* The volume: a small knob, captioned like Speed. */
   .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
   .tab-volume-end { margin-left: auto; }
-  .tab-knob { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; cursor: ns-resize; touch-action: none; }
-  .tab-knob:focus { outline: none; }
-  .tab-knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
+  .knob { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; cursor: ns-resize; touch-action: none; }
+  .knob:focus { outline: none; }
+  .knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
   /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
   /* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30); its name, cut to
      ten characters, sits right-aligned in a fixed width (room for ten of most letters) so the box doesn't
@@ -1146,8 +1146,8 @@ button {
   }
   .settings-check:focus { outline: none; }
   .settings-check:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
-  .settings-check:disabled, .settings-swatch input:disabled, .tab-number-field[data-disabled] { opacity: 0.5; cursor: default; }
-  .tab-number-field[data-disabled] input { cursor: default; }
+  .settings-check:disabled, .settings-swatch input:disabled, .number-field[data-disabled] { opacity: 0.5; cursor: default; }
+  .number-field[data-disabled] input { cursor: default; }
   .settings-phone-nav { display: none; }
   /* After the gear while preferences can't be saved (G5): small, red, the reason on hover. */
   .settings-save-problem { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); }
@@ -1225,4 +1225,211 @@ button {
     border-bottom-width: 2px;
     border-radius: 5px;
   }
+}
+
+/*
+ * The Metronome page (issue #149). Voices: A the accent, B the beat, C soft, D softer. Each view's
+ * beat display keeps one size whatever the beats, so nothing else moves when they change.
+ */
+@layer components {
+  .metronome-card {
+    position: relative; width: 100%; max-width: 640px; margin-inline: auto; padding: clamp(14px, 4vw, 24px);
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px;
+  }
+  .metronome-card > * { min-width: 0; }
+  .metronome-card-wide { max-width: 900px; }
+  .metronome-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .metronome-head-end { display: flex; align-items: center; gap: 12px; }
+  /* Bar's tempo name, in its head, goes where there is no room for it. */
+  @media (max-width: 480px) { .metronome-head .metronome-tempo-name { display: none; } }
+  .metronome-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+  .metronome-center { justify-content: center; text-align: center; }
+  .metronome-rule { padding-top: 16px; border-top: 1px solid var(--line); }
+  .metronome-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+  .metronome-field > span { white-space: nowrap; }
+  .metronome-select { width: auto; min-width: 120px; }
+  .metronome-status {
+    margin: -8px 0 0; text-align: center; font: 400 13px/18px var(--font-sans); color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .metronome-tempo-name { font: italic 400 18px/24px var(--font-display); color: var(--ink-muted); }
+  /* Anywhere a tempo shows, a drag up or down changes it. */
+  .metronome-bpm-drag { cursor: ns-resize; user-select: none; touch-action: none; }
+  .metronome-bpm-drag:focus { outline: none; }
+
+  /* Start: a muted green (Fretwood's secondary); running, it turns primary and says Stop. */
+  .metronome-play, .metronome-tap { gap: 8px; min-width: 104px; height: 48px; font-size: 16px; }
+  .metronome-start { background: var(--secondary); color: var(--on-secondary); }
+  .metronome-start:hover { background: color-mix(in oklab, var(--secondary) 85%, var(--ink)); }
+  /* Tap: as big as Start, a lighter green, and it pulses on every press. */
+  .metronome-tap {
+    position: relative; overflow: hidden;
+    background: color-mix(in oklab, var(--secondary) 28%, var(--surface-raised)); color: var(--ink);
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--secondary) 60%, var(--surface-raised));
+    transition: transform 80ms ease-out;
+  }
+  .metronome-tap:hover { background: color-mix(in oklab, var(--secondary) 38%, var(--surface-raised)); }
+  .metronome-tap:active { transform: scale(0.95); }
+  .metronome-tap-pulse {
+    position: absolute; inset: 0; border-radius: inherit; background: var(--secondary); pointer-events: none;
+    animation: metronome-tap-pulse 260ms ease-out forwards;
+  }
+  @keyframes metronome-tap-pulse { from { opacity: 0.55; } to { opacity: 0; } }
+  .metronome-round { min-width: 0; width: 56px; height: 56px; border-radius: 999px; padding: 0; }
+  .metronome-round svg { width: 20px; height: 20px; }
+
+  /* Readout: the big tempo, and the pads over it in a fixed-height box (one row of up to 52px pads, or two of 28px). */
+  .metronome-readout { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .metronome-nudge { width: 48px; height: 48px; font-size: 28px; color: var(--ink-muted); }
+  .metronome-big { display: grid; justify-items: center; }
+  .metronome-big-number {
+    font: 500 clamp(72px, 18vw, 112px)/1 var(--font-display); color: var(--ink);
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .metronome-big-unit { font: 400 15px/20px var(--font-sans); color: var(--ink-muted); }
+  .metronome-pads {
+    display: grid; justify-content: center; align-content: center; align-items: center; row-gap: 12px;
+    width: 100%; height: 100px;
+  }
+  .metronome-pad-col { display: grid; justify-items: center; gap: 8px; min-width: 0; }
+  .metronome-pad {
+    position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 999px;
+    background: var(--surface-sunken); box-shadow: inset 0 0 0 1.5px var(--line);
+    transition: background 90ms ease-out, transform 90ms ease-out;
+  }
+  .metronome-pad[data-voice='A'] { box-shadow: inset 0 0 0 3px var(--line-strong); }
+  .metronome-pad[data-voice='C'], .metronome-pad[data-voice='D'] { transform: scale(0.8); }
+  .metronome-pad[data-voice='none'] { background: none; }
+  .metronome-pad[data-on] { background: var(--primary); box-shadow: none; transform: scale(1.12); transition: none; }
+  .metronome-pad[data-on][data-voice='A'] { background: var(--accent); }
+  .metronome-pad[data-on][data-voice='none'] { background: none; box-shadow: inset 0 0 0 3px var(--primary); }
+  .metronome-ripple {
+    position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 0 2px var(--primary); pointer-events: none;
+    animation: metronome-ripple 600ms ease-out forwards;
+  }
+  @keyframes metronome-ripple { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.9); opacity: 0; } }
+  .metronome-pad-steps { display: flex; gap: 3px; height: 6px; max-width: 100%; }
+  .metronome-pad-step { flex: 0 1 6px; width: 6px; height: 6px; border-radius: 999px; background: var(--line); }
+  .metronome-pad-step[data-voice='none'] { background: none; box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .metronome-pad-step[data-on] { background: var(--primary); }
+
+  /* Dial: the beat ring, the tempo's arc, and the face that flashes on each beat. */
+  .metronome-dial-wrap { display: flex; justify-content: center; }
+  .metronome-dial { position: relative; width: 340px; max-width: 100%; aspect-ratio: 1; border-radius: 999px; }
+  .metronome-dial svg { width: 100%; height: auto; }
+  .metronome-dial-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; pointer-events: none; }
+  .metronome-dial-center .metronome-big-number { font-size: clamp(64px, 22vw, 96px); }
+  .metronome-ring { stroke: var(--surface-sunken); transition: stroke 120ms ease-out; }
+  .metronome-ring[data-voice='A'] { stroke: var(--line); }
+  .metronome-ring[data-voice='none'] { opacity: 0.4; }
+  .metronome-ring[data-on] { stroke: var(--primary); opacity: 1; transition: none; }
+  .metronome-ring[data-on][data-voice='A'] { stroke: var(--accent); }
+  .metronome-dial-face { fill: var(--surface-raised); stroke: var(--line-strong); stroke-width: 1.5; transition: fill 220ms ease-out; }
+  .metronome-dial-face[data-on] { fill: var(--primary-soft); transition: none; }
+  .metronome-dial-face[data-accent] { fill: var(--accent); }
+
+  /* Pendulum: the pyramid, and the beats beside it in a fixed box four dots wide. */
+  .metronome-pendulum { display: flex; align-items: center; justify-content: center; gap: clamp(16px, 4vw, 40px); }
+  .metronome-pyramid { flex: none; }
+  .metronome-arm { transform-origin: 110px 250px; transition-property: transform; transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  .metronome-dots { flex: none; display: grid; grid-template-columns: repeat(4, 22px); gap: 10px; align-content: center; }
+  .metronome-dot { display: grid; place-items: center; width: 22px; height: 22px; }
+  .metronome-dot::before { content: ''; display: block; width: 55%; height: 55%; border-radius: 999px; background: var(--line-strong); }
+  .metronome-dot[data-voice='A']::before { width: 100%; height: 100%; }
+  .metronome-dot[data-voice='none']::before { background: none; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+  .metronome-dot[data-on]::before { background: var(--primary); transform: scale(1.12); }
+  @media (max-width: 640px) {
+    .metronome-pyramid { width: 180px; height: auto; }
+    .metronome-dots { row-gap: 7px; }
+  }
+
+  /* Bar: the tiles share the width at any beat count; a tile's height is its voice. */
+  .metronome-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: clamp(2px, 1.2%, 10px); }
+  .metronome-tiles-beat { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
+  .metronome-tiles-count { display: flex; justify-content: center; }
+  .metronome-tiles-steps { display: flex; gap: 3px; height: 140px; }
+  .metronome-tile { flex: 1; display: flex; align-items: flex-end; min-width: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+  .metronome-tile:focus { outline: none; }
+  .metronome-tile > span { display: block; width: 100%; border-radius: 4px; background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line-strong); }
+  .metronome-tile[data-voice='A'] > span { height: 100%; background: var(--line-strong); }
+  .metronome-tile[data-voice='B'] > span { height: 70%; background: var(--line); }
+  .metronome-tile[data-voice='C'] > span { height: 42%; }
+  .metronome-tile[data-voice='D'] > span { height: 24%; }
+  .metronome-tile[data-voice='none'] > span { height: 8%; background: none; box-shadow: inset 0 0 0 1px var(--line); }
+  .metronome-tile[data-on] > span { background: var(--primary); box-shadow: none; }
+  .metronome-tiles-count {
+    overflow: visible; white-space: nowrap; min-height: 18px; color: var(--ink-muted);
+    font: 600 clamp(9px, 2.6vw, 13px)/18px var(--font-sans);
+  }
+
+  /* Advanced. */
+  .metronome-advanced { border-top: 1px solid var(--line); padding-top: 12px; }
+  .metronome-advanced-toggle {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; border: 0; background: none; cursor: pointer;
+    font: 600 14px/20px var(--font-sans); color: var(--ink-muted);
+  }
+  .metronome-advanced-toggle:hover { color: var(--ink); }
+  .metronome-advanced-toggle:focus { outline: none; }
+  .metronome-advanced-toggle svg { transition: transform 120ms; }
+  .metronome-advanced-toggle[aria-expanded='true'] svg { transform: rotate(90deg); }
+  .metronome-advanced-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding-top: 12px; }
+  .metronome-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+  .metronome-group-title { margin: 0; font: 600 14px/20px var(--font-sans); color: var(--ink); }
+  .metronome-group-note { color: var(--ink-muted); font-weight: 400; cursor: help; }
+  .metronome-groups { width: 96px; }
+
+  /* The voice grid, after REAPER's click pattern. */
+  .metronome-grid-wrap { display: flex; gap: 12px; align-items: stretch; }
+  .metronome-voices, .metronome-grid { display: grid; grid-template-rows: 24px repeat(4, 40px) 34px 18px; }
+  .metronome-voices { flex: none; }
+  .metronome-voice { display: flex; align-items: center; gap: 6px; }
+  .metronome-voice-name { width: 16px; font: 600 15px/20px var(--font-sans); color: var(--ink); }
+  .metronome-voice .metronome-select { min-width: 112px; height: 32px; padding-block: 0; font-size: 13px; }
+  .metronome-voice-controls { display: contents; }
+  .metronome-voice-list { display: none; }
+  .metronome-pitch {
+    width: 44px; height: 28px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    background: none; cursor: pointer; font: 500 12px/16px var(--font-sans); color: var(--ink-muted);
+  }
+  .metronome-pitch:hover { color: var(--ink); }
+  .metronome-pitch:focus { outline: none; }
+  .metronome-grid-scroll { overflow-x: auto; flex: 1; min-width: 0; }
+  .metronome-grid { min-width: min-content; }
+  .metronome-grid-beat {
+    display: flex; align-items: center; border-left: 1.5px solid transparent;
+    font: 600 12px/20px var(--font-sans); color: var(--ink-muted);
+  }
+  /* A beat's number sits centred over its first step. */
+  .metronome-grid-beat > * { width: 22px; text-align: center; }
+  .metronome-grid-beat[data-group-start] { color: var(--ink); }
+  .metronome-grid-cell {
+    position: relative; padding: 0; background: var(--surface-raised); cursor: pointer;
+    border: 0; border-top: 1px solid var(--line-strong); border-left: 1px dashed var(--line);
+  }
+  .metronome-grid-cell:focus { outline: none; }
+  .metronome-grid-cell[data-beat-start] { border-left: 1.5px solid var(--line-strong); }
+  .metronome-grid-cell[data-now] { background: var(--primary-soft); }
+  .metronome-grid-cell:hover { background: var(--surface-sunken); }
+  .metronome-grid-dot { position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 999px; background: var(--ink); }
+  .metronome-grid-dot[data-voice='C'], .metronome-grid-dot[data-voice='D'] { width: 12px; height: 12px; }
+  .metronome-grid-foot { display: flex; align-items: flex-end; border-top: 1px solid var(--line-strong); border-left: 1.5px solid transparent; }
+  .metronome-grid-count { text-align: center; font: 400 12px/18px var(--font-sans); color: var(--ink-muted); }
+  .metronome-dragnum {
+    display: inline-grid; place-items: center; min-width: 22px; height: 24px; padding: 0 4px; border-radius: var(--radius-sm);
+    border: 1px solid var(--line); background: var(--surface-raised); color: var(--ink-muted);
+    font: 500 12px/16px var(--font-sans); cursor: ns-resize; user-select: none; touch-action: none;
+  }
+  .metronome-dragnum:focus { outline: none; }
+  @media (max-width: 640px) {
+    .metronome-voice-list { display: grid; gap: 6px; }
+    .metronome-voice-controls { display: none; }
+  }
+
+  /* The polyrhythm against the beats. */
+  .metronome-poly { display: grid; gap: 8px; padding: 6px 4px; }
+  .metronome-poly-row { position: relative; height: 18px; border-bottom: 1px solid var(--line); }
+  .metronome-poly-mark { position: absolute; bottom: 0; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: var(--line-strong); }
+  .metronome-poly-mark:first-child { margin-left: 0; }
+  .metronome-poly-mark-alt { border-radius: 2px; background: var(--secondary); opacity: 0.55; }
+  .metronome-poly-mark[data-on] { background: var(--primary); opacity: 1; }
 }

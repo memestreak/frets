@@ -1,0 +1,253 @@
+'use client';
+
+/**
+ * Advanced: the rhythm in full, the same under every view, and closed at first. Rhythm only
+ * (Jeremy, 2026-10-31): the meter and presets, the click pattern's voices A to D, and a polyrhythm.
+ */
+import { useRef, useState, type ReactNode } from 'react';
+import { VolumeKnob } from '@/components/VolumeKnob';
+import { BeatsField, Num, SoundSelect, isNow } from './controls';
+import {
+  MAX_POLY, MAX_STEPS, MAX_SWING, MIN_SWING, PRESETS, VOICE_NAMES, countSyllable, groupStarts, parseGroups,
+  toggleCell, withBeatSubs, withGroups, withPreset, withVoice, type VoiceId,
+} from './rhythm';
+import type { Metronome } from './useMetronome';
+
+export function Advanced({ m }: { m: Metronome }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="metronome-advanced">
+      <button type="button" className="metronome-advanced-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+          <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Advanced
+      </button>
+      {open && (
+        <div className="metronome-advanced-body">
+          <Group title="Meter"><Meter m={m} /></Group>
+          <Group title="Click pattern" note="Each beat is split into steps; each step plays one voice, A to D, or nothing. Press a cell to put that voice there.">
+            <VoiceGrid m={m} />
+          </Group>
+          <Group title="Polyrhythm" note="A second layer: this many even clicks across the bar, against the beats. 3 across 2 beats is 3 over 2.">
+            <Polyrhythm m={m} />
+          </Group>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Group({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <section className="metronome-group">
+      <h2 className="metronome-group-title">
+        {title}
+        {note && <span className="metronome-group-note" data-tip={note} aria-label={note} role="img"> ⓘ</span>}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** A preset, the beats, how they group (2+2+3) and the swing. */
+function Meter({ m }: { m: Metronome }) {
+  // The groups as typed, taken on Enter or on leaving the field.
+  const [draft, setDraft] = useState<string | null>(null);
+  const settle = () => {
+    if (draft === null) return;
+    m.setRhythm(r => withGroups(r, parseGroups(draft)));
+    setDraft(null);
+  };
+  return (
+    <div className="metronome-row">
+      <label className="metronome-field">
+        <span className="text-(--ink-muted)">Preset</span>
+        <select
+          className="input metronome-select" aria-label="Preset" value=""
+          onChange={e => {
+            const [g, i] = e.target.value.split(':').map(Number);
+            m.setRhythm(r => withPreset(r, PRESETS[g].items[i]));
+          }}
+        >
+          <option value="" disabled>Choose…</option>
+          {PRESETS.map((p, g) => (
+            <optgroup key={p.group} label={p.group}>
+              {p.items.map((item, i) => <option key={item.name} value={`${g}:${i}`}>{item.name}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <BeatsField m={m} />
+      <label className="metronome-field">
+        <span className="text-(--ink-muted)">Groups</span>
+        <input
+          className="input metronome-groups" aria-label="Groups" placeholder="2+2+3"
+          value={draft ?? m.rhythm.groups.join('+')}
+          onChange={e => setDraft(e.target.value)} onBlur={settle}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        />
+      </label>
+      <Num
+        label="Swing" value={m.rhythm.swing} min={MIN_SWING} max={MAX_SWING} unit="%" reset={MIN_SWING}
+        onChange={swing => m.setRhythm(r => ({ ...r, swing }))}
+      />
+    </div>
+  );
+}
+
+/** The grid, after REAPER's click pattern: a row per voice (its sound, pitch and level), a column per step. */
+function VoiceGrid({ m }: { m: Metronome }) {
+  const { subs, steps, voices, groups } = m.rhythm;
+  const starts = groupStarts(groups);
+  const controls = (v: VoiceId, name: string) => (
+    <>
+      <SoundSelect
+        label={`Voice ${name} sound`} value={voices[v].sound}
+        onChange={sound => { m.setRhythm(r => withVoice(r, v, { sound })); m.preview(sound, voices[v].high, voices[v].level); }}
+      />
+      <button
+        type="button" className="metronome-pitch" aria-pressed={voices[v].high}
+        aria-label={`Voice ${name} pitch: ${voices[v].high ? 'high' : 'low'}`}
+        data-tip={voices[v].high ? 'High (press for low)' : 'Low (press for high)'}
+        onClick={() => m.setRhythm(r => withVoice(r, v, { high: !r.voices[v].high }))}
+      >{voices[v].high ? 'High' : 'Low'}</button>
+      <VolumeKnob value={voices[v].level} onChange={level => m.setRhythm(r => withVoice(r, v, { level }))} labelledBy={`metronome-voice-${v}`} name={`${name} level`} />
+    </>
+  );
+  return (
+    <>
+      {/* On a phone the voices' controls are a list above the grid, and the grid's rows are only lettered. */}
+      <div className="metronome-voice-list">
+        {VOICE_NAMES.map((name, v) => (
+          <div key={name} className="metronome-voice"><span className="metronome-voice-name">{name}</span>{controls(v as VoiceId, name)}</div>
+        ))}
+      </div>
+      <div className="metronome-grid-wrap">
+        <div className="metronome-voices">
+          <div />
+          {VOICE_NAMES.map((name, v) => (
+            <div key={name} className="metronome-voice">
+              <span className="metronome-voice-name">{name}</span>
+              <span className="metronome-voice-controls">{controls(v as VoiceId, name)}</span>
+              <span id={`metronome-voice-${v}`} className="sr-only">Voice {name} level</span>
+            </div>
+          ))}
+          <div />
+        </div>
+        <div className="metronome-grid-scroll">
+          <div className="metronome-grid" style={{ gridTemplateColumns: subs.map(n => `repeat(${n}, minmax(22px, 1fr))`).join(' ') }}>
+            {subs.map((n, b) => (
+              <div key={`head${b}`} className="metronome-grid-beat" style={{ gridColumn: `span ${n}` }} data-group-start={(groups.length > 0 && starts.has(b)) || undefined}>
+                <span>{b + 1}</span>
+              </div>
+            ))}
+            {VOICE_NAMES.map((name, v) => subs.map((n, b) => Array.from({ length: n }, (_, s) => {
+              const here = steps[b]?.[s] === v;
+              return (
+                <button
+                  key={`${v}-${b}-${s}`} type="button" className="metronome-grid-cell"
+                  data-beat-start={s === 0 || undefined} data-now={isNow(m, b, s) || undefined}
+                  aria-label={`Beat ${b + 1} step ${s + 1}, voice ${name}`} aria-pressed={here}
+                  onClick={() => m.setRhythm(r => toggleCell(r, b, s, v as VoiceId))}
+                >
+                  {here && <span className="metronome-grid-dot" data-voice={name} />}
+                </button>
+              );
+            })))}
+            {/* Under each beat: how many steps it has, then how they are counted. */}
+            {subs.map((n, b) => (
+              <div key={`foot${b}`} className="metronome-grid-foot" style={{ gridColumn: `span ${n}` }}>
+                <DragNumber label={`Steps in beat ${b + 1}`} value={n} min={1} max={MAX_STEPS} reset={1} onChange={k => m.setRhythm(r => withBeatSubs(r, b, k))} />
+              </div>
+            ))}
+            {subs.map((n, b) => Array.from({ length: n }, (_, s) => (
+              <div key={`count${b}-${s}`} className="metronome-grid-count">{countSyllable(b, s, n)}</div>
+            )))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const DRAG_PX = 10;
+
+/**
+ * A small number with no buttons, for the grid's tight rows: drag up or down, ↑ ↓, or a double-click
+ * to put it back.
+ */
+function DragNumber({ label, value, min, max, reset, onChange }: {
+  label: string; value: number; min: number; max: number; reset: number; onChange: (v: number) => void;
+}) {
+  const drag = useRef<{ y: number; moved: number } | null>(null);
+  const set = (v: number) => {
+    const next = Math.min(max, Math.max(min, v));
+    if (next !== value) onChange(next);
+  };
+  const end = () => {
+    drag.current = null;
+  };
+  return (
+    <span
+      className="metronome-dragnum" role="spinbutton" tabIndex={0} aria-label={label}
+      aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} data-tip={`${label}: drag up or down`}
+      onPointerDown={e => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = { y: e.clientY, moved: 0 };
+      }}
+      onPointerMove={e => {
+        const d = drag.current;
+        if (!d) return;
+        d.moved += d.y - e.clientY;
+        d.y = e.clientY;
+        const steps = Math.trunc(d.moved / DRAG_PX);
+        if (steps === 0) return;
+        d.moved -= steps * DRAG_PX;
+        set(value + steps);
+      }}
+      onPointerUp={end} onPointerCancel={end}
+      onDoubleClick={() => set(reset)}
+      onKeyDown={e => {
+        const by = ({ ArrowUp: 1, ArrowDown: -1 } as Record<string, number>)[e.key];
+        if (by === undefined) return;
+        e.preventDefault();
+        set(value + by);
+      }}
+    >{value}</span>
+  );
+}
+
+/** The polyrhythm's count, sound and level, and its clicks against the beats. */
+function Polyrhythm({ m }: { m: Metronome }) {
+  const { poly, beats } = m.rhythm;
+  const setPoly = (patch: Partial<typeof poly>) => m.setRhythm(r => ({ ...r, poly: { ...r.poly, ...patch } }));
+  return (
+    <>
+      <div className="metronome-row">
+        <Num
+          label="Clicks" value={poly.count} min={0} max={MAX_POLY} reset={0}
+          after={poly.count === 0 ? 'off' : `across the bar (${poly.count} over ${beats})`} onChange={count => setPoly({ count })}
+        />
+        <SoundSelect label="Polyrhythm sound" value={poly.sound} onChange={sound => { setPoly({ sound }); m.preview(sound, true, poly.level); }} />
+        <span id="metronome-poly-label" className="sr-only">Polyrhythm level</span>
+        <VolumeKnob value={poly.level} onChange={level => setPoly({ level })} labelledBy="metronome-poly-label" name="Level" />
+      </div>
+      {poly.count > 0 && (
+        <div className="metronome-poly" aria-hidden="true">
+          <div className="metronome-poly-row">
+            {Array.from({ length: beats }, (_, i) => (
+              <span key={i} className="metronome-poly-mark" style={{ left: `${(i / beats) * 100}%` }} data-on={isNow(m, i) || undefined} />
+            ))}
+          </div>
+          <div className="metronome-poly-row">
+            {Array.from({ length: poly.count }, (_, i) => (
+              <span key={i} className="metronome-poly-mark metronome-poly-mark-alt" style={{ left: `${(i / poly.count) * 100}%` }} data-on={(m.playing && m.now?.poly === i) || undefined} />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

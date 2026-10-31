@@ -6,7 +6,8 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writePart } from '@/features/tab/alphatex';
-import { clickSoundFont, clickWave, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
+import { clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
+import { clickWave } from '@/lib/click';
 import {
   midiUntil, noteAlone, columnAtTick, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,

@@ -7,7 +7,7 @@
  * rhythm line), AlphaTex (line numbers). A choice applies at once and is remembered, and a press
  * elsewhere or Esc closes the panel.
  */
-import { NumberField, resetOnDoubleClick } from './NumberField';
+import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import {
   BAR_NUMBER_NAMES, BAR_NUMBERS, COLOUR_NAMES, COLOURS, DEFAULT_COLOURS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SCHEMES, SIZE_STEP,
   type ColourPair, type ColourPrefs, type Colours, type TabView,
