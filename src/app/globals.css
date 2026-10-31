@@ -1067,6 +1067,7 @@ button {
   .settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
   /* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
   /* Arrangements… as a file chooser (issue #259): places | files | preview, one height whatever it shows; the panes scroll. */
+  .settings-dialog:has(.tab-save-as) { width: min(376px, calc(100vw - 32px)); }
   .settings-dialog:has(.tab-chooser) { width: min(1120px, calc(100vw - 32px)); height: min(640px, calc(100dvh - 32px)); }
   .tab-chooser { height: 100%; }
   .tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
