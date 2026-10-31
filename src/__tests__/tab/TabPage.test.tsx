@@ -1839,7 +1839,8 @@ describe('TabPage export', () => {
     const format = within(dialog).getByRole('combobox', { name: 'Format' });
     expect(within(format).getAllByRole('option').map(o => o.textContent)).toEqual(['PNG image', 'SVG image', 'ASCII tab', 'alphaTex', 'MusicXML', 'Guitar Pro']);
     const shows = () => ({
-      preview: within(dialog).queryByTestId('export-preview') !== null,
+      // Shut, the preview stays drawn (it folds away) but is hidden.
+      preview: within(dialog).getByTestId('export-preview-fold').getAttribute('aria-hidden') !== 'true',
       choices: ['Size', 'Transparent background', 'Clip name'].filter(g => within(dialog).queryByRole('group', { name: g })).length,
       copy: within(dialog).queryByRole('button', { name: 'Copy' }) !== null,
       downloads: within(dialog).getAllByRole('button', { name: /Download/ }).length,
@@ -1857,6 +1858,8 @@ describe('TabPage export', () => {
       musicxml: { preview: false, choices: 0, copy: false, downloads: 1 },
       guitarPro: { preview: false, choices: 0, copy: false, downloads: 1 },
     });
+    // Folded away, the image's parts can't be reached from the keyboard either.
+    expect(within(dialog).getByTestId('export-choices-fold')).toHaveAttribute('inert');
     // Closed and opened again, it is still on the format last picked.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));

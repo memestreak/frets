@@ -417,8 +417,29 @@ button {
   /* The Format list, at the right like the choices under it; a ⚠ before it when the file leaves something out. */
   .tab-export-format { justify-self: end; display: inline-flex; align-items: center; gap: 8px; }
   .tab-export-format select { min-width: 10rem; }
+  /* Labels take what the controls leave and wrap, so on a phone the five sizes keep to one line. */
+  .tab-export-dialog .export-choices { grid-template-columns: minmax(0, 1fr) auto; }
   /* The tips' wrapper fills the dialog, so it keeps its width when only the Format list shows. */
   .tab-export-dialog > * { flex: 1; min-width: 0; }
+  /* Its top stays put, so the dialog only grows and shrinks downward as the image's parts fold. */
+  .settings-dialog.tab-export-dialog {
+    margin-top: max(16px, 8dvh);
+    max-height: calc(100dvh - max(16px, 8dvh) - 16px);
+  }
+  /* The preview and the image's choices fold open or shut with a fade, the row easing between 0 and
+     its full height. The body's 16px gap stays only while open, so a shut fold leaves no space. */
+  .export-fold {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: -16px;
+    transition: grid-template-rows 200ms ease, opacity 200ms ease, margin-top 200ms ease;
+  }
+  .export-fold[data-open='true'] { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
+  .export-fold-inner { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 4px; margin: -4px; }
+  @media (prefers-reduced-motion: reduce) {
+    .export-fold { transition: none; }
+  }
   .export-preview .tab-image { display: block; width: 100%; height: auto; max-height: min(300px, 35vh); }
   /* Under the preview: the image's size in pixels, and what is behind it. */
   .export-size { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--ink-muted); }

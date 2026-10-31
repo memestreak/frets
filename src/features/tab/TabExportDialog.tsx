@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { copySvgAsPng, copySvgCode, svgToPng } from '@/components/chords/export/exportImage';
 import { Segmented } from '@/components/controls';
 import { HoverTips } from '@/components/HoverTips';
@@ -148,16 +148,14 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
             </button>
           </div>
           <div className="settings-dialog-body">
-            {isImage(format) && (
-              <>
-                <div className="export-preview" data-testid="export-preview">
-                  <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
-                </div>
-                <p className="export-size" data-testid="export-size">
-                  {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
-                </p>
-              </>
-            )}
+            <Fold open={isImage(format)} testId="export-preview-fold">
+              <div className="export-preview" data-testid="export-preview">
+                <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
+              </div>
+              <p className="export-size" data-testid="export-size">
+                {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
+              </p>
+            </Fold>
             {/* Format first; under it the image's choices, only for PNG and SVG. */}
             <div className="export-choices">
               <label htmlFor={formatId}>Format</label>
@@ -173,8 +171,9 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
                   {TAB_EXPORT_FORMATS.map(f => <option key={f} value={f}>{FORMAT_LABELS[f]}</option>)}
                 </select>
               </span>
-              {isImage(format) && (
-                <>
+            </div>
+            <Fold open={isImage(format)} testId="export-choices-fold">
+              <div className="export-choices">
                   <span>Size<span className="export-unit"> (px wide)</span></span>
                   <Segmented label="Size" value={style.width} onChange={w => set({ width: w })} options={WIDTHS} />
                   <span>Transparent background</span>
@@ -187,9 +186,8 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
                     label="Clip name" value={style.name ? 'show' : 'hide'}
                     onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
                   />
-                </>
-              )}
-            </div>
+              </div>
+            </Fold>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="mr-auto text-(--ink-muted)" role="status">{status}</span>
@@ -202,6 +200,19 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
         </HoverTips>
       )}
     </dialog>
+  );
+}
+
+/**
+ * What shows only for the images: kept drawn, folding open or shut with a fade (Jeremy, 2026-10-31:
+ * the preview appearing and vanishing at once was jarring). Shut, it is hidden from the keyboard and
+ * from screen readers.
+ */
+function Fold({ open, testId, children }: { open: boolean; testId: string; children: ReactNode }) {
+  return (
+    <div className="export-fold" data-open={open} data-testid={testId} aria-hidden={!open} inert={!open}>
+      <div className="export-fold-inner">{children}</div>
+    </div>
   );
 }
 

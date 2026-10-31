@@ -40,6 +40,14 @@ From top to bottom:
    - **Copy** copies PNG and SVG as before, and ASCII tab and alphaTex as
      text. It isn't shown for MusicXML and Guitar Pro, which don't paste.
 
+The preview and the image choices fold open or shut over 200 ms with a
+fade as the format changes between an image and a file (Jeremy,
+2026-10-31: appearing and vanishing at once was jarring). They stay drawn,
+`aria-hidden` and `inert` while shut; the row eases between 0 and its full
+height (`grid-template-rows` 0fr ↔ 1fr). With reduced motion they switch at
+once. The dialog's top is pinned (8% of the window down) rather than
+centred, so it only grows and shrinks downward.
+
 Done goes: × and Esc close the dialog. The Export button that opened it
 with a press lets go of its focus when the dialog closes, so it doesn't stay
 lit (`useLetGoAfterUse`, app-wide for any button that opens a dialog).
