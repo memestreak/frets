@@ -19,13 +19,13 @@ of its own under the title.
   number with − and + either side (1 bpm), then Start and Tap. Below a rule:
   Beats and the subdivision, then Sound and Volume.
 - **Dial**: a ring of beat segments round a big tempo dial whose face
-  flashes on each beat; round Tap and Start, and Beats.
+  flashes on each beat; round Start and Tap, and Beats.
 - **Pendulum**: a wooden pyramid metronome whose arm swings a beat each way
   and whose weight sits lower the faster the tempo; the beats as dots to its
   right. Below them: the tempo's Italian name, Start and Tap, then Tempo,
   Beats and the subdivision, then Sound and Volume.
 - **Bar**: the whole bar as tiles, one per step, a tile's height its voice.
-  Pressing a tile cycles A, B, C, D, silent. Below: Start, Tempo, Tap,
+  Pressing a tile cycles A, B, C, D, silent. Below: Start, Tap, Tempo,
   Beats, the subdivision; then Sound and Volume.
 
 Every view:

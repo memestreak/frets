@@ -178,8 +178,8 @@ function Dial({ m }: { m: Metronome }) {
         </div>
       </div>
       <div className="metronome-row metronome-center">
-        <TapButton m={m} round />
         <PlayButton m={m} round />
+        <TapButton m={m} round />
         <BeatsField m={m} />
       </div>
       <div className="metronome-row metronome-center">
@@ -290,8 +290,8 @@ function Bar({ m }: { m: Metronome }) {
       </div>
       <div className="metronome-row">
         <PlayButton m={m} />
-        <BpmField m={m} />
         <TapButton m={m} />
+        <BpmField m={m} />
         <BeatsField m={m} />
         <SubdivisionSeg m={m} />
       </div>
