@@ -664,21 +664,22 @@ function Pendulum() {
           </g>
           <circle cx="110" cy="250" r="6" fill="var(--fret-wire)" />
         </svg>
-        <div className="mm-side">
-          <p className="mm-tempo-name m-0">{tempoName(bpm)}</p>
-          <BpmField m={m} />
-          <BeatsField m={m} />
-          <SubdivisionSeg m={m} />
-          <div className="mm-row">
-            <SoundControls m={m} />
-          </div>
-          <BeatDots m={m} size={18} />
-          <div className="mm-row">
-            <PlayButton m={m} />
-            <TapButton m={m} />
-          </div>
-          <Status m={m} />
-        </div>
+        {/* The beats beside the pendulum: both visual cues at the top (Jeremy, 2026-10-31). */}
+        <BeatDots m={m} size={22} />
+      </div>
+      <p className="mm-tempo-name mm-center m-0">{tempoName(bpm)}</p>
+      <div className="mm-row mm-row-center">
+        <PlayButton m={m} />
+        <TapButton m={m} />
+      </div>
+      <Status m={m} />
+      <div className="mm-row mm-row-center mm-row-top-line">
+        <BpmField m={m} />
+        <BeatsField m={m} />
+        <SubdivisionSeg m={m} />
+      </div>
+      <div className="mm-row mm-row-center">
+        <SoundControls m={m} />
       </div>
       <Advanced m={m} />
     </section>
@@ -692,13 +693,6 @@ function Bar() {
   return (
     <section className="card mm-card mm-card-wide" aria-labelledby="mm-title">
       <Head><span className="mm-bar-name">{tempoName(liveBpm(m))}</span></Head>
-      <div className="mm-row mm-row-top-line">
-        <PlayButton m={m} />
-        <BpmField m={m} />
-        <TapButton m={m} />
-        <BeatsField m={m} />
-        <SubdivisionSeg m={m} />
-      </div>
       <div className="mm-pattern" role="group" aria-label="Steps (press to change the voice)">
         {m.subs.map((n, beat) => (
           <div key={beat} className="mm-pattern-beat">
@@ -718,6 +712,13 @@ function Bar() {
             <span className="mm-pattern-count">{beat + 1}</span>
           </div>
         ))}
+      </div>
+      <div className="mm-row">
+        <PlayButton m={m} />
+        <BpmField m={m} />
+        <TapButton m={m} />
+        <BeatsField m={m} />
+        <SubdivisionSeg m={m} />
       </div>
       <Status m={m} />
       <div className="mm-row mm-row-top-line">
