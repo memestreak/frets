@@ -27,9 +27,13 @@ export interface Voice {
 }
 
 export interface Poly {
-  /** Even clicks across the bar (3 over 4, 5 over 4…); 0 is off. */
+  /** Heard or not; off, its settings wait greyed out (Jeremy, 2026-10-31). */
+  on: boolean;
+  /** Even clicks across the bar (3 over 4, 5 over 4…), 1 to `MAX_POLY`. */
   count: number;
   sound: SoundId;
+  /** The sound's high sample, or its low one, as for a voice. */
+  high: boolean;
   level: number;
 }
 
@@ -58,6 +62,9 @@ export const MAX_STEPS = 8;
 export const MIN_SWING = 50;
 export const MAX_SWING = 75;
 export const MAX_POLY = 16;
+export const DEFAULT_POLY_COUNT = 3;
+/** What a level knob's double-click puts back (Jeremy, 2026-10-31). */
+export const RESET_LEVEL = 1;
 
 export const clampBpm = (bpm: number) => Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(bpm)));
 
@@ -95,11 +102,13 @@ export const DEFAULT_VOICES: readonly Voice[] = [
   { sound: 'wood', high: false, level: 0.25 },
 ];
 
+export const DEFAULT_POLY: Poly = { on: false, count: DEFAULT_POLY_COUNT, sound: 'cowbell', high: true, level: 1 };
+
 export function defaultRhythm(): Rhythm {
   const subs = Array<number>(DEFAULT_BEATS).fill(1);
   return {
     bpm: DEFAULT_BPM, beats: DEFAULT_BEATS, groups: [], subs, steps: defaultSteps(DEFAULT_BEATS, subs, []),
-    swing: MIN_SWING, voices: DEFAULT_VOICES.map(v => ({ ...v })), poly: { count: 0, sound: 'cowbell', level: 0.6 },
+    swing: MIN_SWING, voices: DEFAULT_VOICES.map(v => ({ ...v })), poly: { ...DEFAULT_POLY },
   };
 }
 
@@ -112,10 +121,20 @@ export function withBeats(r: Rhythm, beats: number): Rhythm {
   return { ...r, beats, groups: [], subs, steps: defaultSteps(beats, subs, []) };
 }
 
-/** Every beat split into `n` steps (Quarters…Sixteenths), with the usual steps. */
+/** Every beat split into `n` steps, with the usual steps. */
 export function withAllSubs(r: Rhythm, n: number): Rhythm {
   const subs = Array<number>(r.beats).fill(n);
   return { ...r, subs, steps: defaultSteps(r.beats, subs, r.groups) };
+}
+
+/**
+ * A new swing. Swing moves the second step of each pair, so a bar with no beat split evenly (plain
+ * quarters, the usual start) has nothing to swing: turning swing up there splits every beat into
+ * eighths, so it is heard (#270: "Swing doesn't appear to do anything").
+ */
+export function withSwing(r: Rhythm, swing: number): Rhythm {
+  const swingable = r.subs.some(n => n % 2 === 0);
+  return { ...(swing > MIN_SWING && !swingable ? withAllSubs(r, 2) : r), swing };
 }
 
 /** One beat split into `n` steps; its first step keeps its voice. */
@@ -164,7 +183,10 @@ export function withGroups(r: Rhythm, groups: number[]): Rhythm {
 
 /* — presets — */
 
-/** What a preset sets: the bar, and the polyrhythm's count. The tempo and the sounds stay. */
+/**
+ * What a preset sets: the bar, and the polyrhythm (its count, or 0 to turn it off). The tempo and
+ * the sounds stay.
+ */
 type Pattern = Pick<Rhythm, 'beats' | 'groups' | 'subs' | 'steps' | 'swing'> & { poly: number };
 
 /** Every beat split into `sub` steps, with the usual steps. */
@@ -236,7 +258,7 @@ export const PRESETS: readonly { group: string; items: readonly Preset[] }[] = [
 
 export function withPreset(r: Rhythm, preset: Preset): Rhythm {
   const { poly, ...bar } = preset.pattern();
-  return { ...r, ...bar, poly: { ...r.poly, count: poly } };
+  return { ...r, ...bar, poly: poly > 0 ? { ...r.poly, on: true, count: poly } : { ...r.poly, on: false } };
 }
 
 /* — the bar, as timed clicks — */
@@ -263,7 +285,7 @@ export function barClicks(r: Rhythm): Click[] {
       out.push({ at: b + at, beat: b, step: k, voice: r.steps[b]?.[k] ?? null, poly: null });
     }
   }
-  for (let i = 0; i < r.poly.count; i++) {
+  for (let i = 0; r.poly.on && i < r.poly.count; i++) {
     out.push({ at: (i / r.poly.count) * r.beats, beat: -1, step: -1, voice: null, poly: i });
   }
   return out.sort((x, y) => x.at - y.at);

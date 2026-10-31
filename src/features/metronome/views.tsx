@@ -5,9 +5,11 @@
  * top, in a box that keeps its size whatever the beats, so nothing else moves (Jeremy, 2026-10-31).
  * Advanced is the same under all four.
  */
+import { useRef, type PointerEvent } from 'react';
+import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 import { Advanced } from './Advanced';
 import {
-  BeatsField, BpmField, Head, PlayButton, SoundControls, SubdivisionSeg, TapButton, beatVoice, isNow,
+  BeatsField, BpmField, DRAG_BPM, Head, PlayButton, SoundControls, TapButton, beatVoice, isNow,
   useBpmDrag, voiceAttr,
 } from './controls';
 import { MAX_BPM, MIN_BPM, VOICE_NAMES, clampBpm, cycleCell, tempoName } from './rhythm';
@@ -90,7 +92,6 @@ function Readout({ m }: { m: Metronome }) {
       </div>
       <div className="metronome-row metronome-center metronome-rule">
         <BeatsField m={m} />
-        <SubdivisionSeg m={m} />
       </div>
       <div className="metronome-row metronome-center">
         <SoundControls m={m} />
@@ -182,9 +183,6 @@ function Dial({ m }: { m: Metronome }) {
         <TapButton m={m} round />
         <BeatsField m={m} />
       </div>
-      <div className="metronome-row metronome-center">
-        <SubdivisionSeg m={m} />
-      </div>
       <div className="metronome-row metronome-center metronome-rule">
         <SoundControls m={m} />
       </div>
@@ -195,13 +193,67 @@ function Dial({ m }: { m: Metronome }) {
 
 /* — Pendulum: the wooden pyramid metronome, the beats beside it — */
 
-/** The scale's marks, and where the weight sits for a tempo: lower the faster, as on a real one. */
-const PENDULUM_MARKS = [40, 60, 80, 120, 160, 200, 240, 280];
-const weightY = (bpm: number) => 56 + ((Math.min(300, Math.max(30, bpm)) - 30) / 270) * 170;
+/**
+ * The scale, and where the weight sits for a tempo: lower the faster, as on a real one. The scale runs
+ * the whole tempo range, so the weight can show, and reach, every tempo.
+ */
+const PENDULUM_MARKS = [40, 80, 120, 160, 200, 240, 280, 320, 360, 400];
+const WEIGHT_TOP = 56;
+const WEIGHT_BOTTOM = 226;
+const weightY = (bpm: number) => WEIGHT_TOP + ((Math.min(MAX_BPM, Math.max(MIN_BPM, bpm)) - MIN_BPM) / (MAX_BPM - MIN_BPM)) * (WEIGHT_BOTTOM - WEIGHT_TOP);
+const bpmAt = (y: number) => MIN_BPM + ((y - WEIGHT_TOP) / (WEIGHT_BOTTOM - WEIGHT_TOP)) * (MAX_BPM - MIN_BPM);
 /** Where the scale's ticks start: just right of the arm, so the labels stay on the lighter panel. */
 const SCALE_X = 113;
+/** The arm's pivot, in the drawing's units. */
+const PIVOT_X = 110;
+const PIVOT_Y = 250;
+/** The drawing's height, in its own units. */
+const PYRAMID_H = 300;
 /** How far the arm leans each way, in degrees. */
 const LEAN = 24;
+
+/**
+ * Press the weight and drag it: it stays under the pointer, and the tempo is where it sits (#270),
+ * to 5 bpm, or to 1 with Shift. It is measured along the arm, so it follows even while the arm swings.
+ */
+function useWeightDrag(m: Metronome) {
+  /** How far below the weight's middle it was pressed, so it doesn't jump to the pointer. */
+  const drag = useRef<{ offset: number } | null>(null);
+  /** The pointer's distance up the arm from the pivot, as a height on the scale. */
+  const armY = (e: PointerEvent<Element>) => {
+    const svg = (e.currentTarget as SVGElement).ownerSVGElement;
+    const box = svg?.getBoundingClientRect();
+    if (!box || box.height === 0) return null;
+    const scale = PYRAMID_H / box.height;
+    const x = (e.clientX - box.left) * scale;
+    const y = (e.clientY - box.top) * scale;
+    return PIVOT_Y - Math.hypot(x - PIVOT_X, y - PIVOT_Y);
+  };
+  const end = () => {
+    drag.current = null;
+  };
+  return {
+    onPointerDown: (e: PointerEvent<Element>) => {
+      if (e.button !== 0) return;
+      const y = armY(e);
+      if (y === null) return;
+      e.preventDefault();
+      letGoOfFields();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { offset: y - weightY(m.rhythm.bpm) };
+    },
+    onPointerMove: (e: PointerEvent<Element>) => {
+      const d = drag.current;
+      const y = d && armY(e);
+      if (!d || y === null) return;
+      const step = e.shiftKey ? 1 : DRAG_BPM;
+      const bpm = clampBpm(Math.round(bpmAt(y - d.offset) / step) * step);
+      m.setRhythm(r => (r.bpm === bpm ? r : { ...r, bpm }));
+    },
+    onPointerUp: end,
+    onPointerCancel: end,
+  };
+}
 
 /** A dot per beat, four to a row, in a box beside the pendulum. */
 function BeatDots({ m }: { m: Metronome }) {
@@ -215,7 +267,7 @@ function BeatDots({ m }: { m: Metronome }) {
 }
 
 function Pendulum({ m }: { m: Metronome }) {
-  const drag = useBpmDrag(m, { downIsFaster: true });
+  const drag = useWeightDrag(m);
   const { bpm } = m.rhythm;
   // The arm leans one way on even beats and the other on odd ones, swinging across in one beat.
   const lean = !m.now || m.now.beat < 0 ? 0 : m.now.beat % 2 === 0 ? LEAN : -LEAN;
@@ -224,10 +276,7 @@ function Pendulum({ m }: { m: Metronome }) {
     <section className="card metronome-card" aria-labelledby="metronome-title">
       <Head />
       <div className="metronome-pendulum">
-        <svg
-          className="metronome-pyramid metronome-bpm-drag" width="220" height="300" viewBox="0 0 220 300" role="img"
-          aria-label={`Pendulum at ${bpm} bpm`} {...drag}
-        >
+        <svg className="metronome-pyramid" width="220" height="300" viewBox="0 0 220 300" role="group" aria-label="Pendulum">
           <path d="M80 12 L140 12 L196 292 L24 292 Z" fill="var(--fretboard)" />
           <path d="M90 30 L130 30 L166 236 L54 236 Z" fill="var(--surface-sunken)" opacity="0.12" />
           {PENDULUM_MARKS.map(b => (
@@ -238,7 +287,21 @@ function Pendulum({ m }: { m: Metronome }) {
           ))}
           <g className="metronome-arm" style={{ transform: `rotate(${lean}deg)`, transitionDuration: `${60 / bpm}s` }}>
             <line x1="110" y1="250" x2="110" y2="34" stroke="var(--nut)" strokeWidth="3" strokeLinecap="round" />
-            <path d={`M100 ${y - 8} L120 ${y - 8} L116 ${y + 8} L104 ${y + 8} Z`} fill="var(--primary)" />
+            {/* The weight, with room round it to press (±16px). */}
+            <g
+              className="metronome-weight" role="slider" tabIndex={0} aria-label="Tempo"
+              aria-valuemin={MIN_BPM} aria-valuemax={MAX_BPM} aria-valuenow={bpm} aria-valuetext={`${bpm} bpm`}
+              data-tip="Drag the weight: down is faster (Shift: 1 bpm steps)" {...drag}
+              onKeyDown={e => {
+                const by = ({ ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 } as Record<string, number>)[e.key];
+                if (by === undefined) return;
+                e.preventDefault();
+                m.setRhythm(r => ({ ...r, bpm: clampBpm(r.bpm + by * (e.shiftKey ? 1 : DRAG_BPM)) }));
+              }}
+            >
+              <rect x={84} y={y - 24} width={52} height={48} fill="transparent" />
+              <path d={`M100 ${y - 8} L120 ${y - 8} L116 ${y + 8} L104 ${y + 8} Z`} fill="var(--primary)" />
+            </g>
           </g>
           <circle cx="110" cy="250" r="6" fill="var(--fret-wire)" />
         </svg>
@@ -252,7 +315,6 @@ function Pendulum({ m }: { m: Metronome }) {
       <div className="metronome-row metronome-center metronome-rule">
         <BpmField m={m} />
         <BeatsField m={m} />
-        <SubdivisionSeg m={m} />
       </div>
       <div className="metronome-row metronome-center">
         <SoundControls m={m} />
@@ -295,7 +357,6 @@ function Bar({ m }: { m: Metronome }) {
         <TapButton m={m} />
         <BpmField m={m} />
         <BeatsField m={m} />
-        <SubdivisionSeg m={m} />
       </div>
       <div className="metronome-row metronome-rule">
         <SoundControls m={m} />

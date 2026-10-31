@@ -135,7 +135,10 @@ export function useMetronome() {
         lastPos = pos;
 
         const cr = latest.current.rhythm;
-        if (c.poly !== null) playSound(cr.poly.sound, true, cr.poly.level, at);
+        // Turned off, the polyrhythm is silent at once, not from the next bar.
+        if (c.poly !== null) {
+          if (cr.poly.on) playSound(cr.poly.sound, cr.poly.high, cr.poly.level, at);
+        }
         else {
           const voice = cr.steps[c.beat]?.[c.step] ?? null;
           if (voice !== null) {

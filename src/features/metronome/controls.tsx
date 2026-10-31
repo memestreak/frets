@@ -4,10 +4,11 @@
 import { createContext, useContext, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
+import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
 import {
-  DEFAULT_BEATS, DEFAULT_BPM, MAX_BEATS, MAX_BPM, MIN_BPM, SOUNDS, VOICE_NAMES, clampBpm, withAllSubs, withBeats,
+  DEFAULT_BEATS, DEFAULT_BPM, MAX_BEATS, MAX_BPM, MIN_BPM, RESET_LEVEL, SOUNDS, VOICE_NAMES, clampBpm, withBeats,
   withSound, type SoundId, type Step,
 } from './rhythm';
 import { VIEWS, type ViewId } from './storage';
@@ -51,15 +52,14 @@ export function Head({ children }: { children?: ReactNode }) {
 
 /** How far a drag on a tempo moves before it steps it, and the step: 5 bpm, or 1 with Shift. */
 const DRAG_PX = 8;
-const DRAG_BPM = 5;
+export const DRAG_BPM = 5;
 
 /**
- * Drag up or down on a tempo, wherever it is shown, to change it: 5 bpm a step, 1 with Shift held.
- * Up is faster, except with `downIsFaster`: the pendulum's weight sits lower the faster the tempo,
- * so dragging it down speeds it up (Jeremy, 2026-10-31). Spread the result on the element that
- * shows the tempo.
+ * Drag up or down on a tempo, wherever it is shown, to change it: 5 bpm a step, 1 with Shift held,
+ * up faster. Spread the result on the element that shows the tempo. (The pendulum's weight follows
+ * the pointer instead: `views.tsx`.)
  */
-export function useBpmDrag(m: Metronome, { downIsFaster = false } = {}) {
+export function useBpmDrag(m: Metronome) {
   const drag = useRef<{ y: number; moved: number } | null>(null);
   const end = () => {
     drag.current = null;
@@ -68,6 +68,7 @@ export function useBpmDrag(m: Metronome, { downIsFaster = false } = {}) {
     onPointerDown: (e: PointerEvent<Element>) => {
       if (e.button !== 0) return;
       e.preventDefault();
+      letGoOfFields();
       e.currentTarget.setPointerCapture(e.pointerId);
       drag.current = { y: e.clientY, moved: 0 };
     },
@@ -79,7 +80,7 @@ export function useBpmDrag(m: Metronome, { downIsFaster = false } = {}) {
       const steps = Math.trunc(d.moved / DRAG_PX);
       if (steps === 0) return;
       d.moved -= steps * DRAG_PX;
-      const by = steps * (e.shiftKey ? 1 : DRAG_BPM) * (downIsFaster ? -1 : 1);
+      const by = steps * (e.shiftKey ? 1 : DRAG_BPM);
       m.setRhythm(r => ({ ...r, bpm: clampBpm(r.bpm + by) }));
     },
     onPointerUp: end,
@@ -125,16 +126,22 @@ export function TapButton({ m, round }: { m: Metronome; round?: boolean }) {
   );
 }
 
-/** A label, a number field and what follows it, in a row; a double-click on the row puts back `reset`. */
-export function Num({ label, value, min, max, dragStep, unit, after, reset, onChange }: {
-  label: string; value: number; min: number; max: number; dragStep?: number; unit?: string; after?: ReactNode;
-  reset: number; onChange: (v: number) => void;
+/**
+ * A label, a number field and what follows it, in a row; a double-click on the row puts back `reset`.
+ * `hideLabel` when a column name above already says it.
+ */
+export function Num({ label, hideLabel, value, min, max, dragStep, unit, after, reset, disabled, onChange }: {
+  label: string; hideLabel?: boolean; value: number; min: number; max: number; dragStep?: number; unit?: string; after?: ReactNode;
+  reset: number; disabled?: boolean; onChange: (v: number) => void;
 }) {
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a mouse shortcut only; from the keyboard, type the number
-    <div className="metronome-field" onDoubleClick={e => resetOnDoubleClick(e, () => onChange(reset))}>
-      <span className="text-(--ink-muted)">{label}</span>
-      <NumberField value={value} min={min} max={max} step={1} dragStep={dragStep} unit={unit} label={label} upLabel="More" downLabel="Less" onChange={onChange} />
+    <div className="metronome-field" onDoubleClick={e => { if (!disabled) resetOnDoubleClick(e, () => onChange(reset)); }}>
+      {!hideLabel && <span className="text-(--ink-muted)">{label}</span>}
+      <NumberField
+        value={value} min={min} max={max} step={1} dragStep={dragStep} unit={unit} label={label} upLabel="More" downLabel="Less"
+        disabled={disabled} onChange={onChange}
+      />
       {after && <span className="text-(--ink-muted)">{after}</span>}
     </div>
   );
@@ -153,24 +160,14 @@ export function BeatsField({ m }: { m: Metronome }) {
   return <Num label="Beats" value={m.rhythm.beats} min={1} max={MAX_BEATS} reset={DEFAULT_BEATS} onChange={beats => m.setRhythm(r => withBeats(r, beats))} />;
 }
 
-const SUBDIVISIONS: [steps: number, name: string][] = [[1, 'Quarters'], [2, 'Eighths'], [3, 'Triplets'], [4, 'Sixteenths']];
-
-/** Every beat split alike. Nothing is lit when Advanced splits the beats differently. */
-export function SubdivisionSeg({ m }: { m: Metronome }) {
-  const { subs } = m.rhythm;
-  const same = subs.every(n => n === subs[0]) ? subs[0] : null;
+export function SoundSelect({ label, value, disabled, onChange }: {
+  label: string; value: SoundId | null; disabled?: boolean; onChange: (s: SoundId) => void;
+}) {
   return (
-    <div className="seg" role="group" aria-label="Clicks per beat">
-      {SUBDIVISIONS.map(([n, name]) => (
-        <button key={n} type="button" className="seg-opt" aria-pressed={same === n} onClick={() => m.setRhythm(r => withAllSubs(r, n))}>{name}</button>
-      ))}
-    </div>
-  );
-}
-
-export function SoundSelect({ label, value, onChange }: { label: string; value: SoundId | null; onChange: (s: SoundId) => void }) {
-  return (
-    <select className="input metronome-select" aria-label={label} value={value ?? ''} onChange={e => onChange(e.target.value as SoundId)}>
+    <select
+      className="input metronome-select" aria-label={label} value={value ?? ''} disabled={disabled}
+      onChange={e => onChange(e.target.value as SoundId)}
+    >
       {/* Advanced gave the voices different sounds: none of them is the sound. */}
       {value === null && <option value="" disabled>Mixed</option>}
       {SOUNDS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -190,7 +187,7 @@ export function SoundControls({ m }: { m: Metronome }) {
       </div>
       <div className="metronome-field">
         <span className="text-(--ink-muted)" id="metronome-volume-label">Volume</span>
-        <VolumeKnob value={m.volume} onChange={m.setVolume} labelledBy="metronome-volume-label" />
+        <VolumeKnob value={m.volume} onChange={m.setVolume} labelledBy="metronome-volume-label" reset={RESET_LEVEL} />
       </div>
     </>
   );

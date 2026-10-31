@@ -1,6 +1,6 @@
 import {
-  DEFAULT_BEATS, MAX_BPM, MIN_BPM, PRESETS, addTap, barClicks, countSyllable, cycleCell, defaultRhythm, defaultSteps,
-  parseGroups, retempo, tapBpm, tempoName, timeAt, toggleCell, withAllSubs, withBeatSubs, withBeats, withGroups,
+  DEFAULT_BEATS, DEFAULT_POLY, MAX_BPM, MIN_BPM, PRESETS, addTap, barClicks, countSyllable, cycleCell, defaultRhythm, defaultSteps,
+  parseGroups, retempo, tapBpm, tempoName, timeAt, toggleCell, withAllSubs, withBeatSubs, withSwing, withBeats, withGroups,
   withPreset, withSound, withVoice,
 } from '@/features/metronome/rhythm';
 
@@ -65,8 +65,11 @@ describe('changing the rhythm', () => {
     const start = { ...withSound(defaultRhythm(), 'beep'), bpm: 90 };
     const r = withPreset(start, preset('7/8 (2+2+3)'));
     expect([r.beats, r.groups, r.bpm, r.voices[0].sound]).toEqual([7, [2, 2, 3], 90, 'beep']);
-    expect(withPreset(start, preset('3 over 2')).poly.count).toBe(3);
-    expect(withPreset(withPreset(start, preset('3 over 2')), preset('Quarters')).poly.count).toBe(0);
+    const poly = withPreset(start, preset('5 over 4')).poly;
+    expect([poly.on, poly.count]).toEqual([true, 5]);
+    // Another preset turns it off, and keeps its count for when it is turned on again.
+    const off = withPreset(withPreset(start, preset('5 over 4')), preset('Quarters')).poly;
+    expect([off.on, off.count]).toEqual([false, 5]);
   });
 
   it('every preset makes a bar whose parts agree', () => {
@@ -115,9 +118,32 @@ describe('barClicks', () => {
     expect(barClicks(r)[1].at).toBeCloseTo(1 / 3);
   });
 
-  it('spreads the polyrhythm evenly across the bar', () => {
-    const r = { ...defaultRhythm(), poly: { count: 3, sound: 'cowbell' as const, level: 1 } };
+  it('spreads the polyrhythm evenly across the bar, while it is on', () => {
+    const r = { ...defaultRhythm(), poly: { ...DEFAULT_POLY, on: true } };
     expect(barClicks(r).filter(c => c.poly !== null).map(c => c.at)).toEqual([0, 4 / 3, 8 / 3]);
+    expect(barClicks(defaultRhythm()).filter(c => c.poly !== null)).toEqual([]);
+  });
+
+  it('the polyrhythm starts off, at 3 clicks and 100%', () => {
+    expect(defaultRhythm().poly).toEqual({ on: false, count: 3, sound: 'cowbell', high: true, level: 1 });
+  });
+});
+
+describe('withSwing', () => {
+  it('splits plain quarters into eighths, so the swing is heard', () => {
+    const r = withSwing(defaultRhythm(), 60);
+    expect([r.swing, r.subs]).toEqual([60, [2, 2, 2, 2]]);
+    expect(barClicks(r)[1].at).toBeCloseTo(0.6);
+  });
+
+  it('leaves a bar that already swings, and straight quarters, as they are', () => {
+    const sixteenths = withAllSubs(defaultRhythm(), 4);
+    expect(withSwing(sixteenths, 60).subs).toEqual(sixteenths.subs);
+    expect(withSwing(defaultRhythm(), 50).subs).toEqual([1, 1, 1, 1]);
+  });
+
+  it('turns triplets, which can’t swing, into eighths', () => {
+    expect(withSwing(withAllSubs(defaultRhythm(), 3), 67).subs).toEqual([2, 2, 2, 2]);
   });
 });
 

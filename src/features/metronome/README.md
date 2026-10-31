@@ -14,11 +14,14 @@ and menu (`sections.ts`) until Jeremy calls it ready.
   - Start and Tap
   - Tempo and Beats (`NumberField`), with a double-click putting back 120
     and 4
-  - the subdivision, and the Sound and Volume
-  - `useBpmDrag`, which lets a drag on any shown tempo change it (5 bpm,
-    or 1 with Shift)
-- `Advanced.tsx`: Meter (preset, beats, groups, swing), the click pattern's
-  voice grid (REAPER-style voices A to D), and the polyrhythm.
+  - the Sound and Volume
+  - `useBpmDrag`, which lets a drag on the big tempo or the dial change it
+    (5 bpm, or 1 with Shift). The pendulum's weight follows the pointer
+    instead (`useWeightDrag` in `views.tsx`).
+- `Advanced.tsx`: Meter (preset, groups, swing), the click pattern's voice
+  grid (REAPER-style voices A to D, their Sound, Pitch and Volume columns),
+  and the polyrhythm (its switch, then its controls in the voices' columns,
+  greyed out while off).
 - `rhythm.ts` (pure):
   - the `Rhythm` (the work)
   - the usual steps, the changes (`withBeats`, `toggleCell`,

@@ -21,9 +21,10 @@ describe('parseRhythm', () => {
   });
 
   it('a field gone wrong takes its own default and leaves the others', () => {
-    const r = parseRhythm({ bpm: 90, swing: 99, poly: { count: 3, sound: 'tuba', level: 2 } });
+    const r = parseRhythm({ bpm: 90, swing: 99, poly: { on: 'yes', count: 0, sound: 'tuba', high: false, level: 2 } });
     expect([r.bpm, r.swing]).toEqual([90, 50]);
-    expect(r.poly).toEqual({ count: 3, sound: 'cowbell', level: 0.6 });
+    expect(r.poly).toEqual({ on: false, count: 3, sound: 'cowbell', high: false, level: 1 });
+    expect(parseRhythm({ poly: { on: true, count: 5 } }).poly).toMatchObject({ on: true, count: 5 });
   });
 
   it('steps that don’t match the beats give the usual steps for those beats', () => {
