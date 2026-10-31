@@ -278,13 +278,14 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             />
           )}
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
-          {!highlight.range && highlight.columnOnly && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
+          {/* Not in note input: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
+          {!highlight.range && highlight.columnOnly && !highlight.input && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
             // Round the tab's six strings; with the staff alone, round its five lines.
             const [top, bottom] = rows.tab ? [stringY(rows, 0) - 9, stringY(rows, STRING_COUNT - 1) + 9] : [rows.score!.top - 9, rows.score!.bottom + 9];
             return (
               <rect
                 x={spot.x - 12} y={top} width={24} height={bottom - top} rx={4}
-                fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
+                fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
               />
             );
           })()}
@@ -309,11 +310,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
           )}
+          {/* A dim copy of the input cursor's box: a press there places a 0 to type over. */}
           {shadow !== null && hover?.system === si && hover.string !== null && rows.tab && (
-            <text
-              x={hover.x} y={stringY(rows, hover.string) + 4.5} textAnchor="middle" fontSize={13} fontWeight={600}
-              fill="var(--primary)" fillOpacity={0.45} pointerEvents="none" data-testid="shadow-fret"
-            >0</text>
+            <rect
+              x={hover.x - 12} y={stringY(rows, hover.string) - 9} width={24} height={18} rx={4}
+              fill="none" stroke="var(--primary)" strokeWidth={1.5} strokeOpacity={0.4} pointerEvents="none" data-testid="shadow-fret"
+            />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (!bar.restRun || bar.restRun.first) && (

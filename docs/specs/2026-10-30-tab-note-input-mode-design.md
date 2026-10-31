@@ -53,13 +53,15 @@ adds a rest to type on. The tab's cursor is outlined, as before; the staff's is 
 
 - **No string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
   the column alone, or the column with digits going to the last note's string): going in on a note,
-  its string stays picked; anywhere else the column alone is lit, and digits do nothing until ↑ ↓ (which
+  its string stays picked; anywhere else nothing is drawn round the column (Jeremy, 2026-10-31: no
+  box round the whole tab column; the shadow under the mouse is the cursor), and digits do nothing until ↑ ↓ (which
   first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
   then ↓, then the fret.
 
 - **The shadow note** (Q2, Jeremy: "your cursor changes to the note representation"): under the
   pointer, over the staff, a faint note of the length a press would enter, on the line or space
-  pointed at, with its ledger lines, stem and flag; over the tab, a faint 0 on the string pointed at.
+  pointed at, with its ledger lines, stem and flag; over the tab, a dim copy of the outlined input
+  cursor's box on the string pointed at (Jeremy, 2026-10-31), which a press fills with a 0 to type over.
   Its length is note input's length (below).
 - **A press adds a note** (Q3, Jeremy): on a string with no note, a 0 there (digits then change it); on
   a staff line or space, a note at that pitch on the string Frets picks, as Enter does. A press on a

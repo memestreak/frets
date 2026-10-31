@@ -479,7 +479,8 @@ describe('TabPage', () => {
       expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
       keys('ArrowRight');
       expect(litFrets()).toHaveLength(0);
-      expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+      // In note input no box goes round the column (Jeremy, 2026-10-31).
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
       // Moving the cursor, any way, lets the selection go.
       keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
       expect(litFrets()).toHaveLength(0);
@@ -764,8 +765,9 @@ describe('TabPage', () => {
         renderAt();
         act(() => editor().focus());
         keys('n');
+        // No box goes round the column either: the shadow square under the mouse is the cursor (Jeremy, 2026-10-31).
         expect(screen.queryByTestId('input-cursor')).toBeNull();
-        expect(screen.getByTestId('column-cursor')).toBeInTheDocument();
+        expect(screen.queryByTestId('column-cursor')).toBeNull();
         // A digit types nothing until ↑ ↓ or a press picks a string.
         keys('5');
         expect(alphaTex()).toBe('|');
@@ -855,6 +857,34 @@ describe('TabPage', () => {
         fireEvent.pointerUp(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, shiftKey: true });
         expect(screen.queryByTestId('select-rectangle')).toBeNull();
         expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
+      });
+
+      it('in note input a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
+        localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+        await open();
+        const read = readAlphaTexWith(alphaTab, THREE_BARS);
+        if (!read.ok) throw new Error(read.errors.join('\n'));
+        const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+        const xs = bars.flatMap(b => b.columns.map(c => c.x));
+        const svg = screen.getByRole('img', { name: /drawn as/ });
+        // The fifth column's A string is empty.
+        const over = { clientX: xs[4], clientY: top + rows.staffTop + 4 * 14 };
+        fireEvent.pointerMove(svg, over);
+        expect(screen.queryByTestId('shadow-fret')).toBeNull();
+        keys('n');
+        fireEvent.pointerMove(svg, over);
+        expect(screen.getByTestId('shadow-fret').tagName).toBe('rect');
+        fireEvent.pointerDown(svg, { ...over, button: 0 });
+        fireEvent.pointerUp(svg, { ...over, button: 0 });
+        expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+        expect(alphaTex()).toContain('(3.2 0.5).2');
+        keys('7');
+        expect(alphaTex()).toContain('(3.2 7.5).2');
+        const drawing = screen.getByRole('img', { name: /drawn as/ });
+        fireEvent.pointerMove(drawing, over);
+        expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+        fireEvent.pointerLeave(drawing);
+        expect(screen.queryByTestId('shadow-fret')).toBeNull();
       });
 
       it('Alt+← → step through notes, rests, marks and words, picking each', async () => {
