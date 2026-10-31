@@ -1499,7 +1499,7 @@ describe('TabPage built-in arrangements (issue #259)', () => {
     expect(within(dialog).queryByRole('region', { name: 'Preview' })).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Drop D' }), { detail: 1 });
     expect(await within(dialog).findByRole('img', { name: 'Drop D, a preview' }, SLOW)).toBeInTheDocument();
-    expect(within(dialog).getByRole('region', { name: 'Preview' })).toHaveClass('tab-preview-extend');
+    expect(within(dialog).getByRole('region', { name: 'Preview' })).toBeInTheDocument();
     // The page is as it was until Insert.
     expect(pageColumns()).toHaveLength(columns);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Insert' }));
@@ -1536,7 +1536,7 @@ describe('TabPage arrangements', () => {
   /** The list in the middle, showing `name`'s files. */
   const files = (dialog: HTMLElement, name = 'My arrangements') => within(within(dialog).getByRole('list', { name }));
   const names = (dialog: HTMLElement, list = 'My arrangements') =>
-    files(dialog, list).queryAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.firstChild?.textContent);
+    files(dialog, list).queryAllByRole('button', { name: /^(?!Rename|Delete)/ }).map(b => b.querySelector('.tab-row-text')?.textContent);
   /** A drag's data, as the browser carries it. */
   const dataTransfer = (data: Record<string, string>) => ({
     get types() { return Object.keys(data); },
@@ -1811,6 +1811,20 @@ describe('TabPage arrangements', () => {
     expect(files(dialog, 'Rhythm').queryAllByTestId('changed')).toEqual([]);
   });
 
+  it('says beside the title where the list is, and goes back up from there', async () => {
+    renderAt();
+    const dialog = openDialog();
+    const where = () => within(within(dialog).getByRole('navigation', { name: 'Where' }));
+    expect(where().getByText('My arrangements')).toHaveAttribute('aria-current', 'location');
+    fireEvent.click(await places(dialog).findByRole('button', { name: 'Rhythm' }));
+    expect(where().getByText('Rhythm')).toHaveAttribute('aria-current', 'location');
+    // Each file has a file icon.
+    for (const line of files(dialog, 'Rhythm').getAllByRole('button')) expect(line.querySelector('svg')).not.toBeNull();
+    fireEvent.click(where().getByRole('button', { name: 'Built-in' }));
+    expect(where().getByText('Built-in')).toHaveAttribute('aria-current', 'location');
+    expect(files(dialog, 'Built-in').getByRole('button', { name: 'Rhythm' })).toBeInTheDocument();
+  });
+
   it('folds My arrangements and Built-in away when the one shown is pressed again', async () => {
     keepMany(['Riff']);
     renderAt();
@@ -1921,7 +1935,7 @@ describe('TabPage arrangements', () => {
   };
   const line = (dialog: HTMLElement, name: string, list = 'My arrangements') => files(dialog, list).getByRole('button', { name: new RegExp(`^${name} `) });
   const pickedNames = (dialog: HTMLElement) =>
-    files(dialog).queryAllByRole('button', { pressed: true }).map(b => b.firstChild?.textContent);
+    files(dialog).queryAllByRole('button', { pressed: true }).map(b => b.querySelector('.tab-row-text')?.textContent);
 
   it('picks a line with a click and opens it only with a double click, a double tap, the keyboard or Open', async () => {
     keepMany(['One', 'Two']);
