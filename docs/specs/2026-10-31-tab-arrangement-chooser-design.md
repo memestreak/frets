@@ -16,9 +16,11 @@ picking, delete with Undo and dragging stay as that spec has them.
   first, as Save as… does. Save with nothing to save does nothing.
 - **Save as…** saves a copy under a name and in a folder; the page then shows the
   copy, and the arrangement it came from stays as last saved. It replaces
-  Duplicate. Its dialog is narrow (376 px). Beside its folder list, **New folder** swaps
-  the list for a name to type (Esc or × goes back); the folder is made when Save
-  is pressed, so Cancel leaves none behind.
+  Duplicate. Its dialog is narrow (376 px): the folder first, My arrangements to
+  start with, then the name. Beside the folder list, **New folder** swaps the list
+  for a name to type: Enter makes the folder and picks it, and the list takes the
+  focus, so a second Enter doesn't save (Tab to Save); Esc or × goes back; Save
+  with the name still open makes the folder too.
 - **A dot on Save** (small, muted, at its corner) shows unsaved changes. Save is
   never greyed out.
 - **"Save changes to ‹name›?"** (Save / Don't save / Cancel) asks before unsaved
