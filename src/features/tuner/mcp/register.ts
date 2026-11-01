@@ -5,7 +5,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import { appHtml, type AppsHtml } from '@/mcp/types';
-import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME } from './tool';
+import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, TOOL_RESULT } from './tool';
 
 /** The app's name: `mcp/apps/tuner/`, built to `mcp/dist/tuner.html`. */
 export const APP_NAME = 'tuner';
@@ -22,7 +22,7 @@ export function registerTunerTools(server: McpServer, apps: AppsHtml): void {
     annotations: { readOnlyHint: true, openWorldHint: false },
     _meta: { ui: { resourceUri: APP_URI } },
   }, () => ({
-    content: [{ type: 'text', text: 'Tuner ready, in standard tuning. The user presses Listen and plays a string.' }],
+    content: [{ type: 'text', text: TOOL_RESULT }],
   }));
 
   registerAppResource(server, 'Tuner', APP_URI, {

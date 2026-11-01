@@ -1,5 +1,33 @@
-/* The tuner's MCP App: the shared base and the tuner's classes, in a card the chat column's width. */
+/* The tuner's MCP App: the shared base, the tuner's classes, and its one compact layout. */
 @import "../base.css";
 @source "../../../src/features/tuner";
 
-.mcp-tuner { max-width: none; }
+/* The tuner sized for a chat (ChatTuner.tsx, CentsBar.tsx): Jeremy's pick of three mocks. */
+.chat-tuner { display: grid; gap: 10px; padding: 14px 16px; }
+.chat-tuner-row { display: flex; align-items: center; gap: 14px; }
+.chat-tuner-listen { min-width: 84px; height: 40px; }
+.chat-tuner-readout { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.chat-tuner-note {
+  display: inline-flex; align-items: baseline; width: 64px;
+  font: 600 48px/1 var(--font-display); color: var(--ink); transition: color 200ms, text-shadow 200ms;
+}
+.chat-tuner-note sub { margin-left: 2px; font: 600 16px/1 var(--font-sans); color: var(--ink-muted); }
+.chat-tuner-note[data-idle='true'] { color: var(--line-strong); }
+.chat-tuner-cents {
+  font: 500 16px/22px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chat-tuner-readout[data-in-tune='true'] :is(.chat-tuner-note, .chat-tuner-cents) { color: var(--lit); }
+.chat-tuner-readout[data-in-tune='true'] .chat-tuner-note { text-shadow: 0 0 16px var(--lit-glow); }
+.chat-tuner .chat-tuner-strings { margin: 0; padding-top: 10px; }
+.chat-tuner .tuner-string { width: 44px; }
+.cents-bar { display: block; width: 100%; height: auto; overflow: visible; }
+.cents-bar-track { fill: var(--surface-sunken); }
+.cents-bar-zone { fill: var(--lit); opacity: 0.25; transition: opacity 200ms; }
+.cents-bar[data-in-tune='true'] .cents-bar-zone { opacity: 1; }
+.cents-bar-tick { stroke: var(--line-strong); stroke-width: 1.5; }
+.cents-bar-tick[data-major='true'] { stroke: var(--ink-muted); }
+.cents-bar-needle { transition: transform 140ms ease-out; }
+.cents-bar-needle rect { fill: var(--primary); transition: fill 200ms; }
+.cents-bar-needle[data-idle='true'] rect { fill: var(--line-strong); }
+.cents-bar[data-in-tune='true'] .cents-bar-needle rect { fill: var(--lit); }

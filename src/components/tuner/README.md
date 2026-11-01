@@ -10,7 +10,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `tuner.ts` (pure: nearest string, cents, strobe step), `pluck.ts` (the
   simulated string), `sounds.ts` (the recorded sets in `public/sounds/`
   and each one's measured tuning), `reference.ts` (plays a reference
-  note; `referenceSounding` so the mic ignores it), `useTunerPitch.ts`,
+  note; `referenceSounding` so the mic ignores it; `setBuiltInRecordings`
+  for the MCP App, whose frame can't fetch them), `useTunerPitch.ts`,
   `settings.ts` (meter and sound, saved), `Dial.tsx`, `Strobe.tsx` and
   `TunerPanel.tsx` (switch, meter, reading, strings). The page itself is
-  `src/features/tuner/TunerPage.tsx`, with its own mic.
+  `src/features/tuner/TunerPage.tsx`, with its own mic. The tuner in a chat
+  (`show_tuner`, #283) is `src/features/tuner/mcp/`.

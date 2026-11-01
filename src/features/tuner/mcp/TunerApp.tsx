@@ -1,35 +1,28 @@
 /**
- * The tuner as an MCP App (#283): the compact tuner (`ChatTuner`) in a host's frame. A first test build: it
- * listens only when Listen is pressed, and says what the host allowed, to find out which chat apps
- * let it hear the mic. The string buttons play the acoustic recordings built into the app.
+ * The tuner as an MCP App (#283): the compact tuner (`ChatTuner`) in a host's frame. It asks for the
+ * mic only when Listen is pressed, and lets it go on Stop or when the host takes the app away. The
+ * strings play the acoustic guitar recordings built into the app (`mcp/apps/tuner/main.tsx`). Claude
+ * is told nothing back (Jeremy, 2026-11-01).
  */
 import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useEffect, useState } from 'react';
 import { MicListener, type MicStatus } from '@/components/tuner/listener';
+import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { ChatTuner } from './ChatTuner';
 
 export const APP_INFO = { name: 'Frets tuner', version: '1.0.0' };
 
-/** What the host said about the mic, for the test build's note. */
-type HostMic = 'unknown' | 'granted' | 'not granted';
-
-/**
- * Connects to the host, follows its theme, says what it allowed once connected, and lets the mic
- * go on teardown. The returned function stops listening.
- */
-function listenToHost(app: App, on: { connected: () => void; teardown: () => void }): () => void {
+/** Connects to the host, follows its theme, and lets the mic go on teardown. Returns a stop. */
+function listenToHost(app: App, teardown: () => void): () => void {
   const theme = (ctx: McpUiHostContext | undefined) => {
     if (ctx?.theme) applyDocumentTheme(ctx.theme);
   };
   app.addEventListener('hostcontextchanged', theme);
   app.onteardown = () => {
-    on.teardown();
+    teardown();
     return {};
   };
-  void app.connect().then(() => {
-    theme(app.getHostContext());
-    on.connected();
-  });
+  void app.connect().then(() => theme(app.getHostContext()));
   return () => {
     app.removeEventListener('hostcontextchanged', theme);
     app.onteardown = undefined;
@@ -39,26 +32,21 @@ function listenToHost(app: App, on: { connected: () => void; teardown: () => voi
 export function TunerApp({ app }: { app: App }) {
   const [listener] = useState(() => new MicListener());
   const [status, setStatus] = useState<MicStatus>('off');
-  const [hostMic, setHostMic] = useState<HostMic>('unknown');
+  useLetGoAfterUse();
 
   useEffect(() => {
-    let live = true;
-    const stop = listenToHost(app, {
-      connected: () => {
-        if (live) setHostMic(app.getHostCapabilities()?.sandbox?.permissions?.microphone ? 'granted' : 'not granted');
-      },
-      teardown: () => listener.stop(),
+    const stop = listenToHost(app, () => {
+      listener.stop();
+      setStatus('off');
     });
     return () => {
-      live = false;
       stop();
       listener.stop();
     };
   }, [app, listener]);
 
-  const listening = status === 'on' || status === 'starting';
   const toggle = () => {
-    if (listening) {
+    if (status === 'on' || status === 'starting') {
       listener.stop();
       setStatus('off');
       return;
@@ -67,14 +55,5 @@ export function TunerApp({ app }: { app: App }) {
     void listener.start().then(error => setStatus(error ?? (listener.listening ? 'on' : 'off')));
   };
 
-  return (
-    <ChatTuner
-      listener={listener} status={status} onListen={toggle} sound="acoustic" layout="a"
-      footer={(
-        <p className="text-muted m-0 text-center text-[11px]" data-testid="mic-probe">
-          Test build · host mic: {hostMic} · mic: {status}
-        </p>
-      )}
-    />
-  );
+  return <ChatTuner listener={listener} status={status} onListen={toggle} sound="acoustic" />;
 }

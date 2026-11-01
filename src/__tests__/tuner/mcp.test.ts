@@ -34,6 +34,6 @@ describe('show_tuner', () => {
   it('answers with a line for hosts without apps', async () => {
     const result = await (await connectedClient()).callTool({ name: TOOL_NAME, arguments: {} });
     expect(result.isError).toBeFalsy();
-    expect((result.content as { text: string }[])[0].text).toMatch(/Tuner ready/);
+    expect((result.content as { text: string }[])[0].text).toMatch(/Tuner shown/);
   });
 });
