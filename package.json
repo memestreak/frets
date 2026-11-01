@@ -9,7 +9,7 @@
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
     "build": "npm run mcp:build && next build",
-    "mcp:build": "vite build --config mcp/vite.config.mts && vite build --config mcp/vite.server.config.mts",
+    "mcp:build": "node mcp/build.mjs",
     "mcp:preview": "npm run mcp:build && vite --config mcp/vite.preview.config.mts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

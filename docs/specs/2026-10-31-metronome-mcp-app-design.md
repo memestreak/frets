@@ -87,7 +87,9 @@ them back:
 
 Stateless, with no model, no auth and no storage. It lists the tool, serves
 the app as `ui://metronome/app.html` (`text/html;profile=mcp-app`), and
-checks the rhythm. The same `createMetronomeServer` runs:
+checks the rhythm. Since 2026-11-01 it is Frets' shared server,
+`createFretsServer` in `src/mcp/` (`docs/specs/2026-11-01-frets-mcp-server-design.md`),
+with the metronome's tools added by `registerMetronomeTools`. It runs:
 
 - **over HTTP at `frets.eminor.net/mcp`**, a Cloudflare Pages Function in
   the site's own project (Q2: public; Q3). Every PR preview gets its own

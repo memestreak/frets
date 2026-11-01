@@ -5,7 +5,8 @@ The `/agents` page, linked from the footer, and what it lists
 
 - `agentGuides.ts` — `AGENT_GUIDES`: one entry per page an agent can write
   for, its guide and its skill, both files in `public/`. `MCP_SERVER`: Frets' one MCP server (`/mcp`), its URL and its tools,
-  one per page that runs in a chat (so far the Metronome).
+  one per page that runs in a chat (so far the Metronome). A test checks
+  they match the server's (`src/mcp/README.md`).
 - `AgentsPage.tsx` — Skills: a card per guide, with `SkillActions.tsx`:
   View skill (opens the SKILL.md), Copy (its text) and Download. Then
   Connector: one Frets card listing the server's tools, with

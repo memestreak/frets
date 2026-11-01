@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { CHORD_TYPES } from '@/lib/theory/chords';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
 import { AGENT_GUIDES, MCP_SERVER } from '@/features/agents/agentGuides';
-import { TOOL_NAME } from '@/features/metronome/mcp/tool';
 
 /*
  * The agents' guides and skills in public/ against the code they describe
@@ -113,15 +112,12 @@ describe('the files the agents page and llms.txt point to', () => {
   });
 });
 
+// That the server serves these tools is checked in src/__tests__/mcp/server.test.ts.
 describe('the MCP server the agents page and llms.txt list', () => {
   const llms = read('llms.txt');
 
   it('is in llms.txt with every tool', () => {
     expect(llms).toContain(`](${MCP_SERVER.url})`);
     for (const t of MCP_SERVER.tools) expect(llms).toContain(`\`${t.name}\``);
-  });
-
-  it('names the tools the server serves', () => {
-    expect(MCP_SERVER.tools.map(t => t.name)).toEqual([TOOL_NAME]);
   });
 });
