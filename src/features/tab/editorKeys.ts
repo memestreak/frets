@@ -331,9 +331,10 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  // A picked rest takes the length digits in every view: it has no fret for a digit to type (issue #290).
-  const restPicked = columnOnly && !!columnAt(clip, cursor) && isRest(columnAt(clip, cursor)!);
-  if ((onStaff || restPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A column picked by itself (a rest, or a stem under the tab alone) takes the length digits in every
+  // view: with no string picked there is no fret for a digit to type (issue #290).
+  const columnPicked = columnOnly && !!columnAt(clip, cursor);
+  if ((onStaff || columnPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
     if (value) commit(setValue(clip, target, value));
     return true;

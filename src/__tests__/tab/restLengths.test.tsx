@@ -15,7 +15,7 @@ import { partOf, type Part } from '@/features/tab/clip';
 import { type Cursor, type Target } from '@/features/tab/editing';
 import { cycleDots, setValue, stepDuration } from '@/features/tab/noteEdits';
 import { layoutClip } from '@/features/tab/layout';
-import { restAt } from '@/features/tab/hitTest';
+import { rhythmAt } from '@/features/tab/hitTest';
 
 // The built-in arrangements, served as the route serves them; nothing else is fetched.
 const BUILTIN_FILES = await readBuiltinFiles();
@@ -77,9 +77,9 @@ describe('picking a rest the tab alone draws (issue #290)', () => {
     const half = placed[0].columns[2].x;
     const whole = placed[1].columns[0].x;
     const quarter = placed[0].columns[1].x;
-    expect(restAt(layout, half + 11, y)).toEqual({ bar: 0, column: 2 });
-    expect(restAt(layout, whole - 11, y)).toEqual({ bar: 1, column: 0 });
-    expect(restAt(layout, quarter + 11, y)).toBeNull();
+    expect(rhythmAt(layout, half + 11, y)).toEqual({ bar: 0, column: 2 });
+    expect(rhythmAt(layout, whole - 11, y)).toEqual({ bar: 1, column: 0 });
+    expect(rhythmAt(layout, quarter + 11, y)).toBeNull();
   });
 });
 
@@ -158,5 +158,24 @@ describe('on the page (issue #290)', () => {
     expect(frets()).toBe('3.6.4 r.2 7.6.4 |');
     fireEvent.keyDown(editor(), { key: '3' });
     expect(frets()).toBe('3.6.4 r.16 r.4{dd} 7.6.4 |');
+  });
+
+  it('with the tab alone a press on a note’s stem picks its column, and the length keys change it', async () => {
+    await open('tab', RIFF);
+    const rest = screen.getAllByTestId('rest')[0];
+    const [, , my] = /M([\d.-]+) ([\d.-]+)/.exec(rest.getAttribute('d')!)!;
+    const system = rest.closest('[data-testid="tab-system"]')!;
+    const top = Number(/translate\(0 ([\d.-]+)\)/.exec(system.getAttribute('transform')!)![1]);
+    // The first note's number: its stem is straight under it.
+    const three = [...system.querySelectorAll('text')].find(t => t.textContent === '3')!;
+    const at = { clientX: Number(three.getAttribute('x')), clientY: top + Number(my) + 12, button: 0 };
+    fireEvent.pointerDown(svg(), at);
+    fireEvent.pointerUp(svg(), at);
+    // No string is picked: nothing is boxed on the strings, and the playback line isn't put down.
+    expect(screen.queryByTestId('selected-note')).toBeNull();
+    fireEvent.keyDown(editor(), { key: '6' });
+    expect(frets()).toBe('3.6.2 r.4 5.6.4 7.6.4 |');
+    fireEvent.keyDown(editor(), { key: '#', code: 'Digit3', shiftKey: true });
+    expect(frets()).toBe('3.6.16 r.4 5.6.4 7.6.4 |');
   });
 });

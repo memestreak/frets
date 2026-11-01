@@ -30,3 +30,9 @@ Jeremy chose the overwrite rule over pushing the following notes along (2026-11-
 The tab draws a whole or half rest on an 18-wide line under the strings. A press anywhere along that line now picks it (`TAB_BAR_REST_REACH_X` in `hitTest.ts`). Before, a press near either end missed. Other rests keep the 9-wide reach, and where two reaches overlap the nearer rest is picked.
 
 A multi-bar rest still can't be picked in any view.
+
+## Picking a note's stem with the tab alone
+
+With the tab alone, the tab draws the rhythm under the strings (Jeremy, 2026-11-01: "I should also be able to select the note length underneath Tablature in the same way"). A press on a note's stem or flag there picks its column by itself, as a press on a rest does: the column's numbers and stem light, no string is picked, and Shift+press grows the selection to it (`rhythmAt` in `hitTest.ts`). Before, that press put down the playback line.
+
+With a column picked by itself, 1–7 set its length too, since there is no string for a digit to type a fret on. A column of notes changes length as notes always have, without keeping its bar full; only a rest writes over what follows.
