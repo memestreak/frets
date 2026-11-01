@@ -26,8 +26,8 @@ button {
   --lit-glow: rgb(35 160 58 / 0.45);
   --stop: #d24a36;
   --on-stop: #1b1410;
-  --select: #2f6577;
-  --select-soft: #d5e5e8;
+  --select: #2a64a8;
+  --select-soft: #d6e3f3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -36,8 +36,8 @@ button {
     --lit-glow: rgb(94 226 111 / 0.5);
     --stop: #e2604c;
     --on-stop: #120d0a;
-    --select: #8cc3d6;
-    --select-soft: #1d3740;
+    --select: #7fb0e6;
+    --select-soft: #1c3150;
   }
 }
 :root[data-theme='dark'] {
@@ -46,19 +46,10 @@ button {
   --lit-glow: rgb(94 226 111 / 0.5);
   --stop: #e2604c;
   --on-stop: #120d0a;
-  --select: #8cc3d6;
-  --select-soft: #1d3740;
+  --select: #7fb0e6;
+  --select-soft: #1c3150;
 }
 
-/* MOCK (issue #276): the selection's blue to choose from, ?blue=1|2|3 on the Tab page. 1 is the default above. */
-[data-select-mock='2'] { --select: #2a64a8; --select-soft: #d6e3f3; }
-[data-select-mock='3'] { --select: #1a6fe0; --select-soft: #d4e4fb; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) [data-select-mock='2'] { --select: #7fb0e6; --select-soft: #1c3150; }
-  :root:not([data-theme='light']) [data-select-mock='3'] { --select: #5ea2ff; --select-soft: #15325e; }
-}
-:root[data-theme='dark'] [data-select-mock='2'] { --select: #7fb0e6; --select-soft: #1c3150; }
-:root[data-theme='dark'] [data-select-mock='3'] { --select: #5ea2ff; --select-soft: #15325e; }
 
 /* App components, alongside the design system so utilities still win. */
 @layer components {

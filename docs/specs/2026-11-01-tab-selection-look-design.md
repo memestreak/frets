@@ -10,11 +10,8 @@ heads and marks of a run, the selected note's box and head, the column box, the 
 its shadow, a picked word or mark, and the Shift+drag rectangle. The two tokens live in `globals.css`
 with the app's other tokens, light and dark.
 
-The shade is being chosen from mocks, `?blue=1|2|3` on `/tab`:
-
-1. Fretwood's own slate blue, its `--info` and `--focus-ring` (#2f6577 / dark #8cc3d6). The default.
-2. Denim (#2a64a8 / #7fb0e6).
-3. A bright blue near MuseScore's (#1a6fe0 / #5ea2ff).
+The blue is a denim (#2a64a8; dark #7fb0e6; soft fills #d6e3f3 / #1c3150), picked by Jeremy from three
+mocks (Fretwood's slate `--info` and a brighter MuseScore-like blue were the others; 2026-11-01).
 
 ## A box round a selected run
 
@@ -25,8 +22,8 @@ starts at the bar line, and where it finishes one it ends at the next bar line, 
 bar line to bar line; inside a bar it starts and ends halfway between notes. A run over a line break
 has a box on each line. The box is drawn under the notes and follows every change of the run.
 
-Its look is being chosen from mocks, `?mock=a|b|c`: (a) a 1.5px outline, (b) a 1px outline on a light
-tint, (c) the tint alone.
+It is a 1px outline on a light tint (`--select-soft`), rounded, picked by Jeremy from three mocks (an
+outline alone and a tint alone were the others).
 
 ## The selected note lights where it is
 
@@ -52,7 +49,12 @@ multi-bar rest and a grace note have none to pick. In note input a press there s
 With the tab alone, the box reaches down over the rhythm so the rest is inside it, and a selected rest
 there is lit too.
 
+## Beams light with their notes
+
+A beam is drawn in `--select` once every note it joins is selected, on the staff and under the tab
+alone (Jeremy, 2026-11-01); with only some of them selected it stays as it is. A selected column's stem,
+flags and dots light with it, under the tab alone as on the staff.
+
 ## Later in #276
 
-- A beam lights when every note it joins is selected.
 - Playback marks (repeats, endings, tempo, hairpins, fermatas…) are selectable by a press.

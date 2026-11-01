@@ -2982,3 +2982,24 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
   });
 });
+
+describe('beams light with their notes (issue #276)', () => {
+  it.each([['both', 'staff-beam', 'fill'], ['tab', 'tab-beam', 'stroke']])('in %s, a beam lights only once every note it joins is selected', async (parts, testId, paint) => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
+    // Four eighths beamed together, then a half rest.
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n3.6.8 5.6.8 7.6.8 5.6.8 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId(testId).length).toBeGreaterThan(0), SLOW);
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    const beam = () => screen.getAllByTestId(testId)[0].getAttribute(paint);
+    expect(beam()).not.toBe('var(--select)');
+    // From the first eighth, three of the four: the beam stays as it is.
+    for (let k = 0; k < 2; k++) fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+    expect(beam()).not.toBe('var(--select)');
+    // The fourth: all its notes are selected, so it is too.
+    fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+    expect(beam()).toBe('var(--select)');
+    fireEvent.keyDown(editor, { key: 'Escape' });
+    expect(beam()).not.toBe('var(--select)');
+  });
+});

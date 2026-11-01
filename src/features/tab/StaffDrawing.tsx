@@ -413,10 +413,12 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: 
     if (g.length < 2) continue;
     const up = groupUp.get(g)!;
     const y0 = beamY.get(g)!;
+    // A beam whose notes are all selected is selected too, as MuseScore draws it (Jeremy, 2026-11-01, issue #276).
+    const beamInk = selected !== null && g.every(p => p.index >= selected[0] && p.index <= selected[1]) ? 'var(--select)' : barLook.ink;
     const stemOf = (p: PlacedColumn) => (up ? p.x + HEAD_WIDTH / 2 - 0.6 : p.x - HEAD_WIDTH / 2 + 0.6);
     const beam = (k: string, xa: number, xb: number, level: number) => {
       const y = up ? y0 + (level - 1) * BEAM_GAP : y0 - (level - 1) * BEAM_GAP - BEAM_THICKNESS;
-      return <rect key={k} x={Math.min(xa, xb) - 0.5} y={y} width={Math.abs(xb - xa) + 1} height={BEAM_THICKNESS} fill={look.ink} />;
+      return <rect key={k} x={Math.min(xa, xb) - 0.5} y={y} width={Math.abs(xb - xa) + 1} height={BEAM_THICKNESS} fill={beamInk} data-testid="staff-beam" />;
     };
     parts.push(beam(`beam-${g[0].index}`, stemOf(g[0]), stemOf(g[g.length - 1]), 1));
     for (let level = 2; level <= 4; level++) {
