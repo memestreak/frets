@@ -1458,6 +1458,8 @@ describe('TabPage playback', () => {
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     // The line between columns, as with the playback controls showing; no column is highlighted.
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    // In the playback line's muted green, not red (issue #291).
+    expect(screen.getByTestId('play-mark')).toHaveAttribute('stroke', 'var(--playhead)');
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     // → moves it, Esc drops it.
     fireEvent.keyDown(document.body, { key: 'ArrowRight' });

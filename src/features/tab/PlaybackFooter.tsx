@@ -570,7 +570,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
       out.push(
         <line
           key={`mark-${si}`} data-testid="play-mark" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}
-          stroke="var(--primary)" strokeWidth={2}
+          stroke="var(--playhead)" strokeWidth={2}
         />,
       );
     }
@@ -585,7 +585,7 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
         out.push(
           <line
             key={`head-${si}`} data-testid="playhead" x1={x} x2={x} y1={y + rows.bandTop - 2} y2={y + rows.bandBottom + 2}
-            stroke="var(--primary)" strokeWidth={2}
+            stroke="var(--playhead)" strokeWidth={2}
           />,
         );
       }

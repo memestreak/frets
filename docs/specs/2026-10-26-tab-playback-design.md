@@ -78,7 +78,7 @@ The controls sit under that line:
 
 While the controls show, a press above or below the staff (off a chord
 name, a label or a P.M. or let ring line) puts the playback line, the
-playhead's red line, on the nearest column, without moving the cursor or
+playhead's line, on the nearest column, without moving the cursor or
 picking a string (Jeremy, 2026-10-26: "set where the cursor is without
 selecting a specific string"). Play and Space then start from it. A
 Shift+press there selects the columns from the line (else the selection's
@@ -196,3 +196,12 @@ In Chromium, with the sound's peak measured at the audio node:
   field; hidden, it does nothing.
 - At the end of the clip, Play shows again and the playhead goes away.
 - Checked in light and dark, at 1200 px and on a 390 px phone.
+
+## The playback line's colour (issue #291)
+
+The playback line, moving while playing and standing where Play will start,
+is a muted green, `--playhead` (`--success`: `#4f6a2a` light, `#a6b86e`
+dark), no longer Fretwood's clay red (`--primary`): red reads as a problem,
+and on the Tab page red stays for problems (as selection went blue in #276).
+Jeremy, 2026-11-01: "should be a muted green (not red)". The loop bracket
+keeps `--primary`.
