@@ -253,7 +253,7 @@ describe('moving', () => {
 
   it('reads the Editing setting, off unless saved as true', () => {
     expect([parseEditing(null), parseEditing({ fillBars: true }), parseEditing({ fillBars: 'yes' })])
-      .toEqual([{ fillBars: false }, { fillBars: true }, { fillBars: false }]);
+      .toEqual([{ fillBars: false, grid: 16 }, { fillBars: true, grid: 16 }, { fillBars: false, grid: 16 }]);
   });
 
   it('makes up any length with the fewest rests, longest first', () => {

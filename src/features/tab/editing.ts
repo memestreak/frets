@@ -238,7 +238,8 @@ export function lastNoteLength(clip: Part, cursor: Cursor): Duration {
   return { value: 4, dots: 0 };
 }
 
-function isPlainRest(column: Column): boolean {
+/** A rest that takes time and is no tuplet's or grace's: one note input may split. */
+export function isPlainRest(column: Column): boolean {
   return !column.grace && !column.duration.tuplet && !column.notes.some(Boolean);
 }
 

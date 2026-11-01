@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { stopNear, type GridValue } from './grid';
 import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
@@ -37,6 +38,8 @@ export interface Highlight {
    * selected, filled, as MuseScore colours a selected note.
    */
   input?: boolean;
+  /** How far into its rest note input's cursor is, in ticks (issue #293): drawn that far along the rest. */
+  at?: number;
 }
 
 /**
@@ -45,7 +48,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, grid = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -106,6 +109,11 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
    */
   shadow?: number | null;
+  /**
+   * Note input's grid (issue #293): a press beside the notes, and the shadow note, snap to the nearest
+   * note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
+   */
+  grid?: GridValue | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -125,6 +133,12 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * does, for its menu (issue #276), but skips the time and key signatures, whose panels would open under
    * the bar menu, and the P.M. and let ring lines; there it only puts the cursor in the bar.
    */
+  /** In note input, a press's column moved to the nearest stop on the grid, with how far into its rest. */
+  const snapped = <T extends { bar: number; column: number }>(on: T | null, px: number): (T & { at?: number }) | null => {
+    if (!on || grid === null) return on;
+    const stop = stopNear(layout, on.bar, px, grid);
+    return stop ? { ...on, column: stop.column, at: stop.at } : on;
+  };
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
     const words = (e.button === 0 || e.button === 2) && !e.shiftKey;
     const box = e.currentTarget.getBoundingClientRect();
@@ -143,8 +157,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     const text = pressed && e.button === 2 && (pressed.kind === 'time' || pressed.kind === 'key') ? null : pressed;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
     const rest = run || text || mark || !onPickRest || e.button !== 0 ? null : restAt(layout, px, py);
-    const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
-    const hit = run || text || mark || rest || staff ? null : hitTest(layout, px, py);
+    const onStaff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
+    // A head pressed is that note; a line or space snaps to the grid, as the tab does.
+    const staff = onStaff && onStaff.string === null ? snapped(onStaff, px) : onStaff;
+    const hit = run || text || mark || rest || staff ? null : snapped(hitTest(layout, px, py), px);
     const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
     return { run, text, mark, rest, staff, hit, column, px, py };
   };
@@ -223,7 +239,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     if (shadow === null || headPress.current) return;
     const { text, mark, staff, hit } = target(e);
     const on = text || mark ? null : staff ?? hit;
-    const spot = on ? cursorSpot(layout, on.bar, on.column) : null;
+    const spot = on ? cursorSpot(layout, on.bar, on.column, on.at) : null;
     if (!on || !spot) {
       setHover(null);
       return;
@@ -284,7 +300,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     const { run, text, mark, rest, staff, hit } = target(e);
     if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
-  const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
+  const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column, highlight.at) : null;
   const previous = previousSpots(layout.systems);
   const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);

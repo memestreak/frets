@@ -24,7 +24,8 @@ import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
-import { type FretDrag, type StaffDrag, type StaffHit } from './hitTest';
+import { type FretDrag, type Hit, type StaffDrag, type StaffHit } from './hitTest';
+import { isInsideRest, splitRestAt, stepGrid, type GridValue } from './grid';
 import { textBox, type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
@@ -158,6 +159,16 @@ export default function TabPage() {
    * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
    */
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
+  /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
+  const grid = prefs.editing.grid;
+  const setGrid = (next: GridValue) => prefs.setEditing(e => ({ ...e, grid: next }));
+  /**
+   * Note input's cursor inside a rest (issue #293): which column, and how many ticks into it. Every commit
+   * puts it back to the rest's start; ← →, a press or a staff press move it on after. It counts only while
+   * the cursor is still on that rest.
+   */
+  const [restSpot, setRestSpot] = useState<{ bar: number; column: number; at: number } | null>(null);
+  const setCursorAt = (at: Cursor, ticks: number) => setRestSpot(ticks > 0 ? { bar: at.bar, column: at.column, at: ticks } : null);
   /** The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's, or with nothing picked the bar's. */
   const [menu, setMenu] = useState<{ x: number; y: number; hit: WordHit | MarkHit | null } | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -231,6 +242,8 @@ export default function TabPage() {
   const lastDigit = useRef<LastDigit>(null);
   // An undo can take away the columns the cursor or the selection were on.
   const cursor = clampCursor(clip, cursorAsSet);
+  // How far into its rest note input's cursor is (issue #293); 0 once it's on anything else.
+  const cursorAt = inputMode && restSpot && restSpot.bar === cursor.bar && restSpot.column === cursor.column && isInsideRest(clip, cursor, restSpot.at) ? restSpot.at : 0;
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
@@ -403,6 +416,7 @@ export default function TabPage() {
   /** Note input on or off; going in, the keys come to the tab. */
   const enterInput = (on: boolean) => {
     setInputMode(on);
+    setRestSpot(null);
     if (on) {
       setInputLength(startLength(clip, cursor));
       // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
@@ -418,6 +432,13 @@ export default function TabPage() {
     if (view !== 'tab') return;
     // N anywhere on the page goes into note input and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+    // Alt+[ and Alt+] make note input's grid finer and coarser, as Dorico's do (issue #293), on the tab or off it.
+    const gridKey = e.code === 'BracketLeft' ? -1 : e.code === 'BracketRight' ? 1 : 0;
+    if (gridKey && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
+      e.preventDefault();
+      setGrid(stepGrid(grid, gridKey));
+      return;
+    }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
       e.preventDefault();
       enterInput(!inputMode);
@@ -442,6 +463,7 @@ export default function TabPage() {
     setSelection(nextSelection);
     setPicked(null);
     setNotice(null);
+    setRestSpot(null);
   };
 
   const openWord = (kind: FieldKind | 'tempo', at: Cursor = cursor) => {
@@ -679,7 +701,7 @@ export default function TabPage() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, stepElement: stepToElement,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, grid, cursorAt, setCursorAt, stepElement: stepToElement,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -697,7 +719,7 @@ export default function TabPage() {
   /** Every column of a bar, selected. */
   const barSelection = (of: Part, bar: number): Selection => ({ anchor: indexOf(of, bar, 0), focus: indexOf(of, bar, of.bars[bar].columns.length - 1) });
 
-  const onPick = (hit: Cursor, extend: boolean) => {
+  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean) => {
     lastDigit.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -713,8 +735,10 @@ export default function TabPage() {
       const there = hasColumn && noteAt(left, hit);
       if (inputMode && hasColumn && !there) {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
-        commit(setFret(left, hit, 0, inputLength), hit, null);
-        hearNote(hit);
+        // Inside a rest it goes at the grid line pressed (issue #293).
+        const here = splitRestAt(left, hit, into);
+        commit(setFret(here.clip, here.cursor, 0, inputLength), here.cursor, null);
+        hearNote(here.cursor);
       } else if (!inputMode && !there && hasColumn) {
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
         commit(left, hit, barSelection(left, hit.bar));
@@ -775,10 +799,12 @@ export default function TabPage() {
     if (note) {
       toPitch(left, at, pitch);
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
-      // In note input a press on a line or space enters the shadow note's pitch there (issue #238).
-      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch, inputLength) : { clip: left, string: null };
-      toPitch(edit.clip, at, pitch);
-      if (edit.string !== null) hearNote({ ...at, string: edit.string });
+      // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
+      // the grid line pressed (issue #293).
+      const here = splitRestAt(left, at, hit.at ?? 0);
+      const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
+      toPitch(edit.clip, here.cursor, pitch);
+      if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
       toPitch(left, at, pitch);
@@ -1166,7 +1192,7 @@ export default function TabPage() {
           onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
           onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
           onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
-          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} />
+          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} grid={grid} onGrid={setGrid} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -1266,9 +1292,9 @@ export default function TabPage() {
                       }}
                       highlight={{
                         cursor: editing && !picked ? cursor : null, range: litRange, boxed: selection !== null, columnOnly,
-                        staffPitch: staffCursor, input: inputMode,
+                        staffPitch: staffCursor, input: inputMode, at: cursorAt,
                       }}
-                      shadow={inputMode ? inputLength.value : null}
+                      shadow={inputMode ? inputLength.value : null} grid={inputMode ? grid : null}
                       picked={editing ? picked : null}
                       errors={barErrors(clip)}
                     />

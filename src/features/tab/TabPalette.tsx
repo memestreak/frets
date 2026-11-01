@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { mordentSign } from './marks';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
+import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
 import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy';
 
 /**
@@ -16,7 +17,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, grid, onGrid }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -35,6 +36,9 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   inputMode?: boolean;
   /** The pencil pressed: note input on or off, as N does. */
   onInputMode?: () => void;
+  /** Note input's grid (issue #293), shown first in the Duration group; its panel picks another. */
+  grid?: GridValue;
+  onGrid?: (grid: GridValue) => void;
 }) {
   return (
     <div className="tab-palette" role="toolbar" aria-label="Symbols">
@@ -61,6 +65,12 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
+            {group.label === 'Duration' && grid !== undefined && onGrid && (
+              <PanelTool
+                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} none={false}
+                icon={<GridGlyph grid={grid} />} onPick={g => { if (g !== null) onGrid(g); }} disabled={disabled}
+              />
+            )}
             {group.tools.map(tool => tool.id === 'bend' ? (
               <PanelTool
                 key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
@@ -176,8 +186,8 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled }: {
-  tool: Tool;
+function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled, toggle = true, none = true }: {
+  tool: Pick<Tool, 'label' | 'key'>;
   /** The cursor's choice, or null for none (or for one the panel doesn't offer). */
   current: T | null;
   /** Whether the cursor has the tool's mark at all, offered or not; by default, when it has a choice. */
@@ -188,6 +198,10 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   icon: ReactNode;
   onPick: (choice: T | null) => void;
   disabled: boolean;
+  /** Whether the button shows the cursor has the mark (pressed); false for a setting, as the Grid's. */
+  toggle?: boolean;
+  /** Whether the panel ends with None, to take the mark away; a setting always has a value. */
+  none?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLSpanElement>(null);
@@ -216,7 +230,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
     <span ref={boxRef} className="tab-tool-box">
       <button
         type="button" className="btn btn-secondary btn-toggle tab-tool"
-        aria-label={tool.label} aria-pressed={!disabled && pressed} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        aria-label={tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
@@ -229,7 +243,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
           <span className="tab-bar-time-title">{tool.label}</span>
           <span className="seg" role="group" aria-label={`${tool.label} choices`}>
-            {[...choices, null].map(choice => (
+            {(none ? [...choices, null] : choices).map(choice => (
               <button
                 key={choice ?? 'none'} type="button" className="seg-opt tab-panel-choice" aria-pressed={choice === current}
                 onMouseDown={e => e.preventDefault()}
@@ -242,6 +256,20 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         </span>
       )}
     </span>
+  );
+}
+
+/** The Grid button's name, tip and keys (issue #293); not a palette tool, so not in `TOOL_GROUPS`. */
+const GRID_TOOL = { label: 'Note input grid', key: 'Alt+[ ]' };
+
+/** The grid's note over a ruler: the note value ← → step by in a rest. */
+function GridGlyph({ grid }: { grid: GridValue }) {
+  const flags = { 4: 0, 8: 1, 16: 2, 32: 3 }[grid];
+  return (
+    <>
+      <g transform="translate(0 -2.5)"><NoteGlyph open={false} flags={flags} /></g>
+      <path d="M3 21.5 H21 M3 21.5 V19.5 M9 21.5 V19.5 M15 21.5 V19.5 M21 21.5 V19.5" strokeWidth={1} />
+    </>
   );
 }
 
