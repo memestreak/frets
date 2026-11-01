@@ -59,6 +59,12 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   a page's ? button (Tab's, right of its gear) calls `showShortcuts`.
   `src/components/Modal.tsx` is the native modal `<dialog>` shell it, the
   trainers' dialogs and the Tab page's dialogs share.
+- `src/components/mocks/` — the mock switcher
+  (`docs/specs/2026-11-01-mock-switcher-design.md`): a page offering looks to
+  choose from declares each with `useMock({ param, label, options })` (a module
+  constant) and draws the option it returns; `MockSwitcher`, mounted once by
+  `AppShell`, shows a small card at the bottom right whenever the link names one
+  of the page's mocks (`?mock=b`), and switches them in place.
 - `src/components/settings/` — the Settings dialog (issue #195,
   `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
   of groups and sections, on a phone a group picker and a strip of sections;
