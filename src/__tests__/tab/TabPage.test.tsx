@@ -559,7 +559,8 @@ describe('TabPage', () => {
       // − shortens the note in normal mode; in note input it is the next note's length (issue #238).
       keys('5', 'ArrowRight', '7', 'h', 'Escape', '-', 'n');
       fireEvent.click(vibrato());
-      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 |');
+      // A note made shorter leaves rests in the time it gave up, as MuseScore's does (issue #290).
+      expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.8 |');
       expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
       // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
@@ -591,7 +592,7 @@ describe('TabPage', () => {
       expect(alphaTex()).toBe('5.1.4 7.1.4 |');
       // Back on the tab, the same buttons change the cursor's note.
       fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
-      expect(alphaTex()).toBe('5.1.4 7.1.8 |');
+      expect(alphaTex()).toBe('5.1.4 7.1.8 r.8 |');
     });
 
     it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
@@ -637,7 +638,8 @@ describe('TabPage', () => {
     it('marks a bar with something wrong under its start, the words as the tip', () => {
       renderAt();
       act(() => editor().focus());
-      keys('5', '-');
+      // An eighth entered (shortening a note now leaves a rest, issue #290).
+      keys('q', '5');
       // One eighth: the bar doesn't add up.
       expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and an 8th short.");
       // A lone triplet eighth: nor is the triplet whole.
@@ -1116,7 +1118,8 @@ describe('TabPage', () => {
         renderAt();
         act(() => editor().focus());
         keys('5', 'q');
-        expect(alphaTex()).toBe('5.1.8 |');
+        // The time given up is a rest; longer again, the note writes over it (issue #290).
+        expect(alphaTex()).toBe('5.1.8 r.8 |');
         keys('w', 'w');
         expect(alphaTex()).toBe('5.1.2 |');
       });
@@ -2790,12 +2793,13 @@ describe('dragging notes on the staff (issue #174)', () => {
         return line;
       };
       fireEvent.keyDown(editor(), { key: '6' });
-      expect(shown()).toBe('(7.5 5.6).4 3.4.2 r.2 |');
+      // Longer, the note writes over half the half rest after it, so the bar stays full (issue #290).
+      expect(shown()).toBe('(7.5 5.6).4 3.4.2 r.4 |');
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
-      expect(shown()).toBe('(7.5 5.6).4 4.4.2 r.2 |');
+      expect(shown()).toBe('(7.5 5.6).4 4.4.2 r.4 |');
       fireEvent.keyDown(editor(), { key: 'ArrowDown', ctrlKey: true });
       // An octave under the D string's 4th fret (F♯) is the low E string's 2nd.
-      expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.2 |');
+      expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
     it('shows a shadow note under the pointer only in note input, and a press there enters it', async () => {

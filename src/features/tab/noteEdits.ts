@@ -61,24 +61,25 @@ export function cycleDots(clip: Part, target: Target): Part {
 }
 
 /**
- * A new length for the target columns. A rest selected by itself keeps its bar full, as MuseScore's
- * does (issue #290): longer, it writes over what follows (into the next bar if it runs past the bar
- * line); shorter, the time it gives up becomes rests after it. Anything else just changes length.
+ * A new length for the target columns. A column picked by itself (a note, a chord or a rest) keeps its
+ * bar full, as MuseScore's does (issue #290): longer, it writes over what follows, a note running past
+ * the bar line tied on into the next bar; shorter, the time it gives up becomes rests after it. A run
+ * of several columns, a grace note or a tuplet just changes length.
  */
 function changeLength(clip: Part, target: Target, change: (duration: Duration) => Duration): Part {
-  const rest = loneRest(clip, target);
-  if (!rest) return changeColumns(clip, target, column => ({ ...column, duration: change(column.duration) }));
-  const column = columnAt(clip, rest)!;
+  const at = loneColumn(clip, target);
+  if (!at) return changeColumns(clip, target, column => ({ ...column, duration: change(column.duration) }));
+  const column = columnAt(clip, at)!;
   const changed = { ...column, duration: change(column.duration) };
-  return pasteOver(clip, rest, { ...clip, bars: [{ columns: [changed] }] }).clip;
+  return pasteOver(clip, at, { ...clip, bars: [{ columns: [changed] }] }).clip;
 }
 
-/** The target's place when it is one plain rest (not a grace note, not in a tuplet), else null. */
-function loneRest(clip: Part, { cursor, selection }: Target): { bar: number; column: number; string: number } | null {
+/** The target's place when it is one column (not a grace note, not in a tuplet), else null. */
+function loneColumn(clip: Part, { cursor, selection }: Target): Cursor | null {
   if (selection && selection.anchor !== selection.focus) return null;
   const at = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
   const column = columnAt(clip, at);
-  if (!column || column.grace || column.duration.tuplet || column.notes.some(Boolean)) return null;
+  if (!column || column.grace || column.duration.tuplet) return null;
   return at;
 }
 

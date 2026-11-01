@@ -55,7 +55,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Mod+Up', 'Mod+Down'], does: 'Same pitch on the next string' },
     { keys: ['Alt+Up', 'Alt+Down'], does: 'Next note up or down the chord' },
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
-    { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter (a rest keeps its bar full)' },
+    { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter (the bar stays full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
     { keys: ['1–7'], does: 'Length of a picked rest, stem or staff note (5 a quarter)' },
   ],

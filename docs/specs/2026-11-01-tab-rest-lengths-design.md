@@ -1,4 +1,4 @@
-# Tab: changing a rest's length
+# Tab: changing a rest's or a note's length, bars staying full
 
 Issue #290 (Jeremy, 2026-11-01). Follows #276, which made rests selectable (PR #279), and #238's rule that bars stay full.
 
@@ -20,9 +20,13 @@ The rest stays picked, and the palette lights its new length.
 
 Jeremy chose the overwrite rule over pushing the following notes along (2026-11-01).
 
+## Notes too
+
+Jeremy, 2026-11-01, after asking what MuseScore does: a note or a chord, picked alone or under the cursor, keeps its bar full the same way. Longer, it writes over what follows, and past the bar line it is split and tied on into the next bar, as paste splits a note. Shorter, the time it gives up becomes rests after it (`changeLength` in `noteEdits.ts`).
+
 ## What stays as before
 
-- A run of several columns (Shift-selected), a note, a grace note or a rest in a tuplet: the length keys change each column's length and the bar may come out long or short, as before.
+- A run of several columns (Shift-selected), a grace note, or a note or rest in a tuplet: the length keys change each column's length and the bar may come out long or short, as before.
 - In note input the keys set the next note's length (`inputLength.ts`), not a rest's.
 
 ## Picking a rest with the tab alone
@@ -35,7 +39,7 @@ A multi-bar rest still can't be picked in any view.
 
 With the tab alone, the tab draws the rhythm under the strings (Jeremy, 2026-11-01: "I should also be able to select the note length underneath Tablature in the same way"). A press on a note's stem or flag there picks its column by itself, as a press on a rest does: the column's numbers and stem light, no string is picked, and Shift+press grows the selection to it (`rhythmAt` in `hitTest.ts`). Before, that press put down the playback line.
 
-With a column picked by itself, 1–7 set its length too, since there is no string for a digit to type a fret on. A column of notes changes length as notes always have, without keeping its bar full; only a rest writes over what follows.
+With a column picked by itself, 1–7 set its length too, since there is no string for a digit to type a fret on.
 
 ## Delete on a whole bar
 

@@ -62,9 +62,15 @@ describe('a selected rest keeps its bar full (issue #290)', () => {
     expect(bars(setValue(clip, { cursor: at(0, 1), selection: null }, 2))).toBe('3.6.4 r.2 7.6.4 |');
   });
 
-  it('a run of several columns, or a note, just changes length, as before', () => {
+  it('a note or a chord does the same; past the bar line a note is tied on (Jeremy, 2026-11-01)', () => {
+    expect(bars(setValue(clip, picked(clip, 0, 0), 2))).toBe('3.6.2 5.6.4 7.6.4 |');
+    expect(bars(setValue(clip, { cursor: at(0, 2), selection: null }, 8))).toBe('3.6.4 r.4 5.6.8 r.8 7.6.4 |');
+    const chord = clipOf('\\ts (4 4)\n3.6.4 5.6.4 (7.6 5.5).4 r.4 | 8.6.2 r.2 |');
+    expect(bars(setValue(chord, picked(chord, 0, 2), 1))).toBe('3.6.4 5.6.4 (5.5 7.6).2 |\n(-.5 -.6).2 r.2 |');
+  });
+
+  it('a run of several columns, a grace note or a tuplet just changes length, as before', () => {
     expect(bars(setValue(clip, { cursor: at(0, 1), selection: { anchor: 1, focus: 2 } }, 8))).toBe('3.6.4 r.8 5.6.8 7.6.4 |');
-    expect(bars(setValue(clip, picked(clip, 0, 0), 2))).toBe('3.6.2 r.4 5.6.4 7.6.4 |');
   });
 });
 
@@ -199,9 +205,9 @@ describe('on the page (issue #290)', () => {
     // No string is picked: nothing is boxed on the strings, and the playback line isn't put down.
     expect(screen.queryByTestId('selected-note')).toBeNull();
     fireEvent.keyDown(editor(), { key: '6' });
-    expect(frets()).toBe('3.6.2 r.4 5.6.4 7.6.4 |');
+    expect(frets()).toBe('3.6.2 5.6.4 7.6.4 |');
     fireEvent.keyDown(editor(), { key: '#', code: 'Digit3', shiftKey: true });
-    expect(frets()).toBe('3.6.16 r.4 5.6.4 7.6.4 |');
+    expect(frets()).toBe('3.6.16 r.4{dd} 5.6.4 7.6.4 |');
   });
 
   it('a bar selected and deleted becomes one whole rest (Jeremy, 2026-11-01)', async () => {
