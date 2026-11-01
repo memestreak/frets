@@ -220,4 +220,19 @@ describe('on the page (issue #290)', () => {
     fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
     expect(frets()).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
   });
+
+  it('a note deleted leaves its rest lit with no box round it, and the keys go on acting on it (Jeremy, 2026-11-01)', async () => {
+    await open('both', '\\ts (4 4)\n3.6.4 5.6.4 7.6.4 8.6.4 | 3.6.2 r.2 |');
+    // The fourth head of bar 1, pressed a little inside its left edge.
+    const path = screen.getAllByTestId('staff-head')[3].querySelector('path')!;
+    const [, hx, hy] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(path.getAttribute('transform')!)!;
+    const at = { clientX: Number(hx) + 4, clientY: Number(hy), button: 0 };
+    fireEvent.pointerDown(svg(), at);
+    fireEvent.pointerUp(svg(), at);
+    fireEvent.keyDown(editor(), { key: 'Delete' });
+    expect(screen.queryByTestId('range-box')).toBeNull();
+    expect(screen.getAllByTestId('staff-rest')[0].querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
+    fireEvent.keyDown(editor(), { key: '4' });
+    expect(frets()).toBe('3.6.4 5.6.4 7.6.4 r.8 r.8 | 3.6.2 r.2 |');
+  });
 });

@@ -236,16 +236,12 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     const column = columnAt(clip, cursor);
     // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
-    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). Note input keeps
-    // the cursor where it is, to type on.
+    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). It is the column
+    // picked by itself, as a press on a rest picks one, so it lights with no box round it (Jeremy, 2026-11-01).
+    // Note input keeps the cursor where it is, to type on.
     const leave = (next: Part, at: Cursor) => {
-      if (editor.inputMode || !columnAt(next, at)) {
-        commit(next, at, null);
-        return;
-      }
-      const i = indexOf(next, at.bar, at.column);
-      commit(next, at, { anchor: i, focus: i });
-      editor.startRegion();
+      commit(next, at, null);
+      if (!editor.inputMode && columnAt(next, at)) editor.startRegion();
     };
     // Bars stay full (issue #238, as MuseScore): Delete leaves rests; Ctrl/⌘+Delete takes the time away too.
     if (e.ctrlKey || e.metaKey) {
