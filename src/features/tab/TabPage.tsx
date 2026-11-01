@@ -36,7 +36,8 @@ import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { WordField, type FieldKind } from './WordField';
 import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
-import { TabClip } from './TabClip';
+import { TabClip, type RangeStyle } from './TabClip';
+import { type Mock, useMock } from '@/components/mocks/useMock';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabExportDialog } from './TabExportDialog';
@@ -80,9 +81,22 @@ const COLUMN_REACH = 16;
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
+/** MOCK (issue #276): how the box round a selected run is drawn. */
+const BOX_MOCK: Mock = {
+  param: 'mock', label: 'Box',
+  options: [{ value: 'a', label: 'Outline' }, { value: 'b', label: 'Outline on a tint' }, { value: 'c', label: 'Tint only' }],
+};
+/** MOCK (issue #276): the selection's blue. */
+const BLUE_MOCK: Mock = {
+  param: 'blue', label: 'Blue',
+  options: [{ value: '1', label: 'Fretwood slate' }, { value: '2', label: 'Denim' }, { value: '3', label: 'Bright' }],
+};
+
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
+  // MOCK (issue #276): the selection box's look and its blue, switched from the mock card; removed once picked.
+  const selectMock = { box: useMock(BOX_MOCK) as RangeStyle, blue: useMock(BLUE_MOCK) };
   const { state, dispatch: dispatchClip } = arrangements;
   // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
   const whole = state.clip;
@@ -1184,7 +1198,7 @@ export default function TabPage() {
               ? clipWidth > 0 && (
                 <div
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
-                  ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
+                  ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true" data-select-mock={selectMock.blue}
                   aria-label={inputMode
                     ? 'Tab editor, note input: ↑ ↓ pick a string and digits type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
                     : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input; Shift+F10 to insert a bar'}
@@ -1195,6 +1209,7 @@ export default function TabPage() {
                   {/* A bar's warning explains itself on hover. */}
                   <HoverTips>
                     <TabClip
+                      rangeStyle={selectMock.box}
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
