@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AppFooter } from './AppFooter';
 import { AppNav } from './AppNav';
 import { LetGoAfterUse } from './LetGoAfterUse';
+import { MockSwitcher } from './mocks/MockSwitcher';
 import { ShortcutsOverlay } from './shortcuts/ShortcutsOverlay';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
       <AppFooter />
       <ShortcutsOverlay />
+      <MockSwitcher />
     </div>
   );
 }
