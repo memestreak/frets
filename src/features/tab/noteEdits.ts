@@ -5,12 +5,34 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
-import { type Cursor, type Target, changeColumns, columnAt, emptyColumn, normalize, noteAt, noteBefore, pasteOver, placeOf, selectedRange, withColumn, without } from './editing';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, timeAt, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
+import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, pasteOver, placeOf, selectedRange, withColumn, without } from './editing';
 
 /** Makes the target columns rests. */
 export function makeRest(clip: Part, target: Target): Part {
   return changeColumns(clip, target, column => ({ ...emptyColumn(column.duration), ...(column.extra ? { extra: column.extra } : {}) }));
+}
+
+/**
+ * Delete (and cut) on a selection, as MuseScore's: its columns become rests, and each bar it covers
+ * whole starts again as the fewest rests that fill it, a whole rest in 4/4, whatever lengths its rests
+ * had or however short it was (issue #290). Returns the selection over the same bars and columns.
+ */
+export function clearToRests(clip: Part, selection: Selection): { clip: Part; selection: Selection } {
+  const [from, to] = selectedRange(selection);
+  const rested = makeRest(clip, { cursor: { ...placeOf(clip, from), string: 0 }, selection });
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  const whole = (b: number) =>
+    (b > first.bar || first.column === 0) && (b < last.bar || last.column === clip.bars[b].columns.length - 1);
+  const bars = rested.bars.map((bar, b) =>
+    b >= first.bar && b <= last.bar && whole(b) ? { ...bar, columns: fewestRests(barTicks(timeAt(rested, b))).map(emptyColumn) } : bar,
+  );
+  const next = normalize({ ...rested, bars });
+  // The same places, a bar started again counted from its first rest to its last.
+  const start = indexOf(next, first.bar, whole(first.bar) ? 0 : first.column);
+  const end = indexOf(next, last.bar, whole(last.bar) ? next.bars[last.bar].columns.length - 1 : last.column);
+  return { clip: next, selection: selection.anchor <= selection.focus ? { anchor: start, focus: end } : { anchor: end, focus: start } };
 }
 
 /**

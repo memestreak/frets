@@ -13,7 +13,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeBars } from '@/features/tab/alphatex';
 import { partOf, type Part } from '@/features/tab/clip';
 import { type Cursor, type Target } from '@/features/tab/editing';
-import { cycleDots, setValue, stepDuration } from '@/features/tab/noteEdits';
+import { clearToRests, cycleDots, setValue, stepDuration } from '@/features/tab/noteEdits';
 import { layoutClip } from '@/features/tab/layout';
 import { rhythmAt } from '@/features/tab/hitTest';
 
@@ -68,6 +68,23 @@ describe('a selected rest keeps its bar full (issue #290)', () => {
   });
 });
 
+describe('Delete on a selection (issue #290)', () => {
+  it('starts a bar it covers whole again as the fewest rests that fill it, however short it was', () => {
+    const short = clipOf('\\ts (4 4)\nr.8 r.8 r.8 r.8 r.8 r.8 |');
+    const cleared = clearToRests(short, { anchor: 0, focus: 5 });
+    expect(bars(cleared.clip)).toBe('r.1 |');
+    expect(cleared.selection).toEqual({ anchor: 0, focus: 0 });
+  });
+
+  it('in 3/4 a dotted half; notes too; a bar covered in part keeps its lengths', () => {
+    const clip = clipOf('\\ts (3 4)\n3.6.4 5.6.8 r.8 7.6.4 | 3.6.4 5.6.4 7.6.4 | 1.6.2 3.6.4 |');
+    // From the second column of bar 1 to the first of bar 3, backwards.
+    const cleared = clearToRests(clip, { anchor: 7, focus: 1 });
+    expect(bars(cleared.clip)).toBe('3.6.4 r.8 r.8 r.4 |\nr.2{d} |\nr.2 3.6.4 |');
+    expect(cleared.selection).toEqual({ anchor: 5, focus: 1 });
+  });
+});
+
 describe('picking a rest the tab alone draws (issue #290)', () => {
   it('picks a whole or half rest anywhere along its line, a quarter only near it', () => {
     const clip = clipOf('\\ts (4 4)\n3.6.4 r.4 r.2 | r.1 |');
@@ -110,12 +127,20 @@ describe('on the page (issue #290)', () => {
     let x: number;
     let y: number;
     if (show === 'tab') {
-      // The tab's quarter rest: a path starting 12 above its middle.
-      const [, mx, my] = /M([\d.-]+) ([\d.-]+)/.exec(rest.getAttribute('d')!)!;
       const system = rest.closest('[data-testid="tab-system"]')!;
       const top = Number(/translate\(0 ([\d.-]+)\)/.exec(system.getAttribute('transform')!)![1]);
-      x = Number(mx) + 2;
-      y = top + Number(my) + 12;
+      const path = rest.getAttribute('d');
+      if (path) {
+        // A quarter rest: a path starting 12 above its middle, 2 left of it.
+        const [, mx, my] = /M([\d.-]+) ([\d.-]+)/.exec(path)!;
+        x = Number(mx) + 2;
+        y = top + Number(my) + 12;
+      } else {
+        // An eighth rest or shorter: its stem starts 3 right of its middle and 8 above.
+        const stem = rest.querySelector('line')!;
+        x = Number(stem.getAttribute('x1')) - 3;
+        y = top + Number(stem.getAttribute('y1')) + 8;
+      }
     } else {
       const [, tx, ty] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(rest.querySelector('path')!.getAttribute('transform')!)!;
       x = Number(tx) + 4;
@@ -177,5 +202,16 @@ describe('on the page (issue #290)', () => {
     expect(frets()).toBe('3.6.2 r.4 5.6.4 7.6.4 |');
     fireEvent.keyDown(editor(), { key: '#', code: 'Digit3', shiftKey: true });
     expect(frets()).toBe('3.6.16 r.4 5.6.4 7.6.4 |');
+  });
+
+  it('a bar selected and deleted becomes one whole rest (Jeremy, 2026-11-01)', async () => {
+    await open('tab', '\\ts (4 4)\nr.8 r.8 r.8 r.8 r.8 r.8 |');
+    pressRest('tab');
+    fireEvent.keyDown(editor(), { key: 'End', shiftKey: true });
+    fireEvent.keyDown(editor(), { key: 'Delete' });
+    expect(frets()).toBe('r.1 |');
+    // One undo brings the eighths back.
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
+    expect(frets()).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
   });
 });

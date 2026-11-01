@@ -5,8 +5,8 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { isRest, type Duration, type Part } from './clip';
-import { clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
-import { makeRest, stepDuration } from './noteEdits';
+import { clampCursor, clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { clearToRests, makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
@@ -262,7 +262,9 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         leave(cut.clip, { ...cursor, ...cut.cursor });
       }
     } else if (selection) {
-      commit(makeRest(clip, target), cursor, selection);
+      // The selection's notes become rests, and a bar it covers whole starts again as one rest (issue #290).
+      const cleared = clearToRests(clip, selection);
+      commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     } else if (!columnOnly && noteAt(clip, cursor)) {
       leave(clearNote(clip, cursor), cursor);
     } else if (column && !isRest(column)) {
@@ -526,8 +528,7 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
   if (selection) {
     const range = selectedRange(selection);
     if (removeTime) return { clip: deleteColumns(clip, range).clip, line: range[0] };
-    const start = placeOf(clip, range[0]);
-    return { clip: makeRest(clip, { cursor: { ...start, string: 0 }, selection }), line: line ?? range[0] };
+    return { clip: clearToRests(clip, selection).clip, line: line ?? range[0] };
   }
   if (line === null || line <= 0) return null;
   const before = Math.min(line, columnCount(clip)) - 1;

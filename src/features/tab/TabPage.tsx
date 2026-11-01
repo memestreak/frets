@@ -19,7 +19,7 @@ import { SaveAsDialog, SaveChangesDialog } from './SaveDialogs';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, fillBar, isEmpty, noteAt, pasteOver, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { removeBarLine, setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setRepeatTimes, setSection, setTempo } from './barEdits';
 import { isBarLine, type BarLineHit } from './barLines';
-import { makeRest, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { clearToRests, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
@@ -956,8 +956,8 @@ export default function TabPage() {
     if (!cut) return;
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
     // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
-    const cutRange = { anchor: range[0], focus: range[1] };
-    commit(makeRest(clip, { cursor, selection: cutRange }), cursor, cutRange);
+    const cleared = clearToRests(clip, { anchor: range[0], focus: range[1] });
+    commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     startRegion();
   });
 

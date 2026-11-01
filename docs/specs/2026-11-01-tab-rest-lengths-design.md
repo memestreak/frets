@@ -36,3 +36,7 @@ A multi-bar rest still can't be picked in any view.
 With the tab alone, the tab draws the rhythm under the strings (Jeremy, 2026-11-01: "I should also be able to select the note length underneath Tablature in the same way"). A press on a note's stem or flag there picks its column by itself, as a press on a rest does: the column's numbers and stem light, no string is picked, and Shift+press grows the selection to it (`rhythmAt` in `hitTest.ts`). Before, that press put down the playback line.
 
 With a column picked by itself, 1–7 set its length too, since there is no string for a digit to type a fret on. A column of notes changes length as notes always have, without keeping its bar full; only a rest writes over what follows.
+
+## Delete on a whole bar
+
+Jeremy, 2026-11-01: selecting a bar of six eighth rests in 4/4 and pressing Delete left it as it was, short and flagged. Now Delete, a cut, or Delete at the playback line, on a selection works as MuseScore's does (`clearToRests` in `noteEdits.ts`). The selection's columns become rests, as before. Each bar the selection covers whole then starts again as the fewest rests that fill its time signature: a whole rest in 4/4, a dotted half in 3/4. This happens however long or short the bar was. A bar covered only in part keeps its columns' lengths. The selection stays on the same bars, and one undo brings the old bar back.
