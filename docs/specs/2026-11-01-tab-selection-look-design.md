@@ -10,11 +10,8 @@ heads and marks of a run, the selected note's box and head, the column box, the 
 its shadow, a picked word or mark, and the Shift+drag rectangle. The two tokens live in `globals.css`
 with the app's other tokens, light and dark.
 
-The shade is being chosen from mocks, `?blue=1|2|3` on `/tab`:
-
-1. Fretwood's own slate blue, its `--info` and `--focus-ring` (#2f6577 / dark #8cc3d6). The default.
-2. Denim (#2a64a8 / #7fb0e6).
-3. A bright blue near MuseScore's (#1a6fe0 / #5ea2ff).
+The blue is Fretwood's own slate blue, its `--info` and `--focus-ring` (#2f6577; dark #8cc3d6), picked
+from three mocks (denim and a brighter MuseScore-like blue were the others; Jeremy, 2026-11-01).
 
 ## A box round a selected run
 
@@ -25,8 +22,8 @@ starts at the bar line, and where it finishes one it ends at the next bar line, 
 bar line to bar line; inside a bar it starts and ends halfway between notes. A run over a line break
 has a box on each line. The box is drawn under the notes and follows every change of the run.
 
-Its look is being chosen from mocks, `?mock=a|b|c`: (a) a 1.5px outline, (b) a 1px outline on a light
-tint, (c) the tint alone.
+It is a 1.5px outline with rounded corners and no fill, picked from three mocks (an outline on a tint,
+and a tint alone, were the others).
 
 ## The selected note lights where it is
 

@@ -44,7 +44,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, rangeStyle = 'a', x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -110,8 +110,6 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   columnReach?: number;
   /** A press on a rest, in normal mode (issue #276): its bar and column, and whether Shift grows the selection to it. */
   onPickRest?: (at: { bar: number; column: number }, extend: boolean) => void;
-  /** MOCK (issue #276): how the box round a selected run is drawn, `?mock=a|b|c`: an outline, an outline on a tint, a tint. */
-  rangeStyle?: RangeStyle;
 }) {
   const layout = layoutClip(clip, width, parts);
   const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
@@ -348,8 +346,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         // Round the selected run, line by line, under the notes, as MuseScore boxes a range (issue #276).
         <rect
           key={`range-${box.system}`} x={box.x} y={box.y} width={box.width} height={box.height} rx={3} pointerEvents="none"
-          fill={rangeStyle === 'a' ? 'none' : 'var(--select-soft)'} fillOpacity={rangeStyle === 'b' ? 0.6 : 1}
-          stroke={rangeStyle === 'c' ? 'none' : 'var(--select)'} strokeWidth={rangeStyle === 'a' ? 1.5 : 1}
+          fill="none" stroke="var(--select)" strokeWidth={1.5}
           data-testid="range-box"
         />
       ))}
@@ -820,8 +817,6 @@ function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
   if (!placed || !placed.heads.some(h => h.string === cursor.string)) return null;
   return { index: placed.index, string: cursor.string };
 }
-
-export type RangeStyle = 'a' | 'b' | 'c';
 
 /** How far the box round a selected run reaches past the staff's top and the tab's bottom line. */
 const RANGE_PAD = 10;
