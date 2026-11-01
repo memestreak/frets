@@ -55,6 +55,48 @@ A beam is drawn in `--select` once every note it joins is selected, on the staff
 alone (Jeremy, 2026-11-01); with only some of them selected it stays as it is. A selected column's stem,
 flags and dots light with it, under the tab alone as on the staff.
 
-## Later in #276
+## A picked mark turns blue, with its actions in a right-click menu
 
-- Playback marks (repeats, endings, tempo, hairpins, fermatas…) are selectable by a press.
+Jeremy, 2026-11-01: a picked word, bar line or mark is drawn in `--select` where it is, as a selected
+note is, with no box round it, and nothing is drawn beside it: the pencil (Edit) and the trash can
+(Delete) that stood to its right are gone. This reverses his earlier taste for visible icon buttons over
+right-click menus, for these. What lights:
+
+- the words: chord names, text, sections, tempos, the capo, ending brackets;
+- the technique marks (`marks.ts`): bends, slides, ties, hammer-on arcs, vibrato, accents, harmonics,
+  strokes, wah, tremolo, tuplets, octave lines, fermatas, the whammy bar, hairpins. A mark drawn on both
+  the staff and the tab lights where it was pressed (where it is drawn, when only once);
+- the bar lines: a repeat's start or end, a repeat's ×N count, a double bar line, on the staff and the
+  tab both;
+- a P.M. or let ring line, once its run is selected (a press on it selects the run).
+
+A right-click on it (a long press on a touch screen; Shift+F10 or the menu key with it picked) picks it,
+as a press does, and opens its menu at the pointer (from the keys, under it):
+
+- a word: **Edit**, **Delete**;
+- a repeat's end or its count: **Edit** (a "Times played, 2 to 9" field), **Delete**;
+- a mark, a repeat's start or a double bar: **Delete**.
+
+Edit and Delete do what Enter and Delete do on it. The menu keeps it picked and lit while it is open; a
+press away lets it go. A right-click anywhere else still opens the bar menu (Insert bar before or after,
+Insert paste); on a time or key signature too, which a press opens the panel of.
+
+## Repeats, double bars and hairpins are selectable
+
+Jeremy, 2026-11-01 ("playback annotations"): in normal mode a press picks, as it picks a word
+(`barLines.ts`; found by `textAt`, so they win over the note under them, never over a note's number):
+
+- a repeat's start (its thick and thin lines and dots), its end, and its ×N count, apart: the count's
+  Delete puts the repeat back to played twice, written without one; the end's Delete takes the repeat's
+  end away. Enter on the end or the count opens the count's field. The Repeat starts or Repeat ends tool
+  lights while one is picked;
+- a double bar line (the Double bar line tool lights);
+- a hairpin, picked whole over the run of columns it spans; Delete takes it off them all. No palette
+  tool sets one, so none lights.
+
+Alt+← → step to them too: a bar's repeat start before its columns, its repeat end, count and double bar
+after them.
+
+Endings, tempos and fermatas were pickable already; they now light blue too.
+
+Left for later: the Arrangements… chooser keeps its trash cans (they delete files, not marks on the tab).

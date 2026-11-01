@@ -3,6 +3,7 @@
  * key signatures: their sizes, the boxes they are drawn in, and which one a press is on. Pure.
  */
 
+import { barLineAt, barLineBox, isBarLine, type BarLineHit } from './barLines';
 import { type Section, type Tempo } from './clip';
 import { tempoNoteWidth } from './TempoNote';
 import { type Layout, lineAt, type PlacedBar, type System, chordWidth } from './layout';
@@ -77,8 +78,17 @@ export function capoText(capo: number): string {
   return `Capo ${capo}`;
 }
 
-/** A word over the staff that can be picked: a chord name, free text, a section, a tempo or the capo. */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending'; bar: number };
+/**
+ * A word over the staff that can be picked: a chord name, free text, a section, a tempo, the capo or an
+ * ending; or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
+ */
+export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending'; bar: number } | BarLineHit;
+
+/** Whether a picked word (or none) is this one. */
+export function sameWord(picked: WordHit | null, hit: WordHit): boolean {
+  if (!picked || picked.kind !== hit.kind) return false;
+  return 'index' in picked ? 'index' in hit && picked.index === hit.index : 'bar' in hit && picked.bar === hit.bar;
+}
 
 /** Each ending bracket drawn on a line: its first bar (on this line), number and ends. */
 export function endingSpans(system: System): { bar: number; n: number; x0: number; x1: number }[] {
@@ -94,10 +104,11 @@ export function endingSpans(system: System): { bar: number; n: number; x0: numbe
 }
 
 /**
- * The box round a drawn word, in the tab's units, as a press finds it (`textAt`); null when it isn't
- * drawn. A picked word is outlined with it, and its Edit and Delete buttons go beside it.
+ * The box round a drawn word or bar line, in the tab's units, as a press finds it (`textAt`); null when it
+ * isn't drawn. A picked one's menu opens under it from the keyboard.
  */
 export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
+  if (isBarLine(hit)) return barLineBox(layout, hit);
   const box = (s: number, rowY: number | null, x0: number, x1: number, height = 18) =>
     rowY === null ? null : { x: x0 - 3, y: layout.systems[s].top + rowY - height / 2, width: x1 - x0 + 6, height };
   for (let s = 0; s < layout.systems.length; s++) {
@@ -141,10 +152,12 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
 /** How far from a time signature's centre a press is on it. */
 const TIME_REACH = 11;
 
-/** The chord name, section, tempo, capo or time signature under a point; null when there is none. */
+/** The chord name, section, tempo, capo, ending, bar line or time signature under a point; null when there is none. */
 export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const line = lineAt(layout, y);
   if (!line) return null;
+  const barLine = barLineAt(layout, x, y);
+  if (barLine) return barLine;
   const { system, localY } = line;
   const { rows } = system;
   const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;

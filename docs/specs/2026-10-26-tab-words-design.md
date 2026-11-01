@@ -43,7 +43,9 @@ nothing then has to be placed after text whose width is unknown.
   cursor, with two small buttons to its right, Edit (a pencil) and Delete (a
   bin) (Jeremy picked the right over the left after trying both); at the
   tab's right edge they go on its left. Enter edits it and Delete or Backspace takes it away; Esc,
-  any other key, a press elsewhere or the tab losing the focus lets it go.
+  any other key, a press elsewhere or the tab losing the focus lets it go. (Since 2026-11-01, issue
+  #276: a picked word turns blue, with Edit and Delete in its right-click menu, not beside it; see
+  `2026-11-01-tab-selection-look-design.md`.)
   While a word is picked the column cursor isn't drawn, and only the palette tool that sets it is lit (Jeremy, 2026-10-27). A time signature
   still opens its panel at once.
 - **Tempo:** bpm, a whole number from 20 to 400, clamped, and an optional

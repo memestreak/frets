@@ -62,8 +62,10 @@ export function useMenuTrigger(): {
         x, y,
         timer: window.setTimeout(() => {
           press.current = null;
+          // As a right-click there: the handler drawn last opens the menu, so it sees what the press itself
+          // changed (the Tab page's press picks a mark, whose menu then opens).
+          trigger.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
           swallowClick.current = true;
-          open(trigger, x, y);
         }, LONG_PRESS_MS),
       };
     },

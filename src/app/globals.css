@@ -1052,16 +1052,6 @@ button {
   /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
   .tab-word-number { width: calc(7ch + 23px); }
   .tab-word-fit { width: auto; white-space: nowrap; }
-  /* Edit and Delete beside a picked word over the tab. */
-  .tab-word-tools { position: absolute; z-index: 15; display: flex; gap: 2px; }
-  .tab-word-tool {
-    display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
-    border: 1px solid var(--line-strong); border-radius: 6px;
-    background: var(--surface-raised); color: var(--ink); cursor: pointer;
-  }
-  .tab-word-tool:hover { background: var(--surface-sunken); }
-  .tab-word-tool:focus { outline: none; }
-  .tab-word-tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
   /* The time signature from one bar on, over that bar. */
   .tab-bar-time {
     position: absolute; z-index: 20; display: grid; gap: 12px; justify-items: start; padding: 12px;

@@ -105,6 +105,9 @@ function pressFirstTimeSignature() {
 
 /** The fret numbers drawn selected (in the selection colour): a selection lights its notes, with no band. */
 const litFrets = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--select)"]')];
+/** Whether a drawn thing is in the selection's blue (issue #276): a picked word, bar line or mark. */
+const isLit = (el: Element) => el.getAttribute('stroke') === 'var(--select)' || el.getAttribute('fill') === 'var(--select)'
+  || el.getAttribute('data-selected') === 'true';
 
 describe('TabPage', () => {
   it("draws the title, credits and tuning as the score's head, in the clip's card, and shows bar numbers as the View options say", async () => {
@@ -1043,10 +1046,10 @@ describe('TabPage', () => {
         alt('ArrowRight');
         expect(screen.getByTestId('selected-note')).toBeInTheDocument();
         alt('ArrowRight');
-        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        expect(isLit(screen.getByTestId('vibrato'))).toBe(true);
         // Holding Alt down on its own lets nothing go.
         keys({ key: 'Alt', altKey: true });
-        expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+        expect(isLit(screen.getByTestId('vibrato'))).toBe(true);
         // Delete takes the picked vibrato away.
         keys('Delete');
         expect(alphaTex()).not.toBe(before);
@@ -1058,10 +1061,10 @@ describe('TabPage', () => {
         alt('ArrowLeft');
         expect(screen.getByTestId('selected-note')).toBeInTheDocument();
         alt('ArrowLeft');
-        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+        expect(isLit(screen.getByTestId('chord-name'))).toBe(true);
         // At the start nothing is before it: the chord name stays picked.
         alt('ArrowLeft');
-        expect(screen.getByTestId('picked-word')).toBeInTheDocument();
+        expect(isLit(screen.getByTestId('chord-name'))).toBe(true);
       });
 
       it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {
@@ -2601,8 +2604,11 @@ describe('picking a technique mark (issue #128)', () => {
   const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
   const tool = (name: string) => screen.getByRole('button', { name });
 
-  /** Opens an example and presses the middle of its first drawn `mark` (jsdom draws the tab 800 wide at 0, 0). */
-  async function pressMark(example: string, mark: MarkHit['mark']) {
+  /**
+   * Opens an example and presses the middle of its first drawn `mark` (jsdom draws the tab 800 wide at 0, 0);
+   * `button` 2 is a right-click, which picks it and opens its menu.
+   */
+  async function pressMark(example: string, mark: MarkHit['mark'], button = 0) {
     const { title, text } = exampleById(example)!;
     renderAt(`#example=${example}`);
     await screen.findByRole('heading', { name: title }, SLOW);
@@ -2610,21 +2616,27 @@ describe('picking a technique mark (issue #128)', () => {
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const { box } = markBoxes(layoutClip(partOf(read.clip), 800)).find(m => m.hit.mark === mark)!;
     const svg = screen.getByRole('img', { name: /drawn as tab/ });
-    fireEvent.pointerDown(svg, { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+    const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
+    fireEvent.pointerDown(svg, { ...at, button });
+    if (button === 2) fireEvent.contextMenu(editor(), at);
   }
 
-  it('outlines the mark, lights only its tool and offers Delete, which keeps the note', async () => {
-    await pressMark('bends', 'bend');
-    expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+  it('lights the mark in blue with no outline or buttons, lights only its tool, and its menu’s Delete keeps the note', async () => {
+    await pressMark('bends', 'bend', 2);
+    expect(screen.getAllByTestId('bend').filter(isLit)).toHaveLength(1);
+    expect(isLit(screen.getAllByTestId('bend')[0])).toBe(true);
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    // No trash can or pencil beside it (Jeremy, 2026-11-01): its actions are in the menu.
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
     expect(tool('Bend')).toHaveAttribute('aria-pressed', 'true');
     expect(tool('Quarter note')).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    const menu = screen.getByRole('menu', { name: 'Selected' });
+    expect(within(menu).getAllByRole('menuitem').map(b => b.textContent)).toEqual(['Delete']);
     expect(screen.getAllByTestId('bend')).toHaveLength(6);
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getAllByTestId('bend')).toHaveLength(5);
-    // Nothing is left selected: no outline, no cursor, and the tab lets the keys go.
-    expect(screen.queryByTestId('picked-mark')).toBeNull();
+    // Nothing is left selected: nothing lit, no cursor, and the tab lets the keys go.
+    expect(screen.getAllByTestId('bend').filter(isLit)).toHaveLength(0);
     await settle();
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     expect(editor()).not.toHaveFocus();
@@ -2636,8 +2648,9 @@ describe('picking a technique mark (issue #128)', () => {
     await pressMark('accents', 'staccato');
     const dots = screen.getAllByTestId('staccato').length;
     expect(tool('Staccato')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByTestId('staccato').filter(isLit)).toHaveLength(1);
     fireEvent.keyDown(editor(), { key: 'Escape' });
-    expect(screen.queryByTestId('picked-mark')).toBeNull();
+    expect(screen.getAllByTestId('staccato').filter(isLit)).toHaveLength(0);
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     expect(screen.getAllByTestId('staccato')).toHaveLength(dots);
     cleanup();
@@ -2655,7 +2668,7 @@ describe('picking a technique mark (issue #128)', () => {
     await pressMark('bends', 'bend');
     fireEvent.click(tool('Bend'));
     fireEvent.click(screen.getByRole('button', { name: '½' }));
-    expect(screen.getByTestId('picked-mark')).toBeInTheDocument();
+    expect(isLit(screen.getAllByTestId('bend')[0])).toBe(true);
     expect(screen.getAllByTestId('bend')[0]).toHaveTextContent('½');
   });
 });

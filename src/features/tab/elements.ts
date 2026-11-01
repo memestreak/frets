@@ -2,7 +2,8 @@
  * Alt+← → (issue #238, as MuseScore's "next element"): every thing on the clip a press can pick, in
  * reading order, so the keys step through marks and words as well as notes. In each column: its bar's
  * words first when it opens the bar (capo, section, tempo, ending), then its chord name and text, then its
- * notes from the high string down (or the rest), then its marks. Pure; built from what is drawn.
+ * notes from the high string down (or the rest), then its marks; a bar's repeat start before its columns,
+ * and its repeat end, count and double bar line after them. Pure; built from what is drawn.
  */
 import { STRING_COUNT, type Part } from './clip';
 import type { Layout } from './layout';
@@ -12,7 +13,9 @@ import { markBoxes, type MarkHit } from './marks';
 /** A note on a string, a rest (a column with no notes), a mark or a word. */
 export type Element = { kind: 'note'; index: number; string: number } | { kind: 'rest'; index: number } | MarkHit | WordHit;
 
-const BAR_WORDS = ['capo', 'section', 'tempo', 'ending'] as const;
+/** What a bar opens with, and what it closes with (issue #276: bar lines are picked too). */
+const BAR_WORDS = ['capo', 'section', 'tempo', 'ending', 'repeatStart'] as const;
+const BAR_ENDS = ['repeatEnd', 'repeatCount', 'doubleBar'] as const;
 
 export function elementsOf(clip: Part, layout: Layout): Element[] {
   const capo = clip.capo ?? null;
@@ -39,6 +42,10 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
         if (strings.length === 0) out.push({ kind: 'rest', index });
         for (const string of strings) out.push({ kind: 'note', index, string });
         out.push(...(marks.get(index) ?? []));
+      }
+      for (const kind of BAR_ENDS) {
+        const hit: WordHit = { kind, bar: bar.index };
+        if (drawn(hit)) out.push(hit);
       }
     }
   }
