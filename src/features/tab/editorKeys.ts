@@ -331,9 +331,9 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  // A rest picked on the staff (Staff or Both draws rests only there) takes the staff's length digits too (issue #290).
-  const restOnStaff = editor.staffShown && columnOnly && !!columnAt(clip, cursor) && isRest(columnAt(clip, cursor)!);
-  if ((onStaff || restOnStaff) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A picked rest takes the length digits in every view: it has no fret for a digit to type (issue #290).
+  const restPicked = columnOnly && !!columnAt(clip, cursor) && isRest(columnAt(clip, cursor)!);
+  if ((onStaff || restPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
     if (value) commit(setValue(clip, target, value));
     return true;

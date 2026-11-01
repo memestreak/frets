@@ -57,7 +57,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
     { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter (a rest keeps its bar full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
-    { keys: ['1–7'], does: 'A rest’s length, with the staff shown (5 a quarter)' },
+    { keys: ['1–7'], does: 'Length of a rest or a staff note (5 a quarter)' },
   ],
 };
 

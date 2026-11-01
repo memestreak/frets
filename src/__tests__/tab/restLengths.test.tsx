@@ -151,10 +151,12 @@ describe('on the page (issue #290)', () => {
     expect(frets()).toBe('3.6.4 r.4 r.4 7.6.4 |');
   });
 
-  it('a digit on a picked rest with the tab alone types nothing', async () => {
+  it('a digit on a picked rest with the tab alone sets its length', async () => {
     await open('tab', RIFF);
     pressRest('tab');
     fireEvent.keyDown(editor(), { key: '6' });
-    expect(frets()).toBe('3.6.4 r.4 5.6.4 7.6.4 |');
+    expect(frets()).toBe('3.6.4 r.2 7.6.4 |');
+    fireEvent.keyDown(editor(), { key: '3' });
+    expect(frets()).toBe('3.6.4 r.16 r.4{dd} 7.6.4 |');
   });
 });

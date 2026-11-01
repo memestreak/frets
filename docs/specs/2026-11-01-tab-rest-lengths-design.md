@@ -6,7 +6,7 @@ Issue #290 (Jeremy, 2026-11-01). Follows #276, which made rests selectable (PR #
 
 With a rest picked by itself in normal mode (a press on it, or the cursor on it with no string), the length keys and the palette's Duration buttons change its length, as MuseScore's do:
 
-- Shift+1–7 in every view, and 1–7 when the staff is shown (Staff or Both, where rests are drawn on the staff). 5 is a quarter. With the tab alone, a plain digit on a rest does nothing, as before.
+- 1–7 and Shift+1–7, in every view (Jeremy, 2026-11-01). 5 is a quarter. A rest has no fret for a digit to type, so with the tab alone the plain digits set its length too.
 - W / Q and + / − make it one value longer or shorter.
 - . and the Dotted button cycle its dots.
 - Each Duration button sets its value.
