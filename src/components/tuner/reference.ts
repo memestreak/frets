@@ -18,12 +18,31 @@ const deafUntil = (until: number) => {
 
 const context = (): AudioContext => (output ??= new AudioContext());
 
-/** A recording, fetched and decoded once. */
+/** Recordings built into an MCP App (#283), by their site URL, as data: URLs. */
+let builtIn: Readonly<Record<string, string>> = {};
+
+/**
+ * Plays these recordings instead of fetching them from the site: an MCP App's frame can't reach
+ * the site, so it builds them in. Keys are the URLs `sampleUrls` gives.
+ */
+export function setBuiltInRecordings(recordings: Readonly<Record<string, string>>) {
+  builtIn = recordings;
+}
+
+/** A data: URL's bytes, without fetch (which a host's CSP may refuse for data:). */
+function dataUrlBytes(dataUrl: string): ArrayBuffer {
+  const binary = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/** A recording, fetched (or taken from the built-in ones) and decoded once. */
 function load(url: string): Promise<AudioBuffer> {
   let buffer = decoded.get(url);
   if (!buffer) {
-    buffer = fetch(url)
-      .then(r => r.arrayBuffer())
+    const inline = builtIn[url];
+    buffer = (inline ? Promise.resolve(dataUrlBytes(inline)) : fetch(url).then(r => r.arrayBuffer()))
       .then(data => context().decodeAudioData(data));
     // A failed fetch may succeed later.
     buffer.catch(() => decoded.delete(url));

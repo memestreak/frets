@@ -1,8 +1,7 @@
 /**
  * The tuner as an MCP App (#283): the compact tuner (`ChatTuner`) in a host's frame. A first test build: it
  * listens only when Listen is pressed, and says what the host allowed, to find out which chat apps
- * let it hear the mic. The string buttons play the simulated string: the recordings live on the
- * site, which the frame can't reach.
+ * let it hear the mic. The string buttons play the acoustic recordings built into the app.
  */
 import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useEffect, useState } from 'react';
@@ -70,7 +69,7 @@ export function TunerApp({ app }: { app: App }) {
 
   return (
     <ChatTuner
-      listener={listener} status={status} onListen={toggle} sound="synth" layout="a"
+      listener={listener} status={status} onListen={toggle} sound="acoustic" layout="a"
       footer={(
         <p className="text-muted m-0 text-center text-[11px]" data-testid="mic-probe">
           Test build · host mic: {hostMic} · mic: {status}
