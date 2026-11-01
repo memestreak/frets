@@ -90,11 +90,11 @@ describe('the staff for a tuned-down guitar', () => {
 
 describe('view options', () => {
   it('read each section saved, keeping only valid fields', () => {
-    expect(parseNotation(null)).toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false });
-    expect(parseNotation({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true }))
-      .toEqual({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true });
-    expect(parseNotation({ show: 'score', barNumbers: 'odd', size: 75, lineBreaks: 'yes' }))
-      .toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false });
+    expect(parseNotation(null)).toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true });
+    expect(parseNotation({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false }))
+      .toEqual({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false });
+    expect(parseNotation({ show: 'score', barNumbers: 'odd', size: 75, lineBreaks: 'yes', header: 'no' }))
+      .toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true });
     expect([parseNotation({ size: 50 }).size, parseNotation({ size: 200 }).size, parseNotation({ size: 40 }).size, parseNotation({ size: 210 }).size])
       .toEqual([50, 200, 100, 100]);
     expect(parseColours(null)).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });

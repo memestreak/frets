@@ -23,6 +23,14 @@ function renderAt(hash = '') {
 const head = () => screen.getByTestId('score-head');
 const undo = () => fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
 const SLOW = { timeout: 5000 };
+/** A press on the head's title or credits picks it; its Edit opens the panel (issue #281). */
+function editFromHead(name: string | RegExp, field: 'title' | 'credits') {
+  // Edit opens it on the title; a double-click on the line pressed.
+  if (field === 'title') {
+    fireEvent.click(within(head()).getByRole('button', { name }));
+    fireEvent.click(within(head()).getByRole('button', { name: 'Edit title and credits' }));
+  } else fireEvent.doubleClick(within(head()).getByRole('button', { name }));
+}
 
 afterEach(() => {
   cleanup();
@@ -63,7 +71,7 @@ describe("the score head's credits", () => {
   it('open from the drawn credits, and words and music part when different people wrote them', async () => {
     renderAt('#example=tuned-down');
     await waitFor(() => expect(head()).toHaveTextContent("Guns N' Roses"), SLOW);
-    fireEvent.click(within(head()).getByRole('button', { name: /Guns N' Roses/ }));
+    editFromHead(/Guns N' Roses/, 'credits');
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     expect(within(panel).getByLabelText('Artist (optional)')).toHaveValue("Guns N' Roses");
     fireEvent.click(within(panel).getByRole('switch', { name: 'Same people wrote both' }));
@@ -79,14 +87,14 @@ describe("the score head's credits", () => {
 describe("the score head's title and credits panel", () => {
   it('opens from the title or the credits, focused on the pressed one, and keeps title and credits as one undo step', () => {
     renderAt();
-    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
+    editFromHead('Untitled', 'title');
     let panel = screen.getByRole('dialog', { name: 'Title and credits' });
     // Every field is in the one panel; the title is first.
     const fields = within(panel).getAllByRole('textbox').map(f => f.getAttribute('aria-label'));
-    expect(fields).toEqual(['Title (optional)', 'Artist (optional)', 'Words & Music (optional)']);
-    expect(within(panel).getByLabelText('Title (optional)')).toHaveFocus();
-    expect(within(panel).getByLabelText('Title (optional)')).toHaveAttribute('placeholder', 'Untitled clip');
-    fireEvent.change(within(panel).getByLabelText('Title (optional)'), { target: { value: 'Song' } });
+    expect(fields).toEqual(['Title', 'Artist (optional)', 'Words & Music (optional)']);
+    expect(within(panel).getByLabelText('Title')).toHaveFocus();
+    expect(within(panel).getByLabelText('Title')).toHaveAttribute('placeholder', 'Untitled');
+    fireEvent.change(within(panel).getByLabelText('Title'), { target: { value: 'Song' } });
     fireEvent.change(within(panel).getByLabelText('Artist (optional)'), { target: { value: 'Band' } });
     expect(head()).toHaveTextContent('Song');
     expect(head()).toHaveTextContent('Band');
@@ -95,36 +103,40 @@ describe("the score head's title and credits panel", () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     // The artist opens the same panel, on the artist's field.
-    fireEvent.click(within(head()).getByRole('button', { name: /Band/ }));
+    editFromHead(/Band/, 'credits');
     panel = screen.getByRole('dialog', { name: 'Title and credits' });
     expect(within(panel).getByLabelText('Artist (optional)')).toHaveFocus();
-    expect(within(panel).getByLabelText('Title (optional)')).toHaveValue('Song');
+    expect(within(panel).getByLabelText('Title')).toHaveValue('Song');
     fireEvent.keyDown(within(panel).getByLabelText('Artist (optional)'), { key: 'Escape' });
 
     // Title and artist went in as one step.
     undo();
-    expect(head()).toHaveTextContent('Untitled clip');
+    expect(head()).toHaveTextContent('Untitled');
     expect(head()).not.toHaveTextContent('Band');
   });
 
-  it('opens on the artist from "Add artist and credits", and an emptied title is "Untitled clip"', () => {
+  it('opens on the artist from "Add artist and credits", and an emptied title keeps the one it had', () => {
     renderAt();
-    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
-    fireEvent.change(screen.getByLabelText('Title (optional)'), { target: { value: 'Riff' } });
-    fireEvent.keyDown(screen.getByLabelText('Title (optional)'), { key: 'Enter' });
+    editFromHead('Untitled', 'title');
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Riff' } });
+    fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Enter' });
     fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     expect(within(panel).getByLabelText('Artist (optional)')).toHaveFocus();
-    const title = within(panel).getByLabelText('Title (optional)');
+    const title = within(panel).getByLabelText('Title');
     expect(title).toHaveValue('Riff');
     fireEvent.change(title, { target: { value: '   ' } });
+    // The title is needed (issue #281): a red ⚠ while it is blank, and the head keeps the title it had.
+    expect(within(panel).getByRole('img', { name: "The title can't be blank" })).toBeInTheDocument();
+    expect(title).toHaveAttribute('aria-invalid', 'true');
+    expect(within(head()).getByRole('heading', { level: 1 })).toHaveTextContent('Riff');
     fireEvent.keyDown(title, { key: 'Enter' });
-    expect(within(head()).getByRole('heading', { level: 1 })).toHaveTextContent('Untitled clip');
+    expect(within(head()).getByRole('heading', { level: 1 })).toHaveTextContent('Riff');
   });
 
   it('has no title field of its own on the page', () => {
     renderAt();
-    fireEvent.click(within(head()).getByRole('button', { name: 'Untitled clip' }));
+    editFromHead('Untitled', 'title');
     expect(screen.queryByRole('textbox', { name: 'Clip title' })).toBeNull();
   });
 });
@@ -173,5 +185,149 @@ describe("the score head's tuning", () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect((screen.getByRole('textbox', { name: 'alphaTex' }) as HTMLTextAreaElement).value).not.toContain('\\tuning');
+  });
+});
+
+describe('the arrangement header (issue #281)', () => {
+  const titleButton = () => within(head()).getByRole('button', { name: 'Riff' });
+  const creditsButton = () => within(head()).getByRole('button', { name: /Band/ });
+  const pick = () => screen.getByTestId('score-head').querySelector('.score-pick')!;
+  const folded = () => document.querySelector<HTMLElement>('.tab-head-folded');
+  function renderRiff() {
+    renderAt();
+    editFromHead('Untitled', 'title');
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Riff' } });
+    fireEvent.change(screen.getByLabelText('Artist (optional)'), { target: { value: 'Band' } });
+    fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Enter' });
+  }
+  function collapse() {
+    fireEvent.click(titleButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse header' }));
+  }
+
+  it('picks the title and credits together on a press of either, with Edit and Collapse beside them, and opens nothing', () => {
+    renderRiff();
+    fireEvent.click(creditsButton());
+    expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
+    // One outline round both.
+    expect(pick()).toHaveClass('score-picked');
+    expect(pick()).toContainElement(titleButton());
+    expect(pick()).toContainElement(creditsButton());
+    expect(titleButton()).toHaveAttribute('aria-pressed', 'true');
+    expect(creditsButton()).toHaveAttribute('aria-pressed', 'true');
+    const tools = within(screen.getByTestId('head-tools'));
+    expect(tools.getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Edit title and credits', 'Collapse header']);
+    // A second press keeps it picked.
+    fireEvent.click(titleButton());
+    expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
+    expect(pick()).toHaveClass('score-picked');
+  });
+
+  it('opens the panel on Enter, Edit or a double-click, on the line pressed, and leaves nothing picked', () => {
+    renderRiff();
+    fireEvent.click(titleButton());
+    fireEvent.keyDown(titleButton(), { key: 'Enter' });
+    expect(within(screen.getByRole('dialog', { name: 'Title and credits' })).getByLabelText('Title')).toHaveFocus();
+    fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Escape' });
+    expect(pick()).not.toHaveClass('score-picked');
+    fireEvent.doubleClick(creditsButton());
+    expect(within(screen.getByRole('dialog', { name: 'Title and credits' })).getByLabelText('Artist (optional)')).toHaveFocus();
+  });
+
+  it('lets the pick go on Esc or when the focus leaves it', () => {
+    renderRiff();
+    fireEvent.click(titleButton());
+    fireEvent.keyDown(titleButton(), { key: 'Escape' });
+    expect(pick()).not.toHaveClass('score-picked');
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+    fireEvent.click(creditsButton());
+    fireEvent.blur(creditsButton(), { relatedTarget: document.body });
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+  });
+
+  it('collapses to the small title after Size, keeping the tuning and tempo', () => {
+    renderRiff();
+    collapse();
+    expect(within(head()).queryByRole('heading')).toBeNull();
+    expect(within(head()).queryByRole('button', { name: /Band/ })).toBeNull();
+    expect(within(head()).getByRole('group', { name: 'Tuning' })).toBeInTheDocument();
+    // The page keeps its heading for screen readers.
+    expect(screen.getByRole('heading', { level: 1, name: 'Riff' })).toHaveClass('sr-only');
+    // Right after Size, in the card's bar.
+    const size = screen.getByRole('group', { name: 'Size' });
+    expect(size.nextElementSibling).toContainElement(folded());
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).header).toBe(false);
+  });
+
+  it('picks the small title on a press, with Edit and Expand; Expand brings the head back', () => {
+    renderRiff();
+    collapse();
+    fireEvent.click(folded()!);
+    expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
+    expect(folded()!.closest('.score-pick')).toHaveClass('score-picked');
+    const tools = within(screen.getByTestId('head-tools'));
+    expect(tools.getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['Edit title and credits', 'Expand header']);
+    fireEvent.keyDown(folded()!, { key: 'Escape' });
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+    fireEvent.click(folded()!);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand header' }));
+    expect(folded()).toBeNull();
+    expect(within(head()).getByRole('heading', { level: 1 })).toHaveTextContent('Riff');
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).header).toBe(true);
+  });
+
+  it('comes back unpicked, by Expand or the View option (Jeremy, 2026-11-01)', () => {
+    renderRiff();
+    collapse();
+    fireEvent.click(folded()!);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand header' }));
+    expect(pick()).not.toHaveClass('score-picked');
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+    collapse();
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'View options' })).getByRole('switch', { name: 'Arrangement header' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(pick()).not.toHaveClass('score-picked');
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+    // Nor is the small title picked when it comes back.
+    collapse();
+    expect(folded()!.closest('.score-pick')).not.toHaveClass('score-picked');
+  });
+
+  it('opens the panel from the small title on a double-click or Edit', () => {
+    renderRiff();
+    collapse();
+    fireEvent.doubleClick(folded()!);
+    expect(within(screen.getByRole('dialog', { name: 'Title and credits' })).getByLabelText('Title')).toHaveFocus();
+    fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Escape' });
+    fireEvent.click(folded()!);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit title and credits' }));
+    expect(screen.getByRole('dialog', { name: 'Title and credits' })).toBeInTheDocument();
+  });
+
+  it('is the View options\' "Arrangement header" switch, shown in Notation only', () => {
+    renderRiff();
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    const toggle = within(screen.getByRole('dialog', { name: 'View options' })).getByRole('switch', { name: 'Arrangement header' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(folded()).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    // Not over the text views.
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(folded()).toBeNull();
+  });
+
+  it('is in Settings › Tab › Notation, the same saved value', () => {
+    renderRiff();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const settings = within(screen.getByRole('dialog', { name: 'Settings' }));
+    fireEvent.click(settings.getByRole('treeitem', { name: 'Notation' }));
+    const box = settings.getByRole('checkbox', { name: 'Arrangement header' });
+    expect(box).toBeChecked();
+    fireEvent.click(box);
+    fireEvent.click(settings.getByRole('button', { name: 'OK' }));
+    expect(folded()).toBeInTheDocument();
   });
 });

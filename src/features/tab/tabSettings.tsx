@@ -168,6 +168,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
             toValue: n => Math.round(n / SIZE_STEP) * SIZE_STEP,
           }),
           checkField('lineBreaks', "Clip's line breaks"),
+          checkField('header', 'Arrangement header'),
         ],
       }),
       section<ColourPrefs>({

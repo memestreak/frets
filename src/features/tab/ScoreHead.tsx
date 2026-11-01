@@ -4,14 +4,19 @@
  * stands over the drawing and is zoomed with it; the exported image draws the same in SVG
  * (`exportTab.tsx`), from the same sizes (`HEAD`).
  *
- * A press on the title or the credits opens the one Title and credits panel there, with the pressed
- * one's field focused (issue #227); a press on the tuning opens its panel (issues #202, #203,
+ * A press on the title or the credits picks the two together (issue #281): one outline round both,
+ * with Edit and Collapse beside it. Edit or Enter opens the one Title and credits panel, on the title;
+ * a double-click opens it on the line pressed (issue #227). Collapse folds the head to the title in
+ * small text over the clip, after Size (`FoldedTitle`, the View options' Arrangement header), which is
+ * picked and edited the same way, with Expand in Collapse's place. Esc, or the focus going elsewhere,
+ * lets either go. A press on the tuning opens its panel (issues #202, #203,
  * `docs/specs/2026-10-29-tab-credits-tuning-design.md`). The tuning is always shown, as "Standard tuning"
  * when it is; an unset artist has a quiet "Add artist and credits" under the title. Under the tuning,
  * the first bar's tempo ("♩ = 120" when none is set), whose press opens the tempo panel
  * (`docs/specs/2026-10-29-tab-tempo-button-design.md`).
  */
-import type { MouseEvent } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { CollapseIcon, ExpandIcon, PencilIcon } from '@/components/icons';
 import { DEFAULT_BPM, UNTITLED, type Part, type Tempo } from './clip';
 import type { HeadField } from './CreditsPanel';
 import { creditsOf, HEAD, tuningBlock } from './credits';
@@ -30,10 +35,14 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, onEditCredits, onEditTuning, onEditTempo }: {
+export function ScoreHead({ clip, folded = false, onEditCredits, onCollapse, onEditTuning, onEditTempo }: {
   clip: Part;
+  /** The title and credits folded away (shown small over the clip instead): the tuning and tempo stay. */
+  folded?: boolean;
   /** Opens the Title and credits panel with `field`'s field focused. */
   onEditCredits?: (x: number, y: number, field: HeadField) => void;
+  /** Folds the head away to the small title over the clip. */
+  onCollapse?: () => void;
   onEditTuning?: OpenAt;
   onEditTempo?: OpenAt;
 }) {
@@ -43,7 +52,6 @@ export function ScoreHead({ clip, onEditCredits, onEditTuning, onEditTempo }: {
   // Always shown (Jeremy, 2026-10-29): standard tuning is named, so a press on it opens the tuning panel.
   const heading = tuning ? tuning.heading : 'Standard tuning';
   const hasCredits = !!artist || lines.length > 0;
-  const editTitle = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'title')));
   const editCredits = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'artist')));
   const editTuning = openAt(onEditTuning);
   const editTempo = openAt(onEditTempo);
@@ -54,17 +62,27 @@ export function ScoreHead({ clip, onEditCredits, onEditTuning, onEditTempo }: {
       className="score-head" data-testid="score-head"
       style={{ ['--title-size' as string]: `${HEAD.titleSize}px`, ['--artist-size' as string]: `${HEAD.artistSize}px`, ['--credit-size' as string]: `${HEAD.creditSize}px` }}
     >
-      <h1 className="m-0 tab-title">
-        <button type="button" className="tab-title-text" onClick={editTitle} disabled={!editTitle}>{clip.name.trim() || UNTITLED}</button>
-      </h1>
-      {hasCredits && (
-        <button type="button" className="score-credits" onClick={editCredits} disabled={!editCredits}>
-          {artist && <span className="score-artist">{artist}</span>}
-          {lines.map(line => <span key={line} className="score-credit">{line}</span>)}
-        </button>
+      {!folded && (
+        <HeadPick
+          onEdit={onEditCredits && ((field, el) => editUnder(el, field, onEditCredits))}
+          tool={onCollapse && { label: 'Collapse header', icon: <CollapseIcon />, onClick: onCollapse }}
+          className="score-head-pick"
+        >
+          {press => <>
+            <h1 className="m-0 tab-title">
+              <button type="button" className="tab-title-text" {...press('title')}>{clip.name.trim() || UNTITLED}</button>
+            </h1>
+            {hasCredits && (
+              <button type="button" className="score-credits" {...press('artist')}>
+                {artist && <span className="score-artist">{artist}</span>}
+                {lines.map(line => <span key={line} className="score-credit">{line}</span>)}
+              </button>
+            )}
+          </>}
+        </HeadPick>
       )}
       {/* An unset artist: a quiet line in the credits' place, always shown (no text that appears on hover). */}
-      {!hasCredits && editCredits && (
+      {!folded && !hasCredits && editCredits && (
         <div className="score-head-add">
           <button type="button" className="score-add" onClick={editCredits}>Add artist and credits</button>
         </div>
@@ -93,6 +111,117 @@ export function ScoreHead({ clip, onEditCredits, onEditTuning, onEditTempo }: {
         </div>
       )}
     </div>
+  );
+}
+
+/** Opens the Title and credits panel under `el`, as a key press would, on `field`. */
+function editUnder(el: HTMLElement, field: HeadField, open: (x: number, y: number, field: HeadField) => void) {
+  const box = el.getBoundingClientRect();
+  open(box.left, box.bottom + 4, field);
+}
+
+/** What `HeadPick` gives each of its buttons: a press picks, a double-click edits. */
+type Press = (field: HeadField) => {
+  onClick: () => void;
+  onDoubleClick: (e: MouseEvent<HTMLElement>) => void;
+  disabled: boolean;
+  'aria-pressed'?: boolean;
+  'data-head-field': HeadField;
+};
+
+/**
+ * The title and credits, or the folded title: a press on any of its buttons picks the whole, one
+ * outline round it, with Edit and one more tool (Collapse or Expand) to its right. Enter while picked
+ * or Edit opens the panel (Enter on the line it is on, Edit on the title); a double-click opens it on
+ * the line pressed. Esc or the focus leaving it and its tools lets it go. Without `onEdit` (the head
+ * not editable) it is plain text.
+ */
+function HeadPick({ onEdit: open, tool, className, children }: {
+  onEdit?: (field: HeadField, el: HTMLElement) => void;
+  tool?: { label: string; icon: ReactNode; onClick: () => void };
+  className: string;
+  children: (press: Press) => ReactNode;
+}) {
+  // Its own, so folding it away (or opening the panel) never leaves it picked when it comes back.
+  const [picked, onPick] = useState(false);
+  const onEdit = open && ((field: HeadField, el: HTMLElement) => {
+    onPick(false);
+    open(field, el);
+  });
+  const press: Press = field => ({
+    onClick: () => { if (!picked) onPick(true); },
+    // A double-click edits it too (Jeremy, 2026-11-01): its first click picks it.
+    onDoubleClick: e => onEdit?.(field, e.currentTarget),
+    disabled: !onEdit,
+    'aria-pressed': onEdit ? picked : undefined,
+    'data-head-field': field,
+  });
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (!picked) return;
+    const field = (e.target as HTMLElement).dataset.headField as HeadField | undefined;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onPick(false);
+      (document.activeElement as HTMLElement | null)?.blur();
+    } else if (e.key === 'Enter' && field) {
+      // Enter on the picked one edits it, as Enter edits a picked word over the tab.
+      e.preventDefault();
+      onEdit?.(field, e.target as HTMLElement);
+    }
+  };
+  // The tools keep the focus on what is picked, so it stays picked.
+  const keep = (e: MouseEvent) => e.preventDefault();
+  return (
+    // Its keys are its buttons': Enter edits, Esc lets the pick go. It keeps the focus while picked (the
+    // app lets go of a pressed button), so those keys reach it.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div
+      className={`score-pick ${className}${picked ? ' score-picked' : ''}`} data-keep-focus onKeyDown={onKeyDown}
+      onBlur={e => { if (picked && !e.currentTarget.contains(e.relatedTarget as Node | null)) onPick(false); }}
+    >
+      {children(press)}
+      {picked && onEdit && (
+        <span className="score-pick-tools" data-testid="head-tools">
+          <button
+            type="button" className="score-pick-tool" aria-label="Edit title and credits" data-tip="Edit (Enter)" onMouseDown={keep}
+            onClick={e => {
+              const title = e.currentTarget.closest('.score-pick')!.querySelector<HTMLElement>('[data-head-field="title"]')!;
+              onEdit('title', title);
+            }}
+          >
+            <PencilIcon />
+          </button>
+          {tool && (
+            <button
+              type="button" className="score-pick-tool" aria-label={tool.label} data-tip={tool.label} onMouseDown={keep}
+              onClick={() => { onPick(false); tool.onClick(); }}
+            >
+              {tool.icon}
+            </button>
+          )}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The arrangement header folded (issue #281): the title in small text over the clip, after Size.
+ * Picked and edited as the full head is, with Expand in Collapse's place.
+ */
+export function FoldedTitle({ clip, onEditCredits, onExpand }: {
+  clip: Part;
+  onEditCredits: (x: number, y: number, field: HeadField) => void;
+  onExpand: () => void;
+}) {
+  return (
+    <HeadPick
+      onEdit={(field, el) => editUnder(el, field, onEditCredits)}
+      tool={{ label: 'Expand header', icon: <ExpandIcon />, onClick: onExpand }}
+      className="tab-head-folded-pick"
+    >
+      {press => <button type="button" className="tab-head-folded" {...press('title')}>{clip.name.trim() || UNTITLED}</button>}
+    </HeadPick>
   );
 }
 

@@ -60,7 +60,8 @@ export function NameField({ name, label, onDone }: { name: string; label: string
   const finish = (next: string | null) => {
     if (done.current) return;
     done.current = true;
-    onDone(next === null ? null : next.trim());
+    // A blank name keeps the one it had: the name is the arrangement's title, which is needed (issue #281).
+    onDone(next === null || next.trim() === '' ? null : next.trim());
   };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {

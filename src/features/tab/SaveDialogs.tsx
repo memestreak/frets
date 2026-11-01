@@ -57,8 +57,11 @@ function SaveAsForm({ name, folders, onClose, onCreateFolder, onSave }: {
     el.focus();
   };
 
+  // The name is the arrangement's title, which is needed (issue #281).
+  const blank = typed.trim() === '';
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (blank) return;
     if (newFolder !== null) onSave(typed.trim(), { newFolder: newFolder.trim() || NEW_FOLDER });
     else onSave(typed.trim(), into === TOP ? undefined : into);
   };
@@ -110,9 +113,16 @@ function SaveAsForm({ name, folders, onClose, onCreateFolder, onSave }: {
         </div>
       </div>
       <label className="grid gap-1">
-        <span>Name</span>
+        <span>
+          Name
+          {blank && (
+            <span className="tab-field-problem" role="img" aria-label="The name can't be blank" title="The name can't be blank">
+              {' '}⚠{'\uFE0E'}
+            </span>
+          )}
+        </span>
         <input
-          type="text" className="input" aria-label="Name" value={typed} placeholder={UNTITLED}
+          type="text" className="input" aria-label="Name" aria-invalid={blank || undefined} value={typed} placeholder={UNTITLED}
           // eslint-disable-next-line jsx-a11y/no-autofocus -- the dialog opens to type a name
           autoFocus onFocus={e => e.currentTarget.select()} onChange={e => setTyped(e.target.value)}
         />
