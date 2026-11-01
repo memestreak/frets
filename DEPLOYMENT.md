@@ -41,12 +41,13 @@ From the repository picker:
    | Project name           | becomes the `*.pages.dev` subdomain |
    | Production branch      | `main`                           |
    | Framework preset       | **Next.js (Static HTML Export)** |
-   | Build command          | `npx next build`                 |
+   | Build command          | `npm run build`                  |
    | Build output directory | `out`                            |
    | Root directory         | leave blank                      |
 
-   The preset fills in the build command and output directory. Confirm
-   they match -- the plain "Next.js" preset configures SSR and fails
+   The preset fills in `npx next build`: change it to `npm run build`,
+   which also builds the metronome's MCP App (`npm run mcp:build`) that
+   the `/mcp` function serves. Confirm the output directory too -- the plain "Next.js" preset configures SSR and fails
    against `output: 'export'`. No environment variables are needed.
 
 3. Select **Save and Deploy**.
@@ -57,9 +58,11 @@ Once connected, every push to the `main` branch causes Cloudflare to:
 
 1. Pull the latest code.
 2. Run `npm install`.
-3. Run the build command, `npx next build` (what `npm run build` runs
-   locally).
-4. Deploy the contents of the `out` directory to the global edge network.
+3. Run the build command, `npm run build`: the metronome's MCP App into
+   `mcp/dist/`, then `next build`.
+4. Deploy the contents of the `out` directory to the global edge network,
+   and the Pages Functions in `functions/` (`/mcp`, the metronome's MCP
+   server, which bundles `mcp/dist/app.html`).
 
 Pull requests get preview deployments at their own URLs, which repeat the
 same build-and-deploy process.
@@ -81,6 +84,12 @@ same build-and-deploy process.
   `.github/workflows/ci.yml`), so tests and production builds run on the
   same major version. `engines` in `package.json` sets the floor for local
   work (`>=22.13.0`); newer versions are allowed there.
+
+- **MCP server.** `functions/mcp.ts` answers MCP over HTTP at `/mcp`
+  (stateless, no bindings or secrets). Only that path runs a function;
+  every other path is a static file. Without `npm run build` as the build
+  command, `mcp/dist/app.html` is missing and the functions fail to
+  bundle, so the deploy fails.
 
 ## Local Verification
 

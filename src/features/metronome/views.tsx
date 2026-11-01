@@ -31,7 +31,7 @@ export function MetronomeView({ view, m }: { view: ViewId; m: Metronome }) {
 const ONE_ROW_BEATS = 16;
 
 /** A pad per beat that flashes and ripples on its beat, its steps as small dots under it. */
-function BeatPads({ m }: { m: Metronome }) {
+export function BeatPads({ m }: { m: Metronome }) {
   const { beats, subs, steps } = m.rhythm;
   const columns = beats <= ONE_ROW_BEATS ? beats : Math.ceil(beats / 2);
   const size = beats <= ONE_ROW_BEATS ? 52 : 28;

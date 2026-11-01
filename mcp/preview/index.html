@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Metronome MCP App preview</title>
+    <style>
+      body { margin: 0; font: 14px/20px system-ui, sans-serif; background: #ece7df; color: #1b1410; }
+      body[data-theme='dark'] { background: #1e1915; color: #f3ece2; }
+      .layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+      .side { padding: 16px; border-right: 1px solid #0002; display: grid; align-content: start; gap: 12px; }
+      .side h1 { font-size: 18px; margin: 0; }
+      .side p { margin: 0; color: #776; }
+      label { display: grid; gap: 4px; font-weight: 600; }
+      textarea { font: 12px/16px ui-monospace, monospace; min-height: 120px; }
+      .log { font: 12px/16px ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 45vh; overflow: auto; background: #0001; padding: 8px; }
+      .chat { padding: 16px; overflow: auto; }
+      .column { margin: 0 auto; display: grid; gap: 16px; }
+      .turn { display: grid; gap: 6px; }
+      .turn-head { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+      .turn-head span { flex: 1; font-weight: 400; color: #776; }
+      iframe { width: 100%; border: 1px dashed #0003; height: 200px; }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="side">
+        <h1>Metronome MCP App preview</h1>
+        <p>This page plays the host. It runs the real server in the page, calls show_metronome, and shows each metronome in a sandboxed frame, as a chat would.</p>
+        <label>Tool arguments (JSON)
+          <textarea id="args">{ "bpm": 92, "beats": 7, "groups": "2+2+3" }</textarea>
+        </label>
+        <button id="call" type="button">Call show_metronome</button>
+        <button id="again" type="button">Call again with the latest rhythm, 5 bpm faster</button>
+        <label>Theme
+          <select id="theme"><option>light</option><option>dark</option></select>
+        </label>
+        <label>Chat width
+          <select id="width"><option>360</option><option>480</option><option selected>640</option><option>760</option></select>
+        </label>
+        <label>What the model sees
+          <div id="log" class="log" aria-live="polite"></div>
+        </label>
+      </div>
+      <div class="chat"><div id="column" class="column"></div></div>
+    </div>
+    <script type="module" src="./preview.ts"></script>
+  </body>
+</html>

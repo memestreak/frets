@@ -46,3 +46,56 @@ and menu (`sections.ts`) until Jeremy calls it ready.
 
 Its CSS (`.metronome-*`) is in `src/app/globals.css`. Its tests are in
 `src/__tests__/metronome/`.
+
+## The MCP App (#269)
+
+The metronome also runs inside an AI chat (Claude, ChatGPT, VS Code and other
+MCP Apps hosts), from `docs/specs/2026-10-31-metronome-mcp-app-design.md`.
+A model calls `show_metronome`, and the host shows this metronome with that
+rhythm in a sandboxed frame. It opens stopped.
+
+- `mcp/tool.ts`: the tool's name, description and input (bpm, beats, groups,
+  subdivision, swing, and an optional whole `rhythm` to start from).
+  It also turns input into a rhythm through `parseRhythm`, and holds the
+  one-line description. Pure, shared by the server and the app.
+- `mcp/server.ts`: `createMetronomeServer(appHtml)`, the tool plus the
+  `ui://metronome/app.html` resource. Stateless.
+- `mcp/MetronomeApp.tsx`: the app, which is the core shown in one compact
+  layout, `mcp/Strip.tsx` (pads, then the tempo, Start, Tap and Beats in a
+  row; Sound and Volume at the top of Advanced). It has no storage, and the
+  page's four views stay on the page. It shows the tool's input at once, then the
+  server's result. About a second after the user's last change, it tells the
+  model the whole rhythm (`ui/update-model-context`). It follows the host's
+  theme and stops and closes the audio on teardown. Space and T work as on
+  the page. `mcp/host.ts` wires the host's messages, outside React.
+- Builds, in the repo's `mcp/` folder: `vite.config.mts` (the app, one
+  self-contained `mcp/dist/app.html` with CSS and fonts inlined),
+  `vite.server.config.mts` (`stdio.ts` to `mcp/dist/server.mjs`) and
+  `vite.preview.config.mts` (`npm run mcp:preview`).
+- `functions/mcp.ts`: the same server over HTTP at `/mcp`, a Cloudflare
+  Pages Function. Nothing public links to it until the Metronome is called
+  ready.
+
+### Trying it
+
+- **In a browser, no Claude:** `npm run mcp:preview`, then open
+  http://localhost:5174. The page runs the real server, calls the tool and
+  shows each metronome in a frame. It logs what the model would be told,
+  and has a theme switch, a chat width and Tear down.
+- **Claude Desktop:** run `npm run mcp:build`. Then in Settings › Developer
+  › Edit Config, add the server below to `claude_desktop_config.json`, and
+  quit and reopen Claude. Use node's full path (`which node`), since
+  Desktop doesn't load nvm.
+
+  ```json
+  { "mcpServers": { "frets-metronome": {
+      "command": "/full/path/to/node",
+      "args": ["/full/path/to/frets/mcp/dist/server.mjs"] } } }
+  ```
+
+  Then ask "click at 92 in 7/8, grouped 2+2+3" and allow the tool.
+- **claude.ai or Desktop by URL:** add a custom connector with the URL
+  `https://frets.eminor.net/mcp`, or a PR preview's
+  `https://<branch>.frets-6e8.pages.dev/mcp`.
+- **Claude Code** (text only, no frame):
+  `claude mcp add frets-metronome -- node mcp/dist/server.mjs`.
