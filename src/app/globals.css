@@ -18,7 +18,8 @@ button {
    than --success so it reads as lighting up; --lit-glow its halo. --stop:
    the tab's Play button while playing, red with a black square (--on-stop). --select:
    what is selected or under the cursor on the Tab page, blue so red stays for problems
-   (issue #276); --select-soft its fill. Light,
+   (issue #276); --select-soft its fill. --playhead: the Tab page's playback line,
+   moving or stopped, a muted green so red stays for problems (issue #291). Light,
    then dark as fretwood.css switches it (system, or data-theme). */
 :root {
   --lit: #23a03a;
@@ -28,6 +29,7 @@ button {
   --on-stop: #1b1410;
   --select: #2a64a8;
   --select-soft: #d6e3f3;
+  --playhead: var(--success);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
