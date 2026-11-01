@@ -3,6 +3,7 @@
  * columns, and where the cursor is drawn. Pure; works on a `layoutClip` layout.
  */
 
+import { staffBar } from './staffGeometry';
 import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
@@ -23,15 +24,19 @@ const HEAD_REACH_Y = SPACE;
 function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number): Hit | null {
   let best: { hit: Hit; distance: number } | null = null;
   for (const bar of system.bars) {
+    const geometry = staffBar(bar, score).columns;
     bar.columns.forEach((placed, column) => {
-      const dx = Math.abs(placed.x - x);
-      if (dx > HEAD_REACH_X) return;
-      for (const head of placed.heads) {
+      const drawn = geometry.get(placed);
+      if (!drawn) return;
+      placed.heads.forEach((head, k) => {
+        // Where the head is drawn: a head a second from its neighbour sits on the stem's other side (issue #276).
+        const dx = Math.abs(drawn.xs[k] + drawn.width / 2 - x);
+        if (dx > HEAD_REACH_X) return;
         const dy = Math.abs(stepY(score, head.step) - localY);
-        if (dy > HEAD_REACH_Y) continue;
+        if (dy > HEAD_REACH_Y) return;
         const distance = dx + dy;
         if (!best || distance < best.distance) best = { hit: { bar: bar.index, column, string: head.string }, distance };
-      }
+      });
     });
   }
   return best ? (best as { hit: Hit }).hit : null;

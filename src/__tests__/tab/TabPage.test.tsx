@@ -2652,6 +2652,29 @@ describe('dragging notes on the staff (issue #174)', () => {
   };
   const frets = () => alphaTexText().split('\n').find(line => line.includes('|'));
 
+  it.each(['both', 'staff'])('a note selected on the staff (%s) lights its own sign where it is drawn (issue #276)', async parts => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
+    // C♯ and D♯ a second apart: the heads sit side by side and the lower sign goes a lane further left.
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(6.3 4.2).4 r.4 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(2), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    const staffPaths = () => [...screen.getByTestId('staff').querySelectorAll('path')];
+    const unlit = staffPaths().map(p => p.getAttribute('transform'));
+    act(() => editor().focus());
+    for (const k of [0, 1]) {
+      fireEvent.pointerDown(svg, { ...headAt(k), button: 0 });
+      fireEvent.pointerUp(svg, { ...headAt(k), button: 0 });
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+      // Nothing drawn over the note: the same glyphs in the same places, the head and its sign lit.
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(staffPaths().map(p => p.getAttribute('transform'))).toEqual(unlit);
+      const lit = staffPaths().filter(p => p.getAttribute('fill') === 'var(--primary)');
+      expect(lit).toHaveLength(2);
+      expect(lit).toContain(screen.getByTestId('staff-selected').querySelector('path'));
+    }
+  });
+
   it.each(['both', 'staff'])('Esc on a note pressed on the staff (%s) leaves nothing drawn', async parts => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);

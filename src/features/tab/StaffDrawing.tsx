@@ -16,7 +16,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null }: {
   system: System;
   score: ScoreRows;
   clip: Part;
@@ -28,6 +28,11 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
   alone?: boolean;
   /** The selected run of columns (places in the clip): their heads are drawn in `--primary`, as MuseScore colours selected notes. */
   selected?: [number, number] | null;
+  /**
+   * The one note selected in normal mode (issue #276): its head, sign, brackets, ledger lines and dots drawn
+   * in `--primary` where they are, so a sign moved left for a chord lights with its note.
+   */
+  selectedNote?: NoteAt | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
@@ -53,7 +58,7 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} />);
     parts.push(
-      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} />,
+      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={selectedNote} />,
     );
   }
   const litLook = { ...look, ink: 'var(--primary)' };
@@ -264,7 +269,15 @@ export function ghostChord(column: Column, heads: Head[]): boolean {
 }
 
 /** One bar's notes on the staff. */
-function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null }) {
+/** A note by its column's place in the clip and its string. */
+export interface NoteAt {
+  index: number;
+  string: number;
+}
+
+function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: {
+  bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null; selectedNote: NoteAt | null;
+}) {
   const look = barLook;
   if (bar.restRun) {
     const { first, span, count } = bar.restRun;
@@ -278,6 +291,7 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
     // A selected column's heads, signs, ledger lines and rest are drawn in the primary colour, as MuseScore colours selected notes.
     const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
     const look = lit ? { ...barLook, ink: 'var(--primary)' } : barLook;
+    const columnLook = look;
     const { value, dots } = column.duration;
     const key = `${placed.index}`;
     const grace = column.grace ? GRACE_SCALE : 1;
@@ -296,6 +310,8 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
     const chord = ghostChord(column, heads);
     heads.forEach((h, k) => {
       const note = column.notes[h.string];
+      const picked = selectedNote !== null && selectedNote.index === placed.index && selectedNote.string === h.string;
+      const look = picked ? { ...barLook, ink: 'var(--primary)' } : columnLook;
       // A dead note is an ×; a natural harmonic a diamond, as printed guitar music has them.
       const head = h.dead ? X_HEADS[shape] : note?.harmonic === 'natural' ? DIAMOND_HEADS[shape] : HEADS[shape];
       const y = stepY(score, h.step);
@@ -333,11 +349,12 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
         const sy = sideHead(h.bendBack, left, 'back');
         parts.push(<line key={`back-line-${key}-${k}`} x1={start} y1={y} x2={left - PAREN_LEFT - 2} y2={sy - 2} stroke={look.ink} strokeWidth={1} data-testid="staff-bend-line" />);
       }
-      parts.push(
-        <g key={`head-${key}-${k}`} data-testid="staff-head" data-selected={lit || undefined}>
+      const drawnHead = (
+        <g data-testid="staff-head" data-selected={lit || picked || undefined}>
           <Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} />
-        </g>,
+        </g>
       );
+      parts.push(picked ? <g key={`head-${key}-${k}`} data-testid="staff-selected">{drawnHead}</g> : <g key={`head-${key}-${k}`}>{drawnHead}</g>);
       // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
       if ((note?.ghost && !chord) || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;

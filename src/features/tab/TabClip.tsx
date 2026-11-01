@@ -4,7 +4,7 @@ import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type P
 import { boundaryAt, cursorSpot, hitTest, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
+import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -331,6 +331,9 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       })()}
       {layout.systems.map((system, si) => {
         const { rows } = system;
+        // The selected note lights where it is drawn: no cursor of its own over it (issue #276).
+        const cursorOnStaff = rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null;
+        const selectedNote = cursorOnStaff ? staffNoteAt(system, highlight) : null;
         return (
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
           <SystemDrawing
@@ -339,10 +342,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             selected={highlight?.range ?? null}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} />
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} selectedNote={selectedNote} />
           )}
-          {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
-            <StaffCursor x={spot.x} score={rows.score} selected={!highlight.input} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
+          {cursorOnStaff && !selectedNote && (
+            <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
           )}
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
@@ -780,3 +783,16 @@ const BRACKET_THICKNESS = 3.5;
 const BRACKET_GAP = 4;
 /** Bravura draws the ends for a bar half a space thick; they are scaled to meet this one. */
 const BRACKET_SCALE = BRACKET_THICKNESS * 2;
+
+/**
+ * In normal mode, the note the staff's cursor is on, when one is drawn there: lit in place rather than
+ * covered by a cursor head, whose sign would sit apart from the note's own (issue #276).
+ */
+function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
+  const { cursor, input, columnOnly } = highlight;
+  if (!cursor || input || columnOnly) return null;
+  const bar = system.bars.find(b => b.index === cursor.bar);
+  const placed = bar?.columns[cursor.column];
+  if (!placed || !placed.heads.some(h => h.string === cursor.string)) return null;
+  return { index: placed.index, string: cursor.string };
+}
