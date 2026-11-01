@@ -32,3 +32,7 @@ each opening straight to that option; the switcher lets him move between them.
 
 Once Jeremy picks, the page drops its `useMock` calls and keeps the picked
 option's code. Nothing else needs changing.
+
+`src/__tests__/noMocksLeft.test.ts` fails while any file outside
+`src/components/mocks/` and the tests calls `useMock`, so CI stays red on a
+branch with mocks and a leftover can't be merged by accident.
