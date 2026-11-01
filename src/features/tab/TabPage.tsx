@@ -839,6 +839,24 @@ export default function TabPage() {
    * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
    * time signature panel) or goes to the palette, nor when the whole window loses it.
    */
+  /**
+   * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
+   * selection go, as MuseScore's does (Jeremy, 2026-11-01, issue #276). Controls, the palette, menus and
+   * dialogs keep it, so their tools still work on it. Told by what is pressed, not by where focus goes, as
+   * Safari doesn't focus a pressed button.
+   */
+  useEffect(() => {
+    if (!selection) return;
+    const onPress = (e: PointerEvent) => {
+      const at = e.target;
+      if (!(at instanceof Element)) return;
+      if (at.closest('.tab-editor svg, button, a, input, select, textarea, label, [role="menu"], [role="dialog"], dialog, .tab-palette')) return;
+      setSelection(null);
+    };
+    document.addEventListener('pointerdown', onPress, true);
+    return () => document.removeEventListener('pointerdown', onPress, true);
+  }, [selection]);
+
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     setEditing(false);
     setPicked(null);

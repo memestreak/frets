@@ -36,6 +36,13 @@ showed twice and only partly lit (Jeremy, 2026-11-01). Now the note's own head, 
 lines and dots are drawn in `--select` where they are, and nothing is drawn over them. A head a
 second from its neighbour sits on the stem's other side; a press on it now finds it where it is drawn.
 
+## A press off the bars lets the selection go
+
+A press anywhere off the drawn bars, on the score's head, under the tab or on the page round the card,
+lets the selection go, as MuseScore's does (Jeremy, 2026-11-01). Buttons, fields, the palette, menus and
+dialogs keep it, so their tools still work on it. It is told by what is pressed, not by where the focus
+goes, as Safari doesn't focus a pressed button.
+
 ## Rests are selectable
 
 In normal mode a press on a rest selects that rest alone, not its bar (Jeremy, 2026-11-01): on the staff

@@ -2870,6 +2870,12 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(boxWidth()).toBeLessThan(whole);
       fireEvent.keyDown(editor(), { key: 'Escape' });
       expect(screen.queryByTestId('range-box')).toBeNull();
+      // A press off the bars lets it go; one on a palette button keeps it for the tool (Jeremy, 2026-11-01).
+      press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
+      fireEvent.pointerDown(screen.getByRole('button', { name: /^Dotted/ }));
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      fireEvent.pointerDown(document.body);
+      expect(screen.queryByTestId('range-box')).toBeNull();
       press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
       // On the tab too: a press on an empty string lights the bar's notes, with no box round the column.
       fireEvent.keyDown(editor(), { key: 'Escape' });
