@@ -33,7 +33,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   copy of the picked one is drawn in `--select`; `docs/specs/2026-10-27-tab-pick-marks-design.md`),
   `barLines.ts` (pure: the repeat signs, a repeat's ×N count and double bar lines a press picks, found
   with the words by `textAt`; a picked word, bar line or mark turns blue, its Edit and Delete in a
-  right-click menu (a long press on touch), `openMenu` in `TabPage.tsx`; issue #276), `clipState.ts` (the clip
+  right-click menu (a long press on touch), `openMenu` in `TabPage.tsx`; issue #276; a double-click on one with an Edit opens it, `hasEdit`, `docs/specs/2026-11-01-tab-double-click-edit-design.md`), `clipState.ts` (the clip
   with undo and redo), `editing.ts` (pure: the cursor, selection, frets and
   the edits that add, move or remove columns and bars, `normalize` keeping ties, hammer-ons and
   slides true, cut, copy, paste over the time from the cursor (`pasteOver`) and Insert paste (`insertPaste`), with bars staying full as MuseScore keeps them: Delete leaves rests, Ctrl/⌘+Delete takes the time (`docs/specs/2026-10-31-tab-bars-stay-full-design.md`); the palette's changes to notes are in
