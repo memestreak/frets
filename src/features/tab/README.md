@@ -28,7 +28,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   any other press is on and where the cursor is drawn; `runs.ts`, marks over runs of columns and
   legato joins; `beams.ts`, which notes a beam joins) and `TabClip.tsx` (draws a layout as
   SVG, with the editor's cursor and selection; a column's numbers, joins and marks in
-  `TabColumn.tsx`, the tab's own stems and rests in `TabStems.tsx`, its colours in `tabLook.ts`), `marks.ts` (pure: where each
+  `TabColumn.tsx`, the tab's own stems and rests in `TabStems.tsx`, its colours in `tabLook.ts`; what is selected is drawn in `--select`, blue, with a box round a selected run, `rangeBoxes`, `docs/specs/2026-11-01-tab-selection-look-design.md`), `marks.ts` (pure: where each
   drawn technique mark is, so a press picks it, and its palette tool;
   `docs/specs/2026-10-27-tab-pick-marks-design.md`), `clipState.ts` (the clip
   with undo and redo), `editing.ts` (pure: the cursor, selection, frets and
