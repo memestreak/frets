@@ -304,8 +304,8 @@ describe('TabPage', () => {
       ...within(panel).queryAllByRole('switch').map(s => s.textContent),
       ...(within(panel).queryByRole('button', { name: 'None' }) ? ['Bar numbers'] : []),
     ];
-    // Notation: bar numbers and the clip's line breaks.
-    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Bar numbers']);
+    // Notation: bar numbers, the clip's line breaks, the header and the tuning's details.
+    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Tuning details', 'Bar numbers']);
     close();
 
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
