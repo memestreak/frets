@@ -169,6 +169,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           }),
           checkField('lineBreaks', "Clip's line breaks"),
           checkField('header', 'Arrangement header'),
+          checkField('tuningDetails', 'Tuning details'),
         ],
       }),
       section<ColourPrefs>({

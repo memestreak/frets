@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { creditsOf, headerValue, tuningBlock } from '@/features/tab/credits';
+import { creditsOf, foldsTuning, headerValue, shownTuning, tuningBlock } from '@/features/tab/credits';
 import { layoutClip } from '@/features/tab/layout';
 import { beamGroups } from '@/features/tab/beams';
 import { barHeads, openStrings, tuningShift, writtenStrings } from '@/features/tab/notation';
@@ -66,6 +66,19 @@ describe('the tuning block', () => {
     expect(tuningBlock(['D', 'G', 'D', 'G', 'B', 'D'])!.heading).toBe('Open G tuning');
     expect(tuningBlock(['E', 'A', 'D', 'G', 'B', 'D'])!.heading).toBeNull();
   });
+
+  it('folds to its name only when named and listing strings (issue #296)', () => {
+    const tunedDown = tuningBlock(['D#', 'G#', 'C#', 'F#', 'A#', 'D#']);
+    const own = tuningBlock(['E', 'A', 'D', 'G', 'B', 'D']);
+    expect(foldsTuning(tunedDown)).toBe(true);
+    expect(foldsTuning(tuningBlock(['D', 'A', 'D', 'G', 'B', 'E']))).toBe(true);
+    expect(foldsTuning(own)).toBe(false);
+    expect(foldsTuning(null)).toBe(false);
+    expect(shownTuning(tunedDown, false)).toEqual({ heading: 'Tune down 1/2 step', strings: [] });
+    expect(shownTuning(tunedDown, true)).toBe(tunedDown);
+    // A tuning of its own has only its strings: they stay.
+    expect(shownTuning(own, false)).toBe(own);
+  });
 });
 
 describe('the staff for a tuned-down guitar', () => {
@@ -90,11 +103,11 @@ describe('the staff for a tuned-down guitar', () => {
 
 describe('view options', () => {
   it('read each section saved, keeping only valid fields', () => {
-    expect(parseNotation(null)).toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true });
-    expect(parseNotation({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false }))
-      .toEqual({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false });
-    expect(parseNotation({ show: 'score', barNumbers: 'odd', size: 75, lineBreaks: 'yes', header: 'no' }))
-      .toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true });
+    expect(parseNotation(null)).toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true });
+    expect(parseNotation({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false, tuningDetails: false }))
+      .toEqual({ show: 'both', barNumbers: 'lines', size: 70, lineBreaks: true, header: false, tuningDetails: false });
+    expect(parseNotation({ show: 'score', barNumbers: 'odd', size: 75, lineBreaks: 'yes', header: 'no', tuningDetails: 0 }))
+      .toEqual({ show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true });
     expect([parseNotation({ size: 50 }).size, parseNotation({ size: 200 }).size, parseNotation({ size: 40 }).size, parseNotation({ size: 210 }).size])
       .toEqual([50, 200, 100, 100]);
     expect(parseColours(null)).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });

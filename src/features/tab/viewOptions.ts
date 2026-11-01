@@ -62,6 +62,8 @@ export interface TabView {
    * folded to the title in small text after Size (issue #281).
    */
   header: boolean;
+  /** Notation: the tuning's strings under its name; off, a named tuning shows its name only (issue #296). */
+  tuningDetails: boolean;
   /** ASCII Tab: the rhythm line over the strings (w h q e s…). */
   asciiRhythm: boolean;
   /** AlphaTex: each line's number in the margin. */
@@ -73,7 +75,7 @@ export interface TabView {
 
 /** Bar numbers on every bar, as Guitar Pro prints them, at full size; the rhythm line and line numbers shown; the theme's colours. */
 export const DEFAULT_VIEW: TabView = {
-  barNumbers: 'every', size: 100, lineBreaks: false, header: true, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
+  barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
 };
 
 /** A size as offered: a whole step from 50% to 200%. */
@@ -95,8 +97,10 @@ export interface NotationPrefs {
   lineBreaks: boolean;
   /** The arrangement header shown at full size, not folded (issue #281). */
   header: boolean;
+  /** The tuning's strings shown under its name (issue #296). */
+  tuningDetails: boolean;
 }
-export const DEFAULT_NOTATION: NotationPrefs = { show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true };
+export const DEFAULT_NOTATION: NotationPrefs = { show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true };
 
 export function parseNotation(raw: unknown): NotationPrefs {
   const o = fieldsOf(raw);
@@ -107,6 +111,7 @@ export function parseNotation(raw: unknown): NotationPrefs {
     size: isSize(o.size) ? o.size : d.size,
     lineBreaks: bool(o.lineBreaks, d.lineBreaks),
     header: bool(o.header, d.header),
+    tuningDetails: bool(o.tuningDetails, d.tuningDetails),
   };
 }
 
@@ -142,7 +147,7 @@ export const parseAlphaTex = (raw: unknown): AlphaTexPrefs => ({ lineNumbers: bo
 /** The four sections as the page shows them: one view. */
 export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: AsciiPrefs, alphatex: AlphaTexPrefs): TabView {
   return {
-    barNumbers: notation.barNumbers, size: notation.size, lineBreaks: notation.lineBreaks, header: notation.header,
+    barNumbers: notation.barNumbers, size: notation.size, lineBreaks: notation.lineBreaks, header: notation.header, tuningDetails: notation.tuningDetails,
     asciiRhythm: ascii.rhythm, lineNumbers: alphatex.lineNumbers,
     colours: colours.scheme, custom: { text: colours.text, background: colours.background },
   };
@@ -151,7 +156,7 @@ export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: Asc
 /** A view changed in the View options panel, as its sections again (Staff | Tab | Both kept as it was). */
 export function sectionsOf(view: TabView, show: Parts) {
   return {
-    notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks, header: view.header } satisfies NotationPrefs,
+    notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks, header: view.header, tuningDetails: view.tuningDetails } satisfies NotationPrefs,
     colours: { scheme: view.colours, text: view.custom.text, background: view.custom.background } satisfies ColourPrefs,
     ascii: { rhythm: view.asciiRhythm } satisfies AsciiPrefs,
     alphatex: { lineNumbers: view.lineNumbers } satisfies AlphaTexPrefs,
