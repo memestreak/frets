@@ -37,19 +37,20 @@ folder's `README.md`; update that instead:
 - `src/features/tab/README.md` — the Tab editor
 - `src/features/metronome/README.md` — the Metronome
 - `src/features/agents/README.md` — the Agents page, guides and skills
+- `src/mcp/README.md` — the MCP server, and how a page adds its tools
 
 ## Commands
 
 ```bash
 npm run dev      # Dev server at localhost:3000
 npm run dev:https  # Same over https (self-signed), for the mic from another device
-npm run build    # The MCP App (mcp:build), then the static export to out/
+npm run build    # The MCP Apps (mcp:build), then the static export to out/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
 npm run icons    # Re-render every icon and favicon.ico after changing the mark's SVGs
-npm run mcp:build  # The metronome's MCP App and stdio server, to mcp/dist/
-npm run mcp:preview  # A stand-in MCP host for the metronome app, at localhost:5174
+npm run mcp:build  # Every MCP App (mcp/apps/*) and the stdio server, to mcp/dist/
+npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174
 ```
 
 `.github/workflows/ci.yml` runs all four checks for every pull request and
@@ -66,9 +67,12 @@ binds a local port).
 - `src/lib/`, `src/components/`, `src/hooks/` — shared by more than one
   section.
 - `src/features/<section>/` — everything only one section uses.
-- `mcp/` — build entries for the metronome's MCP App (Vite, outside the
-  Next.js export); `functions/` — Cloudflare Pages Functions (`/mcp`).
-  The app's code lives in `src/features/metronome/mcp/`.
+- `src/mcp/` — Frets' one MCP server (`frets`, served at `/mcp`), which
+  every page adds its tools to; a page's own tools and MCP App live in
+  `src/features/<page>/mcp/`. `mcp/` holds the apps' build entries (Vite,
+  outside the Next.js export) and the stdio server; `functions/` the
+  Cloudflare Pages Functions (`/mcp`). To add a tool, follow
+  `src/mcp/README.md`.
 - Code moves into `src/lib/` or `src/components/` only once a second section
   needs it.
 
@@ -77,6 +81,9 @@ Agents outside the repo write for Frets from the guides and skills in
 `public/llms.txt`). A PR that changes what a page reads from its link, or
 what the Tab page draws, updates that page's guide in the same PR, and its
 `public/skills/*/SKILL.md` if the rules summarised there change.
+
+A PR that adds or changes an MCP tool lists it on the Agents page's Frets
+card and in `public/llms.txt` (step 4 of `src/mcp/README.md`).
 
 Every page's keyboard shortcuts are listed in the `?` overlay
 (`docs/specs/2026-10-30-keyboard-shortcuts-design.md`): a PR that adds,

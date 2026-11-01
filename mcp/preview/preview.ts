@@ -1,14 +1,14 @@
 /// <reference types="vite/client" />
 /**
  * `npm run mcp:preview`: a stand-in host for the metronome's MCP App (#269), so it can be tried in a
- * browser with no Claude. The real server runs in the page over an in-memory transport; each call
+ * browser with no Claude. Frets' real server runs in the page over an in-memory transport; each call
  * mounts the app's HTML in a sandboxed frame through the SDK's own `AppBridge`, as a chat would.
  */
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { AppBridge, PostMessageTransport, getToolUiResourceUri, type McpUiTheme } from '@modelcontextprotocol/ext-apps/app-bridge';
-import appHtml from '../dist/app.html?raw';
-import { createMetronomeServer } from '@/features/metronome/mcp/server';
+import metronome from '../dist/metronome.html?raw';
+import { createFretsServer } from '@/mcp/server';
 import { TOOL_NAME } from '@/features/metronome/mcp/tool';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -25,7 +25,7 @@ let latest: Record<string, unknown> | null = null;
 
 async function connectClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createMetronomeServer(appHtml).connect(serverSide);
+  await createFretsServer({ metronome }).connect(serverSide);
   const client = new Client({ name: HOST.name, version: HOST.version });
   await client.connect(clientSide);
   return client;

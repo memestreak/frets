@@ -1,0 +1,13 @@
+/* The metronome's MCP App: the shared base, the metronome's classes, and its one layout. */
+@import "../base.css";
+@source "../../../src/features/metronome";
+
+/* The one layout (`Strip.tsx`), sized for a chat column. */
+.mcp-strip { padding: 14px 16px; gap: 12px; }
+.mcp-strip .metronome-pads { height: 72px; }
+.mcp-strip-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; }
+.mcp-strip .metronome-big { min-width: 96px; }
+.mcp-strip .metronome-big-number { font-size: 48px; }
+.mcp-strip .metronome-big-unit { font-size: 12px; line-height: 16px; }
+.mcp-strip .metronome-nudge { width: 32px; height: 40px; font-size: 22px; }
+.mcp-strip .metronome-play, .mcp-strip .metronome-tap { height: 40px; min-width: 88px; font-size: 15px; }

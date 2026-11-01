@@ -4,7 +4,7 @@ import { Interval, Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
 import { CHORD_TYPES } from '@/lib/theory/chords';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
-import { AGENT_GUIDES } from '@/features/agents/agentGuides';
+import { AGENT_GUIDES, MCP_SERVER } from '@/features/agents/agentGuides';
 
 /*
  * The agents' guides and skills in public/ against the code they describe
@@ -109,5 +109,15 @@ describe('the files the agents page and llms.txt point to', () => {
     expect(description.length).toBeLessThanOrEqual(1024);
     // The skill sends the agent to its guide, which carries the details.
     expect(text).toContain(`https://frets.eminor.net${AGENT_GUIDES.find(g => g.skill === path)!.guide}`);
+  });
+});
+
+// That the server serves these tools is checked in src/__tests__/mcp/server.test.ts.
+describe('the MCP server the agents page and llms.txt list', () => {
+  const llms = read('llms.txt');
+
+  it('is in llms.txt with every tool', () => {
+    expect(llms).toContain(`](${MCP_SERVER.url})`);
+    for (const t of MCP_SERVER.tools) expect(llms).toContain(`\`${t.name}\``);
   });
 });

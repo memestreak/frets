@@ -1,0 +1,22 @@
+/*
+ * What every MCP App shares: the whole app's CSS (Tailwind, Fretwood, the shared components'
+ * classes) and the self-hosted fonts, which the build inlines because a host's iframe may load
+ * nothing from outside. Each app's own CSS imports this, then adds an `@source` for its feature.
+ */
+@import "../../src/app/globals.css";
+@source "../../src/components";
+
+@font-face { font-family: "Fraunces"; src: url("@/app/fonts/fraunces-600-latin.woff2") format("woff2"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Figtree"; src: url("@/app/fonts/figtree-latin.woff2") format("woff2"); font-weight: 400 700; font-display: block; }
+@font-face { font-family: "JetBrains Mono"; src: url("@/app/fonts/jetbrains-mono-500-latin.woff2") format("woff2"); font-weight: 500; font-display: block; }
+
+/* What next/font sets on the page's <html>. */
+:root {
+  --font-fraunces: "Fraunces";
+  --font-figtree: "Figtree";
+  --font-jetbrains-mono: "JetBrains Mono";
+}
+
+/* The chat is the page: no background of its own, and the card fills the frame's width. */
+html, body { margin: 0; background: transparent; }
+body { padding: 1px; }

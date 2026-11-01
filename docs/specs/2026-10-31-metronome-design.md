@@ -1,7 +1,9 @@
 # Metronome page
 
-Issue #149. A stand-alone metronome at `/metronome`, a Tool. It stays off
-the home page and the menu (`sections.ts`) until Jeremy calls it ready.
+Issue #149. A stand-alone metronome at `/metronome`, a Tool, after the
+Tuner on the home page and in the menu (`sections.ts`). Its pictogram is a
+pyramid metronome, the pendulum swung right. It joined them when Jeremy
+called it ready, 2026-11-01.
 
 Designed with Jeremy over seven rounds of mocks, 2026-10-30 to 2026-10-31
 (screenshots in project files, `metronome/round-1` to `round-7`). Follow-ups

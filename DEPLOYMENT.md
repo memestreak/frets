@@ -62,7 +62,7 @@ Once connected, every push to the `main` branch causes Cloudflare to:
    `mcp/dist/`, then `next build`.
 4. Deploy the contents of the `out` directory to the global edge network,
    and the Pages Functions in `functions/` (`/mcp`, the metronome's MCP
-   server, which bundles `mcp/dist/app.html`).
+   server, which bundles `mcp/dist/*.html`, one per app).
 
 Pull requests get preview deployments at their own URLs, which repeat the
 same build-and-deploy process.
@@ -88,7 +88,7 @@ same build-and-deploy process.
 - **MCP server.** `functions/mcp.ts` answers MCP over HTTP at `/mcp`
   (stateless, no bindings or secrets). Only that path runs a function;
   every other path is a static file. Without `npm run build` as the build
-  command, `mcp/dist/app.html` is missing and the functions fail to
+  command, the apps (`mcp/dist/*.html`) are missing and the functions fail to
   bundle, so the deploy fails.
 
 ## Local Verification

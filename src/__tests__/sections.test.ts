@@ -4,7 +4,7 @@ describe('SECTIONS', () => {
   it('groups the pages as Tools, Practice, then More', () => {
     expect(SECTIONS.map(s => s.label)).toEqual(['Tools', 'Practice', 'More']);
     expect(TOOLS.pages.map(p => p.href)).toEqual(
-      ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/tab'],
+      ['/explore/scales', '/chords', '/explore/triads', '/explore/circle', '/tuner', '/metronome', '/tab'],
     );
     expect(PRACTICE.pages.map(p => p.href)).toEqual(['/practice/intervals', '/practice/notes']);
     expect(MORE.pages.map(p => p.href)).toEqual(['/agents']);
@@ -23,7 +23,8 @@ describe('locate', () => {
     expect(locate('/explore/scales')).toEqual({ section: TOOLS, page: TOOLS.pages[0] });
     expect(locate('/chords')).toEqual({ section: TOOLS, page: TOOLS.pages[1] });
     expect(locate('/tuner')).toEqual({ section: TOOLS, page: TOOLS.pages[4] });
-    expect(locate('/tab')).toEqual({ section: TOOLS, page: TOOLS.pages[5] });
+    expect(locate('/metronome')).toEqual({ section: TOOLS, page: TOOLS.pages[5] });
+    expect(locate('/tab')).toEqual({ section: TOOLS, page: TOOLS.pages[6] });
   });
 
   it('finds a More page', () => {

@@ -31,3 +31,31 @@ export const AGENT_GUIDES: readonly AgentGuide[] = [
     skill: '/skills/frets-tab/SKILL.md',
   },
 ];
+
+/** A tool on the Frets MCP server, and the page it brings into the chat. */
+export interface McpTool {
+  /** The tool's name, as the model calls it. */
+  name: string;
+  /** The Frets page it shows in the chat. */
+  page: string;
+  title: string;
+  summary: string;
+}
+
+/**
+ * Frets' one MCP server: a chat app adds it once as a connector, and every
+ * tool on it comes along, each page's added as it's built. `public/llms.txt`
+ * lists it too.
+ */
+export const MCP_SERVER = {
+  title: 'Frets',
+  url: 'https://frets.eminor.net/mcp',
+  tools: [
+    {
+      name: 'show_metronome',
+      page: '/metronome',
+      title: 'Metronome',
+      summary: 'Ask for a click in any tempo and meter, and a metronome you can play appears in the chat.',
+    },
+  ] as readonly McpTool[],
+};

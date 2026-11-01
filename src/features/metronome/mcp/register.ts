@@ -1,17 +1,17 @@
 /**
- * The metronome's MCP server (#269): one tool, `show_metronome`, and the app it shows. It keeps no
- * state and needs no model: it checks the rhythm and hands it, with the app's HTML, to the host.
- * The same server runs over stdio (`mcp/stdio.ts`) and over HTTP at `/mcp` (`functions/mcp.ts`).
+ * The metronome's part of Frets' MCP server (#269, `src/mcp/`): one tool, `show_metronome`, and the
+ * app it shows. It checks the rhythm and hands it, with the app's HTML, to the host.
  */
-import { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from '@modelcontextprotocol/ext-apps/server';
+import { appHtml, type AppsHtml } from '@/mcp/types';
 import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, describeRhythm, rhythmFromInput, toolInput, type MetronomeState } from './tool';
 
-export const SERVER_INFO = { name: 'frets-metronome', version: '1.0.0' };
+/** The app's name: `mcp/apps/metronome/`, built to `mcp/dist/metronome.html`. */
+export const APP_NAME = 'metronome';
 
-/** A server that serves `appHtml`, the single-file app (`mcp/dist/app.html`). */
-export function createMetronomeServer(appHtml: string): McpServer {
-  const server = new McpServer(SERVER_INFO);
+export function registerMetronomeTools(server: McpServer, apps: AppsHtml): void {
+  const html = appHtml(apps, APP_NAME);
 
   registerAppTool(server, TOOL_NAME, {
     title: 'Metronome',
@@ -30,8 +30,6 @@ export function createMetronomeServer(appHtml: string): McpServer {
   });
 
   registerAppResource(server, 'Metronome', APP_URI, { description: 'The Frets metronome' }, () => ({
-    contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: appHtml }],
+    contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));
-
-  return server;
 }

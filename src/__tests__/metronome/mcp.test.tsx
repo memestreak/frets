@@ -4,7 +4,7 @@ import { AppBridge } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { APP_INFO, MetronomeApp, REPORT_DELAY_MS } from '@/features/metronome/mcp/MetronomeApp';
-import { createMetronomeServer } from '@/features/metronome/mcp/server';
+import { createFretsServer } from '@/mcp/server';
 import { APP_URI, TOOL_NAME, describeRhythm, rhythmFromInput } from '@/features/metronome/mcp/tool';
 import { defaultRhythm } from '@/features/metronome/rhythm';
 
@@ -74,7 +74,7 @@ describe('rhythmFromInput', () => {
 
 async function connectedClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createMetronomeServer('<p>app</p>').connect(serverSide);
+  await createFretsServer({ metronome: '<p>app</p>' }).connect(serverSide);
   const client = new Client({ name: 'test', version: '1' });
   await client.connect(clientSide);
   return client;

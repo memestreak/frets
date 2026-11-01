@@ -1,4 +1,4 @@
-/** The MCP App's entry: one `App` for the host, and the metronome. */
+/** The metronome's MCP App entry (`mcp/apps/metronome/`): one `App` for the host, and the metronome. */
 import { App } from '@modelcontextprotocol/ext-apps';
 import { createRoot } from 'react-dom/client';
 import { APP_INFO, MetronomeApp } from '@/features/metronome/mcp/MetronomeApp';

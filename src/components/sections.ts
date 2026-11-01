@@ -22,7 +22,7 @@ export interface Section {
 
 export const TOOLS: Section = {
   label: 'Tools',
-  summary: 'See how scales and chords lie on the neck, look up a chord, tune up.',
+  summary: 'See how scales and chords lie on the neck, look up a chord, tune up, keep time.',
   pages: [
     {
       href: '/explore/scales',
@@ -48,6 +48,11 @@ export const TOOLS: Section = {
       href: '/tuner',
       title: 'Tuner',
       summary: 'Tune your guitar through the mic, on a dial or a strobe, and hear each string.',
+    },
+    {
+      href: '/metronome',
+      title: 'Metronome',
+      summary: 'Keep time in any meter: accents, groupings, subdivisions, swing and polyrhythms.',
     },
     {
       href: '/tab',
@@ -83,7 +88,7 @@ export const MORE: Section = {
     {
       href: '/agents',
       title: 'Agents',
-      summary: 'Skills that let an agent write chords and tab that open in Frets.',
+      summary: 'Skills that let an agent write chords and tab that open in Frets, and the metronome in a chat.',
     },
   ],
 };
