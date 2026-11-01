@@ -157,7 +157,7 @@ describe('ScaleLab', () => {
     expect(tile()).toHaveAttribute('aria-pressed', 'false');
     expect(diagram()).toEqual(second);
     fireEvent.click(tile());
-    fireEvent.click(document.body);
+    fireEvent.pointerDown(document.body);
     expect(tile()).toHaveAttribute('aria-pressed', 'false');
     expect(diagram()).toEqual(second);
   });
@@ -204,15 +204,23 @@ describe('ScaleLab', () => {
     expect(arpeggio()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('goes back to the scale on a click outside the controls, or Esc', () => {
+  it('goes back to the scale on a press outside the controls, or Esc', () => {
     render(<ScaleLab />);
     const scaleBoard = 'A Dorian on the fretboard';
     fireEvent.click(chordCard('D7'));
     // Controls keep the chord.
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Higher position' }));
     fireEvent.click(screen.getByRole('button', { name: 'Higher position' }));
     expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
-    fireEvent.click(screen.getByRole('heading', { level: 1 }));
+    fireEvent.pointerDown(screen.getByRole('heading', { level: 1 }));
     expect(board()).toHaveAccessibleName(scaleBoard);
+
+    // Esc taken by something else (a field giving up its text) keeps it.
+    fireEvent.click(chordCard('D7'));
+    const taken = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    taken.preventDefault();
+    window.dispatchEvent(taken);
+    expect(board()).toHaveAccessibleName('D7 in A Dorian on the fretboard');
 
     fireEvent.click(chordCard('D7'));
     fireEvent.keyDown(window, { key: 'Escape' });

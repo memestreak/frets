@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
 import { ToggleButton } from '@/components/controls';
 import { DotLabelsPicker } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
 import { KeyPicker } from '@/components/KeyPicker';
+import { useDeselect } from '@/hooks/useDeselect';
 import { usePersist } from '@/hooks/usePersist';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { useShortcuts } from '@/components/shortcuts/useShortcuts';
@@ -56,13 +57,8 @@ export default function Triads() {
   const strings = setStrings(set.strings);
   const opacityOf = (i: number) => (picked === null || i === picked ? 1 : FADED);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) setPicked(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  // Esc, or a press on anything but a control or the board's cells, shows every grip again.
+  useDeselect(picked !== null, () => setPicked(null));
 
   const dots = arpeggio
     ? arpeggioDots(chord, TRIADS_MAX_FRET, set.labels)

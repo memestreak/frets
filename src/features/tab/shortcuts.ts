@@ -84,6 +84,14 @@ const LINE: ShortcutGroup = {
   ],
 };
 
+const CHOOSER: ShortcutGroup = {
+  title: 'In Arrangements…',
+  shortcuts: [
+    { keys: ['Delete', 'Backspace'], does: 'Delete the picked arrangements' },
+    { keys: ['Esc'], does: 'Let the picked files go, then close' },
+  ],
+};
+
 /**
  * The palette's keyed tools, one row per key: tools sharing a key are the steps it goes through
  * ("Accent, then heavy accent"). The note lengths are under Note input already.
@@ -106,4 +114,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, STAFF, paletteShortcuts(), LINE];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, STAFF, paletteShortcuts(), LINE, CHOOSER];

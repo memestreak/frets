@@ -54,6 +54,25 @@ describe('Triads', () => {
     expect(caption()).toHaveTextContent(/Tap a grip/);
   });
 
+  it('clears the pick on a press off the board and its controls, as on every page', () => {
+    render(<Triads />);
+    const press = (el: Element) => { fireEvent.pointerDown(el); fireEvent.click(el); };
+    press(screen.getByTestId('cell-3-9'));
+    expect(caption()).toHaveTextContent(/^1st inversion/);
+    // A press on a grip's cell picks that grip: the press doesn't let the pick go first.
+    press(screen.getByTestId('cell-3-5'));
+    expect(caption()).toHaveTextContent(/^Root position/);
+    // Controls keep it.
+    press(screen.getByRole('button', { name: 'Note' }));
+    expect(caption()).toHaveTextContent(/^Root position/);
+    // The page around them lets it go.
+    fireEvent.pointerDown(screen.getByRole('heading', { level: 1 }));
+    expect(caption()).toHaveTextContent(/Tap a grip/);
+    press(screen.getByTestId('cell-3-5'));
+    fireEvent.pointerDown(document.body);
+    expect(caption()).toHaveTextContent(/Tap a grip/);
+  });
+
   it('orders the pickers Triad, Strings, Root', () => {
     render(<Triads />);
     const root = screen.getByRole('radiogroup', { name: 'Root' });
