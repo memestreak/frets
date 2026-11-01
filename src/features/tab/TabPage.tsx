@@ -76,6 +76,14 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 const COLUMN_REACH = 16;
 
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
+/**
+ * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
+ * ending, or a repeat's end or count. Marks, a repeat's start and a double bar have only Delete; a time or
+ * key signature opens its panel on a press.
+ */
+function hasEdit(hit: { kind: string }): hit is WordHit {
+  return !['mark', 'repeatStart', 'doubleBar', 'time', 'key'].includes(hit.kind);
+}
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
 /**
@@ -1247,9 +1255,12 @@ export default function TabPage() {
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
                       onPickColumn={pickColumn} onPickRest={inputMode ? undefined : onPickRest} columnReach={COLUMN_REACH}
-                      // Out of note input, a double-click on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
-                      onDoubleClick={() => {
-                        if (inputMode) return;
+                      // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
+                      // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
+                      // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
+                      onDoubleClick={(word, onMark) => {
+                        if (word && hasEdit(word)) return editPicked(word);
+                        if (word || onMark || inputMode) return;
                         setSelection(null);
                         enterInput(true);
                       }}
@@ -1401,7 +1412,7 @@ export default function TabPage() {
           }}
           items={menu.hit ? [
             // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete.
-            ...(menu.hit.kind !== 'mark' && menu.hit.kind !== 'repeatStart' && menu.hit.kind !== 'doubleBar' ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit as WordHit) }] : []),
+            ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit as WordHit) }] : []),
             { label: 'Delete', onSelect: () => deletePicked(menu.hit!) },
           ] : [
             // The bar under a right-click already has the cursor: the press put it there.
