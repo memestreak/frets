@@ -74,7 +74,7 @@ describe('rhythmFromInput', () => {
 
 async function connectedClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createFretsServer({ metronome: '<p>app</p>' }).connect(serverSide);
+  await createFretsServer({ metronome: '<p>app</p>', tuner: '<p>tuner</p>' }).connect(serverSide);
   const client = new Client({ name: 'test', version: '1' });
   await client.connect(clientSide);
   return client;
@@ -84,9 +84,9 @@ describe('the server', () => {
   it('lists show_metronome with its app', async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
-    expect(tools.map(t => t.name)).toEqual([TOOL_NAME]);
-    expect(tools[0]._meta).toMatchObject({ ui: { resourceUri: APP_URI } });
-    const schema = tools[0].inputSchema as { properties: Record<string, { minimum?: number; maximum?: number }> };
+    const tool = tools.find(t => t.name === TOOL_NAME)!;
+    expect(tool._meta).toMatchObject({ ui: { resourceUri: APP_URI } });
+    const schema = tool.inputSchema as { properties: Record<string, { minimum?: number; maximum?: number }> };
     expect(schema.properties.bpm).toMatchObject({ minimum: 20, maximum: 400 });
     expect(schema.properties.beats).toMatchObject({ minimum: 1, maximum: 32 });
   });

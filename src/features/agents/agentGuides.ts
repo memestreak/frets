@@ -57,5 +57,11 @@ export const MCP_SERVER = {
       title: 'Metronome',
       summary: 'Ask for a click in any tempo and meter, and a metronome you can play appears in the chat.',
     },
+    {
+      name: 'show_tuner',
+      page: '/tuner',
+      title: 'Tuner',
+      summary: 'Ask to tune your guitar, and a tuner that listens through your mic appears in the chat.',
+    },
   ] as readonly McpTool[],
 };

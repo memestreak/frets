@@ -26,6 +26,7 @@ credits their sources as:
 
 Changes: each recording was cut to 3 seconds with a fade over the last 0.6,
 mixed to mono and re-encoded as 96 kbps MP3. See `public/sounds/README.md`.
+The acoustic set is also built into the tuner's MCP App (`mcp/dist/tuner.html`).
 
 ## alphaTex parser and synthesizer: alphaTab
 
