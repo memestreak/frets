@@ -682,6 +682,23 @@ export default function TabPage() {
     }
   };
 
+  /**
+   * A press on a rest in normal mode (issue #276): the rest alone is selected, lit with its box as MuseScore
+   * selects one, not its bar; with Shift the selection grows to it.
+   */
+  const onPickRest = (at: { bar: number; column: number }, extend: boolean) => {
+    const hit = { ...at, string: cursor.string };
+    if (extend) {
+      onPick(hit, true);
+      return;
+    }
+    lastDigit.current = null;
+    const left = editing && at.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
+    commit(left, hit, null);
+    setStaffPitch(null);
+    setColumnOnly(true);
+  };
+
   /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
   const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
     const string = stringAtPitch(next, at, pitch);
@@ -813,6 +830,24 @@ export default function TabPage() {
    * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
    * time signature panel) or goes to the palette, nor when the whole window loses it.
    */
+  /**
+   * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
+   * selection go, as MuseScore's does (Jeremy, 2026-11-01, issue #276). Controls, the palette, menus and
+   * dialogs keep it, so their tools still work on it. Told by what is pressed, not by where focus goes, as
+   * Safari doesn't focus a pressed button.
+   */
+  useEffect(() => {
+    if (!selection) return;
+    const onPress = (e: PointerEvent) => {
+      const at = e.target;
+      if (!(at instanceof Element)) return;
+      if (at.closest('.tab-editor svg, button, a, input, select, textarea, label, [role="menu"], [role="dialog"], dialog, .tab-palette')) return;
+      setSelection(null);
+    };
+    document.addEventListener('pointerdown', onPress, true);
+    return () => document.removeEventListener('pointerdown', onPress, true);
+  }, [selection]);
+
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     setEditing(false);
     setPicked(null);
@@ -1163,7 +1198,7 @@ export default function TabPage() {
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                      onPickColumn={pickColumn} columnReach={COLUMN_REACH}
+                      onPickColumn={pickColumn} onPickRest={inputMode ? undefined : onPickRest} columnReach={COLUMN_REACH}
                       // Out of note input, a double-click on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
                       onDoubleClick={() => {
                         if (inputMode) return;
@@ -1171,7 +1206,7 @@ export default function TabPage() {
                         enterInput(true);
                       }}
                       highlight={{
-                        cursor: editing && !picked ? cursor : null, range: litRange, columnOnly,
+                        cursor: editing && !picked ? cursor : null, range: litRange, boxed: selection !== null, columnOnly,
                         staffPitch: staffCursor, input: inputMode,
                       }}
                       shadow={inputMode ? inputLength.value : null}

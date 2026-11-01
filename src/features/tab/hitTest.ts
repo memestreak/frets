@@ -3,6 +3,8 @@
  * columns, and where the cursor is drawn. Pure; works on a `layoutClip` layout.
  */
 
+import { isRest } from './clip';
+import { staffBar } from './staffGeometry';
 import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
@@ -23,15 +25,19 @@ const HEAD_REACH_Y = SPACE;
 function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number): Hit | null {
   let best: { hit: Hit; distance: number } | null = null;
   for (const bar of system.bars) {
+    const geometry = staffBar(bar, score).columns;
     bar.columns.forEach((placed, column) => {
-      const dx = Math.abs(placed.x - x);
-      if (dx > HEAD_REACH_X) return;
-      for (const head of placed.heads) {
+      const drawn = geometry.get(placed);
+      if (!drawn) return;
+      placed.heads.forEach((head, k) => {
+        // Where the head is drawn: a head a second from its neighbour sits on the stem's other side (issue #276).
+        const dx = Math.abs(drawn.xs[k] + drawn.width / 2 - x);
+        if (dx > HEAD_REACH_X) return;
         const dy = Math.abs(stepY(score, head.step) - localY);
-        if (dy > HEAD_REACH_Y) continue;
+        if (dy > HEAD_REACH_Y) return;
         const distance = dx + dy;
         if (!best || distance < best.distance) best = { hit: { bar: bar.index, column, string: head.string }, distance };
-      }
+      });
     });
   }
   return best ? (best as { hit: Hit }).hit : null;
@@ -177,3 +183,29 @@ export function cursorSpot(layout: Layout, bar: number, column: number): { syste
 }
 
 /* — beams: eighths and shorter within one beat are joined; in 4/4, plain eighths by the half bar — */
+
+/** How far across from a rest's middle a press still picks it. */
+const REST_REACH_X = 9;
+
+/**
+ * The rest under a press (issue #276): where the staff draws it, across the staff's five lines, or, with
+ * the tab alone, where the tab's own rhythm draws it under the strings. A multi-bar rest and a grace
+ * note have none to pick.
+ */
+export function restAt(layout: Layout, x: number, y: number): { bar: number; column: number } | null {
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
+  const [top, bottom] = rows.score ? [rows.score.top, rows.score.bottom] : rows.tabStems ? [rows.stemTop, rows.stemTop + 24] : [null, null];
+  if (top === null || bottom === null || localY < top || localY > bottom) return null;
+  for (const bar of system.bars) {
+    if (bar.restRun) continue;
+    for (let column = 0; column < bar.columns.length; column++) {
+      const placed = bar.columns[column];
+      if (!isRest(placed.column) || placed.column.grace) continue;
+      if (Math.abs(placed.x - x) <= REST_REACH_X) return { bar: bar.index, column };
+    }
+  }
+  return null;
+}

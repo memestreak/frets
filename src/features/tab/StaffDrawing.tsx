@@ -16,7 +16,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null }: {
   system: System;
   score: ScoreRows;
   clip: Part;
@@ -26,8 +26,13 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
   marks: StaffMark[];
   /** The staff without the tab: its bends' arrows show a let-down bend coming back, so no head does. */
   alone?: boolean;
-  /** The selected run of columns (places in the clip): their heads are drawn in `--primary`, as MuseScore colours selected notes. */
+  /** The selected run of columns (places in the clip): their heads are drawn in `--select`, as MuseScore colours selected notes. */
   selected?: [number, number] | null;
+  /**
+   * The one note selected in normal mode (issue #276): its head, sign, brackets, ledger lines and dots drawn
+   * in `--select` where they are, so a sign moved left for a chord lights with its note.
+   */
+  selectedNote?: NoteAt | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
@@ -53,10 +58,10 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} />);
     parts.push(
-      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} />,
+      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={selectedNote} />,
     );
   }
-  const litLook = { ...look, ink: 'var(--primary)' };
+  const litLook = { ...look, ink: 'var(--select)' };
   const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
   marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={inRun(mark.hit.index) ? litLook : look} />));
   return <g data-testid="staff">{parts}</g>;
@@ -73,7 +78,7 @@ function ledgerSteps(step: number): number[] {
 /**
  * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
  * its ledger lines and, when the key doesn't give it, its sharp, flat or natural. In normal mode (issue
- * #238) it marks the selected note instead, `selected`: the head filled in the primary colour, as
+ * #238) it marks the selected note instead, `selected`: the head filled in the selection colour, as
  * MuseScore colours a selected note.
  */
 export function StaffCursor({ x, step, sign, score, selected = false }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean }) {
@@ -83,13 +88,13 @@ export function StaffCursor({ x, step, sign, score, selected = false }: { x: num
   return (
     <g data-testid={selected ? 'staff-selected' : 'staff-cursor'} pointerEvents="none">
       {ledgerSteps(step).map(ls => (
-        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--primary)" strokeWidth={1} />
+        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--select)" strokeWidth={1} />
       ))}
       <path
         d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`}
-        fill="var(--primary)" fillOpacity={selected ? 1 : 0.3} stroke={selected ? 'none' : 'var(--primary)'} strokeWidth={1.5 / SPACE}
+        fill="var(--select)" fillOpacity={selected ? 1 : 0.3} stroke={selected ? 'none' : 'var(--select)'} strokeWidth={1.5 / SPACE}
       />
-      {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--primary)" />}
+      {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--select)" />}
     </g>
   );
 }
@@ -106,7 +111,7 @@ export function ShadowNote({ x, step, value, score }: { x: number; step: number;
   const stemTop = stepY(score, step + STEM_STEPS);
   const flag = FLAGS[value]?.[0];
   return (
-    <g data-testid="shadow-note" data-value={value} pointerEvents="none" opacity={0.45} fill="var(--primary)" stroke="var(--primary)">
+    <g data-testid="shadow-note" data-value={value} pointerEvents="none" opacity={0.45} fill="var(--select)" stroke="var(--select)">
       {ledgerSteps(step).map(ls => (
         <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} strokeWidth={1} />
       ))}
@@ -264,7 +269,15 @@ export function ghostChord(column: Column, heads: Head[]): boolean {
 }
 
 /** One bar's notes on the staff. */
-function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null }) {
+/** A note by its column's place in the clip and its string. */
+export interface NoteAt {
+  index: number;
+  string: number;
+}
+
+function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: {
+  bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null; selectedNote: NoteAt | null;
+}) {
   const look = barLook;
   if (bar.restRun) {
     const { first, span, count } = bar.restRun;
@@ -275,9 +288,10 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
 
   for (const placed of bar.columns) {
     const { column, x, heads } = placed;
-    // A selected column's heads, signs, ledger lines and rest are drawn in the primary colour, as MuseScore colours selected notes.
+    // A selected column's heads, signs, ledger lines and rest are drawn in the selection colour, as MuseScore colours selected notes.
     const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
-    const look = lit ? { ...barLook, ink: 'var(--primary)' } : barLook;
+    const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
+    const columnLook = look;
     const { value, dots } = column.duration;
     const key = `${placed.index}`;
     const grace = column.grace ? GRACE_SCALE : 1;
@@ -296,6 +310,8 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
     const chord = ghostChord(column, heads);
     heads.forEach((h, k) => {
       const note = column.notes[h.string];
+      const picked = selectedNote !== null && selectedNote.index === placed.index && selectedNote.string === h.string;
+      const look = picked ? { ...barLook, ink: 'var(--select)' } : columnLook;
       // A dead note is an ×; a natural harmonic a diamond, as printed guitar music has them.
       const head = h.dead ? X_HEADS[shape] : note?.harmonic === 'natural' ? DIAMOND_HEADS[shape] : HEADS[shape];
       const y = stepY(score, h.step);
@@ -333,11 +349,12 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
         const sy = sideHead(h.bendBack, left, 'back');
         parts.push(<line key={`back-line-${key}-${k}`} x1={start} y1={y} x2={left - PAREN_LEFT - 2} y2={sy - 2} stroke={look.ink} strokeWidth={1} data-testid="staff-bend-line" />);
       }
-      parts.push(
-        <g key={`head-${key}-${k}`} data-testid="staff-head" data-selected={lit || undefined}>
+      const drawnHead = (
+        <g data-testid="staff-head" data-selected={lit || picked || undefined}>
           <Glyph name={head} x={xs[k]} y={y} look={look} scale={grace} />
-        </g>,
+        </g>
       );
+      parts.push(picked ? <g key={`head-${key}-${k}`} data-testid="staff-selected">{drawnHead}</g> : <g key={`head-${key}-${k}`}>{drawnHead}</g>);
       // A ghost note's head in brackets, and a tied note's in a bend, at the pitch the bend has reached.
       if ((note?.ghost && !chord) || h.bent) {
         const open = GLYPHS.noteheadParenthesisLeft.width * SPACE * grace;
@@ -396,10 +413,12 @@ function StaffBar({ bar, score, look: barLook, alone, selected }: { bar: PlacedB
     if (g.length < 2) continue;
     const up = groupUp.get(g)!;
     const y0 = beamY.get(g)!;
+    // A beam whose notes are all selected is selected too, as MuseScore draws it (Jeremy, 2026-11-01, issue #276).
+    const beamInk = selected !== null && g.every(p => p.index >= selected[0] && p.index <= selected[1]) ? 'var(--select)' : barLook.ink;
     const stemOf = (p: PlacedColumn) => (up ? p.x + HEAD_WIDTH / 2 - 0.6 : p.x - HEAD_WIDTH / 2 + 0.6);
     const beam = (k: string, xa: number, xb: number, level: number) => {
       const y = up ? y0 + (level - 1) * BEAM_GAP : y0 - (level - 1) * BEAM_GAP - BEAM_THICKNESS;
-      return <rect key={k} x={Math.min(xa, xb) - 0.5} y={y} width={Math.abs(xb - xa) + 1} height={BEAM_THICKNESS} fill={look.ink} />;
+      return <rect key={k} x={Math.min(xa, xb) - 0.5} y={y} width={Math.abs(xb - xa) + 1} height={BEAM_THICKNESS} fill={beamInk} data-testid="staff-beam" />;
     };
     parts.push(beam(`beam-${g[0].index}`, stemOf(g[0]), stemOf(g[g.length - 1]), 1));
     for (let level = 2; level <= 4; level++) {

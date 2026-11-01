@@ -103,8 +103,8 @@ function pressFirstTimeSignature() {
   fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
 }
 
-/** The fret numbers drawn selected (in the primary colour): a selection lights its notes, with no band. */
-const litFrets = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--primary)"]')];
+/** The fret numbers drawn selected (in the selection colour): a selection lights its notes, with no band. */
+const litFrets = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--select)"]')];
 
 describe('TabPage', () => {
   it("draws the title, credits and tuning as the score's head, in the clip's card, and shows bar numbers as the View options say", async () => {
@@ -524,7 +524,7 @@ describe('TabPage', () => {
       // Typing is note input's (issue #238).
       keys('n', 'ArrowDown');
       keys('5', 'ArrowRight', '7');
-      const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--primary-soft)"]') ?? null;
+      const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--select-soft)"]') ?? null;
       expect(band()).toBeNull();
       expect(litFrets()).toHaveLength(0);
       keys({ key: 'ArrowLeft', shiftKey: true });
@@ -945,9 +945,9 @@ describe('TabPage', () => {
         fireEvent.pointerUp(svg, { ...to, shiftKey: true });
         expect(screen.queryByTestId('select-rectangle')).toBeNull();
         expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |');
-        // The notes inside are drawn selected, in the primary colour; the ones outside are not.
+        // The notes inside are drawn selected, in the selection colour; the ones outside are not.
         const fill = (fret: string) => screen.getAllByText(fret).find(t => t.closest('[data-testid="tab-system"]'))!.getAttribute('fill');
-        expect([fill('7'), fill('8'), fill('9')]).toEqual(['var(--primary)', 'var(--primary)', 'var(--primary)']);
+        expect([fill('7'), fill('8'), fill('9')]).toEqual(['var(--select)', 'var(--select)', 'var(--select)']);
         expect(fill('5')).toBe('var(--ink)');
         // A Shift+press on a blank string, not moved, extends the selection to there as before.
         fireEvent.pointerDown(svg, { clientX: xs[4], clientY: top + rows.staffTop + 5 * 14, button: 0, shiftKey: true });
@@ -2652,6 +2652,29 @@ describe('dragging notes on the staff (issue #174)', () => {
   };
   const frets = () => alphaTexText().split('\n').find(line => line.includes('|'));
 
+  it.each(['both', 'staff'])('a note selected on the staff (%s) lights its own sign where it is drawn (issue #276)', async parts => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
+    // C♯ and D♯ a second apart: the heads sit side by side and the lower sign goes a lane further left.
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(6.3 4.2).4 r.4 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(2), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    const staffPaths = () => [...screen.getByTestId('staff').querySelectorAll('path')];
+    const unlit = staffPaths().map(p => p.getAttribute('transform'));
+    act(() => editor().focus());
+    for (const k of [0, 1]) {
+      fireEvent.pointerDown(svg, { ...headAt(k), button: 0 });
+      fireEvent.pointerUp(svg, { ...headAt(k), button: 0 });
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+      // Nothing drawn over the note: the same glyphs in the same places, the head and its sign lit.
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(staffPaths().map(p => p.getAttribute('transform'))).toEqual(unlit);
+      const lit = staffPaths().filter(p => p.getAttribute('fill') === 'var(--select)');
+      expect(lit).toHaveLength(2);
+      expect(lit).toContain(screen.getByTestId('staff-selected').querySelector('path'));
+    }
+  });
+
   it.each(['both', 'staff'])('Esc on a note pressed on the staff (%s) leaves nothing drawn', async parts => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
@@ -2770,6 +2793,35 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('a press on a rest selects that rest alone, boxed, and Shift grows the run to it (issue #276)', async () => {
+      await open();
+      const restPath = screen.getByTestId('staff-rest').querySelector('path')!;
+      const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
+      const onRest = { clientX: Number(x) + 4, clientY: Number(y) };
+      const lit = () => screen.getAllByTestId('staff-head').map(h => h.hasAttribute('data-selected'));
+      press(onRest);
+      expect(restPath.getAttribute('fill')).toBe('var(--select)');
+      expect(lit()).toEqual([false, false, false]);
+      // It lights alone: no box round its column (Jeremy, 2026-11-01).
+      expect(screen.queryByTestId('range-box')).toBeNull();
+      // Delete leaves it a rest; the bar's notes are untouched.
+      fireEvent.keyDown(editor(), { key: 'Delete' });
+      expect(screen.getAllByTestId('staff-rest')).toHaveLength(1);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
+      // From the D string's note, Shift+press on the rest selects both.
+      press(headAt(2));
+      fireEvent.pointerDown(svg(), { ...onRest, button: 0, shiftKey: true });
+      fireEvent.pointerUp(svg(), { ...onRest, button: 0, shiftKey: true });
+      expect(lit()).toEqual([false, false, true]);
+      expect(screen.getByTestId('staff-rest').querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      // In note input a press there enters a note, as before.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      fireEvent.keyDown(editor(), { key: 'n' });
+      press(onRest);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
+    });
+
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {
       await open();
       press(headAt(2));
@@ -2793,7 +2845,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
     });
 
-    it('draws the heads of a selected run in the primary colour', async () => {
+    it('draws the heads of a selected run in the selection colour', async () => {
       await open();
       press(headAt(2));
       fireEvent.keyDown(editor(), { key: 'ArrowRight', shiftKey: true });
@@ -2810,6 +2862,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
       expect(screen.queryByTestId('column-cursor')).toBeNull();
       expect(screen.getAllByTestId('staff-head').map(h => h.getAttribute('data-selected'))).toEqual(['true', 'true', 'true']);
+      // A box round the bar says the bar is selected (issue #276); Shift+← takes a column off it, Esc takes it away.
+      const boxWidth = () => Number(screen.getByTestId('range-box').getAttribute('width'));
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      const whole = boxWidth();
+      fireEvent.keyDown(editor(), { key: 'ArrowLeft', shiftKey: true });
+      expect(boxWidth()).toBeLessThan(whole);
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      expect(screen.queryByTestId('range-box')).toBeNull();
+      // A press off the bars lets it go; one on a palette button keeps it for the tool (Jeremy, 2026-11-01).
+      press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
+      fireEvent.pointerDown(screen.getByRole('button', { name: /^Dotted/ }));
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      fireEvent.pointerDown(document.body);
+      expect(screen.queryByTestId('range-box')).toBeNull();
+      press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
       // On the tab too: a press on an empty string lights the bar's notes, with no box round the column.
       fireEvent.keyDown(editor(), { key: 'Escape' });
       const three = screen.getAllByText('3').find(t => t.closest('[data-testid="tab-system"]'))!;
@@ -2817,7 +2884,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       press({ clientX: Number(three.getAttribute('x')), clientY: top + Number(three.getAttribute('y')) - 4 - 14 });
       expect(screen.queryByTestId('column-cursor')).toBeNull();
       expect(screen.queryByTestId('selected-note')).toBeNull();
-      const lit = screen.getAllByText(/^[357]$/).filter(t => t.closest('[data-testid="tab-system"]') && t.getAttribute('fill') === 'var(--primary)');
+      const lit = screen.getAllByText(/^[357]$/).filter(t => t.closest('[data-testid="tab-system"]') && t.getAttribute('fill') === 'var(--select)');
       expect(lit.map(t => t.textContent).sort()).toEqual(['3', '5', '7']);
     });
   });
@@ -2913,5 +2980,26 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     renderAt(`#tab=${encodeURIComponent(TEX)}`);
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     expect(screen.queryByRole('combobox', { name: 'Track' })).toBeNull();
+  });
+});
+
+describe('beams light with their notes (issue #276)', () => {
+  it.each([['both', 'staff-beam', 'fill'], ['tab', 'tab-beam', 'stroke']])('in %s, a beam lights only once every note it joins is selected', async (parts, testId, paint) => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: parts }));
+    // Four eighths beamed together, then a half rest.
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n3.6.8 5.6.8 7.6.8 5.6.8 r.2 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId(testId).length).toBeGreaterThan(0), SLOW);
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    const beam = () => screen.getAllByTestId(testId)[0].getAttribute(paint);
+    expect(beam()).not.toBe('var(--select)');
+    // From the first eighth, three of the four: the beam stays as it is.
+    for (let k = 0; k < 2; k++) fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+    expect(beam()).not.toBe('var(--select)');
+    // The fourth: all its notes are selected, so it is too.
+    fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+    expect(beam()).toBe('var(--select)');
+    fireEvent.keyDown(editor, { key: 'Escape' });
+    expect(beam()).not.toBe('var(--select)');
   });
 });

@@ -8,7 +8,11 @@ import { MultiRest } from './StaffDrawing';
 import { type TabLook } from './tabLook';
 
 /** Stems, beams, flags, dots, tremolo slashes, tuplet numbers and rests under the staff; grace notes get none. */
-export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: number; look: TabLook }) {
+export function Stems({ bar, rows, beat, look: barLook, selected = null }: {
+  bar: PlacedBar; rows: Rows; beat: number; look: TabLook;
+  /** The selected run of columns (places in the clip): their stems, flags, dots and rests, and a beam all of whose notes are in it, are drawn in `--select` (issue #276). */
+  selected?: [number, number] | null;
+}) {
   const parts: ReactNode[] = [];
   const groups = beamGroups(bar, beat);
   const grouped = new Map<Column, PlacedColumn[]>();
@@ -17,10 +21,14 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
   // A multi-bar rest: its thick bar where the rests go, its count over the tab.
   if (bar.restRun) {
     if (!bar.restRun.first) return null;
-    return <MultiRest span={bar.restRun.span} count={bar.restRun.count} y={rows.stemTop + 10} countY={rows.staffTop - 6} look={look} />;
+    return <MultiRest span={bar.restRun.span} count={bar.restRun.count} y={rows.stemTop + 10} countY={rows.staffTop - 6} look={barLook} />;
   }
+  const inRun = (p: PlacedColumn) => selected !== null && p.index >= selected[0] && p.index <= selected[1];
+  const litLook = { ...barLook, ink: 'var(--select)' };
   for (const placed of bar.columns) {
     const { column, x } = placed;
+    // A selected column's stem, flags, dots and rest are drawn in the selection colour, as on the staff.
+    const look = inRun(placed) ? litLook : barLook;
     const { value, dots } = column.duration;
     const key = `${x}`;
     if (column.grace) continue;
@@ -62,7 +70,9 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
     if (g.columns.length < 2) continue;
     const first = g.columns[0].x;
     const last = g.columns[g.columns.length - 1].x;
-    parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={rows.stemBottom} y2={rows.stemBottom} stroke={look.ink} strokeWidth={3.2} />);
+    // A beam whose notes are all selected is selected too (Jeremy, 2026-11-01, issue #276).
+    const look = g.columns.every(inRun) ? litLook : barLook;
+    parts.push(<line key={`beam-${first}`} x1={first} x2={last} y1={rows.stemBottom} y2={rows.stemBottom} stroke={look.ink} strokeWidth={3.2} data-testid="tab-beam" />);
     // The second, third and fourth beams join neighbours that have them too; a note alone in having
     // one gets a short stub toward its neighbour.
     for (let level = 2; level <= 4; level++) {
@@ -97,9 +107,9 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
       <g key={`tuplet-${cols[from].x}`} data-testid="tuplet-group">
         <path
           d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
-          fill="none" stroke={look.ink} strokeWidth={1} data-testid="tuplet-bracket"
+          fill="none" stroke={barLook.ink} strokeWidth={1} data-testid="tuplet-bracket"
         />
-        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
+        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={barLook.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
       </g>,
     );
   }

@@ -1,10 +1,10 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { boundaryAt, cursorSpot, hitTest, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets } from './StaffDrawing';
+import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -22,6 +22,11 @@ export interface Highlight {
   cursor: Hit | null;
   /** First and last selected places in the clip, inclusive. */
   range: [number, number] | null;
+  /**
+   * Whether the range is a run selected as a range (a bar pressed, Shift, a rectangle), boxed as MuseScore
+   * boxes one; a rest or a column selected by itself only lights (Jeremy, 2026-11-01, issue #276).
+   */
+  boxed?: boolean;
   /** The cursor is on its column only, with no string picked: the column is tinted, no string boxed. */
   columnOnly?: boolean;
   /** The staff's own cursor on the cursor's column: the sounding pitch Enter would put there (issue #136). */
@@ -39,7 +44,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -103,6 +108,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * 2026-10-27: "more clickable area above and below"), in pixels; the page's margin round the clip.
    */
   columnReach?: number;
+  /** A press on a rest, in normal mode (issue #276): its bar and column, and whether Shift grows the selection to it. */
+  onPickRest?: (at: { bar: number; column: number }, extend: boolean) => void;
 }) {
   const layout = layoutClip(clip, width, parts);
   const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
@@ -122,19 +129,25 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     if (py < 0 || py >= layout.height) {
       const edge = py < 0 ? 0 : layout.height - 1;
       const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
-      return { run: null, text: null, mark: null, staff: null, hit: null, column, px, py };
+      return { run: null, text: null, mark: null, rest: null, staff: null, hit: null, column, px, py };
     }
     const run = onPickRun && words ? runAt(layout, px, py) : null;
     const text = !run && onPickText && words ? textAt(layout, px, py) : null;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
-    const staff = run || text || mark || !onPickStaff ? null : staffAt(layout, px, py);
-    const hit = run || text || mark || staff ? null : hitTest(layout, px, py);
-    const column = run || text || mark || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
-    return { run, text, mark, staff, hit, column, px, py };
+    const rest = run || text || mark || !onPickRest || e.button !== 0 ? null : restAt(layout, px, py);
+    const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
+    const hit = run || text || mark || rest || staff ? null : hitTest(layout, px, py);
+    const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
+    return { run, text, mark, rest, staff, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, mark, staff, hit, column, px, py } = target(e);
+    const { run, text, mark, rest, staff, hit, column, px, py } = target(e);
+    if (rest) {
+      // A rest pressed in normal mode: it alone is selected, or with Shift the run grows to it (issue #276).
+      onPickRest!(rest, e.shiftKey);
+      return;
+    }
     // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
     const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
     if (onPickRect && e.shiftKey && e.button === 0 && !run && !text && !mark && !onNote) {
@@ -260,8 +273,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, text, mark, staff, hit } = target(e);
-    if (text || (!run && !mark && !staff && !hit)) e.preventDefault();
+    const { run, text, mark, rest, staff, hit } = target(e);
+    if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -291,13 +304,13 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       {rect && (
         <rect
           x={Math.min(rect.x0, rect.x1)} y={Math.min(rect.y0, rect.y1)} width={Math.abs(rect.x1 - rect.x0)} height={Math.abs(rect.y1 - rect.y0)}
-          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1} strokeDasharray="4 3" pointerEvents="none" data-testid="select-rectangle"
+          fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1} strokeDasharray="4 3" pointerEvents="none" data-testid="select-rectangle"
         />
       )}
       {pickedBox && (
         <rect
           x={pickedBox.x} y={pickedBox.y} width={pickedBox.width} height={pickedBox.height} rx={4}
-          fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid={picked?.kind === 'mark' ? 'picked-mark' : 'picked-word'}
+          fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1.5} data-testid={picked?.kind === 'mark' ? 'picked-mark' : 'picked-word'}
         />
       )}
       {spot && highlight?.cursor && (() => {
@@ -310,7 +323,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           {!highlight.range && !highlight.columnOnly && highlight.staffPitch == null && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
-              fill={highlight.input ? 'none' : 'var(--primary-soft)'} stroke="var(--primary)" strokeWidth={1.5}
+              fill={highlight.input ? 'none' : 'var(--select-soft)'} stroke="var(--select)" strokeWidth={1.5}
               data-testid={highlight.input ? 'input-cursor' : 'selected-note'}
             />
           )}
@@ -322,15 +335,26 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             return (
               <rect
                 x={spot.x - 12} y={top} width={24} height={bottom - top} rx={4}
-                fill="var(--primary-soft)" stroke="var(--primary)" strokeWidth={1.5} data-testid="column-cursor"
+                fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1.5} data-testid="column-cursor"
               />
             );
           })()}
         </g>
         );
       })()}
+      {highlight?.range && highlight.boxed && rangeBoxes(layout.systems, highlight.range).map(box => (
+        // Round the selected run, line by line, under the notes, as MuseScore boxes a range (issue #276).
+        <rect
+          key={`range-${box.system}`} x={box.x} y={box.y} width={box.width} height={box.height} rx={3} pointerEvents="none"
+          fill="var(--select-soft)" fillOpacity={0.6} stroke="var(--select)" strokeWidth={1}
+          data-testid="range-box"
+        />
+      ))}
       {layout.systems.map((system, si) => {
         const { rows } = system;
+        // The selected note lights where it is drawn: no cursor of its own over it (issue #276).
+        const cursorOnStaff = rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null;
+        const selectedNote = cursorOnStaff ? staffNoteAt(system, highlight) : null;
         return (
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
           <SystemDrawing
@@ -339,10 +363,10 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
             selected={highlight?.range ?? null}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} />
+            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} selectedNote={selectedNote} />
           )}
-          {rows.score && spot?.system === si && highlight?.cursor && !highlight.range && highlight.staffPitch != null && (
-            <StaffCursor x={spot.x} score={rows.score} selected={!highlight.input} {...staffCursorPlace(clip, highlight.cursor.bar, highlight.staffPitch)} />
+          {cursorOnStaff && !selectedNote && (
+            <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
           )}
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
@@ -351,7 +375,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           {shadow !== null && hover?.system === si && hover.string !== null && rows.tab && (
             <rect
               x={hover.x - 12} y={stringY(rows, hover.string) - 9} width={24} height={18} rx={4}
-              fill="none" stroke="var(--primary)" strokeWidth={1.5} strokeOpacity={0.4} pointerEvents="none" data-testid="shadow-fret"
+              fill="none" stroke="var(--select)" strokeWidth={1.5} strokeOpacity={0.4} pointerEvents="none" data-testid="shadow-fret"
             />
           )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
@@ -417,7 +441,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   /** This line's whammy bar lines, under the tab. */
   whammy: WhammyDrawing[];
   lastBar: number;
-  /** The selected run of columns: their numbers and marks are drawn in `--primary` (issue #238). */
+  /** The selected run of columns: their numbers and marks are drawn in `--select` (issue #238). */
   selected: [number, number] | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
@@ -501,13 +525,13 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
       parts.push(
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index}
-          look={selected && placed.index >= selected[0] && placed.index <= selected[1] ? { ...look, ink: 'var(--primary)' } : look}
+          look={selected && placed.index >= selected[0] && placed.index <= selected[1] ? { ...look, ink: 'var(--select)' } : look}
           previous={previous} slides={slides} joins={joins} staffStart={system.staffStart}
         />,
       );
     }
     // Under a staff, the staff carries the rhythm.
-    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
+    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} selected={selected} />);
   }
 
   return <>{parts}</>;
@@ -589,7 +613,7 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
     for (const run of vibratoRuns(system)) {
       const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
       const lit = selected !== null && run.from.index >= selected[0] && run.from.index <= selected[1];
-      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={lit ? 'var(--primary)' : look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
+      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={lit ? 'var(--select)' : look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }
 
@@ -780,3 +804,50 @@ const BRACKET_THICKNESS = 3.5;
 const BRACKET_GAP = 4;
 /** Bravura draws the ends for a bar half a space thick; they are scaled to meet this one. */
 const BRACKET_SCALE = BRACKET_THICKNESS * 2;
+
+/**
+ * In normal mode, the note the staff's cursor is on, when one is drawn there: lit in place rather than
+ * covered by a cursor head, whose sign would sit apart from the note's own (issue #276).
+ */
+function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
+  const { cursor, input, columnOnly } = highlight;
+  if (!cursor || input || columnOnly) return null;
+  const bar = system.bars.find(b => b.index === cursor.bar);
+  const placed = bar?.columns[cursor.column];
+  if (!placed || !placed.heads.some(h => h.string === cursor.string)) return null;
+  return { index: placed.index, string: cursor.string };
+}
+
+/** How far the box round a selected run reaches past the staff's top and the tab's bottom line. */
+const RANGE_PAD = 10;
+
+/**
+ * The box round a selected run of columns on each line it reaches (issue #276): from the staff's top (or the
+ * tab's top line) to the tab's bottom line (or the staff's bottom; with the tab alone, the foot of its stems), across the run's columns. Where the run
+ * takes a bar from its first column it starts at the bar line, and where it takes it to its last it ends
+ * at the next, so a whole bar is boxed bar line to bar line; inside a bar it ends halfway between notes.
+ */
+export function rangeBoxes(systems: System[], [from, to]: [number, number]): { system: number; x: number; y: number; width: number; height: number }[] {
+  const boxes: { system: number; x: number; y: number; width: number; height: number }[] = [];
+  systems.forEach((system, si) => {
+    let left: number | null = null;
+    let right: number | null = null;
+    for (const bar of system.bars) {
+      bar.columns.forEach((placed, k) => {
+        if (placed.index < from || placed.index > to) return;
+        // Inside a bar, halfway to the next note, so the box keeps clear of both.
+        const start = k === 0 ? bar.x0 : (bar.columns[k - 1].x + placed.x) / 2;
+        const end = k === bar.columns.length - 1 ? bar.x1 : (placed.x + bar.columns[k + 1].x) / 2;
+        left = left === null ? start : Math.min(left, start);
+        right = right === null ? end : Math.max(right, end);
+      });
+    }
+    if (left === null || right === null) return;
+    const { rows } = system;
+    const top = (rows.score ? rows.score.top : stringY(rows, 0)) - RANGE_PAD;
+    // With the tab alone its rhythm, rests too, is under the strings: the box takes it in.
+    const bottom = rows.tabStems ? rows.stemBottom + 4 : (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
+    boxes.push({ system: si, x: left, y: system.top + top, width: right - left, height: bottom - top });
+  });
+  return boxes;
+}
