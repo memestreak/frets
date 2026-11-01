@@ -1198,7 +1198,7 @@ export default function TabPage() {
                         enterInput(true);
                       }}
                       highlight={{
-                        cursor: editing && !picked ? cursor : null, range: litRange, columnOnly,
+                        cursor: editing && !picked ? cursor : null, range: litRange, boxed: selection !== null, columnOnly,
                         staffPitch: staffCursor, input: inputMode,
                       }}
                       shadow={inputMode ? inputLength.value : null}

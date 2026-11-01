@@ -2802,7 +2802,8 @@ describe('dragging notes on the staff (issue #174)', () => {
       press(onRest);
       expect(restPath.getAttribute('fill')).toBe('var(--select)');
       expect(lit()).toEqual([false, false, false]);
-      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      // It lights alone: no box round its column (Jeremy, 2026-11-01).
+      expect(screen.queryByTestId('range-box')).toBeNull();
       // Delete leaves it a rest; the bar's notes are untouched.
       fireEvent.keyDown(editor(), { key: 'Delete' });
       expect(screen.getAllByTestId('staff-rest')).toHaveLength(1);
@@ -2813,6 +2814,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.pointerUp(svg(), { ...onRest, button: 0, shiftKey: true });
       expect(lit()).toEqual([false, false, true]);
       expect(screen.getByTestId('staff-rest').querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
       // In note input a press there enters a note, as before.
       fireEvent.keyDown(editor(), { key: 'Escape' });
       fireEvent.keyDown(editor(), { key: 'n' });

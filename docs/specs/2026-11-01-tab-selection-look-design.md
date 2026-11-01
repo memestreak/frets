@@ -40,7 +40,7 @@ second from its neighbour sits on the stem's other side; a press on it now finds
 
 In normal mode a press on a rest selects that rest alone, not its bar (Jeremy, 2026-11-01): on the staff
 across its five lines, with the tab alone where its rhythm draws the rest under the strings (`restAt` in
-`hitTest.ts`). It lights, with its box, as a selected column does; Shift+press grows the run to it. A
+`hitTest.ts`). It lights alone, with no box round its column (Jeremy, 2026-11-01: the box is for runs); Shift+press grows the run to it. A
 multi-bar rest and a grace note have none to pick. In note input a press there still enters a note.
 With the tab alone, the box reaches down over the rhythm so the rest is inside it, and a selected rest
 there is lit too.

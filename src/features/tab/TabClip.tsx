@@ -22,6 +22,11 @@ export interface Highlight {
   cursor: Hit | null;
   /** First and last selected places in the clip, inclusive. */
   range: [number, number] | null;
+  /**
+   * Whether the range is a run selected as a range (a bar pressed, Shift, a rectangle), boxed as MuseScore
+   * boxes one; a rest or a column selected by itself only lights (Jeremy, 2026-11-01, issue #276).
+   */
+  boxed?: boolean;
   /** The cursor is on its column only, with no string picked: the column is tinted, no string boxed. */
   columnOnly?: boolean;
   /** The staff's own cursor on the cursor's column: the sounding pitch Enter would put there (issue #136). */
@@ -339,7 +344,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
         </g>
         );
       })()}
-      {highlight?.range && rangeBoxes(layout.systems, highlight.range).map(box => (
+      {highlight?.range && highlight.boxed && rangeBoxes(layout.systems, highlight.range).map(box => (
         // Round the selected run, line by line, under the notes, as MuseScore boxes a range (issue #276).
         <rect
           key={`range-${box.system}`} x={box.x} y={box.y} width={box.width} height={box.height} rx={3} pointerEvents="none"
