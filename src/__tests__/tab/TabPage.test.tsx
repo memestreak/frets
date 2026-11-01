@@ -133,17 +133,37 @@ describe('TabPage', () => {
     fireEvent.click(within(panel).getByRole('button', { name: 'Each line' }));
     expect(numbers().length).toBeGreaterThan(0);
     expect(numbers()[0]).toBe('1');
+    // Size is not in the panel but over the clip (issue #277).
+    expect(within(panel).queryByRole('group', { name: 'Size' })).toBeNull();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'View options' })).toBeNull();
+  });
+
+  it('sizes the drawing from the Size field after Staff | Tab | Both, in the Notation view only (issue #277)', async () => {
+    renderAt(`#tab=${encodeURIComponent(RIFF)}`);
+    await settle();
+    const size = screen.getByRole('group', { name: 'Size' });
+    const show = screen.getByRole('group', { name: 'Show' });
+    expect(show.nextElementSibling).toBe(size);
     // Size: the drawing is laid out narrower and zoomed, so it fits more to a line; it steps by 10% and stops at 50%.
     const drawing = () => screen.getByRole('img', { name: /drawn as/ });
     const fullWidth = Number(drawing().getAttribute('width'));
-    fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
-    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '90');
+    fireEvent.click(within(size).getByRole('button', { name: 'Smaller' }));
+    expect(within(size).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '90');
     expect(Number(drawing().getAttribute('width'))).toBeCloseTo(fullWidth / 0.9, 3);
-    for (let i = 0; i < 6; i++) fireEvent.click(within(panel).getByRole('button', { name: 'Smaller' }));
-    expect(within(panel).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '50');
+    for (let i = 0; i < 6; i++) fireEvent.click(within(size).getByRole('button', { name: 'Smaller' }));
+    expect(within(size).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '50');
     expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).size).toBe(50);
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: 'View options' })).toBeNull();
+    // A typed size goes to the nearest step; a double-click puts it back to 100%.
+    const typed = within(size).getByRole('spinbutton', { name: 'Size (percent)' });
+    fireEvent.change(typed, { target: { value: '73' } });
+    fireEvent.blur(typed);
+    expect(typed).toHaveAttribute('aria-valuenow', '70');
+    fireEvent.doubleClick(size);
+    expect(within(size).getByRole('spinbutton', { name: 'Size (percent)' })).toHaveAttribute('aria-valuenow', '100');
+    // The text views have no Size.
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(screen.queryByRole('group', { name: 'Size' })).toBeNull();
   });
 
   it('starts empty, saying how to bring tab in', () => {
@@ -263,23 +283,44 @@ describe('TabPage', () => {
     expect(heading()).toHaveTextContent('Riff');
   });
 
-  it('offers every view its options in one panel: the ASCII rhythm line and the alphaTex line numbers', async () => {
+  it("lists the colours and only the shown view's own options in the View options panel (issue #277)", async () => {
     renderAt(`#tab=${encodeURIComponent(RIFF)}`);
     await settle();
+    const open = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+      return screen.getByRole('dialog', { name: 'View options' });
+    };
+    const close = () => fireEvent.keyDown(window, { key: 'Escape' });
+    /** The panel's headings and options, in order. */
+    const contents = (panel: HTMLElement) => [
+      ...[...panel.querySelectorAll('h3')].map(h => h.textContent),
+      ...within(panel).queryAllByRole('switch').map(s => s.textContent),
+      ...(within(panel).queryByRole('button', { name: 'None' }) ? ['Bar numbers'] : []),
+    ];
+    // Notation: bar numbers and the clip's line breaks.
+    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Bar numbers']);
+    close();
+
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     const ascii = () => screen.getByTestId('tab-ascii').textContent!;
     expect(ascii()).toMatch(/^ +e/m);
-    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
-    const panel = screen.getByRole('dialog', { name: 'View options' });
-    // Every view's options are there, whichever view shows.
-    expect(within(panel).getByRole('button', { name: 'None' })).toBeInTheDocument();
+    let panel = open();
+    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm']);
+    expect(within(panel).getByRole('group', { name: 'Colours' })).toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('switch', { name: 'Rhythm' }));
     expect(ascii()).not.toMatch(/^ +e/m);
+    close();
+
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     const numbers = () => screen.getByTestId('alphatex-mirror').querySelectorAll('.tab-text-number').length;
     expect(numbers()).toBeGreaterThan(0);
+    panel = open();
+    expect(contents(panel)).toEqual(['Colours', 'AlphaTex', 'Line numbers']);
     fireEvent.click(within(panel).getByRole('switch', { name: 'Line numbers' }));
     expect(numbers()).toBe(0);
+    // Left open, the panel follows the view switched to.
+    fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
+    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm']);
     expect(JSON.parse(localStorage.getItem('frets.tab.ascii')!)).toEqual({ rhythm: false });
     expect(JSON.parse(localStorage.getItem('frets.tab.alphatex')!)).toEqual({ lineNumbers: false });
   });

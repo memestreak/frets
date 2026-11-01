@@ -164,7 +164,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           choiceField('barNumbers', 'Bar numbers', BAR_NUMBERS.map(b => [b, BAR_NUMBER_NAMES[b]] as const)),
           numberField('size', 'Size', {
             min: MIN_SIZE, max: MAX_SIZE, step: SIZE_STEP, unit: '%', upLabel: 'Bigger', downLabel: 'Smaller',
-            // A typed size goes to the nearest step, as in View options.
+            // A typed size goes to the nearest step, as over the clip.
             toValue: n => Math.round(n / SIZE_STEP) * SIZE_STEP,
           }),
           checkField('lineBreaks', "Clip's line breaks"),
