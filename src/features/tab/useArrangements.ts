@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
-import { emptyClip, type Clip } from './clip';
+import { emptyClip, titled, type Clip } from './clip';
 import { clipReducer, initClipState } from './clipState';
 import {
   addFolder, clearDraft, dropArrangements, dropFolder, libraryStore, loadArrangement, loadDraft, moveArrangement, newArrangementId,
@@ -47,10 +47,10 @@ export function useArrangements() {
     return true;
   };
 
-  /** `clip` (an empty one when none) as a new arrangement, not saved yet; its id. */
+  /** `clip` (an empty one when none) as a new arrangement, not saved yet, titled Untitled when it has no title; its id. */
   const openNew = (clip: Clip = emptyClip()): string => {
     const id = newArrangementId();
-    dispatch({ type: 'open', id, clip });
+    dispatch({ type: 'open', id, clip: titled(clip) });
     return id;
   };
 

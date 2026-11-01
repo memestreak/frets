@@ -102,6 +102,14 @@ const CHOOSER: ShortcutGroup = {
   ],
 };
 
+const HEAD: ShortcutGroup = {
+  title: 'Picked title or credits',
+  shortcuts: [
+    { keys: ['Enter'], does: 'Edit the title and credits' },
+    { keys: ['Esc'], does: 'Let it go' },
+  ],
+};
+
 /**
  * The palette's keyed tools, one row per key: tools sharing a key are the steps it goes through
  * ("Accent, then heavy accent"). The note lengths are under Note input already.
@@ -124,4 +132,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHOOSER];

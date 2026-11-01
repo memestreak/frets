@@ -11,7 +11,7 @@ import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementChooser } from './ArrangementChooser';
@@ -51,7 +51,7 @@ import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type Tool
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { elementsOf, stepElement } from './elements';
 import { pitchAt } from './normalMode';
-import { ScoreHead } from './ScoreHead';
+import { FoldedTitle, ScoreHead } from './ScoreHead';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
@@ -309,13 +309,16 @@ export default function TabPage() {
     setCursor(c => ({ ...c, column: 0 }));
   };
   /** A clip read from the AlphaTex view's text: one undo step, and the text stays as typed. */
-  const applyAlphaTex = (next: Clip, text: string) => {
+  const applyAlphaTex = (typed: Clip, text: string) => {
+    // A text with no \title keeps the title the clip has: it is never blank (issue #281).
+    const next = typed.name.trim() ? typed : { ...typed, name: whole.name };
     dispatchClip({ type: 'replace', clip: next });
     setDraft(d => (d && d.text === text ? { text, clip: next } : d));
   };
   /** The AlphaTex view's ×: the text and the clip emptied, one undo step (Jeremy, 2026-10-27). */
   const clearAlphaTex = () => {
-    const empty = emptyClip();
+    // Untitled, as a new arrangement: the title is never blank (issue #281).
+    const empty = titled(emptyClip());
     dispatchClip({ type: 'replace', clip: empty });
     setDraft({ text: '', clip: empty });
   };
@@ -1172,6 +1175,15 @@ export default function TabPage() {
               </div>
             )}
             {view === 'tab' && <SizeField size={shown.size} onChange={size => setShown({ ...shown, size })} />}
+            {/* The arrangement header folded (issue #281): its title, small, after Size; picked, it expands or edits. */}
+            {view === 'tab' && !shown.header && (
+              <HoverTips>
+                <FoldedTitle
+                  clip={clip} onExpand={() => setShown({ ...shown, header: true })}
+                  onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
+                />
+              </HoverTips>
+            )}
             {/* With several tracks, the one shown (issue #243); the AlphaTex view has them all. */}
             {whole.tracks.length > 1 && view !== 'alphatex' && (
               <select className="input tab-track-pick" aria-label="Track" value={track} onChange={e => chooseTrack(Number(e.target.value))}>
@@ -1196,12 +1208,18 @@ export default function TabPage() {
           <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
           {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
           {view === 'tab'
-            ? <ScoreHead
-                clip={clip}
+            ? <>
+              {!shown.header && <h1 className="sr-only">{name}</h1>}
+              <HoverTips>
+              <ScoreHead
+                clip={clip} folded={!shown.header}
+                onCollapse={() => setShown({ ...shown, header: false })}
                 onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
                 onEditTempo={(x, y) => setHeadPanel({ kind: 'tempo', x, y, from: clip, bar: 0, fromTab: false })}
               />
+              </HoverTips>
+            </>
             : <>
               {/* The page keeps its heading for screen readers. */}
               <h1 className="sr-only">{name}</h1>

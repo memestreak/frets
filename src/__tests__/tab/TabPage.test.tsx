@@ -171,24 +171,28 @@ describe('TabPage', () => {
 
   it('starts empty, saying how to bring tab in', () => {
     renderAt();
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(heading()).toHaveTextContent('Untitled');
     expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
   });
 
   it('renames the clip from its title, which the export image prints', () => {
     renderAt();
-    fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled clip' }));
+    fireEvent.click(within(heading()).getByRole('button', { name: 'Untitled' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit title and credits' }));
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
-    const field = within(panel).getByLabelText('Title (optional)');
-    expect(field).toHaveValue('');
+    const field = within(panel).getByLabelText('Title');
+    // A new arrangement is titled Untitled (issue #281).
+    expect(field).toHaveValue('Untitled');
     expect(field).toHaveFocus();
     fireEvent.change(field, { target: { value: '  Riff  ' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(heading()).toHaveTextContent('Riff');
     expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
     // Esc keeps the old title.
+    // A double-click opens it too (Jeremy, 2026-11-01).
     fireEvent.click(within(heading()).getByRole('button', { name: 'Riff' }));
-    const again = screen.getByLabelText('Title (optional)');
+    fireEvent.doubleClick(within(heading()).getByRole('button', { name: 'Riff' }));
+    const again = screen.getByLabelText('Title');
     expect(again).toHaveValue('Riff');
     fireEvent.change(again, { target: { value: 'Other' } });
     expect(heading()).toHaveTextContent('Other');
@@ -301,7 +305,7 @@ describe('TabPage', () => {
       ...(within(panel).queryByRole('button', { name: 'None' }) ? ['Bar numbers'] : []),
     ];
     // Notation: bar numbers and the clip's line breaks.
-    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Bar numbers']);
+    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Bar numbers']);
     close();
 
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
@@ -1676,7 +1680,7 @@ describe('TabPage built-in arrangements (issue #259)', () => {
     expect(dialog).not.toHaveAttribute('open');
     expect(pageColumns().length).toBeGreaterThan(columns);
     // Inserting is an edit of the open arrangement, not a new one.
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(heading()).toHaveTextContent('Untitled');
     expect(screen.getByTestId('unsaved')).toBeInTheDocument();
     undo();
     expect(pageColumns()).toHaveLength(columns);
@@ -1879,7 +1883,7 @@ describe('TabPage arrangements', () => {
     // Don't save: the new clip, the saved one as it was.
     fireEvent.click(screen.getByRole('button', { name: 'New' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: 'Save changes?' })).getByRole('button', { name: 'Don\'t save' }));
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(heading()).toHaveTextContent('Untitled');
     expect(savedColumns('kept')).toBe(before);
     // A clip with nothing changed opens another without asking.
     let dialog = openDialog();
@@ -1997,7 +2001,7 @@ describe('TabPage arrangements', () => {
     expect(dialog).toHaveAttribute('open');
     fireEvent.click(files(dialog).getByRole('button', { name: 'Delete Tex riff' }));
     await settle();
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(heading()).toHaveTextContent('Untitled');
     expect(loadLibrary().items).toEqual([]);
   });
 
@@ -2109,7 +2113,7 @@ describe('TabPage arrangements', () => {
     await settle();
     expect(loadLibrary().folders).toEqual([]);
     expect(loadLibrary().items).toEqual([]);
-    expect(heading()).toHaveTextContent('Untitled clip');
+    expect(heading()).toHaveTextContent('Untitled');
     expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Licks.');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
     expect(loadLibrary().folders.map(f => f.name)).toEqual(['Licks']);
@@ -2440,6 +2444,22 @@ describe('TabPage export', () => {
       expect(alphaTexText()).toContain('\\title "Tex riff"');
     });
 
+    it('keeps the title when the text names none: the title is never blank (issue #281)', async () => {
+      renderAt(`#tab=${encodeURIComponent(TEX)}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      type(':8 5.5 7.5 |');
+      await waitFor(() => expect(pageClip().tracks[0].bars[0].columns).toHaveLength(2), SLOW);
+      expect(pageClip().name).toBe('Tex riff');
+    });
+
+    it('opens a link with no title as Untitled (issue #281)', async () => {
+      cleanup();
+      renderAt(`#tab=${encodeURIComponent(':8 5.5 7.5 |')}`);
+      await waitFor(() => expect(heading()).toHaveTextContent('Untitled'), SLOW);
+      expect(pageClip().name).toBe('Untitled');
+    });
+
     it('clears the text and the clip from the × at the top left, as one undo step', async () => {
       renderAt(`#tab=${encodeURIComponent(TEX)}`);
       await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
@@ -2447,7 +2467,7 @@ describe('TabPage export', () => {
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
       expect(alphaTexText()).toBe('');
-      expect(heading()).toHaveTextContent('Untitled clip');
+      expect(heading()).toHaveTextContent('Untitled');
       undo();
       expect(heading()).toHaveTextContent('Tex riff');
       expect(alphaTexText()).toContain('\\title "Tex riff"');

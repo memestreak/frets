@@ -5,7 +5,7 @@
  * change) and names the open one; each clip has a key of its own. The open clip, while it has unsaved
  * changes or was never saved, is kept under `DRAFT_KEY` so a reload brings it back as it was.
  */
-import { emptyClip, parseClip, type Clip } from './clip';
+import { emptyClip, parseClip, titled, type Clip } from './clip';
 import { loadJson, saveJson } from '@/lib/storage';
 
 /** The index: which arrangement is open, and every kept one. */
@@ -181,7 +181,7 @@ export function clearDraft(): void {
 export function openOnLoad(library: Library): { id: string; clip: Clip } {
   const clip = library.open ? loadArrangement(library.open) : null;
   if (library.open && clip) return { id: library.open, clip };
-  return { id: newArrangementId(), clip: emptyClip() };
+  return { id: newArrangementId(), clip: titled(emptyClip()) };
 }
 
 /** The index as a small store the page subscribes to (`useSyncExternalStore`). */

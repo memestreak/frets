@@ -26,12 +26,13 @@ describe('arrangements', () => {
     expect(localStorage.getItem(arrangementKey('b'))).toContain('Lick');
   });
 
-  it('opens the arrangement the index names, else a new empty clip', () => {
+  it('opens the arrangement the index names, else a new empty clip, Untitled', () => {
     storeArrangement(EMPTY_LIBRARY, 'a', { ...emptyClip(), name: 'Riff' }, 1);
     expect(openOnLoad({ ...EMPTY_LIBRARY, open: 'a' })).toMatchObject({ id: 'a', clip: { name: 'Riff' } });
     const fresh = openOnLoad({ ...EMPTY_LIBRARY, open: 'gone' });
     expect(fresh.id).not.toBe('gone');
-    expect(fresh.clip).toEqual(emptyClip());
+    // Titled Untitled: the title is never blank (issue #281).
+    expect(fresh.clip).toEqual({ ...emptyClip(), name: 'Untitled' });
   });
 });
 

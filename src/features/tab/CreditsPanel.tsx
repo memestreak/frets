@@ -3,7 +3,8 @@
 /**
  * The title and credits (issues #202, #227), opened by a press on the title, the artist, a credit or
  * "Add artist and credits" in the score's head, with the pressed one's field focused: Title, Artist,
- * Words and Music, each optional. "Same people wrote both" folds Music into Words, as the head prints
+ * Words and Music. The title is needed (issue #281): while it is blank a red ⚠ says so and the clip
+ * keeps the title it had; the others are optional. "Same people wrote both" folds Music into Words, as the head prints
  * one "Words & Music by" line. The head follows what is typed; Enter or a press away keeps it all as
  * one undo step, Esc puts it back.
  */
@@ -37,7 +38,8 @@ export function CreditsPanel({ clip, x, y, field, onChange, onDone }: {
   const [same, setSame] = useState(words === music);
 
   const typed = (next: { title?: string; artist?: string; words?: string; music?: string; same?: boolean }) => {
-    const name = (next.title ?? title).trim();
+    // A blank title keeps the one the clip had: a title needs at least one character that isn't a space.
+    const name = (next.title ?? title).trim() || clip.name;
     const named = name === clip.name ? clip : { ...clip, name };
     const a = next.artist ?? artist;
     const w = next.words ?? words;
@@ -69,7 +71,7 @@ export function CreditsPanel({ clip, x, y, field, onChange, onDone }: {
     // Its keys are the fields' own: Enter keeps, Esc puts back.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div ref={ref} role="dialog" aria-label="Title and credits" className="shape-menu tab-head-panel" style={style} tabIndex={-1} onKeyDown={onKeyDown}>
-      <Field label="Title" field="title" placeholder={UNTITLED} value={title} onChange={v => { setTitle(v); show({ title: v }); }} />
+      <Field label="Title" field="title" required placeholder={clip.name.trim() || UNTITLED} value={title} onChange={v => { setTitle(v); show({ title: v }); }} />
       <Field label="Artist" field="artist" value={artist} onChange={v => { setArtist(v); show({ artist: v }); }} />
       <Field label={same ? 'Words & Music' : 'Words'} value={words} onChange={v => { setWords(v); show({ words: v }); }} />
       {!same && <Field label="Music" value={music} onChange={v => { setMusic(v); show({ music: v }); }} />}
@@ -87,19 +89,30 @@ export function CreditsPanel({ clip, x, y, field, onChange, onDone }: {
   );
 }
 
-function Field({ label, field, placeholder, value, onChange }: {
+function Field({ label, field, required = false, placeholder, value, onChange }: {
   label: string;
+  /** Needed: no "(optional)", and a red ⚠ while it is blank. */
+  required?: boolean;
   /** Names the field a press in the head focuses. */
   field?: HeadField;
   placeholder?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
+  const name = required ? label : `${label} (optional)`;
+  const blank = required && value.trim() === '';
   return (
     <label className="grid gap-1.5">
-      <span className="tab-time-caption">{label} (optional)</span>
+      <span className="tab-time-caption">
+        {name}
+        {blank && (
+          <span className="tab-field-problem" role="img" aria-label={`The ${label.toLowerCase()} can't be blank`} title={`The ${label.toLowerCase()} can't be blank`}>
+            {' '}⚠{'\uFE0E'}
+          </span>
+        )}
+      </span>
       <input
-        className="input tab-head-input" aria-label={`${label} (optional)`} data-field={field} placeholder={placeholder}
+        className="input tab-head-input" aria-label={name} aria-invalid={blank || undefined} data-field={field} placeholder={placeholder}
         value={value} maxLength={200} onChange={e => onChange(e.target.value)}
       />
     </label>

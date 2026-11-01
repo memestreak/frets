@@ -284,8 +284,13 @@ export function changesKey(clip: Pick<Part, 'bars'>, index: number): boolean {
 
 export const STANDARD_TUNING: readonly string[] = ['E', 'A', 'D', 'G', 'B', 'E'];
 
-/** What a clip with no name is called. */
-export const UNTITLED = 'Untitled clip';
+/** What a new arrangement, or one opened with no title, is called: the title is never blank (issue #281). */
+export const UNTITLED = 'Untitled';
+
+/** `clip` with a title: its own, or Untitled when it has none (a new or imported arrangement). */
+export function titled<T extends { name: string }>(clip: T): T {
+  return clip.name.trim() ? clip : { ...clip, name: UNTITLED };
+}
 
 /**
  * A clip: one or more tracks (guitar parts, alphaTex `\track`) played together, over bars they share

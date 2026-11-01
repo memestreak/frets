@@ -845,6 +845,30 @@ button {
   .score-tempo-button:focus-visible > span { text-decoration: underline var(--primary); }
   .score-tempo-button:focus { outline: none; }
   .score-credits:focus-visible, .score-tuning-button:focus-visible, .score-add:focus-visible { outline: none; text-decoration: underline var(--primary); }
+  /* The title and credits, picked together (issue #281): one outline round both, as a picked word over
+     the tab has, with Edit and Collapse to its right. The room round them is there picked or not, so
+     nothing moves. */
+  .score-pick { position: relative; z-index: 1; display: grid; justify-items: center; padding: 2px 8px; border-radius: 6px; }
+  .score-picked { background: var(--select-soft); box-shadow: 0 0 0 1.5px var(--select); }
+  .score-picked .tab-title-text:hover:enabled, .score-picked .score-credits:hover > span { text-decoration: none; }
+  .score-pick-tools { position: absolute; z-index: 15; left: 100%; top: 50%; margin-left: 6px; display: flex; gap: 2px; transform: translateY(-50%); }
+  .score-pick-tool {
+    display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
+    border: 1px solid var(--line-strong); border-radius: 6px;
+    background: var(--surface-raised); color: var(--ink); cursor: pointer;
+  }
+  .score-pick-tool:hover { background: var(--surface-sunken); }
+  .score-pick-tool:focus { outline: none; }
+  .score-pick-tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .tab-head-folded-pick { padding: 0 6px; }
+  /* The arrangement header folded: the title in small text after Size, a press unfolds it. */
+  .tab-head-folded {
+    max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; margin: 0;
+    font: 400 13px/20px var(--font-sans); color: var(--ink-muted); background: none; border: 0; cursor: pointer;
+  }
+  .tab-head-folded:hover { color: var(--ink); }
+  .tab-head-folded:focus { outline: none; }
+  .tab-head-folded:focus-visible { color: var(--ink); text-decoration: underline var(--primary); }
   /* The way in to an unset artist: a quiet line in the credits' place. */
   .score-head-add { display: grid; justify-items: center; }
   .score-add {
@@ -854,6 +878,7 @@ button {
   .score-add:hover { color: var(--ink); }
   /* The credits' and the tuning's panels. */
   .tab-head-panel { gap: 10px; padding: 12px; color: var(--ink); }
+  .tab-field-problem { color: var(--danger); cursor: help; }
   .tab-head-input { width: 280px; max-width: calc(100vw - 64px); }
   .tab-tuning-presets { flex-wrap: wrap; max-width: 340px; }
   /* The tempo panel: bpm and Tap on one row. */
@@ -1216,6 +1241,8 @@ button {
 }
 .tab-title-text:hover:enabled { text-decoration: underline dotted var(--line-strong); text-underline-offset: 6px; }
 .tab-title-text:focus-visible { outline: none; text-decoration: underline var(--primary); text-underline-offset: 6px; }
+/* Picked (issue #281), its outline says so: no underline. */
+.score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
 
 /* The Agents page: file names in the mono face. */
 .agents-page code { font: 13px/1.4 var(--font-mono); }
