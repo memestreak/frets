@@ -49,14 +49,15 @@ const INPUT: ShortcutGroup = {
 };
 
 const NORMAL: ShortcutGroup = {
-  title: 'Selected notes',
+  title: 'Selected notes and rests',
   shortcuts: [
     { keys: ['Up', 'Down'], does: 'Fret up or down one' },
     { keys: ['Mod+Up', 'Mod+Down'], does: 'Same pitch on the next string' },
     { keys: ['Alt+Up', 'Alt+Down'], does: 'Next note up or down the chord' },
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
-    { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter' },
+    { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter (a rest keeps its bar full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
+    { keys: ['1–7'], does: 'A rest’s length, with the staff shown (5 a quarter)' },
   ],
 };
 

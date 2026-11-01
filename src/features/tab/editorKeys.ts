@@ -319,7 +319,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
 }
 
 /**
- * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note a digit sets its length (5 a
+ * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note or rest a digit sets its length (5 a
  * quarter) and ↑ ↓ move it a semitone, Alt+Shift+↑ ↓ a step in the key, Ctrl/⌘+↑ ↓ an octave; on a
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
@@ -331,7 +331,9 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  if (onStaff && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A rest picked on the staff (Staff or Both draws rests only there) takes the staff's length digits too (issue #290).
+  const restOnStaff = editor.staffShown && columnOnly && !!columnAt(clip, cursor) && isRest(columnAt(clip, cursor)!);
+  if ((onStaff || restOnStaff) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
     if (value) commit(setValue(clip, target, value));
     return true;

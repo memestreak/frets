@@ -186,6 +186,8 @@ export function cursorSpot(layout: Layout, bar: number, column: number): { syste
 
 /** How far across from a rest's middle a press still picks it. */
 const REST_REACH_X = 9;
+/** The tab alone draws a whole or half rest on a line 18 wide (`TabStems`), so a press anywhere along it picks it (issue #290). */
+const TAB_BAR_REST_REACH_X = 12;
 
 /**
  * The rest under a press (issue #276): where the staff draws it, across the staff's five lines, or, with
@@ -199,13 +201,17 @@ export function restAt(layout: Layout, x: number, y: number): { bar: number; col
   const { rows } = system;
   const [top, bottom] = rows.score ? [rows.score.top, rows.score.bottom] : rows.tabStems ? [rows.stemTop, rows.stemTop + 24] : [null, null];
   if (top === null || bottom === null || localY < top || localY > bottom) return null;
+  // The nearest rest in reach, so a wide rest's reach doesn't take a press from a narrow one beside it.
+  let best: { bar: number; column: number; off: number } | null = null;
   for (const bar of system.bars) {
     if (bar.restRun) continue;
     for (let column = 0; column < bar.columns.length; column++) {
       const placed = bar.columns[column];
       if (!isRest(placed.column) || placed.column.grace) continue;
-      if (Math.abs(placed.x - x) <= REST_REACH_X) return { bar: bar.index, column };
+      const reach = !rows.score && placed.column.duration.value <= 2 ? TAB_BAR_REST_REACH_X : REST_REACH_X;
+      const off = Math.abs(placed.x - x);
+      if (off <= reach && (!best || off < best.off)) best = { bar: bar.index, column, off };
     }
   }
-  return null;
+  return best && { bar: best.bar, column: best.column };
 }
