@@ -1567,3 +1567,71 @@ button {
   .mock-switcher-label { min-width: 3.5em; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
   .mock-switcher .seg-opt { padding: 4px 9px; font-size: 12px; }
 }
+
+/* MOCK (ChordPanelMock.tsx, ?panel=a|b|c): the chord side panel, on the left of the Tab page. */
+@layer components {
+  .chord-panel { min-width: 0; }
+  .chord-panel-title { font: 600 16px/24px var(--font-sans); color: var(--ink); }
+  .chord-panel-heading { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
+  .chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  .chord-panel-entry {
+    display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 10px;
+    width: 100%; padding: 4px 8px 4px 4px; border-radius: var(--radius-sm);
+    border: 1px solid transparent; background: none; color: var(--ink); text-align: left; cursor: pointer;
+  }
+  .chord-panel-entry:hover { background: var(--surface-sunken); }
+  .chord-panel-entry[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--line-strong); }
+  .chord-panel-entry:focus-visible, .chord-panel-shape:focus-visible { outline: none; }
+  .chord-panel-thumb { display: block; width: 56px; }
+  .chord-panel-thumb svg { display: block; width: 100%; height: auto; }
+  .chord-panel-name { font: 600 15px/20px var(--font-sans); }
+  .chord-panel-uses { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+  .chord-panel-unused { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+  .chord-panel-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .chord-panel-shape {
+    padding: 2px; border-radius: var(--radius-sm); border: 1px solid transparent;
+    background: none; cursor: pointer;
+  }
+  .chord-panel-shape svg { display: block; width: 100%; height: auto; }
+  .chord-panel-shape[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--primary); }
+
+  /* a Docked: a column left of the page, narrowing it; under the page on phones. */
+  .chord-dock-layout { display: grid; gap: 16px; }
+  .chord-dock { padding: 16px; align-self: start; }
+  @media (min-width: 900px) {
+    .chord-dock-layout { grid-template-columns: 17rem minmax(0, 1fr); }
+    .chord-dock { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  }
+  @media (max-width: 899px) { .chord-dock-layout > .chord-dock { order: 1; } }
+
+  /* b Drawer: slides in from the left over the page, which keeps its width. */
+  .chord-drawer {
+    position: fixed; z-index: 30; left: 0; top: 0; bottom: 0; width: min(20rem, 100vw);
+    padding: 16px; overflow-y: auto; border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    border: 1px solid var(--line-strong); border-left: 0;
+    transform: translateX(-105%); transition: transform 180ms ease;
+  }
+  .chord-drawer[data-open] { transform: none; }
+  .chord-drawer-opener {
+    position: fixed; z-index: 29; left: 0; top: 40%; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 6px; border: 1px solid var(--line-strong); border-left: 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--surface-raised); color: var(--ink); cursor: pointer;
+    font: 600 12px/14px var(--font-sans); writing-mode: vertical-rl; transform: rotate(180deg);
+  }
+  .chord-drawer-opener svg { transform: rotate(90deg); }
+
+  /* c Rail: a thin strip of panel buttons; the picked one docks its panel beside it. */
+  .chord-rail-layout { display: grid; gap: 12px; grid-template-columns: 40px minmax(0, 1fr); }
+  .chord-rail-layout[data-open] { grid-template-columns: 40px 17rem minmax(0, 1fr); }
+  .chord-rail { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; align-self: start; position: sticky; top: 16px; }
+  .chord-rail-button {
+    display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
+    border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
+  }
+  .chord-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
+  .chord-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); border-color: var(--line-strong); }
+  @media (max-width: 899px) {
+    .chord-rail-layout, .chord-rail-layout[data-open] { grid-template-columns: minmax(0, 1fr); }
+    .chord-rail { flex-direction: row; position: static; }
+  }
+}

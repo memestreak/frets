@@ -2,6 +2,7 @@
 
 import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
+import { ChordPanelLayout, useChordPanelMock } from './ChordPanelMock';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
@@ -67,7 +68,7 @@ import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .chord-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -434,6 +435,7 @@ export default function TabPage() {
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
   useShortcuts(TAB_SHORTCUTS);
+  const panelLayout = useChordPanelMock();
 
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -1116,7 +1118,7 @@ export default function TabPage() {
     ? selectedRange(selection)
     : columnLit ? [indexOf(clip, cursor.bar, cursor.column), indexOf(clip, cursor.bar, cursor.column)] : null;
 
-  return (
+  const page = (
     <div className="grid gap-4">
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
@@ -1430,6 +1432,11 @@ export default function TabPage() {
         onClose={() => setExporting(false)}
       />
     </div>
+  );
+  return (
+    <ChordPanelLayout layout={panelLayout} clip={clip} cursor={cursor} editing={editing} onInsert={next => commit(next)}>
+      {page}
+    </ChordPanelLayout>
   );
 }
 
