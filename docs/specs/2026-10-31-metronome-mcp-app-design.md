@@ -98,9 +98,11 @@ checks the rhythm. The same `createMetronomeServer` runs:
   on your own computer.
 
 Nothing public pointed to `/mcp` until Jeremy called the Metronome ready
-(Q10, 2026-11-01). Now `llms.txt` lists it under "MCP servers", and the
-Agents page shows it under "Connectors": the URL, a Copy button, and where
-Claude takes a custom connector.
+(Q10, 2026-11-01). Now `llms.txt` lists it under "MCP server", and the
+Agents page shows it under "Connector" as Frets, with the metronome as its
+first tool. The server is named `frets` (it was `frets-metronome`): other
+pages' tools join it later on the same URL, and its code moves out of the
+metronome's folder when the second one does.
 
 ## Trying it
 

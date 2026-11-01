@@ -3,10 +3,11 @@ import { vi } from 'vitest';
 import { AgentsPage } from '@/features/agents/AgentsPage';
 
 describe('AgentsPage', () => {
-  it('lists the skills, then the metronome connector with its URL', () => {
+  it('lists the skills, then the Frets connector with its tools and URL', () => {
     render(<AgentsPage />);
     const headings = screen.getAllByRole('heading').map(h => h.textContent);
-    expect(headings).toEqual(['Agents', 'Skills', 'Chords', 'Tab', 'Connectors', 'Metronome']);
+    expect(headings).toEqual(['Agents', 'Skills', 'Chords', 'Tab', 'Connector', 'Frets']);
+    expect(screen.getByText('Metronome')).toBeInTheDocument();
     expect(screen.getByText('https://frets.eminor.net/mcp')).toBeInTheDocument();
   });
 

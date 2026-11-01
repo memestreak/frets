@@ -4,7 +4,7 @@ import { Interval, Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
 import { CHORD_TYPES } from '@/lib/theory/chords';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
-import { AGENT_CONNECTORS, AGENT_GUIDES } from '@/features/agents/agentGuides';
+import { AGENT_GUIDES, MCP_SERVER } from '@/features/agents/agentGuides';
 import { TOOL_NAME } from '@/features/metronome/mcp/tool';
 
 /*
@@ -113,16 +113,15 @@ describe('the files the agents page and llms.txt point to', () => {
   });
 });
 
-describe('the connectors the agents page and llms.txt list', () => {
+describe('the MCP server the agents page and llms.txt list', () => {
   const llms = read('llms.txt');
 
-  it.each(AGENT_CONNECTORS.map(c => [c.url, c]))('%s is in llms.txt with its tool', (url, c) => {
-    const line = llms.split('\n').find(l => l.includes(`](${url})`));
-    expect(line).toBeDefined();
-    expect(line).toContain(`\`${c.tool}\``);
+  it('is in llms.txt with every tool', () => {
+    expect(llms).toContain(`](${MCP_SERVER.url})`);
+    for (const t of MCP_SERVER.tools) expect(llms).toContain(`\`${t.name}\``);
   });
 
-  it('names the tool the metronome server serves', () => {
-    expect(AGENT_CONNECTORS.find(c => c.page === '/metronome')?.tool).toBe(TOOL_NAME);
+  it('names the tools the server serves', () => {
+    expect(MCP_SERVER.tools.map(t => t.name)).toEqual([TOOL_NAME]);
   });
 });

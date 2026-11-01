@@ -36,10 +36,13 @@ with its own pictogram: a speech bubble holding three notes. The Tab page's Impo
 formats, adds "An agent can write it for you", linking to the same page.
 
 Since 2026-11-01 the page has two headings: Skills (the cards above) and
-Connectors, one card per MCP server a chat app can add, showing its URL
-with a Copy button. The first is the Metronome's `/mcp`
-(`docs/specs/2026-10-31-metronome-mcp-app-design.md`); `llms.txt` lists it
-under "MCP servers".
+Connector, one "Frets" card for the site's one MCP server, `/mcp`
+(`docs/specs/2026-10-31-metronome-mcp-app-design.md`): the Frets mark, a
+line per tool, and the URL with a Copy button. `llms.txt` lists it under
+"MCP server". Jeremy wants the server to grow beyond the metronome (the
+tuner, tab rendering, chord and scale lookups), so nothing about it is
+named for the metronome: a chat app adds Frets once, and each new tool
+arrives on the same URL.
 
 ## Keeping them current
 

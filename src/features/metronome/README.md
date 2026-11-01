@@ -73,8 +73,9 @@ rhythm in a sandboxed frame. It opens stopped.
   `vite.server.config.mts` (`stdio.ts` to `mcp/dist/server.mjs`) and
   `vite.preview.config.mts` (`npm run mcp:preview`).
 - `functions/mcp.ts`: the same server over HTTP at `/mcp`, a Cloudflare
-  Pages Function. The Agents page and `llms.txt` list it
-  (`AGENT_CONNECTORS` in `src/features/agents/agentGuides.ts`).
+  Pages Function. The server is named `frets`, as other pages' tools
+  will join it on the same URL. The Agents page and `llms.txt` list it
+  (`MCP_SERVER` in `src/features/agents/agentGuides.ts`).
 
 ### Trying it
 
@@ -88,7 +89,7 @@ rhythm in a sandboxed frame. It opens stopped.
   Desktop doesn't load nvm.
 
   ```json
-  { "mcpServers": { "frets-metronome": {
+  { "mcpServers": { "frets": {
       "command": "/full/path/to/node",
       "args": ["/full/path/to/frets/mcp/dist/server.mjs"] } } }
   ```
@@ -98,4 +99,4 @@ rhythm in a sandboxed frame. It opens stopped.
   `https://frets.eminor.net/mcp`, or a PR preview's
   `https://<branch>.frets-6e8.pages.dev/mcp`.
 - **Claude Code** (text only, no frame):
-  `claude mcp add frets-metronome -- node mcp/dist/server.mjs`.
+  `claude mcp add frets -- node mcp/dist/server.mjs`.
