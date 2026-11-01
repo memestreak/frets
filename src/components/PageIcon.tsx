@@ -129,6 +129,18 @@ export const PAGE_GLYPHS: Readonly<Record<string, ReactNode>> = {
       <circle cx="48" cy="72" r="6" fill="var(--nut)" />
     </>
   ),
+  '/metronome': (
+    <>
+      {/* A pyramid metronome, its pendulum swung right, the weight high on the arm. */}
+      <path
+        d="M39 16 H57 L72 80 H24 Z" fill="none" stroke="var(--string)" strokeWidth="2.5" strokeLinejoin="round"
+      />
+      <line x1="20" y1="80" x2="76" y2="80" stroke="var(--nut)" strokeWidth="4" strokeLinecap="round" />
+      <line x1="48" y1="68" x2="64" y2="24" stroke="var(--nut)" strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="-7" y="-4.5" width="14" height="9" rx="2" transform="translate(58.5 39) rotate(20)" fill="var(--degree-root)" {...ring} />
+      <circle cx="48" cy="68" r="4" fill="var(--nut)" />
+    </>
+  ),
   '/tab': (
     <>
       {/* A tab staff: T A B stacked at its opening line, then a three-note run. */}

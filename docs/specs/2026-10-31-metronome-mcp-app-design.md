@@ -97,8 +97,10 @@ checks the rhythm. The same `createMetronomeServer` runs:
 - **over stdio**, `mcp/dist/server.mjs`, for Claude Desktop and Claude Code
   on your own computer.
 
-Nothing public points to `/mcp` (`llms.txt`, the Agents page, the README)
-until Jeremy calls the Metronome ready (Q10).
+Nothing public pointed to `/mcp` until Jeremy called the Metronome ready
+(Q10, 2026-11-01). Now `llms.txt` lists it under "MCP servers", and the
+Agents page shows it under "Connectors": the URL, a Copy button, and where
+Claude takes a custom connector.
 
 ## Trying it
 

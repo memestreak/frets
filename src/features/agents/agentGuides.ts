@@ -31,3 +31,28 @@ export const AGENT_GUIDES: readonly AgentGuide[] = [
     skill: '/skills/frets-tab/SKILL.md',
   },
 ];
+
+/**
+ * MCP servers an agent's chat app can add as a connector, each showing a
+ * Frets page in the chat. `public/llms.txt` lists them too.
+ */
+export interface AgentConnector {
+  /** The Frets page the connector shows in the chat. */
+  page: string;
+  title: string;
+  summary: string;
+  /** The server's URL, to paste into the chat app. */
+  url: string;
+  /** The tool the model calls. */
+  tool: string;
+}
+
+export const AGENT_CONNECTORS: readonly AgentConnector[] = [
+  {
+    page: '/metronome',
+    title: 'Metronome',
+    summary: 'Ask for a click in any tempo and meter, and a metronome you can play appears in the chat.',
+    url: 'https://frets.eminor.net/mcp',
+    tool: 'show_metronome',
+  },
+];

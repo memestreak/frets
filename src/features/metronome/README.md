@@ -1,7 +1,7 @@
 # The Metronome (`/metronome`)
 
-Issue #149, `docs/specs/2026-10-31-metronome-design.md`. Off the home page
-and menu (`sections.ts`) until Jeremy calls it ready.
+Issue #149, `docs/specs/2026-10-31-metronome-design.md`. A Tool, after the
+Tuner in `sections.ts`.
 
 - `MetronomePage.tsx`: the page, which loads on the client only through
   `MetronomeLoader.tsx`. It holds one metronome and shows it in the view
@@ -73,8 +73,8 @@ rhythm in a sandboxed frame. It opens stopped.
   `vite.server.config.mts` (`stdio.ts` to `mcp/dist/server.mjs`) and
   `vite.preview.config.mts` (`npm run mcp:preview`).
 - `functions/mcp.ts`: the same server over HTTP at `/mcp`, a Cloudflare
-  Pages Function. Nothing public links to it until the Metronome is called
-  ready.
+  Pages Function. The Agents page and `llms.txt` list it
+  (`AGENT_CONNECTORS` in `src/features/agents/agentGuides.ts`).
 
 ### Trying it
 

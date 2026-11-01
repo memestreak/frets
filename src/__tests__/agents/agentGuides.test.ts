@@ -4,7 +4,8 @@ import { Interval, Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
 import { CHORD_TYPES } from '@/lib/theory/chords';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
-import { AGENT_GUIDES } from '@/features/agents/agentGuides';
+import { AGENT_CONNECTORS, AGENT_GUIDES } from '@/features/agents/agentGuides';
+import { TOOL_NAME } from '@/features/metronome/mcp/tool';
 
 /*
  * The agents' guides and skills in public/ against the code they describe
@@ -109,5 +110,19 @@ describe('the files the agents page and llms.txt point to', () => {
     expect(description.length).toBeLessThanOrEqual(1024);
     // The skill sends the agent to its guide, which carries the details.
     expect(text).toContain(`https://frets.eminor.net${AGENT_GUIDES.find(g => g.skill === path)!.guide}`);
+  });
+});
+
+describe('the connectors the agents page and llms.txt list', () => {
+  const llms = read('llms.txt');
+
+  it.each(AGENT_CONNECTORS.map(c => [c.url, c]))('%s is in llms.txt with its tool', (url, c) => {
+    const line = llms.split('\n').find(l => l.includes(`](${url})`));
+    expect(line).toBeDefined();
+    expect(line).toContain(`\`${c.tool}\``);
+  });
+
+  it('names the tool the metronome server serves', () => {
+    expect(AGENT_CONNECTORS.find(c => c.page === '/metronome')?.tool).toBe(TOOL_NAME);
   });
 });

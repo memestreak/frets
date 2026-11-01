@@ -35,6 +35,12 @@ page in the site menu and on the home page (breadcrumbs "More › Agents"),
 with its own pictogram: a speech bubble holding three notes. The Tab page's Import dialog, which already links the
 formats, adds "An agent can write it for you", linking to the same page.
 
+Since 2026-11-01 the page has two headings: Skills (the cards above) and
+Connectors, one card per MCP server a chat app can add, showing its URL
+with a Copy button. The first is the Metronome's `/mcp`
+(`docs/specs/2026-10-31-metronome-mcp-app-design.md`); `llms.txt` lists it
+under "MCP servers".
+
 ## Keeping them current
 
 - The chord types in `chord-links.txt` are generated from `CHORD_TYPES`
