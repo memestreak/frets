@@ -5,8 +5,8 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
-import { type Cursor, type Target, changeColumns, columnAt, emptyColumn, normalize, noteAt, noteBefore, placeOf, selectedRange, withColumn, without } from './editing';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, timeAt, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
+import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, pasteOver, placeOf, selectedRange, withColumn, without } from './editing';
 
 /** Makes the target columns rests. */
 export function makeRest(clip: Part, target: Target): Part {
@@ -14,32 +14,73 @@ export function makeRest(clip: Part, target: Target): Part {
 }
 
 /**
+ * Delete (and cut) on a selection, as MuseScore's: its columns become rests, and each bar it covers
+ * whole starts again as the fewest rests that fill it, a whole rest in 4/4, whatever lengths its rests
+ * had or however short it was (issue #290). Returns the selection over the same bars and columns.
+ */
+export function clearToRests(clip: Part, selection: Selection): { clip: Part; selection: Selection } {
+  const [from, to] = selectedRange(selection);
+  const rested = makeRest(clip, { cursor: { ...placeOf(clip, from), string: 0 }, selection });
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  const whole = (b: number) =>
+    (b > first.bar || first.column === 0) && (b < last.bar || last.column === clip.bars[b].columns.length - 1);
+  const bars = rested.bars.map((bar, b) =>
+    b >= first.bar && b <= last.bar && whole(b) ? { ...bar, columns: fewestRests(barTicks(timeAt(rested, b))).map(emptyColumn) } : bar,
+  );
+  const next = normalize({ ...rested, bars });
+  // The same places, a bar started again counted from its first rest to its last.
+  const start = indexOf(next, first.bar, whole(first.bar) ? 0 : first.column);
+  const end = indexOf(next, last.bar, whole(last.bar) ? next.bars[last.bar].columns.length - 1 : last.column);
+  return { clip: next, selection: selection.anchor <= selection.focus ? { anchor: start, focus: end } : { anchor: end, focus: start } };
+}
+
+/**
  * A longer (+1) or shorter (−1) note value for the target columns, from a whole to a sixty-fourth.
  * A sixty-fourth takes no dots, so its dots go.
  */
 export function stepDuration(clip: Part, target: Target, step: 1 | -1): Part {
-  return changeColumns(clip, target, column => {
-    const i = NOTE_VALUES.indexOf(column.duration.value);
+  return changeLength(clip, target, duration => {
+    const i = NOTE_VALUES.indexOf(duration.value);
     const value = NOTE_VALUES[Math.min(NOTE_VALUES.length - 1, Math.max(0, i - step))];
-    return { ...column, duration: { ...column.duration, value, dots: value > SHORTEST_DOTTED ? 0 : column.duration.dots } };
+    return { ...duration, value, dots: value > SHORTEST_DOTTED ? 0 : duration.dots };
   });
 }
 
 /** Sets the note value of the target columns. */
 export function setValue(clip: Part, target: Target, value: Duration['value']): Part {
-  return changeColumns(clip, target, column => ({
-    ...column,
-    duration: { ...column.duration, value, dots: value > SHORTEST_DOTTED ? 0 : column.duration.dots },
-  }));
+  return changeLength(clip, target, duration => ({ ...duration, value, dots: value > SHORTEST_DOTTED ? 0 : duration.dots }));
 }
 
 /** Cycles none, one dot, two dots on the target columns (a sixty-fourth takes none). */
 export function cycleDots(clip: Part, target: Target): Part {
-  return changeColumns(clip, target, column => {
-    const { duration } = column;
+  return changeLength(clip, target, duration => {
     const dots = duration.value > SHORTEST_DOTTED ? 0 : ((duration.dots + 1) % 3) as Duration['dots'];
-    return { ...column, duration: { ...duration, dots } };
+    return { ...duration, dots };
   });
+}
+
+/**
+ * A new length for the target columns. A column picked by itself (a note, a chord or a rest) keeps its
+ * bar full, as MuseScore's does (issue #290): longer, it writes over what follows, a note running past
+ * the bar line tied on into the next bar; shorter, the time it gives up becomes rests after it. A run
+ * of several columns, a grace note or a tuplet just changes length.
+ */
+function changeLength(clip: Part, target: Target, change: (duration: Duration) => Duration): Part {
+  const at = loneColumn(clip, target);
+  if (!at) return changeColumns(clip, target, column => ({ ...column, duration: change(column.duration) }));
+  const column = columnAt(clip, at)!;
+  const changed = { ...column, duration: change(column.duration) };
+  return pasteOver(clip, at, { ...clip, bars: [{ columns: [changed] }] }).clip;
+}
+
+/** The target's place when it is one column (not a grace note, not in a tuplet), else null. */
+function loneColumn(clip: Part, { cursor, selection }: Target): Cursor | null {
+  if (selection && selection.anchor !== selection.focus) return null;
+  const at = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
+  const column = columnAt(clip, at);
+  if (!column || column.grace || column.duration.tuplet) return null;
+  return at;
 }
 
 /** Puts the target columns in one kind of tuplet (3 to 12, in its usual span), or none with null. */

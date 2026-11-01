@@ -19,7 +19,7 @@ import { SaveAsDialog, SaveChangesDialog } from './SaveDialogs';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, fillBar, isEmpty, noteAt, pasteOver, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
 import { removeBarLine, setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setRepeatTimes, setSection, setTempo } from './barEdits';
 import { isBarLine, type BarLineHit } from './barLines';
-import { makeRest, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { clearToRests, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
@@ -727,10 +727,10 @@ export default function TabPage() {
   };
 
   /**
-   * A press on a rest in normal mode (issue #276): the rest alone is selected, lit with its box as MuseScore
-   * selects one, not its bar; with Shift the selection grows to it.
+   * A press on a rest in normal mode (issue #276), or on a note's stem under the tab alone (issue #290): its
+   * column alone is selected, as MuseScore selects one, not its bar; with Shift the selection grows to it.
    */
-  const onPickRest = (at: { bar: number; column: number }, extend: boolean) => {
+  const onPickRhythm = (at: { bar: number; column: number }, extend: boolean) => {
     const hit = { ...at, string: cursor.string };
     if (extend) {
       onPick(hit, true);
@@ -956,8 +956,8 @@ export default function TabPage() {
     if (!cut) return;
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
     // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
-    const cutRange = { anchor: range[0], focus: range[1] };
-    commit(makeRest(clip, { cursor, selection: cutRange }), cursor, cutRange);
+    const cleared = clearToRests(clip, { anchor: range[0], focus: range[1] });
+    commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     startRegion();
   });
 
@@ -1254,7 +1254,7 @@ export default function TabPage() {
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                      onPickColumn={pickColumn} onPickRest={inputMode ? undefined : onPickRest} columnReach={COLUMN_REACH}
+                      onPickColumn={pickColumn} onPickRhythm={inputMode ? undefined : onPickRhythm} columnReach={COLUMN_REACH}
                       // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
                       // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
                       // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.

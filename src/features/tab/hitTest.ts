@@ -184,28 +184,34 @@ export function cursorSpot(layout: Layout, bar: number, column: number): { syste
 
 /* — beams: eighths and shorter within one beat are joined; in 4/4, plain eighths by the half bar — */
 
-/** How far across from a rest's middle a press still picks it. */
+/** How far across from a rest's middle, or a stem, a press still picks it. */
 const REST_REACH_X = 9;
+/** The tab alone draws a whole or half rest on a line 18 wide (`TabStems`), so a press anywhere along it picks it (issue #290). */
+const TAB_BAR_REST_REACH_X = 12;
 
 /**
- * The rest under a press (issue #276): where the staff draws it, across the staff's five lines, or, with
- * the tab alone, where the tab's own rhythm draws it under the strings. A multi-bar rest and a grace
- * note have none to pick.
+ * The column whose rhythm is under a press: a rest where the staff draws it, across the staff's five
+ * lines (issue #276), or, with the tab alone, a rest or a note's stem where the tab's own rhythm draws
+ * them under the strings (issue #290). A multi-bar rest and a grace note have none to pick.
  */
-export function restAt(layout: Layout, x: number, y: number): { bar: number; column: number } | null {
+export function rhythmAt(layout: Layout, x: number, y: number): { bar: number; column: number } | null {
   const line = lineAt(layout, y);
   if (!line) return null;
   const { system, localY } = line;
   const { rows } = system;
   const [top, bottom] = rows.score ? [rows.score.top, rows.score.bottom] : rows.tabStems ? [rows.stemTop, rows.stemTop + 24] : [null, null];
   if (top === null || bottom === null || localY < top || localY > bottom) return null;
+  // The nearest in reach, so a wide rest's reach doesn't take a press from a narrow stem or rest beside it.
+  let best: { bar: number; column: number; off: number } | null = null;
   for (const bar of system.bars) {
     if (bar.restRun) continue;
     for (let column = 0; column < bar.columns.length; column++) {
       const placed = bar.columns[column];
-      if (!isRest(placed.column) || placed.column.grace) continue;
-      if (Math.abs(placed.x - x) <= REST_REACH_X) return { bar: bar.index, column };
+      if (placed.column.grace || (rows.score && !isRest(placed.column))) continue;
+      const reach = !rows.score && isRest(placed.column) && placed.column.duration.value <= 2 ? TAB_BAR_REST_REACH_X : REST_REACH_X;
+      const off = Math.abs(placed.x - x);
+      if (off <= reach && (!best || off < best.off)) best = { bar: bar.index, column, off };
     }
   }
-  return null;
+  return best && { bar: best.bar, column: best.column };
 }

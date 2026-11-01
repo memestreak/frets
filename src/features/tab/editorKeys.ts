@@ -5,8 +5,8 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { isRest, type Duration, type Part } from './clip';
-import { clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
-import { makeRest, stepDuration } from './noteEdits';
+import { clampCursor, clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { clearToRests, makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
@@ -236,16 +236,12 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     const column = columnAt(clip, cursor);
     // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
-    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). Note input keeps
-    // the cursor where it is, to type on.
+    // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). It is the column
+    // picked by itself, as a press on a rest picks one, so it lights with no box round it (Jeremy, 2026-11-01).
+    // Note input keeps the cursor where it is, to type on.
     const leave = (next: Part, at: Cursor) => {
-      if (editor.inputMode || !columnAt(next, at)) {
-        commit(next, at, null);
-        return;
-      }
-      const i = indexOf(next, at.bar, at.column);
-      commit(next, at, { anchor: i, focus: i });
-      editor.startRegion();
+      commit(next, at, null);
+      if (!editor.inputMode && columnAt(next, at)) editor.startRegion();
     };
     // Bars stay full (issue #238, as MuseScore): Delete leaves rests; Ctrl/⌘+Delete takes the time away too.
     if (e.ctrlKey || e.metaKey) {
@@ -262,7 +258,9 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         leave(cut.clip, { ...cursor, ...cut.cursor });
       }
     } else if (selection) {
-      commit(makeRest(clip, target), cursor, selection);
+      // The selection's notes become rests, and a bar it covers whole starts again as one rest (issue #290).
+      const cleared = clearToRests(clip, selection);
+      commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     } else if (!columnOnly && noteAt(clip, cursor)) {
       leave(clearNote(clip, cursor), cursor);
     } else if (column && !isRest(column)) {
@@ -319,7 +317,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
 }
 
 /**
- * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note a digit sets its length (5 a
+ * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note or rest a digit sets its length (5 a
  * quarter) and ↑ ↓ move it a semitone, Alt+Shift+↑ ↓ a step in the key, Ctrl/⌘+↑ ↓ an octave; on a
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
@@ -331,7 +329,10 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  if (onStaff && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A column picked by itself (a rest, or a stem under the tab alone) takes the length digits in every
+  // view: with no string picked there is no fret for a digit to type (issue #290).
+  const columnPicked = columnOnly && !!columnAt(clip, cursor);
+  if ((onStaff || columnPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
     if (value) commit(setValue(clip, target, value));
     return true;
@@ -523,8 +524,7 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
   if (selection) {
     const range = selectedRange(selection);
     if (removeTime) return { clip: deleteColumns(clip, range).clip, line: range[0] };
-    const start = placeOf(clip, range[0]);
-    return { clip: makeRest(clip, { cursor: { ...start, string: 0 }, selection }), line: line ?? range[0] };
+    return { clip: clearToRests(clip, selection).clip, line: line ?? range[0] };
   }
   if (line === null || line <= 0) return null;
   const before = Math.min(line, columnCount(clip)) - 1;

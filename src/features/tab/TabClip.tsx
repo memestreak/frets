@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
@@ -45,7 +45,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -113,8 +113,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * 2026-10-27: "more clickable area above and below"), in pixels; the page's margin round the clip.
    */
   columnReach?: number;
-  /** A press on a rest, in normal mode (issue #276): its bar and column, and whether Shift grows the selection to it. */
-  onPickRest?: (at: { bar: number; column: number }, extend: boolean) => void;
+  /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
+  onPickRhythm?: (at: { bar: number; column: number }, extend: boolean) => void;
 }) {
   const layout = layoutClip(clip, width, parts);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
@@ -142,7 +142,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     const pressed = !run && onPickText && words ? textAt(layout, px, py) : null;
     const text = pressed && e.button === 2 && (pressed.kind === 'time' || pressed.kind === 'key') ? null : pressed;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
-    const rest = run || text || mark || !onPickRest || e.button !== 0 ? null : restAt(layout, px, py);
+    const rest = run || text || mark || !onPickRhythm || e.button !== 0 ? null : rhythmAt(layout, px, py);
     const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
     const hit = run || text || mark || rest || staff ? null : hitTest(layout, px, py);
     const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
@@ -152,8 +152,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     if (!onPick) return;
     const { run, text, mark, rest, staff, hit, column, px, py } = target(e);
     if (rest) {
-      // A rest pressed in normal mode: it alone is selected, or with Shift the run grows to it (issue #276).
-      onPickRest!(rest, e.shiftKey);
+      // A rest or a stem pressed in normal mode: its column alone is selected, or with Shift the run grows to it (issues #276, #290).
+      onPickRhythm!(rest, e.shiftKey);
       return;
     }
     // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
