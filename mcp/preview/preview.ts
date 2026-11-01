@@ -8,6 +8,7 @@ import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { AppBridge, PostMessageTransport, getToolUiResourceUri, type McpUiTheme } from '@modelcontextprotocol/ext-apps/app-bridge';
 import metronome from '../dist/metronome.html?raw';
+import tuner from '../dist/tuner.html?raw';
 import { createFretsServer } from '@/mcp/server';
 import { TOOL_NAME } from '@/features/metronome/mcp/tool';
 
@@ -25,7 +26,7 @@ let latest: Record<string, unknown> | null = null;
 
 async function connectClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createFretsServer({ metronome }).connect(serverSide);
+  await createFretsServer({ metronome, tuner }).connect(serverSide);
   const client = new Client({ name: HOST.name, version: HOST.version });
   await client.connect(clientSide);
   return client;

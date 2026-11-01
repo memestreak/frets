@@ -1,0 +1,5 @@
+/* The tuner's MCP App: the shared base and the tuner's classes, in a card the chat column's width. */
+@import "../base.css";
+@source "../../../src/features/tuner";
+
+.mcp-tuner { max-width: none; }

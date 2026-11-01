@@ -24,3 +24,4 @@ and its connector to add.
 
 - [Frets](https://frets.eminor.net/mcp): a remote MCP server (Streamable HTTP, no sign-in) whose tools show Frets pages in the chat as MCP Apps. Its tools:
   - `show_metronome`: a playable metronome, loaded with a tempo, beats, grouping, subdivision and swing
+  - `show_tuner`: a guitar tuner in standard tuning that listens through the mic, where the chat app allows it, and plays each string's note
