@@ -8,7 +8,11 @@ import { MultiRest } from './StaffDrawing';
 import { type TabLook } from './tabLook';
 
 /** Stems, beams, flags, dots, tremolo slashes, tuplet numbers and rests under the staff; grace notes get none. */
-export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; beat: number; look: TabLook }) {
+export function Stems({ bar, rows, beat, look, selected = null }: {
+  bar: PlacedBar; rows: Rows; beat: number; look: TabLook;
+  /** The selected run of columns (places in the clip): its rests, and their dots, are drawn in `--select` (issue #276). */
+  selected?: [number, number] | null;
+}) {
   const parts: ReactNode[] = [];
   const groups = beamGroups(bar, beat);
   const grouped = new Map<Column, PlacedColumn[]>();
@@ -35,7 +39,8 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
       }
     }
     if (isRest(column)) {
-      parts.push(<Rest key={`rest-${key}`} x={x} y={rows.stemTop + 10} value={value} look={look} />);
+      const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
+      parts.push(<Rest key={`rest-${key}`} x={x} y={rows.stemTop + 10} value={value} look={lit ? { ...look, ink: 'var(--select)' } : look} />);
     } else if (value === 2) {
       parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={rows.stemBottom - 12} y2={rows.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
     } else if (value >= 4) {
@@ -54,7 +59,8 @@ export function Stems({ bar, rows, beat, look }: { bar: PlacedBar; rows: Rows; b
     const dotX = rest ? x + (value <= 2 ? 13 : 8) : x + 5;
     const dotY = rest ? rows.stemTop + (value <= 2 ? 5 : 10) : rows.stemBottom - 3;
     for (let d = 0; d < dots; d++) {
-      parts.push(<circle key={`dot-${key}-${d}`} cx={dotX + d * 5} cy={dotY} r={1.8} fill={look.ink} />);
+      const litRest = rest && selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
+      parts.push(<circle key={`dot-${key}-${d}`} cx={dotX + d * 5} cy={dotY} r={1.8} fill={litRest ? 'var(--select)' : look.ink} />);
     }
   }
 

@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { boundaryAt, cursorSpot, hitTest, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
@@ -39,7 +39,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, rangeStyle = 'a', x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, rangeStyle = 'a', x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -103,6 +103,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    * 2026-10-27: "more clickable area above and below"), in pixels; the page's margin round the clip.
    */
   columnReach?: number;
+  /** A press on a rest, in normal mode (issue #276): its bar and column, and whether Shift grows the selection to it. */
+  onPickRest?: (at: { bar: number; column: number }, extend: boolean) => void;
   /** MOCK (issue #276): how the box round a selected run is drawn, `?mock=a|b|c`: an outline, an outline on a tint, a tint. */
   rangeStyle?: RangeStyle;
 }) {
@@ -124,19 +126,25 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
     if (py < 0 || py >= layout.height) {
       const edge = py < 0 ? 0 : layout.height - 1;
       const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
-      return { run: null, text: null, mark: null, staff: null, hit: null, column, px, py };
+      return { run: null, text: null, mark: null, rest: null, staff: null, hit: null, column, px, py };
     }
     const run = onPickRun && words ? runAt(layout, px, py) : null;
     const text = !run && onPickText && words ? textAt(layout, px, py) : null;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
-    const staff = run || text || mark || !onPickStaff ? null : staffAt(layout, px, py);
-    const hit = run || text || mark || staff ? null : hitTest(layout, px, py);
-    const column = run || text || mark || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
-    return { run, text, mark, staff, hit, column, px, py };
+    const rest = run || text || mark || !onPickRest || e.button !== 0 ? null : restAt(layout, px, py);
+    const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
+    const hit = run || text || mark || rest || staff ? null : hitTest(layout, px, py);
+    const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
+    return { run, text, mark, rest, staff, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
-    const { run, text, mark, staff, hit, column, px, py } = target(e);
+    const { run, text, mark, rest, staff, hit, column, px, py } = target(e);
+    if (rest) {
+      // A rest pressed in normal mode: it alone is selected, or with Shift the run grows to it (issue #276).
+      onPickRest!(rest, e.shiftKey);
+      return;
+    }
     // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
     const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
     if (onPickRect && e.shiftKey && e.button === 0 && !run && !text && !mark && !onNote) {
@@ -262,8 +270,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, text, mark, staff, hit } = target(e);
-    if (text || (!run && !mark && !staff && !hit)) e.preventDefault();
+    const { run, text, mark, rest, staff, hit } = target(e);
+    if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
   const previous = previousSpots(layout.systems);
@@ -521,7 +529,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
       );
     }
     // Under a staff, the staff carries the rhythm.
-    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} />);
+    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} selected={selected} />);
   }
 
   return <>{parts}</>;
@@ -815,7 +823,7 @@ const RANGE_PAD = 10;
 
 /**
  * The box round a selected run of columns on each line it reaches (issue #276): from the staff's top (or the
- * tab's top line) to the tab's bottom line (or the staff's bottom), across the run's columns. Where the run
+ * tab's top line) to the tab's bottom line (or the staff's bottom; with the tab alone, the foot of its stems), across the run's columns. Where the run
  * takes a bar from its first column it starts at the bar line, and where it takes it to its last it ends
  * at the next, so a whole bar is boxed bar line to bar line; inside a bar it ends halfway between notes.
  */
@@ -837,7 +845,8 @@ export function rangeBoxes(systems: System[], [from, to]: [number, number]): { s
     if (left === null || right === null) return;
     const { rows } = system;
     const top = (rows.score ? rows.score.top : stringY(rows, 0)) - RANGE_PAD;
-    const bottom = (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
+    // With the tab alone its rhythm, rests too, is under the strings: the box takes it in.
+    const bottom = rows.tabStems ? rows.stemBottom + 4 : (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
     boxes.push({ system: si, x: left, y: system.top + top, width: right - left, height: bottom - top });
   });
   return boxes;

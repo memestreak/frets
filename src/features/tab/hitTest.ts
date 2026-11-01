@@ -3,6 +3,7 @@
  * columns, and where the cursor is drawn. Pure; works on a `layoutClip` layout.
  */
 
+import { isRest } from './clip';
 import { staffBar } from './staffGeometry';
 import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
 
@@ -182,3 +183,29 @@ export function cursorSpot(layout: Layout, bar: number, column: number): { syste
 }
 
 /* — beams: eighths and shorter within one beat are joined; in 4/4, plain eighths by the half bar — */
+
+/** How far across from a rest's middle a press still picks it. */
+const REST_REACH_X = 9;
+
+/**
+ * The rest under a press (issue #276): where the staff draws it, across the staff's five lines, or, with
+ * the tab alone, where the tab's own rhythm draws it under the strings. A multi-bar rest and a grace
+ * note have none to pick.
+ */
+export function restAt(layout: Layout, x: number, y: number): { bar: number; column: number } | null {
+  const line = lineAt(layout, y);
+  if (!line) return null;
+  const { system, localY } = line;
+  const { rows } = system;
+  const [top, bottom] = rows.score ? [rows.score.top, rows.score.bottom] : rows.tabStems ? [rows.stemTop, rows.stemTop + 24] : [null, null];
+  if (top === null || bottom === null || localY < top || localY > bottom) return null;
+  for (const bar of system.bars) {
+    if (bar.restRun) continue;
+    for (let column = 0; column < bar.columns.length; column++) {
+      const placed = bar.columns[column];
+      if (!isRest(placed.column) || placed.column.grace) continue;
+      if (Math.abs(placed.x - x) <= REST_REACH_X) return { bar: bar.index, column };
+    }
+  }
+  return null;
+}

@@ -4,6 +4,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { partOf, type Part } from '@/features/tab/clip';
 import { rangeBoxes } from '@/features/tab/TabClip';
+import { restAt } from '@/features/tab/hitTest';
 
 function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
@@ -46,5 +47,26 @@ describe('rangeBoxes', () => {
     expect(split[0].x + split[0].width).toBe(first.bars[1].x1);
     expect(split[1].x).toBe(second.bars[0].x0);
     expect(split[1].y).toBeGreaterThan(split[0].y + split[0].height);
+  });
+});
+
+describe('restAt (issue #276)', () => {
+  const rests = clipOf('\\ts (4 4)\n3.6.4 r.4 5.6.2 |');
+  it('finds a rest where the tab alone draws it, under the strings, and nothing on the strings over it', () => {
+    const tab = layoutClip(rests, 800, 'tab');
+    const { rows, top, bars } = tab.systems[0];
+    const x = bars[0].columns[1].x;
+    expect(restAt(tab, x, top + rows.stemTop + 10)).toEqual({ bar: 0, column: 1 });
+    expect(restAt(tab, x, top + stringY(rows, 2))).toBeNull();
+    // A note's stem is not a rest.
+    expect(restAt(tab, bars[0].columns[0].x, top + rows.stemTop + 10)).toBeNull();
+  });
+
+  it('finds a rest on the staff, across its lines', () => {
+    const both = layoutClip(rests, 800, 'both');
+    const { rows, top, bars } = both.systems[0];
+    const x = bars[0].columns[1].x;
+    expect(restAt(both, x, top + (rows.score!.top + rows.score!.bottom) / 2)).toEqual({ bar: 0, column: 1 });
+    expect(restAt(both, x + 20, top + (rows.score!.top + rows.score!.bottom) / 2)).toBeNull();
   });
 });

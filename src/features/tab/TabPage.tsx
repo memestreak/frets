@@ -691,6 +691,23 @@ export default function TabPage() {
     }
   };
 
+  /**
+   * A press on a rest in normal mode (issue #276): the rest alone is selected, lit with its box as MuseScore
+   * selects one, not its bar; with Shift the selection grows to it.
+   */
+  const onPickRest = (at: { bar: number; column: number }, extend: boolean) => {
+    const hit = { ...at, string: cursor.string };
+    if (extend) {
+      onPick(hit, true);
+      return;
+    }
+    lastDigit.current = null;
+    const left = editing && at.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
+    commit(left, hit, null);
+    setStaffPitch(null);
+    setColumnOnly(true);
+  };
+
   /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
   const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
     const string = stringAtPitch(next, at, pitch);
@@ -1173,7 +1190,7 @@ export default function TabPage() {
                       clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
                       onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                      onPickColumn={pickColumn} columnReach={COLUMN_REACH}
+                      onPickColumn={pickColumn} onPickRest={inputMode ? undefined : onPickRest} columnReach={COLUMN_REACH}
                       // Out of note input, a double-click on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
                       onDoubleClick={() => {
                         if (inputMode) return;

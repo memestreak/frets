@@ -2793,6 +2793,33 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('a press on a rest selects that rest alone, boxed, and Shift grows the run to it (issue #276)', async () => {
+      await open();
+      const restPath = screen.getByTestId('staff-rest').querySelector('path')!;
+      const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
+      const onRest = { clientX: Number(x) + 4, clientY: Number(y) };
+      const lit = () => screen.getAllByTestId('staff-head').map(h => h.hasAttribute('data-selected'));
+      press(onRest);
+      expect(restPath.getAttribute('fill')).toBe('var(--select)');
+      expect(lit()).toEqual([false, false, false]);
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      // Delete leaves it a rest; the bar's notes are untouched.
+      fireEvent.keyDown(editor(), { key: 'Delete' });
+      expect(screen.getAllByTestId('staff-rest')).toHaveLength(1);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
+      // From the D string's note, Shift+press on the rest selects both.
+      press(headAt(2));
+      fireEvent.pointerDown(svg(), { ...onRest, button: 0, shiftKey: true });
+      fireEvent.pointerUp(svg(), { ...onRest, button: 0, shiftKey: true });
+      expect(lit()).toEqual([false, false, true]);
+      expect(screen.getByTestId('staff-rest').querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
+      // In note input a press there enters a note, as before.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      fireEvent.keyDown(editor(), { key: 'n' });
+      press(onRest);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
+    });
+
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {
       await open();
       press(headAt(2));

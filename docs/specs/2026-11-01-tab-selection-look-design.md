@@ -36,7 +36,16 @@ showed twice and only partly lit (Jeremy, 2026-11-01). Now the note's own head, 
 lines and dots are drawn in `--select` where they are, and nothing is drawn over them. A head a
 second from its neighbour sits on the stem's other side; a press on it now finds it where it is drawn.
 
+## Rests are selectable
+
+In normal mode a press on a rest selects that rest alone, not its bar (Jeremy, 2026-11-01): on the staff
+across its five lines, with the tab alone where its rhythm draws the rest under the strings (`restAt` in
+`hitTest.ts`). It lights, with its box, as a selected column does; Shift+press grows the run to it. A
+multi-bar rest and a grace note have none to pick. In note input a press there still enters a note.
+With the tab alone, the box reaches down over the rhythm so the rest is inside it, and a selected rest
+there is lit too.
+
 ## Later in #276
 
 - A beam lights when every note it joins is selected.
-- Rests and playback marks (repeats, endings, tempo, hairpins, fermatas…) are selectable by a press.
+- Playback marks (repeats, endings, tempo, hairpins, fermatas…) are selectable by a press.
