@@ -46,7 +46,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   parts?: Parts;
   /** Which bars show their number (the View options). */
   barNumbers?: BarNumbers;
-  /** Drawn this many times its size (an exported image at a View options size); `width` is in the drawing's own units. */
+  /** Drawn this many times its size (an exported image at the page's Size); `width` is in the drawing's own units. */
   zoom?: number;
   /** Where it sits inside a larger drawing (an exported image). */
   x?: number;
@@ -114,7 +114,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
     const words = e.button === 0 && !e.shiftKey;
     const box = e.currentTarget.getBoundingClientRect();
-    // From screen pixels to the drawing's units, at any size the page draws it (View options' Size).
+    // From screen pixels to the drawing's units, at any Size the page draws it.
     const scale = box.width > 0 ? width / box.width : 1;
     const px = (e.clientX - box.left) * scale;
     const py = (e.clientY - box.top) * scale;

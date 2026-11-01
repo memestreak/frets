@@ -380,7 +380,7 @@ button {
   .tab-view-options { min-width: 0; }
   .tab-view-option { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .tab-view-option .seg { flex-wrap: nowrap; }
-  /* Each view's options under its name: Notation, ASCII Tab, AlphaTex (Jeremy, 2026-10-28). */
+  /* The colours, then the shown view's own options under its name (issue #277). */
   .tab-view-options { display: flex; flex-direction: column; gap: 8px; }
   .tab-view-heading { margin: 6px 0 0; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
   .tab-view-heading:first-child { margin-top: 0; }
@@ -869,8 +869,11 @@ button {
      Staff | Tab | Both; the switch never breaks onto two lines. */
   .tab-card-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; margin-left: auto; }
   .tab-card-end > * { flex-shrink: 0; }
-  /* Staff | Tab | Both and the track list keep together at the left. */
-  .tab-card-start { display: flex; align-items: center; gap: 8px; }
+  /* Staff | Tab | Both, Size (issue #277) and the track list keep together at the left, wrapping on a phone. */
+  .tab-card-start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  /* Size, styled as Speed: its name isn't selected by the double-click that resets it. */
+  .tab-size { user-select: none; -webkit-user-select: none; }
+  .tab-size input { user-select: text; -webkit-user-select: text; }
   .tab-card-start:empty { display: none; }
   /* The track list over a clip of several tracks (issue #243): as narrow as its longest name. */
   .tab-track-pick { width: auto; min-width: 0; max-width: 200px; }

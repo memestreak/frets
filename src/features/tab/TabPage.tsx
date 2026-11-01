@@ -33,6 +33,7 @@ import { BarKeyPanel } from './BarKeyPanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { useClipActions } from './ClipActions';
+import { SizeField } from './ViewOptions';
 import { WordField, type FieldKind } from './WordField';
 import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
 import { TabClip } from './TabClip';
@@ -148,7 +149,7 @@ export default function TabPage() {
   const [importing, setImporting] = useState(false);
   const [widthRef, boxWidth] = useWidth();
   // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
-  // At a View options size the drawing (and all over it) is zoomed, so it is laid out that much narrower or wider.
+  // At a Size other than 100% the drawing (and all over it) is zoomed, so it is laid out that much narrower or wider.
   const zoom = shown.size / 100;
   const clipWidth = boxWidth / zoom;
   // The View options' colours (Jeremy, 2026-10-28): the clip sits on a sheet of its background, and the
@@ -991,7 +992,7 @@ export default function TabPage() {
       const box = head.getBoundingClientRect();
       at = { x: box.left, y: box.bottom + 4 };
     } else if (editor) {
-      // The drawing's units are zoomed by the View options' Size.
+      // The drawing's units are zoomed by Size.
       const box = editor.getBoundingClientRect();
       const spot = barTempoSpot(drawn, clipWidth, parts, bar);
       at = { x: box.left + spot.x * zoom, y: box.top + spot.y * zoom };
@@ -1094,7 +1095,7 @@ export default function TabPage() {
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: Staff | Tab | Both at the top left (Notation only); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
+        {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
           <div className="tab-card-start">
             {view === 'tab' && (
@@ -1106,6 +1107,7 @@ export default function TabPage() {
                 ))}
               </div>
             )}
+            {view === 'tab' && <SizeField size={shown.size} onChange={size => setShown({ ...shown, size })} />}
             {/* With several tracks, the one shown (issue #243); the AlphaTex view has them all. */}
             {whole.tracks.length > 1 && view !== 'alphatex' && (
               <select className="input tab-track-pick" aria-label="Track" value={track} onChange={e => chooseTrack(Number(e.target.value))}>
@@ -1126,7 +1128,7 @@ export default function TabPage() {
         </div>
         <div className={colours ? 'tab-paper' : undefined} style={paperStyle} data-testid="tab-paper">
         <div ref={widthRef} className="min-w-0">
-          {/* The View options' Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
+          {/* Size zooms the drawing, its head and everything over it: presses, fields and panels alike. */}
           <div style={view === 'tab' && zoom !== 1 ? { zoom } : undefined}>
           {/* The head belongs to the drawing; the text views carry the same in their text (Jeremy, 2026-10-28). */}
           {view === 'tab'

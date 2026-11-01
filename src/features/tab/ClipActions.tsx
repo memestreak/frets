@@ -122,7 +122,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
 
   const buttons = (
     <>
-      {/* Every view has the View options, each view's in its own group (Jeremy, 2026-10-28). */}
+      {/* Every view has the View options: the colours and that view's own (issue #277). */}
       <button
         type="button" className="btn btn-secondary btn-icon" aria-label="View options" title="View options"
         aria-haspopup="dialog" aria-expanded={viewPanelAt !== null}
@@ -179,7 +179,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
       )}
       {viewPanelAt && (
         <ViewOptions
-          x={viewPanelAt.x} y={viewPanelAt.y} values={shown} onChange={onShown}
+          x={viewPanelAt.x} y={viewPanelAt.y} view={view} values={shown} onChange={onShown}
           onClose={pressedAway => {
             if (pressedAway) viewPanelPressedAway.current = Date.now();
             setViewPanelAt(null);

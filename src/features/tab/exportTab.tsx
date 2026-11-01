@@ -154,11 +154,11 @@ export function tabImageSize(clip: Part, style: TabExportStyle, title: string, p
 /**
  * The clip as an image: the page's own `TabClip` in black, under the score's head as the page draws
  * it (the title only if the style shows the name), on white unless transparent; the staff, the tab or
- * both, as the page shows them, at the View options' size. The Export dialog's preview draws the same.
+ * both, as the page shows them, at the page's Size. The Export dialog's preview draws the same.
  */
 export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
   const { width, height } = tabImageSize(clip, style, title, parts, view);
-  // At a View options size the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
+  // At a Size other than 100% the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
   const head = headOf(clip, style, title);
   const inner = (width - 2 * PAD) / zoom;
