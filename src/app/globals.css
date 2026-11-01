@@ -262,6 +262,54 @@ button {
   }
   .tuner-string[data-in-tune='true'] sub { color: var(--on-lit); }
 
+  /* The tuner in a chat (src/features/tuner/mcp/ChatTuner.tsx), and its mocks on the page. */
+  .chat-tuner { display: grid; gap: 10px; padding: 14px 16px; }
+  .chat-tuner-row { display: flex; align-items: center; gap: 14px; }
+  .chat-tuner-listen { min-width: 84px; height: 40px; }
+  .chat-tuner-readout { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+  .chat-tuner-note {
+    display: inline-flex; align-items: baseline; width: 64px;
+    font: 600 48px/1 var(--font-display); color: var(--ink); transition: color 200ms, text-shadow 200ms;
+  }
+  .chat-tuner-note sub { margin-left: 2px; font: 600 16px/1 var(--font-sans); color: var(--ink-muted); }
+  .chat-tuner-note[data-idle='true'] { color: var(--line-strong); }
+  .chat-tuner-cents {
+    font: 500 16px/22px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .chat-tuner-readout[data-in-tune='true'] :is(.chat-tuner-note, .chat-tuner-cents) { color: var(--lit); }
+  .chat-tuner-readout[data-in-tune='true'] .chat-tuner-note { text-shadow: 0 0 16px var(--lit-glow); }
+  .chat-tuner .chat-tuner-strings { margin: 0; padding-top: 10px; }
+  .chat-tuner .tuner-string { width: 44px; }
+  /* b: a small dial left of the note. */
+  .chat-tuner[data-layout='b'] .chat-tuner-dial { width: 180px; flex: none; }
+  .chat-tuner[data-layout='b'] .chat-tuner-dial svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chat-tuner-side { display: grid; justify-items: start; gap: 10px; }
+  /* c: the strings beside Listen are the readout; one line under the bar. */
+  .chat-tuner[data-layout='c'] .chat-tuner-row { gap: 8px; }
+  .chat-tuner[data-layout='c'] .chat-tuner-listen { min-width: 72px; }
+  .chat-tuner[data-layout='c'] .chat-tuner-strings {
+    padding: 0; border: 0; flex: 1; justify-content: space-between; gap: 4px;
+  }
+  .chat-tuner[data-layout='c'] .tuner-string { width: 36px; font-size: 15px; }
+  .chat-tuner-line {
+    margin: 0; text-align: center; font: 500 15px/22px var(--font-sans); color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .chat-tuner-line b { font: 600 20px/1 var(--font-display); color: var(--ink); }
+  .chat-tuner-line b sub { font: 600 11px/1 var(--font-sans); color: var(--ink-muted); }
+  .chat-tuner-line[data-in-tune='true'], .chat-tuner-line[data-in-tune='true'] b { color: var(--lit); }
+  .cents-bar { display: block; width: 100%; height: auto; overflow: visible; }
+  .cents-bar-track { fill: var(--surface-sunken); }
+  .cents-bar-zone { fill: var(--lit); opacity: 0.25; transition: opacity 200ms; }
+  .cents-bar[data-in-tune='true'] .cents-bar-zone { opacity: 1; }
+  .cents-bar-tick { stroke: var(--line-strong); stroke-width: 1.5; }
+  .cents-bar-tick[data-major='true'] { stroke: var(--ink-muted); }
+  .cents-bar-needle { transition: transform 140ms ease-out; }
+  .cents-bar-needle rect { fill: var(--primary); transition: fill 200ms; }
+  .cents-bar-needle[data-idle='true'] rect { fill: var(--line-strong); }
+  .cents-bar[data-in-tune='true'] .cents-bar-needle rect { fill: var(--lit); }
+
   .chord-numeral { font: 600 22px/28px var(--font-display); }
 
   /* The selected chord's ladder and clock (ChordLadder, ChordClock). */

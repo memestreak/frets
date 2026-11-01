@@ -24,8 +24,6 @@ interface TunerPanelProps {
   status: MicStatus;
   /** The page's heading, beside the tuning; the dialog has its own. */
   title?: ReactNode;
-  /** The reference sounds offered, first the fallback; every one by default. */
-  sounds?: readonly (readonly [RefSound, string])[];
 }
 
 /**
@@ -35,15 +33,14 @@ interface TunerPanelProps {
  * one heard lit, each playing its note when pressed. Every part keeps its
  * size whatever it reads. The Tuner page and the Note trainer's tuner.
  */
-export function TunerPanel({ listener, status, title, sounds = REF_SOUNDS }: TunerPanelProps) {
+export function TunerPanel({ listener, status, title }: TunerPanelProps) {
   const [settings, update] = useTunerSettings();
-  const sound = sounds.some(([v]) => v === settings.sound) ? settings.sound : sounds[0][0];
   // The mic would hear the reference note through the speakers.
   const pitch = useTunerPitch(listener, referenceSounding);
 
   useEffect(() => {
-    preloadReference(sound);
-  }, [sound]);
+    preloadReference(settings.sound);
+  }, [settings.sound]);
 
   const heard = pitch == null ? null : nearestString(pitch);
   const cents = pitch == null || heard == null ? null : centsFrom(pitch, heard);
@@ -61,10 +58,10 @@ export function TunerPanel({ listener, status, title, sounds = REF_SOUNDS }: Tun
           <p className="text-muted m-0 text-[13px]">Standard tuning · A440</p>
         </div>
         <select
-          className="input w-auto" aria-label="Reference sound" value={sound}
+          className="input w-auto" aria-label="Reference sound" value={settings.sound}
           onChange={e => update({ sound: e.target.value as RefSound })}
         >
-          {sounds.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+          {REF_SOUNDS.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
         </select>
       </header>
 
@@ -97,7 +94,7 @@ export function TunerPanel({ listener, status, title, sounds = REF_SOUNDS }: Tun
               data-heard={heard === s}
               data-in-tune={heard === s && inTune}
               aria-label={`Play ${pitchLabel(TUNING[s])}`}
-              onClick={() => void playReference(TUNING[s], sound)}
+              onClick={() => void playReference(TUNING[s], settings.sound)}
             >
               <span>{name}<sub>{octave}</sub></span>
             </button>

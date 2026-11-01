@@ -1,5 +1,5 @@
 /**
- * The tuner as an MCP App (#283): the page's tuner in a host's frame. A first test build: it
+ * The tuner as an MCP App (#283): the compact tuner (`ChatTuner`) in a host's frame. A first test build: it
  * listens only when Listen is pressed, and says what the host allowed, to find out which chat apps
  * let it hear the mic. The string buttons play the simulated string: the recordings live on the
  * site, which the frame can't reach.
@@ -7,13 +7,9 @@
 import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useEffect, useState } from 'react';
 import { MicListener, type MicStatus } from '@/components/tuner/listener';
-import { REF_SOUNDS } from '@/components/tuner/sounds';
-import { TunerPanel } from '@/components/tuner/TunerPanel';
+import { ChatTuner } from './ChatTuner';
 
 export const APP_INFO = { name: 'Frets tuner', version: '1.0.0' };
-
-/** Only the sound the frame can make on its own. */
-const FRAME_SOUNDS = REF_SOUNDS.filter(([v]) => v === 'synth');
 
 /** What the host said about the mic, for the test build's note. */
 type HostMic = 'unknown' | 'granted' | 'not granted';
@@ -73,18 +69,13 @@ export function TunerApp({ app }: { app: App }) {
   };
 
   return (
-    <section className="card tuner-card mcp-tuner" aria-label="Tuner">
-      <TunerPanel
-        listener={listener} status={status} sounds={FRAME_SOUNDS}
-        title={(
-          <button type="button" className={`btn ${listening ? 'btn-secondary' : 'btn-primary'}`} onClick={toggle}>
-            {listening ? 'Stop' : 'Listen'}
-          </button>
-        )}
-      />
-      <p className="text-muted m-0 mt-2 text-center text-[11px]" data-testid="mic-probe">
-        Test build · host mic: {hostMic} · mic: {status}
-      </p>
-    </section>
+    <ChatTuner
+      listener={listener} status={status} onListen={toggle} sound="synth" layout="a"
+      footer={(
+        <p className="text-muted m-0 text-center text-[11px]" data-testid="mic-probe">
+          Test build · host mic: {hostMic} · mic: {status}
+        </p>
+      )}
+    />
   );
 }
