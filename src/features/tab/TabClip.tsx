@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { stopNear, type GridValue } from './grid';
+import { gridLines, stopNear } from './grid';
 import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
@@ -48,7 +48,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, grid = null, x, y }: {
+export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRest, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -110,10 +110,15 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    */
   shadow?: number | null;
   /**
-   * Note input's grid (issue #293): a press beside the notes, and the shadow note, snap to the nearest
-   * note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
+   * Note input's grid in ticks (issue #293): a press beside the notes, and the shadow note, snap to the
+   * nearest note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
    */
-  grid?: GridValue | null;
+  gridStep?: number | null;
+  /**
+   * How the grid is drawn over the cursor's bar in note input (Jeremy, 2026-11-01, as Dorico shows it), while
+   * he picks a look: a a ruler over the top staff, b faint lines across the staves, c dots under the bottom one.
+   */
+  gridLook?: 'a' | 'b' | 'c' | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -135,8 +140,8 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
    */
   /** In note input, a press's column moved to the nearest stop on the grid, with how far into its rest. */
   const snapped = <T extends { bar: number; column: number }>(on: T | null, px: number): (T & { at?: number }) | null => {
-    if (!on || grid === null) return on;
-    const stop = stopNear(layout, on.bar, px, grid);
+    if (!on || gridStep === null) return on;
+    const stop = stopNear(layout, on.bar, px, gridStep);
     return stop ? { ...on, column: stop.column, at: stop.at } : on;
   };
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
@@ -386,6 +391,29 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
               selected={highlight?.range ?? null} selectedNote={selectedNote} litMark={lights.staff} word={pickedWord}
             />
           )}
+          {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
+            const placed = system.bars.find(b => b.index === highlight.cursor!.bar);
+            if (!placed) return null;
+            const lines = gridLines(placed, gridStep);
+            const top = rows.score ? rows.score.top : rows.staffTop;
+            const bottom = rows.staffBottom;
+            return (
+              <g pointerEvents="none" data-testid="grid-lines" stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                {gridLook === 'a' && (
+                  <>
+                    <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
+                    {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
+                  </>
+                )}
+                {gridLook === 'b' && lines.map((l, k) => (
+                  <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
+                ))}
+                {gridLook === 'c' && lines.map((l, k) => (
+                  <circle key={k} cx={l.x} cy={bottom + 5} r={l.beat ? 2 : 1.25} stroke="none" fillOpacity={0.7} />
+                ))}
+              </g>
+            );
+          })()}
           {cursorOnStaff && !selectedNote && (
             <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
           )}

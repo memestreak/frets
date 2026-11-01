@@ -18,6 +18,20 @@ first.
    grid's note over a ruler; a press opens the four values. The grid is a preference, Settings ›
    Tab › Editing › Note input grid, kept between visits.
 
+### Round 2 (Jeremy, 2026-11-01, after comparing MuseScore)
+
+4. **The grid follows note input's length by default**, as MuseScore's placement does: with a quarter
+   picked, ← → and presses step through a rest by quarters. A **fixed grid** is turned on when wanted:
+   the Grid panel lists Note length first, then the four values; **Alt+G** switches between Note length
+   and the last fixed grid; Alt+[ ] turn the fixed grid on, then make it finer or coarser. Settings ›
+   Tab › Editing has "Note input grid: Fixed | Note length" and "Fixed grid".
+5. **Space always plays**, as in MuseScore. **Shift+Space** moves the cursor on by note input's length,
+   over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
+   a note at the column after it, and past the clip's end a bar of rests is added.
+6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
+7. **The grid is drawn over the cursor's bar** in note input, as Dorico shows it. Three looks offered as
+   mocks (`?mock=a|b|c`): a ruler over the top staff, faint lines across the bar, dots under it.
+
 ## How it works
 
 - Grid lines are counted from the bar's start, not the rest's: on a 16th grid a rest after a dotted

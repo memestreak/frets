@@ -1,13 +1,16 @@
 /**
- * Note input's grid (issue #293, as Dorico's rhythmic grid): where the cursor stops inside a rest, and
- * what a press in note input snaps to. ← → step one grid line at a time through a plain rest (and so
- * through the empty time at a bar's end) and one note at a time over notes; a note entered between
- * grid lines first splits the rest there (`splitRestAt`). Grid lines are counted from the bar's start,
- * not the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure.
+ * Note input's grid (issue #293): where the cursor stops inside a rest, and what a press in note input
+ * snaps to. By default it follows note input's length, as MuseScore's does; a fixed grid (Dorico's
+ * rhythmic grid) is turned on from the palette's Grid button, Alt+G or Alt+[ ]. ← → step one grid line
+ * at a time through a plain rest (and so through the empty time at a bar's end) and one note at a time
+ * over notes; Shift+Space moves on by note input's length (`advance`). A note entered between grid
+ * lines first splits the rest there (`splitRestAt`). Grid lines are counted from the bar's start, not
+ * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
+ * its step in ticks.
  */
-import { fewestRests, NOTE_VALUES, ticks, type Bar, type Duration, type NoteValue, type Part } from './clip';
-import { emptyColumn, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
-import type { Layout, PlacedColumn } from './layout';
+import { barLength, barTicks, fewestRests, NOTE_VALUES, ticks, timeAt, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { emptyColumn, fillBar, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
+import type { Layout, PlacedBar, PlacedColumn } from './layout';
 
 /** The grids offered, coarsest first (Jeremy, 2026-11-01). */
 export const GRID_VALUES = [4, 8, 16, 32] as const satisfies readonly NoteValue[];
@@ -41,12 +44,11 @@ function columnStart(bar: Bar, column: number): number {
  * Where the cursor stops in a column, in ticks from its start: always at 0, and in a plain rest at each
  * grid line inside it too. A note, a tuplet or a grace note is one stop.
  */
-export function stopsIn(bar: Bar, column: number, grid: GridValue): number[] {
+export function stopsIn(bar: Bar, column: number, step: number): number[] {
   const here = bar.columns[column];
-  if (!here || !isPlainRest(here)) return [0];
+  if (!here || !isPlainRest(here) || step <= 0) return [0];
   const start = columnStart(bar, column);
   const end = start + ticks(here.duration);
-  const step = gridTicks(grid);
   const stops = [0];
   for (let line = (Math.floor(start / step) + 1) * step; line < end; line += step) stops.push(line - start);
   return stops;
@@ -56,15 +58,15 @@ export function stopsIn(bar: Bar, column: number, grid: GridValue): number[] {
  * ← → in note input inside the cursor's rest: the next stop that way, in ticks from the rest's start,
  * or null when the key leaves the column (and the cursor goes to the next or last column, as before).
  */
-export function stepInRest(clip: Part, cursor: Cursor, at: number, step: 1 | -1, grid: GridValue): number | null {
-  const stops = stopsIn(clip.bars[cursor.bar], cursor.column, grid);
-  const next = step === 1 ? stops.find(s => s > at) : stops.filter(s => s < at).pop();
+export function stepInRest(clip: Part, cursor: Cursor, at: number, way: 1 | -1, step: number): number | null {
+  const stops = stopsIn(clip.bars[cursor.bar], cursor.column, step);
+  const next = way === 1 ? stops.find(s => s > at) : stops.filter(s => s < at).pop();
   return next ?? null;
 }
 
 /** The last stop in the cursor's column: where ← lands coming back into a rest. */
-export function lastStop(clip: Part, cursor: Cursor, grid: GridValue): number {
-  return stopsIn(clip.bars[cursor.bar], cursor.column, grid).pop()!;
+export function lastStop(clip: Part, cursor: Cursor, step: number): number {
+  return stopsIn(clip.bars[cursor.bar], cursor.column, step).pop()!;
 }
 
 /** Whether `at` is still a place inside the cursor's column a note could go: a plain rest longer than it. */
@@ -121,14 +123,14 @@ export function xAlong(placed: PlacedColumn, at: number): number {
  * The stop nearest a press at `x` in bar `bar` (note input, issue #293): a column's note, or a grid line
  * inside a rest. Null for a bar not drawn, an empty bar or one inside a multi-bar rest.
  */
-export function stopNear(layout: Layout, bar: number, x: number, grid: GridValue): { column: number; at: number; x: number } | null {
+export function stopNear(layout: Layout, bar: number, x: number, step: number): { column: number; at: number; x: number } | null {
   for (const system of layout.systems) {
     const placed = system.bars.find(b => b.index === bar);
     if (!placed) continue;
     if (placed.restRun || placed.columns.length === 0) return null;
     let best: { column: number; at: number; x: number } | null = null;
     placed.columns.forEach((c, column) => {
-      for (const at of stopsIn(placed.bar, column, grid)) {
+      for (const at of stopsIn(placed.bar, column, step)) {
         const stopX = xAlong(c, at);
         if (!best || Math.abs(stopX - x) < Math.abs(best.x - x)) best = { column, at, x: stopX };
       }
@@ -136,4 +138,67 @@ export function stopNear(layout: Layout, bar: number, x: number, grid: GridValue
     return best;
   }
   return null;
+}
+
+/**
+ * Shift+Space in note input (Jeremy, 2026-11-01): the cursor moved on by `length` ticks from where it is
+ * (`at` ticks into its column), over notes and rests alike, as Dorico's Space moves its caret. Inside a
+ * plain rest it stops there; inside a note, at the column after it. Past a bar's end it goes on into the
+ * next bar, and past the clip's last bar, a bar of rests is added (a short last bar is filled first).
+ */
+export function advance(clip: Part, cursor: Cursor, at: number, length: number): { clip: Part; cursor: Cursor; at: number } {
+  let part = clip;
+  let bar = cursor.bar;
+  let target = columnStart(part.bars[bar], cursor.column) + at + length;
+  for (;;) {
+    const here = part.bars[bar];
+    const end = barLength(here);
+    if (target < end) {
+      let start = 0;
+      for (let column = 0; column < here.columns.length; column++) {
+        const c = here.columns[column];
+        const span = c.grace ? 0 : ticks(c.duration);
+        if (span > 0 && target < start + span) {
+          if (target === start) return { clip: part, cursor: { ...cursor, bar, column }, at: 0 };
+          if (isPlainRest(c)) return { clip: part, cursor: { ...cursor, bar, column }, at: target - start };
+          // Inside a note: the next column, or the next bar's start.
+          target = start + span;
+          break;
+        }
+        start += span;
+      }
+      if (target < end) continue;
+    }
+    if (bar === part.bars.length - 1) {
+      const filled = fillBar(part, bar);
+      if (filled !== part && target < barLength(filled.bars[bar])) {
+        part = filled;
+        continue;
+      }
+      part = filled;
+      const time = timeAt(part, bar);
+      part = { ...part, bars: [...part.bars, { columns: fewestRests(barTicks(time)).map(emptyColumn) }] };
+    }
+    target -= Math.max(end, barLength(part.bars[bar]));
+    bar++;
+  }
+}
+
+/**
+ * Where the grid's lines fall across a drawn bar (Jeremy, 2026-11-01: drawn over the bar being written, as
+ * Dorico shows its rhythmic grid): an x for each grid line from the bar's start to its end, `beat` on the
+ * bar's beats. Lines fall along each column's room as time goes (`xAlong`), notes included.
+ */
+export function gridLines(placed: PlacedBar, step: number): { x: number; beat: boolean }[] {
+  if (step <= 0 || placed.columns.length === 0) return [];
+  const lines: { x: number; beat: boolean }[] = [];
+  let start = 0;
+  for (const c of placed.columns) {
+    const span = c.column.grace ? 0 : ticks(c.column.duration);
+    for (let line = Math.ceil(start / step) * step; line < start + span; line += step) {
+      lines.push({ x: xAlong(c, line - start), beat: line % placed.beat === 0 });
+    }
+    start += span;
+  }
+  return lines;
 }

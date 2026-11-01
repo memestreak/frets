@@ -4,7 +4,7 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { isRest, type Duration, type Part } from './clip';
+import { isRest, ticks, type Duration, type Part } from './clip';
 import { clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
@@ -15,7 +15,7 @@ import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tool
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { setValue } from './noteEdits';
 import { lengthOf, stepLength } from './inputLength';
-import { lastStop, splitRestAt, stepInRest, type GridValue } from './grid';
+import { advance, lastStop, splitRestAt, stepInRest } from './grid';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
@@ -52,8 +52,8 @@ export interface EditorKeys {
   /** Note input's length (`inputLength.ts`): the next note entered on a rest takes it. */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
-  /** Note input's grid (`grid.ts`, issue #293): where ← → stop inside a rest. */
-  grid: GridValue;
+  /** Note input's grid (`grid.ts`, issue #293), in ticks: where ← → stop inside a rest. */
+  gridStep: number;
   /** How far into the cursor's rest note input's cursor is, in ticks: 0 at its start, and anywhere but a rest. */
   cursorAt: number;
   /** Puts note input's cursor that far into the rest at `at` (after a commit, which sets it back to 0). */
@@ -124,6 +124,16 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       e.preventDefault();
       return;
     }
+  }
+  // Shift+Space in note input moves the cursor on by the next note's length, over notes and rests, as
+  // Dorico's Space does; Space itself still plays (Jeremy, 2026-11-01).
+  if (key === ' ' && e.shiftKey && editor.inputMode && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    lastDigit.current = null;
+    const moved = advance(clip, cursor, editor.cursorAt, ticks(editor.inputLength));
+    commit(moved.clip, moved.cursor, null);
+    editor.setCursorAt(moved.cursor, moved.at);
+    return;
   }
   if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
@@ -236,7 +246,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       editor.startRegion();
     } else {
       // In note input the cursor stops at each grid line inside a rest, and once on a note (issue #293).
-      const inside = editor.inputMode ? stepInRest(clip, cursor, editor.cursorAt, step, editor.grid) : null;
+      const inside = editor.inputMode ? stepInRest(clip, cursor, editor.cursorAt, step, editor.gridStep) : null;
       if (inside !== null) {
         commit(clip, cursor, null);
         editor.setCursorAt(cursor, inside);
@@ -246,7 +256,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       commit(moved.clip, moved.cursor, null);
       // Coming back into a rest, ← lands on its last grid line.
       const went = moved.cursor.bar !== cursor.bar || moved.cursor.column !== cursor.column;
-      if (editor.inputMode && step === -1 && went) editor.setCursorAt(moved.cursor, lastStop(moved.clip, moved.cursor, editor.grid));
+      if (editor.inputMode && step === -1 && went) editor.setCursorAt(moved.cursor, lastStop(moved.clip, moved.cursor, editor.gridStep));
     }
     return;
   }

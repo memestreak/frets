@@ -5,6 +5,7 @@ import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type O
 import { mordentSign } from './marks';
 import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
 import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
+import type { NoteValue } from './clip';
 import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy';
 
 /**
@@ -17,7 +18,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, grid, onGrid }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, grid, gridValue, onGrid }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -36,9 +37,12 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   inputMode?: boolean;
   /** The pencil pressed: note input on or off, as N does. */
   onInputMode?: () => void;
-  /** Note input's grid (issue #293), shown first in the Duration group; its panel picks another. */
-  grid?: GridValue;
-  onGrid?: (grid: GridValue) => void;
+  /** Note input's fixed grid (issue #293), or null while it follows note input's length; first in the Duration group. */
+  grid?: GridValue | null;
+  /** The note value the grid steps by now, drawn on the button. */
+  gridValue?: NoteValue;
+  /** A grid picked in the button's panel, or null for Note length. */
+  onGrid?: (grid: GridValue | null) => void;
 }) {
   return (
     <div className="tab-palette" role="toolbar" aria-label="Symbols">
@@ -65,10 +69,10 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
-            {group.label === 'Duration' && grid !== undefined && onGrid && (
+            {group.label === 'Duration' && grid !== undefined && gridValue && onGrid && (
               <PanelTool
-                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} none={false}
-                icon={<GridGlyph grid={grid} />} onPick={g => { if (g !== null) onGrid(g); }} disabled={disabled}
+                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel="Note length"
+                icon={<GridGlyph value={gridValue} />} onPick={onGrid} disabled={disabled}
               />
             )}
             {group.tools.map(tool => tool.id === 'bend' ? (
@@ -186,7 +190,7 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled, toggle = true, none = true }: {
+function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled, toggle = true, noneLabel }: {
   tool: Pick<Tool, 'label' | 'key'>;
   /** The cursor's choice, or null for none (or for one the panel doesn't offer). */
   current: T | null;
@@ -200,8 +204,8 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   disabled: boolean;
   /** Whether the button shows the cursor has the mark (pressed); false for a setting, as the Grid's. */
   toggle?: boolean;
-  /** Whether the panel ends with None, to take the mark away; a setting always has a value. */
-  none?: boolean;
+  /** For a setting whose null is a choice of its own (the Grid's Note length): its name, first in the panel; else None, last. */
+  noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLSpanElement>(null);
@@ -243,13 +247,13 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
           <span className="tab-bar-time-title">{tool.label}</span>
           <span className="seg" role="group" aria-label={`${tool.label} choices`}>
-            {(none ? [...choices, null] : choices).map(choice => (
+            {(noneLabel ? [null, ...choices] : [...choices, null]).map(choice => (
               <button
                 key={choice ?? 'none'} type="button" className="seg-opt tab-panel-choice" aria-pressed={choice === current}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => { onPick(choice); setOpen(false); }}
               >
-                {choice === null ? 'None' : label(choice)}
+                {choice === null ? noneLabel ?? 'None' : label(choice)}
               </button>
             ))}
           </span>
@@ -260,14 +264,14 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
 }
 
 /** The Grid button's name, tip and keys (issue #293); not a palette tool, so not in `TOOL_GROUPS`. */
-const GRID_TOOL = { label: 'Note input grid', key: 'Alt+[ ]' };
+const GRID_TOOL = { label: 'Note input grid', key: 'Alt+G, Alt+[ ]' };
 
 /** The grid's note over a ruler: the note value ← → step by in a rest. */
-function GridGlyph({ grid }: { grid: GridValue }) {
-  const flags = { 4: 0, 8: 1, 16: 2, 32: 3 }[grid];
+function GridGlyph({ value }: { value: NoteValue }) {
+  const flags = Math.max(0, Math.log2(value) - 2);
   return (
     <>
-      <g transform="translate(0 -2.5)"><NoteGlyph open={false} flags={flags} /></g>
+      <g transform="translate(0 -2.5)"><NoteGlyph open={value <= 2} stem={value > 1} flags={flags} /></g>
       <path d="M3 21.5 H21 M3 21.5 V19.5 M9 21.5 V19.5 M15 21.5 V19.5 M21 21.5 V19.5" strokeWidth={1} />
     </>
   );

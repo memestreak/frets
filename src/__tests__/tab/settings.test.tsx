@@ -114,18 +114,21 @@ describe('Settings', () => {
     expect(fill).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(fill);
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: true, grid: 16 });
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: true, fixedGrid: false, grid: 16 });
   });
 
-  it('sets note input’s grid under Tab › Editing, a 16th by default (issue #293)', () => {
+  it('sets note input’s grid under Tab › Editing: note input’s length by default, or a fixed grid (issue #293)', () => {
     render(<TabPage />);
     openSettings();
     fireEvent.click(section('Editing'));
-    const grid = inDialog().getByRole('group', { name: 'Note input grid' });
-    expect(within(grid).getByRole('button', { name: 'Sixteenth' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(within(grid).getByRole('button', { name: 'Eighth' }));
+    const follows = inDialog().getByRole('group', { name: 'Note input grid' });
+    expect(within(follows).getByRole('button', { name: 'Note length' })).toHaveAttribute('aria-pressed', 'true');
+    const fixed = inDialog().getByRole('group', { name: 'Fixed grid' });
+    expect(within(fixed).getByRole('button', { name: 'Eighth' })).toBeDisabled();
+    fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(within(fixed).getByRole('button', { name: 'Eighth' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, grid: 8 });
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: true, grid: 8 });
   });
 
   it('resets a field to its default on a double-click on its label, staged, but never on its control', () => {

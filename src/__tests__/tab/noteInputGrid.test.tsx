@@ -50,18 +50,28 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
+const altKey = (code: string) => ({ key: 'Dead', code, altKey: true });
+const savedFixed = () => JSON.parse(localStorage.getItem(EDITING_KEY) ?? '{}').fixedGrid;
+
 describe('note input’s grid (issue #293)', () => {
-  it('→ stops on each 16th inside a rest, and a note typed there goes in at that point', async () => {
+  it('by default follows note input’s length: → steps a quarter at a time through a rest after a quarter', async () => {
     await open();
-    // Note input, the high e picked; → onto the rest, then two 16ths into it.
+    // Note input, the high e picked; → onto the rest, then two quarters into it.
     keys('n', 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    keys('7');
+    expect(bar()).toBe('5.1.4 r.4 r.4 7.1.4 |');
+  });
+
+  it('with the fixed grid on (Alt+G), → stops on each 16th inside a rest, and a note typed there goes in at that point', async () => {
+    await open();
+    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     expect(bar()).toBe('5.1.4 r.8 7.1.4 r.4{d} |');
   });
 
   it('← comes back into a rest at its last grid line, and steps back through it', async () => {
     await open();
-    keys('n', 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
+    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
     // From the 7 back into the eighth rest before it: its second 16th. Two 16ths shorter, then 9.
     keys('ArrowLeft', '-', '-', '9');
     expect(bar()).toBe('5.1.4 r.16 9.1.16 7.1.4 r.4{d} |');
@@ -69,6 +79,14 @@ describe('note input’s grid (issue #293)', () => {
     keys('ArrowLeft', 'ArrowLeft', 'ArrowLeft');
     keys('3');
     expect(bar()).toBe('3.1.4 r.16 9.1.16 7.1.4 r.4{d} |');
+  });
+
+  it('Shift+Space moves on by the next note’s length, over notes and into rests', async () => {
+    await open();
+    keys('n', 'ArrowDown', { key: ' ', shiftKey: true });
+    // A quarter on from the first note is the rest's start; an eighth on from there is inside it.
+    keys('-', { key: ' ', shiftKey: true }, '7');
+    expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {
@@ -85,8 +103,8 @@ describe('note input’s grid (issue #293)', () => {
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
     const rest = bars[0].columns[1];
-    keys('n', { key: '“', code: 'BracketRight', altKey: true }, { key: '“', code: 'BracketRight', altKey: true });
-    // A quarter grid: a little past a third of the way along the dotted half's room is its second quarter.
+    keys('n');
+    // Note input's quarter: a little past a third of the way along the dotted half's room is its second quarter.
     const svg = screen.getByRole('img', { name: /drawn as/ });
     const over = { clientX: rest.x + rest.width / 3 + 4, clientY: top + rows.staffTop };
     fireEvent.pointerDown(svg, { ...over, button: 0 });
@@ -94,19 +112,27 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.4 0.1.4 r.4 |');
   });
 
-  it('Alt+[ ] and the palette’s Grid button set the grid, kept in Settings › Tab › Editing', async () => {
+  it('Alt+G, Alt+[ ] and the palette’s Grid button set the grid, kept in Settings › Tab › Editing', async () => {
     await open();
     expect(gridButton()).not.toHaveAttribute('aria-pressed');
-    keys({ key: '“', code: 'BracketRight', altKey: true });
+    // The first Alt+] turns the fixed grid on at a 16th; the next makes it coarser.
+    keys(altKey('BracketRight'));
+    await waitFor(() => expect([savedFixed(), savedGrid()]).toEqual([true, 16]));
+    keys(altKey('BracketRight'));
     await waitFor(() => expect(savedGrid()).toBe(8));
-    keys({ key: '‘', code: 'BracketLeft', altKey: true }, { key: '‘', code: 'BracketLeft', altKey: true }, { key: '‘', code: 'BracketLeft', altKey: true });
+    keys(altKey('BracketLeft'), altKey('BracketLeft'), altKey('BracketLeft'));
     // Finer than a 32nd there is none.
     await waitFor(() => expect(savedGrid()).toBe(32));
+    // Alt+G back to note input's length, and again to the 32nd.
+    keys(altKey('KeyG'));
+    await waitFor(() => expect(savedFixed()).toBe(false));
     fireEvent.click(gridButton());
-    expect(screen.getByRole('button', { name: 'Thirty-second' })).toHaveAttribute('aria-pressed', 'true');
-    // A setting always has a value: no None.
+    expect(screen.getByRole('button', { name: 'Note length' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'None' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Quarter' }));
-    await waitFor(() => expect(savedGrid()).toBe(4));
+    await waitFor(() => expect([savedFixed(), savedGrid()]).toEqual([true, 4]));
+    fireEvent.click(gridButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Note length' }));
+    await waitFor(() => expect(savedFixed()).toBe(false));
   });
 });

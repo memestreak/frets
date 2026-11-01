@@ -193,7 +193,8 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         id: 'editing', name: 'Editing', value: prefs.editing, defaults: DEFAULT_EDITING, save: prefs.setEditing,
         fields: [
           checkField('fillBars', 'Fill short bars with rests'),
-          choiceField<EditingPrefs, 'grid', GridValue>('grid', 'Note input grid', GRID_VALUES.map(g => [g, GRID_NAMES[g]] as const)),
+          twoWayField('fixedGrid', 'Note input grid', 'Fixed', 'Note length'),
+          choiceField<EditingPrefs, 'grid', GridValue>('grid', 'Fixed grid', GRID_VALUES.map(g => [g, GRID_NAMES[g]] as const), { enabled: v => v.fixedGrid }),
         ],
       }),
       section<TabExportStyle>({

@@ -11,7 +11,7 @@ import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, ticks, type Clip, type Duration, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { ArrangementChooser } from './ArrangementChooser';
@@ -25,7 +25,7 @@ import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { type FretDrag, type Hit, type StaffDrag, type StaffHit } from './hitTest';
-import { isInsideRest, splitRestAt, stepGrid, type GridValue } from './grid';
+import { gridTicks, isInsideRest, splitRestAt, stepGrid, type GridValue } from './grid';
 import { textBox, type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
@@ -64,6 +64,7 @@ import { useClipImport } from './useClipImport';
 import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { useMock } from '@/components/mocks/useMock';
 import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
@@ -96,6 +97,16 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  */
+/** The grid drawn over the bar in note input: three looks to pick from (Jeremy, 2026-11-01). */
+const GRID_LOOK_MOCK = {
+  param: 'mock', label: 'Grid',
+  options: [
+    { value: 'a', label: 'Ruler over the staff' },
+    { value: 'b', label: 'Lines across the bar' },
+    { value: 'c', label: 'Dots under the bar' },
+  ],
+} as const;
+
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
@@ -160,8 +171,13 @@ export default function TabPage() {
    */
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
-  const grid = prefs.editing.grid;
-  const setGrid = (next: GridValue) => prefs.setEditing(e => ({ ...e, grid: next }));
+  const { fixedGrid, grid } = prefs.editing;
+  // How the grid is drawn over the bar being written, while Jeremy picks (2026-11-01).
+  const gridLook = useMock(GRID_LOOK_MOCK);
+  /** The grid's step in ticks: the fixed grid's, else note input's length (MuseScore's way, the default). */
+  const gridStep = fixedGrid ? gridTicks(grid) : ticks(inputLength);
+  /** The Grid panel's pick: a fixed grid, or null for Note length. */
+  const pickGrid = (next: GridValue | null) => prefs.setEditing(e => (next === null ? { ...e, fixedGrid: false } : { ...e, fixedGrid: true, grid: next }));
   /**
    * Note input's cursor inside a rest (issue #293): which column, and how many ticks into it. Every commit
    * puts it back to the rest's start; ← →, a press or a staff press move it on after. It counts only while
@@ -432,11 +448,13 @@ export default function TabPage() {
     if (view !== 'tab') return;
     // N anywhere on the page goes into note input and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    // Alt+[ and Alt+] make note input's grid finer and coarser, as Dorico's do (issue #293), on the tab or off it.
-    const gridKey = e.code === 'BracketLeft' ? -1 : e.code === 'BracketRight' ? 1 : 0;
+    // Alt+[ and Alt+] make note input's grid finer and coarser, as Dorico's do (issue #293), turning the fixed grid on
+    // at what it was first; Alt+G switches between the fixed grid and note input's length. On the tab or off it.
+    const gridKey = e.code === 'BracketLeft' ? -1 : e.code === 'BracketRight' ? 1 : e.code === 'KeyG' ? 'toggle' : 0;
     if (gridKey && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
       e.preventDefault();
-      setGrid(stepGrid(grid, gridKey));
+      if (gridKey === 'toggle') prefs.setEditing(p => ({ ...p, fixedGrid: !p.fixedGrid }));
+      else prefs.setEditing(p => ({ ...p, fixedGrid: true, grid: p.fixedGrid ? stepGrid(p.grid, gridKey) : p.grid }));
       return;
     }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
@@ -701,7 +719,7 @@ export default function TabPage() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, grid, cursorAt, setCursorAt, stepElement: stepToElement,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: stepToElement,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -1192,7 +1210,7 @@ export default function TabPage() {
           onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
           onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
           onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
-          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} grid={grid} onGrid={setGrid} />
+          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid} />
       </HoverTips>
 
       <section className="card tab-card" aria-label="Clip">
@@ -1294,7 +1312,7 @@ export default function TabPage() {
                         cursor: editing && !picked ? cursor : null, range: litRange, boxed: selection !== null, columnOnly,
                         staffPitch: staffCursor, input: inputMode, at: cursorAt,
                       }}
-                      shadow={inputMode ? inputLength.value : null} grid={inputMode ? grid : null}
+                      shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook as 'a' | 'b' | 'c'}
                       picked={editing ? picked : null}
                       errors={barErrors(clip)}
                     />
