@@ -4,6 +4,7 @@
  */
 
 import { isRest } from './clip';
+import { xAlong } from './grid';
 import { staffBar } from './staffGeometry';
 import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
 
@@ -12,6 +13,8 @@ export interface Hit {
   bar: number;
   column: number;
   string: number;
+  /** In note input, how far into a rest the press snapped, in ticks (issue #293); absent at a column's start. */
+  at?: number;
 }
 
 /** How far above the top string and below the bottom one a press still lands on the staff, as the cursor's band reaches. */
@@ -58,6 +61,8 @@ export interface StaffHit {
   column: number;
   step: number;
   string: number | null;
+  /** In note input, how far into a rest the press snapped, in ticks (issue #293). */
+  at?: number;
 }
 
 /**
@@ -169,13 +174,16 @@ export function boundaryAt(layout: Layout, x: number, y: number): number | null 
   return bar.columns[bar.columns.length - 1].index + 1;
 }
 
-/** Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. */
-export function cursorSpot(layout: Layout, bar: number, column: number): { system: number; x: number; start: number; width: number } | null {
+/**
+ * Where the cursor's column is drawn: its system, centre and width; an empty bar's middle. With `at`, note
+ * input's cursor that many ticks into a rest, along its room (issue #293).
+ */
+export function cursorSpot(layout: Layout, bar: number, column: number, at = 0): { system: number; x: number; start: number; width: number } | null {
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
     const c = placed.columns[column];
-    if (c) return { system: s, x: c.x, start: c.start, width: c.width };
+    if (c) return { system: s, x: at ? xAlong(c, at) : c.x, start: c.start, width: c.width };
     const middle = (placed.x0 + placed.x1) / 2;
     return { system: s, x: middle, start: middle - 14, width: 28 };
   }

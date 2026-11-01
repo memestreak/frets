@@ -29,6 +29,7 @@ import {
 import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
+import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
 
 /** One section's state: read from its key once, written back on every change. */
 function usePreference<V>(key: string, parse: (raw: unknown) => V) {
@@ -190,7 +191,10 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       }),
       section<EditingPrefs>({
         id: 'editing', name: 'Editing', value: prefs.editing, defaults: DEFAULT_EDITING, save: prefs.setEditing,
-        fields: [checkField('fillBars', 'Fill short bars with rests')],
+        fields: [
+          checkField('fillBars', 'Fill short bars with rests'),
+          choiceField<EditingPrefs, 'grid', GridValue>('grid', 'Note input grid', GRID_VALUES.map(g => [g, GRID_NAMES[g]] as const)),
+        ],
       }),
       section<TabExportStyle>({
         id: 'export', name: 'Export', value: prefs.exportStyle, defaults: DEFAULT_TAB_EXPORT, save: prefs.setExportStyle,

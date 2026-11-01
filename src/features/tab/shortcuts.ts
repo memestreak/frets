@@ -40,6 +40,8 @@ const MOVING: ShortcutGroup = {
 const INPUT: ShortcutGroup = {
   title: 'Note input',
   shortcuts: [
+    { keys: ['Left', 'Right'], does: 'Next grid line in a rest, else the next note' },
+    { keys: ['Alt+[', 'Alt+]'], does: 'Finer or coarser grid' },
     { keys: ['0–9'], does: 'Fret (two digits quickly for 10 and up)' },
     { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter next note' },
     { keys: ['Shift+1–7'], does: 'Next note’s length (Shift+5 a quarter)' },
