@@ -60,6 +60,16 @@ const NORMAL: ShortcutGroup = {
   ],
 };
 
+const PICKED: ShortcutGroup = {
+  title: 'A picked word, bar line or mark',
+  shortcuts: [
+    { keys: ['Enter'], does: 'Edit it (a word or a repeat’s count)' },
+    { keys: ['Delete', 'Backspace'], does: 'Take it away' },
+    { keys: ['Shift+F10'], does: 'Its menu (a right-click too)' },
+    { keys: ['Esc'], does: 'Let it go' },
+  ],
+};
+
 const STAFF: ShortcutGroup = {
   title: 'On the staff',
   shortcuts: [
@@ -114,4 +124,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, STAFF, paletteShortcuts(), LINE, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, CHOOSER];

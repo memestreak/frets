@@ -5,7 +5,7 @@
  */
 import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Part, type Note } from './clip';
 import { BEND_LABEL_STEP, BEND_RISE, bendShape, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
-import { previousSpots, vibratoRuns } from './runs';
+import { columnRuns, previousSpots, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
@@ -15,7 +15,7 @@ import { whammyDrawings } from './whammy';
 export type DrawnMark =
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
   | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
-  | 'whammy';
+  | 'whammy' | 'hairpin';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -94,6 +94,12 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
       for (const run of vibratoRuns(system)) {
         const { width } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
         add('vibrato', run.from.index, null, run.from.x + 2, rows.vibrato - THIN_REACH, run.from.x + 6 + width, rows.vibrato + THIN_REACH, run.to.index);
+      }
+    }
+    // A hairpin over neighbouring columns is one wedge, picked whole (issue #276).
+    if (rows.hairpins !== null) {
+      for (const run of columnRuns(system, c => c.hairpin ?? null)) {
+        add('hairpin', run.from.index, null, run.from.x - 6, rows.hairpins - THIN_REACH, run.end + 2, rows.hairpins + THIN_REACH, run.to.index);
       }
     }
     for (const bar of system.bars) {
@@ -207,11 +213,29 @@ export function sameMark(a: MarkHit, b: MarkHit): boolean {
   return a.mark === b.mark && a.index === b.index && a.string === b.string;
 }
 
-/** The box a picked mark is outlined with, and its Delete button goes beside; null when it isn't drawn now. */
+/** The box round a picked mark, where its menu opens from the keyboard; null when it isn't drawn now. */
 export function markBox(layout: Layout, hit: MarkHit): Box | null {
+  return pickedCopy(layout, hit)?.box ?? null;
+}
+
+/** The drawn copy of a mark that is picked: where it was pressed, when it is drawn on both the staff and the tab. */
+function pickedCopy(layout: Layout, hit: MarkHit): { hit: MarkHit; box: Box } | null {
   const found = markBoxes(layout).filter(m => sameMark(m.hit, hit));
-  // Drawn on both the staff and the tab: outlined where it was pressed.
-  return (found.find(m => m.hit.on === hit.on) ?? found[0])?.box ?? null;
+  return found.find(m => m.hit.on === hit.on) ?? found[0] ?? null;
+}
+
+/** Whether a mark drawn on the tab is the picked one: its column's place, and its note's string (null for the column's). */
+export type MarkLit = (mark: DrawnMark, index: number, string: number | null) => boolean;
+
+/**
+ * Which drawn mark lights (issue #276): the picked one is drawn in `--select`, as a selected note is, on
+ * the tab or on the staff, wherever it was pressed (where it is drawn, when it is drawn in one place only).
+ */
+export function markLights(layout: Layout, picked: MarkHit | null): { tab: MarkLit; staff: (hit: MarkHit) => boolean } {
+  const copy = picked && pickedCopy(layout, picked);
+  if (!picked || !copy) return { tab: () => false, staff: () => false };
+  if (copy.hit.on === 'staff') return { tab: () => false, staff: hit => sameMark(hit, picked) };
+  return { tab: (mark, index, string) => sameMark({ kind: 'mark', mark, index, string }, picked), staff: () => false };
 }
 
 /** The note a mark is on, or the column's notes for a mark over the whole column. */
@@ -273,5 +297,7 @@ export function markTool(clip: Part, hit: MarkHit): ToolId | null {
       return column?.tremolo ? tools[column.tremolo] : null;
     }
     case 'tuplet': return column?.duration.tuplet ? 'tuplet' : null;
+    // No palette button sets a hairpin either.
+    case 'hairpin': return null;
   }
 }

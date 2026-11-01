@@ -42,7 +42,7 @@ under the tab.
 
 ## Editing
 
-- A press on a line or label under the tab picks it (outlined, with Delete beside it), as bends are
+- A press on a line or label under the tab picks it (since issue #276 lit blue, Delete in its right-click menu), as bends are
   picked; on the strings a press still places the cursor.
 - The Techniques group's Whammy bar button opens a panel: Dip -½ `(0 -2 0)`, Dive -2 `(0 -8)`, Dive
   and return -2 `(0 -8 0)`, Dive bomb -6 `(0 -24)`, and None. The cursor's column (or the selection)

@@ -63,6 +63,26 @@ export function cycleRepeatEnd(clip: Part, cursor: Cursor): Part {
   return replaceBar(clip, cursor.bar, next ? { ...rest, repeatEnd: next } : rest);
 }
 
+/** The most times a repeat's count field takes. */
+export const MAX_REPEAT_TIMES = 9;
+
+/** A bar's repeat end played `times` times (2 to 9; 2 is written without a count); the bar must end a repeat. */
+export function setRepeatTimes(clip: Part, bar: number, times: number): Part {
+  if (clip.bars[bar]?.repeatEnd === undefined) return clip;
+  const repeatEnd = Math.min(MAX_REPEAT_TIMES, Math.max(2, Math.round(times)));
+  return replaceBar(clip, bar, { ...clip.bars[bar], repeatEnd });
+}
+
+/**
+ * A picked bar line taken away (issue #276): a repeat's start or end, or a double bar line; a repeat's
+ * count goes back to twice, which is written without one.
+ */
+export function removeBarLine(clip: Part, { kind, bar }: { kind: 'repeatStart' | 'repeatEnd' | 'repeatCount' | 'doubleBar'; bar: number }): Part {
+  if (!clip.bars[bar]) return clip;
+  if (kind === 'repeatCount') return setRepeatTimes(clip, bar, 2);
+  return replaceBar(clip, bar, without(clip.bars[bar], kind));
+}
+
 /** A double bar line at the end of the cursor's bar, or none. */
 export function toggleDoubleBar(clip: Part, cursor: Cursor): Part {
   const bar = clip.bars[cursor.bar];

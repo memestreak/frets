@@ -216,6 +216,7 @@ export function removeMark(clip: Part, hit: MarkHit): Part {
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
     case 'tuplet': return setTuplet(clip, wholeColumn, null);
     case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));
+    case 'hairpin': return changeColumns(clip, wholeColumn, c => without(c, 'hairpin'));
   }
 }
 

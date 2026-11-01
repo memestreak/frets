@@ -8,7 +8,8 @@ import { columnAccent, type Bend, type Column, type Note } from './clip';
 import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { type NoteSpot } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
-import { type TabLook } from './tabLook';
+import { type DrawnMark } from './marks';
+import { litLook, type TabLook } from './tabLook';
 import { TapSign } from './TapSign';
 
 /** How much of the string line a note's number keeps clear. */
@@ -48,7 +49,7 @@ export interface Joins {
   whammy: Map<Column, 'hold' | 'return'>;
 }
 
-export function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, joins, staffStart }: {
+export function ColumnDrawing({ placed, bar, rows, system, look, previous, slides, joins, staffStart, lit = () => false }: {
   placed: PlacedColumn;
   bar: PlacedBar;
   rows: Rows;
@@ -58,8 +59,12 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
   staffStart: number;
+  /** Whether a mark on this column is the picked one (on a note's string, or null for the column's), drawn in `--select` (issue #276). */
+  lit?: (mark: DrawnMark, index: number, string: number | null) => boolean;
 }) {
   const { column, x } = placed;
+  /** A note's mark's look: the selection's blue when it is the picked one. */
+  const markLook = (mark: DrawnMark, s: number) => litLook(look, lit(mark, placed.index, s));
   const parts: ReactNode[] = [];
   const labelLines = bendLabelLines(column, note => joins.carries.has(note));
   column.notes.forEach((note, s) => {
@@ -78,7 +83,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       parts.push(
         <line
           key={`slide-${s}`} x1={from} x2={x - 7} y1={y + (up ? 3 : -3)} y2={y + (up ? -3 : 3)}
-          stroke={look.ink} strokeWidth={1.2}
+          stroke={markLook('slide', s).ink} strokeWidth={1.2}
         />,
       );
     }
@@ -86,7 +91,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
     // a ghost note. Under the staff, which draws the tie, the brackets alone say it (Jeremy, 2026-10-27).
     if (note.tie && before && !rows.score) {
       parts.push(
-        <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={look.ink} strokeWidth={1.1} />,
+        <path key={`tie-${s}`} d={`M${fromX + 4} ${y + 7} Q${(fromX + x) / 2} ${y + 15} ${x - 10} ${y + 7}`} fill="none" stroke={markLook('tie', s).ink} strokeWidth={1.1} />,
       );
     }
     const carry = joins.carries.get(note);
@@ -103,7 +108,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
           key={`bend-${s}`} carry={carry} level={level} rise={rise} bend={note.bend} landed={joins.landings.has(note)} fromX={before && before.system === system ? fromX : staffStart - 14}
           fromPeak={before && before.system === system ? before.peak : staffStart}
           peakX={x + bendShape(placed, { pre: false, release: false }).peak}
-          x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={look}
+          x={x} y={shown ? y - 9 : y} staffTop={rows.staffTop} look={markLook('bend', s)}
         />,
       );
     } else if (note.bend) {
@@ -112,7 +117,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       const from = !shown && note.tie && !note.bend.pre && before && before.system === system ? fromX : undefined;
       parts.push(
         <BendDrawing
-          key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} from={from} y={y} staffTop={rows.staffTop} look={look}
+          key={`bend-${s}`} bend={note.bend} line={labelLines.get(note) ?? 0} x={x} from={from} y={y} staffTop={rows.staffTop} look={markLook('bend', s)}
           shape={bendShape(placed, note.bend)}
         />,
       );
@@ -123,29 +128,33 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
       parts.push(
         <line
           key={`slide-out-${s}`} x1={x + 8} x2={x + 18} y1={y + (down ? -3 : 3)} y2={y + (down ? 4 : -4)}
-          stroke={look.ink} strokeWidth={1.2} data-testid="slide-out"
+          stroke={markLook('slideOut', s).ink} strokeWidth={1.2} data-testid="slide-out"
         />,
       );
     }
     if (note.tap) {
-      parts.push(<TapSign key={`tap-${s}`} x={x} y={y - 6 - TAP_RADIUS} look={look} testId="tab-tap" />);
+      parts.push(<TapSign key={`tap-${s}`} x={x} y={y - 6 - TAP_RADIUS} look={markLook('tap', s)} testId="tab-tap" />);
     }
   });
   return <g data-testid="tab-column">{parts}</g>;
 }
 
-/** The marks drawn once over a column, each in its own row: "P.H." or "AH", an accent and a staccato dot. */
-export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook): ReactNode[] {
+/**
+ * The marks drawn once over a column, each in its own row: "P.H." or "AH", an accent and a staccato dot;
+ * the one `lit` says is picked in the selection's blue (issue #276).
+ */
+export function columnMarks(column: Column, x: number, rows: Rows, plain: TabLook, lit: (mark: DrawnMark) => boolean = () => false): ReactNode[] {
+  const lookOf = (mark: DrawnMark) => litLook(plain, lit(mark));
   const notes = column.notes.filter((n): n is Note => n !== null);
   const parts: ReactNode[] = [];
   if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) {
     parts.push(
-      <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
+      <text key="pinch" x={x} y={rows.harmonics! + 4} fontSize={10} fontWeight={700} fill={lookOf('pinch').ink} textAnchor="middle" data-testid="pinch-harmonic">P.H.</text>,
     );
   } else if (notes.some(n => n.harmonic === 'artificial') && rows.harmonics !== null) {
     // An artificial harmonic is labelled "AH", as the book prints bar 158 of Sweet Child O' Mine.
     parts.push(
-      <text key="artificial" x={x} y={rows.harmonics + 4} fontSize={10} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="artificial-harmonic">AH</text>,
+      <text key="artificial" x={x} y={rows.harmonics + 4} fontSize={10} fontWeight={700} fill={lookOf('artificial').ink} textAnchor="middle" data-testid="artificial-harmonic">AH</text>,
     );
   }
   const accent = columnAccent(column);
@@ -154,13 +163,14 @@ export function columnMarks(column: Column, x: number, rows: Rows, look: TabLook
     const y = rows.accents;
     // With both, the accent sits over the dot.
     const ay = staccato ? y - 2 : y;
+    const look = lookOf('accent');
     if (accent === 'normal') {
       parts.push(<path key="accent" d={`M${x - 5} ${ay - 4} L${x + 5} ${ay} L${x - 5} ${ay + 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} data-testid="accent" />);
     }
     if (accent === 'heavy') {
       parts.push(<path key="accent" d={`M${x - 4} ${ay + 4} L${x} ${ay - 5} L${x + 4} ${ay + 4}`} fill="none" stroke={look.ink} strokeWidth={1.8} data-testid="accent" />);
     }
-    if (staccato) parts.push(<circle key="staccato" cx={x} cy={accent ? y + 6 : y} r={1.8} fill={look.ink} data-testid="staccato" />);
+    if (staccato) parts.push(<circle key="staccato" cx={x} cy={accent ? y + 6 : y} r={1.8} fill={lookOf('staccato').ink} data-testid="staccato" />);
   }
   return parts;
 }

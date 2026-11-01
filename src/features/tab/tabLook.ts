@@ -8,6 +8,11 @@ export interface TabLook {
   paper: string;
 }
 
+/** The look a selected or picked thing is drawn in when `lit`: the selection's blue (issues #238, #276). */
+export function litLook(look: TabLook, lit: boolean): TabLook {
+  return lit ? { ...look, ink: 'var(--select)' } : look;
+}
+
 export const PAGE_LOOK: TabLook = {
   ink: 'var(--ink)',
   line: 'var(--line-strong)',

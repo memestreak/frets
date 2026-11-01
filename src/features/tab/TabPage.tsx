@@ -17,26 +17,27 @@ import { useArrangements } from './useArrangements';
 import { ArrangementChooser } from './ArrangementChooser';
 import { SaveAsDialog, SaveChangesDialog } from './SaveDialogs';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, fillBar, isEmpty, noteAt, pasteOver, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
-import { setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setSection, setTempo } from './barEdits';
+import { removeBarLine, setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setRepeatTimes, setSection, setTempo } from './barEdits';
+import { isBarLine, type BarLineHit } from './barLines';
 import { makeRest, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { type FretDrag, type StaffDrag, type StaffHit } from './hitTest';
-import { type TextHit, type WordHit } from './layoutText';
+import { textBox, type TextHit, type WordHit } from './layoutText';
 import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
 import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
-import { markTool, type MarkHit } from './marks';
+import { markBox, markTool, type MarkHit } from './marks';
 import { BarKeyPanel } from './BarKeyPanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { WordField, type FieldKind } from './WordField';
-import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot, WordTools } from './WordTools';
+import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
@@ -73,6 +74,9 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
+
+/** The palette tool that sets each picked-able bar line, lit while it is picked. */
+const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
 /**
  * The Tab page: one clip, an arrangement saved with Save or Save As… into My arrangements and opened
@@ -146,7 +150,8 @@ export default function TabPage() {
    * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
    */
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
-  const [barMenu, setBarMenu] = useState<{ x: number; y: number } | null>(null);
+  /** The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's, or with nothing picked the bar's. */
+  const [menu, setMenu] = useState<{ x: number; y: number; hit: WordHit | MarkHit | null } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -184,14 +189,15 @@ export default function TabPage() {
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
   /**
-   * The chord name, text, section, tempo or capo picked by a press, outlined with Edit and Delete beside
-   * it; or a technique mark (issue #128), outlined with Delete beside it.
+   * The chord name, text, section, tempo, capo, ending, bar line (a repeat's start, end or count, a double
+   * bar) or technique mark (issue #128) picked by a press, drawn in the selection's blue, its Delete (and
+   * Edit, for a word or a repeat's count) in a right-click menu (Jeremy, 2026-11-01, issue #276).
    */
   const [picked, setPicked] = useState<WordHit | MarkHit | null>(null);
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
+  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** Where a press opened the time or key signature panel; null when the palette did. */
@@ -298,7 +304,7 @@ export default function TabPage() {
     setHeadPanel(null);
     setTimeBar(null);
     setKeyBar(null);
-    setBarMenu(null);
+    setMenu(null);
     setStaffPitch(null);
     setCursor(c => ({ ...c, column: 0 }));
   };
@@ -478,15 +484,33 @@ export default function TabPage() {
   };
 
   /**
-   * Right-click, a long press or Shift+F10 on the tab: the bar menu, alone. A long press has already
-   * picked what it landed on, so a signature's panel or a word's outline it opened goes (Jeremy, 2026-10-29).
+   * Right-click, a long press or Shift+F10 on the tab. The press has already picked what it landed on: on
+   * a word, bar line or mark, its menu (Jeremy, 2026-11-01, issue #276), at the pointer, or from the keys
+   * under it; elsewhere the bar menu, alone, so a signature's panel the press opened goes (Jeremy, 2026-10-29).
    */
-  const openBarMenu = (el: HTMLElement, x: number, y: number) => {
+  const openMenu = (el: HTMLElement, x: number, y: number) => {
     setTimeBar(null);
     setKeyBar(null);
-    setPicked(null);
-    setBarMenu(menuSpot(el, x, y));
+    if (picked) {
+      setMenu({ ...pickedMenuSpot(el, x, y, picked), hit: picked });
+      return;
+    }
+    setMenu({ ...menuSpot(el, x, y), hit: null });
   };
+
+  /** Where a picked thing's menu opens: at the pointer, or with no pointer over the tab, under the thing. */
+  const pickedMenuSpot = (el: HTMLElement, x: number, y: number, hit: WordHit | MarkHit): { x: number; y: number } => {
+    const svg = el.querySelector('svg');
+    const r = el.getBoundingClientRect();
+    if ((x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) || !svg) return menuSpot(el, x, y);
+    const layout = layoutClip(drawn, clipWidth, parts);
+    const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit, drawn.capo ?? null);
+    if (!box) return menuSpot(el, x, y);
+    const at = svg.getBoundingClientRect();
+    const scale = clipWidth > 0 ? at.width / clipWidth : 1;
+    return { x: at.left + box.x * scale, y: at.top + (box.y + box.height) * scale + 4 };
+  };
+
 
   const closeTimeBar = useCallback((byKey: boolean) => {
     setTimeBar(null);
@@ -510,6 +534,8 @@ export default function TabPage() {
     // A capo of 0 is no capo.
     // An ending of 0, or none, takes the bracket away.
     if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
+    // A count under 2, or none, is played twice, written without one.
+    if (w.kind === 'repeat') commit(setRepeatTimes(clip, w.bar, Number(value) || 2));
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
@@ -545,17 +571,20 @@ export default function TabPage() {
     const at = { bar, column, string: hit.string ?? cursor.string };
     lastDigit.current = null;
     const left = editing && bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    commit(left, at, hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
+    // A hairpin's run isn't selected: no palette tool works on it, so it lights alone (issue #276).
+    const run = hit.to !== undefined && hit.to !== hit.index && hit.mark !== 'hairpin';
+    commit(left, at, run ? { anchor: hit.index, focus: hit.to! } : null);
     setColumnOnly(hit.string === null);
     setPicked(hit);
     editorRef.current?.focus();
   };
 
-  /** Opens the picked word's field. */
+  /** Opens the picked word's field, or a repeat's count's; a repeat's start and a double bar have none. */
   const editPicked = (hit: WordHit) => {
+    if (hit.kind === 'repeatStart' || hit.kind === 'doubleBar') return;
     const at = wordPlace(hit);
     commit(clip, at, null);
-    openWord(hit.kind, at);
+    openWord(hit.kind === 'repeatEnd' || hit.kind === 'repeatCount' ? 'repeat' : hit.kind, at);
   };
 
   /**
@@ -564,6 +593,7 @@ export default function TabPage() {
    */
   const deletePicked = (hit: WordHit | MarkHit) => {
     if (hit.kind === 'mark') commit(removeMark(clip, hit), cursor, null);
+    else if (isBarLine(hit)) commit(removeBarLine(clip, hit), wordPlace(hit), null);
     else {
       const at = wordPlace(hit);
       if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at, null);
@@ -846,6 +876,8 @@ export default function TabPage() {
   }, { keep: TAB_KEEPS, escape: false });
 
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
+    // Its right-click menu takes the focus for a moment and gives it back: what is picked stays picked, and lit.
+    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
@@ -1187,7 +1219,7 @@ export default function TabPage() {
                     : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input; Shift+F10 to insert a bar'}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.
-                  {...menuTrigger.props(openBarMenu)}
+                  {...menuTrigger.props(openMenu)}
                 >
                   {/* A bar's warning explains itself on hover. */}
                   <HoverTips>
@@ -1224,13 +1256,6 @@ export default function TabPage() {
             {/* The playhead's and the playback line's lines, over the selection's band. */}
             {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={drawn} width={clipWidth} parts={parts} playback={playback} />}
-            {view === 'tab' && editing && picked && clipWidth > 0 && (
-              <WordTools
-                clip={drawn} width={clipWidth} parts={parts} hit={picked}
-                onEdit={picked.kind === 'mark' ? null : () => editPicked(picked)}
-                onDelete={() => deletePicked(picked)}
-              />
-            )}
             {view === 'tab' && word && clipWidth > 0 && (
               <WordField
                 key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(drawn, clipWidth, parts, word)}
@@ -1342,14 +1367,24 @@ export default function TabPage() {
         onDiscard={() => { const then = leaving?.then; setLeaving(null); then?.(); }}
         onCancel={() => { const cancel = leaving?.onCancel; setLeaving(null); cancel?.(); }}
       />
-      {barMenu && (
+      {menu && (
         <ShapeMenu
-          x={barMenu.x} y={barMenu.y} label="Tab"
+          x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : 'Tab'}
           onClose={refocus => {
             if (refocus) editorRef.current?.focus();
-            setBarMenu(null);
+            else {
+              // A press away from the menu: the tab lets the keys go, as its blur would have when the menu opened.
+              setEditing(false);
+              setPicked(null);
+              setColumnOnly(false);
+            }
+            setMenu(null);
           }}
-          items={[
+          items={menu.hit ? [
+            // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete.
+            ...(menu.hit.kind !== 'mark' && menu.hit.kind !== 'repeatStart' && menu.hit.kind !== 'doubleBar' ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit as WordHit) }] : []),
+            { label: 'Delete', onSelect: () => deletePicked(menu.hit!) },
+          ] : [
             // The bar under a right-click already has the cursor: the press put it there.
             { label: 'Insert bar before', onSelect: () => addBar('before') },
             { label: 'Insert bar after', onSelect: () => addBar('after') },

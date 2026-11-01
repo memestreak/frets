@@ -6,8 +6,9 @@ import { accidentalLanes, keySigns, STAFF_LINES, type Head, type SmallHead } fro
 import { GLYPHS, type GlyphName } from './smufl';
 import { GRACE_SCALE, staffBar } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
-import { mordentSign, vibratoWave } from './marks';
-import type { TabLook } from './tabLook';
+import { mordentSign, vibratoWave, type MarkHit } from './marks';
+import { sameWord, type WordHit } from './layoutText';
+import { litLook, type TabLook } from './tabLook';
 import { TapSign } from './TapSign';
 
 /**
@@ -16,7 +17,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null, litMark = () => false, word = null }: {
   system: System;
   score: ScoreRows;
   clip: Part;
@@ -33,6 +34,10 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
    * in `--select` where they are, so a sign moved left for a chord lights with its note.
    */
   selectedNote?: NoteAt | null;
+  /** Whether a mark on the staff is the picked one, drawn in `--select` (issue #276). */
+  litMark?: (hit: MarkHit) => boolean;
+  /** The picked word or bar line: a picked repeat sign or double bar is drawn in `--select` on the staff too. */
+  word?: WordHit | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
@@ -56,14 +61,14 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
     if (bar.keyX !== null && changesKey(clip, bar.index)) {
       parts.push(<KeySignature key={`key-${bar.index}`} score={score} x={bar.keyX} fifths={keyAt(clip, bar.index).fifths} look={look} />);
     }
-    parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} />);
+    parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} word={word} />);
     parts.push(
       <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={selectedNote} />,
     );
   }
-  const litLook = { ...look, ink: 'var(--select)' };
+  const lit = litLook(look, true);
   const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
-  marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={inRun(mark.hit.index) ? litLook : look} />));
+  marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={inRun(mark.hit.index) || litMark(mark.hit) ? lit : look} />));
   return <g data-testid="staff">{parts}</g>;
 }
 
@@ -189,25 +194,30 @@ export function MultiRest({ span, count, y, countY, look, reach = 6 }: {
   );
 }
 
-function StaffBarLines({ bar, score, look, final }: { bar: PlacedBar; score: ScoreRows; look: TabLook; final: boolean }) {
+function StaffBarLines({ bar, score, look: plain, final, word }: { bar: PlacedBar; score: ScoreRows; look: TabLook; final: boolean; word: WordHit | null }) {
   const { x0, x1 } = bar;
-  const vertical = (x: number, w: number, dashed = false) => (
+  // A picked repeat sign or double bar is drawn in the selection's blue, as on the tab (issue #276).
+  const lookOf = (kind: 'repeatStart' | 'repeatEnd' | 'doubleBar') => litLook(plain, sameWord(word, { kind, bar: bar.index }));
+  const vertical = (x: number, w: number, look: TabLook, dashed = false) => (
     <line x1={x} x2={x} y1={score.top} y2={score.bottom} stroke={look.ink} strokeWidth={w} strokeDasharray={dashed ? BAR_DASHES : undefined} />
   );
-  const dots = (x: number) => [3, 5].map(step => <circle key={`${x}-${step}`} cx={x} cy={stepY(score, step)} r={1.8} fill={look.ink} />);
+  const dots = (x: number, look: TabLook) => [3, 5].map(step => <circle key={`${x}-${step}`} cx={x} cy={stepY(score, step)} r={1.8} fill={look.ink} />);
   const thickEnd = final || bar.bar.repeatEnd !== undefined;
+  const start = lookOf('repeatStart');
+  const end = bar.bar.repeatEnd !== undefined ? lookOf('repeatEnd') : plain;
+  const double = lookOf('doubleBar');
   return (
     <g>
-      {bar.bar.repeatStart && <g>{vertical(x0 + 2, 3)}{vertical(x0 + 7, 1)}{dots(x0 + 12)}</g>}
+      {bar.bar.repeatStart && <g data-testid="staff-repeat-start">{vertical(x0 + 2, 3, start)}{vertical(x0 + 7, 1, start)}{dots(x0 + 12, start)}</g>}
       {thickEnd ? (
         <g>
-          {vertical(x1 - 6, 1)}
-          {vertical(x1 - 1.5, 3)}
-          {bar.bar.repeatEnd !== undefined && dots(x1 - 11)}
+          {vertical(x1 - 6, 1, end)}
+          {vertical(x1 - 1.5, 3, end)}
+          {bar.bar.repeatEnd !== undefined && dots(x1 - 11, end)}
         </g>
       ) : bar.bar.doubleBar ? (
-        <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
-      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, bar.bar.freeTime)}
+        <g data-testid="double-bar">{vertical(x1 - 4, 1, double)}{vertical(x1, 1, double)}</g>
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, plain, bar.bar.freeTime)}
     </g>
   );
 }

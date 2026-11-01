@@ -5,11 +5,14 @@ import { isRest, TREMOLO_VALUES, tupletGroups, tupletLabel, type Column } from '
 import { type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { beamGroups } from './beams';
 import { MultiRest } from './StaffDrawing';
-import { type TabLook } from './tabLook';
+import { type MarkLit } from './marks';
+import { litLook as lightUp, type TabLook } from './tabLook';
 
 /** Stems, beams, flags, dots, tremolo slashes, tuplet numbers and rests under the staff; grace notes get none. */
-export function Stems({ bar, rows, beat, look: barLook, selected = null }: {
+export function Stems({ bar, rows, beat, look: barLook, selected = null, lit = () => false }: {
   bar: PlacedBar; rows: Rows; beat: number; look: TabLook;
+  /** Whether a tremolo or tuplet here is the picked mark, drawn in `--select` (issue #276). */
+  lit?: MarkLit;
   /** The selected run of columns (places in the clip): their stems, flags, dots and rests, and a beam all of whose notes are in it, are drawn in `--select` (issue #276). */
   selected?: [number, number] | null;
 }) {
@@ -39,7 +42,7 @@ export function Stems({ bar, rows, beat, look: barLook, selected = null }: {
       const top = value === 2 ? rows.stemBottom - 12 : rows.stemTop + (value === 1 ? 2 : 0);
       for (let k = 0; k < slashes; k++) {
         const ty = top + 3 + k * 4;
-        parts.push(<line key={`tremolo-${key}-${k}`} x1={x - 4} x2={x + 4} y1={ty + 2} y2={ty - 2} stroke={look.ink} strokeWidth={2} data-testid="tremolo" />);
+        parts.push(<line key={`tremolo-${key}-${k}`} x1={x - 4} x2={x + 4} y1={ty + 2} y2={ty - 2} stroke={lightUp(look, lit('tremolo', placed.index, null)).ink} strokeWidth={2} data-testid="tremolo" />);
       }
     }
     if (isRest(column)) {
@@ -98,6 +101,7 @@ export function Stems({ bar, rows, beat, look: barLook, selected = null }: {
   const cols = bar.columns.filter(p => !p.column.grace);
   for (const { from, to, duration } of tupletGroups(cols.map(p => p.column))) {
     const label = tupletLabel(duration);
+    const ink = lightUp(barLook, lit('tuplet', cols[from].index, null)).ink;
     const x0 = cols[from].x - 5;
     const x1 = cols[to].x + 5;
     const mid = (x0 + x1) / 2;
@@ -107,9 +111,9 @@ export function Stems({ bar, rows, beat, look: barLook, selected = null }: {
       <g key={`tuplet-${cols[from].x}`} data-testid="tuplet-group">
         <path
           d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
-          fill="none" stroke={barLook.ink} strokeWidth={1} data-testid="tuplet-bracket"
+          fill="none" stroke={ink} strokeWidth={1} data-testid="tuplet-bracket"
         />
-        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={barLook.ink} textAnchor="middle" data-testid="tuplet">{label}</text>
+        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={ink} textAnchor="middle" data-testid="tuplet">{label}</text>
       </g>,
     );
   }

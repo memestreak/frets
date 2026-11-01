@@ -2,19 +2,20 @@ import { useId, useRef, useState, type MouseEvent, type PointerEvent, type React
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, restAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, textBox, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
-import { markAt, markBox, mordentSign, vibratoWave, type MarkHit } from './marks';
+import { markAt, markLights, mordentSign, vibratoWave, type MarkHit, type MarkLit } from './marks';
 import { columnsInRectangle, type Rectangle } from './rectangle';
 import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
 import { TempoNote } from './TempoNote';
-import { PAGE_LOOK, type TabLook } from './tabLook';
+import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
+import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -112,14 +113,16 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   onPickRest?: (at: { bar: number; column: number }, extend: boolean) => void;
 }) {
   const layout = layoutClip(clip, width, parts);
-  const pickedBox = !picked ? null : picked.kind === 'mark' ? markBox(layout, picked) : textBox(layout, picked, clip.capo ?? null);
+  // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
+  const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
+  const pickedWord = picked && picked.kind !== 'mark' ? picked : null;
   /**
-   * What a press at a point in the drawing is on. A right-click (or any press but the main button) opens
-   * the bar menu, so it skips the words, signatures and marks, whose panels and outlines would open
-   * under the menu; it only puts the cursor in the bar.
+   * What a press at a point in the drawing is on. A right-click picks a word, bar line or mark, as a press
+   * does, for its menu (issue #276), but skips the time and key signatures, whose panels would open under
+   * the bar menu, and the P.M. and let ring lines; there it only puts the cursor in the bar.
    */
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
-    const words = e.button === 0 && !e.shiftKey;
+    const words = (e.button === 0 || e.button === 2) && !e.shiftKey;
     const box = e.currentTarget.getBoundingClientRect();
     // From screen pixels to the drawing's units, at any Size the page draws it.
     const scale = box.width > 0 ? width / box.width : 1;
@@ -131,8 +134,9 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
       return { run: null, text: null, mark: null, rest: null, staff: null, hit: null, column, px, py };
     }
-    const run = onPickRun && words ? runAt(layout, px, py) : null;
-    const text = !run && onPickText && words ? textAt(layout, px, py) : null;
+    const run = onPickRun && words && e.button === 0 ? runAt(layout, px, py) : null;
+    const pressed = !run && onPickText && words ? textAt(layout, px, py) : null;
+    const text = pressed && e.button === 2 && (pressed.kind === 'time' || pressed.kind === 'key') ? null : pressed;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
     const rest = run || text || mark || !onPickRest || e.button !== 0 ? null : restAt(layout, px, py);
     const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
@@ -307,12 +311,6 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1} strokeDasharray="4 3" pointerEvents="none" data-testid="select-rectangle"
         />
       )}
-      {pickedBox && (
-        <rect
-          x={pickedBox.x} y={pickedBox.y} width={pickedBox.width} height={pickedBox.height} rx={4}
-          fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1.5} data-testid={picked?.kind === 'mark' ? 'picked-mark' : 'picked-word'}
-        />
-      )}
       {spot && highlight?.cursor && (() => {
         const { rows, top } = layout.systems[spot.system];
         return (
@@ -360,10 +358,13 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
-            selected={highlight?.range ?? null}
+            selected={highlight?.range ?? null} lit={lights.tab} word={pickedWord}
           />
           {rows.score && onStaff && (
-            <StaffDrawing system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'} selected={highlight?.range ?? null} selectedNote={selectedNote} />
+            <StaffDrawing
+              system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'}
+              selected={highlight?.range ?? null} selectedNote={selectedNote} litMark={lights.staff} word={pickedWord}
+            />
           )}
           {cursorOnStaff && !selectedNote && (
             <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
@@ -425,7 +426,7 @@ function Warning({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word }: {
   system: System;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
@@ -443,11 +444,15 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   lastBar: number;
   /** The selected run of columns: their numbers and marks are drawn in `--select` (issue #238). */
   selected: [number, number] | null;
+  /** Whether a mark drawn on the tab is the picked one, drawn in `--select` (issue #276). */
+  lit: MarkLit;
+  /** The picked word or bar line, drawn in `--select`. */
+  word: WordHit | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
-  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} />;
-  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} />;
+  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} />;
+  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
 
@@ -489,7 +494,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     }
   }
 
-  for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} rows={rows} look={look} final={bar.index === lastBar} />);
+  for (const bar of system.bars) parts.push(<BarDrawing key={`bar-${bar.index}`} bar={bar} rows={rows} look={look} final={bar.index === lastBar} word={word} />);
 
   parts.push(<g key="words">{words}</g>);
 
@@ -500,21 +505,24 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     const y = stringY(rows, arc.string) - 8;
     const x0 = arc.continued ? arc.x0 : arc.x0 + 4;
     const rise = Math.min(18, 10 + (arc.x1 - x0) / 20);
+    // Picked by the hammer-on, pull-off or legato slide of any note it joins.
+    const picked = arc.joined.some(i => lit('legato', i, arc.string) || lit('slide', i, arc.string));
     parts.push(
       <path
         key={`legato-${arc.string}-${arc.x0}`} d={`M${x0} ${y} Q${(x0 + arc.x1 - 4) / 2} ${y - rise} ${arc.x1 - 4} ${y}`}
-        fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="legato"
+        fill="none" stroke={litLook(look, picked).ink} strokeWidth={1.1} data-testid="legato" data-selected={picked || undefined}
       />,
     );
   }
 
   // The whammy bar: lines from the numbers down through the tab to their depths, labelled under it.
   for (const { placed, pieces, labels } of whammy) {
+    const ink = litLook(look, lit('whammy', placed.index, null)).ink;
     parts.push(
-      <g key={`whammy-${placed.index}`} data-testid="whammy" stroke={look.ink} strokeWidth={1.1} fill="none">
+      <g key={`whammy-${placed.index}`} data-testid="whammy" stroke={ink} strokeWidth={1.1} fill="none">
         {pieces.map((p, k) => <line key={k} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} strokeDasharray={p.dashed ? '3 3' : undefined} />)}
         {labels.map((l, k) => (
-          <text key={`label-${k}`} x={l.x} y={l.y} fontSize={10} fontWeight={600} fill={look.ink} stroke="none" textAnchor="middle" data-testid="whammy-label">{l.text}</text>
+          <text key={`label-${k}`} x={l.x} y={l.y} fontSize={10} fontWeight={600} fill={ink} stroke="none" textAnchor="middle" data-testid="whammy-label">{l.text}</text>
         ))}
       </g>,
     );
@@ -526,12 +534,12 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
         <ColumnDrawing
           key={`col-${bar.index}-${placed.x}`} placed={placed} bar={bar} rows={rows} system={index}
           look={selected && placed.index >= selected[0] && placed.index <= selected[1] ? { ...look, ink: 'var(--select)' } : look}
-          previous={previous} slides={slides} joins={joins} staffStart={system.staffStart}
+          previous={previous} slides={slides} joins={joins} staffStart={system.staffStart} lit={lit}
         />,
       );
     }
     // Under a staff, the staff carries the rhythm.
-    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} selected={selected} />);
+    if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} beat={beatTicks(timeAt(clip, bar.index))} look={look} selected={selected} lit={lit} />);
   }
 
   return <>{parts}</>;
@@ -548,8 +556,9 @@ function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: 
 }
 
 /** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
-function SystemRowMarks({ system, rows, look, selected = null }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null }) {
+function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null; lit: MarkLit }) {
   const parts: ReactNode[] = [];
+  const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
   for (const { mark, label, has } of RUN_MARKS) {
     const y = rows[mark];
@@ -559,11 +568,14 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
       const lw = runLabelWidth(label);
       // A run shorter than its label is the label alone: its line and end tick would cross the word.
       const longer = x1 > x0 + lw + 2;
+      // A press on the line selects its run, which lights it (issue #276).
+      const picked = columns.every(c => inRun(c.index));
+      const ink = litLook(look, picked).ink;
       parts.push(
-        <g key={`${name}-${columns[0].index}`} data-testid={name}>
-          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={look.ink}>{label}</text>
-          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
-          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={look.ink} />}
+        <g key={`${name}-${columns[0].index}`} data-testid={name} data-selected={picked || undefined}>
+          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={ink}>{label}</text>
+          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={ink} strokeDasharray="3 3" />}
+          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={ink} />}
         </g>,
       );
     }
@@ -575,10 +587,11 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
     const lw = runLabelWidth(WHAMMY_LABEL);
     for (const { columns, x0, x1 } of runsIn(system, c => !!c.whammy)) {
       const longer = x1 > x0 + lw + 2;
+      const ink = litLook(look, columns.some(c => lit('whammy', c.index, null))).ink;
       parts.push(
         <g key={`whammy-run-${columns[0].index}`} data-testid="whammy-run">
-          <text x={x0} y={y + 4} fontSize={10} fontStyle="italic" fill={look.ink}>{WHAMMY_LABEL}</text>
-          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={look.ink} strokeDasharray="3 3" />}
+          <text x={x0} y={y + 4} fontSize={10} fontStyle="italic" fill={ink}>{WHAMMY_LABEL}</text>
+          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={ink} strokeDasharray="3 3" />}
         </g>,
       );
     }
@@ -588,7 +601,7 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
   if (rows.fermatas !== null) {
     for (const bar of system.bars) {
       for (const { column, x, index } of bar.columns) {
-        if (column.fermata) parts.push(<FermataSign key={`fermata-${index}`} fermata={column.fermata} x={x} y={rows.fermatas + 5} look={look} />);
+        if (column.fermata) parts.push(<FermataSign key={`fermata-${index}`} fermata={column.fermata} x={x} y={rows.fermatas + 5} look={litLook(look, lit('fermata', index, null))} />);
       }
     }
   }
@@ -599,10 +612,11 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
       const y = rows.hairpins;
       const [x0, x1] = [run.from.x - 4, run.end];
       const [narrow, wide] = run.kind === 'crescendo' ? [x0, x1] : [x1, x0];
+      const picked = lit('hairpin', run.from.index, null);
       parts.push(
         <path
           key={`hairpin-${run.from.index}`} d={`M${wide} ${y - 4} L${narrow} ${y} L${wide} ${y + 4}`}
-          fill="none" stroke={look.ink} strokeWidth={1.1} data-testid="hairpin"
+          fill="none" stroke={litLook(look, picked).ink} strokeWidth={1.1} data-testid="hairpin" data-selected={picked || undefined}
         />,
       );
     }
@@ -612,8 +626,8 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
   if (rows.vibrato !== null) {
     for (const run of vibratoRuns(system)) {
       const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
-      const lit = selected !== null && run.from.index >= selected[0] && run.from.index <= selected[1];
-      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={lit ? 'var(--select)' : look.ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
+      const on = inRun(run.from.index) || lit('vibrato', run.from.index, null);
+      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={litLook(look, on).ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }
 
@@ -622,16 +636,17 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
       const mordent = columnMordent(column);
       if (mordent && rows.vibrato !== null) {
         const { d, transform } = mordentSign(x, rows.vibrato, mordent);
-        parts.push(<path key={`mordent-${index}`} d={d} transform={transform} fill={look.ink} data-testid="mordent" />);
+        parts.push(<path key={`mordent-${index}`} d={d} transform={transform} fill={litLook(look, lit('mordent', index, null)).ink} data-testid="mordent" />);
       }
       if (column.stroke && rows.strokes !== null) {
         const sy = rows.strokes;
+        const ink = litLook(look, lit('stroke', index, null)).ink;
         parts.push(column.stroke === 'down'
-          ? <path key={`stroke-${index}`} d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={look.ink} strokeWidth={1.5} />
-          : <path key={`stroke-${index}`} d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={look.ink} strokeWidth={1.5} />);
+          ? <path key={`stroke-${index}`} d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={ink} strokeWidth={1.5} />
+          : <path key={`stroke-${index}`} d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={ink} strokeWidth={1.5} />);
       }
-      if (column.wah && rows.wah !== null) parts.push(<WahMark key={`wah-${index}`} kind={column.wah} x={x} y={rows.wah} look={look} />);
-      parts.push(<g key={`marks-${index}`}>{columnMarks(column, x, rows, look)}</g>);
+      if (column.wah && rows.wah !== null) parts.push(<WahMark key={`wah-${index}`} kind={column.wah} x={x} y={rows.wah} look={litLook(look, lit('wah', index, null))} />);
+      parts.push(<g key={`marks-${index}`}>{columnMarks(column, x, rows, look, mark => lit(mark, index, null))}</g>);
     }
   }
   return <>{parts}</>;
@@ -641,11 +656,14 @@ function SystemRowMarks({ system, rows, look, selected = null }: { system: Syste
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows; clip: Part; look: TabLook }) {
+function SystemWords({ system, rows, clip, look: plain, word }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null }) {
   const parts: ReactNode[] = [];
+  /** The look of a word: the selection's blue when it is the picked one (issue #276). */
+  const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Endings: one bracket over each run of bars with the same ending.
   endingSpans(system).forEach(({ bar, n, x0, x1 }) => {
     const y = rows.endings!;
+    const look = lookOf({ kind: 'ending', bar });
     parts.push(
       <g key={`ending-${bar}`} stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="ending">
         <polyline points={`${x0},${y + 8} ${x0},${y - 4} ${x1},${y - 4}`} />
@@ -656,6 +674,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
 
   // The capo, over the start of the first line, as printed tab has it.
   if (system.first && clip.capo && rows.capo !== null) {
+    const look = lookOf({ kind: 'capo', bar: 0 });
     parts.push(
       <text key="capo" x={system.lineStart} y={rows.capo + 4} fontSize={CAPO_SIZE} fontWeight={700} fill={look.ink} data-testid="capo">
         {capoText(clip.capo)}
@@ -670,6 +689,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
     const tempo = tempoOver(bar);
     if (section && rows.section !== null) {
       const y = rows.section;
+      const look = lookOf({ kind: 'section', bar: bar.index });
       const { marker, text } = sectionBoxes(section);
       parts.push(
         <g key={`section-${bar.index}`} data-testid="section" fill={look.ink}>
@@ -685,6 +705,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
     }
     if (tempo && rows.tempo !== null) {
       const y = rows.tempo;
+      const look = lookOf({ kind: 'tempo', bar: bar.index });
       const { noteX, numberX } = tempoParts(tempo);
       const nx = x0 + noteX;
       parts.push(
@@ -698,6 +719,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
     if (rows.chords !== null) {
       for (const placed of bar.columns) {
         if (!placed.column.chord) continue;
+        const look = lookOf({ kind: 'chord', index: placed.index });
         parts.push(
           <text
             key={`chord-${placed.index}`} x={placed.x} y={rows.chords + 4} fontSize={CHORD_SIZE} fontWeight={700} fill={look.ink}
@@ -712,7 +734,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
     if (rows.tempo !== null && startsFreeTime(clip, bar.index)) {
       const after = tempo ? tempoParts(tempo).width + FREE_TIME_GAP : 0;
       parts.push(
-        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={look.ink} data-testid="free-time">
+        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={plain.ink} data-testid="free-time">
           Free time
         </text>,
       );
@@ -720,6 +742,7 @@ function SystemWords({ system, rows, clip, look }: { system: System; rows: Rows;
     if (rows.text !== null) {
       for (const placed of bar.columns) {
         if (!placed.column.text) continue;
+        const look = lookOf({ kind: 'text', index: placed.index });
         parts.push(
           <text
             key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
@@ -747,36 +770,45 @@ function TimeNumbers({ time, x, rows, look, brackets = false }: { time: TimeSign
   );
 }
 
-function BarDrawing({ bar, rows, look, final }: { bar: PlacedBar; rows: Rows; look: TabLook; final: boolean }) {
+function BarDrawing({ bar, rows, look: plain, final, word }: { bar: PlacedBar; rows: Rows; look: TabLook; final: boolean; word: WordHit | null }) {
   const { x0, x1 } = bar;
-  const dots = (x: number) => [1.5, 3.5].map(k => (
+  // A picked repeat sign, count or double bar is drawn in the selection's blue (issue #276).
+  const lookOf = (kind: 'repeatStart' | 'repeatEnd' | 'repeatCount' | 'doubleBar') => litLook(plain, sameWord(word, { kind, bar: bar.index }));
+  const dots = (x: number, look: TabLook) => [1.5, 3.5].map(k => (
     <circle key={`${x}-${k}`} cx={x} cy={stringY(rows, k)} r={2.2} fill={look.ink} />
   ));
-  const vertical = (x: number, w: number, dashed = false) => (
+  const vertical = (x: number, w: number, look: TabLook, dashed = false) => (
     <line x1={x} x2={x} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={w} strokeDasharray={dashed ? BAR_DASHES : undefined} />
   );
   const thickEnd = final || bar.bar.repeatEnd !== undefined;
+  const end = bar.bar.repeatEnd !== undefined ? lookOf('repeatEnd') : plain;
   return (
     <g>
-      {bar.bar.repeatStart && (
-        <g data-testid="repeat-start">
-          {vertical(x0 + 2, 3)}
-          {vertical(x0 + 7, 1)}
-          {dots(x0 + 12)}
-        </g>
-      )}
+      {bar.bar.repeatStart && (() => {
+        const look = lookOf('repeatStart');
+        return (
+          <g data-testid="repeat-start" data-selected={look !== plain || undefined}>
+            {vertical(x0 + 2, 3, look)}
+            {vertical(x0 + 7, 1, look)}
+            {dots(x0 + 12, look)}
+          </g>
+        );
+      })()}
       {thickEnd ? (
-        <g>
-          {vertical(x1 - 6, 1)}
-          {vertical(x1 - 1.5, 3)}
-          {bar.bar.repeatEnd !== undefined && <g data-testid="repeat-end">{dots(x1 - 11)}</g>}
+        <g data-selected={end !== plain || undefined}>
+          {vertical(x1 - 6, 1, end)}
+          {vertical(x1 - 1.5, 3, end)}
+          {bar.bar.repeatEnd !== undefined && <g data-testid="repeat-end">{dots(x1 - 11, end)}</g>}
         </g>
       ) : bar.bar.doubleBar ? (
-        <g data-testid="double-bar">{vertical(x1 - 4, 1)}{vertical(x1, 1)}</g>
-      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, bar.bar.freeTime)}
+        <g data-testid="double-bar" data-selected={lookOf('doubleBar') !== plain || undefined}>{vertical(x1 - 4, 1, lookOf('doubleBar'))}{vertical(x1, 1, lookOf('doubleBar'))}</g>
+      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, plain, bar.bar.freeTime)}
       {bar.bar.repeatEnd !== undefined && bar.bar.repeatEnd !== 2 && (
-        <text x={x1} y={rows.endings! + 6} fontSize={11} fontWeight={700} fill={look.ink} textAnchor="end">
-          ×{bar.bar.repeatEnd}
+        <text
+          x={x1} y={rows.endings! + 6} fontSize={REPEAT_COUNT_SIZE} fontWeight={700} fill={lookOf('repeatCount').ink} textAnchor="end"
+          data-testid="repeat-count" data-selected={lookOf('repeatCount') !== plain || undefined}
+        >
+          {repeatCountText(bar.bar.repeatEnd)}
         </text>
       )}
     </g>

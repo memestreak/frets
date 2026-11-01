@@ -113,6 +113,8 @@ export interface LegatoArc {
   x1: number;
   /** The run's first note was on the line before. */
   continued: boolean;
+  /** The places in the clip of the notes this part of the arc joins to the note before (hammered, pulled or slid to). */
+  joined: number[];
 }
 
 /**
@@ -130,18 +132,21 @@ export function legatoArcs(systems: System[]): LegatoArc[] {
           if (!note) return;
           const joined = !!(note.legato || note.slide === 'legato') && last[s] !== null;
           if (!joined) open[s] = null;
-          else if (open[s] && open[s]!.system === si) open[s]!.x1 = placed.x;
+          else if (open[s] && open[s]!.system === si) {
+            open[s]!.x1 = placed.x;
+            open[s]!.joined.push(placed.index);
+          }
           else {
             const from = last[s]!;
             if (from.system === si) {
-              open[s] = { system: si, string: s, x0: from.x, x1: placed.x, continued: false };
+              open[s] = { system: si, string: s, x0: from.x, x1: placed.x, continued: false, joined: [placed.index] };
             } else {
               // The run goes on into a new line: its part on the line before runs to that line's end.
               const before = systems[from.system];
               const lineEnd = before.bars[before.bars.length - 1].x1 - 4;
               if (open[s]) open[s]!.x1 = lineEnd;
-              else arcs.push({ system: from.system, string: s, x0: from.x, x1: lineEnd, continued: false });
-              open[s] = { system: si, string: s, x0: system.staffStart, x1: placed.x, continued: true };
+              else arcs.push({ system: from.system, string: s, x0: from.x, x1: lineEnd, continued: false, joined: [] });
+              open[s] = { system: si, string: s, x0: system.staffStart, x1: placed.x, continued: true, joined: [placed.index] };
             }
             arcs.push(open[s]!);
           }

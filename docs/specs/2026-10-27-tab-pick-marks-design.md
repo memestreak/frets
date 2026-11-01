@@ -9,6 +9,8 @@ through to the nearest note or does nothing.
 
 - The mark gets the same outline as a picked chord name or text, with a
   Delete icon to its right. There is no Edit icon: the palette changes it.
+  (Since 2026-11-01, issue #276: it turns blue instead, and Delete is in its
+  right-click menu; see `2026-11-01-tab-selection-look-design.md`.)
 - The palette lights only the mark's own tool, so its kind can be changed
   there. Examples: Vibrato cycles to wide, a bend's panel changes its
   amount. A mark changed this way stays picked while it is still drawn.

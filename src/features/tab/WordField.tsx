@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { WordKind } from './tools';
 
-/** What a field sets: a palette word, or a picked ending bracket's number. A tempo has its own panel (`TempoPanel.tsx`). */
-export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending';
+/**
+ * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
+ * is played. A tempo has its own panel (`TempoPanel.tsx`).
+ */
+export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending' | 'repeat';
 
 const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
@@ -12,10 +15,11 @@ const CAPTIONS: Record<FieldKind, string> = {
   section: 'Section',
   capo: 'Capo on fret, 1 to 12',
   ending: 'Ending number',
+  repeat: 'Times played, 2 to 9',
 };
-const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', capo: '3', ending: '2' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', capo: '3', ending: '2', repeat: '3' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
-const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1 };
+const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1, repeat: 1 };
 
 /**
  * A small field over the tab for a chord name, free text, a section or the capo, at the spot it is drawn.
