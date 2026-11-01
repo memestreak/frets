@@ -37,6 +37,10 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (the root picker: a radio group of seventeen tiles, each sharp over its
   flat), `src/hooks/usePersist.ts` and `useSpaceKey.ts` (space toggles an
   Arpeggio, on the Chords and Triads pages),
+  `src/hooks/useDeselect.ts` (Esc or a press off it and the controls lets
+  any selection go, the same on every page: the Scale lab's chord, a Triads
+  grip, the Tab selection and line, Arrangements…' picked files;
+  `docs/specs/2026-11-01-deselect-design.md`),
   `src/components/NumberField.tsx` (a number with up and down buttons:
   type, step, or drag up or down, `dragStep` a drag's step and Shift the
   button step; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a

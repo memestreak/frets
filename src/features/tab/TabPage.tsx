@@ -8,6 +8,7 @@ import { usePreferenceSaveProblem } from '@/hooks/usePersist';
 import { GearIcon } from '@/components/icons';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
+import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, partOf, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
@@ -64,6 +65,8 @@ import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts
 import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
+/** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -832,21 +835,15 @@ export default function TabPage() {
    */
   /**
    * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
-   * selection go, as MuseScore's does (Jeremy, 2026-11-01, issue #276). Controls, the palette, menus and
-   * dialogs keep it, so their tools still work on it. Told by what is pressed, not by where focus goes, as
-   * Safari doesn't focus a pressed button.
+   * selection and the playback line go, as MuseScore's does (Jeremy, 2026-11-01, issue #276; any selection,
+   * 2026-11-01). Controls, the palette, menus and dialogs keep them, so their tools still work on them. Told
+   * by what is pressed, not by where focus goes, as Safari doesn't focus a pressed button. Esc is the
+   * editor's own, a step at a time (`editorKeys.ts`).
    */
-  useEffect(() => {
-    if (!selection) return;
-    const onPress = (e: PointerEvent) => {
-      const at = e.target;
-      if (!(at instanceof Element)) return;
-      if (at.closest('.tab-editor svg, button, a, input, select, textarea, label, [role="menu"], [role="dialog"], dialog, .tab-palette')) return;
-      setSelection(null);
-    };
-    document.addEventListener('pointerdown', onPress, true);
-    return () => document.removeEventListener('pointerdown', onPress, true);
-  }, [selection]);
+  useDeselect(selection !== null || markAt !== null, () => {
+    setSelection(null);
+    setPlayMark(null);
+  }, { keep: TAB_KEEPS, escape: false });
 
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     setEditing(false);

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DotLabelsPicker, type DotLabels } from '@/components/DotLabels';
 import { Fretboard, type FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES } from '@/components/fretboard/theme';
+import { useDeselect } from '@/hooks/useDeselect';
 import { usePersist } from '@/hooks/usePersist';
 import { useShortcuts } from '@/components/shortcuts/useShortcuts';
 import type { ShortcutGroup } from '@/lib/shortcuts';
@@ -23,9 +24,6 @@ import {
   modeFamily, rotateMode, scaleDef, scaleOf, type Root, type ScaleDef,
 } from '@/lib/theory/scales';
 import { neckNotes, type NeckNote } from './neckNotes';
-
-/** What a click may land on without clearing the selected chord. */
-const CONTROLS = 'a, button, input, select, textarea, label, summary, dialog, [role="button"]';
 
 function dotLabel(n: NeckNote, labels: DotLabels): string {
   if (labels === 'note') return prettyNote(n.note);
@@ -134,30 +132,8 @@ export default function ScaleLab() {
     }));
   };
 
-  // With a chord selected, a click on anything but a control, or Esc, goes
-  // back to the scale.
-  useEffect(() => {
-    if (chordIndex === null) return;
-    const clear = () => {
-      setChordIndex(null);
-      setArpeggio(false);
-    };
-    const onClick = (e: MouseEvent) => {
-      if ((e.target as Element | null)?.closest?.(CONTROLS)) return;
-      // Leave a click that ends selecting text alone.
-      if (window.getSelection()?.toString()) return;
-      clear();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) clear();
-    };
-    document.addEventListener('click', onClick);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('click', onClick);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [chordIndex]);
+  // With a chord selected, a press on anything but a control, or Esc, goes back to the scale.
+  useDeselect(chordIndex !== null, () => selectChord(null));
 
   // The title stays the scale's; a selected chord shows on the board and the diagram.
   const title = `${prettyNote(scale.root)} ${scale.type.title}`;

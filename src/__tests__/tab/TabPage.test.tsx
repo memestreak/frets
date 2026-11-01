@@ -1459,6 +1459,20 @@ describe('TabPage playback', () => {
     expect(screen.queryByTestId('play-mark')).toBeNull();
   });
 
+  it('drops the line on a press off the drawing, as any selection goes, and keeps it for the controls', () => {
+    renderAt();
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor.focus());
+    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    // Play and the other controls keep it, so they start from it (Jeremy, 2026-11-01: any selection).
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Dotted/ }));
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByTestId('play-mark')).toBeNull();
+  });
+
   it('lets the tab cursor go when the line is placed, filling its bar', () => {
     renderAt();
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
@@ -2182,6 +2196,28 @@ describe('TabPage arrangements', () => {
     stamp.mockRestore();
     expect(heading()).toHaveTextContent('One');
     expect(dialog).toHaveAttribute('open');
+  });
+
+  it('lets the picked lines go on Esc, keeping the dialog open, or a press on its empty space (Jeremy, 2026-11-01)', async () => {
+    keepMany(['A1', 'A2', 'A3']);
+    renderAt();
+    const dialog = openDialog();
+    fireEvent.click(line(dialog, 'A1'), { detail: 1 });
+    fireEvent.click(line(dialog, 'A2'), { detail: 1, shiftKey: true });
+    expect(pickedNames(dialog)).toEqual(['A1', 'A2']);
+    // Esc is taken (so the dialog's own Esc doesn't close it) and the picks go.
+    expect(fireEvent.keyDown(dialog, { key: 'Escape' })).toBe(false);
+    expect(pickedNames(dialog)).toEqual([]);
+    // With nothing picked, Esc is the dialog's again.
+    expect(fireEvent.keyDown(dialog, { key: 'Escape' })).toBe(true);
+    // A press on a line, a button or the preview keeps the pick; one on the list's empty space lets it go.
+    fireEvent.click(line(dialog, 'A3'), { detail: 1 });
+    fireEvent.pointerDown(line(dialog, 'A3'));
+    fireEvent.pointerDown(await within(dialog).findByRole('region', { name: 'Preview' }));
+    fireEvent.pointerDown(within(dialog).getByRole('button', { name: 'Open' }));
+    expect(pickedNames(dialog)).toEqual(['A3']);
+    fireEvent.pointerDown(dialog.querySelector('.tab-chooser-list')!);
+    expect(pickedNames(dialog)).toEqual([]);
   });
 
   it('picks a range with Shift and one more with Cmd or Ctrl, and deletes them all with one Undo', async () => {

@@ -11,6 +11,7 @@
  */
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { Modal } from '@/components/Modal';
+import { useDeselect } from '@/hooks/useDeselect';
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, FileIcon, FolderIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { loadArrangement, type ArrangementInfo, type Library } from './arrangements';
 import { folderTitle, loadBuiltins, type Builtin } from './builtins';
@@ -43,6 +44,9 @@ type Place =
 
 const samePlace = (a: Place, b: Place) =>
   a.kind === b.kind && (a.kind === 'root' || a.folder === (b as { folder?: string }).folder);
+
+/** What a press in the chooser may land on and keep the picked files: its controls and the preview. */
+const CHOOSER_KEEPS = 'a, button, input, select, textarea, label, [role="button"], [role="menu"], .tab-chooser-preview';
 
 /** A file in the list, by kind. */
 type FileKey = `mine:${string}` | `builtin:${string}`;
@@ -246,6 +250,14 @@ export function ArrangementChooser({
       if (phone) setPreviewing(true);
     }
   };
+
+  // Esc or a press on the dialog's empty space lets the picked files go, and Esc again closes it
+  // (Jeremy, 2026-11-01: any selection). The preview keeps them, as it shows the picked file.
+  useDeselect(open && picked.length > 0, () => {
+    setPicked([]);
+    setAnchor(null);
+    setPreviewing(false);
+  }, { keep: CHOOSER_KEEPS, inDialog: true });
 
   const remove = (ids: string[]) => {
     onDelete(ids);
