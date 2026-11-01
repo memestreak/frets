@@ -103,9 +103,9 @@ const CHOOSER: ShortcutGroup = {
 };
 
 const HEAD: ShortcutGroup = {
-  title: 'Picked title or credits',
+  title: 'Picked title, credits or tuning',
   shortcuts: [
-    { keys: ['Enter'], does: 'Edit the title and credits' },
+    { keys: ['Enter'], does: 'Edit what is picked' },
     { keys: ['Esc'], does: 'Let it go' },
   ],
 };

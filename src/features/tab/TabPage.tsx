@@ -1212,8 +1212,9 @@ export default function TabPage() {
               {!shown.header && <h1 className="sr-only">{name}</h1>}
               <HoverTips>
               <ScoreHead
-                clip={clip} folded={!shown.header}
+                clip={clip} folded={!shown.header} tuningFolded={!shown.tuningDetails}
                 onCollapse={() => setShown({ ...shown, header: false })}
+                onFoldTuning={fold => setShown({ ...shown, tuningDetails: !fold })}
                 onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
                 onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
                 onEditTempo={(x, y) => setHeadPanel({ kind: 'tempo', x, y, from: clip, bar: 0, fromTab: false })}

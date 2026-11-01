@@ -3,7 +3,7 @@
 /**
  * The View options panel (Jeremy, 2026-10-28), under the eye button over the clip: what the view shown
  * shows that is the reader's choice. First the colours, which every view shows, then only the shown
- * view's own under its name (issue #277): Notation (bar numbers, the clip's line breaks, the arrangement header, #281), ASCII Tab
+ * view's own under its name (issue #277): Notation (bar numbers, the clip's line breaks, the arrangement header, #281; the tuning's details, #296), ASCII Tab
  * (the rhythm line) or AlphaTex (line numbers). Notation's Size is not here but over the clip, after
  * Staff | Tab | Both (`SizeField`). A choice applies at once and is remembered, and a press elsewhere
  * or Esc closes the panel.
@@ -67,6 +67,7 @@ export function ViewOptions({ x, y, view, values, onChange, onClose }: {
           </div>
           <Toggle label="Clip's line breaks" on={values.lineBreaks} onChange={lineBreaks => onChange({ ...values, lineBreaks })} />
           <Toggle label="Arrangement header" on={values.header} onChange={header => onChange({ ...values, header })} />
+          <Toggle label="Tuning details" on={values.tuningDetails} onChange={tuningDetails => onChange({ ...values, tuningDetails })} />
         </>
       )}
       {view === 'ascii' && <Toggle label="Rhythm" on={values.asciiRhythm} onChange={asciiRhythm => onChange({ ...values, asciiRhythm })} />}

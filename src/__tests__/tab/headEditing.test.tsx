@@ -9,6 +9,7 @@ import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { emptyPart } from '@/features/tab/clip';
 import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
+import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
 
 const BUILTIN_FILES = await readBuiltinFiles();
 vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
@@ -146,7 +147,7 @@ describe("the score head's tuning", () => {
     renderAt();
     const tuning = () => screen.getByRole('group', { name: 'Tuning' });
     expect(tuning()).toHaveTextContent(/^Standard tuning$/);
-    fireEvent.click(within(tuning()).getByRole('button', { name: 'Standard tuning' }));
+    fireEvent.doubleClick(within(tuning()).getByRole('button', { name: 'Standard tuning' }));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
     expect(within(panel).getByRole('button', { name: 'Standard' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(within(panel).getByRole('button', { name: 'Drop D' }));
@@ -177,7 +178,7 @@ describe("the score head's tuning", () => {
   it('opens from the drawn tuning, and Standard takes the tag away', async () => {
     renderAt('#example=tuned-down');
     await waitFor(() => expect(screen.getByRole('group', { name: 'Tuning' })).toBeInTheDocument(), SLOW);
-    fireEvent.click(within(screen.getByRole('group', { name: 'Tuning' })).getByRole('button'));
+    fireEvent.doubleClick(within(screen.getByRole('group', { name: 'Tuning' })).getByRole('button'));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
     expect(within(panel).getByRole('button', { name: 'E♭' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(within(panel).getByRole('button', { name: 'Standard' }));
@@ -329,5 +330,129 @@ describe('the arrangement header (issue #281)', () => {
     fireEvent.click(box);
     fireEvent.click(settings.getByRole('button', { name: 'OK' }));
     expect(folded()).toBeInTheDocument();
+  });
+});
+
+describe('the tuning, picked and collapsed (issue #296)', () => {
+  const group = () => within(head()).getByRole('group', { name: 'Tuning' });
+  const tuningButton = () => within(group()).getAllByRole('button')[0];
+  const tools = () => within(screen.getByTestId('head-tools')).getAllByRole('button').map(b => b.getAttribute('aria-label'));
+  const pick = () => group().querySelector('.score-pick')!;
+  async function renderTunedDown() {
+    renderAt('#example=tuned-down');
+    await waitFor(() => expect(group()).toHaveTextContent('Tune down 1/2 step'), SLOW);
+  }
+  function collapse() {
+    fireEvent.click(tuningButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse tuning' }));
+  }
+
+  it('picks the tuning on a press, with Edit and Collapse beside it, and opens nothing', async () => {
+    await renderTunedDown();
+    fireEvent.click(tuningButton());
+    expect(screen.queryByRole('dialog', { name: 'Tuning' })).toBeNull();
+    expect(pick()).toHaveClass('score-picked');
+    expect(tuningButton()).toHaveAttribute('aria-pressed', 'true');
+    expect(tools()).toEqual(['Edit tuning', 'Collapse tuning']);
+  });
+
+  it('opens the panel on Edit, Enter or a double-click, and leaves nothing picked', async () => {
+    await renderTunedDown();
+    fireEvent.click(tuningButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit tuning' }));
+    expect(screen.getByRole('dialog', { name: 'Tuning' })).toBeInTheDocument();
+    expect(pick()).not.toHaveClass('score-picked');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(tuningButton());
+    fireEvent.keyDown(tuningButton(), { key: 'Enter' });
+    expect(screen.getByRole('dialog', { name: 'Tuning' })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Tuning' })).toBeNull();
+    fireEvent.doubleClick(tuningButton());
+    expect(screen.getByRole('dialog', { name: 'Tuning' })).toBeInTheDocument();
+  });
+
+  it('lets the pick go on Esc or when the focus leaves it', async () => {
+    await renderTunedDown();
+    fireEvent.click(tuningButton());
+    fireEvent.keyDown(tuningButton(), { key: 'Escape' });
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+    fireEvent.click(tuningButton());
+    fireEvent.blur(tuningButton(), { relatedTarget: document.body });
+    expect(screen.queryByTestId('head-tools')).toBeNull();
+  });
+
+  it('collapses to the name alone, unpicked, saved as the Tuning details view option', async () => {
+    await renderTunedDown();
+    collapse();
+    expect(group()).toHaveTextContent(/^Tune down 1\/2 step$/);
+    expect(within(group()).queryByLabelText('string 1')).toBeNull();
+    expect(pick()).not.toHaveClass('score-picked');
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).tuningDetails).toBe(false);
+    // The header is its own: still shown.
+    expect(within(head()).getByRole('heading', { level: 1 })).toBeInTheDocument();
+  });
+
+  it('picks the collapsed name, with Edit and Expand; Expand brings the strings back unpicked', async () => {
+    await renderTunedDown();
+    collapse();
+    fireEvent.click(tuningButton());
+    expect(pick()).toHaveClass('score-picked');
+    expect(tools()).toEqual(['Edit tuning', 'Expand tuning']);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand tuning' }));
+    expect(within(group()).getByLabelText('string 6').parentElement).toHaveTextContent('6 = E♭');
+    expect(pick()).not.toHaveClass('score-picked');
+    expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).tuningDetails).toBe(true);
+  });
+
+  it('opens the panel from the collapsed name on a double-click', async () => {
+    await renderTunedDown();
+    collapse();
+    fireEvent.doubleClick(tuningButton());
+    expect(screen.getByRole('dialog', { name: 'Tuning' })).toBeInTheDocument();
+  });
+
+  it('offers no Collapse for standard tuning or a tuning of its own', async () => {
+    renderAt();
+    fireEvent.click(tuningButton());
+    expect(tools()).toEqual(['Edit tuning']);
+    fireEvent.keyDown(tuningButton(), { key: 'Escape' });
+    // The high e down to D: a tuning with no name, so nothing to fold it to.
+    fireEvent.doubleClick(tuningButton());
+    const panel = screen.getByRole('dialog', { name: 'Tuning' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'String 1: E' }));
+    fireEvent.click(within(within(panel).getByRole('radiogroup', { name: 'String 1' })).getByRole('radio', { name: 'D' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(tuningButton());
+    expect(tools()).toEqual(['Edit tuning']);
+  });
+
+  it('is the View options\' "Tuning details" switch and in Settings › Tab › Notation', async () => {
+    await renderTunedDown();
+    fireEvent.click(screen.getByRole('button', { name: 'View options' }));
+    const toggle = within(screen.getByRole('dialog', { name: 'View options' })).getByRole('switch', { name: 'Tuning details' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(group()).toHaveTextContent(/^Tune down 1\/2 step$/);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const settings = within(screen.getByRole('dialog', { name: 'Settings' }));
+    fireEvent.click(settings.getByRole('treeitem', { name: 'Notation' }));
+    const box = settings.getByRole('checkbox', { name: 'Tuning details' });
+    expect(box).not.toBeChecked();
+    fireEvent.click(box);
+    fireEvent.click(settings.getByRole('button', { name: 'OK' }));
+    expect(within(group()).getByLabelText('string 1')).toBeInTheDocument();
+  });
+
+  it('prints the image as shown: the name alone when collapsed', () => {
+    const clip = { ...emptyPart(), name: 'Riff', tuning: ['D#', 'G#', 'C#', 'F#', 'A#', 'D#'] };
+    const style = parseTabExportStyle(null);
+    const full = tabSvg(clip, style, 'Riff');
+    expect(full).toContain('Tune down 1/2 step');
+    expect(full).toContain('= E♭');
+    const folded = tabSvg(clip, style, 'Riff', 'tab', { ...DEFAULT_VIEW, tuningDetails: false });
+    expect(folded).toContain('Tune down 1/2 step');
+    expect(folded).not.toContain('= E♭');
   });
 });

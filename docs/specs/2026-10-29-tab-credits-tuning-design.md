@@ -10,7 +10,7 @@ alphaTex. They are now set where they are drawn.
   the press, with the pressed one's field focused (the artist's for a credits line). There is no
   other way to edit the title on the page: the inline title field is gone (issue #227, Jeremy,
   2026-10-29: one way to do a thing).
-- A press on the tuning block opens the **Tuning** panel at the press.
+- A press on the tuning block opens the **Tuning** panel at the press. (Since issue #296 a press picks it and Edit, Enter or a double-click opens the panel: `2026-11-01-tab-tuning-collapse-design.md`.)
 - Nothing in the head shows up only on hover (Jeremy, 2026-10-29). The tuning is always shown: in
   standard tuning it reads "Standard tuning", on the left where a tuning prints, and a press on it
   opens the Tuning panel like any other tuning. The exported picture still leaves standard tuning

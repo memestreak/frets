@@ -863,6 +863,9 @@ button {
   .score-pick-tool:focus { outline: none; }
   .score-pick-tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
   .tab-head-folded-pick { padding: 0 6px; }
+  /* The tuning, picked as the header is (issue #296): left-aligned, its outline drawn round it without moving it. */
+  .score-tuning-pick { justify-items: start; width: fit-content; margin: -2px -8px; }
+  .score-picked .score-tuning-button:hover .score-tuning-heading, .score-picked .score-tuning-button:hover { text-decoration: none; }
   /* The arrangement header folded: the title in small text after Size, a press unfolds it. */
   .tab-head-folded {
     max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; margin: 0;

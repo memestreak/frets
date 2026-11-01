@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Part, Tempo } from './clip';
-import { creditsOf, HEAD, tuningBlock, type TuningBlock } from './credits';
+import { creditsOf, HEAD, shownTuning, tuningBlock, type TuningBlock } from './credits';
 import { layoutClip, type Parts } from './layout';
 import { tempoParts } from './layoutText';
 import { TabClip } from './TabClip';
@@ -57,7 +57,7 @@ const PAD = 16;
 
 /**
  * What the image prints over the tab, as the page's head (`ScoreHead.tsx`): the title and credits (if
- * the name is shown), then the tuning and the first bar's tempo. Standard tuning and an unset tempo
+ * the name is shown), then the tuning (its name only, its details collapsed) and the first bar's tempo. Standard tuning and an unset tempo
  * go unsaid, as printed scores leave them.
  */
 interface Head {
@@ -68,10 +68,12 @@ interface Head {
   tempo: Tempo | null;
 }
 
-function headOf(clip: Part, style: TabExportStyle, title: string): Head {
+function headOf(clip: Part, style: TabExportStyle, title: string, view: TabView): Head {
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
   const { artist, lines } = creditsOf(clip);
-  return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning: tuningBlock(clip.tuning), tempo: clip.bars[0]?.tempo ?? null };
+  // The tuning as the page shows it: its name only when its details are collapsed (issue #296).
+  const tuning = shownTuning(tuningBlock(clip.tuning), view.tuningDetails);
+  return { title: shown, artist: shown ? artist : null, credits: shown ? lines : [], tuning, tempo: clip.bars[0]?.tempo ?? null };
 }
 
 /** The head's height in the drawing's units, as the page's head takes it (its room after included); 0 for none. */
@@ -148,7 +150,7 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const tab = layoutClip(laidOut(clip, view), (style.width - 2 * PAD) / zoom, parts);
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title), zoom) };
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) };
 }
 
 /**
@@ -160,7 +162,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const { width, height } = tabImageSize(clip, style, title, parts, view);
   // At a Size other than 100% the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
-  const head = headOf(clip, style, title);
+  const head = headOf(clip, style, title, view);
   const inner = (width - 2 * PAD) / zoom;
   const look = exportLook(view);
   return (

@@ -130,3 +130,16 @@ export function tuningBlock(tuning: readonly string[]): TuningBlock | null {
     strings: strings.filter(s => shift !== 0 || s.by !== 0).map(({ number, name }) => ({ number, name })),
   };
 }
+
+/**
+ * Whether the tuning can fold to its name (issue #296): it has a name ("Tune down 1/2 step", "Drop D
+ * tuning") and strings listed under it. Standard tuning lists none; a tuning of its own has no name.
+ */
+export function foldsTuning(block: TuningBlock | null): boolean {
+  return !!block?.heading && block.strings.length > 0;
+}
+
+/** The tuning as shown: with `details` off, a named tuning keeps only its name (issue #296). */
+export function shownTuning(block: TuningBlock | null, details: boolean): TuningBlock | null {
+  return block && !details && foldsTuning(block) ? { ...block, strings: [] } : block;
+}
