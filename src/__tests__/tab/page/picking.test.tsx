@@ -5,12 +5,12 @@ import { layoutClip } from '@/features/tab/layout';
 import { markBoxes, type MarkHit } from '@/features/tab/marks';
 import { partOf } from '@/features/tab/clip';
 import { setUpPage, exampleById, renderAt, alphaTexText, SLOW, settle, undo, litFrets, isLit } from './helpers';
+import { tool } from '../tool';
 
 setUpPage();
 
 describe('picking a technique mark (issue #128)', () => {
   const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
-  const tool = (name: string) => screen.getByRole('button', { name });
 
   /**
    * Opens an example and presses the middle of its first drawn `mark` (jsdom draws the tab 800 wide at 0, 0);

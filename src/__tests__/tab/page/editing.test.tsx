@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { setUpPage, renderAt, alphaTexText, notice, paste, SLOW, settle, undo, pressFirstTimeSignature, litFrets, editor, vibrato, keys, alphaTex } from './helpers';
+import { tool } from '../tool';
 
 setUpPage();
 
@@ -82,7 +83,7 @@ describe('TabPage editing', () => {
     // A note made shorter leaves rests in the time it gave up, as MuseScore's does (issue #290).
     expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.8 |');
     expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
+    expect(tool('Eighth note')).toHaveAttribute('aria-pressed', 'true');
     // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
     act(() => editor().blur());
     expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input']);
@@ -95,10 +96,10 @@ describe('TabPage editing', () => {
     keys('n', 'ArrowDown');
     keys('5', 'ArrowRight', '7');
     const pressAll = () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+      fireEvent.click(tool('Eighth note'));
       fireEvent.click(vibrato());
-      fireEvent.click(screen.getByRole('button', { name: 'Insert a bar of rests after this bar' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Bend' }));
+      fireEvent.click(tool('Insert a bar of rests after this bar'));
+      fireEvent.click(tool('Bend'));
       fireEvent.click(screen.getByRole('button', { name: 'full' }));
     };
     // The first Esc leaves note input, the second the tab.
@@ -111,7 +112,7 @@ describe('TabPage editing', () => {
     pressAll();
     expect(alphaTex()).toBe('5.1.4 7.1.4 |');
     // Back on the tab, the same buttons change the cursor's note.
-    fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+    fireEvent.click(tool('Eighth note'));
     expect(alphaTex()).toBe('5.1.4 7.1.8 r.8 |');
   });
 
@@ -119,7 +120,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     keys('7');
-    const bend = () => screen.getByRole('button', { name: 'Bend' });
+    const bend = () => tool('Bend');
     fireEvent.click(bend());
     expect(bend()).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'full' }));
@@ -172,15 +173,15 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     keys('5');
-    fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+    fireEvent.click(tool('Text over this column'));
     const field = screen.getByRole('textbox', { name: 'Text over the column' });
     fireEvent.change(field, { target: { value: 'let "it" ring' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.getByTestId('beat-text')).toHaveTextContent('let "it" ring');
-    expect(screen.getByRole('button', { name: 'Text over this column' })).toHaveAttribute('aria-pressed', 'true');
+    expect(tool('Text over this column')).toHaveAttribute('aria-pressed', 'true');
     expect(alphaTex()).toBe('5.1.4{txt "let \\"it\\" ring"} |');
     // Empty clears it.
-    fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+    fireEvent.click(tool('Text over this column'));
     const again = screen.getByRole('textbox', { name: 'Text over the column' });
     expect(again).toHaveValue('let "it" ring');
     fireEvent.change(again, { target: { value: '' } });
@@ -196,18 +197,18 @@ describe('TabPage editing', () => {
     fireEvent.change(field, { target: { value: 'Am7' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.queryByRole('textbox', { name: 'Chord name' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+    fireEvent.click(tool('Capo'));
     const capo = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
     fireEvent.change(capo, { target: { value: '3' } });
     fireEvent.keyDown(capo, { key: 'Enter' });
     expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
-    expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
+    expect(tool('Capo')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
     fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
     // An empty field, or 0, takes the capo off; the palette acts only while the tab has the keys.
     act(() => editor().focus());
-    fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+    fireEvent.click(tool('Capo'));
     const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
     expect(again).toHaveValue('3');
     fireEvent.change(again, { target: { value: '0' } });
@@ -340,7 +341,7 @@ describe('TabPage editing', () => {
     const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
     expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 1 beat short.');
     // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
-    fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
+    fireEvent.click(tool('Time signature from this bar'));
     const panel = screen.getByRole('dialog', { name: 'Time signature' });
     const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
     expect(beats).toHaveValue('4');
@@ -370,7 +371,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     keys('5');
-    fireEvent.click(screen.getByRole('button', { name: 'Key signature from this bar' }));
+    fireEvent.click(tool('Key signature from this bar'));
     const panel = screen.getByRole('dialog', { name: 'Key signature' });
     expect(panel).toHaveTextContent('Key signature: C major');
     // D♯ is a key no signature writes; the tile picks E♭, as it names it.

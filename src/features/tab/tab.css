@@ -370,6 +370,8 @@
 }
 .tab-bar-time-title { font-size: 13px; font-weight: 700; }
 .tab-tool { width: 30px; height: 30px; padding: 0; }
+/* A lit tool is in the selection's denim, as what it applies to is (issue #276), not the primary red. */
+.tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
 .tab-tool-box { position: relative; display: inline-flex; }
 .tab-tool-panel {
@@ -463,3 +465,58 @@
 .tab-title-text:focus-visible { outline: none; text-decoration: underline var(--primary); text-underline-offset: 6px; }
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
+
+/* The rail of panels on the clip's left (TabRail.tsx, issue #301), as Dorico draws it: flush with the page,
+   divided by lines. The rail and panel sit against the clip's left edge and grow into the page's left
+   margin, so the clip keeps its right edge and, while there is room, its width: the grid may reach 16px from
+   the window's left edge, its tracks packed to the right end. Every panel is one width, so switching panels
+   never moves the clip; only opening and closing one do. */
+.tab-rail-layout {
+  --clip-width: calc(min(1240px, 100vw) - 40px);
+  display: grid; align-items: start; justify-content: end; grid-template-columns: 48px minmax(0, var(--clip-width));
+  margin-left: calc(-1 * (max(0px, (100vw - 1240px) / 2) + 4px));
+}
+.tab-rail-layout[data-open] { grid-template-columns: 48px 17rem minmax(0, var(--clip-width)); }
+.tab-rail-clip { min-width: 0; }
+.tab-rail-layout[data-open] .tab-rail-clip { padding-left: 16px; }
+.tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
+.tab-rail-button {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); }
+/* The open panel's button: a bar on its outer edge. */
+.tab-rail-button[aria-pressed='true']::before {
+  content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
+}
+.tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
+/* As tall as the window; no overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
+.tab-rail-panel {
+  position: sticky; top: 16px; z-index: 5; display: grid; gap: 14px; align-content: start;
+  min-height: calc(100vh - 32px); padding: 4px 14px 16px;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+}
+.tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.tab-rail-close {
+  display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-rail-close:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-rail-tools { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
+
+/* Under 900px the rail is a row over the clip and the open panel sits under it. */
+@media (max-width: 899px) {
+  .tab-rail-layout, .tab-rail-layout[data-open] {
+    grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: 12px; margin-left: 0;
+  }
+  .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 0; }
+  .tab-rail { position: static; flex-direction: row; padding-right: 0; }
+  .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
+  .tab-rail-panel {
+    position: static; min-height: 0; padding: 4px 0 12px;
+    border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  }
+  .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
+}

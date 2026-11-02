@@ -14,6 +14,7 @@ import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 import { ScoreHead } from '@/features/tab/ScoreHead';
 import { TabClip } from '@/features/tab/TabClip';
 import { tempoFrom } from '@/features/tab/TempoPanel';
+import { tool } from './tool';
 
 const BUILTIN_FILES = await readBuiltinFiles();
 vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
@@ -179,7 +180,7 @@ describe('the tempo panel', () => {
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: 'ArrowRight' });
-    fireEvent.click(screen.getByRole('button', { name: /Tempo from this bar on/ }));
+    fireEvent.click(tool(/Tempo from this bar on/));
     fireEvent.change(bpmField(), { target: { value: '80' } });
     fireEvent.keyDown(bpmField(), { key: 'Enter' });
     expect(tempoButton()).toHaveAccessibleName('Tempo: 120 bpm');

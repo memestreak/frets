@@ -31,6 +31,7 @@ import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
+import { TabRail } from './TabRail';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -57,7 +58,7 @@ import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -504,7 +505,7 @@ export default function TabPage() {
     // Placing the playback line has filled the bar already, or left it alone while playing.
     if (quietBlur.current) return;
     const to = e.relatedTarget;
-    if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
+    if (to instanceof Element && to.closest('.tab-card, .tab-palette, .tab-rail, .tab-rail-panel')) return;
     if (!document.hasFocus()) return;
     const filled = leaveBar(clip, cursor.bar);
     if (filled !== clip) dispatch({ type: 'replacePart', part: filled });
@@ -654,6 +655,18 @@ export default function TabPage() {
     },
   });
 
+  /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
+  const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
+    <TabPalette
+      // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
+      isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
+      onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
+      onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
+      onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
+      onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
+      inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined} />
+  );
+
   return (
     <div className="grid gap-4">
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
@@ -695,18 +708,8 @@ export default function TabPage() {
         </div>
       </header>
 
-      <HoverTips>
-        {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
-        <TabPalette
-          // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-          isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
-          onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
-          onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
-          onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
-          onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
-          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} />
-      </HoverTips>
-
+      {/* The tools, in panels on a rail to the clip's left (issue #301). */}
+      <TabRail palette={drawPalette}>
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
@@ -834,6 +837,7 @@ export default function TabPage() {
         </PinnedPlayback>
         )}
       </section>
+      </TabRail>
 
       <p
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
