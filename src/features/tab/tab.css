@@ -492,7 +492,7 @@
 .tab-side-heading:focus-visible { outline: none; }
 .tab-side-heading svg { color: var(--ink-muted); }
 .tab-side-section-tools .tab-palette-label,
-.tab-side-panel-tools .tab-palette-label { display: none; }
+.tab-side-panel-tools { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
 .tab-side-section-tools { padding: 2px 4px 4px 22px; }
 
 /* c Rail: group buttons in a thin strip; the picked one's panel beside it. */

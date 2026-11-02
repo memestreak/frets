@@ -50,20 +50,12 @@ const SIDE_GROUPS = ['Joins', 'Bends', 'Techniques', 'Accents', 'Bars', 'Text'] 
 /** Draws the palette with only `groups`; `className` sets its look; the note input pencil first when `input`. */
 export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
 
-/** c Rail: every group, the note input pencil with Duration. */
-const RAIL_GROUPS = ['Duration', 'Rhythm', ...SIDE_GROUPS] as const;
-
-/** Each side group's mark on the rail: one of its own tools' icons. */
-const RAIL_ICONS: Record<(typeof RAIL_GROUPS)[number], ReactNode> = {
-  Duration: ICONS.quarter,
-  Rhythm: ICONS.grace,
-  Joins: ICONS.legato,
-  Bends: ICONS.release,
-  Techniques: ICONS.palmMute,
-  Accents: ICONS.accent,
-  Bars: ICONS.repeatStart,
-  Text: ICONS.chordName,
-};
+/** c Rail: every group, in Dorico's few large panels (Jeremy, 2026-11-02, Q2); Notes has the note input pencil. */
+const RAIL_PANELS: readonly { name: string; groups: readonly string[]; icon: ReactNode; input?: boolean }[] = [
+  { name: 'Notes', groups: ['Duration', 'Rhythm'], icon: ICONS.quarter, input: true },
+  { name: 'Articulations', groups: ['Joins', 'Bends', 'Techniques', 'Accents'], icon: ICONS.accent },
+  { name: 'Bars', groups: ['Bars', 'Text'], icon: ICONS.repeatStart },
+];
 
 /** The clip's card with the palettes on its left, as `look` lays them out; `off` is the card alone. */
 export function PaletteSide({ look, palette, children }: { look: string; palette: DrawPalette; children: ReactNode }) {
@@ -112,17 +104,17 @@ function Sections({ palette }: { palette: DrawPalette }) {
 
 /** c: a thin rail of group buttons; the picked one opens its panel beside it, again closes it. */
 function Rail({ palette }: { palette: DrawPalette }) {
-  const [shown, setShown] = useState<string | null>('Duration');
+  const [shown, setShown] = useState<string | null>('Notes');
   return (
     <div className="tab-side-rail-box" data-open={shown ? '' : undefined}>
       <div className="tab-side-rail" role="group" aria-label="Palettes">
-        {RAIL_GROUPS.map(group => (
+        {RAIL_PANELS.map(({ name, icon }) => (
           <button
-            key={group} type="button" className="tab-side-rail-button" aria-label={group} aria-pressed={shown === group}
-            data-tip={group} onMouseDown={e => e.preventDefault()} onClick={() => setShown(shown === group ? null : group)}
+            key={name} type="button" className="tab-side-rail-button" aria-label={name} aria-pressed={shown === name}
+            data-tip={name} onMouseDown={e => e.preventDefault()} onClick={() => setShown(shown === name ? null : name)}
           >
             <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              {RAIL_ICONS[group]}
+              {icon}
             </svg>
           </button>
         ))}
@@ -145,9 +137,15 @@ function Rail({ palette }: { palette: DrawPalette }) {
           <span className="tab-side-panel-title">{shown}</span>
           {shown === 'Chords'
             ? <p className="tab-side-note">The chord library (PR #300) opens here.</p>
-            : palette([shown], 'tab-side-panel-tools', shown === 'Duration')}
+            : panelTools(palette, shown)}
         </div>
       )}
     </div>
   );
+}
+
+/** A rail panel's groups, each under its caption. */
+function panelTools(palette: DrawPalette, name: string): ReactNode {
+  const panel = RAIL_PANELS.find(p => p.name === name)!;
+  return palette(panel.groups, 'tab-side-panel-tools', panel.input);
 }
