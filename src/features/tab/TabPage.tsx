@@ -471,10 +471,13 @@ export default function TabPage() {
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
 
-  /** The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. */
+  /**
+   * The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. Not
+   * after a press that selected a bar or column, which shows as a box (issue #317).
+   */
   const onEditorFocus = () => {
     setEditing(true);
-    if (parts !== 'staff' || staffPitch !== null) return;
+    if (parts !== 'staff' || staffPitch !== null || columnOnly) return;
     const note = noteAt(clip, cursor);
     setStaffPitch(note && note.fret !== null ? writtenStrings(clip.tuning)[cursor.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, cursor.bar, 4));
   };
