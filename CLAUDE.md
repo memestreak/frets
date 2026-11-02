@@ -8,8 +8,7 @@ Triads, the Circle of fifths, Chords, the Tuner, the Metronome, Tab) and
 Practice (the Interval and Note trainers).
 Next.js 16 App Router with static export (`out/`;
 `docs/adr/2026-11-02-static-export.md`), React 19, TypeScript strict,
-Tailwind 4, Vitest, tonal (pinned to 6.4.3;
-`docs/adr/2026-11-02-tonal-pinned.md`).
+Tailwind 4, Vitest, tonal.
 
 The app has no users yet (`docs/adr/2026-11-02-no-users-yet.md`).
 

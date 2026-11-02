@@ -91,6 +91,5 @@ each key validate every field; keep them in step with settings changes.
 
 - `docs/adr/2026-11-02-no-users-yet.md`: no migrations of URLs, keys or saved
   state
-- `docs/adr/2026-11-02-tonal-pinned.md`: tonal is exactly 6.4.3
 - `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
   only tonal importer

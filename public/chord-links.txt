@@ -127,6 +127,7 @@ not in the list can't be linked: link its nearest type, or the shape alone.
     maj13sharp11       CM13♯11       1 3 5 7 9 #11 13
     13sharp11          C13♯11        1 3 5 b7 9 #11 13
     9sharp11b13        C9♯11♭13      1 3 5 b7 9 #11 b13
+    maj11              Cmaj11        1 3 5 7 9 11
     m9sharp5           Cm9♯5         1 b3 b6 b7 9
     madd9              Cmadd9        1 b3 5 9
     mm9                CmM9          1 b3 5 7 9

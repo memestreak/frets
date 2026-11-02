@@ -144,9 +144,9 @@ Defaults on first visit: A Dorian, Sevenths, Interval labels.
 
 ## Theory code
 
-- **tonal 6.4.3**, pinned exactly. 6.5.0 (2026-09-28) points its `main`
-  field at a file the package doesn't ship, so Node and Vitest can't import
-  it.
+- **tonal** (`^6.5.1`). 6.5.0 (2026-09-28) points its `main` field at a
+  file the package doesn't ship, so Node and Vitest can't import it; 6.5.1
+  fixed that, and the app was on 6.4.3 until then.
 - `theory.ts` is the only file that imports tonal. It is pure: the root and
   scale tables, `scaleOf`, `modeFamily` / `rotateMode`, `diatonicChords`
   and `neckNotes` (standard tuning
