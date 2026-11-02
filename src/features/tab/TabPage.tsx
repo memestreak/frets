@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type FocusEvent, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type FocusEvent, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
@@ -11,33 +11,23 @@ import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, MAX_CAPO, UNTITLED, type Clip, type Duration, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, UNTITLED, type Clip, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { ArrangementChooser } from './ArrangementChooser';
-import { SaveAsDialog, SaveChangesDialog } from './SaveDialogs';
-import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, fillBar, isEmpty, noteAt, pasteOver, placeOf, runAround, selectedRange, setFret, START, type Cursor, type Selection } from './editing';
-import { removeBarLine, setBarKey, setBarTime, setCapo, setChordName, setBeatText, setEnding, setRepeatTimes, setSection, setTempo } from './barEdits';
+import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
-import { clearToRests, removeMark, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { clearToRests, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, lineKeyDown, type LastDigit } from './editorKeys';
+import { editorKeyDown, lineKeyDown } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
-import { type FretDrag, type StaffDrag, type StaffHit } from './hitTest';
 import { textBox, type TextHit, type WordHit } from './layoutText';
-import { RUN_MARKS, type RunMark } from './runs';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
-import { markBox, markTool, type MarkHit } from './marks';
-import { BarKeyPanel } from './BarKeyPanel';
-import { CreditsPanel, type HeadField } from './CreditsPanel';
-import { BarTimePanel } from './BarTimePanel';
+import { pitchAtStep } from './staffEntry';
+import { markBox, markTool } from './marks';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
-import { WordField, type FieldKind } from './WordField';
-import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
@@ -49,17 +39,17 @@ import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
-import { elementsOf, stepElement } from './elements';
-import { pitchAt } from './normalMode';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
-import { TempoPanel } from './TempoPanel';
-import { TuningPanel } from './TuningPanel';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
-import { useClipImport } from './useClipImport';
+import { useArrangementFile } from './useArrangementFile';
+import { useEditorState, type Picked } from './useEditorState';
+import { useHeadPanels } from './useHeadPanels';
+import { useStableHandlers } from './useStableHandlers';
+import { useTabPicking } from './useTabPicking';
 import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
@@ -75,7 +65,6 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
 
-/** The palette tool that sets each picked-able bar line, lit while it is picked. */
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
  * ending, or a repeat's end or count. Marks, a repeat's start and a double bar have only Delete; a time or
@@ -84,6 +73,7 @@ const COLUMN_REACH = 16;
 function hasEdit(hit: { kind: string }): hit is WordHit {
   return !['mark', 'repeatStart', 'doubleBar', 'time', 'key'].includes(hit.kind);
 }
+/** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
 /**
@@ -94,6 +84,10 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * alphaTex or as ASCII. See `docs/specs/2026-10-24-tab-editor-design.md` and
  * `docs/specs/2026-10-25-tab-editing-design.md`; the formats are
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
+ *
+ * The page wires its parts together: the editor's state (`useEditorState`), presses and drags on the
+ * tab (`useTabPicking`), the fields and panels over it (`useHeadPanels`) and the file actions
+ * (`useArrangementFile`).
  */
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
@@ -114,11 +108,6 @@ export default function TabPage() {
   const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action, track));
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
   const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part, track));
-  const [choosing, setChoosing] = useState(false);
-  // "Save changes to ‹name›?", and what runs once they are saved or let go.
-  const [leaving, setLeaving] = useState<{ then: () => void; onCancel?: () => void } | null>(null);
-  // Save As…, and what runs once it has saved (after "Save changes?").
-  const [savingAs, setSavingAs] = useState<{ then?: () => void } | null>(null);
   const [view, setView] = useState<View>('tab');
   const [notice, setNotice] = useState<Notice | null>(null);
   // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
@@ -129,7 +118,6 @@ export default function TabPage() {
   const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   const fillBars = prefs.editing.fillBars;
-  const leaveBar = (from: Part, bar: number) => (fillBars ? fillBar(from, bar) : from);
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
@@ -142,24 +130,8 @@ export default function TabPage() {
   // Settings, from the gear: open or shut, and the ⚠ after the gear while preferences can't be saved.
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveProblem = usePreferenceSaveProblem();
-  /**
-   * The staff's own cursor (issue #136): the sounding pitch on the cursor's column that Enter adds or
-   * takes away. Set by a press on the staff, which hands the keys to it; a press on the tab sets it to
-   * null and hands them back. With the staff alone it is always there.
-   */
-  const [staffPitch, setStaffPitch] = useState<number | null>(null);
-  /**
-   * Note input (issue #238, as MuseScore's): N or the palette's pencil goes in and out, Esc out. In it the
-   * cursor types and a press enters a note; out of it, in normal mode, a press selects what it is on.
-   */
-  const [inputMode, setInputMode] = useState(false);
-  /**
-   * Note input's length (`inputLength.ts`): the next note entered on a rest takes it, as MuseScore's
-   * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
-   */
-  const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   /** The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's, or with nothing picked the bar's. */
-  const [menu, setMenu] = useState<{ x: number; y: number; hit: WordHit | MarkHit | null } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; hit: Picked | null } | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -172,7 +144,14 @@ export default function TabPage() {
   // tokens the drawing and the text views use are set to its colours there. The theme's own need none.
   const colours = shownColours(shown);
   // The clip as drawn: its own line breaks only when the view keeps them; edits still go to `clip`.
-  const drawn = laidOut(clip, shown);
+  const lineBreaks = notation.lineBreaks;
+  const drawn = useMemo(() => laidOut(clip, { lineBreaks }), [clip, lineBreaks]);
+  /**
+   * The drawn clip laid out, once for everything that needs it: the drawing, the playhead, the loop
+   * handles, the fields and panels over it and the keys (issue #302). Playback steps and edits that
+   * leave the clip as it was don't lay it out again.
+   */
+  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts), [drawn, clipWidth, parts]);
   const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
@@ -185,52 +164,18 @@ export default function TabPage() {
   const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
-  const [cursorAsSet, setCursor] = useState<Cursor>(START);
-  const [selectionAsSet, setSelection] = useState<Selection | null>(null);
-  const [editing, setEditing] = useState(false);
-  /**
-   * The cursor is on its column only, with no string picked (Jeremy, 2026-10-27): Esc on a string, or a
-   * press above or below the staff while the playback controls are hidden. The tools and keys then work
-   * on the whole column; ↑ ↓ or a press on a string pick a string again.
-   */
-  const [columnOnly, setColumnOnly] = useState(false);
-  /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
-  const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
-  /**
-   * The chord name, text, section, tempo, capo, ending, bar line (a repeat's start, end or count, a double
-   * bar) or technique mark (issue #128) picked by a press, drawn in the selection's blue, its Delete (and
-   * Edit, for a word or a repeat's count) in a right-click menu (Jeremy, 2026-11-01, issue #276).
-   */
-  const [picked, setPicked] = useState<WordHit | MarkHit | null>(null);
+  const editor = useEditorState({ clip, dispatch, setNotice, fillBars });
+  const {
+    cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
+    staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
+    editorRef, lastDigitRef, commit, leaveBar, startRegion, toPitch,
+  } = editor;
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
   const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
-  /** The bar whose time signature panel is open. */
-  const [timeBar, setTimeBar] = useState<number | null>(null);
-  /** Where a press opened the time or key signature panel; null when the palette did. */
-  const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
-  /** The bar whose key signature panel is open. */
-  const [keyBar, setKeyBar] = useState<number | null>(null);
-  /**
-   * The score head's open panel and where it was pressed, in viewport pixels; the title and credits'
-   * and the tempo's hold the clip as it opened, the undo step their changes become (the credits' also
-   * the field the press focuses). A tempo panel opened from the tab (the Tempo tool, a picked tempo's
-   * Edit) gives the keys back to the tab when it closes.
-   */
-  const [headPanel, setHeadPanel] = useState<
-    | { kind: 'credits'; x: number; y: number; from: Part; field: HeadField }
-    | { kind: 'tuning'; x: number; y: number }
-    | { kind: 'tempo'; x: number; y: number; from: Part; bar: number; fromTab: boolean }
-    | null
-  >(null);
-  const editorRef = useRef<HTMLDivElement>(null);
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   const quietBlur = useRef(false);
-  /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
-  const lastDigit = useRef<LastDigit>(null);
-  // An undo can take away the columns the cursor or the selection were on.
-  const cursor = clampCursor(clip, cursorAsSet);
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
@@ -249,7 +194,6 @@ export default function TabPage() {
     whammy: pickedTool === 'whammy' ? cursorKinds.whammy : null,
   };
   const count = columnCount(clip);
-  const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < count ? selectionAsSet : null;
   // With no string picked, the tools work on the cursor's whole column, as on a one-column selection.
   const cursorIndex = indexOf(clip, cursor.bar, cursor.column);
   const target = {
@@ -286,6 +230,16 @@ export default function TabPage() {
   const hearNote = (at: { bar: number; column: number; string: number }) => {
     if (playbackSettings.hearNotes && showPlayback) playback.hear(at.bar, at.column, at.string);
   };
+
+  // The fields and panels over the tab and from the score's head.
+  const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
+  // Presses and drags on the drawn tab.
+  const picking = useTabPicking(editor, {
+    drawn, layout, hearNote, setNotice, openWord: head.openWord,
+    openSignature: head.openSignature, dropLine: () => setPlayMark(null),
+  });
+  const { editPicked, deletePicked } = picking;
+
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
    * view without a blur, so it is no longer being edited.
@@ -308,10 +262,7 @@ export default function TabPage() {
     setSelection(null);
     setPlayMark(null);
     setPicked(null);
-    setWord(null);
-    setHeadPanel(null);
-    setTimeBar(null);
-    setKeyBar(null);
+    head.closeAll();
     setMenu(null);
     setStaffPitch(null);
     setCursor(c => ({ ...c, column: 0 }));
@@ -435,27 +386,6 @@ export default function TabPage() {
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
   useShortcuts(TAB_SHORTCUTS);
 
-  /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
-  const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
-    if (next !== clip) dispatch({ type: 'replacePart', part: next });
-    setCursor(nextCursor);
-    setSelection(nextSelection);
-    setPicked(null);
-    setNotice(null);
-  };
-
-  const openWord = (kind: FieldKind | 'tempo', at: Cursor = cursor) => {
-    if (kind === 'tempo') {
-      openTempo(at.bar);
-      return;
-    }
-    // A chord name or text belongs to a column; an empty bar has none yet.
-    if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
-    // The capo belongs to the whole clip, written over its first line.
-    if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
-    else setWord({ kind, bar: at.bar, column: at.column });
-  };
-
   /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
   const addBar = (where: 'before' | 'after') => {
     const next = insertBar(clip, cursor, where);
@@ -468,10 +398,10 @@ export default function TabPage() {
    */
   const onTool = (id: ToolId) => {
     if (!editing) return;
-    if (id in WORD_TOOLS) openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
+    if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
-    else if (id === 'barTime') { setPanelAt(null); setTimeBar(cursor.bar); }
-    else if (id === 'barKey') { setPanelAt(null); setKeyBar(cursor.bar); }
+    else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
+    else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
     // In note input the Duration buttons set the next note's length, as the length keys do.
@@ -500,8 +430,7 @@ export default function TabPage() {
    * under it; elsewhere the bar menu, alone, so a signature's panel the press opened goes (Jeremy, 2026-10-29).
    */
   const openMenu = (el: HTMLElement, x: number, y: number) => {
-    setTimeBar(null);
-    setKeyBar(null);
+    head.closeSignatures();
     if (picked) {
       setMenu({ ...pickedMenuSpot(el, x, y, picked), hit: picked });
       return;
@@ -510,113 +439,15 @@ export default function TabPage() {
   };
 
   /** Where a picked thing's menu opens: at the pointer, or with no pointer over the tab, under the thing. */
-  const pickedMenuSpot = (el: HTMLElement, x: number, y: number, hit: WordHit | MarkHit): { x: number; y: number } => {
+  const pickedMenuSpot = (el: HTMLElement, x: number, y: number, hit: Picked): { x: number; y: number } => {
     const svg = el.querySelector('svg');
     const r = el.getBoundingClientRect();
     if ((x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) || !svg) return menuSpot(el, x, y);
-    const layout = layoutClip(drawn, clipWidth, parts);
     const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit, drawn.capo ?? null);
     if (!box) return menuSpot(el, x, y);
     const at = svg.getBoundingClientRect();
     const scale = clipWidth > 0 ? at.width / clipWidth : 1;
     return { x: at.left + box.x * scale, y: at.top + (box.y + box.height) * scale + 4 };
-  };
-
-
-  const closeTimeBar = useCallback((byKey: boolean) => {
-    setTimeBar(null);
-    if (byKey) editorRef.current?.focus();
-  }, []);
-  const closeKeyBar = useCallback((byKey: boolean) => {
-    setKeyBar(null);
-    if (byKey) editorRef.current?.focus();
-  }, []);
-
-  /** A typed chord name, text, section or capo set (an empty one clears it); null leaves it as it was. */
-  const finishWord = (value: string | null, byKey: boolean) => {
-    const w = word;
-    setWord(null);
-    // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
-    if (byKey) editorRef.current?.focus();
-    if (!w || value === null) return;
-    if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
-    if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
-    if (w.kind === 'section') commit(setSection(clip, w.bar, value));
-    // A capo of 0 is no capo.
-    // An ending of 0, or none, takes the bracket away.
-    if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
-    // A count under 2, or none, is played twice, written without one.
-    if (w.kind === 'repeat') commit(setRepeatTimes(clip, w.bar, Number(value) || 2));
-    if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
-  };
-
-  /** Where a word over the tab belongs: its column, or its bar's first. */
-  const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
-
-  /**
-   * A press on a drawn chord name, text, section, tempo or capo picks it, with the cursor on its column or
-   * bar: outlined, with Edit and Delete to its right, and Enter or Delete do the same (Jeremy, 2026-10-27;
-   * a press had opened its field at once). One on a time signature opens its bar's panel.
-   */
-  const onPickText = (hit: TextHit, press: { x: number; y: number }) => {
-    const at = wordPlace(hit);
-    commit(clip, at, null);
-    // A time or key signature opens its bar's panel, just under the press (Jeremy, 2026-10-27).
-    if (hit.kind === 'time' || hit.kind === 'key') {
-      setPanelAt({ x: press.x - PANEL_LEAD, y: press.y + PANEL_DROP });
-      (hit.kind === 'time' ? setTimeBar : setKeyBar)(hit.bar);
-      return;
-    }
-    setPicked(hit);
-    editorRef.current?.focus();
-  };
-
-  /**
-   * A press on a technique mark picks it (Jeremy, 2026-10-27, issue #128): outlined, with Delete beside
-   * it, its palette tool lit, and the cursor on its note; a mark over the whole column puts the cursor
-   * on the column with no string, and a tuplet's number selects its group. A join (hammer-on, slide,
-   * tie) belongs to the note it arrives at.
-   */
-  const onPickMark = (hit: MarkHit) => {
-    const { bar, column } = placeOf(clip, hit.index);
-    const at = { bar, column, string: hit.string ?? cursor.string };
-    lastDigit.current = null;
-    const left = editing && bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    // A hairpin's run isn't selected: no palette tool works on it, so it lights alone (issue #276).
-    const run = hit.to !== undefined && hit.to !== hit.index && hit.mark !== 'hairpin';
-    commit(left, at, run ? { anchor: hit.index, focus: hit.to! } : null);
-    setColumnOnly(hit.string === null);
-    setPicked(hit);
-    editorRef.current?.focus();
-  };
-
-  /** Opens the picked word's field, or a repeat's count's; a repeat's start and a double bar have none. */
-  const editPicked = (hit: WordHit) => {
-    if (hit.kind === 'repeatStart' || hit.kind === 'doubleBar') return;
-    const at = wordPlace(hit);
-    commit(clip, at, null);
-    openWord(hit.kind === 'repeatEnd' || hit.kind === 'repeatCount' ? 'repeat' : hit.kind, at);
-  };
-
-  /**
-   * Takes a picked word or mark away. Nothing is left selected and no cursor shows (Jeremy, 2026-10-27):
-   * the tab lets the keys go, as after a press on blank space.
-   */
-  const deletePicked = (hit: WordHit | MarkHit) => {
-    if (hit.kind === 'mark') commit(removeMark(clip, hit), cursor, null);
-    else if (isBarLine(hit)) commit(removeBarLine(clip, hit), wordPlace(hit), null);
-    else {
-      const at = wordPlace(hit);
-      if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at, null);
-      if (hit.kind === 'text') commit(setBeatText(clip, at, ''), at, null);
-      if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
-      if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
-      if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);
-      if (hit.kind === 'ending') commit(setEnding(clip, at.bar, null), at, null);
-    }
-    setColumnOnly(false);
-    // After the clip above is drawn: the blur fills the cursor's bar, and must start from the clip without the mark.
-    window.setTimeout(() => editorRef.current?.blur(), 0);
   };
 
   /** The selected columns, or the cursor's column when nothing is selected; null in an empty bar. */
@@ -628,128 +459,16 @@ export default function TabPage() {
   };
 
   /** Each drawn line of tab's first and last column, as laid out now, for Shift+Home / End. */
-  const drawnLines = (): Lines => layoutClip(drawn, clipWidth, parts).systems.flatMap(system => {
+  const drawnLines = (): Lines => layout.systems.flatMap(system => {
     const places = system.bars.flatMap(bar => bar.columns.map(column => column.index));
     return places.length ? [[Math.min(...places), Math.max(...places)] as [number, number]] : [];
   });
 
-  /** A Shift+drag's rectangle (issue #238): the columns it took in are selected, as Shift+arrows select them. */
-  const onPickRect = (from: number, to: number) => {
-    lastDigit.current = null;
-    setPicked(null);
-    setPlayMark(null);
-    commit(clip, { ...cursor, ...placeOf(clip, to) }, { anchor: from, focus: to });
-    startRegion();
-    editorRef.current?.focus();
-  };
-
-  /** Alt+← → (issue #238): the next or last thing a press can pick, picked as a press would. */
-  const stepToElement = (step: 1 | -1) => {
-    const list = elementsOf(drawn, layoutClip(drawn, clipWidth, parts));
-    const index = indexOf(clip, cursor.bar, cursor.column);
-    const note = !columnOnly && noteAt(clip, cursor);
-    const current = picked ? picked
-      : note ? { kind: 'note' as const, index, string: cursor.string } : { kind: 'column' as const, index };
-    const next = stepElement(list, current, step);
-    if (!next) return;
-    if (next.kind === 'mark') return onPickMark(next);
-    const at = { ...cursor, ...('index' in next ? placeOf(clip, next.index) : { bar: next.bar, column: 0 }) };
-    lastDigit.current = null;
-    if (next.kind === 'note') {
-      const string = next.string;
-      // On the staff, its cursor goes to the note's pitch (a dead note has none, so the tab takes it).
-      const pitch = staffPitch !== null ? pitchAt(clip, { ...at, string }) : null;
-      setPicked(null);
-      if (pitch !== null) toPitch(clip, { ...at, string }, pitch, null);
-      else {
-        setStaffPitch(null);
-        commit(clip, { ...at, string }, null);
-        setColumnOnly(false);
-      }
-    } else if (next.kind === 'rest') {
-      setPicked(null);
-      setStaffPitch(null);
-      commit(clip, at, null);
-      setColumnOnly(true);
-    } else {
-      setStaffPitch(null);
-      commit(clip, at, null);
-      setPicked(next);
-    }
-  };
-
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, stepElement: stepToElement,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, stepElement: picking.stepToElement,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
-
-  /**
-   * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
-   * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
-   */
-
-  const startRegion = () => {
-    setColumnOnly(true);
-    setStaffPitch(null);
-  };
-
-  /** Every column of a bar, selected. */
-  const barSelection = (of: Part, bar: number): Selection => ({ anchor: indexOf(of, bar, 0), focus: indexOf(of, bar, of.bars[bar].columns.length - 1) });
-
-  const onPick = (hit: Cursor, extend: boolean) => {
-    lastDigit.current = null;
-    setStaffPitch(null);
-    setColumnOnly(false);
-    const hasColumn = clip.bars[hit.bar].columns.length > 0;
-    if (extend && hasColumn && columnAt(clip, cursor)) {
-      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
-      startRegion();
-    } else {
-      // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
-      // column, so the bar pressed keeps its columns.
-      const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-      const there = hasColumn && noteAt(left, hit);
-      if (inputMode && hasColumn && !there) {
-        // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
-        commit(setFret(left, hit, 0, inputLength), hit, null);
-        hearNote(hit);
-      } else if (!inputMode && !there && hasColumn) {
-        // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
-        commit(left, hit, barSelection(left, hit.bar));
-        startRegion();
-      } else {
-        commit(left, hit, null);
-        if (!inputMode && !there) setColumnOnly(true);
-      }
-    }
-  };
-
-  /**
-   * A press on a rest in normal mode (issue #276), or on a note's stem under the tab alone (issue #290): its
-   * column alone is selected, as MuseScore selects one, not its bar; with Shift the selection grows to it.
-   */
-  const onPickRhythm = (at: { bar: number; column: number }, extend: boolean) => {
-    const hit = { ...at, string: cursor.string };
-    if (extend) {
-      onPick(hit, true);
-      return;
-    }
-    lastDigit.current = null;
-    const left = editing && at.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    commit(left, hit, null);
-    setStaffPitch(null);
-    setColumnOnly(true);
-  };
-
-  /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
-  const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
-    const string = stringAtPitch(next, at, pitch);
-    commit(next, { ...at, string: string ?? at.string }, nextSelection);
-    setColumnOnly(string === null);
-    setStaffPitch(pitch);
-  };
 
   /** The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. */
   const onEditorFocus = () => {
@@ -759,121 +478,6 @@ export default function TabPage() {
     setStaffPitch(note && note.fret !== null ? writtenStrings(clip.tuning)[cursor.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, cursor.bar, 4));
   };
 
-  /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
-  const onPickStaff = (hit: StaffHit, extend: boolean) => {
-    lastDigit.current = null;
-    const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
-    const note = hit.string === null ? null : noteAt(clip, at);
-    const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
-    if (extend && clip.bars[hit.bar].columns.length > 0 && columnAt(clip, cursor)) {
-      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      commit(clip, at, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
-      startRegion();
-      return;
-    }
-    const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    if (note) {
-      toPitch(left, at, pitch);
-    } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
-      // In note input a press on a line or space enters the shadow note's pitch there (issue #238).
-      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch, inputLength) : { clip: left, string: null };
-      toPitch(edit.clip, at, pitch);
-      if (edit.string !== null) hearNote({ ...at, string: edit.string });
-      if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
-    } else if (inputMode) {
-      toPitch(left, at, pitch);
-    } else {
-      // In normal mode a press beside the heads selects the bar, as on the tab.
-      commit(left, at, left.bars[hit.bar].columns.length > 0 ? barSelection(left, hit.bar) : null);
-      startRegion();
-    }
-  };
-
-  /**
-   * A drag of a note head on the staff (issue #174): the clip it started from, the selection it carries
-   * (when the head pressed is in one), and the last move that worked, shown while the drag goes on.
-   */
-  const dragFrom = useRef<{ clip: Part; selection: Selection | null; good: { clip: Part; pitch: number } | null } | null>(null);
-
-  /**
-   * A note head dragged up or down: the note moves with the pointer (with ⌘ or Ctrl its whole chord,
-   * in a selection every selected note), a line or space in the key at a time, with Shift a semitone.
-   * Each new pitch sounds (with Hear notes on); letting go makes it one undo step, and the staff cursor
-   * stays on the note, or the selection stays selected.
-   */
-  const onDragStaff = (drag: StaffDrag) => {
-    const { hit } = drag;
-    const at = { bar: hit.bar, column: hit.column, string: hit.string };
-    if (!dragFrom.current) {
-      const index = indexOf(clip, hit.bar, hit.column);
-      const range = selection ? selectedRange(selection) : null;
-      const carried = range && index >= range[0] && index <= range[1] ? selection : null;
-      dragFrom.current = { clip, selection: carried, good: null };
-      lastDigit.current = null;
-    }
-    const from = dragFrom.current;
-    const note = noteAt(from.clip, at);
-    if (!note || note.fret === null) return;
-    const pitch = pitchOf(from.clip, hit.string, note.fret);
-    const move = { steps: drag.steps, semitones: drag.semitones };
-    const edit = moveNotes(from.clip, notesToMove(from.clip, at, pitch, from.selection, drag.chord), move);
-    const heardBefore = from.good?.pitch ?? pitch;
-    if (!edit.problem) from.good = { clip: edit.clip, pitch: movedPitch(from.clip, hit.bar, pitch, move) };
-    const shown = from.good ?? { clip: from.clip, pitch };
-    const string = stringAtPitch(shown.clip, at, shown.pitch) ?? hit.string;
-    if (drag.done) {
-      dragFrom.current = null;
-      if (shown.clip !== from.clip) dispatch({ type: 'replacePart', part: shown.clip, from: from.clip });
-      else dispatch({ type: 'previewPart', part: from.clip });
-    } else dispatch({ type: 'previewPart', part: shown.clip });
-    setPicked(null);
-    setNotice(null);
-    if (from.selection) {
-      setSelection(from.selection);
-    } else {
-      setCursor({ ...at, string });
-      setSelection(null);
-      setColumnOnly(false);
-      setStaffPitch(shown.pitch);
-    }
-    if (!drag.done && shown.pitch !== heardBefore) hearNote({ ...at, string });
-  };
-
-  /** A fret number being dragged to another string: the clip it started from, and the string it last landed on. */
-  const fretFrom = useRef<{ clip: Part; string: number } | null>(null);
-
-  /**
-   * A fret number dragged up or down the tab in normal mode (issue #238, as MuseScore's Ctrl/⌘+↑ ↓): the
-   * note goes to the string under the pointer at the same pitch, its fret worked out again. Over a string
-   * that has a note in the column or can't play the pitch, it goes to the nearest one back that can. Each new
-   * string sounds (with Hear notes on); letting go makes it one undo step, off the drawing it goes back.
-   */
-  const onDragFret = (drag: FretDrag) => {
-    const { hit } = drag;
-    if (!fretFrom.current) fretFrom.current = { clip, string: hit.string };
-    const from = fretFrom.current;
-    // The string under the pointer, else the nearest one back toward where the note started that can take it.
-    const toward = Math.sign(hit.string - drag.string);
-    let landing = drag.string;
-    while (landing !== hit.string && !noteToString(from.clip, hit, landing)) landing += toward;
-    const moved = landing !== from.string;
-    if (!drag.cancelled) from.string = landing;
-    const shown = drag.cancelled ? from.clip : noteToString(from.clip, hit, from.string)!;
-    const string = drag.cancelled ? hit.string : from.string;
-    if (drag.done) {
-      fretFrom.current = null;
-      if (shown !== from.clip) dispatch({ type: 'replacePart', part: shown, from: from.clip });
-      else dispatch({ type: 'previewPart', part: from.clip });
-    } else dispatch({ type: 'previewPart', part: shown });
-    setCursor({ ...hit, string });
-    if (moved && !drag.done) hearNote({ ...hit, string });
-  };
-
-  /**
-   * The tab losing the focus leaves the cursor's bar, which fills up when Settings says to (Jeremy, 2026-10-27): a press
-   * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
-   * time signature panel) or goes to the palette, nor when the whole window loses it.
-   */
   /**
    * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
    * selection and the playback line go, as MuseScore's does (Jeremy, 2026-11-01, issue #276; any selection,
@@ -886,6 +490,11 @@ export default function TabPage() {
     setPlayMark(null);
   }, { keep: TAB_KEEPS, escape: false });
 
+  /**
+   * The tab losing the focus leaves the cursor's bar, which fills up when Settings says to (Jeremy, 2026-10-27): a press
+   * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
+   * time signature panel) or goes to the palette, nor when the whole window loses it.
+   */
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     // Its right-click menu takes the focus for a moment and gives it back: what is picked stays picked, and lit.
     if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
@@ -899,21 +508,6 @@ export default function TabPage() {
     if (!document.hasFocus()) return;
     const filled = leaveBar(clip, cursor.bar);
     if (filled !== clip) dispatch({ type: 'replacePart', part: filled });
-  };
-
-  /**
-   * A press on a P.M. or let ring line selects every column under it, so its palette button shows
-   * pressed and one press turns the whole run off. The cursor goes to the run's first marked note.
-   */
-  const onPickRun = (mark: RunMark, index: number) => {
-    lastDigit.current = null;
-    setColumnOnly(false);
-    const { has } = RUN_MARKS.find(r => r.mark === mark)!;
-    const [from, to] = runAround(clip, index, has);
-    const place = placeOf(clip, from);
-    const notes = clip.bars[place.bar].columns[place.column].notes;
-    const string = notes.findIndex(n => n?.[mark]);
-    commit(clip, { ...place, string }, { anchor: from, focus: to });
   };
 
   /**
@@ -932,8 +526,6 @@ export default function TabPage() {
     }
     setView('tab');
   };
-  /** Insert in Arrangements…: the clip goes in before the cursor. */
-  const insertAtCursor = (inserted: Clip) => putAtCursor(inserted, true);
 
   /** Puts pasted tab over the time from the cursor (or in before it, `insert`), or says why it can't. */
   const pasteTab = async (text: string, insert = false) => {
@@ -961,53 +553,20 @@ export default function TabPage() {
     startRegion();
   });
 
-  /** Opens Arrangements…, without the Undo of a delete made the time before. */
-  const openChooser = () => {
-    arrangements.forgetDeleted();
-    setChoosing(true);
-  };
-  /** Runs `then` once unsaved changes are saved or let go, asking first when there are some; `onCancel` when they're kept. */
-  const confirmLeave = (then: () => void, onCancel?: () => void) => {
-    if (arrangements.unsaved) setLeaving({ then, onCancel });
-    else then();
-  };
-  /** Saves the open arrangement, then runs `then`; one never saved asks for a name and a folder first. */
-  const save = (then?: () => void) => {
-    if (arrangements.kept && !arrangements.unsaved) then?.();
-    else if (arrangements.save()) then?.();
-    else setSavingAs({ then });
-  };
-
-  const { importText, openBuiltin } = useClipImport({
-    openNew: arrangements.openNew, confirmLeave, open: { id: state.id, unsaved: arrangements.unsaved, kept: arrangements.kept },
-    onNotice: setNotice, showTab: () => setView('tab'), toStart: () => { setCursor(START); setSelection(null); },
+  // New, Arrangements…, Save, Save as…, and what opens from outside My arrangements.
+  const file = useArrangementFile(arrangements, {
+    parts, onNotice: setNotice,
+    onShown: () => {
+      setCursor(START);
+      setSelection(null);
+      setNotice(null);
+      setView('tab');
+    },
+    showTab: () => setView('tab'),
+    toStart: () => { setCursor(START); setSelection(null); },
+    // Insert in Arrangements…: the clip goes in before the cursor.
+    onInsert: inserted => putAtCursor(inserted, true),
   });
-
-  // ⌘S (Ctrl+S) saves, ⇧⌘S is Save As…, ⌘O opens Arrangements…, anywhere on the page, in place of the browser's own.
-  const onFileKey = useEffectEvent((e: KeyboardEvent) => {
-    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-    const key = e.key.toLowerCase();
-    if (key !== 's' && key !== 'o') return;
-    e.preventDefault();
-    // Not over another dialog.
-    if (document.querySelector('dialog[open]')) return;
-    if (key === 'o') openChooser();
-    else if (e.shiftKey) setSavingAs({});
-    else save();
-  });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => onFileKey(e);
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
-
-  // Closing or reloading the browser tab with unsaved changes asks first; the draft brings them back either way.
-  useEffect(() => {
-    if (!arrangements.unsaved) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [arrangements.unsaved]);
 
   /** Whether the next paste is Insert paste, from Ctrl/⌘+Shift+V. */
   const insertNext = useRef(false);
@@ -1048,63 +607,13 @@ export default function TabPage() {
       document.removeEventListener('cut', onCut);
       document.removeEventListener('keydown', onKey);
     };
-  }, [dispatchClip]);
+  }, [dispatchClip, editorRef]);
 
   const actions = useClipActions({
     clip: whole, track, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
   });
 
   const name = clip.name.trim() || UNTITLED;
-  /**
-   * The tempo panel from the tab: the first bar's under the head's tempo, as a press on it opens it;
-   * a later bar's just under where its tempo is drawn.
-   */
-  const openTempo = (bar: number) => {
-    const head = bar === 0 ? document.querySelector('.score-tempo-button') : null;
-    const editor = editorRef.current;
-    let at = { x: 0, y: 0 };
-    if (head) {
-      const box = head.getBoundingClientRect();
-      at = { x: box.left, y: box.bottom + 4 };
-    } else if (editor) {
-      // The drawing's units are zoomed by Size.
-      const box = editor.getBoundingClientRect();
-      const spot = barTempoSpot(drawn, clipWidth, parts, bar);
-      at = { x: box.left + spot.x * zoom, y: box.top + spot.y * zoom };
-    }
-    setHeadPanel({ kind: 'tempo', ...at, from: clip, bar, fromTab: true });
-  };
-  /** The tempo as set: shown at once, kept as one undo step when the panel closes, or put back. */
-  const finishTempo = (from: Part, kept: Part | null, fromTab: boolean) => {
-    setHeadPanel(null);
-    if (kept && kept !== from) dispatch({ type: 'replacePart', part: kept, from });
-    else dispatch({ type: 'previewPart', part: from });
-    if (fromTab) editorRef.current?.focus();
-  };
-  /** The title and credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
-  const finishCredits = (from: Part, kept: Part | null) => {
-    setHeadPanel(null);
-    if (kept && kept !== from) dispatch({ type: 'replacePart', part: kept, from });
-    else dispatch({ type: 'previewPart', part: from });
-  };
-  /** Deletes from the Arrangements dialog, which stays open; when `ids` hold the open one, another is shown. */
-  const removing = (ids: string[], remove: () => void) => {
-    if (!ids.includes(state.id)) {
-      remove();
-      return;
-    }
-    replaceShown(remove);
-    setChoosing(true);
-  };
-  /** What is shown in place of the open arrangement: from the Arrangements dialog, or New. */
-  const replaceShown = (open: () => void) => {
-    open();
-    setCursor(START);
-    setSelection(null);
-    setNotice(null);
-    setView('tab');
-    setChoosing(false);
-  };
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
@@ -1112,9 +621,38 @@ export default function TabPage() {
   // In normal mode a column with no note picked is lit as a selection is, never boxed: arrowing onto a rest,
   // as MuseScore does, lights the rest (Jeremy, 2026-10-31: the box came back after Delete and the arrows).
   const columnLit = editing && !picked && !inputMode && columnOnly && staffCursor == null && columnAt(clip, cursor) !== null;
-  const litRange: [number, number] | null = selection
-    ? selectedRange(selection)
-    : columnLit ? [indexOf(clip, cursor.bar, cursor.column), indexOf(clip, cursor.bar, cursor.column)] : null;
+  const litStart = selection ? selectedRange(selection)[0] : columnLit ? cursorIndex : null;
+  const litEnd = selection ? selectedRange(selection)[1] : columnLit ? cursorIndex : null;
+
+  /*
+   * What the drawing is handed, the same from one render to the next while it shows the same thing, so
+   * a playback step or a change elsewhere on the page doesn't draw it again (`TabClip` is a `memo`).
+   */
+  const showsCursor = editing && !picked;
+  const { bar: cursorBar, column: cursorColumn, string: cursorString } = cursor;
+  const boxed = selection !== null;
+  const highlight = useMemo(() => ({
+    cursor: showsCursor ? { bar: cursorBar, column: cursorColumn, string: cursorString } : null,
+    range: litStart === null || litEnd === null ? null : [litStart, litEnd] as [number, number],
+    boxed, columnOnly, staffPitch: staffCursor, input: inputMode,
+  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode]);
+  const errors = useMemo(() => barErrors(clip), [clip]);
+  const clipHandlers = useStableHandlers({
+    onPick: picking.onPick, onPickRun: picking.onPickRun, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
+    onDragFret: inputMode ? undefined : picking.onDragFret, onPickRect: picking.onPickRect,
+    onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
+    onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn,
+    onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
+    // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
+    // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
+    // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
+    onDoubleClick: (word: TextHit | null, onMark: boolean) => {
+      if (word && hasEdit(word)) return editPicked(word);
+      if (word || onMark || inputMode) return;
+      setSelection(null);
+      enterInput(true);
+    },
+  });
 
   return (
     <div className="grid gap-4">
@@ -1122,17 +660,17 @@ export default function TabPage() {
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* The file buttons (issue #259); a dot on Save while there are unsaved changes. */}
-          <button type="button" className="btn btn-secondary" onClick={() => confirmLeave(() => replaceShown(() => arrangements.openNew()))}>New</button>
-          <button type="button" className="btn btn-secondary" title={`Arrangements… (${MOD}O)`} onClick={openChooser}>Arrangements…</button>
+          <button type="button" className="btn btn-secondary" onClick={file.openNew}>New</button>
+          <button type="button" className="btn btn-secondary" title={`Arrangements… (${MOD}O)`} onClick={file.openChooser}>Arrangements…</button>
           <button
             type="button" className="btn btn-secondary tab-save" title={`Save (${MOD}S)`}
-            aria-label={arrangements.unsaved ? 'Save, unsaved changes' : 'Save'} onClick={() => save()}
+            aria-label={arrangements.unsaved ? 'Save, unsaved changes' : 'Save'} onClick={file.save}
           >
             Save
             {arrangements.unsaved && <span className="tab-unsaved-dot" data-testid="unsaved" aria-hidden="true" />}
           </button>
-          <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={() => setSavingAs({})}>Save as…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => confirmLeave(() => setImporting(true))}>Import…</button>
+          <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={file.saveAs}>Save as…</button>
+          <button type="button" className="btn btn-secondary" onClick={() => file.confirmLeave(() => setImporting(true))}>Import…</button>
           <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
           {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
           <button
@@ -1147,7 +685,7 @@ export default function TabPage() {
               title={`Settings couldn't be saved: ${saveProblem}`}
             >
               {/* As text, not the coloured emoji. */}
-              ⚠{'\uFE0E'}
+              ⚠{'︎'}
             </span>
           )}
           {/* Right of the settings (Jeremy, 2026-10-31): the keyboard shortcuts, as the ? key shows them. */}
@@ -1186,10 +724,7 @@ export default function TabPage() {
             {/* The arrangement header folded (issue #281): its title, small, after Size; picked, it expands or edits. */}
             {view === 'tab' && !shown.header && (
               <HoverTips>
-                <FoldedTitle
-                  clip={clip} onExpand={() => setShown({ ...shown, header: true })}
-                  onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
-                />
+                <FoldedTitle clip={clip} onExpand={() => setShown({ ...shown, header: true })} onEditCredits={head.openCredits} />
               </HoverTips>
             )}
             {/* With several tracks, the one shown (issue #243); the AlphaTex view has them all. */}
@@ -1223,9 +758,7 @@ export default function TabPage() {
                 clip={clip} folded={!shown.header} tuningFolded={!shown.tuningDetails}
                 onCollapse={() => setShown({ ...shown, header: false })}
                 onFoldTuning={fold => setShown({ ...shown, tuningDetails: !fold })}
-                onEditCredits={(x, y, field) => setHeadPanel({ kind: 'credits', x, y, from: clip, field })}
-                onEditTuning={(x, y) => setHeadPanel({ kind: 'tuning', x, y })}
-                onEditTempo={(x, y) => setHeadPanel({ kind: 'tempo', x, y, from: clip, bar: 0, fromTab: false })}
+                onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
               />
               </HoverTips>
             </>
@@ -1235,7 +768,7 @@ export default function TabPage() {
             </>}
           <div className="relative">
             {/* Under the editor: the loop bracket. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
             {view === 'tab'
               ? clipWidth > 0 && (
                 <div
@@ -1251,26 +784,12 @@ export default function TabPage() {
                   {/* A bar's warning explains itself on hover. */}
                   <HoverTips>
                     <TabClip
-                      clip={drawn} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                      onPick={onPick} onPickRun={onPickRun} onPickStaff={onPickStaff} onDragStaff={onDragStaff} onDragFret={inputMode ? undefined : onDragFret} onPickRect={onPickRect}
-                      onMiss={() => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); }} onPickText={onPickText} onPickMark={onPickMark}
-                      onPickColumn={pickColumn} onPickRhythm={inputMode ? undefined : onPickRhythm} columnReach={COLUMN_REACH}
-                      // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
-                      // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
-                      // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
-                      onDoubleClick={(word, onMark) => {
-                        if (word && hasEdit(word)) return editPicked(word);
-                        if (word || onMark || inputMode) return;
-                        setSelection(null);
-                        enterInput(true);
-                      }}
-                      highlight={{
-                        cursor: editing && !picked ? cursor : null, range: litRange, boxed: selection !== null, columnOnly,
-                        staffPitch: staffCursor, input: inputMode,
-                      }}
+                      clip={drawn} layout={layout} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
+                      {...clipHandlers} columnReach={COLUMN_REACH}
+                      highlight={highlight}
                       shadow={inputMode ? inputLength.value : null}
                       picked={editing ? picked : null}
-                      errors={barErrors(clip)}
+                      errors={errors}
                     />
                   </HoverTips>
                 </div>
@@ -1284,41 +803,9 @@ export default function TabPage() {
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
             {/* The playhead's and the playback line's lines, over the selection's band. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} width={clipWidth} parts={parts} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
-            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles clip={drawn} width={clipWidth} parts={parts} playback={playback} />}
-            {view === 'tab' && word && clipWidth > 0 && (
-              <WordField
-                key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(drawn, clipWidth, parts, word)}
-                initial={wordNow(clip, word)} onDone={finishWord}
-              />
-            )}
-            {view === 'tab' && keyBar !== null && keyBar < clip.bars.length && clipWidth > 0 && (
-              <BarKeyPanel
-                clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(drawn, clipWidth, parts, keyBar))}
-                onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
-              />
-            )}
-            {view === 'tab' && headPanel?.kind === 'credits' && (
-              <CreditsPanel
-                clip={headPanel.from} x={headPanel.x} y={headPanel.y} field={headPanel.field}
-                onChange={next => dispatch({ type: 'previewPart', part: next })} onDone={kept => finishCredits(headPanel.from, kept)}
-              />
-            )}
-            {view === 'tab' && headPanel?.kind === 'tempo' && (
-              <TempoPanel
-                clip={headPanel.from} bar={headPanel.bar} x={headPanel.x} y={headPanel.y}
-                onChange={next => dispatch({ type: 'previewPart', part: next })} onDone={kept => finishTempo(headPanel.from, kept, headPanel.fromTab)}
-              />
-            )}
-            {view === 'tab' && headPanel?.kind === 'tuning' && (
-              <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} onChange={commit} onClose={() => setHeadPanel(null)} />
-            )}
-            {view === 'tab' && timeBar !== null && timeBar < clip.bars.length && clipWidth > 0 && (
-              <BarTimePanel
-                clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(drawn, clipWidth, parts, timeBar))}
-                onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
-              />
-            )}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
+            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
+            {head.panels}
           </div>
           </div>
         </div>
@@ -1355,48 +842,8 @@ export default function TabPage() {
         {notice ? notice.lines.join(' ') : empty ? 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.' : unevenLine}
       </p>
 
-      <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={importText} />
-      <ArrangementChooser
-        open={choosing} library={arrangements.library} openId={state.id}
-        deleted={arrangements.deleted} parts={parts} onClose={() => setChoosing(false)}
-        onOpen={id => {
-          setChoosing(false);
-          confirmLeave(() => replaceShown(() => {
-            if (!arrangements.open(id)) setNotice({ tone: 'error', lines: ['That arrangement could not be read.'] });
-          }));
-        }}
-        onOpenBuiltin={builtin => {
-          setChoosing(false);
-          confirmLeave(() => void openBuiltin(builtin).then(error => { if (error) setNotice({ tone: 'error', lines: [error] }); }));
-        }}
-        onInsert={inserted => { setChoosing(false); insertAtCursor(inserted); }}
-        onRename={arrangements.rename}
-        onMove={arrangements.move}
-        // Deleting the open arrangement opens another, or a new clip.
-        onDelete={ids => removing(ids, () => arrangements.remove(ids))}
-        onCreateFolder={arrangements.createFolder}
-        onRenameFolder={arrangements.renameFolder}
-        onDeleteFolder={id => removing(
-          arrangements.library.items.filter(i => i.folder === id).map(i => i.id), () => arrangements.removeFolder(id),
-        )}
-        onUndoDelete={arrangements.undoDelete}
-      />
-      <SaveAsDialog
-        open={savingAs !== null} name={whole.name} folders={arrangements.library.folders}
-        onClose={() => setSavingAs(null)} onCreateFolder={arrangements.createFolder}
-        onSave={(name, into) => {
-          const then = savingAs?.then;
-          setSavingAs(null);
-          arrangements.saveAs(name, typeof into === 'object' ? arrangements.createFolder(into.newFolder) : into);
-          then?.();
-        }}
-      />
-      <SaveChangesDialog
-        open={leaving !== null} name={whole.name}
-        onSave={() => { const then = leaving?.then; setLeaving(null); save(then); }}
-        onDiscard={() => { const then = leaving?.then; setLeaving(null); then?.(); }}
-        onCancel={() => { const cancel = leaving?.onCancel; setLeaving(null); cancel?.(); }}
-      />
+      <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={file.importText} />
+      {file.dialogs}
       {menu && (
         <ShapeMenu
           x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : 'Tab'}

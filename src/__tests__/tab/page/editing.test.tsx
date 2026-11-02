@@ -1,0 +1,410 @@
+import { vi } from 'vitest';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { EDITING_KEY } from '@/features/tab/editingPrefs';
+import { setUpPage, renderAt, alphaTexText, notice, paste, SLOW, settle, undo, pressFirstTimeSignature, litFrets, editor, vibrato, keys, alphaTex } from './helpers';
+
+setUpPage();
+
+describe('TabPage editing', () => {
+
+  it('types frets, two digits making one, and moves on with the arrows', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
+    // → adds one rest as long as the note before, to type on; the bar stays short.
+    expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 |');
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+  });
+
+  it('fills a short bar with rests when Settings says to', () => {
+    localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
+    // → fills the bar with a dotted half rest; 14 splits it, a quarter like the note before.
+    expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 r.2 |');
+  });
+
+  it('fills the bar it leaves when Settings says to', () => {
+    localStorage.setItem(EDITING_KEY, JSON.stringify({ fillBars: true }));
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    // jsdom's window never has the focus; the blur only fills while it does.
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    // → fills at once; Ctrl+Delete takes the rest away again, and leaving the tab puts it back.
+    keys('5', 'ArrowRight', '7', 'ArrowRight', { key: 'Delete', ctrlKey: true });
+    expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+    // The first Esc leaves note input, the second the tab.
+    keys('Escape', 'Escape');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 r.2 |');
+  });
+
+  it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'ArrowRight', '7');
+    const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--select-soft)"]') ?? null;
+    expect(band()).toBeNull();
+    expect(litFrets()).toHaveLength(0);
+    keys({ key: 'ArrowLeft', shiftKey: true });
+    expect(litFrets().length).toBeGreaterThan(0);
+    // Starting it let the note go: no box follows the cursor through it, and none is picked after.
+    expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
+    keys('ArrowRight');
+    expect(litFrets()).toHaveLength(0);
+    // In note input no box goes round the column (Jeremy, 2026-10-31).
+    expect(screen.queryByTestId('column-cursor')).toBeNull();
+    // Moving the cursor, any way, lets the selection go.
+    keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
+    expect(litFrets()).toHaveLength(0);
+    keys({ key: 'ArrowRight', shiftKey: true }, 'ArrowDown');
+    expect(litFrets()).toHaveLength(0);
+    keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowRight');
+    expect(litFrets()).toHaveLength(0);
+  });
+
+  it('marks notes and columns from the keys and from the palette', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    // − shortens the note in normal mode; in note input it is the next note's length (issue #238).
+    keys('5', 'ArrowRight', '7', 'h', 'Escape', '-', 'n');
+    fireEvent.click(vibrato());
+    // A note made shorter leaves rests in the time it gave up, as MuseScore's does (issue #290).
+    expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.8 |');
+    expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Eighth note' })).toHaveAttribute('aria-pressed', 'true');
+    // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
+    act(() => editor().blur());
+    expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input']);
+  });
+
+  it('acts on nothing from the palette once the cursor has left the tab, by Esc or a press elsewhere', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'ArrowRight', '7');
+    const pressAll = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+      fireEvent.click(vibrato());
+      fireEvent.click(screen.getByRole('button', { name: 'Insert a bar of rests after this bar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Bend' }));
+      fireEvent.click(screen.getByRole('button', { name: 'full' }));
+    };
+    // The first Esc leaves note input, the second the tab.
+    keys('Escape', 'Escape');
+    expect(editor()).not.toHaveFocus();
+    pressAll();
+    expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+    // alphaTex() gave the keys back to the tab; a press off it takes them away again.
+    act(() => editor().blur());
+    pressAll();
+    expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+    // Back on the tab, the same buttons change the cursor's note.
+    fireEvent.click(screen.getByRole('button', { name: 'Eighth note' }));
+    expect(alphaTex()).toBe('5.1.4 7.1.8 r.8 |');
+  });
+
+  it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('7');
+    const bend = () => screen.getByRole('button', { name: 'Bend' });
+    fireEvent.click(bend());
+    expect(bend()).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'full' }));
+    expect(alphaTex()).toBe('7.1{b (0 4)}.4 |');
+    expect(screen.queryByRole('dialog', { name: 'Bend' })).toBeNull();
+    expect(bend()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(bend());
+    expect(screen.getByRole('button', { name: 'full' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '½' }));
+    expect(alphaTex()).toBe('7.1{b (0 2)}.4 |');
+    fireEvent.click(bend());
+    fireEvent.click(screen.getByRole('button', { name: 'None' }));
+    expect(alphaTex()).toBe('7.1.4 |');
+    fireEvent.click(bend());
+    expect(screen.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(bend());
+    // Esc closes the panel and leaves the cursor on the tab.
+    fireEvent.click(bend());
+    fireEvent.keyDown(editor(), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Bend' })).toBeNull();
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+  });
+
+  it('steps V, Shift+N, A and \\ through their kinds, and toggles L, G and S', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'l', 'g', 's');
+    expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 |');
+    expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
+    keys('v', 'g');
+    expect(alphaTex()).toBe('5.1{sod ph lr hac st}.4 |');
+  });
+
+  it('marks a bar with something wrong under its start, the words as the tip', () => {
+    renderAt();
+    act(() => editor().focus());
+    // An eighth entered (shortening a note now leaves a rest, issue #290).
+    keys('q', '5');
+    // One eighth: the bar doesn't add up.
+    expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and an 8th short.");
+    // A lone triplet eighth: nor is the triplet whole.
+    act(() => { fireEvent.keyDown(editor(), { key: '3', code: 'Digit3', altKey: true }); });
+    const warning = screen.getByTestId('bar-warning');
+    expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and a quarter triplet short. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
+  });
+
+  it('writes free text over a column from the palette, and edits it from a press on it', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('5');
+    fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+    const field = screen.getByRole('textbox', { name: 'Text over the column' });
+    fireEvent.change(field, { target: { value: 'let "it" ring' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(screen.getByTestId('beat-text')).toHaveTextContent('let "it" ring');
+    expect(screen.getByRole('button', { name: 'Text over this column' })).toHaveAttribute('aria-pressed', 'true');
+    expect(alphaTex()).toBe('5.1.4{txt "let \\"it\\" ring"} |');
+    // Empty clears it.
+    fireEvent.click(screen.getByRole('button', { name: 'Text over this column' }));
+    const again = screen.getByRole('textbox', { name: 'Text over the column' });
+    expect(again).toHaveValue('let "it" ring');
+    fireEvent.change(again, { target: { value: '' } });
+    fireEvent.keyDown(again, { key: 'Enter' });
+    expect(screen.queryByTestId('beat-text')).toBeNull();
+  });
+
+  it('names a chord from C and a field over the tab, and sets the capo from the palette', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('5', 'c');
+    const field = screen.getByRole('textbox', { name: 'Chord name' });
+    fireEvent.change(field, { target: { value: 'Am7' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(screen.queryByRole('textbox', { name: 'Chord name' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+    const capo = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
+    fireEvent.change(capo, { target: { value: '3' } });
+    fireEvent.keyDown(capo, { key: 'Enter' });
+    expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
+    expect(screen.getByRole('button', { name: 'Capo' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toContain('\\capo 3\n5.1.4{ch "Am7"} |');
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    // An empty field, or 0, takes the capo off; the palette acts only while the tab has the keys.
+    act(() => editor().focus());
+    fireEvent.click(screen.getByRole('button', { name: 'Capo' }));
+    const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
+    expect(again).toHaveValue('3');
+    fireEvent.change(again, { target: { value: '0' } });
+    fireEvent.keyDown(again, { key: 'Enter' });
+    expect(screen.queryByTestId('capo')).toBeNull();
+  });
+
+  it('selects with Shift+arrows, copies the selection as alphaTex, makes rests of it and deletes it', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
+    // The two selected notes are lit, with no band behind them (Jeremy, 2026-10-30).
+    expect(litFrets().map(t => t.textContent)).toEqual(['7', '9']);
+    const data = new Map<string, string>();
+    const copy = new Event('copy', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+    copy.clipboardData = { setData: (type: string, text: string) => data.set(type, text) };
+    act(() => { editor().dispatchEvent(copy); });
+    expect(data.get('text/plain')).toBe('\\ts (4 4)\n7.1.4 9.1.4 |\n');
+    // Bars stay full (issue #238): Backspace leaves rests, the selection still there; Ctrl+Backspace takes the time.
+    keys('Backspace');
+    expect(alphaTex()).toBe('5.1.4 r.4 r.4 |');
+    expect(litFrets()).toHaveLength(0);
+    keys({ key: 'Backspace', ctrlKey: true });
+    expect(alphaTex()).toBe('5.1.4 |');
+  });
+
+  it('pastes over the time from the cursor, Ctrl/⌘+Shift+V inserts, and a cut leaves rests (issue #238)', async () => {
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |')}`);
+    await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
+    act(() => editor().focus());
+    keys('ArrowRight');
+    await paste('9.2.4 10.2.4 |');
+    // alphaTex() changes the page, so it is read after the paste settles, not polled.
+    await settle();
+    expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 4.1.4 |');
+    // What was pasted is selected, as MuseScore leaves it (Jeremy, 2026-10-31).
+    expect(litFrets().map(t => t.textContent)).toEqual(['9', '10']);
+    // Esc lets the selection go, the cursor on its last column; → goes on to the 4, and Insert paste goes before it.
+    keys('Escape');
+    act(() => editor().focus());
+    keys('ArrowRight', { key: 'V', ctrlKey: true, shiftKey: true });
+    await paste('7.3.4 |');
+    await settle();
+    expect(alphaTex()).toBe('1.1.4 9.2.4 10.2.4 7.3.4 4.1.4 |');
+    // A plain paste writes over again: ← selects the 10, which the 8 replaces.
+    keys('ArrowLeft');
+    await paste('8.3.4 |');
+    await settle();
+    expect(alphaTex()).toBe('1.1.4 9.2.4 8.3.4 7.3.4 4.1.4 |');
+    // Cut leaves rests where the notes were, still selected; no box is left round a column.
+    keys({ key: 'ArrowRight', shiftKey: true });
+    const cut = new Event('cut', { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+    cut.clipboardData = { setData: () => {} };
+    act(() => { editor().dispatchEvent(cut); });
+    expect(screen.queryByTestId('column-cursor')).toBeNull();
+    expect(alphaTex()).toBe('1.1.4 9.2.4 r.4 r.4 4.1.4 |');
+  }, 20000);
+
+
+
+  it('Esc drops a selection and leaves the tab, with nothing drawn', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
+    keys('Escape');
+    expect(litFrets()).toHaveLength(0);
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(editor()).not.toHaveFocus();
+  });
+
+  it('Esc on a note leaves the tab at once, with no box left round its column', () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'ArrowRight', '7');
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    // The first Esc leaves note input, the second the tab.
+    keys('Escape', 'Escape');
+    expect(screen.queryByTestId('tab-cursor')).toBeNull();
+    expect(screen.queryByTestId('column-cursor')).toBeNull();
+    expect(editor()).not.toHaveFocus();
+    // Leaving the tab leaves the short bar short (Settings' "Fill short bars with rests" is off).
+    expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+  });
+
+  it('never boxes a column in normal mode: a fret deleted, then the arrows over its rest (Jeremy, 2026-10-31)', async () => {
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |')}`);
+    await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
+    const two = screen.getAllByText('2').find(t => t.closest('[data-testid="tab-column"]'))!;
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    const top = Number(/translate\(0 ([\d.-]+)\)/.exec(two.closest('[data-testid="tab-system"]')!.getAttribute('transform')!)![1]);
+    const at = { clientX: Number(two.getAttribute('x')), clientY: top + Number(two.getAttribute('y')) - 4 };
+    fireEvent.pointerDown(svg, { ...at, button: 0 });
+    fireEvent.pointerUp(svg, { ...at, button: 0 });
+    keys('Delete');
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowLeft', 'ArrowRight']) {
+      keys(key);
+      expect(screen.queryByTestId('column-cursor')).toBeNull();
+    }
+    // On the rest, it is lit as a selection is.
+    expect(alphaTex()).toBe('1.1.4 r.4 3.1.4 4.1.4 |');
+  });
+
+  it('Delete off the notes of a column makes it a rest, which stays; Ctrl/⌘+Delete removes it', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
+    // On string 3, under a column whose notes are on strings 1 and 2.
+    keys('ArrowLeft', 'Delete');
+    expect(alphaTex()).toBe('r.4 3.2.4 |');
+    keys('Delete');
+    expect(alphaTex()).toBe('r.4 3.2.4 |');
+    keys({ key: 'Delete', metaKey: true });
+    expect(alphaTex()).toBe('3.2.4 |');
+  });
+
+  it('sets the time signature from the palette, each change one undo step', () => {
+    renderAt();
+    act(() => editor().focus());
+    // Typing is note input's (issue #238).
+    keys('n', 'ArrowDown');
+    // Three quarters: the rest → filled the bar with is deleted.
+    keys('5', 'ArrowRight', '5', 'ArrowRight', '5', 'ArrowRight', { key: 'Delete', ctrlKey: true });
+    const drawn = () => screen.getAllByTestId('time-signature')[0].textContent;
+    expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 1 beat short.');
+    // In the first bar the palette button opens the clip's own time signature, as a press on the drawn 4/4 does.
+    fireEvent.click(screen.getByRole('button', { name: 'Time signature from this bar' }));
+    const panel = screen.getByRole('dialog', { name: 'Time signature' });
+    const beats = within(panel).getByRole('textbox', { name: 'Beats in a bar' });
+    expect(beats).toHaveValue('4');
+    // A typed count takes effect on Enter.
+    fireEvent.change(beats, { target: { value: '3' } });
+    expect(notice()).toHaveTextContent('4/4');
+    fireEvent.keyDown(beats, { key: 'Enter' });
+    expect(notice()).not.toHaveTextContent('add up');
+    expect(drawn()).toBe('34');
+    // ↑ and + step at once; the beat is one of 2, 4, 8, 16, 32.
+    fireEvent.keyDown(beats, { key: 'ArrowUp' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'More beats' }));
+    expect(beats).toHaveValue('5');
+    fireEvent.click(within(panel).getByRole('button', { name: '8' }));
+    expect(within(panel).getByRole('button', { name: '8' })).toHaveAttribute('aria-pressed', 'true');
+    expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 5/8: 1 beat over.');
+    undo();
+    expect(drawn()).toBe('54');
+    undo();
+    expect(beats).toHaveValue('4');
+    // Esc closes the panel.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
+  });
+
+  it('sets the key signature on the piano keys, Major or Minor keeping its signs', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('5');
+    fireEvent.click(screen.getByRole('button', { name: 'Key signature from this bar' }));
+    const panel = screen.getByRole('dialog', { name: 'Key signature' });
+    expect(panel).toHaveTextContent('Key signature: C major');
+    // D♯ is a key no signature writes; the tile picks E♭, as it names it.
+    fireEvent.click(within(panel).getByRole('radio', { name: 'E♭' }));
+    expect(panel).toHaveTextContent('Key signature: E♭ major');
+    fireEvent.click(within(panel).getByRole('button', { name: 'Minor' }));
+    expect(panel).toHaveTextContent('Key signature: C minor');
+    expect(alphaTex()).toBe('\\ks Cminor 5.1.4 |');
+  });
+
+  it('keeps the count when what is typed isn\'t 1 to 32', () => {
+    renderAt();
+    pressFirstTimeSignature();
+    const beats = screen.getByRole('textbox', { name: 'Beats in a bar' });
+    for (const typed of ['0', '33', '']) {
+      fireEvent.change(beats, { target: { value: typed } });
+      fireEvent.blur(beats);
+      expect(beats).toHaveValue('4');
+    }
+    fireEvent.change(beats, { target: { value: '32' } });
+    fireEvent.blur(beats);
+    expect(beats).toHaveValue('32');
+    fireEvent.keyDown(beats, { key: 'ArrowUp' });
+    expect(beats).toHaveValue('32');
+    fireEvent.change(beats, { target: { value: '1' } });
+    fireEvent.blur(beats);
+    fireEvent.click(screen.getByRole('button', { name: 'Fewer beats' }));
+    expect(beats).toHaveValue('1');
+  });
+
+  it('says when a bar doesn\'t add up', () => {
+    renderAt();
+    act(() => editor().focus());
+    keys('5');
+    expect(notice()).toHaveTextContent('Bar 1 doesn\'t add up to 4/4: 3 beats short.');
+  });
+});

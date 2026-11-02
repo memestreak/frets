@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { readAscii } from '@/features/tab/ascii';
 import { partOf } from '@/features/tab/clip';
+import { layoutClip } from '@/features/tab/layout';
 import { Playhead, type Playback } from '@/features/tab/PlaybackFooter';
 
 const result = readAscii(['e', 'B', 'G', 'D', 'A', 'E'].map(n => `${n}|-${n === 'E' ? '0' : '-'}-|`).join('\n'));
@@ -17,7 +18,7 @@ const playing = {
 describe('the playback line', () => {
   it('moves in the muted green, not red (issue #291)', () => {
     vi.useFakeTimers();
-    render(<Playhead clip={clip} width={400} parts="tab" playback={playing} mark={null} markOnly={false} layer="over" />);
+    render(<Playhead clip={clip} layout={layoutClip(clip, 400, 'tab')} width={400} playback={playing} mark={null} markOnly={false} layer="over" />);
     act(() => { vi.advanceTimersByTime(50); });
     expect(screen.getByTestId('playhead')).toHaveAttribute('stroke', 'var(--playhead)');
     vi.useRealTimers();

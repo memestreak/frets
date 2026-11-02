@@ -91,7 +91,8 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   const fail = (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
   const svg = () => tabSvg(part, style, title, parts, view);
   const ascii = () => writeAscii(part, { rhythm: view.asciiRhythm });
-  const { width, height } = tabImageSize(part, style, title, parts, view);
+  // Laid out only while open: shut, the dialog draws nothing, and the page draws it on every change (issue #302).
+  const { width, height } = open ? tabImageSize(part, style, title, parts, view) : { width: 0, height: 0 };
   const baseName = tabFileName(clip.name);
 
   /** What each format saves: its kind (name ending, type) and the file. */
