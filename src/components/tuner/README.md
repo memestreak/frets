@@ -18,3 +18,12 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (`show_tuner`, #283) is `src/features/tuner/mcp/`; both are in
   `src/features/tuner/README.md`.
 - `tuner.css` — the tuner's CSS, and the Tuner page's card, imported from `src/app/globals.css`.
+
+## Specs
+
+- `docs/specs/2026-10-17-tuner-page-design.md`: the Tuner gets its own page
+  with a dial; the trainer's tuner shares it
+- `docs/specs/2026-10-17-tuner-design.md`: the first tuner, in a modal on the
+  Note trainer: strobe, strings, reference notes
+- `docs/specs/2026-10-17-note-trainer-mic-design.md`: Find it can be answered
+  by playing the note into the mic

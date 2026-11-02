@@ -61,3 +61,36 @@ for the page and the trainer's tuner alike; `["frets.explore.scales"]` holds the
 settings; `["frets.explore.triads"]` holds Triads' root, triad, string set
 and labels; `["frets.chords.export"]` holds the Export dialog's choices; `["frets.chords.neck"]` the Chords neck's dot labels; the Tab page's work: `["frets.tab.works"]` its My arrangements index (its folders, each arrangement's id, name, folder and last change, and which is open) and `["frets.tab.works.<id>"]` each one's clip (its tracks, each with its tuning, instrument and playback FX), written only on Save; `["frets.tab.draft"]` the open clip while it has unsaved changes or was never saved (with the clip it is a change of, for one never saved), so a reload brings it back. Preferences, one key per Settings section (`<app>.<page>.<section>`, each a JSON object; `docs/specs/2026-10-29-settings-design.md`): `["frets.general.appearance"]` `{ theme }` (a link's `?theme=` sets it: the boot script in `theme.ts`); `["frets.tab.playback"]` whether the Tab page's playback controls show, their volume, transposition, Hear notes and Play's options; `["frets.tab.metronome"]` the metronome, count-in and click volume; `["frets.tab.notation"]` Staff | Tab | Both, bar numbers, size, the clip's line breaks, whether the arrangement header is shown or folded, and whether the tuning shows its strings (`tuningDetails`); `["frets.tab.colours"]` the colour scheme and Custom's two colours; `["frets.tab.ascii"]` the rhythm line; `["frets.tab.alphatex"]` line numbers; `["frets.tab.editing"]` whether the cursor leaving a short bar fills it with rests (off by default); `["frets.tab.export"]` its Export dialog's choices; the Metronome's work, `["frets.metronome.works.current"]`, its rhythm (tempo, beats, groups, steps, swing, voices, polyrhythm), and its preferences `["frets.metronome.display"]` `{ view }` (its view switch; the page has no Settings) and `["frets.metronome.playback"]` `{ volume }` (a live control, on the page only; all in `src/features/metronome/storage.ts`). The other pages' keys are still `frets.<section>.<page>`, until each joins Settings. Preferences are written with `savePreference` (`storage.ts`), which keeps the reason a save failed for the ⚠ after the Settings gear. The parsers next to
 each key validate every field; keep them in step with settings changes.
+
+## Specs
+
+- `docs/specs/2026-10-31-metronome-design.md`: the Metronome page: four views,
+  tap tempo, meter, groups and swing
+- `docs/specs/2026-10-30-music-theory-core-design.md`: all music theory moves
+  into src/lib/theory/, the only tonal importer
+- `docs/specs/2026-10-30-keyboard-shortcuts-design.md`: ? shows the page's
+  keyboard shortcuts; each page keeps its list
+- `docs/specs/2026-10-29-tab-tempo-button-design.md`: the tempo in the score's
+  head, with tap tempo
+- `docs/specs/2026-10-29-settings-design.md`: one Settings dialog for every
+  Preference, one key per Section
+- `docs/specs/2026-10-18-bass-outside-chord-design.md`: a chord over a bass
+  outside it gets a slash name
+- `docs/specs/2026-10-17-add11-chords-design.md`: added-eleventh chord types,
+  so such shapes get a name
+- `docs/specs/2026-10-16-chord-search-design.md`: a typed or pasted chord name
+  picks the chord
+- `docs/specs/2026-10-09-published-chord-shapes-design.md`: published shapes
+  (Haus of Chords) come before searched ones
+- `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`: the diatonic
+  chords as shapes in one Position, each tile cycling its shapes
+- `docs/specs/2026-10-04-practice-restructure-design.md`: shared code moves
+  out of the trainers into lib, components and hooks
+
+## Decisions
+
+- `docs/adr/2026-11-02-no-users-yet.md`: no migrations of URLs, keys or saved
+  state
+- `docs/adr/2026-11-02-tonal-pinned.md`: tonal is exactly 6.4.3
+- `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
+  only tonal importer

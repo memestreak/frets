@@ -74,3 +74,16 @@ rhythm in a sandboxed frame. It opens stopped.
   built to `mcp/dist/metronome.html`. The server, its builds and the ways
   to try it are Frets-wide: see `src/mcp/README.md`. In a chat, ask
   "click at 92 in 7/8, grouped 2+2+3" and allow the tool.
+
+## Specs
+
+- `docs/specs/2026-10-31-metronome-mcp-app-design.md`: the Metronome runs in a
+  chat as an MCP App
+- `docs/specs/2026-10-31-metronome-design.md`: the Metronome page: four views,
+  tap tempo, meter, groups and swing
+
+## Decisions
+
+- `docs/adr/2026-11-02-no-users-yet.md`: no migrations of URLs, keys or saved
+  state
+- `docs/adr/2026-11-02-one-mcp-server.md`: every page adds its tools to frets

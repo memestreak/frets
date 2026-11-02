@@ -26,3 +26,14 @@ The files themselves:
 - `agents.css` — the page's CSS, imported from `src/app/globals.css`.
 
 Tests: `src/__tests__/agents/`.
+
+## Specs
+
+- `docs/specs/2026-11-01-frets-mcp-server-design.md`: one MCP server, frets,
+  that every page adds its tools to
+- `docs/specs/2026-10-29-agent-skills-design.md`: guides and skills in public/
+  let outside agents write for Frets pages
+
+## Decisions
+
+- `docs/adr/2026-11-02-one-mcp-server.md`: every page adds its tools to frets

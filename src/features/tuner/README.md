@@ -28,3 +28,14 @@ now (#287); Claude is told nothing back.
 - The app's entry is `mcp/apps/tuner/` (`main.tsx` builds the acoustic
   recordings in, since the host's frame can't fetch them), built to
   `mcp/dist/tuner.html`.
+
+## Specs
+
+- `docs/specs/2026-11-01-tuner-mcp-app-design.md`: the Tuner runs in a chat as
+  an MCP App, show_tuner
+- `docs/specs/2026-10-17-tuner-page-design.md`: the Tuner gets its own page
+  with a dial; the trainer's tuner shares it
+
+## Decisions
+
+- `docs/adr/2026-11-02-one-mcp-server.md`: every page adds its tools to frets

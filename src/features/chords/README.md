@@ -25,3 +25,47 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   in the menus adds a history entry, everything else replaces it; slugs in
   `src/lib/chords/chordUrls.ts`.
 - `chords.css` — the page's CSS, imported from `src/app/globals.css`; the shapes' own (`.shape-btn`, the export menu and dialog) stay in `globals.css`, shared with the Scale lab and the Tab page.
+
+## Specs
+
+- `docs/specs/2026-10-30-music-theory-core-design.md`: all music theory moves
+  into src/lib/theory/, the only tonal importer
+- `docs/specs/2026-10-19-chords-header-design.md`: the Chords header follows
+  the Scale lab's, labelled from the top
+- `docs/specs/2026-10-18-bass-outside-chord-design.md`: a chord over a bass
+  outside it gets a slash name
+- `docs/specs/2026-10-17-move-shape-design.md`: ‹ › slide the shape along the
+  neck; ← → still step through shapes
+- `docs/specs/2026-10-17-export-size-design.md`: the Export dialog picks the
+  image's size and transparency
+- `docs/specs/2026-10-17-chord-neck-labels-design.md`: the Chords neck gets
+  Dot labels: Interval, Note or None
+- `docs/specs/2026-10-17-add11-chords-design.md`: added-eleventh chord types,
+  so such shapes get a name
+- `docs/specs/2026-10-16-key-picker-design.md`: the root picker becomes a row
+  of tiles laid out like piano keys
+- `docs/specs/2026-10-16-chord-search-design.md`: a typed or pasted chord name
+  picks the chord
+- `docs/specs/2026-10-16-chord-diagram-fret-label-design.md`: every small
+  shape diagram labels its starting fret
+- `docs/specs/2026-10-15-one-chords-page-design.md`: the Chord library and
+  Chord lab become one Chords page; frets in the URL
+- `docs/specs/2026-10-15-copy-chord-diagram-design.md`: a right-click menu and
+  Export dialog copy a shape diagram as an image
+- `docs/specs/2026-10-09-published-chord-shapes-design.md`: published shapes
+  (Haus of Chords) come before searched ones
+- `docs/specs/2026-10-09-chord-lab-arpeggio-design.md`: the Chord lab loses
+  Build it and gains the Arpeggio toggle
+- `docs/specs/2026-10-06-simpler-chord-diagrams-design.md`: small shape
+  diagrams show colour without labels
+- `docs/specs/2026-10-06-chord-arpeggio-design.md`: a toggle shows the chord's
+  arpeggio over the whole neck
+- `docs/specs/2026-10-05-chord-library-design.md`: the Chord library: pick a
+  chord, see its shapes (now part of the Chords page)
+- `docs/specs/2026-10-05-chord-lab-design.md`: the Chord lab: tap notes and
+  get their names (now part of the Chords page)
+
+## Decisions
+
+- `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
+  only tonal importer
