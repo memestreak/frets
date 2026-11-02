@@ -6,18 +6,18 @@ Guitar fretboard app whose pages fall in two groups
 (`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools (the Scale lab,
 Triads, the Circle of fifths, Chords, the Tuner, the Metronome, Tab) and
 Practice (the Interval and Note trainers).
-Next.js 16 App Router with static export (`out/`), React 19, TypeScript
-strict, Tailwind 4, Vitest, tonal (pinned to 6.4.3: 6.5.0 can't be imported
-under Node).
+Next.js 16 App Router with static export (`out/`;
+`docs/adr/2026-11-02-static-export.md`), React 19, TypeScript strict,
+Tailwind 4, Vitest, tonal (pinned to 6.4.3;
+`docs/adr/2026-11-02-tonal-pinned.md`).
 
 The app has no users yet: don't keep old URLs, storage keys or saved state
-working after a change.
+working after a change (`docs/adr/2026-11-02-no-users-yet.md`).
 
 Every feature has a design spec in `docs/specs/`, named by date and topic;
-it rides in the same PR as the code. Where a spec and the prototypes in
-`design_handoff/prototypes/*.dc.html` disagree, the spec wins. The
-prototypes are not a reference for the look: the shipped styling is the
-Fretwood design system (`docs/specs/2026-10-04-fretwood-design-system.md`).
+it rides in the same PR as the code. A spec wins over the prototypes in
+`design_handoff/prototypes/`, and Fretwood, not the prototypes, sets the
+look (`docs/adr/2026-11-02-spec-over-prototype.md`).
 `docs/pedagogy/` holds research on what to teach next (ideas, not specs).
 
 `GLOSSARY.md` defines the app's own words. `docs/adr/` records decisions
@@ -86,16 +86,18 @@ binds a local port).
 
 - `src/app/` — routes. `layout.tsx` wraps every page in `AppShell`.
 - `src/lib/`, `src/components/`, `src/hooks/` — shared by more than one
-  section.
-- `src/features/<section>/` — everything only one section uses.
-- `src/mcp/` — Frets' one MCP server (`frets`, served at `/mcp`), which
-  every page adds its tools to; a page's own tools and MCP App live in
+  feature. All music theory is in `src/lib/theory/`, the only importer of
+  tonal (`docs/adr/2026-11-02-one-theory-core.md`).
+- `src/features/<feature>/` — everything only one feature uses.
+- `src/mcp/` — Frets' one MCP server (`frets`, served at `/mcp`;
+  `docs/adr/2026-11-02-one-mcp-server.md`), which every page adds its
+  tools to; a page's own tools and MCP App live in
   `src/features/<page>/mcp/`. `mcp/` holds the apps' build entries (Vite,
   outside the Next.js export) and the stdio server; `functions/` the
   Cloudflare Pages Functions (`/mcp`). To add a tool, follow
   `src/mcp/README.md`.
-- Code moves into `src/lib/` or `src/components/` only once a second section
-  needs it.
+- Code moves into `src/lib/` or `src/components/` only once a second
+  feature needs it.
 
 Agents outside the repo write for Frets from the guides and skills in
 `public/` (`docs/specs/2026-10-29-agent-skills-design.md`, listed in
