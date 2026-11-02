@@ -20,6 +20,15 @@ prototypes are not a reference for the look: the shipped styling is the
 Fretwood design system (`docs/specs/2026-10-04-fretwood-design-system.md`).
 `docs/pedagogy/` holds research on what to teach next (ideas, not specs).
 
+`GLOSSARY.md` defines the app's own words, and `docs/adr/` records the
+decisions that are hard to reverse, each with its reasons. Before
+exploring, read the glossary and the ADRs touching the area; if they
+don't exist yet, carry on without them. Name things in code, tests, specs
+and PRs by the glossary's terms, not the words it lists under `_Avoid_`.
+If a change contradicts an ADR, say so and ask before going ahead. Both
+are written by `/grill-with-docs` (`.claude/skills/grill-with-docs/`),
+which interviews Jeremy about a plan and ends with its spec.
+
 ## Keeping this file stable
 
 Several threads work on this repo at once, and edits to this file conflict

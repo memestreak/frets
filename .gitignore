@@ -49,7 +49,9 @@ next-env.d.ts
 # placeholder dotfiles the Claude Code sandbox mounts in the repo root
 /.bash_profile
 /.bashrc
-/.claude/
+# ...but the repo's own skills in .claude/skills/ are committed
+/.claude/*
+!/.claude/skills/
 /.gitconfig
 /.gitmodules
 /.mcp.json
