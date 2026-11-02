@@ -20,6 +20,26 @@ prototypes are not a reference for the look: the shipped styling is the
 Fretwood design system (`docs/specs/2026-10-04-fretwood-design-system.md`).
 `docs/pedagogy/` holds research on what to teach next (ideas, not specs).
 
+`GLOSSARY.md` defines the app's own words. `docs/adr/` records decisions
+with their reasons: the ones hard to reverse, and the product stances
+someone might reverse without knowing why. Each folder's `README.md`
+lists the specs that shaped it (`## Specs`) and the ADRs that bind it
+(`## Decisions`). Before changing an area, read the glossary, that
+folder's README, and the ADRs and specs it lists; if any don't exist
+yet, carry on without them. Name things in code, tests, specs and PRs by
+the glossary's terms, not the words it lists under `_Avoid_`. If a
+change contradicts an ADR, say so and ask before going ahead. A PR that
+introduces a word the glossary lacks, or a decision that reads like an
+ADR, says so in its description rather than writing either. A spec's
+`## Tests` list pins the values and "no"s the implementation must test;
+a PR is not done until each has one.
+
+`/grill-with-docs` (`.claude/skills/grill-with-docs/`) interviews Jeremy
+about a plan, writes the glossary and ADRs as they settle, and ends with
+the spec and the README updates. `/check-docs` reports where these
+artifacts have drifted from each other or the code. `plans/` is retired:
+the spec's "How" section is the work order; don't add to `plans/`.
+
 ## Keeping this file stable
 
 Several threads work on this repo at once, and edits to this file conflict
