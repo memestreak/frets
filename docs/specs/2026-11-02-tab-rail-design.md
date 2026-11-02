@@ -33,7 +33,9 @@ question at a time; a higher-fidelity mock then offered two looks and he picked 
 - An open panel sits **beside** the clip, not over it (Q3).
 - The rail and panel **grow into the page's left margin**, so the clip keeps its right edge (Jeremy,
   2026-11-02: "have the tooling extend to the left rather than pushing the arrangement to the right").
-  On a wide screen (about 1,900px) opening a panel moves nothing. On a narrower one the margin is too
+  The rail **starts at the clip's left edge**, not the window's (Jeremy, 2026-11-02: "begins on the left
+  side of the arrangement rather than the far left of the window"): rail, panel and clip sit together,
+  with any spare margin to the rail's left. On a wide screen (about 1,900px) opening a panel moves nothing. On a narrower one the margin is too
   small for the panel, so the clip gives up width on its left.
 - Every panel is one width (17rem), so switching panels never moves the clip; only opening or closing
   one does.
