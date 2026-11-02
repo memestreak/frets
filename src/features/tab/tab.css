@@ -463,3 +463,66 @@
 .tab-title-text:focus-visible { outline: none; text-decoration: underline var(--primary); text-underline-offset: 6px; }
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
+
+/* MOCK (PaletteMock.tsx, ?palette=a|b|c|d): the Tab page's palettes on the left of the clip. */
+.tab-side-layout { display: grid; gap: 16px; align-items: start; }
+/* No overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
+.tab-side { position: sticky; top: 16px; z-index: 5; }
+@media (min-width: 900px) {
+  .tab-side-layout[data-look='a'] { grid-template-columns: 172px minmax(0, 1fr); }
+  .tab-side-layout[data-look='b'] { grid-template-columns: 188px minmax(0, 1fr); }
+  .tab-side-layout[data-look='c'] { grid-template-columns: auto minmax(0, 1fr); }
+  .tab-side-layout[data-look='d'] { grid-template-columns: 66px minmax(0, 1fr); }
+}
+/* Phones: the palettes go back over the clip, in a row. */
+@media (max-width: 899px) { .tab-side { position: static; } }
+
+/* a Column: each group under its name, five buttons across. */
+.tab-side-column { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
+@media (max-width: 899px) { .tab-side-column { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; } }
+
+/* b Sections: a heading per group that folds it, MuseScore's palettes. */
+.tab-side-sections { display: grid; gap: 2px; }
+.tab-side-section { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.tab-side-heading {
+  display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 4px; border: 0; background: none;
+  color: var(--ink); font: 600 13px/18px var(--font-sans); text-align: left; cursor: pointer; border-radius: var(--radius-sm);
+}
+.tab-side-heading:hover { background: var(--surface-sunken); }
+.tab-side-heading:focus-visible { outline: none; }
+.tab-side-heading svg { color: var(--ink-muted); }
+.tab-side-section-tools .tab-palette-label,
+.tab-side-panel-tools .tab-palette-label { display: none; }
+.tab-side-section-tools { padding: 2px 4px 4px 22px; }
+
+/* c Rail: group buttons in a thin strip; the picked one's panel beside it. */
+.tab-side-rail-box { display: flex; gap: 8px; align-items: flex-start; }
+.tab-side-rail { display: flex; flex-direction: column; gap: 4px; }
+.tab-side-rail-button {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-side-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-side-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); border-color: var(--line-strong); }
+.tab-side-rail-button:focus-visible { outline: none; }
+.tab-side-rail-rule { height: 1px; margin: 4px 6px; background: var(--line); }
+.tab-side-rail-panel { display: grid; gap: 10px; align-content: start; width: 172px; padding: 12px; }
+.tab-side-panel-title { font: 600 13px/18px var(--font-sans); color: var(--ink); }
+.tab-side-note { margin: 0; font-size: 13px; color: var(--ink-muted); }
+@media (max-width: 899px) {
+  .tab-side-rail-box { flex-direction: column; }
+  .tab-side-rail { flex-direction: row; flex-wrap: wrap; }
+  .tab-side-rail-rule { width: 1px; height: auto; margin: 6px 4px; }
+  .tab-side-rail-panel { width: auto; }
+}
+
+/* d Strip: Guitar Pro's edition palette: two buttons across, no names, a rule between groups. */
+.tab-side-strip { flex-direction: column; flex-wrap: nowrap; gap: 0; width: 64px; }
+.tab-side-strip .tab-palette-label { display: none; }
+.tab-side-strip .tab-palette-group { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tab-side-strip .tab-palette-group:first-child { padding-top: 0; }
+.tab-side-strip .tab-palette-group:last-child { border-bottom: 0; }
+@media (max-width: 899px) {
+  .tab-side-strip { flex-direction: row; flex-wrap: wrap; width: auto; gap: 8px 18px; }
+  .tab-side-strip .tab-palette-group { border: 0; padding: 0; }
+}

@@ -16,7 +16,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, groups, className }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -35,9 +35,13 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   inputMode?: boolean;
   /** The pencil pressed: note input on or off, as N does. */
   onInputMode?: () => void;
+  /** MOCK (PaletteMock.tsx): only these groups, by label; all when left out. */
+  groups?: readonly string[];
+  className?: string;
 }) {
+  const shown = groups ? TOOL_GROUPS.filter(group => groups.includes(group.label)) : TOOL_GROUPS;
   return (
-    <div className="tab-palette" role="toolbar" aria-label="Symbols">
+    <div className={className ? `tab-palette ${className}` : 'tab-palette'} role="toolbar" aria-label="Symbols">
       {onInputMode && (
         <div className="tab-palette-group" role="group" aria-label="Input">
           <span className="tab-palette-label" aria-hidden="true">Input</span>
@@ -57,7 +61,7 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
           </div>
         </div>
       )}
-      {TOOL_GROUPS.map(group => (
+      {shown.map(group => (
         <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
           <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
           <div className="tab-palette-tools">
@@ -272,7 +276,7 @@ function WhammyGlyph() {
   );
 }
 
-const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah' | 'whammy'>, ReactNode> = {
+export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah' | 'whammy'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
   quarter: <NoteGlyph open={false} />,

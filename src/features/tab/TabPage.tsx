@@ -31,6 +31,7 @@ import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
+import { PaletteSide, TOP_GROUPS, usePaletteMock, type DrawPalette } from './PaletteMock';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -57,7 +58,7 @@ import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-side`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -385,6 +386,7 @@ export default function TabPage() {
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
   useShortcuts(TAB_SHORTCUTS);
+  const { look: paletteLook, oneRow } = usePaletteMock();
 
   /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
   const addBar = (where: 'before' | 'after') => {
@@ -504,7 +506,7 @@ export default function TabPage() {
     // Placing the playback line has filled the bar already, or left it alone while playing.
     if (quietBlur.current) return;
     const to = e.relatedTarget;
-    if (to instanceof Element && to.closest('.tab-card, .tab-palette')) return;
+    if (to instanceof Element && to.closest('.tab-card, .tab-palette, .tab-side')) return;
     if (!document.hasFocus()) return;
     const filled = leaveBar(clip, cursor.bar);
     if (filled !== clip) dispatch({ type: 'replacePart', part: filled });
@@ -654,10 +656,24 @@ export default function TabPage() {
     },
   });
 
+  /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
+  const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
+    <TabPalette
+      // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
+      isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
+      onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
+      onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
+      onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
+      onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
+      inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined} />
+  );
+  const sidePalette: DrawPalette = (groups, className) => drawPalette(groups, className);
+
   return (
     <div className="grid gap-4">
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
-      <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
+      <header className={`flex flex-wrap gap-x-6 gap-y-3 ${oneRow ? 'items-end justify-between' : 'items-center justify-end'}`}>
+        {oneRow && <HoverTips>{drawPalette(TOP_GROUPS, undefined, true)}</HoverTips>}
         <div className="flex flex-wrap items-center gap-2">
           {/* The file buttons (issue #259); a dot on Save while there are unsaved changes. */}
           <button type="button" className="btn btn-secondary" onClick={file.openNew}>New</button>
@@ -695,18 +711,14 @@ export default function TabPage() {
         </div>
       </header>
 
-      <HoverTips>
-        {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
-        <TabPalette
-          // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-          isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
-          onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
-          onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
-          onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
-          onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
-          inputMode={inputMode} onInputMode={() => enterInput(!inputMode)} />
-      </HoverTips>
+      {!oneRow && (
+        <HoverTips>
+          {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
+          {drawPalette(paletteLook === 'off' ? undefined : TOP_GROUPS, undefined, true)}
+        </HoverTips>
+      )}
 
+      <PaletteSide look={paletteLook} palette={sidePalette}>
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">
@@ -834,6 +846,7 @@ export default function TabPage() {
         </PinnedPlayback>
         )}
       </section>
+      </PaletteSide>
 
       <p
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
