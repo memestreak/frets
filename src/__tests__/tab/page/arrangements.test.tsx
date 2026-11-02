@@ -221,7 +221,7 @@ describe('TabPage arrangements', () => {
     expect(heading()).toHaveTextContent('Riff');
   });
 
-  it('warns on closing the browser tab only while there are unsaved changes', () => {
+  it('closes the browser tab without asking, unless the draft could not keep the unsaved changes', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     const leave = () => {
@@ -230,8 +230,22 @@ describe('TabPage arrangements', () => {
       return event.defaultPrevented;
     };
     expect(leave()).toBe(false);
+    // Unsaved, but in the draft: no warning.
+    typeNine();
+    expect(window.localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+    expect(leave()).toBe(false);
+    // Storage full: the next change can't be drafted, so closing would lose it.
+    // On the prototype: jsdom's Storage would keep an own `setItem` as an item.
+    const storage = Object.getPrototypeOf(window.localStorage) as Storage;
+    const write = storage.setItem;
+    const setItem = vi.spyOn(storage, 'setItem').mockImplementation(function (this: Storage, key, value) {
+      if (key === DRAFT_KEY) throw new DOMException('full', 'QuotaExceededError');
+      write.call(this, key, value);
+    });
     typeNine();
     expect(leave()).toBe(true);
+    // Saved: nothing to lose.
+    setItem.mockRestore();
     fireEvent.click(screen.getByRole('button', { name: 'Save, unsaved changes' }));
     expect(leave()).toBe(false);
   });
