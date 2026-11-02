@@ -4,8 +4,8 @@
 
 Guitar fretboard app whose pages fall in two groups
 (`docs/specs/2026-10-19-tools-and-practice-design.md`): Tools (the Scale lab,
-Triads, the Circle of fifths, Chords, the Tuner, Tab) and Practice (the
-Interval and Note trainers).
+Triads, the Circle of fifths, Chords, the Tuner, the Metronome, Tab) and
+Practice (the Interval and Note trainers).
 Next.js 16 App Router with static export (`out/`), React 19, TypeScript
 strict, Tailwind 4, Vitest, tonal (pinned to 6.4.3: 6.5.0 can't be imported
 under Node).
@@ -30,6 +30,7 @@ folder's `README.md`; update that instead:
 - `src/lib/README.md` — shared pure logic, and every storage key
 - `src/components/README.md` — shared components, hooks and the app's map
 - `src/components/tuner/README.md` — the mic and the tuner
+- `src/features/tuner/README.md` — the Tuner page and its MCP App
 - `src/features/practice/README.md` — the trainers, and where their quiz
   rules depart from the prototypes
 - `src/features/explore/README.md` — the Scale lab, Triads, the Circle of fifths

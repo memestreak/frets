@@ -14,8 +14,10 @@ Tools, everything else.
 
 | Group | Pages |
 | --- | --- |
-| Tools | Scale lab, Chords, Triads, Circle of fifths, Tuner, Tab |
+| Tools | Scale lab, Chords, Triads, Circle of fifths, Tuner, Metronome, Tab |
 | Practice | Interval trainer, Note trainer |
+
+The Metronome joined Tools after the Tuner in #275 (2026-11-01).
 
 - `sections.ts` holds the two groups, Tools first. Every entry is a page
   with a title, a summary and its icon; the "section with no pages" case is

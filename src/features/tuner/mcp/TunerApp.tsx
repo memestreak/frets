@@ -4,30 +4,14 @@
  * strings play the acoustic guitar recordings built into the app (`mcp/apps/tuner/main.tsx`). Claude
  * is told nothing back (Jeremy, 2026-11-01).
  */
-import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
+import type { App } from '@modelcontextprotocol/ext-apps';
 import { useEffect, useState } from 'react';
 import { MicListener, type MicStatus } from '@/components/tuner/listener';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
+import { appInfo, listenToHost } from '@/mcp/app';
 import { ChatTuner } from './ChatTuner';
 
-export const APP_INFO = { name: 'Frets tuner', version: '1.0.0' };
-
-/** Connects to the host, follows its theme, and lets the mic go on teardown. Returns a stop. */
-function listenToHost(app: App, teardown: () => void): () => void {
-  const theme = (ctx: McpUiHostContext | undefined) => {
-    if (ctx?.theme) applyDocumentTheme(ctx.theme);
-  };
-  app.addEventListener('hostcontextchanged', theme);
-  app.onteardown = () => {
-    teardown();
-    return {};
-  };
-  void app.connect().then(() => theme(app.getHostContext()));
-  return () => {
-    app.removeEventListener('hostcontextchanged', theme);
-    app.onteardown = undefined;
-  };
-}
+export const APP_INFO = appInfo('tuner');
 
 export function TunerApp({ app }: { app: App }) {
   const [listener] = useState(() => new MicListener());
@@ -35,9 +19,11 @@ export function TunerApp({ app }: { app: App }) {
   useLetGoAfterUse();
 
   useEffect(() => {
-    const stop = listenToHost(app, () => {
-      listener.stop();
-      setStatus('off');
+    const stop = listenToHost(app, {
+      teardown: () => {
+        listener.stop();
+        setStatus('off');
+      },
     });
     return () => {
       stop();

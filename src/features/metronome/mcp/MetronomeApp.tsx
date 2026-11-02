@@ -3,22 +3,22 @@
  * layout (`Strip.tsx`), with no storage. `useHost` is the bridge to the host: it shows the rhythm the tool call asked for, tells
  * the model what the user changes, follows the host's theme, and lets the audio go on teardown.
  */
-import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
+import type { App } from '@modelcontextprotocol/ext-apps';
 import { useEffect, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
+import { appInfo, listenToHost } from '@/mcp/app';
 import { defaultRhythm, type Rhythm } from '../rhythm';
 import { DEFAULT_PLAYBACK } from '../storage';
 import { useMetronomeCore, type Metronome } from '../useMetronomeCore';
 import { useTapKey } from '../useTapKey';
-import { listenToHost } from './host';
 import { Strip } from './Strip';
 import { describeRhythm, rhythmFromInput, type MetronomeState, type ToolInput } from './tool';
 
 /** How long after the last change the model is told: a drag sends one update, not forty. */
 export const REPORT_DELAY_MS = 1000;
 
-export const APP_INFO = { name: 'Frets metronome', version: '1.0.0' };
+export const APP_INFO = appInfo('metronome');
 
 /** The tool result's state, if it is one. */
 function stateOf(raw: unknown): MetronomeState | null {
@@ -49,10 +49,7 @@ function useHost(app: App, m: Metronome) {
       known.current = JSON.stringify([state.rhythm, false]);
       setRhythm(state.rhythm);
     };
-    const theme = (ctx: McpUiHostContext | undefined) => {
-      if (ctx?.theme) applyDocumentTheme(ctx.theme);
-    };
-    const stop = listenToHost(app, {
+    return listenToHost(app, {
       // The input comes first: show it at once, then take the server's checked result.
       input: args => {
         const made = rhythmFromInput(args as ToolInput);
@@ -62,20 +59,9 @@ function useHost(app: App, m: Metronome) {
         const state = stateOf(raw);
         if (state) show(state);
       },
-      context: theme,
+      connected: () => setConnected(true),
       teardown: close,
     });
-    let live = true;
-    // Nothing is sent to the host until the handshake is done.
-    void app.connect().then(() => {
-      if (!live) return;
-      theme(app.getHostContext());
-      setConnected(true);
-    });
-    return () => {
-      live = false;
-      stop();
-    };
   }, [app, setRhythm, close]);
 
   const { rhythm, playing } = m;
