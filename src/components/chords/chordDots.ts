@@ -1,12 +1,12 @@
 import type { DotLabels } from '@/components/DotLabels';
 import type { FretDot } from '@/components/fretboard/Fretboard';
 import { degreeColor, DEGREES, type DotColor } from '@/components/fretboard/theme';
-import { positionsOnNeck, TUNING, type Tuning } from '@/lib/music';
+import { spotsOnNeck, TUNING, type Tuning } from '@/lib/music';
 import type { ChordInfo, ChordTone } from '@/lib/theory/chords';
 import { mod12 } from '@/lib/theory/notes';
-import type { Voicing } from '@/lib/chords/voicings';
+import type { Shape } from '@/lib/chords/shapes';
 
-/** The chord tone a string plays at a fret, in a tuning (standard by default). Voicings only hold chord tones. */
+/** The chord tone a string plays at a fret, in a tuning (standard by default). Shapes only hold chord tones. */
 export function toneAt(chord: ChordInfo, string: number, fret: number, tuning: Tuning = TUNING): ChordTone {
   const semis = mod12(tuning[string] + fret - chord.rootPc);
   return chord.tones.find(t => t.semis === semis)!;
@@ -35,22 +35,22 @@ function toneDot(chord: ChordInfo, s: number, f: number, labels: DotLabels): Fre
   };
 }
 
-/** A voicing as dots for the big `Fretboard`, labelled by interval unless `labels` says otherwise. */
-export function voicingDots(
-  chord: ChordInfo, voicing: Voicing, labels: DotLabels = 'interval',
+/** A shape as dots for the big `Fretboard`, labelled by interval unless `labels` says otherwise. */
+export function shapeDots(
+  chord: ChordInfo, shape: Shape, labels: DotLabels = 'interval',
 ): FretDot[] {
-  return voicing.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret, labels)]));
+  return shape.flatMap((fret, s) => (fret === null ? [] : [toneDot(chord, s, fret, labels)]));
 }
 
-/** The strings a voicing leaves out, for the big `Fretboard` to mark. */
-export function mutedStrings(voicing: Voicing): number[] {
-  return voicing.flatMap((fret, s) => (fret === null ? [s] : []));
+/** The strings a shape leaves out, for the big `Fretboard` to mark. */
+export function mutedStrings(shape: Shape): number[] {
+  return shape.flatMap((fret, s) => (fret === null ? [s] : []));
 }
 
 /** The arpeggio: every chord tone from the nut to `maxFret`, labelled as the shape's dots are. */
 export function arpeggioDots(
   chord: ChordInfo, maxFret: number, labels: DotLabels = 'interval',
 ): FretDot[] {
-  return positionsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
+  return spotsOnNeck(chord.rootPc, chord.tones.map(t => t.semis), maxFret)
     .map(p => toneDot(chord, p.s, p.f, labels));
 }

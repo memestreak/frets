@@ -5,7 +5,7 @@
  */
 import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Part, type Note } from './clip';
 import { BEND_LABEL_STEP, BEND_RISE, bendShape, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
-import { columnRuns, previousSpots, vibratoRuns } from './runs';
+import { columnRuns, previousAnchors, vibratoRuns } from './runs';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
@@ -75,7 +75,7 @@ const THIN_REACH = 8;
 /** Every picked-able mark on the tab and the box round it, in the tab's units, top line first. */
 export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
   const out: { hit: MarkHit; box: Box }[] = [];
-  const previous = previousSpots(layout.systems);
+  const previous = previousAnchors(layout.systems);
   const bars = { bars: layout.systems.flatMap(sys => sys.bars.map(b => b.bar)) };
   const carries = bendCarries(bars);
   const raises = bendRaises(bars);

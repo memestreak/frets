@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from './BrandMark';
 import { ChevronDownIcon } from './icons';
-import { locate, SECTIONS } from './sections';
+import { locate, GROUPS } from './sections';
 import { ThemeSwitch } from './ThemeSwitch';
 
 const MENU_ID = 'site-menu';
@@ -23,7 +23,7 @@ function Separator() {
  */
 export function AppNav() {
   const pathname = usePathname();
-  const { section, page } = locate(pathname);
+  const { group, page } = locate(pathname);
   // The pathname the menu was opened on: moving to another page closes it.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === pathname;
@@ -66,28 +66,28 @@ export function AppNav() {
     >
       <Link
         href="/"
-        aria-current={section ? undefined : 'page'}
+        aria-current={group ? undefined : 'page'}
         className="flex shrink-0 items-center gap-2.5 text-(--ink) no-underline"
       >
         <BrandMark />
         {/* Narrow screens keep the room for the breadcrumbs. */}
-        <span className={`${section ? 'sr-only sm:not-sr-only' : ''} font-(family-name:--font-display) text-[22px] leading-7 font-semibold`}>
+        <span className={`${group ? 'sr-only sm:not-sr-only' : ''} font-(family-name:--font-display) text-[22px] leading-7 font-semibold`}>
           Frets
         </span>
       </Link>
-      {section && (
+      {group && (
         <button
           ref={crumbsRef}
           type="button"
           aria-expanded={open}
           aria-controls={MENU_ID}
-          aria-label={`${[section.label, page?.title].filter(Boolean).join(' › ')}: show every page`}
+          aria-label={`${[group.label, page?.title].filter(Boolean).join(' › ')}: show every page`}
           onClick={() => setOpenOn(open ? null : pathname)}
           className="flex min-w-0 cursor-pointer items-center gap-2 rounded-(--radius-sm) border-0 bg-transparent px-2 py-1 font-(family-name:--font-sans) text-[14px] font-semibold hover:bg-(--surface-sunken) aria-expanded:bg-(--surface-sunken)"
         >
           <Separator />
           <span className={`whitespace-nowrap ${page ? 'text-(--ink-muted)' : 'text-(--ink)'}`}>
-            {section.label}
+            {group.label}
           </span>
           {page && (
             <>
@@ -107,8 +107,8 @@ export function AppNav() {
         hidden={!open}
         className="absolute inset-x-0 top-full z-20 grid gap-4 border-b border-(--line) bg-(--surface-raised) p-4 shadow-[0_12px_24px_-12px_rgb(0_0_0/0.25)] sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] sm:px-5"
       >
-        {SECTIONS.map(s => {
-          const here = s === section;
+        {GROUPS.map(s => {
+          const here = s === group;
           const id = `menu-${s.label}`;
           const tone = here ? 'text-(--primary)' : 'text-(--ink-muted)';
           return (

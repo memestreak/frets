@@ -15,7 +15,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
     plus add11, add9(add11), m(maj7)♯11
     (`docs/specs/2026-10-17-add11-chords-design.md`), m(maj7)♯5 and sus4♯5,
     with our groups and symbols. Also roots, `chordOf` (spelled notes, tone
-    labels, which tones a voicing may leave out), `chordFromTones` (a type,
+    labels, which tones a shape may leave out), `chordFromTones` (a type,
     or an unnamed chord, from a set of pitches), `chordFromIntervals` (the
     same from spelled intervals, so C E G♯ B is Cmaj7♯5), and `withBass`
     (a chord over a bass outside it;
@@ -32,8 +32,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   - `modes.ts`: the major scale's seven modes and the key each is spelled
     from (`parentKey`).
 - `music.ts`: the guitar: standard tuning (`TUNING`, `Tuning`,
-  `isStandardTuning`), string names, `positionsOnNeck`, and the trainers'
-  intervals and random picks. `fretWindow.ts`, `fretboardGeometry.ts`,
+  `isStandardTuning`), string names, `spotsOnNeck`, and the trainers'
+  intervals and random picks. `fretRange.ts`, `fretboardGeometry.ts`,
   `storage.ts`, `theme.ts`. `shortcuts.ts`: the `?` overlay's types (a page's
   groups of shortcuts), the keys every page has, how a key is drawn (⌘ on a
   Mac, Ctrl elsewhere) and which `?` press is meant for the page.
@@ -45,7 +45,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   guitarists play, from Haus of Chords (`data/haus-of-chords.json`, CC BY
   4.0, credited in `NOTICE.md`; re-import with
   `scripts/import-haus-of-chords.py`, see `data/README.md`).
-  `voicings.ts` shows those first and otherwise searches the neck for
+  `shapes.ts` shows those first and otherwise searches the neck for
   playable shapes (each rule a named constant), in any tuning (standard by
   default; the published shapes only in standard tuning). It splits them
   into open, the best few moveable and all moveable, and picks the shapes

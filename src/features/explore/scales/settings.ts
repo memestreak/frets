@@ -1,5 +1,5 @@
 import { isDotLabels, type DotLabels } from '@/components/DotLabels';
-import { LAST_POSITION } from '@/lib/chords/voicings';
+import { LAST_POSITION } from '@/lib/chords/shapes';
 import type { ChordSize } from '@/lib/theory/diatonic';
 import { modeFamily, ROOTS, scaleDef, type Root } from '@/lib/theory/scales';
 

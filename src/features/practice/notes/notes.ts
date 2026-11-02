@@ -1,5 +1,5 @@
 import {
-  pick, pitchClass, STRINGS, TUNING, type Position, type Rng,
+  pick, pitchClass, STRINGS, TUNING, type Spot, type Rng,
 } from '@/lib/music';
 import { mod12 } from '@/lib/theory/notes';
 
@@ -62,25 +62,25 @@ const inRange = (set: Range, f: number): boolean => {
   const [a, b] = targetRange(set);
   return f >= a && f <= b;
 };
-const onTarget = (q: FindQuestion, pos: Position): boolean =>
-  pos.s === q.s && pitchClass(pos.s, pos.f) === q.pc;
+const onTarget = (q: FindQuestion, spot: Spot): boolean =>
+  spot.s === q.s && pitchClass(spot.s, spot.f) === q.pc;
 
-/** Is `pos` the asked note on the asked string, inside the fret range? */
-export const isCorrectNoteFret = (q: FindQuestion, pos: Position, set: Range): boolean =>
-  onTarget(q, pos) && inRange(set, pos.f);
+/** Is `spot` the asked note on the asked string, inside the fret range? */
+export const isCorrectNoteFret = (q: FindQuestion, spot: Spot, set: Range): boolean =>
+  onTarget(q, spot) && inRange(set, spot.f);
 
 /**
- * Is `pos` the asked note on the asked string, but outside the range? The
+ * Is `spot` the asked note on the asked string, but outside the range? The
  * trainer explains such a tap instead of scoring it as a miss.
  */
-export const isNoteOutOfRange = (q: FindQuestion, pos: Position, set: Range): boolean =>
-  onTarget(q, pos) && !inRange(set, pos.f);
+export const isNoteOutOfRange = (q: FindQuestion, spot: Spot, set: Range): boolean =>
+  onTarget(q, spot) && !inRange(set, spot.f);
 
 /**
  * Where a played MIDI note sits on the asked string: the fret that sounds
  * it, or null when the string can't play it on the board.
  */
-export function placeNotePitch(q: FindQuestion, midi: number): Position | null {
+export function placeNotePitch(q: FindQuestion, midi: number): Spot | null {
   const f = midi - TUNING[q.s];
   return f >= 0 && f <= NOTE_MAX_FRET ? { s: q.s, f } : null;
 }

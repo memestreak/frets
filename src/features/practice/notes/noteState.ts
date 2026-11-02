@@ -16,8 +16,8 @@ export type NoteAction = TrainerAction<NoteSettings, NoteQuestion>;
 const RULES: TrainerRules<NoteSettings, NoteQuestion> = {
   key: q => q.pc,
   named: q => q.mode === 'name',
-  isCorrect: (q, pos, set) => q.mode === 'find' && isCorrectNoteFret(q, pos, set),
-  isOutOfRange: (q, pos, set) => q.mode === 'find' && isNoteOutOfRange(q, pos, set),
+  isCorrect: (q, spot, set) => q.mode === 'find' && isCorrectNoteFret(q, spot, set),
+  isOutOfRange: (q, spot, set) => q.mode === 'find' && isNoteOutOfRange(q, spot, set),
   placePitch: (q, midi) => (q.mode === 'find' ? placeNotePitch(q, midi) : null),
   rightPitch: isNotePitch,
 };

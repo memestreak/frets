@@ -4,7 +4,7 @@ import {
   parseIntervalSettings, resetIntervalSettings, withHRange, withVRange,
   type IntervalQuestion, type IntervalSettings,
 } from '@/features/practice/intervals/intervals';
-import { intervalClass, midi, samePos } from '@/lib/music';
+import { intervalClass, midi, sameSpot } from '@/lib/music';
 import { seededRng } from '../helpers/rng';
 
 const settings = (patch: Partial<IntervalSettings> = {}) =>
@@ -74,7 +74,7 @@ describe('isCorrectFret', () => {
   const q = { root: { s: 1, f: 5 }, tgt: { s: 2, f: 3 }, semis: 3, up: true };
   const simple = settings({ compound: false });
 
-  it('accepts any in-box position a minor third above', () => {
+  it('accepts any in-box spot a minor third above', () => {
     expect(isCorrectFret(q, { s: 2, f: 3 }, simple)).toBe(true);
     // Same string, three frets up: a real fingering of the interval.
     expect(isCorrectFret(q, { s: 1, f: 8 }, simple)).toBe(true);
@@ -244,7 +244,7 @@ describe('generateIntervalQuestion', () => {
       expect(q).not.toBeNull();
       if (!q) return;
       if (prev) {
-        expect(samePos(q.root, prev.root) && samePos(q.tgt, prev.tgt)).toBe(false);
+        expect(sameSpot(q.root, prev.root) && sameSpot(q.tgt, prev.tgt)).toBe(false);
       }
       prev = q;
     }

@@ -3,7 +3,7 @@
 Date: 2026-10-09
 Status: approved in the project thread "Chord library shapes". Audit and
 options: https://claude.ai/artifact/GxeaZWWULKswcQ4gzqSvPm (Jeremy picked
-option D, Haus of Chords). Replaces the "Voicings" rules of
+option D, Haus of Chords). Replaces the "Shapes" rules of
 `2026-10-05-chord-library-design.md` for the types it covers.
 
 ## Problem

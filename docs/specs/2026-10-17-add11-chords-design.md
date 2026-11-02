@@ -24,7 +24,7 @@ common types in the Type menu and in Name it: the shape above lists
 
 ## Optional tones
 
-The rule that lets a voicing leave out the 9th under an 11th (and the 11th
+The rule that lets a shape leave out the 9th under an 11th (and the 11th
 under a 13th) now applies only to chords with a 7th. In an add chord the
 added tone is the point of the name: without it, add9(add11) would also
 name a bare D F♯ G, and `69#11` (C6/9♯11) could drop its 9. No other

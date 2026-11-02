@@ -40,7 +40,7 @@ The trainers' rules, controls and look stay the same.
 | How the nav finds the active page | From the URL (`usePathname`). Pages no longer pass an `active` prop. |
 | Where `AppShell` is mounted | Once, in the root layout |
 | Feature code | `src/features/practice/`, holding the trainers, their pure logic, the quiz UI and the quiz hooks |
-| Shared code | `src/lib/` (music, fret window, geometry, storage), `src/components/` (shell, nav, fretboard, controls, icons), `src/hooks/usePersist.ts` |
+| Shared code | `src/lib/` (music, fret range, geometry, storage), `src/components/` (shell, nav, fretboard, controls, icons), `src/hooks/usePersist.ts` |
 | Storage keys | `frets.<section>.<page>`, so `frets.practice.intervals` and `frets.practice.notes`. Nothing is migrated from `eminor.*.v2`. |
 | Tests | Practice tests move to `src/__tests__/practice/` |
 
@@ -55,7 +55,7 @@ src/
     practice/intervals/page.tsx
     practice/notes/page.tsx
   components/
-    sections.ts                SECTIONS, PRACTICE, locate(pathname)
+    sections.ts                GROUPS, PRACTICE, locate(pathname)
     AppShell.tsx  AppNav.tsx  AppFooter.tsx  PageList.tsx
     controls.tsx  icons.tsx  fretboard/
   features/practice/
@@ -67,7 +67,7 @@ src/
                 SettingsParts TrainerHeader
     TrainerLoaders.tsx
   hooks/usePersist.ts
-  lib/  music.ts fretWindow.ts fretboardGeometry.ts storage.ts
+  lib/  music.ts fretRange.ts fretboardGeometry.ts storage.ts
 ```
 
 Code moves out of a feature folder into `src/lib/` or `src/components/` only

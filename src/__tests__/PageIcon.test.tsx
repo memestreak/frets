@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { PAGE_GLYPHS } from '@/components/PageIcon';
 import { PageList } from '@/components/PageList';
-import { SECTIONS } from '@/components/sections';
+import { GROUPS } from '@/components/sections';
 
 /** Every card the home page draws. */
-const cardHrefs = SECTIONS.flatMap(s => s.pages.map(p => p.href));
+const cardHrefs = GROUPS.flatMap(s => s.pages.map(p => p.href));
 
 describe('PageIcon', () => {
   it('has a pictogram for every card on the home page', () => {
@@ -12,8 +12,8 @@ describe('PageIcon', () => {
   });
 
   it('draws the icon inside each card, hidden from screen readers', () => {
-    render(<PageList pages={SECTIONS[0].pages} heading="h2" />);
-    for (const page of SECTIONS[0].pages) {
+    render(<PageList pages={GROUPS[0].pages} heading="h2" />);
+    for (const page of GROUPS[0].pages) {
       const link = screen.getByRole('link', { name: new RegExp(page.title) });
       const icon = link.querySelector('[data-testid="page-icon"]');
       expect(icon).not.toBeNull();

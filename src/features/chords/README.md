@@ -10,7 +10,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   (`src/lib/theory/chordNames.ts`, every name for a set of notes, listed by `NameList`).
   `ChordPickers` also swaps the Type dropdown for a search box (the
   magnifier, or `/`); `src/lib/theory/chordSearch.ts` reads the name typed there.
-  `ChordHeader.tsx`, `VoicingGroups.tsx`, `VoicingStepper.tsx`
+  `ChordHeader.tsx`, `ShapeGroups.tsx`, `ShapeMover.tsx`
   are its parts (space toggles the Arpeggio, `src/hooks/useSpaceKey.ts`); it also
   uses `src/components/chords/export/`, shared with the Scale lab:
   right-click, a long press or Shift+F10 on a shape diagram (or the

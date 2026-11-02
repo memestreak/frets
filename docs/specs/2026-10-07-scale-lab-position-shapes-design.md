@@ -56,7 +56,7 @@ styles) https://claude.ai/artifact/TU58s2u1dePsh1gsrhoyka, round 3
   `2026-10-18-every-tile-shapes-design.md`):** under the tiles, "Am7 in the Chord library
   →" for the selected chord opens `/chords/library?chord=am7&shape=…` on
   the same shape. The library reads the new `shape` parameter (a
-  `voicingKey`); a shape outside the best few opens with every shape
+  `shapeKey`); a shape outside the best few opens with every shape
   listed, and an unknown one opens on the first shape. Chords the scale
   spells differently from the library (E♯m7♭5) open under the library's
   spelling (Fm7♭5). A chord with no chord type gets no link.
@@ -73,8 +73,8 @@ positions, inversions, and saving the selected chord.
 
 - `src/lib/chords/` and `src/components/chords/`: the chord code both
   sections now use moved out of `features/chords/` (`chordTypes`,
-  `voicings`, `chordUrls`; `ChordDiagram`, `ToneKey`, `chordDots`).
-- `voicings.ts`: `POSITION_FRETS`, `LAST_POSITION`, `shapesInPosition`.
+  `shapes`, `chordUrls`; `ChordDiagram`, `ToneKey`, `chordDots`).
+- `shapes.ts`: `POSITION_FRETS`, `LAST_POSITION`, `shapesInPosition`.
 - `ChordDiagram`: optional `startFret`.
 - `Fretboard`: optional `box` outlining a fret range.
 - `features/explore/scales/positions.ts`: `chordInfoOf` (a diatonic chord

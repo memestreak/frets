@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { PageList } from '@/components/PageList';
-import { SECTIONS } from '@/components/sections';
+import { GROUPS } from '@/components/sections';
 
 export default function Home() {
   return (
     <div className="grid gap-8">
       <h1 className="sr-only">Frets</h1>
-      {SECTIONS.map(s => (
+      {GROUPS.map(s => (
         <section key={s.label} className="grid gap-3">
           <header>
             <h2 className="m-0">

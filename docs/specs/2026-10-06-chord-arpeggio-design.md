@@ -41,12 +41,12 @@ note-name labels, the Chord lab (added 2026-10-09:
 
 ## Parts
 
-- `positionsOnNeck(rootPc, semis, maxFret)` in `src/lib/music.ts`: every
+- `spotsOnNeck(rootPc, semis, maxFret)` in `src/lib/music.ts`: every
   string and fret whose note is one of those intervals above the root. The
   Scale lab's `neckNotes` now uses it too.
 - `arpeggioDots(chord, maxFret)` in `components/chords/chordDots.ts`
   turns those positions into `Fretboard` dots; it shares `toneDot` with
-  `voicingDots`.
+  `shapeDots`.
 - `useSpaceKey(onPress)` in `features/chords/useSpaceKey.ts`:
   space anywhere but a field, the nav or the footer calls `onPress`, with
   the key's default (scroll, button click on keyup) prevented.

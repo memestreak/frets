@@ -32,7 +32,7 @@ drawings pulled the chord library into the home page.
 
 ## Order
 
-The sections run Explore, Chords, Practice. `SECTIONS` sets the order
+The sections run Explore, Chords, Practice. `GROUPS` sets the order
 for the home page and the menu alike, so the two stay the same.
 
 ## How

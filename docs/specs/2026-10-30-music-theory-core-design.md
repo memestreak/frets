@@ -47,7 +47,7 @@ names, shapes in the clip's tuning, and (for #249) keys, numerals and modes.
 
 The guitar stays out of the core: `src/lib/music.ts` (standard tuning, the
 `Tuning` type, `isStandardTuning`, the neck) and `src/lib/chords/`
-(published shapes, the voicing search, chord URLs).
+(published shapes, the shape search, chord URLs).
 
 What stays with a page is what only that page draws: the Circle's wheel
 (cells, rings, spokes' tips, `keyWheel` / `modeWheel`), the Scale lab's
@@ -88,7 +88,7 @@ Scale lab's words for a chord's quality ("minor 7") are kept, keyed by type.
 
 ## Tuning
 
-`findVoicings(chord, tuning)` and `toneAt(chord, string, fret, tuning)`
+`findShapes(chord, tuning)` and `toneAt(chord, string, fret, tuning)`
 take the guitar's open strings as MIDI notes, low string first, standard
 by default. `ChordDiagram` takes an optional `tuning`. The published shapes
 are written for standard tuning, so another tuning gets searched shapes
@@ -106,4 +106,4 @@ page's Type list and `public/chord-links.txt`. No storage keys change.
 `src/__tests__/theory/` holds the core's tests (the old chord-type, naming,
 search and Scale lab theory tests moved there), plus new ones for notes,
 keys and the circle's spokes, `chordFromIntervals` and the shared symbols,
-voicings in drop D and E♭ tuning, and `toneAt` in a tuning.
+shapes in drop D and E♭ tuning, and `toneAt` in a tuning.

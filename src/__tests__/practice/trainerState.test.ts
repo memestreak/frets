@@ -13,8 +13,8 @@ type State = TrainerState<Settings, number>;
 const RULES: TrainerRules<Settings, number> = {
   key: q => q,
   named: (_q, set) => !set.find,
-  isCorrect: (q, pos, set) => pos.f === q && pos.s <= set.reach,
-  isOutOfRange: (q, pos, set) => pos.f === q && pos.s > set.reach,
+  isCorrect: (q, spot, set) => spot.f === q && spot.s <= set.reach,
+  isOutOfRange: (q, spot, set) => spot.f === q && spot.s > set.reach,
 };
 
 const base = (patch: Partial<Settings> = {}): State => ({
@@ -43,7 +43,7 @@ describe('trainerReducer', () => {
 
   it('takes named answers or taps, never both', () => {
     const named = base();
-    expect(reduce(named, { type: 'answerFret', pos: { s: 0, f: 7 } })).toBe(named);
+    expect(reduce(named, { type: 'answerFret', spot: { s: 0, f: 7 } })).toBe(named);
     const find = base({ find: true });
     expect(reduce(find, { type: 'answerName', key: 7 })).toBe(find);
   });
@@ -56,11 +56,11 @@ describe('trainerReducer', () => {
   });
 
   it('sorts a tap into solved, out of range or missed', () => {
-    let s = reduce(base({ find: true }), { type: 'answerFret', pos: { s: 4, f: 7 } });
+    let s = reduce(base({ find: true }), { type: 'answerFret', spot: { s: 4, f: 7 } });
     expect(s).toMatchObject({ far: [{ s: 4, f: 7 }], farLast: true, wrong: [] });
-    s = reduce(s, { type: 'answerFret', pos: { s: 0, f: 6 } });
+    s = reduce(s, { type: 'answerFret', spot: { s: 0, f: 6 } });
     expect(s).toMatchObject({ wrong: [{ s: 0, f: 6 }], farLast: false });
-    s = reduce(s, { type: 'answerFret', pos: { s: 1, f: 7 } });
+    s = reduce(s, { type: 'answerFret', spot: { s: 1, f: 7 } });
     expect(s).toMatchObject({ answered: true, picked: { s: 1, f: 7 } });
     expect(s.stats).toMatchObject({ correct: 0, total: 1 });
   });

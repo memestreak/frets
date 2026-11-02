@@ -1,6 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 
-interface VoicingStepperProps {
+interface ShapeMoverProps {
   /** Whether the shape can slide a fret toward the nut, and away from it. */
   canMoveDown: boolean;
   canMoveUp: boolean;
@@ -10,7 +10,7 @@ interface VoicingStepperProps {
 }
 
 /** ‹ › slide the shape on the neck a fret down or up, and a caption. */
-export function VoicingStepper({ canMoveDown, canMoveUp, caption, onMove }: VoicingStepperProps) {
+export function ShapeMover({ canMoveDown, canMoveUp, caption, onMove }: ShapeMoverProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <div className="mode-steps">

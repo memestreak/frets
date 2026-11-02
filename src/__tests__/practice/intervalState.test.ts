@@ -51,31 +51,31 @@ describe('intervalReducer', () => {
     expect(s.advanceMs).toBeNull();
   });
 
-  it('Find it: records the tapped position on success', () => {
-    let s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos: { s: 2, f: 4 } });
+  it('Find it: records the tapped spot on success', () => {
+    let s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', spot: { s: 2, f: 4 } });
     expect(s.wrong).toEqual([{ s: 2, f: 4 }]);
-    s = intervalReducer(s, { type: 'answerFret', pos: { s: 1, f: 8 } });
+    s = intervalReducer(s, { type: 'answerFret', spot: { s: 1, f: 8 } });
     expect(s.answered).toBe(true);
     expect(s.picked).toEqual({ s: 1, f: 8 });
   });
 
   it('Find it: the right interval outside the box is noted, not scored', () => {
     // G string fret 10 (F4) is a minor third up, but five frets away.
-    const farPos = { s: 3, f: 10 };
-    let s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos: farPos });
-    expect(s).toMatchObject({ far: [farPos], farLast: true, wrong: [], answered: false });
+    const farSpot = { s: 3, f: 10 };
+    let s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', spot: farSpot });
+    expect(s).toMatchObject({ far: [farSpot], farLast: true, wrong: [], answered: false });
     expect(s.stats).toEqual(emptyStats());
     // Tapping it again changes nothing.
-    expect(intervalReducer(s, { type: 'answerFret', pos: farPos })).toBe(s);
+    expect(intervalReducer(s, { type: 'answerFret', spot: farSpot })).toBe(s);
 
     // A real miss takes over the feedback; a later hit still scores as a miss.
-    s = intervalReducer(s, { type: 'answerFret', pos: { s: 2, f: 4 } });
+    s = intervalReducer(s, { type: 'answerFret', spot: { s: 2, f: 4 } });
     expect(s).toMatchObject({ farLast: false, wrong: [{ s: 2, f: 4 }] });
     expect(s.stats.total).toBe(1);
 
     const clean = intervalReducer(
-      intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos: farPos }),
-      { type: 'answerFret', pos: { s: 2, f: 3 } },
+      intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', spot: farSpot }),
+      { type: 'answerFret', spot: { s: 2, f: 3 } },
     );
     expect(clean).toMatchObject({ answered: true, farLast: false });
     expect(clean.stats).toMatchObject({ correct: 1, total: 1 });
@@ -83,16 +83,16 @@ describe('intervalReducer', () => {
 
   it('Find it: a wrong note outside the box is an ordinary miss', () => {
     // The root itself, and a note on a lower string.
-    for (const pos of [{ s: 1, f: 5 }, { s: 0, f: 6 }]) {
-      const s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', pos });
-      expect(s).toMatchObject({ wrong: [pos], far: [], farLast: false });
+    for (const spot of [{ s: 1, f: 5 }, { s: 0, f: 6 }]) {
+      const s = intervalReducer(base({ mode: 'fret' }), { type: 'answerFret', spot });
+      expect(s).toMatchObject({ wrong: [spot], far: [], farLast: false });
       expect(s.stats.total).toBe(1);
     }
   });
 
   it('a new question clears the out-of-range taps', () => {
     const s = intervalReducer(
-      base({ mode: 'fret' }), { type: 'answerFret', pos: { s: 3, f: 10 } },
+      base({ mode: 'fret' }), { type: 'answerFret', spot: { s: 3, f: 10 } },
     );
     expect(intervalReducer(s, { type: 'next', q })).toMatchObject({ far: [], farLast: false });
   });

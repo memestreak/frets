@@ -10,7 +10,7 @@ import {
   type ExportStyle,
 } from '@/components/chords/export/exportStyle';
 import { chordOf } from '@/lib/theory/chords';
-import type { Voicing } from '@/lib/chords/voicings';
+import type { Shape } from '@/lib/chords/shapes';
 
 /** Renders the page at /chords plus `search`. */
 function renderAt(search = '') {
@@ -27,11 +27,11 @@ vi.mock('@/components/chords/export/exportImage', async importOriginal => ({
 
 const am7 = chordOf('A', 'm7');
 /** Open Am7: x-0-2-0-1-0. */
-const OPEN_AM7: Voicing = [null, 0, 2, 0, 1, 0];
+const OPEN_AM7: Shape = [null, 0, 2, 0, 1, 0];
 /** Barre Am7 at the fifth fret. */
-const BARRE_AM7: Voicing = [5, 7, 5, 5, 8, 5];
+const BARRE_AM7: Shape = [5, 7, 5, 5, 8, 5];
 /** The library's first moveable Am7. */
-const BARRE_AM7_FIRST: Voicing = [5, 7, 5, 5, 5, 5];
+const BARRE_AM7_FIRST: Shape = [5, 7, 5, 5, 5, 5];
 
 /** How the browser writes a colour set in a style: #a8462a is rgb(168, 70, 42). */
 const fill = (hex: string) => {
@@ -39,8 +39,8 @@ const fill = (hex: string) => {
   return `fill: rgb(${r}, ${g}, ${b})`;
 };
 
-const svgOf = (style: Partial<ExportStyle> = {}, voicing = BARRE_AM7, name = 'Am7') =>
-  diagramSvg({ chord: am7, voicing, name }, { ...DEFAULT_EXPORT_STYLE, ...style });
+const svgOf = (style: Partial<ExportStyle> = {}, shape = BARRE_AM7, name = 'Am7') =>
+  diagramSvg({ chord: am7, shape, name }, { ...DEFAULT_EXPORT_STYLE, ...style });
 
 describe('export style', () => {
   it('defaults to black and white with the name and no intervals, 300 px wide and transparent', () => {
@@ -123,17 +123,17 @@ describe('diagramSvg', () => {
   it('widens for a shape that reaches past five frets', () => {
     // Played on the lab's neck: frets 5 to 10.
     const wide = diagramSvg(
-      { chord: am7, voicing: [5, null, 5, 5, 5, 8], name: 'Am7' }, DEFAULT_EXPORT_STYLE,
+      { chord: am7, shape: [5, null, 5, 5, 5, 8], name: 'Am7' }, DEFAULT_EXPORT_STYLE,
     );
     expect(wide).toMatch(/viewBox="0 0 148 154" width="300"/);
     const wider = diagramSvg(
-      { chord: chordOf('A', 'm'), voicing: [5, 7, 7, null, null, 12], name: 'Am' }, DEFAULT_EXPORT_STYLE,
+      { chord: chordOf('A', 'm'), shape: [5, 7, 7, null, null, 12], name: 'Am' }, DEFAULT_EXPORT_STYLE,
     );
     expect(wider).toMatch(/viewBox="0 0 220 154" width="446"/); // eight frets from 5
   });
 
   it('draws five frets as wide as the size chosen', () => {
-    const shape = { chord: am7, voicing: BARRE_AM7, name: 'Am7' };
+    const shape = { chord: am7, shape: BARRE_AM7, name: 'Am7' };
     const at = (size: ExportStyle['size']) => exportPixels(shape, { ...DEFAULT_EXPORT_STYLE, size });
     expect(at(150)).toEqual({ width: 150, height: 156 });
     expect(at(225)).toEqual({ width: 225, height: 234 });
@@ -148,11 +148,11 @@ describe('diagramSvg', () => {
   });
 
   it('names the file after the name and the shape', () => {
-    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: 'Am7' })).toBe('Am7_x-0-2-0-1-0');
-    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: '' })).toBe('Chord_x-0-2-0-1-0');
-    expect(exportFileName({ chord: chordOf('C', 'M'), voicing: [null, null, 2, 0, 1, 0], name: 'C/E' }))
+    expect(exportFileName({ chord: am7, shape: OPEN_AM7, name: 'Am7' })).toBe('Am7_x-0-2-0-1-0');
+    expect(exportFileName({ chord: am7, shape: OPEN_AM7, name: '' })).toBe('Chord_x-0-2-0-1-0');
+    expect(exportFileName({ chord: chordOf('C', 'M'), shape: [null, null, 2, 0, 1, 0], name: 'C/E' }))
       .toBe('C_E_x-x-2-0-1-0');
-    expect(exportFileName({ chord: am7, voicing: OPEN_AM7, name: ' A minor 7 ' })).toBe('A_minor_7_x-0-2-0-1-0');
+    expect(exportFileName({ chord: am7, shape: OPEN_AM7, name: ' A minor 7 ' })).toBe('A_minor_7_x-0-2-0-1-0');
   });
 });
 
@@ -185,7 +185,7 @@ describe('the shapes export menu', () => {
       fireEvent.click(screen.getByRole('menuitem', { name: 'Copy as PNG' }));
     });
     expect(copied.png).toHaveBeenCalledWith(
-      { chord: am7, voicing: BARRE_AM7_FIRST, name: 'Am7' }, DEFAULT_EXPORT_STYLE,
+      { chord: am7, shape: BARRE_AM7_FIRST, name: 'Am7' }, DEFAULT_EXPORT_STYLE,
     );
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.getByText('Copied as PNG')).toBeInTheDocument();
@@ -321,7 +321,7 @@ describe('the neck export', () => {
       fireEvent.click(screen.getByRole('menuitem', { name: 'Copy as PNG' }));
     });
     expect(copied.png).toHaveBeenCalledWith(
-      expect.objectContaining({ voicing: [null, 3, 2, 0, 1, 0], name: 'C' }), DEFAULT_EXPORT_STYLE,
+      expect.objectContaining({ shape: [null, 3, 2, 0, 1, 0], name: 'C' }), DEFAULT_EXPORT_STYLE,
     );
   });
 
@@ -405,7 +405,7 @@ describe('dragging a shape out', () => {
     dt.items.owner = dt;
     fillDragData(
       dt as unknown as DataTransfer,
-      { chord: am7, voicing: OPEN_AM7, name: 'A<"m7">' }, DEFAULT_EXPORT_STYLE,
+      { chord: am7, shape: OPEN_AM7, name: 'A<"m7">' }, DEFAULT_EXPORT_STYLE,
     );
     expect(dt.data['text/html']).toContain('alt="A&#60;&#34;m7&#34;&#62;"');
     expect(dt.data['text/plain']).toBe('A__m7___x-0-2-0-1-0');

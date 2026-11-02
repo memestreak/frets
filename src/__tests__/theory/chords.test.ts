@@ -68,7 +68,7 @@ describe('chordOf', () => {
     expect(bb13.tones.map(t => t.degree)).toEqual([1, 3, 5, 7, 2, 6]);
   });
 
-  it('lets voicings leave out the 5th, and the tones under an 11th or 13th', () => {
+  it('lets shapes leave out the 5th, and the tones under an 11th or 13th', () => {
     const optional = (root: 'C', id: string) =>
       chordOf(root, id).tones.filter(t => !t.required).map(t => t.label);
     expect(optional('C', 'M')).toEqual([]);

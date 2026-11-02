@@ -37,7 +37,7 @@ export const ANSWER_KEYS = [
   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
 ] as const;
 
-export interface Position {
+export interface Spot {
   s: number;
   f: number;
 }
@@ -46,7 +46,7 @@ export const midi = (s: number, f: number): number => TUNING[s] + f;
 export const pitchClass = (s: number, f: number): number => midi(s, f) % 12;
 
 /** A place on the neck, and how many semitones above a root its note is. */
-export interface NeckPosition extends Position {
+export interface NeckSpot extends Spot {
   /** 0–11. */
   semis: number;
 }
@@ -55,10 +55,10 @@ export interface NeckPosition extends Position {
  * Every string and fret, nut to `maxFret`, whose note is one of `semis`
  * semitones above `rootPc`. Low E first, then up each string.
  */
-export function positionsOnNeck(
+export function spotsOnNeck(
   rootPc: number, semis: readonly number[], maxFret: number,
-): NeckPosition[] {
-  const out: NeckPosition[] = [];
+): NeckSpot[] {
+  const out: NeckSpot[] = [];
   for (const s of STRINGS) {
     for (let f = 0; f <= maxFret; f++) {
       const above = (pitchClass(s, f) - rootPc + 12) % 12;
@@ -78,7 +78,7 @@ export function intervalClass(semis: number): number {
   return semis === 0 ? 0 : ((((semis - 1) % 12) + 12) % 12) + 1;
 }
 
-export const samePos = (a: Position, b: Position): boolean =>
+export const sameSpot = (a: Spot, b: Spot): boolean =>
   a.s === b.s && a.f === b.f;
 
 export type Rng = () => number;

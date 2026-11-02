@@ -7,10 +7,10 @@ import {
 import {
   BOARD_RADIUS, fretboardGeometry, PAD, SG,
 } from '@/lib/fretboardGeometry';
-import { STRING_NAMES, STRINGS, type Position } from '@/lib/music';
+import { STRING_NAMES, STRINGS, type Spot } from '@/lib/music';
 import { BOARD, type DotColor } from './theme';
 
-export interface FretDot extends Position, DotColor {
+export interface FretDot extends Spot, DotColor {
   label: string;
   fontSize: number;
   opacity?: number;
@@ -22,7 +22,7 @@ export interface FretDot extends Position, DotColor {
 
 /** A band joining a shape's dots, drawn behind them, with an optional name above the board. */
 export interface FretLink {
-  points: Position[];
+  points: Spot[];
   label?: string;
   opacity?: number;
 }
@@ -38,9 +38,9 @@ interface FretboardProps {
   maxFret: number;
   dots: FretDot[];
   /** When set, every cell is a tap target. */
-  onCellClick?: (pos: Position) => void;
+  onCellClick?: (spot: Spot) => void;
   /** Cells that no longer accept taps (already tapped). */
-  isCellDisabled?: (pos: Position) => boolean;
+  isCellDisabled?: (spot: Spot) => boolean;
   stringStyle?: (s: number) => StringStyle;
   /** Fret to bring into view when the board scrolls (phones). */
   scrollToFret?: number | null;
@@ -74,7 +74,7 @@ const cellLabel = (s: number, f: number) => `${STRING_NAMES[s]} string, fret ${f
 
 /**
  * SVG fretboard, low E at the bottom, drawn as a rounded fingerboard fill.
- * The viewBox tracks the fret window; the frame scrolls horizontally on
+ * The viewBox tracks the fret range; the frame scrolls horizontally on
  * narrow screens instead of shrinking.
  */
 export function Fretboard({
@@ -91,7 +91,7 @@ export function Fretboard({
   const g = useMemo(
     () => fretboardGeometry(minFret, maxFret, headroom), [minFret, maxFret, headroom],
   );
-  const [focus, setFocus] = useState<Position>({ s: 0, f: minFret });
+  const [focus, setFocus] = useState<Spot>({ s: 0, f: minFret });
   const cellRefs = useRef(new Map<string, SVGRectElement>());
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -109,7 +109,7 @@ export function Fretboard({
     f: Math.min(Math.max(focus.f, playFrom), playTo),
   };
 
-  const moveFocus = (e: KeyboardEvent, pos: Position) => {
+  const moveFocus = (e: KeyboardEvent, spot: Spot) => {
     const d: Record<string, [number, number]> = {
       ArrowUp: [1, 0], ArrowDown: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
     };
@@ -117,15 +117,15 @@ export function Fretboard({
       e.preventDefault();
       // Keep the global Enter/Space handler from treating this as "Next".
       e.stopPropagation();
-      if (!isCellDisabled?.(pos)) onCellClick?.(pos);
+      if (!isCellDisabled?.(spot)) onCellClick?.(spot);
       return;
     }
     const step = d[e.key];
     if (!step) return;
     e.preventDefault();
     const next = {
-      s: Math.min(5, Math.max(0, pos.s + step[0])),
-      f: Math.min(playTo, Math.max(playFrom, pos.f + step[1])),
+      s: Math.min(5, Math.max(0, spot.s + step[0])),
+      f: Math.min(playTo, Math.max(playFrom, spot.f + step[1])),
     };
     setFocus(next);
     cellRefs.current.get(`${next.s}:${next.f}`)?.focus();
@@ -294,8 +294,8 @@ export function Fretboard({
       {onCellClick && STRINGS.map(s => {
         const cells = [];
         for (let f = playFrom; f <= playTo; f++) {
-          const pos = { s, f };
-          const disabled = isCellDisabled?.(pos) ?? false;
+          const spot = { s, f };
+          const disabled = isCellDisabled?.(spot) ?? false;
           const isFocus = focusCell.s === s && focusCell.f === f;
           cells.push(
             <rect
@@ -311,9 +311,9 @@ export function Fretboard({
               aria-label={cellLabel(s, f)}
               aria-disabled={disabled || undefined}
               data-testid={`cell-${s}-${f}`}
-              onClick={() => { if (!disabled) onCellClick(pos); }}
-              onKeyDown={e => moveFocus(e, pos)}
-              onFocus={() => setFocus(pos)}
+              onClick={() => { if (!disabled) onCellClick(spot); }}
+              onKeyDown={e => moveFocus(e, spot)}
+              onFocus={() => setFocus(spot)}
             >
               <title>{cellLabel(s, f)}</title>
             </rect>,

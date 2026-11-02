@@ -1,5 +1,5 @@
 import {
-  intervalClass, isStandardTuning, midi, NOTE_LABELS, pitchClass, positionsOnNeck, TUNING,
+  intervalClass, isStandardTuning, midi, NOTE_LABELS, pitchClass, spotsOnNeck, TUNING,
 } from '@/lib/music';
 
 describe('music', () => {
@@ -24,7 +24,7 @@ describe('music', () => {
 
   it('finds every place on the neck a set of intervals above a root sits', () => {
     // A (pc 9) and its 5th E, up to fret 5.
-    const found = positionsOnNeck(9, [0, 7], 5);
+    const found = spotsOnNeck(9, [0, 7], 5);
     expect(found.filter(p => p.s === 0)).toEqual([
       { s: 0, f: 0, semis: 7 }, { s: 0, f: 5, semis: 0 },
     ]);

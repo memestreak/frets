@@ -1,6 +1,6 @@
 import type { ChordInfo } from '@/lib/theory/chords';
-import type { Voicing } from '@/lib/chords/voicings';
-import { pitchClass, samePos, STRING_NAMES, type Position } from '@/lib/music';
+import type { Shape } from '@/lib/chords/shapes';
+import { pitchClass, sameSpot, STRING_NAMES, type Spot } from '@/lib/music';
 
 /*
  * The Triads page's logic: every grip of a triad on three neighbouring
@@ -35,9 +35,9 @@ export type Inversion = 0 | 1 | 2;
 export interface Grip {
   inversion: Inversion;
   /** The three sounding strings; the others are null. */
-  voicing: Voicing;
+  shape: Shape;
   /** The dots, low string first. */
-  points: Position[];
+  points: Spot[];
 }
 
 /**
@@ -61,22 +61,22 @@ export function triadGrips(chord: ChordInfo, set: StringSet): Grip[] {
         }
       }
       if (frets.length !== 3 || Math.max(...frets) - Math.min(...frets) > MAX_SPAN) continue;
-      const voicing = Array.from({ length: 6 }, (_, s) => {
+      const shape = Array.from({ length: 6 }, (_, s) => {
         const i = strings.indexOf(s);
         return i < 0 ? null : frets[i];
       });
-      grips.push({ inversion, voicing, points: strings.map((s, i) => ({ s, f: frets[i] })) });
+      grips.push({ inversion, shape, points: strings.map((s, i) => ({ s, f: frets[i] })) });
     }
   }
   return grips.sort((a, b) => Math.min(...a.points.map(p => p.f)) - Math.min(...b.points.map(p => p.f)));
 }
 
 /**
- * The grip a tap at `pos` picks: one with a dot there that isn't the picked
+ * The grip a tap at `spot` picks: one with a dot there that isn't the picked
  * one, so a tap on a shared dot moves to the other grip; null to clear.
  */
-export function gripAt(grips: readonly Grip[], pos: Position, picked: number | null): number | null {
-  const here = grips.flatMap((g, i) => (g.points.some(p => samePos(p, pos)) ? [i] : []));
+export function gripAt(grips: readonly Grip[], spot: Spot, picked: number | null): number | null {
+  const here = grips.flatMap((g, i) => (g.points.some(p => sameSpot(p, spot)) ? [i] : []));
   return here.find(i => i !== picked) ?? null;
 }
 

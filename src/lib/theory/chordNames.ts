@@ -78,7 +78,7 @@ function nameOf(chord: ChordInfo, bassPc: number, missing: string[]): ChordName 
 }
 
 /**
- * The notes named as a voicing of one chord: "Gm7add11 (no 5)". Null when
+ * The notes named as a shape of one chord: "Gm7add11 (no 5)". Null when
  * they aren't one: a note isn't a tone of the chord, a tone it needs is
  * left out, or the chord has no name.
  */

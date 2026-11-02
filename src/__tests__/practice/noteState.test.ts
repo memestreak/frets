@@ -30,48 +30,48 @@ describe('noteReducer', () => {
   });
 
   it('Find it: one in-range tap on the target string solves it', () => {
-    const s = noteReducer(base(findA), { type: 'answerFret', pos: { s: 1, f: 12 } });
+    const s = noteReducer(base(findA), { type: 'answerFret', spot: { s: 1, f: 12 } });
     expect(s.answered).toBe(true);
     expect(s.picked).toEqual({ s: 1, f: 12 });
     expect(s.stats).toMatchObject({ correct: 1, total: 1 });
   });
 
   it('Find it: the right note outside the range is marked, not scored', () => {
-    let s = noteReducer(base(findA), { type: 'answerFret', pos: { s: 1, f: 0 } });
+    let s = noteReducer(base(findA), { type: 'answerFret', spot: { s: 1, f: 0 } });
     expect(s.answered).toBe(false);
     expect(s.far).toEqual([{ s: 1, f: 0 }]);
     expect(s.farLast).toBe(true);
     expect(s.wrong).toEqual([]);
     expect(s.stats).toEqual(emptyStats());
     // Tapping it again is ignored.
-    expect(noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 0 } })).toBe(s);
+    expect(noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 0 } })).toBe(s);
     // Solving afterwards still scores a clean correct answer.
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 12 } });
+    s = noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 12 } });
     expect(s.farLast).toBe(false);
     expect(s.stats).toMatchObject({ correct: 1, total: 1 });
   });
 
   it('Find it: the right note on another string is a miss', () => {
     // A on the G string, fret 2.
-    let s = noteReducer(base(findA), { type: 'answerFret', pos: { s: 3, f: 2 } });
+    let s = noteReducer(base(findA), { type: 'answerFret', spot: { s: 3, f: 2 } });
     expect(s.wrong).toEqual([{ s: 3, f: 2 }]);
     expect(s.far).toEqual([]);
-    expect(noteReducer(s, { type: 'answerFret', pos: { s: 3, f: 2 } })).toBe(s);
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 12 } });
+    expect(noteReducer(s, { type: 'answerFret', spot: { s: 3, f: 2 } })).toBe(s);
+    s = noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 12 } });
     expect(s.stats).toMatchObject({ correct: 0, total: 1 });
   });
 
   it('Find it: a miss after an out-of-range tap clears farLast', () => {
-    let s = noteReducer(base(findA), { type: 'answerFret', pos: { s: 1, f: 0 } });
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 5 } });
+    let s = noteReducer(base(findA), { type: 'answerFret', spot: { s: 1, f: 0 } });
+    s = noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 5 } });
     expect(s.farLast).toBe(false);
     expect(s.far).toHaveLength(1);
     expect(s.wrong).toEqual([{ s: 1, f: 5 }]);
   });
 
   it('a new question clears picked, far and farLast', () => {
-    let s = noteReducer(base(findA), { type: 'answerFret', pos: { s: 1, f: 0 } });
-    s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 12 } });
+    let s = noteReducer(base(findA), { type: 'answerFret', spot: { s: 1, f: 0 } });
+    s = noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 12 } });
     s = noteReducer(s, { type: 'next', q: { mode: 'find', pc: 0, s: 2 } });
     expect(s).toMatchObject({ picked: null, far: [], farLast: false, answered: false });
   });
@@ -124,7 +124,7 @@ describe('noteReducer', () => {
 
     it('a tap afterwards clears what the mic heard', () => {
       let s = play(base(findA), 47);
-      s = noteReducer(s, { type: 'answerFret', pos: { s: 1, f: 3 } });
+      s = noteReducer(s, { type: 'answerFret', spot: { s: 1, f: 3 } });
       expect(s.heard).toBeNull();
     });
 

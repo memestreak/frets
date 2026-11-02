@@ -13,7 +13,7 @@ const shapes = (name: 'Open' | 'Moveable') => within(group(name)).queryAllByRole
 const caption = () => screen.getByTestId('shape-caption');
 /** The shape marked as the one on the neck, by its key, or null. */
 const chosen = () =>
-  document.querySelector('[data-voicing][aria-pressed="true"]')?.getAttribute('data-voicing') ?? null;
+  document.querySelector('[data-shape][aria-pressed="true"]')?.getAttribute('data-shape') ?? null;
 const cell = (s: number, f: number) => screen.getByTestId(`cell-${s}-${f}`);
 /** The board's dots as "string:fret" pairs, low E first. */
 const boardDots = () =>
@@ -69,7 +69,7 @@ describe('ChordsPage, looking a chord up', () => {
     renderAt('?chord=c');
     expect(heading()).toHaveTextContent(/^C \(/);
     expect(screen.getByTestId('chord-notes')).toHaveTextContent('C E G');
-    expect(shapes('Open')[0]).toHaveAttribute('data-voicing', 'x-3-2-0-1-0');
+    expect(shapes('Open')[0]).toHaveAttribute('data-shape', 'x-3-2-0-1-0');
   });
 
   it('opens on the shape the URL names, listing every shape when it is not among the best few', () => {
@@ -100,7 +100,7 @@ describe('ChordsPage, looking a chord up', () => {
     const entries = window.history.length;
     pickRoot('C');
     expect(heading()).toHaveTextContent(/^Cm7 /);
-    expect(here()).toBe(`/chords?chord=cm7&shape=${shapes('Open').length ? shapes('Open')[0].dataset.voicing : shapes('Moveable')[0].dataset.voicing}`);
+    expect(here()).toBe(`/chords?chord=cm7&shape=${shapes('Open').length ? shapes('Open')[0].dataset.shape : shapes('Moveable')[0].dataset.shape}`);
     fireEvent.change(typePicker(), { target: { value: '7#9' } });
     expect(heading()).toHaveTextContent(/^C7♯9 /);
     expect(here()).toMatch(/^\/chords\?chord=c7sharp9&shape=/);
@@ -325,7 +325,7 @@ describe('ChordsPage, naming what is played', () => {
   });
 
   describe('with Gm7add11 on the neck', () => {
-    const shape = (key: string) => document.querySelector<HTMLElement>(`[data-voicing="${key}"]`)!;
+    const shape = (key: string) => document.querySelector<HTMLElement>(`[data-shape="${key}"]`)!;
     /** Clears the neck and barres fret 3: G C F B♭ D G. */
     const barreGm7add11 = () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
@@ -349,7 +349,7 @@ describe('ChordsPage, naming what is played', () => {
     it('keeps the chord through every shape stepped to with the arrow keys', () => {
       renderAt('?chord=c');
       barreGm7add11();
-      const count = document.querySelectorAll('[data-voicing]').length;
+      const count = document.querySelectorAll('[data-shape]').length;
       for (let i = 0; i < count; i++) {
         fireEvent.keyDown(window, { key: 'ArrowRight' });
         expect(heading()).toHaveTextContent(/^Gm7add11 /);
@@ -360,9 +360,9 @@ describe('ChordsPage, naming what is played', () => {
       renderAt('?chord=c');
       barreGm7add11();
       fireEvent.click(screen.getByRole('button', { name: /^Show all/ }));
-      const all = document.querySelectorAll('[data-voicing]').length;
+      const all = document.querySelectorAll('[data-shape]').length;
       fireEvent.click(shape('3-x-3-3-1-x'));
-      expect(document.querySelectorAll('[data-voicing]')).toHaveLength(all);
+      expect(document.querySelectorAll('[data-shape]')).toHaveLength(all);
     });
 
     it('still reads the shape as another chord when that name is picked', () => {
