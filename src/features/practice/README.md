@@ -62,3 +62,4 @@ Tuner page's panel in a dialog.
   - `TrainerLoaders.tsx` — trainers render client-only (`ssr: false`)
     because their initial state reads localStorage and draws a random
     question.
+- `practice.css` — the trainers' CSS (answer buttons, the board's frame, the hint and the mic), imported from `src/app/globals.css`.

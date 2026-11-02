@@ -16,3 +16,4 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `TunerPanel.tsx` (switch, meter, reading, strings). The page itself is
   `src/features/tuner/TunerPage.tsx`, with its own mic. The tuner in a chat
   (`show_tuner`, #283) is `src/features/tuner/mcp/`.
+- `tuner.css` — the tuner's CSS, and the Tuner page's card, imported from `src/app/globals.css`.

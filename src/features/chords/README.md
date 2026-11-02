@@ -24,3 +24,4 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `/chords?chord=am7b5&shape=x-0-1-0-1-x` (either may be left out); a pick
   in the menus adds a history entry, everything else replaces it; slugs in
   `src/lib/chords/chordUrls.ts`.
+- `chords.css` — the page's CSS, imported from `src/app/globals.css`; the shapes' own (`.shape-btn`, the export menu and dialog) stay in `globals.css`, shared with the Scale lab and the Tab page.

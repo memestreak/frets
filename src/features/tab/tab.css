@@ -1,0 +1,465 @@
+/* The Tab page: the drawn score and its head, the palette, playback, and the Tab dialogs.
+   Imported into the components layer from src/app/globals.css. */
+
+/* The playback options (a right-click on Play): a tick before each option, the pause's seconds beside it. */
+.tab-options { min-width: 0; }
+.tab-options-item { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
+.tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
+.tab-options-row .tab-options-item { flex: 1; }
+.tab-options-unit { min-width: 30px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+.tab-click-volume { gap: 12px; padding: 6px 6px 6px 10px; font: 400 14px/20px var(--font-sans); }
+/* The View options panel: each option's name 6px from its switch. */
+.tab-view-options { padding: 10px 12px; }
+.tab-view-options { min-width: 0; }
+.tab-view-option { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tab-view-option .seg { flex-wrap: nowrap; }
+/* The colours, then the shown view's own options under its name (issue #277). */
+.tab-view-options { display: flex; flex-direction: column; gap: 8px; }
+.tab-view-heading { margin: 6px 0 0; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
+.tab-view-heading:first-child { margin-top: 0; }
+.tab-view-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 2px 0; white-space: nowrap;
+  font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left;
+}
+.tab-view-box {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: none;
+  border: 1.5px solid var(--line-strong); border-radius: 4px; color: var(--ink);
+}
+.tab-view-colours { flex-wrap: nowrap; align-self: flex-start; }
+/* Custom's two colours: a swatch (the browser's colour input, drawn as a plain square) and its name. */
+.tab-view-swatches { display: flex; gap: 16px; }
+.tab-view-swatch { display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
+.tab-view-swatch input {
+  width: 24px; height: 24px; padding: 0; border: 1.5px solid var(--line-strong); border-radius: 4px;
+  background: none; cursor: pointer; appearance: none;
+}
+.tab-view-swatch input::-webkit-color-swatch-wrapper { padding: 0; }
+.tab-view-swatch input::-webkit-color-swatch { border: 0; border-radius: 2px; }
+.tab-view-swatch input::-moz-color-swatch { border: 0; border-radius: 2px; }
+/* The Format list, at the right like the choices under it; a ⚠ before it when the file leaves something out. */
+.tab-export-format { justify-self: end; display: inline-flex; align-items: center; gap: 8px; }
+.tab-export-format select { min-width: 10rem; }
+/* Labels take what the controls leave and wrap, so on a phone the five sizes keep to one line. */
+.tab-export-dialog .export-choices { grid-template-columns: minmax(0, 1fr) auto; }
+/* The tips' wrapper fills the dialog, so it keeps its width when only the Format list shows. */
+.tab-export-dialog > * { flex: 1; min-width: 0; }
+/* Its top stays put, so the dialog only grows and shrinks downward as the image's parts fold. */
+.settings-dialog.tab-export-dialog {
+  margin-top: max(16px, 8dvh);
+  max-height: calc(100dvh - max(16px, 8dvh) - 16px);
+}
+/* The preview and the image's choices fold open or shut with a fade, the row easing between 0 and
+   its full height. The body's 16px gap stays only while open, so a shut fold leaves no space. */
+.export-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: -16px;
+  transition: grid-template-rows 200ms ease, opacity 200ms ease, margin-top 200ms ease;
+}
+.export-fold[data-open='true'] { grid-template-rows: 1fr; opacity: 1; margin-top: 0; }
+.export-fold-inner { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 4px; margin: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .export-fold { transition: none; }
+}
+.export-preview .tab-image { display: block; width: 100%; height: auto; max-height: min(300px, 35vh); }
+/* The Tab page: the drawn clip, its ASCII, and the import box. */
+.tab-card { min-width: 0; }
+.tab-ascii {
+  margin: 0; overflow-x: auto; white-space: pre;
+  font: 13px/1.4 var(--font-mono); color: var(--ink);
+  /* Tab must show "|-" and "->" as typed, not as joined glyphs. */
+  font-variant-ligatures: none;
+}
+/* The AlphaTex view's editor (AlphaTexEditor.tsx): a textarea over a copy of its lines, which draws the
+   line numbers and ⚠ in the margin and the red underlines under the text. Both wrap the same way, so the
+   marks stay under their characters. */
+.tab-text-editor {
+  --gutter: calc(var(--gutter-digits) * 1ch + 36px);
+  /* The right side keeps clear of the Clear button in the top right corner. */
+  --text-pad: 8px 36px 8px 0;
+  position: relative;
+  font: 13px/1.4 var(--font-mono); font-variant-ligatures: none;
+  background: var(--surface-raised);
+  border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
+}
+.tab-text-mirror { padding: var(--text-pad); color: transparent; }
+.tab-text-line, .tab-text-input { white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.tab-text-line { position: relative; padding-left: var(--gutter); min-height: 1.4em; }
+.tab-text-margin {
+  position: absolute; left: 0; top: 0; width: var(--gutter); height: 1.4em;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding-right: 10px;
+  color: var(--ink-muted); user-select: none;
+}
+.tab-text-mark { display: inline-flex; cursor: help; }
+.tab-text-mark-error { color: var(--danger); }
+.tab-text-mark-note { color: var(--ink-muted); }
+.tab-text-error {
+  text-decoration: underline wavy var(--danger) 1.5px; text-decoration-skip-ink: none; text-underline-offset: 3px;
+}
+/* A small borderless × that fits inside the box at its one-line height. */
+.tab-text-clear {
+  position: absolute; top: 6px; right: 6px; display: grid; place-items: center;
+  width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent;
+  color: var(--ink-muted); cursor: pointer;
+}
+.tab-text-clear:hover { background: var(--surface-sunken); color: var(--ink); }
+.tab-text-clear:focus { outline: none; }
+.tab-text-clear:focus-visible { color: var(--primary); }
+.tab-text-input {
+  position: absolute; top: 0; bottom: 0; left: var(--gutter); right: 0; width: calc(100% - var(--gutter));
+  margin: 0; padding: var(--text-pad); border: 0; outline: none; resize: none; overflow: hidden;
+  font: inherit; font-variant-ligatures: none; color: var(--ink); caret-color: var(--ink); background: transparent;
+}
+/* The head of the drawn score, as a printed score's first page has it: the title, artist and
+   credits centred, the tuning indented from the left in two columns of three strings. Black ink
+   and the drawing's font, as the exported image prints it; sizes from HEAD in credits.ts. */
+.score-head { display: grid; justify-items: center; padding: 4px 0 var(--head-gap, 12px); color: var(--ink); font-family: var(--font-sans); }
+.score-head p { margin: 0; }
+.score-head h1 { font: 400 var(--title-size)/1.33 var(--font-sans); margin: 0; text-align: center; }
+.score-head .score-artist { font-size: var(--artist-size); line-height: 1.375; font-weight: 700; }
+.score-head .score-credit { font-size: var(--credit-size); line-height: 1.385; }
+.score-tuning { justify-self: stretch; margin-top: 12px; font-size: var(--credit-size); line-height: 1.385; text-align: left; }
+/* A string's number in a small circle, as tuning notes print ① to ⑥ (the font's own are too big). */
+.score-string {
+  display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid currentColor;
+  border-radius: 999px; font-size: 9px; line-height: 1; vertical-align: 1px;
+}
+.score-tuning-strings { display: grid; grid-auto-flow: column; justify-content: start; }
+.score-tuning-heading { display: block; }
+/* The credits and the tuning are pressed to edit them (issues #202, #203): drawn as plain text, a dotted
+   underline under the pointer, as the title has. */
+.score-head { position: relative; }
+.score-credits, .score-tuning-button {
+  position: relative; z-index: 1; display: grid; justify-items: center; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: inherit; background: none; border: 0; cursor: pointer;
+}
+.score-credits { text-align: center; }
+.score-tuning-button { justify-items: start; text-align: left; }
+.score-credits:hover > span, .score-tuning-button:hover .score-tuning-heading {
+  text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px;
+}
+.score-tuning-button:hover:not(:has(.score-tuning-heading)) { text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px; }
+/* The first bar's tempo under the tuning, bold, as printed: its word, the note, "= 92". */
+.score-tempo { justify-self: stretch; display: flex; align-items: flex-end; font-size: var(--credit-size); line-height: 1.385; font-weight: 700; text-align: left; }
+.score-tempo-button {
+  position: relative; z-index: 1; display: inline-flex; align-items: baseline; gap: 4px; padding: 0; margin: 0;
+  font: inherit; color: inherit; background: none; border: 0; cursor: pointer;
+}
+.score-tempo-note { align-self: flex-end; margin-bottom: 3px; }
+.score-tempo-button:hover > span { text-decoration: underline dotted var(--line-strong); text-underline-offset: 4px; }
+.score-tempo-button:focus-visible > span { text-decoration: underline var(--primary); }
+.score-tempo-button:focus { outline: none; }
+.score-credits:focus-visible, .score-tuning-button:focus-visible, .score-add:focus-visible { outline: none; text-decoration: underline var(--primary); }
+/* The title and credits, picked together (issue #281): one outline round both, as a picked word over
+   the tab has, with Edit and Collapse to its right. The room round them is there picked or not, so
+   nothing moves. */
+.score-pick { position: relative; z-index: 1; display: grid; justify-items: center; padding: 2px 8px; border-radius: 6px; }
+.score-picked { background: var(--select-soft); box-shadow: 0 0 0 1.5px var(--select); }
+.score-picked .tab-title-text:hover:enabled, .score-picked .score-credits:hover > span { text-decoration: none; }
+.score-pick-tools { position: absolute; z-index: 15; left: 100%; top: 50%; margin-left: 6px; display: flex; gap: 2px; transform: translateY(-50%); }
+.score-pick-tool {
+  display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface-raised); color: var(--ink); cursor: pointer;
+}
+.score-pick-tool:hover { background: var(--surface-sunken); }
+.score-pick-tool:focus { outline: none; }
+.score-pick-tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.tab-head-folded-pick { padding: 0 6px; }
+/* The tuning, picked as the header is (issue #296): left-aligned, its outline drawn round it without moving it. */
+.score-tuning-pick { justify-items: start; width: fit-content; margin: -2px -8px; }
+.score-picked .score-tuning-button:hover .score-tuning-heading, .score-picked .score-tuning-button:hover { text-decoration: none; }
+/* The arrangement header folded: the title in small text after Size, a press unfolds it. */
+.tab-head-folded {
+  max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; margin: 0;
+  font: 400 13px/20px var(--font-sans); color: var(--ink-muted); background: none; border: 0; cursor: pointer;
+}
+.tab-head-folded:hover { color: var(--ink); }
+.tab-head-folded:focus { outline: none; }
+.tab-head-folded:focus-visible { color: var(--ink); text-decoration: underline var(--primary); }
+/* The way in to an unset artist: a quiet line in the credits' place. */
+.score-head-add { display: grid; justify-items: center; }
+.score-add {
+  position: relative; z-index: 2; padding: 0 8px; font: inherit; font-size: var(--credit-size); color: var(--ink-muted);
+  background: none; border: 0; cursor: pointer; white-space: nowrap;
+}
+.score-add:hover { color: var(--ink); }
+/* The credits' and the tuning's panels. */
+.tab-head-panel { gap: 10px; padding: 12px; color: var(--ink); }
+.tab-field-problem { color: var(--danger); cursor: help; }
+.tab-head-input { width: 280px; max-width: calc(100vw - 64px); }
+.tab-tuning-presets { flex-wrap: wrap; max-width: 340px; }
+/* The tempo panel: bpm and Tap on one row. */
+.tab-tempo-row { display: flex; align-items: center; gap: 12px; }
+/* Only as wide as the bpm and Tap row (Jeremy, 2026-10-29): a label is a word or two. */
+.tab-tempo-panel { width: max-content; }
+.tab-tempo-label { width: 0; min-width: 100%; }
+.tab-tap { min-width: 72px; }
+.tab-tuning-string { display: inline-flex; align-items: center; gap: 4px; padding-inline: 7px; }
+.tab-tuning-panel .seg { flex-wrap: wrap; }
+/* The View options' colours (TabPage's paperVars): the clip on a sheet of its background, with room
+   round it so the music doesn't touch the sheet's edges. The theme's own colours draw no sheet. */
+.tab-paper { padding: 12px; border-radius: var(--radius-sm); }
+/* Over the clip: Staff | Tab | Both at the left; the view switch, then copy and save, at the right
+   (alone, they stay there), pulled 8px into the card's padding so they sit close to its top corners
+   (Jeremy, 2026-10-27). */
+.tab-card-bar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+  margin: -8px -8px 12px;
+}
+/* The view switch, copy and save keep together at the right, also on a line of their own under
+   Staff | Tab | Both; the switch never breaks onto two lines. */
+.tab-card-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; margin-left: auto; }
+.tab-card-end > * { flex-shrink: 0; }
+/* Staff | Tab | Both, Size (issue #277) and the track list keep together at the left, wrapping on a phone. */
+.tab-card-start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Size, styled as Speed: its name isn't selected by the double-click that resets it. */
+.tab-size { user-select: none; -webkit-user-select: none; }
+.tab-size input { user-select: text; -webkit-user-select: text; }
+.tab-card-start:empty { display: none; }
+/* The track list over a clip of several tracks (issue #243): as narrow as its longest name. */
+.tab-track-pick { width: auto; min-width: 0; max-width: 200px; }
+.tab-card-end > .seg { flex-wrap: nowrap; }
+/* On a phone, a little less room round the views' names keeps copy and save on the switch's line. */
+@media (max-width: 420px) { .tab-card-end .seg-opt { padding-inline: 10px; } }
+/* Playback, a footer in the clip's card: Play, Loop, Speed, Volume and Sound. */
+/* Under the tab: the divider, with the small toggle at its left end (the line, shown only with the
+   controls, stops 6px short of it), then the controls. The toggle never moves. */
+.tab-playback-row { margin-top: 12px; }
+/* Shown, the controls stay in sight while the tab scrolls (#151): sticky at the window's bottom
+   while the card reaches past it, over the card's padding so the tab doesn't show beside or under
+   them. */
+.tab-pin {
+  position: sticky; bottom: -1px; z-index: 5;
+  margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+  padding: 0 var(--space-4) var(--space-4);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--surface-raised);
+}
+/* Stuck, a line the card's width over them, drawn outside so nothing moves; the divider's own
+   line would be a second line, so it goes. */
+.tab-pin[data-stuck] { box-shadow: 0 -1px 0 var(--line); border-radius: 0; }
+.tab-pin[data-stuck] .tab-playback-line { visibility: hidden; }
+/* On a phone, one row that scrolls sideways rather than four that would fill half the screen. */
+@media (max-width: 640px) {
+  .tab-pin .tab-playback { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .tab-pin .tab-playback > * { flex-shrink: 0; }
+}
+.tab-playback-rule { display: flex; align-items: center; gap: 6px; }
+.tab-playback-line { flex: 1; height: 1px; background: var(--line); }
+/* Very small and round, with a green triangle. */
+.tab-playback-toggle {
+  display: grid; place-items: center; flex: none; width: 18px; height: 18px;
+  padding: 0; padding-left: 1px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--ink-muted);
+}
+/* Not green (Jeremy, 2026-10-27): a muted triangle, or with the controls shown a muted minus. */
+.tab-playback-toggle:hover { border-color: var(--ink-muted); color: var(--ink); }
+.tab-playback-toggle[aria-pressed='true'] { padding-left: 0; }
+.tab-playback-toggle:focus { outline: none; }
+.tab-playback-toggle:focus-visible { box-shadow: 0 0 0 2px var(--lit-glow); }
+.tab-playback { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 12px; }
+/* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
+.tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
+.tab-play:hover { filter: brightness(1.1); }
+.tab-play[aria-pressed='true'] { background: var(--stop); color: var(--on-stop); }
+.tab-play-spinner {
+  width: 14px; height: 14px; border-radius: 999px;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: tab-spin 0.8s linear infinite;
+}
+@keyframes tab-spin { to { transform: rotate(360deg); } }
+/* The loop bracket's ends, over the tab: drag them sideways. */
+.tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
+.tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+/* Wide enough for "300 bpm", so nothing moves as the speed does. */
+.tab-speed-value { width: 60px; flex: none; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+/* The volume: a small knob, captioned like Speed. */
+.tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+.tab-volume-end { margin-left: auto; }
+/* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
+/* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30); its name, cut to
+   ten characters, sits right-aligned in a fixed width (room for ten of most letters) so the box doesn't
+   move between tracks. */
+.tab-track-box {
+  display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 6px;
+  padding: 3px 3px 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+/* As wide as its longest sound, a little narrower than the bare list was, so the boxed row still
+   fits with Volume beside it. */
+.tab-track-box .tab-sound select { width: auto; }
+.tab-track-name {
+  width: 80px; flex: none; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted);
+}
+.tab-track-box .tab-sound { gap: 6px; }
+.tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+.tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
+/* A clip's instrument Frets has no sound for: a small red ⚠ after the list, its tip naming both. */
+.tab-sound-note { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); margin-left: -6px; }
+/* The FX button (Jeremy, 2026-10-28): one outlined control, FX opening the dialog and, at its
+   right past a thin line, a small switch whose light shows whether the effects are on. */
+.tab-fx {
+  display: inline-flex; align-items: stretch; height: var(--control-height);
+  border-radius: var(--radius-md); box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+.tab-fx > button {
+  display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0;
+  color: var(--ink); cursor: pointer; transition: background-color 150ms ease-out;
+}
+.tab-fx > button:hover { background: var(--primary-soft); }
+.tab-fx > button:focus { outline: none; }
+.tab-fx > button:focus-visible { box-shadow: inset 0 0 0 2px var(--primary-soft); }
+.tab-fx-open {
+  padding: 0 10px 0 14px; border-radius: var(--radius-md) 0 0 var(--radius-md);
+  font: 600 13px/16px var(--font-sans); letter-spacing: 0.04em;
+}
+.tab-fx > .tab-fx-power { width: 28px; border-radius: 0 var(--radius-md) var(--radius-md) 0; border-left: 1.5px solid var(--line); }
+.tab-fx-light { width: 8px; height: 8px; border-radius: 999px; background: var(--line-strong); }
+.tab-fx-power[aria-checked='true'] .tab-fx-light { background: var(--success); box-shadow: 0 0 5px var(--success); }
+/* The FX dialog: each effect's switch over its knobs. */
+.tab-effects { display: flex; flex-direction: column; gap: 12px; padding: 10px 12px; min-width: 0; }
+.tab-effects-group { display: flex; flex-direction: column; gap: 6px; }
+.tab-effects-group .tab-view-toggle { font: 600 13px/16px var(--font-sans); }
+.tab-effects-row { display: flex; align-items: center; gap: 18px; white-space: nowrap; }
+/* The cursor shows where the keys go, so the editor has no focus outline. */
+.tab-editor:focus { outline: none; }
+.tab-editor { position: relative; cursor: text; }
+.tab-palette { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.tab-palette-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+/* Each group's name, 6px over its buttons. */
+.tab-palette-label {
+  display: block; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--ink-muted);
+}
+/* The time signature under the clip's name: text that opens a menu. */
+/* The time signature under the clip's name: a raised button with the numbers stacked, and its panel. */
+.tab-time-field { display: grid; gap: 6px; justify-items: start; }
+.tab-time-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.tab-time-stepper {
+  display: inline-flex; align-items: center; height: 28px; padding: 2px; border-radius: 8px;
+  background: var(--surface-sunken); border: 1px solid var(--line); font-weight: 600;
+}
+.tab-time-stepper button {
+  width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent;
+  color: var(--ink-muted); font: 600 15px/1 var(--font-sans); cursor: pointer;
+}
+.tab-time-stepper button:hover { background: var(--surface-raised); color: var(--ink); }
+.tab-time-stepper input {
+  border: 0; background: transparent; color: inherit; font: inherit; padding: 0; margin: 0;
+  width: 3ch; text-align: center; font-variant-numeric: tabular-nums;
+}
+.tab-time-stepper button:focus, .tab-time-stepper input:focus { outline: none; }
+.tab-time-stepper button:focus-visible { color: var(--primary); }
+.tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
+/* The field for a chord name, section or tempo, over the spot it is drawn. */
+.tab-word {
+  position: absolute; z-index: 20; display: grid; gap: 6px; padding: 10px; width: 180px;
+  transform: translateX(-50%); color: var(--ink);
+}
+.tab-word-input { width: 100%; }
+/* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
+.tab-word-number { width: calc(7ch + 23px); }
+.tab-word-fit { width: auto; white-space: nowrap; }
+/* The time signature from one bar on, over that bar. */
+.tab-bar-time {
+  position: absolute; z-index: 20; display: grid; gap: 12px; justify-items: start; padding: 12px;
+  width: max-content; color: var(--ink);
+}
+.tab-bar-time-title { font-size: 13px; font-weight: 700; }
+.tab-tool { width: 30px; height: 30px; padding: 0; }
+/* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
+.tab-tool-box { position: relative; display: inline-flex; }
+.tab-tool-panel {
+  position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; gap: 8px; justify-items: start;
+  padding: 12px; width: max-content; color: var(--ink);
+}
+.tab-panel-choice { min-width: 36px; }
+.settings-dialog:has(.tab-import) { width: min(720px, calc(100vw - 32px)); }
+/* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
+/* Arrangements… as a file chooser (issue #259): places | files | preview, one height whatever it shows; the panes scroll. */
+.settings-dialog:has(.tab-save-as) { width: min(376px, calc(100vw - 32px)); }
+.settings-dialog:has(.tab-chooser) { width: min(1120px, calc(100vw - 32px)); height: min(640px, calc(100dvh - 32px)); }
+.tab-chooser { height: 100%; }
+.tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.tab-chooser-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
+.tab-chooser-places { min-height: 0; overflow-y: auto; border-right: 1px solid var(--line); padding-right: 12px; }
+.tab-chooser-sub { list-style: none; padding-left: 12px; }
+.tab-chooser-place > svg { flex: none; color: var(--ink-muted); }
+.tab-chooser-places .tab-chooser-place[aria-current='true'] { border-color: transparent; background: var(--surface-sunken); }
+.tab-chooser-files { min-height: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tab-chooser-list { flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
+.tab-chooser-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 0 4px; font-size: 0.9375rem; }
+.tab-chooser-crumb { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-muted); }
+.tab-chooser-crumb .btn { min-height: 0; padding: 2px 6px; color: var(--ink-muted); font-weight: 400; }
+.tab-chooser-crumb [aria-current] { padding: 2px 6px; color: var(--ink); font-weight: 600; }
+.tab-chooser-where { min-width: 0; flex-wrap: nowrap; font-size: 1rem; }
+.tab-chooser-where .tab-chooser-crumb { white-space: nowrap; }
+.tab-chooser-where [aria-current] { font-weight: 400; }
+.tab-chooser-where .btn { font-size: inherit; }
+.tab-chooser-enter { margin-left: auto; display: inline-flex; color: var(--ink-muted); }
+.tab-chooser-preview { min-height: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tab-chooser-sheet {
+  flex: 1; min-height: 0; overflow: auto; padding: 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+}
+.tab-chooser-back { align-self: flex-start; }
+/* My arrangements' and Built-in's fold: pointing down while their folders show, right while folded away. */
+.tab-chooser-fold { display: inline-flex; flex: none; margin-left: -4px; color: var(--ink-muted); }
+.tab-chooser-fold svg { width: 14px; height: 14px; }
+.tab-chooser-folded { transform: rotate(-90deg); }
+/* A thin scroll bar in the theme's colours, for panes that scroll. */
+.tab-scroll { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.tab-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.tab-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+.tab-scroll::-webkit-scrollbar-track { background: transparent; }
+.tab-chooser-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* Save, with a small muted dot at its corner while there are unsaved changes (issue #259). */
+.tab-save { position: relative; }
+.tab-unsaved-dot {
+  position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-muted);
+}
+.tab-rows { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.tab-folder-items { padding-left: 22px; }
+.tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
+.tab-row { display: flex; align-items: center; gap: 2px; min-height: 36px; }
+.tab-row-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; text-align: left;
+  border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--ink); cursor: pointer;
+  /* A Shift-click picks lines, not text; a double tap opens, never zooms. */
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+.tab-row-main:hover, .tab-row-main:focus-visible { background: var(--surface-sunken); outline: none; }
+/* The open one is outlined, the picked ones filled. */
+.tab-row-main[aria-current='true'] { border-color: var(--primary); }
+.tab-row-main[aria-pressed='true'] { background: var(--primary-soft); }
+.tab-row-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-row-changed { margin-left: auto; flex: none; color: var(--ink-muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.tab-folder { font-weight: 600; }
+.tab-folder > svg { flex: none; color: var(--ink-muted); }
+.tab-folder-empty { padding-left: 12px; }
+.tab-row-name { flex: 1; min-width: 0; }
+.tab-row-tool { color: var(--ink-muted); }
+/* Where a dragged arrangement would land: a folder with what it holds, or the whole list for the top level. */
+.tab-drop { border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1px dashed var(--line-strong); }
+.tab-row-tool:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-examples-note { color: var(--ink-muted); font-size: 0.875rem; }
+.tab-undo-delete { min-height: 0; padding-block: 0; }
+.tab-import-text {
+  width: 100%; min-height: 240px; resize: vertical; padding: 10px 12px;
+  font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
+  font-variant-ligatures: none;
+}
+.settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+
+/* The Tab page's title: a press opens the Title and credits panel. */
+.tab-title-text {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+  text-align: left; cursor: pointer;
+}
+.tab-title-text:hover:enabled { text-decoration: underline dotted var(--line-strong); text-underline-offset: 6px; }
+.tab-title-text:focus-visible { outline: none; text-decoration: underline var(--primary); text-underline-offset: 6px; }
+/* Picked (issue #281), its outline says so: no underline. */
+.score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }

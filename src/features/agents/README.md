@@ -23,5 +23,6 @@ The files themselves:
 - `public/skills/<name>/SKILL.md` — Agent Skills, short, each sending the
   agent to its guide. `public/_headers` serves them as plain text, so View
   skill shows them in the browser.
+- `agents.css` — the page's CSS, imported from `src/app/globals.css`.
 
 Tests: `src/__tests__/agents/`.

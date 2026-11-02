@@ -31,3 +31,4 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   ring of notes round it; knows no theory), `KeyPanel.tsx` / `ModePanel.tsx` (the Parallel modes chord
   table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
+- `explore.css` — the CSS of all three pages, imported from `src/app/globals.css`.

@@ -4,7 +4,8 @@
    its README is the rulebook for using them. Fonts are loaded with
    next/font in layout.tsx, which sets --font-fraunces, --font-figtree and
    --font-jetbrains-mono.
-   App-specific component CSS is in globals.css. */
+   App-specific component CSS is in components.css (shared) and in each page's folder,
+   all imported from src/app/globals.css. */
 
 :root {
   color-scheme: light;
