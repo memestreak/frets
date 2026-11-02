@@ -3,7 +3,7 @@ import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legato
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
-import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteAnchor, previousAnchors, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
+import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
@@ -287,7 +287,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
-  const previous = previousAnchors(layout.systems);
+  const previous = previousDrawnAt(layout.systems);
   const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
   const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), landings: bendLandings(clip), legatoStarts: legatoStarts(clip), whammy: whammyJoins(clip) };
@@ -440,7 +440,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   index: number;
   clip: Part;
   look: TabLook;
-  previous: Map<Note, NoteAnchor>;
+  previous: Map<Note, NoteDrawnAt>;
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
   /** This line's arcs over hammer-ons, pull-offs and legato slides. */

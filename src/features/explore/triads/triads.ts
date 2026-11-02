@@ -1,5 +1,4 @@
 import type { ChordInfo } from '@/lib/theory/chords';
-import type { Shape } from '@/lib/chords/shapes';
 import { pitchClass, sameSpot, STRING_NAMES, type Spot } from '@/lib/music';
 
 /*
@@ -34,8 +33,8 @@ export type Inversion = 0 | 1 | 2;
 
 export interface Grip {
   inversion: Inversion;
-  /** The three sounding strings; the others are null. */
-  shape: Shape;
+  /** A fret for each string: the three sounding strings; the others are null. */
+  frets: readonly (number | null)[];
   /** The dots, low string first. */
   points: Spot[];
 }
@@ -61,11 +60,14 @@ export function triadGrips(chord: ChordInfo, set: StringSet): Grip[] {
         }
       }
       if (frets.length !== 3 || Math.max(...frets) - Math.min(...frets) > MAX_SPAN) continue;
-      const shape = Array.from({ length: 6 }, (_, s) => {
-        const i = strings.indexOf(s);
-        return i < 0 ? null : frets[i];
+      grips.push({
+        inversion,
+        frets: Array.from({ length: 6 }, (_, s) => {
+          const i = strings.indexOf(s);
+          return i < 0 ? null : frets[i];
+        }),
+        points: strings.map((s, i) => ({ s, f: frets[i] })),
       });
-      grips.push({ inversion, shape, points: strings.map((s, i) => ({ s, f: frets[i] })) });
     }
   }
   return grips.sort((a, b) => Math.min(...a.points.map(p => p.f)) - Math.min(...b.points.map(p => p.f)));

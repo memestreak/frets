@@ -6,7 +6,7 @@
 import { isRest } from './clip';
 import { HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import { beamGroups } from './beams';
-import { type Anchor } from './runs';
+import { type DrawnAt } from './runs';
 import type { Head } from './notation';
 
 /** A grace note's heads and stem, against a full one's. */
@@ -81,12 +81,12 @@ export function staffBar(bar: PlacedBar, score: ScoreRows): StaffBarGeometry {
 }
 
 /** Where a head was drawn: its line of music, its left edge, and its staff step. */
-export type HeadAnchor = Anchor & { step: number };
+export type HeadDrawnAt = DrawnAt & { step: number };
 
 /** For every head, keyed by its column's place and string, where the head before it on that string was: ties, slurs and slides join them. */
-export function previousHeads(systems: System[]): Map<string, HeadAnchor> {
-  const out = new Map<string, HeadAnchor>();
-  const last = new Map<number, HeadAnchor>();
+export function previousHeads(systems: System[]): Map<string, HeadDrawnAt> {
+  const out = new Map<string, HeadDrawnAt>();
+  const last = new Map<number, HeadDrawnAt>();
   systems.forEach((system, si) => {
     for (const bar of system.bars) {
       for (const placed of bar.columns) {

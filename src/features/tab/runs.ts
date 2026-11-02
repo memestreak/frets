@@ -94,13 +94,13 @@ export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; ru
 }
 
 /** Where a note was drawn: its line of tab and its column's centre. */
-export interface Anchor {
+export interface DrawnAt {
   system: number;
   x: number;
 }
 
 /** Where a note was drawn, and where a bend held on from it starts its dashed line: its arrow's peak (`bendShape`), or BEND_PEAK right of it. */
-export interface NoteAnchor extends Anchor {
+export interface NoteDrawnAt extends DrawnAt {
   peak: number;
 }
 
@@ -159,9 +159,9 @@ export function legatoArcs(systems: System[]): LegatoArc[] {
 }
 
 /** For every note, where the note before it on the same string was drawn. */
-export function previousAnchors(systems: System[]): Map<Note, NoteAnchor> {
-  const out = new Map<Note, NoteAnchor>();
-  const last: (NoteAnchor | null)[] = Array(STRING_COUNT).fill(null);
+export function previousDrawnAt(systems: System[]): Map<Note, NoteDrawnAt> {
+  const out = new Map<Note, NoteDrawnAt>();
+  const last: (NoteDrawnAt | null)[] = Array(STRING_COUNT).fill(null);
   systems.forEach((system, si) => {
     for (const bar of system.bars) {
       for (const placed of bar.columns) {

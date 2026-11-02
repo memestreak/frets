@@ -63,7 +63,7 @@ export default function Triads() {
   const dots = arpeggio
     ? arpeggioDots(chord, TRIADS_MAX_FRET, set.labels)
     : grips.flatMap((g, i) =>
-      shapeDots(chord, g.shape, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
+      shapeDots(chord, g.frets, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
   const links = grips.map((g, i) => ({
     points: g.points, label: INVERSION_NAMES[g.inversion], opacity: opacityOf(i),
   }));
