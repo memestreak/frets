@@ -10,8 +10,8 @@ import { useClipImport } from './useClipImport';
 /**
  * The Tab page's file actions (issue #259): New, Arrangements…, Save, Save as…, and asking "Save changes
  * to ‹name›?" before anything replaces unsaved changes; ⌘S, ⇧⌘S and ⌘O; the browser asking before it
- * closes on unsaved changes; and what opens from outside My arrangements (`useClipImport`). `dialogs`
- * draws Arrangements…, Save as… and "Save changes?".
+ * closes only on unsaved changes the draft couldn't keep; and what opens from outside My arrangements
+ * (`useClipImport`). `dialogs` draws Arrangements…, Save as… and "Save changes?".
  */
 export function useArrangementFile(arrangements: ReturnType<typeof useArrangements>, { parts, onNotice, onShown, showTab, toStart, onInsert }: {
   /** What the chooser's previews draw: the staff, the tab or both. */
@@ -87,13 +87,16 @@ export function useArrangementFile(arrangements: ReturnType<typeof useArrangemen
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Closing or reloading the browser tab with unsaved changes asks first; the draft brings them back either way.
+  // Closing or reloading the browser tab doesn't ask (issue #309): the draft brings unsaved changes
+  // back. It asks only when storage refused the draft, so closing would really lose them.
+  const onBeforeUnload = useEffectEvent((e: BeforeUnloadEvent) => {
+    if (arrangements.wouldLose()) e.preventDefault();
+  });
   useEffect(() => {
-    if (!arrangements.unsaved) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [arrangements.unsaved]);
+    const onUnload = (e: BeforeUnloadEvent) => onBeforeUnload(e);
+    window.addEventListener('beforeunload', onUnload);
+    return () => window.removeEventListener('beforeunload', onUnload);
+  }, []);
 
   const whole = state.clip;
   const dialogs = (

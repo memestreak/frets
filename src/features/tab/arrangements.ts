@@ -163,10 +163,10 @@ export function loadDraft(library: Library): Draft | null {
   return { id: stored.id, clip: JSON.stringify(clip) === JSON.stringify(base) ? base : clip, base };
 }
 
-/** Keeps the open clip as a draft; `saved` when its arrangement is saved, whose clip is then its base. */
-export function saveDraft(draft: Draft, saved: boolean): void {
+/** Keeps the open clip as a draft; `saved` when its arrangement is saved, whose clip is then its base. False when storage refused it. */
+export function saveDraft(draft: Draft, saved: boolean): boolean {
   const stored: StoredDraft = saved ? { id: draft.id, clip: draft.clip } : { id: draft.id, clip: draft.clip, base: draft.base };
-  saveJson(DRAFT_KEY, stored);
+  return saveJson(DRAFT_KEY, stored);
 }
 
 export function clearDraft(): void {

@@ -27,8 +27,10 @@ picking, delete with Undo and dragging stay as that spec has them.
   changes are replaced: Open, New, Import…, a drop, a link followed while the page
   is open, or a link opened on a visit while a draft of other changes waits. Save
   on an arrangement never saved goes through Save as… first. Closing or reloading
-  the browser tab with unsaved changes gets the browser's own warning
-  (`beforeunload`; a page can't show its own there).
+  the browser tab doesn't ask: the draft brings unsaved changes back (issue #309).
+  Only when storage refused the draft (full or blocked), so closing would lose
+  them, does it get the browser's own warning (`beforeunload`; a page can't show
+  its own there).
 - **The draft** (`frets.tab.draft`): while the open clip has unsaved changes or was
   never saved, it is kept there, with the clip it is a change of (for one never
   saved), so a reload or a crash brings it back as it was, still unsaved. Saved and

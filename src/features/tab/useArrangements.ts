@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { emptyClip, titled, type Clip } from './clip';
 import { clipReducer, initClipState } from './clipState';
 import {
@@ -31,12 +31,18 @@ export function useArrangements() {
   /** Whether the clip differs from the one last saved or opened. */
   const unsaved = state.clip !== state.base;
 
+  // Whether the unsaved changes are in the draft; false when storage refused it (full or blocked).
+  const drafted = useRef(true);
   // The index names the open arrangement; the draft holds it while it isn't saved as it is.
   useEffect(() => {
     const known = store.get();
     if (known.open !== state.id) store.set({ ...known, open: state.id });
-    if (kept && !unsaved) clearDraft();
-    else saveDraft({ id: state.id, clip: state.clip, base: state.base }, kept);
+    if (kept && !unsaved) {
+      clearDraft();
+      drafted.current = true;
+    } else {
+      drafted.current = saveDraft({ id: state.id, clip: state.clip, base: state.base }, kept);
+    }
   }, [state, kept, unsaved, store]);
 
   /** Opens a saved arrangement in place of the clip; false when its clip can't be read. */
@@ -139,5 +145,7 @@ export function useArrangements() {
     move: (ids: string[], folder: string | undefined) =>
       store.set(ids.reduce((next, id) => moveArrangement(next, id, folder), library)),
     forgetDeleted: () => setDeleted(null),
+    /** Whether closing the page now would lose changes: unsaved, and the draft couldn't keep them. */
+    wouldLose: () => unsaved && !drafted.current,
   };
 }
