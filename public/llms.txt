@@ -2,9 +2,9 @@
 
 > Frets (https://frets.eminor.net) is a guitar fretboard app: scales,
 > chords, triads, the circle of fifths, a tuner, a metronome, a tab editor
-> and ear trainers. Agents can write chords and tab that open in it from a
-> link, and open its tools, such as the metronome, in a chat through its MCP
-> server.
+> and trainers for learning the neck. Agents can write chords and tab that
+> open in it from a link, and open its tools, such as the metronome, in a
+> chat through its MCP server.
 
 People: see https://frets.eminor.net/agents for these skills to download
 and its connector to add.

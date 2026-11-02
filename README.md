@@ -1,28 +1,55 @@
 # Frets
 
-Guitar-focused music theory practice: fretboard interval and note trainers.
+A guitar fretboard app, live at https://frets.eminor.net: tools for exploring
+scales, chords and tab, and trainers for learning the neck.
 
-Built with Next.js (static export), React, TypeScript and Tailwind CSS on top
-of the Industry design system (`src/styles/industry.css`). The design handoff
-(spec, prototypes and design-system source) lives in `design_handoff/`.
+Built with Next.js (static export), React, TypeScript and Tailwind CSS, styled
+with the Fretwood design system (`src/styles/fretwood.css`). The original
+design handoff (spec and prototypes) lives in `design_handoff/`; where it and
+the specs in `docs/specs/` disagree, the specs win.
 
-- `/intervals` — name the interval between two dots, or find the fret that
-  completes a named interval.
-- `/notes` — name the note at a shown position, or find a named note on one
+Tools:
+
+- `/explore/scales` Scale lab: pick a root and a scale, see it on the neck and
+  stack its chords.
+- `/chords` Chords: look up a chord and every way to play it, or tap notes on
+  the neck to name them.
+- `/explore/triads` Triads: every inversion of a triad on three neighbouring
+  strings, all the way up the neck.
+- `/explore/circle` Circle of fifths: how keys and modes relate, with their
+  chords, signatures and neighbours.
+- `/tuner` Tuner: tune through the mic, on a dial or a strobe, and hear each
+  string.
+- `/metronome` Metronome: accents, groupings, subdivisions, swing and
+  polyrhythms.
+- `/tab` Tab: write a riff as tab and notation, play it back, and export it.
+
+Practice:
+
+- `/practice/intervals` Interval trainer: name the interval between two notes,
+  or find it on the neck.
+- `/practice/notes` Note trainer: name the note at a fret, or find a note on a
   string.
 
-Settings and session stats persist in `localStorage`. Deploys as a static
-site (`public/_redirects` sends `/` to `/intervals` on Cloudflare Pages).
+More: `/agents` has the guides, skills and MCP server that let agents write
+chords and tab for Frets and open its tools in a chat.
+
+Saved work and preferences persist in `localStorage`. The site deploys to
+Cloudflare Pages (`DEPLOYMENT.md`), with one Pages Function for `/mcp`.
 
 ## Development
 
 ```bash
 npm install
-npm run dev      # Dev server at localhost:3000
-npm run build    # Static export to out/
-npm run lint     # ESLint
-npm test         # Vitest
+npm run dev        # Dev server at localhost:3000
+npm run dev:https  # Same over https (self-signed), for the mic from another device
+npm run build      # The MCP Apps, then the static export to out/
+npm run lint       # ESLint
+npm test           # Vitest
 npm run typecheck  # tsc --noEmit
+npm run icons      # Re-render the icons after changing the mark's SVGs
+npm run mcp:build  # The MCP Apps and the stdio server, to mcp/dist/
+npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174
 ```
 
 CI (`.github/workflows/ci.yml`) runs lint, tests, the build and the type

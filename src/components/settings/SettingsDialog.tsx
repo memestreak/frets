@@ -2,7 +2,7 @@
 
 /**
  * The Settings dialog (issue #195; `docs/specs/2026-10-29-settings-design.md`): every per-viewer
- * preference in one place, shaped like REAPER's Preferences. A tree of groups and their sections on
+ * preference in one place, shaped like REAPER's Preferences. A tree of Settings groups and their sections on
  * the left (on a phone, a group picker and a strip of its sections), the selected section's fields
  * on the right, and OK, Cancel and Apply at the foot.
  *
@@ -25,9 +25,9 @@ const keyOf = (group: string, section: string) => `${group}.${section}`;
 /** Two saved values alike: they are plain JSON, written in the same field order by their parsers. */
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export function SettingsDialog({ groups, open, at, onClose }: {
+export function SettingsDialog({ settingsGroups, open, at, onClose }: {
   /** General first, then each page's group. */
-  groups: SettingsGroup[];
+  settingsGroups: SettingsGroup[];
   open: boolean;
   /** Where it opens: this group expanded (the others collapsed) at this section. */
   at: SettingsPlace;
@@ -35,7 +35,7 @@ export function SettingsDialog({ groups, open, at, onClose }: {
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
-  const sections = groups.flatMap(g => g.sections.map(s => ({ group: g, section: s, key: keyOf(g.id, s.id) })));
+  const sections = settingsGroups.flatMap(g => g.sections.map(s => ({ group: g, section: s, key: keyOf(g.id, s.id) })));
   const savedValues = () => Object.fromEntries(sections.map(s => [s.key, s.section.value]));
 
   const [staged, setStaged] = useState<Record<string, unknown>>({});
@@ -111,7 +111,7 @@ export function SettingsDialog({ groups, open, at, onClose }: {
           </div>
           <div className="settings-prefs-body">
             <SettingsTree
-              groups={groups} selected={selected} expanded={expanded}
+              settingsGroups={settingsGroups} selected={selected} expanded={expanded}
               onSelect={setSelected}
               onExpand={(group, on) => setExpanded(ex => {
                 const next = new Set(ex);
@@ -120,7 +120,7 @@ export function SettingsDialog({ groups, open, at, onClose }: {
                 return next;
               })}
             />
-            <PhoneNav groups={groups} selected={current} onSelect={setSelected} />
+            <PhoneNav settingsGroups={settingsGroups} selected={current} onSelect={setSelected} />
             <SectionPane
               key={current.key} group={current.group} section={current.section}
               value={stagedOf(current)} onStage={value => stage(current.key, value)}
@@ -142,8 +142,8 @@ export function SettingsDialog({ groups, open, at, onClose }: {
  * under it, and the selected one is filled. ↑ ↓ move between what is shown, and the pane follows the
  * section reached; → opens a group (or goes into it), ← closes it (or goes from a section to its group).
  */
-function SettingsTree({ groups, selected, expanded, onSelect, onExpand }: {
-  groups: SettingsGroup[];
+function SettingsTree({ settingsGroups, selected, expanded, onSelect, onExpand }: {
+  settingsGroups: SettingsGroup[];
   selected: string;
   expanded: Set<string>;
   onSelect: (key: string) => void;
@@ -152,7 +152,7 @@ function SettingsTree({ groups, selected, expanded, onSelect, onExpand }: {
   // The item the keys are on: a group's id, or a section's key. Starts on the selected section.
   const [focus, setFocus] = useState(selected);
   const tree = useRef<HTMLDivElement>(null);
-  const shown = groups.flatMap(g => [
+  const shown = settingsGroups.flatMap(g => [
     { key: g.id, group: g.id, isGroup: true },
     ...(expanded.has(g.id) ? g.sections.map(s => ({ key: keyOf(g.id, s.id), group: g.id, isGroup: false })) : []),
   ]);
@@ -201,7 +201,7 @@ function SettingsTree({ groups, selected, expanded, onSelect, onExpand }: {
   return (
     // The items take the presses; the keys are handled here, for whichever item has the focus.
     <div ref={tree} role="tree" tabIndex={-1} aria-label="Settings sections" className="settings-tree" onKeyDown={onKeyDown}>
-      {groups.map(g => {
+      {settingsGroups.map(g => {
         const open = expanded.has(g.id);
         return (
           // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- the tree handles the keys
@@ -257,8 +257,8 @@ function SettingsTree({ groups, selected, expanded, onSelect, onExpand }: {
  * On a phone-width screen, in the tree's place: a group picker, and under it a strip of that group's
  * sections that scrolls sideways. CSS shows one or the other.
  */
-function PhoneNav({ groups, selected, onSelect }: {
-  groups: SettingsGroup[];
+function PhoneNav({ settingsGroups, selected, onSelect }: {
+  settingsGroups: SettingsGroup[];
   selected: { group: SettingsGroup; section: AnySection };
   onSelect: (key: string) => void;
 }) {
@@ -268,11 +268,11 @@ function PhoneNav({ groups, selected, onSelect }: {
       <select
         className="input" aria-label="Settings group" value={group.id}
         onChange={e => {
-          const next = groups.find(g => g.id === e.target.value);
+          const next = settingsGroups.find(g => g.id === e.target.value);
           if (next?.sections[0]) onSelect(keyOf(next.id, next.sections[0].id));
         }}
       >
-        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        {settingsGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
       </select>
       <div className="settings-phone-strip" role="group" aria-label={`${group.name} sections`}>
         {group.sections.map(s => (

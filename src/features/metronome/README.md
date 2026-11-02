@@ -6,7 +6,7 @@ Tuner in `sections.ts`.
 - `MetronomePage.tsx`: the page, which loads on the client only through
   `MetronomeLoader.tsx`. It holds one metronome and shows it in the view
   picked by the switch in the head (no Settings dialog). It also holds the
-  `?` list (`shortcuts.ts`), T for Tap, and the head's end (the ⚠ and `?`,
+  `?` list (`shortcuts.ts`), T for Tap (`useTapKey.ts`), and the head's end (the ⚠ and `?`,
   passed to the views through `HeadEnd`, so the views don't need the
   AppShell).
 - `views.tsx`: the four views, Readout, Dial, Pendulum and Bar. Each shows
@@ -48,7 +48,7 @@ Tuner in `sections.ts`.
 Its CSS (`.metronome-*`) is in `metronome.css`, imported from `src/app/globals.css`. Its tests are in
 `src/__tests__/metronome/`.
 
-## The MCP App (#269)
+## The MCP App (`show_metronome`)
 
 The metronome also runs inside an AI chat (Claude, ChatGPT, VS Code and other
 MCP Apps hosts), from `docs/specs/2026-10-31-metronome-mcp-app-design.md`.

@@ -64,7 +64,7 @@ own `downloadText` helper is gone; downloads go through `saveFile`.
 
 ## Tests
 
-`TabPage.test.tsx`: the list's options; for each format, whether the
+`src/__tests__/tab/page/export.test.tsx`: the list's options; for each format, whether the
 preview and Copy show and that there's one Download; the format is kept
 after closing; Copy for alphaTex and ASCII; Download for each text format
 and SVG with its file name; the ⚠ only while MusicXML or Guitar Pro is

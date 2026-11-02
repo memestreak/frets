@@ -53,7 +53,7 @@ Guitar Pro draws the closing bar line anyway.
 written as `.gp`, read back by alphaTab's Guitar Pro reader and compared
 with the score alphaTab reads from its alphaTex: tracks, tunings, sounds,
 every bar's marks, and every beat and note with its techniques. The
-two-track arrangement keeps both tracks. `TabPage.test.tsx` presses both
+two-track arrangement keeps both tracks. `src/__tests__/tab/page/export.test.tsx` presses both
 buttons and reads the downloaded file back.
 
 Opening a file in Guitar Pro 8 or MuseScore 4 is a manual check.

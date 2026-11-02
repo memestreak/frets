@@ -871,7 +871,7 @@ export default function TabPage() {
         />
       )}
       {actions.popups}
-      <SettingsDialog groups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog settingsGroups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
         clip={whole} track={track} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
