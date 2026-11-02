@@ -69,7 +69,7 @@ rhythm in a sandboxed frame. It opens stopped.
   server's result. About a second after the user's last change, it tells the
   model the whole rhythm (`ui/update-model-context`). It follows the host's
   theme and stops and closes the audio on teardown. Space and T work as on
-  the page. `mcp/host.ts` wires the host's messages, outside React.
+  the page. `listenToHost` (`src/mcp/app.ts`) wires the host's messages.
 - The app's entry is `mcp/apps/metronome/` (its HTML, `main.tsx` and CSS),
   built to `mcp/dist/metronome.html`. The server, its builds and the ways
   to try it are Frets-wide: see `src/mcp/README.md`. In a chat, ask

@@ -20,6 +20,13 @@ So far: the Metronome's `show_metronome` and the Tuner's `show_tuner`
 - `types.ts` — `RegisterTools` (what a page gives the server), `AppsHtml`,
   and `appHtml(apps, name)`, which throws a clear error when the build left
   an app out.
+- `app.ts` — the app side, shared by every page's MCP App: `appInfo(page)`
+  (the name the app gives the host, "Frets <page>"), `followHostTheme`, and
+  `listenToHost(app, handlers)`, which connects to the host, follows its
+  light or dark theme, and calls the app's `input`, `result`, `connected`
+  (after the handshake; send nothing before it) and `teardown` handlers.
+  Only `teardown` is required. Call it once from an effect and return its
+  stop function.
 
 A page's own MCP code lives in `src/features/<page>/mcp/`: its tools' input
 and pure logic (`tool.ts`), its `register.ts`, and its app's React code.
@@ -54,7 +61,9 @@ Outside `src/`:
    or `server.registerTool` for a text-only one (a chord or scale lookup).
    Keep tools read-only and stateless: each call shows a new app.
 2. Add the `register` function to `MCP_PAGES` in `tools.ts`.
-3. For an app: add `mcp/apps/<name>/` (copy the metronome's three files),
+3. For an app: write its React component around `listenToHost` from
+   `app.ts` (the tuner's `TunerApp.tsx` is the smallest example), add
+   `mcp/apps/<name>/` (copy the metronome's three files),
    get its HTML with `appHtml(apps, '<name>')` in `register.ts`, and add
    `import <name> from '../mcp/dist/<name>.html'` to `functions/mcp.ts`
    and to the object it passes to `createFretsServer`. Stdio finds it on

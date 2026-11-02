@@ -1,85 +1,275 @@
 # Tab editor (`src/features/tab/`)
 
-Moved out of CLAUDE.md; keep it current when this folder's files change.
+The Tab page, `/tab` (`docs/specs/2026-10-24-tab-editor-design.md`). One
+line per file: the file — what it does — its spec (in `docs/specs/`, date
+left out where the topic is plain). Add a line when you add a file, and
+keep the line short: the detail belongs in the file's own header comment
+and in its spec.
 
-- `src/features/tab/` — the Tab page (`docs/specs/2026-10-24-tab-editor-design.md`;
-  not in `sections.ts` until it is ready): `clip.ts` (the model: a clip of one or more tracks, `\track`,
-  over the bars they share, `masterBars` holding each bar's signatures, repeats, tempo and section and each
-  track's `bars` its notes; `Part` is one track with those marks in its bars, what the layout, drawing,
-  edits and playback work on, made by `partOf` and put back by `withPart`, which keeps the other tracks'
-  bars in step and never takes away a bar another track has music in; the page shows, edits and plays one
-  track, picked from the Track list over a clip of more (the viewer's, back to the first for another
-  arrangement; `trackName`), each bar as wide as the widest track's (`Part.alongside`, `layout.ts`); `docs/specs/2026-10-30-tab-tracks-design.md` and
-  `docs/specs/2026-10-30-tab-track-chooser-design.md`; bars of
-  columns, six notes each, durations in ticks, whole = 3548160, so a double-dotted
-  thirty-second and a sixty-fourth in any tuplet of up to twelve notes (alphaTex's
-  tu 3 … 12, or any ratio `tu (n d)`) are whole numbers too; grace notes take no time; a bar may change the time signature, `timeAt`;
-  `parseClip`; `docs/specs/2026-10-26-tab-rhythm-design.md`),
-  `ascii.ts` (`readAscii` with its errors, warnings and guessed durations,
-  and `writeAscii`, the canonical form; `public/tab-ascii.txt` is the
-  format, and its examples are tests; `src/__tests__/tab/fixtures/` holds
-  golden input and output pairs for the spellings it forgives, see its
-  README), `layout.ts` (pure: where systems,
-  bars and columns go at a width, and `rowsFor`, the rows over the staff,
-  each there only when that line uses it, each system with its own `rows` and `top`, `lineAt` finding the line under a y
-  (`docs/specs/2026-10-28-tab-line-spacing-design.md`); a clip with `\systemsLayout` / `\defaultSystemsLayout` (`barsPerLine` in `clip.ts`), when View options' Clip's line breaks is on (`laidOut` in `viewOptions.ts`), breaks its lines there, squeezing before it wraps, and spreads each line by its notes (`spreadLines`; `docs/specs/2026-10-28-tab-line-breaks-design.md`);
-  `docs/specs/2026-10-26-tab-note-marks-design.md`; with it, all pure on its layout: `layoutText.ts`,
-  the words over the tab and the signatures, their boxes and presses on them; `hitTest.ts`, what
-  any other press is on and where the cursor is drawn; `runs.ts`, marks over runs of columns and
-  legato joins; `beams.ts`, which notes a beam joins) and `TabClip.tsx` (draws a layout as
-  SVG, with the editor's cursor and selection; a column's numbers, joins and marks in
-  `TabColumn.tsx`, the tab's own stems and rests in `TabStems.tsx`, its colours in `tabLook.ts`; what is selected is drawn in `--select`, blue, with a box round a selected run, `rangeBoxes`, `docs/specs/2026-11-01-tab-selection-look-design.md`), `marks.ts` (pure: where each
-  drawn technique mark is, hairpins too, so a press picks it, its palette tool, and `markLights`, which
-  copy of the picked one is drawn in `--select`; `docs/specs/2026-10-27-tab-pick-marks-design.md`),
-  `barLines.ts` (pure: the repeat signs, a repeat's ×N count and double bar lines a press picks, found
-  with the words by `textAt`; a picked word, bar line or mark turns blue, its Edit and Delete in a
-  right-click menu (a long press on touch), `openMenu` in `TabPage.tsx`; issue #276; a double-click on one with an Edit opens it, `hasEdit`, `docs/specs/2026-11-01-tab-double-click-edit-design.md`), `clipState.ts` (the clip
-  with undo and redo), `editing.ts` (pure: the cursor, selection, frets and
-  the edits that add, move or remove columns and bars, `normalize` keeping ties, hammer-ons and
-  slides true, cut, copy, paste over the time from the cursor (`pasteOver`) and Insert paste (`insertPaste`), with bars staying full as MuseScore keeps them: Delete leaves rests, and a bar selected whole starts again as the fewest rests that fill it (`clearToRests`), Ctrl/⌘+Delete takes the time (`docs/specs/2026-10-31-tab-bars-stay-full-design.md`), and a column picked by itself (a rest, a note or a chord) keeps its bar full when the length keys or Duration buttons change it, writing over what follows or leaving rests after it (`changeLength` in `noteEdits.ts`); with the tab alone a press on a stem picks its column as a press on a rest does (`rhythmAt` in `hitTest.ts`), and 1–7 set a column picked by itself (`docs/specs/2026-11-01-tab-rest-lengths-design.md`); the palette's changes to notes are in
-  `noteEdits.ts`, to words and bars in `barEdits.ts`), `tools.ts` (the symbol palette's table, shared
-  with the keys and the `?` overlay's list in `shortcuts.ts`, which also lists `editorKeys.ts`'s keys by hand) and `TabPalette.tsx`, `BarTimePanel.tsx` (it and `BarKeyPanel.tsx` keep inside the tab and close
-  with `barPanel.ts`) with
-  `TimeSignatureFields.tsx` (the time signature from a bar on, opened by a
-  press on a drawn one or the palette; nothing in the header sets it),
-  `WordField.tsx` (the field over the tab for a chord name, section or
-  the capo, "Capo 3" over the first line; a tempo has `TempoPanel.tsx`: bpm in a `NumberField` (`src/components/`), Tap, from
-  `src/lib/tapTempo.ts`, and a label, opened by the Tempo tool, a picked tempo's Edit or the score head's tempo, the
-  first bar's, printed under the tuning, "♩ = 120" when unset; `TempoNote.tsx` draws its note
-  everywhere; `docs/specs/2026-10-29-tab-tempo-button-design.md`;
-  `docs/specs/2026-10-26-tab-words-design.md`, `2026-10-26-tab-rhythm-design.md`), `exportTab.tsx` and
-  `TabExportDialog.tsx` (the Export button; the Tab view's copy button copies the PNG;
-  `docs/specs/2026-10-26-tab-export-design.md`, on the chord export's
-  helpers), and `TabPage.tsx` (the editor, keeping the whole clip and editing its first track as a part through `clipAction` in `clipState.ts`; it lays the drawn clip out once per change (`layoutClip`) and hands that layout to `TabClip` (a `memo`, given the same handlers each render by `useStableHandlers.ts`, so a playback step doesn't draw it again), the playhead, the loop handles and `fieldSpots.ts` (issue #302); it wires together `useEditorState.ts` (the cursor, selection, picked thing, note input and `commit`), `useTabPicking.ts` (presses, drags and Alt+← → on the tab), `useHeadPanels.tsx` (the word fields, signature panels and the score head's panels) and `useArrangementFile.tsx` (New, Arrangements…, Save, Save as…, ⌘S/⌘O, "Save changes?"); its tests are in `src/__tests__/tab/page/`, one file per area, sharing `helpers.tsx`; with its parts in `editorKeys.ts` (the keys on the
-  tab, the staff cursor and the playback line), `useClipImport.ts` (import, built-ins, links and
-  drops, each opened as a new arrangement, not saved), `TabDialogs.tsx` (the Import dialog), `ArrangementChooser.tsx` (Arrangements… as a file chooser: places on the left, files in the middle, the picked file's preview on the right with Insert and Copy alphaTex; Open, a double click or double tap opens; a click picks, Shift and Cmd/Ctrl pick several to delete or drag, Esc or a press on empty space lets them go (`useDeselect`); one folder at a time on a phone), `SaveDialogs.tsx` (Save as… and "Save changes to ‹name›?"), `arrangements.ts` and `useArrangements.ts` (My arrangements in the browser, one key per clip, written only on Save or Save as…; the draft keeps unsaved changes over a reload; `docs/specs/2026-10-28-tab-arrangements-design.md`, `docs/specs/2026-10-31-tab-arrangement-chooser-design.md`), `ClipActions.tsx` (View options,
-  copy, Copy link and Download…; `shareLink.ts` writes the link, the clip's alphaTex compressed in `#tabz=` (its `\instrument` and FX line carry the Sound and FX), and reads it and `#tab=`; `docs/specs/2026-10-29-tab-share-link-design.md`), `fieldSpots.ts` (where the fields and panels over the tab go),
-  `normalMode.ts` (pure: normal mode's edits, MuseScore's length digits, frets ±1, the next note in a chord; the page starts in normal mode, where a fret number dragged up or down goes to another string at the same pitch, `docs/specs/2026-10-31-tab-drag-fret-string-design.md`; N or the palette's pencil turns note input on, where the cursor types, a press enters a note and a shadow note follows the pointer; `docs/specs/2026-10-30-tab-note-input-mode-design.md`), `inputLength.ts` (pure: note input's length, set before a note goes in as in MuseScore: where it starts, W Q steps, dots, the Duration button it lights), `jumps.ts` (pure: Ctrl/⌘+← → a bar, Home / End to the line's or clip's ends, moving the cursor or growing the selection; `docs/specs/2026-10-30-tab-musescore-selection-design.md`), `views.ts`, `notice.ts` and `useWidth.ts`: keys
-  on the drawn tab, `docs/specs/2026-10-25-tab-editing-design.md`; import
-  by dialog (typed, or Open file… for a local `.atex` / `.txt`), drop or a `#tab=` / `#tabz=` link opens as a new arrangement, read on load or
-  hashchange and left in the address until the clip is edited, saved or replaced, while a paste goes in at the cursor;
-  Notation | ASCII Tab | AlphaTex, each with copy and Download buttons at the top right of the clip, after the view switch (Notation copies the PNG; Staff | Tab | Both takes the top left) (`saveFile.ts`; Notation lists PNG, SVG, ASCII tab, alphaTex, MusicXML and Guitar Pro); Notation shows Staff, Tab or Both (`docs/specs/2026-10-27-tab-notation-design.md`): `notation.ts` (pure: pitch, staff steps, accidentals; the key and how a pitch is spelled in it, `spellPitch`, are in `src/lib/theory/keys.ts`), `StaffDrawing.tsx` (the treble staff an octave up, carrying the rhythm in Both, where the tab drops its stems), `staffEntry.ts` (pure: the staff cursor's pitch, the string and fret Frets picks for a note entered on the staff, Enter and Alt+↑ ↓; `docs/specs/2026-10-27-tab-staff-entry-design.md`; a press on the staff puts its own cursor there and hands it the keys, a press on the tab hands them back; Staff alone is edited the same way; with `moveNotes`, notes dragged by the head or moved with Alt+↑ ↓, Shift for semitones, ⌘ or Ctrl for the chord, `docs/specs/2026-10-28-tab-staff-drag-design.md`), `staffGeometry.ts` (pure: heads, stems and beams across a bar) and `staffMarks.ts` (pure: the technique marks on the staff and their boxes, which `marks.ts` picks, and `staffInk`, how far bends and octave lines reach, which `layoutClip` makes room for), `smufl.ts` (Bravura's glyph outlines, from `scripts/smufl-glyphs.mjs`), and `BarKeyPanel.tsx` (the key signature from a bar on, `\ks`, opened like the time signature's panel); the AlphaTex view is editable (the × in its text box's top right clears it), `AlphaTexEditor.tsx` (`docs/specs/2026-10-27-tab-alphatex-editing-design.md`: read half a second after typing, errors marked ⚠ and underlined, text as typed until an edit elsewhere changes the clip); Export,
-  the Export dialog: one Format list (PNG, SVG, ASCII tab, alphaTex, MusicXML, Guitar Pro) and one Download button,
-  with Copy for the four that paste and the image choices for PNG and SVG; `docs/specs/2026-10-30-tab-export-format-list-design.md`). `musicxml.ts` (pure) writes the
-  whole clip as MusicXML 4.0, each track a part with a notation staff and a tab staff, and `musicXmlLosses` says what the
-  file leaves out, a red ⚠ beside the Format list on MusicXML (`docs/specs/2026-10-30-tab-musicxml-export-design.md`; its tests check
-  each file against the schema in `src/__tests__/tab/musicxml/` and read it back with alphaTab's importer). `guitarPro.ts` writes the whole clip as a `.gp` file with alphaTab's
-  `Gp7Exporter`, a red ⚠ beside the Format list on Guitar Pro when the FX are on (`docs/specs/2026-10-30-tab-guitar-pro-export-design.md`). The clip's own format is alphaTex
-  (`docs/specs/2026-10-25-tab-alphatex-design.md`; for agents
-  `public/tab-alphatex.txt`): `alphatexRead.ts` reads it with alphaTab's
-  parser (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read;
-  its renderer is not used) and keeps what Frets doesn't draw as written
-  (`extra` and `header` in the clip), `alphatex.ts` writes it, and
-  `readTab.ts` tells ASCII from alphaTex. `builtin_arrangements/` holds the
-  built-in arrangements, one `.atex` or `.txt` file each in a folder per topic (its own README says how to add one), listed under Built-in
-  in Arrangements… (or `/tab#example=<file name>`) via `builtins.ts`, `builtinFiles.ts` and the route `src/app/tab/builtin.json/`, opened as a new
-  arrangement, not saved until Save (`docs/specs/2026-10-31-tab-arrangement-chooser-design.md`); each but the `samples/` must read with no
-  warnings and write back exactly, and every newly drawn feature gets one.
-  `playback.ts` plays a clip: alphaTab's MIDI generator and synthesizer
-  (loaded with the chosen sound in the background when the page opens; `docs/specs/2026-10-28-tab-sound-preload-design.md`; the sound's samples decoded in a Web Worker, `soundDecoder.worker.ts`, asked by `soundDecoder.ts`, with `soundDecode.ts` the decoding both share; `docs/specs/2026-10-29-tab-sound-decoding-design.md`) with the SONiVOX soundfont in
-  `public/soundfont/` (Acoustic Grand Piano is the Salamander Grand and Steel Guitar the Iowa
-  acoustic and Clean Electric Guitar Karoryfer's, each its own soundfont loaded when used, `OWN_FONTS`; these three are the only sounds offered, built by `scripts/build-soundfonts.py`; `docs/specs/2026-10-27-tab-instruments-design.md`), through a small Web Audio output (`audioOutput.ts`; the metronome's and count-in's channels kept out of the effects by `dryChannels.ts`, which replaces alphaTab's mixing step so their voices render into samples of their own) and its effects (`effects.ts`: distortion, and fmlab's plate reverb `plateReverb.ts` baked into a convolver; set from the FX button after Sound, the two boxed together under the shown track's name (`trackLabel` in `PlaybackFooter.tsx`), `FxButton.tsx`: FX opens the FX dialog, and the light switch on its right turns every effect on or off; `docs/specs/2026-10-28-tab-playback-effects-design.md`); the Sound belongs to the clip too, `Clip.instrument`, its `\instrument` (`instrument.ts`: one Frets has no sound for is kept as written and played by the nearest of the three, a red ⚠ by the Sound list saying so), and the FX, each track's own (`Track.fx`, the shown track's in the FX dialog and in playback), written as a `// frets:fx` comment line at the top of its alphaTex or under its track's `\track` (`fxLine.ts`; `docs/specs/2026-10-30-tab-track-effects-design.md`), a run of FX changes one undo step, heard without stopping playback (`sameMusic` in `clipState.ts`; `docs/specs/2026-10-29-tab-sound-and-fx-in-clip-design.md`); `PlaybackFooter.tsx`
-  is the footer under the tab (shown, it sticks to the window's bottom inside the card, `PinnedPlayback.tsx`; `docs/specs/2026-10-28-tab-pinned-playback-design.md`) (Play from the cursor, Loop setting loop points,
-  Speed, a number field (`src/components/NumberField.tsx`), Transpose, the Volume knob (`src/components/VolumeKnob.tsx`), Sound) and the playhead (its line, in the muted green `--playhead` (issue #291), gliding with what is heard, `heardPosition`; `docs/specs/2026-10-26-tab-playback-design.md`); a right-click on Play opens `PlaybackOptions.tsx`, Stop leaves the cursor where it stopped, and a pause between loops (`docs/specs/2026-10-27-tab-playback-options-design.md`). `ScoreHead.tsx` is the score's head, drawn in the clip's card over the drawing (Notation only) as a printed score's first page has it (`docs/specs/2026-10-28-tab-score-head-design.md`): the title (the page's h1), the artist and "Words & Music by" centred, then the tuning ("Tune down 1/2 step") on the left, from `credits.ts` (pure, with the sizes in `HEAD` that the exported image's head shares); the tuning always shown ("Standard tuning" when it is) and a quiet "Add artist and credits" when there are none; a press on the title or the credits picks the two together, one outline round both (`HeadPick`), with Edit and Collapse header beside it, and Edit, Enter or a double-click opens `CreditsPanel.tsx` (Title, needed: a new or title-less arrangement is Untitled, `titled` in `clip.ts`; then Artist, Words, Music, the picked one's field focused, written back by `setCredit`; issue #227); Collapse header folds the title and credits away to the title in small text after Size (`FoldedTitle`), picked the same way with Expand header in Collapse's place, the Notation view option Arrangement header (`docs/specs/2026-11-01-tab-arrangement-header-design.md`); a press on the tuning picks it the same way, with Edit tuning, and Collapse tuning when it is named and lists strings (`foldsTuning` in `credits.ts`), which hides the strings and keeps the name, then Expand tuning; Edit, Enter or a double-click opens `TuningPanel.tsx` (the common tunings and each string on the `KeyPicker`, from `tuning.ts`, frets kept) (`docs/specs/2026-10-29-tab-credits-tuning-design.md`); the Notation view option Tuning details keeps the collapse, and exports follow it (`shownTuning`; `docs/specs/2026-11-01-tab-tuning-collapse-design.md`); a guitar with all six strings tuned alike is written on the staff as fingered (`writtenStrings` in `notation.ts`). The eye button before copy, in every view, opens `ViewOptions.tsx`: Colours (Theme, Paper, Sepia, Night or Custom's two swatches, drawn on a sheet whose tokens `paperVars` in `TabPage.tsx` sets), then only the shown view's own options under its name (`viewOptions.ts`: Notation's bar numbers on every bar, each line's first or none, Clip's line breaks, Arrangement header and Tuning details; ASCII Tab's Rhythm line; AlphaTex's Line numbers; `docs/specs/2026-11-01-tab-view-options-per-view-design.md`). Notation's Size, 50–200% (CSS zoom on the drawing and all over it, laid out at the width over the zoom), is `SizeField` in the card's bar after Staff | Tab | Both, which the views, copies and exports follow; lines run to the full width but the last, and 4/4 beams plain eighths four together (`docs/specs/2026-10-28-tab-sweet-child-intro-design.md`). A double bar is `\db`; with `\multiBarRest`, and always in a track of a clip of several, bars of rest in a row draw as one with their count (`multiRests` in `layout.ts`, each bar keeping its slice so the cursor steps through; a note typed into one opens it into its bars; `docs/specs/2026-10-30-tab-track-rests-design.md`); under a staff the tab names a tied note only where a bar starts; the last line runs full when it has as many bars as the one before (`docs/specs/2026-10-28-tab-sweet-child-verse-design.md`). Under a staff a held bend's note, too, is named only where a bar starts, and a let-down note is named when a pull-off leaves it (`legatoStarts`; `docs/specs/2026-10-28-tab-sweet-child-solo-design.md`). A mordent (`umordent`, `lmordent`; `Note.mordent`, `mordentSign` in `marks.ts`, Bravura's sign) is drawn over the staff and in the vibrato's row over the tab, set from two Techniques buttons; a let-down note is named where a bar starts, and a tied note when a slide leaves it or under a mordent (`hiddenNumber` in `TabColumn.tsx`; `docs/specs/2026-10-28-tab-sweet-child-solo-two-design.md`). A tied note under vibrato is named within the bar too, a grace note bent up has no second number, and the staff brackets a tuplet no beam joins (`docs/specs/2026-10-28-tab-sweet-child-solo-three-design.md`). Every tuplet is bracketed, beamed or not; the wah's "+" (closed) and "o" (open), `Column.wah` (`wahc`, `waho`), are drawn in a row under the chord names (`WahMark` in `TabClip.tsx`) and set from the Techniques palette's Wah button; a let-down note that slides out keeps its number (`docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md`). Two strings bent at once stack their labels, one per height, the top string's highest (`bendLabelLines` in `staffMarks.ts`), the wah's row goes under the chord names, and a tied note bent after a grace note bends from the grace note's number (`docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md`). A held bend pushed on up, `b (4 6)` on a tied note (`Bend.from`), rises from its dashed line by an arrow with the new height's label, a step higher (`bendRaises` in `clip.ts`, `BendCarry` in `TabColumn.tsx`; `docs/specs/2026-10-28-tab-sweet-child-solo-six-design.md`). A tap is a circled T (`TapSign.tsx`) over its number on the tab and over the heads on the staff, in every view (`docs/specs/2026-10-28-tab-circled-tap-design.md`). A dead note may slide into the next note; a bend let down part of the way (`Bend.to`, `b (4 2)`) lands a step under its line, labelled, and a tied note pushes it back up from there (`bendLandings` in `clip.ts`); `Column.hairpin` (`cre`, `dec`) draws one wedge per run in its own row under the staff (`SystemRowMarks` in `TabClip.tsx`); an artificial harmonic (`ah`, `Note.harmonicFret` for `ah 12`) is labelled "AH" in the P.H. row and comes after pinch in the N key's cycle (`docs/specs/2026-10-28-tab-sweet-child-outro-design.md`). A free-time bar (`Bar.freeTime`, `\ft`) closes with a dashed line, and the first of a run says "Free time" in the tempo row with its time signature in brackets (`startsFreeTime` in `clip.ts`, `TimeBrackets` in `StaffDrawing.tsx`); a fermata (`Column.fermata`, `fermata medium`) is Bravura's sign over the staff, or over the tab alone in its own row (`FermataSign`; `docs/specs/2026-10-28-tab-sweet-child-ending-design.md`). A bend's arrows run its note's length, to just before the next note (`bendShape` and `PlacedColumn.bendRoom` in `layout.ts`). A picked note bent up is drawn on the staff at the pitch it reaches, after its starting pitch in brackets joined by a line (`Head.bendFrom`, `pickedBendSemitones` in `notation.ts`; let down in the same note, `Head.bendBack` after it, under a tab only); dead notes are a capital X on the tab; a ghost chord within a fifth shares one tall pair of brackets on the staff (`ghostChord` in `StaffDrawing.tsx`; `docs/specs/2026-10-29-tab-book-marks-design.md`). The whammy bar (`Column.whammy`, alphaTex `tb`) is drawn as printed guitar books draw it, from the number down under the tab to its depth in steps, under "w/ bar" (`whammy.ts`: where its lines and labels go, `whammyJoins` for tied notes it holds or returns; `Rows.dives` makes room under the tab), picked like a bend and set from the Techniques palette's Whammy bar panel; on the staff a tied note under it is drawn at the pitch reached and a pre-dipped one after its fret's pitch in brackets (`whammyGoesOn` in `clip.ts`, `barHeads`), and a dive no tied note goes on from draws a line through its pitches (`staffMarks.ts`) (`docs/specs/2026-10-29-tab-whammy-design.md`). `usePopover.ts` places and closes the small panels. `tabSettings.tsx` holds the page's preferences, a Settings section each (`useTabPrefs`: Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing, Export, each its own key, parsed in `PlaybackFooter.tsx`, `viewOptions.ts`, `editingPrefs.ts` and `exportTab.tsx`; Editing's "Fill short bars with rests", off by default, is the `fillBars` that `moveColumn` and `fillBar` in `editing.ts` follow), and builds Settings' Tab group on them, so the gear's dialog and the page's own controls change the same values (`docs/specs/2026-10-29-settings-design.md`). The note toggle after Loop (a music note with sound waves) sounds each note, alone, as it is entered (`docs/specs/2026-10-27-tab-hear-notes-design.md`). After it, Metronome clicks every beat (beat one higher; in 6/8, 9/8, 12/8 every eighth, each group of three marked), and its right-click menu (`ClickOptions.tsx`) sets a count-in of 1 to 4 bars before Play and the click volume: the clicks are part of the clip's MIDI (`countOf`, `withCountIn` in `playback.ts`), so they follow Speed, loops, repeats and time signatures, in a sound synthesized by `src/lib/click.ts`, shared with the Metronome page (#149), that `click.ts` wraps in a SoundFont (`docs/specs/2026-10-28-tab-metronome-design.md`).
-  Images and dragging are PR 3 in the spec.
-- `tab.css` — the page's CSS (`.tab-*`, `.score-*`), imported from `src/app/globals.css`.
+## Rules that span files
+
+- A clip's own format is alphaTex (`2026-10-25-tab-alphatex-design.md`;
+  for agents `public/tab-alphatex.txt`), read with alphaTab's parser
+  (`@coderline/alphatab`, pinned to 1.8.4, loaded on first read; its
+  renderer is not used). What Frets doesn't draw is kept as written
+  (`extra` and `header` in the clip), so a clip writes back exactly.
+- Durations are ticks, whole = 3548160, so a double-dotted thirty-second
+  and a sixty-fourth in any tuplet of up to twelve notes are whole numbers.
+  Grace notes take no time.
+- Bars stay full, as MuseScore keeps them: Delete leaves rests, and a
+  length change on a picked column writes over what follows or leaves
+  rests after it (`2026-10-31-tab-bars-stay-full-design.md`,
+  `2026-11-01-tab-rest-lengths-design.md`).
+- `layoutClip` (`layout.ts`) is the one source of where things are: the
+  drawing, every hit test, the fields over the tab and the exports all work
+  on its result.
+- Each built-in arrangement but those in `samples/` must read with no
+  warnings and write back exactly (`src/__tests__/tab/examples.test.ts`),
+  and every newly drawn feature gets one.
+- A key added or changed goes in `shortcuts.ts` in the same PR.
+- What is selected or picked is drawn in `--select`, blue
+  (`2026-11-01-tab-selection-look-design.md`); a picked word, bar line or
+  mark has Edit and Delete in a right-click menu, and a double-click opens
+  its Edit (`2026-11-01-tab-double-click-edit-design.md`).
+
+## The page
+
+- `TabLoader.tsx` — `TabPageClient`, which loads `TabPage` on the client
+  only (it reads storage and the link's hash); `src/app/tab/page.tsx`
+  renders it.
+- `TabPage.tsx` — the editor: holds the whole clip, shows and edits one
+  track of it as a `Part` through `clipAction`, lays the drawn clip out
+  once per change and hands that layout to `TabClip`, the playhead, the
+  loop handles and `fieldSpots.ts`, and wires the hooks below together —
+  `2026-10-25-tab-editing-design.md`. Its tests are in
+  `src/__tests__/tab/page/`, one file per area, sharing `helpers.tsx`.
+- `useEditorState.ts` — the cursor, selection, picked thing, note input and
+  `commit`.
+- `useTabPicking.ts` — presses, drags and Alt+← → on the tab.
+- `useHeadPanels.tsx` — the word fields, the signature panels and the
+  score head's panels.
+- `useArrangementFile.tsx` — New, Arrangements…, Save, Save as…, ⌘S/⌘O and
+  "Save changes?".
+- `useStableHandlers.ts` — gives `TabClip` the same handlers each render,
+  so a playback step doesn't draw it again.
+- `tab.css` — the page's CSS (`.tab-*`, `.score-*`), imported from
+  `src/app/globals.css`.
+- `views.ts` — the three views (Notation, ASCII Tab, AlphaTex) and the
+  switch's order.
+- `notice.ts` — what the line under the clip says (an import's guesses, a
+  failure, a copy).
+- `useWidth.ts` — an element's width, kept up to date.
+- `usePopover.ts` — places and closes the small panels opened at a press or
+  under a button.
+- `shortcuts.ts` — the page's keys for the `?` overlay: the palette's from
+  `tools.ts`, the rest listed by hand from `editorKeys.ts`, `TabPage.tsx`
+  and `useSpaceKey`.
+- `tabSettings.tsx` — the page's preferences, one Settings section each
+  (Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing,
+  Export), held as page state so Settings and the page's own controls
+  change the same values — `2026-10-29-settings-design.md`.
+- `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): `fillBars`, off
+  by default — `2026-10-29-tab-fill-bars-setting-design.md`.
+
+## The clip and its formats
+
+- `clip.ts` — the model: a clip of tracks over shared `masterBars`
+  (signatures, repeats, tempo, sections); `Part` is one track with those
+  marks, made by `partOf` and put back by `withPart`; `parseClip`,
+  `timeAt`, `titled`, `barsPerLine`, `bendRaises`, `bendLandings` —
+  `2026-10-26-tab-rhythm-design.md`, `2026-10-30-tab-tracks-design.md`.
+- `clipState.ts` — the clip with undo and redo, which arrangement it is,
+  and the clip as last saved (`base`), so undoing back to it leaves nothing
+  unsaved; `sameMusic` lets an FX change play on without a stop.
+- `alphatexRead.ts` — reads alphaTex with alphaTab's parser and maps its
+  score onto a clip — `2026-10-25-tab-alphatex-design.md`.
+- `alphatex.ts` — writes a clip as plain alphaTex, the canonical form.
+- `alphatexText.ts` — pure helpers for the AlphaTex view's editor: where
+  the comments are, and which line a spot in the text is on —
+  `2026-10-27-tab-alphatex-editing-design.md`.
+- `ascii.ts` — `readAscii` (errors, warnings, guessed durations) and
+  `writeAscii`; `public/tab-ascii.txt` is the format, its examples are
+  tests, and `src/__tests__/tab/fixtures/` holds the forgiven spellings.
+- `readTab.ts` — tells ASCII tab from alphaTex by the text alone.
+- `credits.ts` — the artist, words and music from the clip's header, the
+  tuning line ("Tune down 1/2 step"), `foldsTuning`, `shownTuning`, and the
+  head's sizes in `HEAD` — `2026-10-29-tab-credits-tuning-design.md`.
+- `tuning.ts` — the common tunings and setting a string's note, frets kept.
+- `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
+  sound for is kept and played by the nearest —
+  `2026-10-29-tab-sound-and-fx-in-clip-design.md`.
+- `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
+  `2026-10-30-tab-track-effects-design.md`.
+- `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex) and reading
+  `#tab=` — `2026-10-29-tab-share-link-design.md`.
+
+## Layout and hit testing (pure)
+
+- `layout.ts` — `layoutClip`: systems, bars and columns at a width; `rowsFor`
+  (the rows over the staff each line uses), `lineAt`, `spreadLines`,
+  `multiRests`, `bendShape` — `2026-10-28-tab-line-spacing-design.md`,
+  `2026-10-28-tab-line-breaks-design.md`,
+  `2026-10-30-tab-track-rests-design.md`.
+- `layoutText.ts` — the words over the tab and the signatures: sizes,
+  boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
+- `hitTest.ts` — what a press is on (a string at a column, a staff line, a
+  gap, a stem via `rhythmAt`) and where the cursor is drawn.
+- `runs.ts` — marks over runs of columns (vibrato, let ring, P.M.) and
+  legato joins.
+- `beams.ts` — which notes a beam joins; plain eighths four together in 4/4.
+- `marks.ts` — where each technique mark is so a press picks it, its
+  palette tool, `markLights`, `mordentSign` —
+  `2026-10-27-tab-pick-marks-design.md`.
+- `barLines.ts` — the repeat signs, ×N counts and double bar lines a press
+  picks; `hasEdit` (issue #276).
+- `elements.ts` — every pickable thing in reading order, for Alt+← →
+  (MuseScore's next element, issue #238).
+- `rectangle.ts` — Shift+drag from blank space: the rectangle and the run
+  of columns it takes in (issue #238).
+- `whammy.ts` — where the whammy bar's lines and labels go, `whammyJoins` —
+  `2026-10-29-tab-whammy-design.md`.
+- `fieldSpots.ts` — where the fields and panels over the tab open.
+
+## Editing (pure)
+
+- `editing.ts` — the cursor, selection and frets; edits that add, move or
+  remove columns and bars; `normalize`, cut, copy, `pasteOver`,
+  `insertPaste`, `clearToRests`, `fillBar` —
+  `2026-10-25-tab-editing-design.md`,
+  `2026-10-31-tab-bars-stay-full-design.md`.
+- `noteEdits.ts` — the palette's changes to notes: rhythm, tuplets, grace
+  notes, marks, joins, bends, and `changeLength` —
+  `2026-11-01-tab-rest-lengths-design.md`.
+- `barEdits.ts` — the words over the tab and what a bar carries (repeats,
+  endings, double bars, signatures).
+- `normalMode.ts` — normal mode's edits: MuseScore's length digits, frets
+  ±1, the next note in a chord, dragging a fret to another string —
+  `2026-10-30-tab-note-input-mode-design.md`,
+  `2026-10-31-tab-drag-fret-string-design.md`.
+- `inputLength.ts` — note input's length, set before a note goes in.
+- `jumps.ts` — Ctrl/⌘+← → a bar, Home / End, with Shift growing the
+  selection — `2026-10-30-tab-musescore-selection-design.md`.
+- `staffEntry.ts` — the staff's own cursor, the string and fret chosen for
+  a note entered on the staff, `moveNotes` —
+  `2026-10-27-tab-staff-entry-design.md`,
+  `2026-10-28-tab-staff-drag-design.md`.
+- `tools.ts` — the palette's table (name, key, edit, whether lit), shared
+  by the palette, the keys and the `?` overlay.
+- `editorKeys.ts` — the keys on the tab, on the staff cursor and on the
+  playback line.
+
+## Drawing
+
+- `TabClip.tsx` — draws a layout as SVG (a `memo`), with the cursor and selection;
+  `rangeBoxes`, `WahMark`, `SystemRowMarks`.
+- `TabColumn.tsx` — one column: its numbers, joins, bends and marks;
+  `hiddenNumber`, `BendCarry`.
+- `TabStems.tsx` — the tab's own stems, beams and rests when no staff
+  carries the rhythm.
+- `tabLook.ts` — the colours a clip is drawn in (tokens on the page,
+  concrete colours in an export), and the selection's look.
+- `notation.ts` — each note's pitch, staff step and accidentals,
+  `writtenStrings`, `pickedBendSemitones` (spelling is
+  `src/lib/theory/keys.ts`) — `2026-10-27-tab-notation-design.md`.
+- `StaffDrawing.tsx` — the treble staff an octave up; carries the rhythm in
+  Both; `ghostChord`, `TimeBrackets`.
+- `staffGeometry.ts` — heads, stems and beams across a bar.
+- `staffMarks.ts` — the technique marks on the staff and their boxes;
+  `staffInk`, `bendLabelLines`.
+- `smufl.ts` — Bravura glyph outlines (from `scripts/smufl-glyphs.mjs`;
+  licence in `BRAVURA-LICENSE.txt`).
+- `TapSign.tsx` — a tap's circled T —
+  `2026-10-28-tab-circled-tap-design.md`.
+- `TempoNote.tsx` — the quarter note of "♩ = 92", drawn the same
+  everywhere.
+- `ScoreHead.tsx` — the score's head: title, artist and credits, tuning;
+  `HeadPick`, `FoldedTitle` — `2026-10-28-tab-score-head-design.md`,
+  `2026-11-01-tab-arrangement-header-design.md`,
+  `2026-11-01-tab-tuning-collapse-design.md`.
+
+The Sweet Child and book-marks specs (`2026-10-28-tab-sweet-child-*`,
+`2026-10-29-tab-book-marks-design.md`) set how printed guitar books draw
+ties, bends, grace notes, mordents, wah, fermatas and free time.
+
+## Palette, panels and fields
+
+- `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`.
+- `BarTimePanel.tsx` — the time signature from a bar on.
+- `TimeSignatureFields.tsx` — the time signature panel's two fields.
+- `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
+- `barPanel.ts` — keeps the bar panels inside the tab.
+- `WordField.tsx` — the field over the tab for a chord name, text, section,
+  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`.
+- `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
+  `2026-10-29-tab-tempo-button-design.md`.
+- `CreditsPanel.tsx` — title (needed), artist, words and music.
+- `TuningPanel.tsx` — the common tunings and each string on the
+  `KeyPicker`.
+- `ViewOptions.tsx` — Colours, then only the shown view's own options —
+  `2026-11-01-tab-view-options-per-view-design.md`.
+- `viewOptions.ts` — the view options' values and their parser (`laidOut`),
+  saved per viewer, not in the clip.
+- `AlphaTexEditor.tsx` — the editable AlphaTex view: read half a second
+  after typing, errors marked ⚠ —
+  `2026-10-27-tab-alphatex-editing-design.md`.
+
+## Arrangements, import and export
+
+- `arrangements.ts` — My arrangements in the browser: one key per clip, an
+  index, and the draft — `2026-10-28-tab-arrangements-design.md`.
+- `useArrangements.ts` — the arrangements as React state, with Undo for a
+  delete.
+- `ArrangementChooser.tsx` — Arrangements… as a file chooser: places,
+  files, preview — `2026-10-31-tab-arrangement-chooser-design.md`.
+- `SaveDialogs.tsx` — Save as… and "Save changes to ‹name›?".
+- `builtins.ts` — the built-in arrangements, opened by
+  `/tab#example=<name>`; served by `src/app/tab/builtin.json/`.
+- `builtinFiles.ts` — finds the built-in files on disk (server and tests).
+- `builtin_arrangements/` — one `.atex` or `.txt` per arrangement, a
+  folder per topic (its README says how to add one).
+- `useClipImport.ts` — import, built-ins, links and drops, each opened as
+  a new arrangement.
+- `TabDialogs.tsx` — the Import dialog.
+- `ClipActions.tsx` — the buttons over the clip: View options, copy, Copy
+  link and Download….
+- `saveFile.ts` — saves through the browser's Save As dialog where there is
+  one, else downloads.
+- `exportTab.tsx` — the clip as PNG and SVG, with the score head, and the
+  Export section's settings — `2026-10-26-tab-export-design.md`.
+- `TabExportDialog.tsx` — Export: one Format list and one Download, Copy
+  for the formats that paste — `2026-10-30-tab-export-format-list-design.md`.
+- `musicxml.ts` — the clip as MusicXML 4.0, `musicXmlLosses` —
+  `2026-10-30-tab-musicxml-export-design.md`.
+- `guitarPro.ts` — the clip as a `.gp` file via alphaTab's `Gp7Exporter` —
+  `2026-10-30-tab-guitar-pro-export-design.md`.
+
+## Playback
+
+- `playback.ts` — plays a clip with alphaTab's synthesizer and the
+  soundfonts in `public/soundfont/` (`OWN_FONTS`, built by
+  `scripts/build-soundfonts.py`); `countOf`, `withCountIn`, `heardPosition`
+  — `2026-10-26-tab-playback-design.md`,
+  `2026-10-27-tab-instruments-design.md`,
+  `2026-10-28-tab-sound-preload-design.md`.
+- `audioOutput.ts` — the Web Audio output the synthesizer plays through;
+  `ringOn`, `chokeAll`.
+- `dryChannels.ts` — keeps the clicks' channels out of the effects.
+- `effects.ts` — distortion and reverb as Web Audio nodes —
+  `2026-10-28-tab-playback-effects-design.md`.
+- `plateReverb.ts` — fmlab's plate reverb, baked into a convolver.
+- `soundDecode.ts` — decoding a soundfont's Ogg Vorbis samples, shared by
+  both sides — `2026-10-29-tab-sound-decoding-design.md`.
+- `soundDecoder.ts` — asks the worker to decode.
+- `soundDecoder.worker.ts` — the Web Worker that decodes.
+- `click.ts` — the metronome click (`src/lib/click.ts`) as a tiny
+  SoundFont — `2026-10-28-tab-metronome-design.md`.
+- `PlaybackFooter.tsx` — the footer under the tab: Play, Loop, Hear notes,
+  Metronome, Speed, Transpose, Volume, Sound, FX; the playhead in
+  `--playhead`; `trackLabel` — `2026-10-27-tab-hear-notes-design.md`.
+- `PinnedPlayback.tsx` — keeps the footer at the window's bottom while the
+  card runs past it — `2026-10-28-tab-pinned-playback-design.md`.
+- `PlaybackOptions.tsx` — Play's right-click menu —
+  `2026-10-27-tab-playback-options-design.md`.
+- `ClickOptions.tsx` — the Metronome toggle's right-click menu: count-in
+  and click volume.
+- `FxButton.tsx` — FX and its light switch, and the FX dialog.
