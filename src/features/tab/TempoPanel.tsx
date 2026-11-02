@@ -13,8 +13,10 @@ import { createPortal } from 'react-dom';
 import { setTempo } from './barEdits';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part, type Tempo } from './clip';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
-import { addTap, tapBpm } from './tapTempo';
+import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
 import { usePopover } from './usePopover';
+
+const BPM_RANGE: BpmRange = { min: MIN_BPM, max: MAX_BPM };
 
 /** The tempo in effect at a bar: the last one set at or before it, else alphaTab's 120. */
 export function tempoFrom(clip: Part, bar: number): Tempo {
@@ -57,8 +59,8 @@ export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
   // The presses of the run of taps so far, in milliseconds.
   const taps = useRef<number[]>([]);
   const tap = () => {
-    taps.current = addTap(taps.current, performance.now());
-    const tapped = tapBpm(taps.current);
+    taps.current = addTap(taps.current, performance.now(), BPM_RANGE);
+    const tapped = tapBpm(taps.current, BPM_RANGE);
     if (tapped !== null && tapped !== bpm) setNumber(tapped);
   };
 

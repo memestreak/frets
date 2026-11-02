@@ -9,7 +9,7 @@
  * character for character.
  */
 import {
-  barTicks, isPalmMuted, isStandardTuning, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
+  barTicks, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
   asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
@@ -348,7 +348,7 @@ export function readAscii(text: string): ReadResult {
       .map(l => stringLineStart(l)!.name);
     if (names.every(n => NOTE_NAME.test(n))) {
       const fromNames = names.map(normalNote).reverse();
-      if (!isStandardTuning(fromNames)) tuning = fromNames;
+      if (!isStandardTuningNames(fromNames)) tuning = fromNames;
     }
   }
 
@@ -714,7 +714,7 @@ export function writeAscii(clip: Part, { rhythm = true }: { rhythm?: boolean } =
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
-  if (!isStandardTuning(clip.tuning)) head.push(`Tuning: ${clip.tuning.join(' ')}`);
+  if (!isStandardTuningNames(clip.tuning)) head.push(`Tuning: ${clip.tuning.join(' ')}`);
 
   // The strings' standard names, high string first, in every tuning: they label the strings, and the
   // Tuning line says how they're tuned, as the score's head does in the Notation view (Jeremy, 2026-10-29).

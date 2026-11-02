@@ -1,4 +1,5 @@
 import { SHARP_NAMES } from '@/lib/music';
+import { mod12 } from '@/lib/theory/notes';
 
 /** Lowest pitch looked for: a little under the low E (82 Hz). */
 export const MIN_HZ = 75;
@@ -87,5 +88,5 @@ const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉';
 export function pitchLabel(midi: number): string {
   const octave = Math.floor(midi / 12) - 1;
   const digits = [...String(Math.abs(octave))].map(n => SUBSCRIPTS[Number(n)]).join('');
-  return `${SHARP_NAMES[((midi % 12) + 12) % 12]}${octave < 0 ? '₋' : ''}${digits}`;
+  return `${SHARP_NAMES[mod12(midi)]}${octave < 0 ? '₋' : ''}${digits}`;
 }

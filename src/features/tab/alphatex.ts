@@ -8,7 +8,7 @@
  * (a clip's `header`, and `extra` on bars, columns and notes) is written
  * back as it was read. Reading is `alphatexRead.ts`.
  */
-import { asClip, isRest, isStandardTuning, keyTex, partOf, type Bar, type Bend, type Clip, type Column, type Note, type Part, type Track } from './clip';
+import { asClip, isRest, isStandardTuningNames, keyTex, partOf, type Bar, type Bend, type Clip, type Column, type Note, type Part, type Track } from './clip';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
@@ -176,7 +176,7 @@ export function writePart(part: Part): string {
 /** A track's tuning, when it isn't standard or its sound wouldn't take guitar strings, and its capo. */
 function trackLines(track: Track): string[] {
   const lines: string[] = [];
-  if (!isStandardTuning(track.tuning) || (track.instrument && !keepsGuitarTuning(track.instrument.program))) {
+  if (!isStandardTuningNames(track.tuning) || (track.instrument && !keepsGuitarTuning(track.instrument.program))) {
     const notes = track.tuning.map((n, i) => withOctave(n, i)).reverse();
     lines.push(`\\tuning (${notes.join(' ')})`);
   }

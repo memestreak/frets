@@ -1,5 +1,6 @@
 import { isStandardTuning, STRING_NAMES, TUNING, type Tuning } from '@/lib/music';
 import type { ChordInfo } from '@/lib/theory/chords';
+import { mod12 } from '@/lib/theory/notes';
 import { publishedShapes } from './publishedShapes';
 
 /*
@@ -47,7 +48,6 @@ export interface Voicings {
   allMoveable: Voicing[];
 }
 
-const mod12 = (n: number) => ((n % 12) + 12) % 12;
 const isSounding = (f: number | null): f is number => f !== null;
 /** Index of each sounding string, low to high. */
 const soundingStrings = (v: Voicing) =>

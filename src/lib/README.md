@@ -37,6 +37,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `storage.ts`, `theme.ts`. `shortcuts.ts`: the `?` overlay's types (a page's
   groups of shortcuts), the keys every page has, how a key is drawn (⌘ on a
   Mac, Ctrl elsewhere) and which `?` press is meant for the page.
+  `tapTempo.ts`: tap tempo (a run of presses and the tempo they keep, in a
+  page's bpm range), for the Metronome's Tap and Tab's tempo panel.
   `click.ts`: the metronome click, a synthesized wood-block tick, for Tab's
   metronome and the Metronome page's wood block.
 - `chords/`: chords on the guitar. `publishedShapes.ts` holds the shapes

@@ -30,11 +30,12 @@ Tuner in `sections.ts`.
     `withPreset`…), the presets
   - `barClicks` (a bar's clicks in beats, swung) and the clock (`timeAt`,
     `retempo`)
-  - tap tempo, tempo names and counting syllables
+  - the bpm range (`BPM_RANGE`, for `src/lib/tapTempo.ts`), tempo names and
+    counting syllables
 - `useMetronomeCore.ts`: the metronome with no storage and no page hooks,
   shared by the page and the MCP App (#269). It holds the rhythm (in with
   `setRhythm`, out as `rhythm`), the volume, and the Web Audio scheduler,
-  which looks 120 ms ahead every 25 ms. It also has tap, start, stop, and
+  which looks 120 ms ahead every 25 ms. It also has tap (from `src/lib/tapTempo.ts`), start, stop, and
   `close` (stop and let the `AudioContext` go).
 - `useMetronome.ts`: the page's metronome, which is the core plus loading
   and saving the rhythm and volume, and Space to start and stop.

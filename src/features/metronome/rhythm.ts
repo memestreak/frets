@@ -328,22 +328,5 @@ export function countSyllable(beat: number, s: number, n: number): string {
   return '·';
 }
 
-/* — tap tempo — */
-
-/** A pause longer than this starts a new run of taps: a little over a beat at the slowest tempo. */
-export const TAP_RESET_MS = 60000 / MIN_BPM + 100;
-/** The taps a tempo is averaged over. */
-export const TAP_KEEP = 8;
-
-/** The run of taps after one at `t` (milliseconds). */
-export function addTap(taps: readonly number[], t: number): number[] {
-  const last = taps.at(-1);
-  return last === undefined || t - last > TAP_RESET_MS ? [t] : [...taps, t].slice(-TAP_KEEP);
-}
-
-/** The tempo the taps keep, or null until there are two. */
-export function tapBpm(taps: readonly number[]): number | null {
-  if (taps.length < 2) return null;
-  const gap = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
-  return clampBpm(60000 / gap);
-}
+/** The tempos the page offers, for tap tempo (`@/lib/tapTempo`). */
+export const BPM_RANGE = { min: MIN_BPM, max: MAX_BPM } as const;

@@ -23,6 +23,7 @@ import {
 import { ChordHeader } from './ChordHeader';
 import { ChordPickers } from './ChordPickers';
 import { nameNotes } from '@/lib/theory/chordNames';
+import { mod12 } from '@/lib/theory/notes';
 import { NECK_STORAGE_KEY, parseNeckSettings } from './neckSettings';
 import { NameList } from './NameList';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';
@@ -33,8 +34,6 @@ import { VoicingStepper } from './VoicingStepper';
 const MAX_FRET = 15;
 const MUTED: Voicing = [null, null, null, null, null, null];
 const NO_VOICINGS: Voicings = { open: [], moveable: [], allMoveable: [] };
-
-const mod12 = (n: number) => ((n % 12) + 12) % 12;
 
 /** Pitch classes of the sounding strings, low E first. */
 const pitchClasses = (frets: Voicing) =>

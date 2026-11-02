@@ -29,7 +29,8 @@ earlier two-box field.
 - The panel is only as wide as the bpm and Tap row; a label is a word or two. A bar with no tempo yet starts from the tempo in
   effect there.
 - **Tap**: each press is a beat; from the second press on, the bpm is the average gap of the latest
-  eight taps (`tapTempo.ts`), whole, kept within 20 to 400. A pause over 2 seconds starts a new run. A
+  eight taps (`src/lib/tapTempo.ts`, shared with the Metronome), whole, kept within 20 to 400. A pause
+  longer than one beat at 20 bpm starts a new run. A
   tap is timed from the press, not the release. T taps too, anywhere in the panel but the label.
 - **Label (optional)**: the word before the note ("Slowly").
 - The drawing follows every change. Enter or a press away keeps it as one undo step; Esc puts it back.

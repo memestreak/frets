@@ -13,7 +13,6 @@ import { partOf, emptyPart } from '@/features/tab/clip';
 import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 import { ScoreHead } from '@/features/tab/ScoreHead';
 import { TabClip } from '@/features/tab/TabClip';
-import { addTap, tapBpm, TAP_RESET_MS } from '@/features/tab/tapTempo';
 import { tempoFrom } from '@/features/tab/TempoPanel';
 
 const BUILTIN_FILES = await readBuiltinFiles();
@@ -44,32 +43,6 @@ afterEach(() => {
   cleanup();
   localStorage.clear();
   vi.restoreAllMocks();
-});
-
-describe('tap tempo', () => {
-  it('takes the tempo from the gaps between taps, once there are two', () => {
-    let taps = addTap([], 1000);
-    expect(tapBpm(taps)).toBeNull();
-    taps = addTap(taps, 1500);
-    expect(tapBpm(taps)).toBe(120);
-    taps = addTap(addTap(taps, 2100), 2700);
-    // Gaps of 500, 600 and 600 ms: an average of 566.7 ms is 106 bpm.
-    expect(tapBpm(taps)).toBe(106);
-  });
-
-  it('starts over after a long pause, and follows the latest eight taps', () => {
-    const taps = addTap(addTap([0], 500), 500 + TAP_RESET_MS + 1);
-    expect(taps).toEqual([500 + TAP_RESET_MS + 1]);
-    let run: number[] = [];
-    for (let t = 0; t < 10; t++) run = addTap(run, t < 5 ? t * 1000 : 4000 + (t - 4) * 500);
-    expect(run).toHaveLength(8);
-    expect(tapBpm(addTap(addTap([], 0), 1500))).toBe(40);
-  });
-
-  it('keeps the tempo within what Frets offers', () => {
-    expect(tapBpm([0, 10])).toBe(400);
-    expect(tapBpm([0, 1999])).toBe(30);
-  });
 });
 
 describe('tempoFrom', () => {
