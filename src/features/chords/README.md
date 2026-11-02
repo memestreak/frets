@@ -3,7 +3,8 @@
 Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 - `src/features/chords/` — the Chords page (`ChordsPage.tsx`, the only
-  stateful component, with its client-only loader), built on
+  stateful component, with its client-only loader in `ChordsLoaders.tsx`;
+  `neckSettings.ts` holds the neck's saved dot labels and their parser), built on
   `src/lib/chords/` and `src/components/chords/`. The frets on the neck are
   the source of truth: picking a chord in `ChordPickers` puts its first
   shape there and keeps that chord, tapping names the notes afresh

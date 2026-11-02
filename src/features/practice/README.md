@@ -33,7 +33,7 @@ by playing the note into the microphone, beside tapping (the Mic button;
 opens the tuner over the page (`docs/specs/2026-10-17-tuner-design.md`), the
 Tuner page's panel in a dialog.
 
-## Files
+## What's here
 
   - `intervals/` and `notes/` — each trainer's pure logic (`intervals.ts` /
     `notes.ts`: settings, question generators taking an injectable `rng`,

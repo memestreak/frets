@@ -196,7 +196,7 @@ A ii-V-I in C, one link per chord:
 
 1. Name each chord as a guitarist writes it, then find its type in the
    list in section 2; write the root from the roots list.
-2. When the user asks for a particular voicing, add its shape; otherwise
+2. When the user asks for a particular shape, add it; otherwise
    the chord alone is enough and Frets shows its shapes.
 3. Check every shape: six parts, each x or 0 to 15, and its notes are the
    chord's notes.

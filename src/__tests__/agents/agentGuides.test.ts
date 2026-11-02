@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Interval, Note } from 'tonal';
 import { describe, expect, it } from 'vitest';
 import { CHORD_TYPES } from '@/lib/theory/chords';
+import { alterationOf } from '@/lib/theory/intervals';
+import { pitchClassOf } from '@/lib/theory/notes';
 import { chordFromSlug, chordSlug, shapeFromKey } from '@/lib/chords/chordUrls';
 import { AGENT_GUIDES, MCP_SERVER } from '@/features/agents/agentGuides';
 
@@ -20,11 +21,9 @@ const END = '--- end of generated list ---';
 
 /** "3m" → "b3", "5A" → "#5", "7d" → "bb7": as guitarists write a degree. */
 function degree(name: string): string {
-  const { num, q } = Interval.get(name);
-  if (q === 'm') return `b${num}`;
-  if (q === 'A') return `#${num}`;
-  if (q === 'd') return `${num === 7 ? 'bb' : 'b'}${num}`;
-  return String(num);
+  const num = parseInt(name, 10);
+  const alt = alterationOf(name);
+  return `${alt < 0 ? 'b'.repeat(-alt) : '#'.repeat(alt)}${num}`;
 }
 
 /** One line per chord type: its slug after the root, how Frets prints it, its degrees. */
@@ -74,9 +73,9 @@ describe('the chord links in chord-links.txt', () => {
       if (!choice) return;
       // The shape plays only the chord's notes.
       const open = ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
-      const played = frets!.flatMap((f, i) => (f === null ? [] : [(Note.chroma(open[i])! + f) % 12]));
+      const played = frets!.flatMap((f, i) => (f === null ? [] : [(pitchClassOf(open[i]) + f) % 12]));
       const def = CHORD_TYPES.find(t => t.id === choice.type)!;
-      const tones = def.semis.map(s => (Note.chroma(choice.root)! + s) % 12);
+      const tones = def.semis.map(s => (pitchClassOf(choice.root) + s) % 12);
       for (const pc of played) expect(tones, `${shape} under ${chord}`).toContain(pc);
     },
   );

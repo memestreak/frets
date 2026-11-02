@@ -146,7 +146,7 @@ describe('IntervalTrainer', () => {
   it('Find it: the right interval outside the range is explained, not scored', () => {
     const { set, q } = renderFindIt(8, { vRange: 2, hRange: 3 });
     const farSpot = cells(set).find(p => isOutOfRange(q, p, set));
-    if (!farSpot) throw new Error('no out-of-range fingering in the window');
+    if (!farSpot) throw new Error('no spot outside the box on the board');
     fireEvent.click(cellEl(farSpot));
 
     expect(screen.getByTestId('feedback')).toHaveTextContent(
@@ -398,7 +398,7 @@ describe('IntervalTrainer', () => {
   });
 
   it('does not repeat the same question when another exists', () => {
-    // P5 up on adjacent strings within two frets: several fingerings.
+    // P5 up on adjacent strings within two frets: several places it lies.
     renderFindIt(21, { mode: 'name', pool: [7], vRange: 2, hRange: 3 });
     const where = () => ['dot-root', 'dot-target'].map(id => {
       const el = screen.getByTestId(id);

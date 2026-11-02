@@ -29,4 +29,4 @@ line, and both keys doing one thing keeps one way to do it.
 
 `deleteAtLine` in `src/features/tab/editorKeys.ts` (pure), called by `lineKeyDown`; the page's
 `editAtLine` records the edit and holds the line at its new gap. Tests in
-`src/__tests__/tab/deleteAtLine.test.ts` and `TabPage.test.tsx`.
+`src/__tests__/tab/deleteAtLine.test.ts` and `src/__tests__/tab/page/playback.test.tsx`.
