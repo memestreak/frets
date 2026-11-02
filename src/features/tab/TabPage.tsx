@@ -667,7 +667,7 @@ export default function TabPage() {
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
       inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined} />
   );
-  const sidePalette: DrawPalette = (groups, className) => drawPalette(groups, className);
+  const sidePalette: DrawPalette = drawPalette;
 
   return (
     <div className="grid gap-4">
@@ -711,7 +711,7 @@ export default function TabPage() {
         </div>
       </header>
 
-      {!oneRow && (
+      {!oneRow && paletteLook !== 'c' && (
         <HoverTips>
           {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
           {drawPalette(paletteLook === 'off' ? undefined : TOP_GROUPS, undefined, true)}

@@ -38,7 +38,8 @@ export const ROW_MOCK: Mock = {
 export function usePaletteMock(): { look: string; oneRow: boolean } {
   const look = useMock(PALETTE_MOCK);
   const row = useMock(ROW_MOCK);
-  return { look, oneRow: look !== 'off' && row === 'one' };
+  // c Rail holds every group (Jeremy, 2026-11-02, Q1), so there is no row over the clip.
+  return { look, oneRow: look !== 'off' && look !== 'c' && row === 'one' };
 }
 
 /** The groups that stay in the row over the clip (with the note input pencil). */
@@ -46,11 +47,16 @@ export const TOP_GROUPS = ['Duration', 'Rhythm'] as const;
 /** The groups that move to the left. */
 const SIDE_GROUPS = ['Joins', 'Bends', 'Techniques', 'Accents', 'Bars', 'Text'] as const;
 
-/** Draws the palette with only `groups`; `className` sets its look. */
-export type DrawPalette = (groups: readonly string[], className?: string) => ReactNode;
+/** Draws the palette with only `groups`; `className` sets its look; the note input pencil first when `input`. */
+export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
+
+/** c Rail: every group, the note input pencil with Duration. */
+const RAIL_GROUPS = ['Duration', 'Rhythm', ...SIDE_GROUPS] as const;
 
 /** Each side group's mark on the rail: one of its own tools' icons. */
-const RAIL_ICONS: Record<(typeof SIDE_GROUPS)[number], ReactNode> = {
+const RAIL_ICONS: Record<(typeof RAIL_GROUPS)[number], ReactNode> = {
+  Duration: ICONS.quarter,
+  Rhythm: ICONS.grace,
   Joins: ICONS.legato,
   Bends: ICONS.release,
   Techniques: ICONS.palmMute,
@@ -106,11 +112,11 @@ function Sections({ palette }: { palette: DrawPalette }) {
 
 /** c: a thin rail of group buttons; the picked one opens its panel beside it, again closes it. */
 function Rail({ palette }: { palette: DrawPalette }) {
-  const [shown, setShown] = useState<string | null>('Techniques');
+  const [shown, setShown] = useState<string | null>('Duration');
   return (
     <div className="tab-side-rail-box" data-open={shown ? '' : undefined}>
       <div className="tab-side-rail" role="group" aria-label="Palettes">
-        {SIDE_GROUPS.map(group => (
+        {RAIL_GROUPS.map(group => (
           <button
             key={group} type="button" className="tab-side-rail-button" aria-label={group} aria-pressed={shown === group}
             data-tip={group} onMouseDown={e => e.preventDefault()} onClick={() => setShown(shown === group ? null : group)}
@@ -139,7 +145,7 @@ function Rail({ palette }: { palette: DrawPalette }) {
           <span className="tab-side-panel-title">{shown}</span>
           {shown === 'Chords'
             ? <p className="tab-side-note">The chord library (PR #300) opens here.</p>
-            : palette([shown], 'tab-side-panel-tools')}
+            : palette([shown], 'tab-side-panel-tools', shown === 'Duration')}
         </div>
       )}
     </div>
