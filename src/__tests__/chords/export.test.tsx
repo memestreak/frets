@@ -60,7 +60,7 @@ describe('export style', () => {
   });
 
   it('fills an image with the colour the preview shows', () => {
-    const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
+    const css = readFileSync(join(process.cwd(), 'src/styles/components.css'), 'utf8');
     const preview = css.slice(css.indexOf('.export-preview {'));
     expect(preview.slice(0, preview.indexOf('}'))).toContain(`background: ${BACKDROP};`);
   });

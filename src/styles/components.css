@@ -1,0 +1,386 @@
+/* The app's shared components (the ones in src/components/), beyond Fretwood's.
+   Imported into the components layer from src/app/globals.css, before each page's own CSS. */
+
+/* Toggle buttons: off = outline, on = primary-soft fill + primary edge. */
+.btn-toggle[aria-pressed='true'] {
+  background: var(--primary-soft);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+.chip { min-width: 48px; padding: 5px 8px; }
+
+.keycap {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.8;
+  border: 1px solid currentColor;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: 4px;
+}
+.fretboard {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+/* Phones: the board keeps its fret width and the frame scrolls. */
+@media (max-width: 700px) {
+  .board-scroll { overflow-x: auto; }
+  .fretboard { min-width: var(--board-w); }
+}
+.fret-cell { fill: transparent; cursor: pointer; }
+.fret-cell[aria-disabled='true'] { cursor: default; }
+.fret-cell:focus { outline: none; }
+.fret-cell:hover { fill: var(--string); fill-opacity: 0.14; }
+.fret-cell[aria-disabled='true']:hover { fill: transparent; }
+.fret-cell:focus-visible {
+  stroke: var(--focus-ring);
+  stroke-width: 2;
+}
+
+.settings-dialog:focus-visible { outline: none; }
+
+/* Chord shapes (ChordDiagram), on the Chords page and in the Scale lab. */
+.shape-btn {
+  display: block;
+  min-width: 0;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+}
+/* No hover fill (Jeremy, 2026-10-06). The selected shape sits on the
+   sunken surface with a ring; a tinted fill hid its root-coloured dots. */
+.shape-btn[aria-pressed='true'] {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+/* The selected shape's ring already shows where the arrow keys are, so
+   no focus outline on top of it; an unselected shape keeps its outline. */
+.shape-btn[aria-pressed='true']:focus-visible { outline: none; }
+.shape-diagram { display: block; width: 100%; height: auto; }
+/* A long press opens the export menu: no iPhone callout or text selection. */
+.shape-btn, .export-trigger { -webkit-touch-callout: none; user-select: none; }
+
+/* The shapes' export menu (right-click, long press, Shift+F10). The
+   focused item is filled, not outlined. */
+.shape-menu {
+  position: fixed;
+  z-index: 40;
+  display: grid;
+  min-width: 176px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgb(30 25 21 / 0.18);
+}
+.shape-menu:focus { outline: none; }
+.shape-menu-item {
+  padding: 8px 10px;
+  font: 500 14px/20px var(--font-sans);
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+/* The same soft fill as a ghost button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
+.shape-menu-item:hover, .shape-menu-item:focus { background: var(--primary-soft); outline: none; }
+
+/* The Export dialog: the image on white, as it comes out. The colour is
+   BACKDROP in exportStyle.ts; a test keeps them in step. */
+.export-dialog { width: min(480px, calc(100vw - 32px)); }
+.export-preview {
+  padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: #ffffff;
+}
+.export-preview .shape-diagram { max-width: 240px; margin: 0 auto; }
+/* Under the preview: the image's size in pixels, and what is behind it. */
+.export-size { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--ink-muted); }
+.export-choices {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 14px;
+}
+.export-choices .seg { justify-self: end; }
+/* On a phone the five sizes and the colours fit on one line; the line under the preview still says px. */
+@media (max-width: 420px) {
+  .export-unit { display: none; }
+  .export-choices { column-gap: 12px; }
+  .export-choices .seg-opt { padding-inline: 8px; }
+}
+/* `Segmented`'s `vertical`: the options stacked in one column. */
+.seg-vertical { flex-direction: column; flex-wrap: nowrap; }
+.export-name { justify-self: stretch; min-width: 0; }
+.export-name:disabled { opacity: 0.45; }
+/* A text field shows its focus even after a click: ink, not the blue ring. */
+.export-name:focus-visible { outline-color: var(--ink); }
+/* "Copied as PNG", after Copy as PNG from the menu. Fixed, so nothing moves. */
+.export-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 40;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--surface);
+  background: var(--ink);
+  border-radius: var(--radius-pill);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms;
+}
+.export-notice[data-shown] { opacity: 1; }
+/* Names the colours of the diagrams' unlabelled dots. */
+.tone-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+}
+.tone-key li { display: inline-flex; align-items: center; gap: 6px; }
+.tone-swatch { width: 14px; height: 14px; border-radius: 50%; }
+.tone-swatch-root { border-radius: 3px; }
+.shape-diagram text { font-family: var(--font-sans); }
+
+/* Settings: a native modal <dialog>. Preflight zeroes the margin that
+   centers it, so restore `auto`. Padding lives on the inner wrapper so a
+   click on the <dialog> itself can only be a backdrop click. */
+.settings-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.settings-dialog[open] { display: flex; }
+.settings-dialog::backdrop { background: rgb(30 25 21 / 0.5); }
+.settings-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+  padding: 18px;
+}
+/* Scrolls between the fixed header and footer rows. The padding and
+   negative margin leave room for focus rings inside the scroll box. */
+.settings-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+  margin: -4px;
+}
+/* No page scroll behind the open dialog. */
+html:has(.settings-dialog[open]) { overflow: hidden; }
+
+.cof-tip {
+  position: fixed; z-index: 20; pointer-events: none;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 8px 11px; border-radius: 8px;
+  background: var(--ink); color: var(--surface);
+  font-size: 13px; line-height: 19px;
+}
+
+/* The root picker, laid out like a piano's keys (KeyPicker.tsx), the
+   sharps and flats a shade darker like the black keys. The picked tile
+   shows by colour alone; every tile keeps its size. */
+.key-picker {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px;
+  width: 336px; max-width: 100%;
+}
+.key-col { display: grid; grid-template-rows: 1fr 1fr; gap: 3px; }
+.key-tile {
+  grid-row: 1 / -1; display: flex; align-items: center; justify-content: center;
+  height: 52px; min-width: 0; padding: 0; cursor: pointer;
+  font: 500 15px/1 var(--font-sans); color: var(--ink);
+  background: var(--surface-raised); border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.key-tile-half {
+  grid-row: auto; height: auto; font-size: 11px; background: var(--surface-sunken);
+}
+.key-tile:hover:not([aria-checked='true']) { background: var(--surface-sunken); }
+.key-tile-half:hover:not([aria-checked='true']) { background: var(--line); }
+.key-tile[aria-checked='true'] {
+  background: var(--primary); color: var(--on-primary); border-color: var(--primary);
+}
+.key-tile:focus-visible { outline: 2px solid var(--ink-muted); outline-offset: 1px; }
+/* The speed field: the number (drag it up or down, or type), "%", and stacked up and down buttons. */
+.number-field {
+  display: inline-flex; align-items: center; height: var(--control-height); padding-left: 10px;
+  background: var(--surface-raised); border: 1.5px solid var(--line-strong); border-radius: var(--radius-sm);
+  font: 600 15px/20px var(--font-sans);
+}
+.number-field input {
+  width: 3ch; border: 0; padding: 0; margin: 0; background: transparent; color: var(--ink);
+  font: inherit; text-align: right; font-variant-numeric: tabular-nums; cursor: ns-resize; touch-action: none;
+}
+.number-field input:focus { outline: none; cursor: text; }
+.number-field:focus-within { border-color: var(--primary); }
+.number-field-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
+.number-field-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
+.number-field-steps button {
+  display: grid; place-items: center; width: 20px; padding: 0; border: 0; background: transparent;
+  color: var(--ink-muted); cursor: pointer;
+}
+.number-field-steps button:first-child { border-bottom: 1px solid var(--line); border-top-right-radius: calc(var(--radius-sm) - 1.5px); }
+.number-field-steps button:last-child { border-bottom-right-radius: calc(var(--radius-sm) - 1.5px); }
+.number-field-steps button:hover { background: var(--surface-sunken); color: var(--ink); }
+/* The volume knob (VolumeKnob). */
+.knob { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; cursor: ns-resize; touch-action: none; }
+.knob:focus { outline: none; }
+.knob:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
+.knob[data-disabled] { cursor: default; }
+
+/*
+ * Settings (issue #195), shaped like REAPER's Preferences: a tree of groups and sections on the
+ * left, the selected section's fields on the right, a row each (its label, then its control).
+ */
+.settings-dialog.settings-prefs { width: min(760px, calc(100vw - 32px)); height: min(560px, calc(100dvh - 32px)); }
+.settings-prefs .settings-dialog-inner { height: 100%; }
+.settings-prefs-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; }
+.settings-tree {
+  display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; padding: 6px;
+  border-radius: 10px; background: var(--surface-sunken);
+}
+.settings-tree:focus, .settings-tree [role='treeitem']:focus { outline: none; }
+.settings-tree-group { display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+.settings-tree-head {
+  display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 6px;
+  font: 600 14px/20px var(--font-sans); color: var(--ink); user-select: none;
+}
+.settings-tree-item {
+  padding: 6px 10px 6px 28px; border: 0; border-radius: 6px; background: none; text-align: left; cursor: pointer;
+  font: 500 14px/20px var(--font-sans); color: var(--ink); user-select: none;
+}
+.settings-tree-item:hover { background: var(--surface-raised); }
+/* The selected section is filled; only its colour changes, so nothing moves. */
+.settings-tree-item[aria-selected='true'], .settings-tree-item[aria-pressed='true'] {
+  background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--line);
+}
+.settings-tree-group:focus-visible > .settings-tree-head,
+.settings-tree-item:focus-visible { box-shadow: inset 0 0 0 2px var(--primary-soft); }
+.settings-pane { min-height: 0; overflow-y: auto; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; }
+.settings-pane-heading { margin: 0 0 14px; font: 600 15px/22px var(--font-sans); color: var(--ink); }
+.settings-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 16px; align-items: center; }
+.settings-row { display: contents; }
+/* Double-click (or long-press) to reset: no text gets selected, and no phone menu opens. */
+.settings-label {
+  font: 500 14px/20px var(--font-sans); color: var(--ink); cursor: default;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.settings-row[data-disabled] .settings-label { color: var(--ink-muted); }
+.settings-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.settings-control .seg { flex-wrap: wrap; }
+.settings-check {
+  display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex: none; padding: 0;
+  border: 1.5px solid var(--line-strong); border-radius: 4px; background: none; color: var(--ink); cursor: pointer;
+}
+.settings-check:focus { outline: none; }
+.settings-check:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
+.settings-check:disabled, .settings-swatch input:disabled, .number-field[data-disabled] { opacity: 0.5; cursor: default; }
+.number-field[data-disabled] input { cursor: default; }
+.settings-phone-nav { display: none; }
+/* After the gear while preferences can't be saved (G5): small, red, the reason on hover. */
+.settings-save-problem { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); }
+/* A phone: a group picker and a strip of its sections above the pane; each label over its control. */
+@media (max-width: 640px) {
+  .settings-dialog.settings-prefs { height: calc(100dvh - 32px); }
+  .settings-prefs-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+  .settings-tree { display: none; }
+  .settings-phone-nav { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .settings-phone-strip { display: flex; gap: 2px; overflow-x: auto; padding: 4px; border-radius: 10px; background: var(--surface-sunken); }
+  .settings-phone-strip .settings-tree-item { flex: none; padding: 6px 10px; white-space: nowrap; }
+  .settings-pane { padding: 12px; }
+  .settings-rows { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  /* Label left, control right; a control too wide for the row goes under its label. */
+  .settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+}
+
+/* The keyboard shortcuts overlay (`?`, issue #180). */
+.settings-dialog:has(.shortcuts) { width: min(880px, calc(100vw - 32px)); }
+.shortcuts-body { min-height: 0; overflow-y: auto; }
+/* Columns inside the scroll box: a height-capped box of columns would overflow sideways. */
+.shortcuts-groups { columns: 2 340px; column-gap: 32px; }
+.shortcuts-group { break-inside: avoid; margin-bottom: 20px; }
+.shortcuts-group-title {
+  margin: 0 0 6px;
+  padding: 5px 10px;
+  font: 600 12px/16px var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* A sunken band, as the segmented controls' track (Jeremy, 2026-10-31). */
+  color: var(--ink);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+/* The rows share the group's columns, so every description starts in line. */
+.shortcuts-list { display: grid; grid-template-columns: fit-content(50%) 1fr; margin: 0; }
+.shortcuts-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcuts-row:last-child { border-bottom: 0; }
+.shortcuts-keys { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.shortcuts-combo { display: inline-flex; align-items: center; gap: 3px; }
+.shortcuts-or { margin: 0 3px; font-size: 12px; color: var(--ink-muted); }
+.shortcuts-does { margin: 0; font-size: 14px; line-height: 20px; color: var(--ink); }
+/* The ? button after a page's settings gear. */
+.shortcuts-button-mark { font: 600 17px/1 var(--font-sans); }
+.shortcuts kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  font: 500 12px/18px var(--font-mono);
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+/* The mock switcher (`?mock=…` links, `src/components/mocks/`): a small card at the bottom right. */
+.mock-switcher {
+  position: fixed; right: 12px; bottom: 12px; z-index: 40;
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: calc(100vw - 24px); padding: 6px 8px 8px;
+  background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.mock-switcher-title {
+  display: flex; align-items: center; gap: 8px; padding: 2px 2px;
+  font: 600 11px/16px var(--font-sans); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-muted); background: none; border: 0; cursor: pointer; text-align: left;
+}
+.mock-switcher-title:hover { color: var(--ink); }
+.mock-switcher-summary { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink); }
+.mock-switcher-fold { margin-left: auto; }
+.mock-switcher-row { display: flex; align-items: center; gap: 8px; }
+.mock-switcher-label { min-width: 3.5em; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
+.mock-switcher .seg-opt { padding: 4px 9px; font-size: 12px; }

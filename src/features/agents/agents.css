@@ -1,0 +1,5 @@
+/* The Agents page.
+   Imported into the components layer from src/app/globals.css. */
+
+/* The Agents page: file names in the mono face. */
+.agents-page code { font: 13px/1.4 var(--font-mono); }

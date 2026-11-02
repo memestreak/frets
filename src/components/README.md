@@ -8,6 +8,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `/explore/scales`, Triads `/explore/triads`, the Circle of fifths `/explore/circle` (`?view=advanced`
   for its Advanced view, the modes), the Chords page `/chords`, the Tuner
   `/tuner`, the Tab editor `/tab`, the Metronome `/metronome`.
+- `src/styles/components.css` — the CSS of the components here, beyond
+  Fretwood's (`fretwood.css`); a page's own CSS is in its folder. Both are
+  imported into the `components` layer by `src/app/globals.css`.
 - `src/components/sections.ts` — the app's map: the groups Tools, Practice
   and More (the Agents page), each with its pages (href, title, summary). A group is not a
   path: the Scale lab is a tool at `/explore/scales`. `AppNav`, the home

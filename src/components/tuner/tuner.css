@@ -1,0 +1,88 @@
+/* The tuner (TunerPanel), on the Tuner page, in the trainers' tuner dialog and in its MCP App.
+   Imported into the components layer from src/app/globals.css. */
+
+/* The tuner (TunerPanel): every part keeps its size whatever it reads. */
+.tuner-card { max-width: 560px; margin-inline: auto; padding: clamp(14px, 4vw, 20px); }
+.tuner { display: grid; }
+.tuner-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+}
+.tuner-switch { display: flex; justify-content: center; margin-top: 16px; }
+.tuner-meter {
+  width: 100%; max-width: 420px; aspect-ratio: 320 / 190; margin: 14px auto 0;
+}
+.tuner-meter > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.dial-track { fill: none; stroke: var(--surface-sunken); stroke-width: 22; stroke-linecap: round; }
+/* In tune, the zone, the needle, the note and the string light up. */
+.dial-zone {
+  fill: none; stroke: var(--lit); stroke-width: 22; opacity: 0.25;
+  transition: opacity 200ms, filter 200ms;
+}
+.dial[data-in-tune='true'] .dial-zone {
+  opacity: 1; filter: drop-shadow(0 0 8px var(--lit-glow)) drop-shadow(0 0 3px var(--lit-glow));
+}
+.dial-tick { stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.dial-tick[data-major='true'] { stroke: var(--ink-muted); stroke-width: 2.5; }
+.dial-label { font: 600 11px var(--font-sans); fill: var(--ink-muted); text-anchor: middle; }
+.dial-sign { font: 600 20px var(--font-sans); fill: var(--ink-muted); text-anchor: middle; }
+.dial-needle {
+  transform-box: view-box; transform-origin: 160px 172px;
+  transition: transform 140ms ease-out;
+}
+.dial-needle line {
+  stroke: var(--primary); stroke-width: 4; stroke-linecap: round;
+  transition: stroke 200ms, filter 200ms;
+}
+.dial-needle[data-idle='true'] line { stroke: var(--line-strong); }
+.dial[data-in-tune='true'] .dial-needle line {
+  stroke: var(--lit); filter: drop-shadow(0 0 5px var(--lit-glow));
+}
+.dial-hub { fill: var(--fretboard); stroke: var(--surface-raised); stroke-width: 3; }
+/* The strobe: nut-coloured stripes on rosewood, lit green in tune. */
+.strobe-face { fill: var(--fretboard); }
+.strobe-stripe { fill: var(--nut); transition: fill 200ms; }
+.strobe-band { transition: filter 200ms; }
+.strobe[data-state='idle'] .strobe-stripe { fill: var(--inlay); }
+.strobe[data-state='in-tune'] .strobe-stripe { fill: var(--lit); }
+.strobe[data-state='in-tune'] .strobe-band { filter: drop-shadow(0 0 6px var(--lit-glow)); }
+.strobe-mark { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.tuner-readout { display: grid; justify-items: center; gap: 2px; margin-top: 6px; }
+.tuner-note {
+  display: inline-flex; align-items: baseline; height: 112px;
+  font: 600 112px/1 var(--font-display); color: var(--ink);
+  transition: color 200ms ease-out, text-shadow 200ms ease-out;
+}
+.tuner-note sub {
+  display: inline-block; width: 18px; margin-left: 4px; vertical-align: baseline;
+  font: 600 28px/1 var(--font-sans); color: var(--ink-muted);
+}
+.tuner-note[data-idle='true'] { color: var(--line-strong); }
+.tuner-cents {
+  height: 24px; font: 500 18px/24px var(--font-sans); color: var(--ink-muted);
+  font-variant-numeric: tabular-nums; text-align: center;
+}
+.tuner-readout[data-in-tune='true'] :is(.tuner-note, .tuner-cents) { color: var(--lit); }
+.tuner-readout[data-in-tune='true'] .tuner-note {
+  text-shadow: 0 0 24px var(--lit-glow), 0 0 6px var(--lit-glow);
+}
+.tuner-strings {
+  display: flex; justify-content: center; gap: clamp(4px, 1.8vw, 14px);
+  margin: 22px 0 8px; padding-top: 18px; border-top: 1px solid var(--line);
+}
+/* The strings: round buttons, the one heard filled. */
+.tuner-string {
+  display: grid; place-items: center; width: clamp(40px, 11vw, 54px); aspect-ratio: 1;
+  padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  font: 600 17px/1 var(--font-display); color: var(--ink);
+  background: var(--surface-sunken); box-shadow: inset 0 0 0 1.5px var(--line);
+  transition: background-color 200ms, box-shadow 200ms, color 200ms;
+}
+.tuner-string sub { font: 600 10px/1 var(--font-sans); color: var(--ink-muted); }
+.tuner-string:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.tuner-string[data-heard='true'] { background: var(--primary); color: var(--on-primary); box-shadow: none; }
+.tuner-string[data-heard='true'] sub { color: var(--on-primary); }
+.tuner-string[data-in-tune='true'] {
+  background: var(--lit); color: var(--on-lit);
+  box-shadow: 0 0 0 3px var(--lit-glow), 0 0 18px var(--lit-glow);
+}
+.tuner-string[data-in-tune='true'] sub { color: var(--on-lit); }

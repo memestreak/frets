@@ -1,0 +1,54 @@
+/* The Chords page: the shape grid, the chord names, and the Type and search fields.
+   Imported into the components layer from src/app/globals.css. */
+
+/* The Chords pages' shapes: five per line, wrapping. */
+.shape-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(104px, 168px));
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+}
+/* Phones: three per line, so the diagrams stay readable without scrolling sideways. */
+@media (max-width: 700px) {
+  .shape-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* The Chord lab's chord names. */
+.name-btn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: start;
+  cursor: pointer;
+}
+.name-btn:hover { background: var(--surface-sunken); }
+.name-btn[aria-pressed='true'] {
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+.name-btn b { min-width: 7ch; font-size: 1.1rem; }
+.name-btn span { font-size: 0.875rem; color: var(--ink-muted); }
+
+/* The Chords page's Type dropdown and the search box that takes its
+   place (ChordPickers.tsx): one fixed width, so the swap moves nothing. */
+.chord-type, .chord-search { width: 15rem; max-width: 100%; }
+@media (max-width: 480px) {
+  .chord-type, .chord-search { width: 12rem; }
+}
+.chord-search:focus-visible { outline-color: var(--ink); }
+.chord-search-toggle[aria-pressed='true'] { background: var(--primary-soft); }
+.chord-search-toggle:focus-visible { outline-color: var(--ink); }
+/* A miss floats under the box, over the page, so nothing moves. */
+.chord-search-miss {
+  position: absolute; left: 0; top: calc(100% + 4px); z-index: 10;
+  width: max-content; max-width: 15rem; padding: 4px 8px;
+  font: 400 13px/18px var(--font-sans); color: var(--danger);
+  background: var(--surface-raised); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}

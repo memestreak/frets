@@ -102,7 +102,9 @@ both for anything new.
   `prefers-color-scheme` and `data-theme`), type and the shared component
   classes (`.btn-*`, `.seg`, `.card`, `.input`). It is imported into
   Tailwind's `components` layer; app-specific component CSS is in the same
-  layer in `globals.css`. Use tokens directly, e.g. `text-(--ink-muted)`,
+  layer: shared components' in `src/styles/components.css`, a page's own in
+  a CSS file in its folder (e.g. `src/features/tab/tab.css`), each
+  `@import`ed by `globals.css`. Use tokens directly, e.g. `text-(--ink-muted)`,
   `bg-(--surface-raised)`; Tailwind's default palette is disabled.
 - Surfaces: `--surface` (page), `--surface-raised` (cards, dialogs, inputs),
   `--surface-sunken` (segmented track, answer tiles, stat bars). Lines

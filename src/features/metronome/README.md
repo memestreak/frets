@@ -45,7 +45,7 @@ Tuner in `sections.ts`.
   `frets.metronome.works.current` (the rhythm), `frets.metronome.display`
   (the view) and `frets.metronome.playback` (the volume).
 
-Its CSS (`.metronome-*`) is in `src/app/globals.css`. Its tests are in
+Its CSS (`.metronome-*`) is in `metronome.css`, imported from `src/app/globals.css`. Its tests are in
 `src/__tests__/metronome/`.
 
 ## The MCP App (#269)

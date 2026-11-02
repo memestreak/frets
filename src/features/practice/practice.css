@@ -1,0 +1,79 @@
+/* The trainers (Interval and Note): the answer buttons, the board's frame, the hint and the mic.
+   Imported into the components layer from src/app/globals.css. */
+
+.answer-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+/* "C♯/D♭" may break after the slash when the button is narrow. */
+.answer-btn {
+  padding: 12px 2px;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0;
+  line-height: 1;
+  font-size: clamp(13px, 1.6vw, 17px);
+  background: var(--surface-sunken);
+}
+.answer-grid[data-variant='note'] .answer-btn {
+  font-size: clamp(12px, 1.4vw, 16px);
+  line-height: 1.1;
+}
+.answer-btn[data-state='wrong'] {
+  background: var(--danger);
+  color: var(--on-primary);
+}
+.answer-btn[data-state='correct'] {
+  background: var(--success);
+  color: var(--on-primary);
+}
+.answer-btn[data-state='idle']:hover { background: var(--line); }
+/* Phones and narrow windows: two rows of six, so each button stays a
+   comfortable touch target (at least 44px wide at 390px). */
+@media (max-width: 700px) {
+  .answer-grid {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .answer-btn { min-height: 48px; padding-inline: 0; font-size: 16px; }
+  .answer-grid[data-variant='note'] .answer-btn { font-size: 15px; }
+}
+
+/* A .card: separate from the answer card above; no flex gap so the
+   board-to-legend spacing stays as it was. */
+.board-frame { padding: 12px 22px 16px; gap: 0; }
+
+/* On: the label stays put (so nothing reflows); the fill goes soft. */
+.hint-btn[aria-pressed='true'],
+.hint-btn[aria-pressed='true']:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+/* The mic toggle: one width whether off ("Mic"), silent or naming a
+   note, so the answer card never reflows as it listens. */
+.mic-btn {
+  width: 116px;
+  justify-content: flex-start;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.mic-note { width: 2.4em; text-align: left; }
+.mic-meter {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.mic-meter[data-on='false'] { visibility: hidden; }
+.mic-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  transform-origin: left;
+}
