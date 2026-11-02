@@ -18,6 +18,7 @@ import { removeBarLine, setRepeatTimes } from '@/features/tab/barEdits';
 import { markAt, markBoxes } from '@/features/tab/marks';
 import { removeMark } from '@/features/tab/noteEdits';
 import { elementsOf } from '@/features/tab/elements';
+import { tool } from './tool';
 
 const BUILTIN_FILES = await readBuiltinFiles();
 vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
@@ -51,7 +52,6 @@ async function open() {
 }
 const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
 const drawing = () => screen.getByRole('img', { name: /drawn as tab/ });
-const tool = (name: string) => screen.getByRole('button', { name });
 const alphaTexText = () => {
   fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
   return (screen.getByRole('textbox', { name: 'alphaTex' }) as HTMLTextAreaElement).value;

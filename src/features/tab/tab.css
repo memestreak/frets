@@ -464,31 +464,36 @@
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
 
-/* MOCK (PaletteMock.tsx, ?rail=a|b, issue #301): the rail of panels on the left of the clip.
-   Every panel is one width, so switching panels never moves the clip; only opening and closing do. */
-/* The rail and panel grow into the page's left margin, so the clip keeps its right edge and, while there
-   is room, its width (Jeremy, 2026-11-02): the grid starts 16px from the window's left edge, and the
-   clip, at most the page column's width, sits at its right end. */
+/* The rail of panels on the clip's left (TabRail.tsx, issue #301), as Dorico draws it: flush with the page,
+   divided by lines. The rail and panel grow into the page's left margin, so the clip keeps its right edge
+   and, while there is room, its width: the grid starts 16px from the window's left edge, and the clip, at
+   most the page column's width, sits at its right end. Every panel is one width, so switching panels never
+   moves the clip; only opening and closing one do. */
 .tab-rail-layout {
-  display: grid; gap: 12px; align-items: start; grid-template-columns: 40px minmax(0, 1fr);
+  display: grid; align-items: start; grid-template-columns: 48px minmax(0, 1fr);
   margin-left: calc(-1 * (max(0px, (100vw - 1240px) / 2) + 4px));
 }
-.tab-rail-layout[data-open] { grid-template-columns: 40px 17rem minmax(0, 1fr); }
-.tab-rail-layout > .min-w-0 { justify-self: end; width: 100%; max-width: calc(min(1240px, 100vw) - 40px); }
-.tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; }
+.tab-rail-layout[data-open] { grid-template-columns: 48px 17rem minmax(0, 1fr); }
+.tab-rail-clip { min-width: 0; justify-self: end; width: 100%; max-width: calc(min(1240px, 100vw) - 40px); }
+.tab-rail-layout[data-open] .tab-rail-clip { padding-left: 16px; }
+.tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
 .tab-rail-button {
   position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
   border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
 }
 .tab-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
 .tab-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); }
-/* The open panel's button: a bar on its outer edge, as Dorico marks it. */
+/* The open panel's button: a bar on its outer edge. */
 .tab-rail-button[aria-pressed='true']::before {
   content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
 }
 .tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
-/* No overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
-.tab-rail-panel { position: sticky; top: 16px; z-index: 5; display: grid; gap: 14px; align-content: start; padding: 12px 14px 16px; }
+/* As tall as the window; no overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
+.tab-rail-panel {
+  position: sticky; top: 16px; z-index: 5; display: grid; gap: 14px; align-content: start;
+  min-height: calc(100vh - 32px); padding: 4px 14px 16px;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+}
 .tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
 .tab-rail-close {
@@ -498,47 +503,15 @@
 .tab-rail-close:hover { color: var(--ink); background: var(--surface-sunken); }
 .tab-rail-tools { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
 
-/* b Sidebar: rail and panel flush with the page, divided by lines, Dorico's look; the panel as tall as the window. */
-.tab-rail-layout[data-look='b'] { gap: 0; }
-.tab-rail-layout[data-look='b'] .tab-rail { padding-right: 8px; }
-.tab-rail-layout[data-look='b'] .tab-rail-panel {
-  min-height: calc(100vh - 32px); padding-top: 4px; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
-}
-.tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 16px; max-width: calc(min(1240px, 100vw) - 24px); }
-
-/* Under 900px the rail is a row over the clip and the open panel sits under it (Q6). */
+/* Under 900px the rail is a row over the clip and the open panel sits under it. */
 @media (max-width: 899px) {
   .tab-rail-layout, .tab-rail-layout[data-open] { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-left: 0; }
-  .tab-rail { position: static; flex-direction: row; }
+  .tab-rail-clip, .tab-rail-layout[data-open] .tab-rail-clip { max-width: none; padding-left: 0; }
+  .tab-rail { position: static; flex-direction: row; padding-right: 0; }
   .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
-  .tab-rail-panel { position: static; }
+  .tab-rail-panel {
+    position: static; min-height: 0; padding: 4px 0 12px;
+    border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  }
   .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
-  .tab-rail-layout[data-look='b'] .tab-rail-panel { min-height: 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-left: 0; padding-right: 0; }
-  .tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 0; }
 }
-
-/* MOCK (ChordPanelMock.tsx, from PR #300): the Chords panel's contents. */
-.chord-panel { min-width: 0; }
-.chord-panel-title { font: 600 16px/24px var(--font-sans); color: var(--ink); }
-.chord-panel-heading { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.chord-panel-entry {
-  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 10px;
-  width: 100%; padding: 4px 8px 4px 4px; border-radius: var(--radius-sm);
-  border: 1px solid transparent; background: none; color: var(--ink); text-align: left; cursor: pointer;
-}
-.chord-panel-entry:hover { background: var(--surface-sunken); }
-.chord-panel-entry[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--line-strong); }
-.chord-panel-entry:focus-visible, .chord-panel-shape:focus-visible { outline: none; }
-.chord-panel-thumb { display: block; width: 56px; }
-.chord-panel-thumb svg { display: block; width: 100%; height: auto; }
-.chord-panel-name { font: 600 15px/20px var(--font-sans); }
-.chord-panel-uses { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-unused { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.chord-panel-shape {
-  padding: 2px; border-radius: var(--radius-sm); border: 1px solid transparent;
-  background: none; cursor: pointer;
-}
-.chord-panel-shape svg { display: block; width: 100%; height: auto; }
-.chord-panel-shape[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--primary); }

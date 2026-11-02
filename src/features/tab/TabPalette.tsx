@@ -35,7 +35,7 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   inputMode?: boolean;
   /** The pencil pressed: note input on or off, as N does. */
   onInputMode?: () => void;
-  /** MOCK (PaletteMock.tsx): only these groups, by label; all when left out. */
+  /** Only these groups, by label (a rail panel's, TabRail.tsx); all when left out. */
   groups?: readonly string[];
   className?: string;
 }) {

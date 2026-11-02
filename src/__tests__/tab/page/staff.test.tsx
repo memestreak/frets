@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { setUpPage, renderAt, alphaTexText, SLOW, undo } from './helpers';
+import { tool } from '../tool';
 
 setUpPage();
 
@@ -18,7 +19,7 @@ describe('the notation staff (issue #122)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
     expect(count('staff-join')).toBe(0);
     // The staff alone is edited too (issue #136), so its palette stays on.
-    expect(screen.getByRole('button', { name: 'Key signature from this bar' })).toBeEnabled();
+    expect(tool('Key signature from this bar')).toBeEnabled();
   });
 });
 
@@ -159,7 +160,7 @@ describe('dragging notes on the staff (issue #174)', () => {
 
     it('a double-click on the staff or the tab goes into note input, picking nothing (Jeremy, 2026-10-31)', async () => {
       await open();
-      const pencil = () => screen.getByRole('button', { name: 'Note input' });
+      const pencil = () => tool('Note input');
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
       press(headAt(0));
       fireEvent.doubleClick(svg(), headAt(0));
@@ -252,7 +253,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('range-box')).toBeNull();
       // A press off the bars lets it go; one on a palette button keeps it for the tool (Jeremy, 2026-11-01).
       press({ clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
-      fireEvent.pointerDown(screen.getByRole('button', { name: /^Dotted/ }));
+      fireEvent.pointerDown(tool(/^Dotted/));
       expect(screen.getAllByTestId('range-box')).toHaveLength(1);
       fireEvent.pointerDown(document.body);
       expect(screen.queryByTestId('range-box')).toBeNull();

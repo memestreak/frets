@@ -31,8 +31,7 @@ import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail, useRailMock } from './PaletteMock';
-import { ChordPanel } from './ChordPanelMock';
+import { TabRail } from './TabRail';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -387,7 +386,6 @@ export default function TabPage() {
   // in a field or a dialog; the tab keeps the focus, so its cursor stays.
   useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
   useShortcuts(TAB_SHORTCUTS);
-  const railLook = useRailMock();
 
   /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
   const addBar = (where: 'before' | 'after') => {
@@ -710,17 +708,8 @@ export default function TabPage() {
         </div>
       </header>
 
-      {railLook === 'off' && (
-        <HoverTips>
-          {/* Lit only while the cursor is in the tab: off it, nothing is under the cursor. */}
-          {drawPalette(undefined, undefined, true)}
-        </HoverTips>
-      )}
-
-      <TabRail
-        look={railLook} palette={drawPalette}
-        chords={<ChordPanel clip={clip} cursor={cursor} editing={editing} onInsert={next => commit(next)} />}
-      >
+      {/* The tools, in panels on a rail to the clip's left (issue #301). */}
+      <TabRail palette={drawPalette}>
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">

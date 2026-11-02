@@ -13,6 +13,7 @@ import { arrangementKey, DRAFT_KEY, LIBRARY_KEY, loadLibrary } from '@/features/
 import { BUILTIN_URL, builtinsFrom } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { type Clip } from '@/features/tab/clip';
+import { tool } from '../tool';
 
 export const RIFF = [
   'Title: Riff',
@@ -115,7 +116,7 @@ export function setUpPage() {
 
 /* — the editor — */
 export const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
-export const vibrato = () => screen.getByRole('button', { name: /^Vibrato/ });
+export const vibrato = () => tool(/^Vibrato/);
 export const keys = (...list: (string | { key: string; shiftKey?: boolean; altKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; code?: string })[]) => {
   for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
 };
