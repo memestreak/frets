@@ -334,6 +334,17 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
           {/* Not in note input: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
           {!highlight.range && highlight.columnOnly && !highlight.input && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
+            // An empty bar has no column to select: the box goes round the whole bar, as round a selected bar (issue #317).
+            const empty = layout.systems[spot.system].bars.find(b => b.index === highlight.cursor!.bar);
+            if (empty && empty.columns.length === 0) {
+              const { top, bottom } = boxSpan(rows);
+              return (
+                <rect
+                  x={empty.x0} y={top} width={empty.x1 - empty.x0} height={bottom - top} rx={3}
+                  fill="var(--select-soft)" fillOpacity={0.6} stroke="var(--select)" strokeWidth={1} data-testid="bar-cursor"
+                />
+              );
+            }
             // Round the tab's six strings; with the staff alone, round its five lines.
             const [top, bottom] = rows.tab ? [stringY(rows, 0) - 9, stringY(rows, STRING_COUNT - 1) + 9] : [rows.score!.top - 9, rows.score!.bottom + 9];
             return (
@@ -881,11 +892,16 @@ export function rangeBoxes(systems: System[], [from, to]: [number, number]): { s
       });
     }
     if (left === null || right === null) return;
-    const { rows } = system;
-    const top = (rows.score ? rows.score.top : stringY(rows, 0)) - RANGE_PAD;
-    // With the tab alone its rhythm, rests too, is under the strings: the box takes it in.
-    const bottom = rows.tabStems ? rows.stemBottom + 4 : (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
+    const { top, bottom } = boxSpan(system.rows);
     boxes.push({ system: si, x: left, y: system.top + top, width: right - left, height: bottom - top });
   });
   return boxes;
+}
+
+/** How high a selection box reaches on a line, from its system's top: the staff's top (or the tab's top line) to the tab's bottom line (or the staff's bottom). */
+function boxSpan(rows: System['rows']): { top: number; bottom: number } {
+  const top = (rows.score ? rows.score.top : stringY(rows, 0)) - RANGE_PAD;
+  // With the tab alone its rhythm, rests too, is under the strings: the box takes it in.
+  const bottom = rows.tabStems ? rows.stemBottom + 4 : (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
+  return { top, bottom };
 }
