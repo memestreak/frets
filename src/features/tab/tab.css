@@ -464,65 +464,74 @@
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
 
-/* MOCK (PaletteMock.tsx, ?palette=a|b|c|d): the Tab page's palettes on the left of the clip. */
-.tab-side-layout { display: grid; gap: 16px; align-items: start; }
-/* No overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
-.tab-side { position: sticky; top: 16px; z-index: 5; }
-@media (min-width: 900px) {
-  .tab-side-layout[data-look='a'] { grid-template-columns: 172px minmax(0, 1fr); }
-  .tab-side-layout[data-look='b'] { grid-template-columns: 188px minmax(0, 1fr); }
-  .tab-side-layout[data-look='c'] { grid-template-columns: auto minmax(0, 1fr); }
-  .tab-side-layout[data-look='d'] { grid-template-columns: 66px minmax(0, 1fr); }
-}
-/* Phones: the palettes go back over the clip, in a row. */
-@media (max-width: 899px) { .tab-side { position: static; } }
-
-/* a Column: each group under its name, five buttons across. */
-.tab-side-column { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
-@media (max-width: 899px) { .tab-side-column { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; } }
-
-/* b Sections: a heading per group that folds it, MuseScore's palettes. */
-.tab-side-sections { display: grid; gap: 2px; }
-.tab-side-section { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
-.tab-side-heading {
-  display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 4px; border: 0; background: none;
-  color: var(--ink); font: 600 13px/18px var(--font-sans); text-align: left; cursor: pointer; border-radius: var(--radius-sm);
-}
-.tab-side-heading:hover { background: var(--surface-sunken); }
-.tab-side-heading:focus-visible { outline: none; }
-.tab-side-heading svg { color: var(--ink-muted); }
-.tab-side-section-tools .tab-palette-label,
-.tab-side-panel-tools { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
-.tab-side-section-tools { padding: 2px 4px 4px 22px; }
-
-/* c Rail: group buttons in a thin strip; the picked one's panel beside it. */
-.tab-side-rail-box { display: flex; gap: 8px; align-items: flex-start; }
-.tab-side-rail { display: flex; flex-direction: column; gap: 4px; }
-.tab-side-rail-button {
-  display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
+/* MOCK (PaletteMock.tsx, ?rail=a|b, issue #301): the rail of panels on the left of the clip.
+   Every panel is one width, so switching panels never moves the clip; only opening and closing do. */
+.tab-rail-layout { display: grid; gap: 12px; align-items: start; grid-template-columns: 40px minmax(0, 1fr); }
+.tab-rail-layout[data-open] { grid-template-columns: 40px 17rem minmax(0, 1fr); }
+.tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; }
+.tab-rail-button {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
   border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
 }
-.tab-side-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
-.tab-side-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); border-color: var(--line-strong); }
-.tab-side-rail-button:focus-visible { outline: none; }
-.tab-side-rail-rule { height: 1px; margin: 4px 6px; background: var(--line); }
-.tab-side-rail-panel { display: grid; gap: 10px; align-content: start; width: 172px; padding: 12px; }
-.tab-side-panel-title { font: 600 13px/18px var(--font-sans); color: var(--ink); }
-.tab-side-note { margin: 0; font-size: 13px; color: var(--ink-muted); }
+.tab-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); }
+/* The open panel's button: a bar on its outer edge, as Dorico marks it. */
+.tab-rail-button[aria-pressed='true']::before {
+  content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
+}
+.tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
+/* No overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
+.tab-rail-panel { position: sticky; top: 16px; z-index: 5; display: grid; gap: 14px; align-content: start; padding: 12px 14px 16px; }
+.tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.tab-rail-close {
+  display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-rail-close:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-rail-tools { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
+
+/* b Sidebar: rail and panel flush with the page, divided by lines, Dorico's look; the panel as tall as the window. */
+.tab-rail-layout[data-look='b'] { gap: 0; }
+.tab-rail-layout[data-look='b'] .tab-rail { padding-right: 8px; }
+.tab-rail-layout[data-look='b'] .tab-rail-panel {
+  min-height: calc(100vh - 32px); padding-top: 4px; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+}
+.tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 16px; }
+
+/* Under 900px the rail is a row over the clip and the open panel sits under it (Q6). */
 @media (max-width: 899px) {
-  .tab-side-rail-box { flex-direction: column; }
-  .tab-side-rail { flex-direction: row; flex-wrap: wrap; }
-  .tab-side-rail-rule { width: 1px; height: auto; margin: 6px 4px; }
-  .tab-side-rail-panel { width: auto; }
+  .tab-rail-layout, .tab-rail-layout[data-open] { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .tab-rail { position: static; flex-direction: row; }
+  .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
+  .tab-rail-panel { position: static; }
+  .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
+  .tab-rail-layout[data-look='b'] .tab-rail-panel { min-height: 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-left: 0; padding-right: 0; }
+  .tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 0; }
 }
 
-/* d Strip: Guitar Pro's edition palette: two buttons across, no names, a rule between groups. */
-.tab-side-strip { flex-direction: column; flex-wrap: nowrap; gap: 0; width: 64px; }
-.tab-side-strip .tab-palette-label { display: none; }
-.tab-side-strip .tab-palette-group { padding: 6px 0; border-bottom: 1px solid var(--line); }
-.tab-side-strip .tab-palette-group:first-child { padding-top: 0; }
-.tab-side-strip .tab-palette-group:last-child { border-bottom: 0; }
-@media (max-width: 899px) {
-  .tab-side-strip { flex-direction: row; flex-wrap: wrap; width: auto; gap: 8px 18px; }
-  .tab-side-strip .tab-palette-group { border: 0; padding: 0; }
+/* MOCK (ChordPanelMock.tsx, from PR #300): the Chords panel's contents. */
+.chord-panel { min-width: 0; }
+.chord-panel-title { font: 600 16px/24px var(--font-sans); color: var(--ink); }
+.chord-panel-heading { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.chord-panel-entry {
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 10px;
+  width: 100%; padding: 4px 8px 4px 4px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: none; color: var(--ink); text-align: left; cursor: pointer;
 }
+.chord-panel-entry:hover { background: var(--surface-sunken); }
+.chord-panel-entry[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--line-strong); }
+.chord-panel-entry:focus-visible, .chord-panel-shape:focus-visible { outline: none; }
+.chord-panel-thumb { display: block; width: 56px; }
+.chord-panel-thumb svg { display: block; width: 100%; height: auto; }
+.chord-panel-name { font: 600 15px/20px var(--font-sans); }
+.chord-panel-uses { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-unused { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.chord-panel-shape {
+  padding: 2px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  background: none; cursor: pointer;
+}
+.chord-panel-shape svg { display: block; width: 100%; height: auto; }
+.chord-panel-shape[aria-pressed='true'] { background: var(--surface-sunken); border-color: var(--primary); }
