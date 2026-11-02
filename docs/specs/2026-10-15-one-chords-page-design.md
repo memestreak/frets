@@ -96,7 +96,7 @@ the chosen name.
 - `src/features/chords/ChordsPage.tsx`: the page, the only stateful
   component (frets, kept chord, chosen name, Show all, Arpeggio). It
   merges `ChordLibrary.tsx` and `ChordLab.tsx`, which go, with
-  `library/` and `lab/`. `ChordPickers`, `VoicingStepper` and `NameList`
+  `library/` and `lab/`. `ChordPickers`, `ShapeMover` and `NameList`
   move up to `src/features/chords/`.
 - `src/lib/chords/chordUrls.ts`: `chordHref` takes a null choice, points
   at `/chords`; `shapeFromKey` reads a `shape` value back.

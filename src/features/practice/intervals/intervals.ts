@@ -1,7 +1,7 @@
-import { clampFret, MIN_WINDOW_SPAN } from '@/lib/fretWindow';
+import { clampFret, MIN_RANGE_SPAN } from '@/lib/fretRange';
 import {
-  intervalClass, midi, pick, samePos, SIMPLE_INTERVALS, STRINGS,
-  type Position, type Rng,
+  intervalClass, midi, pick, sameSpot, SIMPLE_INTERVALS, STRINGS,
+  type Spot, type Rng,
 } from '@/lib/music';
 
 export type IntervalMode = 'name' | 'fret';
@@ -26,8 +26,8 @@ export interface IntervalSettings {
 }
 
 export interface IntervalQuestion {
-  root: Position;
-  tgt: Position;
+  root: Spot;
+  tgt: Spot;
   /** Interval class, 1–12, named from the root even when the target is below. */
   semis: number;
   /** True when the target is above the root. */
@@ -75,16 +75,16 @@ export const withHRange = (set: Box, n: number): Box => {
 };
 
 /**
- * Is `pos` in the box around `root` for a question in direction `up`? The
+ * Is `spot` in the box around `root` for a question in direction `up`? The
  * ranges count the root's own string and fret, so the box reaches
  * `hRange - 1` frets either way. On other strings it follows the string
  * direction (higher strings when `up`) for `vRange - 1` strings; on the
  * root's own string it follows the fret direction. The root itself is never
  * in the box.
  */
-export function inBox(root: Position, up: boolean, pos: Position, set: Box): boolean {
-  const ds = pos.s - root.s;
-  const df = pos.f - root.f;
+export function inBox(root: Spot, up: boolean, spot: Spot, set: Box): boolean {
+  const ds = spot.s - root.s;
+  const df = spot.f - root.f;
   if (Math.abs(df) >= set.hRange) return false;
   if (ds === 0) return up ? df > 0 : df < 0;
   return (up ? ds > 0 : ds < 0) && Math.abs(ds) < set.vRange;
@@ -95,7 +95,7 @@ export function inBox(root: Position, up: boolean, pos: Position, set: Box): boo
  * lie in the question's pitch direction, name as the same interval class,
  * and stay within an octave unless compound spans are allowed.
  */
-export function isCorrectFret(q: IntervalQuestion, tgt: Position, set: Judging): boolean {
+export function isCorrectFret(q: IntervalQuestion, tgt: Spot, set: Judging): boolean {
   if (!inBox(q.root, q.up, tgt, set)) return false;
   const d = midi(tgt.s, tgt.f) - midi(q.root.s, q.root.f);
   return (q.up ? d > 0 : d < 0)
@@ -107,15 +107,15 @@ export function isCorrectFret(q: IntervalQuestion, tgt: Position, set: Judging):
  * Is `tgt` the asked interval in the asked direction, but outside the box?
  * The trainer explains such a tap instead of scoring it as a miss.
  */
-export function isOutOfRange(q: IntervalQuestion, tgt: Position, set: Box): boolean {
+export function isOutOfRange(q: IntervalQuestion, tgt: Spot, set: Box): boolean {
   if (inBox(q.root, q.up, tgt, set)) return false;
   const d = midi(tgt.s, tgt.f) - midi(q.root.s, q.root.f);
   return (q.up ? d > 0 : d < 0) && intervalClass(d) === q.semis;
 }
 
-/** Every correct fret for the question inside the fret window. */
-export function correctFrets(q: IntervalQuestion, set: IntervalSettings): Position[] {
-  const out: Position[] = [];
+/** Every correct fret for the question inside the fret range. */
+export function correctFrets(q: IntervalQuestion, set: IntervalSettings): Spot[] {
+  const out: Spot[] = [];
   for (const s of STRINGS) {
     for (let f = set.minFret; f <= set.maxFret; f++) {
       if (isCorrectFret(q, { s, f }, set)) out.push({ s, f });
@@ -164,7 +164,7 @@ export function generateIntervalQuestion(
   if (!pool.length) return null;
   let all = candidates(set, pool);
   if (prev && all.length > 1) {
-    all = all.filter(c => !(samePos(c.root, prev.root) && samePos(c.tgt, prev.tgt)));
+    all = all.filter(c => !(sameSpot(c.root, prev.root) && sameSpot(c.tgt, prev.tgt)));
   }
   if (!all.length) return null;
   const semis = pick(rng, pool.filter(c => all.some(q => q.semis === c)));
@@ -190,7 +190,7 @@ export function parseIntervalSettings(raw: unknown): IntervalSettings {
 
   let minFret = num(r.minFret, d.minFret);
   let maxFret = num(r.maxFret, d.maxFret);
-  if (maxFret - minFret < MIN_WINDOW_SPAN) {
+  if (maxFret - minFret < MIN_RANGE_SPAN) {
     minFret = d.minFret;
     maxFret = d.maxFret;
   }

@@ -56,11 +56,11 @@ The dialog shows the same two fields as today. "Target range" is relabelled
 Two pure functions in `src/lib/notes.ts`, used by the reducer:
 
 ```ts
-/** Is `pos` the asked note on the asked string, inside the fret range? */
-isCorrectNoteFret(q: FindQuestion, pos: Position, set: NoteSettings): boolean
+/** Is `spot` the asked note on the asked string, inside the fret range? */
+isCorrectNoteFret(q: FindQuestion, spot: Spot, set: NoteSettings): boolean
 
-/** Is `pos` the asked note on the asked string, but outside the range? */
-isNoteOutOfRange(q: FindQuestion, pos: Position, set: NoteSettings): boolean
+/** Is `spot` the asked note on the asked string, but outside the range? */
+isNoteOutOfRange(q: FindQuestion, spot: Spot, set: NoteSettings): boolean
 ```
 
 where `FindQuestion` is the `find` member of `NoteQuestion`. A tap is
@@ -119,9 +119,9 @@ Unchanged: "No question fits these settings — put a string in scope."
 `NoteState` (`src/components/notes/noteState.ts`) changes to match
 `IntervalState`:
 
-- `found: Position[]` becomes `picked: Position | null`, the cell where the
+- `found: Spot[]` becomes `picked: Spot | null`, the cell where the
   correct Find-it answer was tapped.
-- `far: Position[]` holds out-of-range taps; `farLast: boolean` is true
+- `far: Spot[]` holds out-of-range taps; `farLast: boolean` is true
   while the latest tap was one of them, so the feedback line shows the
   right message.
 

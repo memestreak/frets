@@ -28,12 +28,12 @@ One column, like the Scale lab:
    right of the same line. The spelled notes ("A C E G") are on the line
    below.
 2. **On the neck.** The full neck, frets 0–15, showing only the chosen
-   voicing (no other chord tones). Dots are labelled by interval and take
-   their degree colours; the root is a square. A string the voicing
+   shape (no other chord tones). Dots are labelled by interval and take
+   their degree colours; the root is a square. A string the shape
    leaves out is faded, with its name, and has a grey × beside the nut,
    where an open string's dot would be (Jeremy's pick, 2026-10-13); the
    arpeggio marks none. Under it, ‹ › step through
-   the voicings, with a caption such as "Moveable 2 of 9 · root on E ·
+   the shapes, with a caption such as "Moveable 2 of 9 · root on E ·
    frets 5–7". The open groups come first, then the moveable ones.
 3. **Open** and **Moveable**: two groups of small diagrams, five per line,
    wrapping onto as many lines as needed. Tapping one puts it on the neck;
@@ -79,14 +79,14 @@ Notes are spelled by tonal (`Chord.getChord`).
 
 Roots: twelve, one spelling each: C D♭ D E♭ E F F♯ G A♭ A B♭ B.
 
-## Voicings
+## Shapes
 
 Superseded for most chords on 2026-10-09: the shapes guitarists publish
 come first (`2026-10-09-published-chord-shapes-design.md`). The rules
 below still drive the search, which fills Show all and the chord types
 the published data doesn't cover.
 
-Generated, not hand-entered. A voicing is one fret or a mute per string.
+Generated, not hand-entered. A shape is one fret or a mute per string.
 
 **Playable** means all of:
 
@@ -118,7 +118,7 @@ double a note of a fuller one.
 strings in the middle − half the number of strings sounding. Open shapes
 are listed with the most strings first; moveable shapes from the nut up.
 
-All of these numbers are named constants in `voicings.ts`.
+All of these numbers are named constants in `shapes.ts`.
 
 ## Code
 
@@ -127,13 +127,13 @@ All of these numbers are named constants in `voicings.ts`.
     groups, symbols, roots, `chordOf(root, typeId)` (spelled notes,
     formula, each tone's label and semitones, and which tones are
     required).
-  - `voicings.ts`: pure voicing search (`findVoicings`), the easiness
+  - `shapes.ts`: pure shape search (`findShapes`), the easiness
     score, and captions.
-  - `ChordDiagram.tsx` (one small diagram), `VoicingGroups.tsx` (Open and
-    Moveable, five per line or three on phones, Show all) and `chordDots.ts` (voicing → neck
+  - `ChordDiagram.tsx` (one small diagram), `ShapeGroups.tsx` (Open and
+    Moveable, five per line or three on phones, Show all) and `chordDots.ts` (shape → neck
     dots): shared with the Chord lab to come.
   - `library/`: `ChordLibrary.tsx` (the page, the only stateful component),
-    `ChordPickers.tsx`, `VoicingStepper.tsx`, `chordUrls.ts` (slugs).
+    `ChordPickers.tsx`, `ShapeMover.tsx`, `chordUrls.ts` (slugs).
   - `ChordsLoaders.tsx`: client-only loader, like the other sections'.
 - Moved for a second user: `prettyNote` to `src/lib/notation.ts`, and the
   degree-number colours (`DEGREES`) to `components/fretboard/theme.ts`.
@@ -148,7 +148,7 @@ case; a capital M is written `maj` (four types differ from another only by
 it: `amaj7b5` vs `am7b5`) and `#` is written `sharp` (`fsharpm7`,
 `c7sharp9`). Picking a root or type pushes the new chord's URL, so links
 and Back work. With no `chord`, or one it doesn't know, the page shows
-Am7. Nothing is saved in localStorage; the selected voicing and Show all
+Am7. Nothing is saved in localStorage; the selected shape and Show all
 are not in the URL. (The page is static, so the chord is read in the
 browser; a path such as `/chords/library/am7b5` would have needed 1,272
 prebuilt pages or a host rewrite rule.)
@@ -157,8 +157,8 @@ prebuilt pages or a host rewrite rule.)
 
 - chordTypes: every tonal type is listed once; groups; symbols; spelled
   notes (Cm7, F♯°7, B♭13); required tones.
-- voicings: well-known shapes appear (open C, open Am7, E-shape and
-  A-shape barres); every voicing obeys the playable rules; the best few
+- shapes: well-known shapes appear (open C, open Am7, E-shape and
+  A-shape barres); every shape obeys the playable rules; the best few
   are a subset of all; open and moveable don't overlap.
 - URLs: slugs as above; every root and type has its own slug of letters
   and digits that reads back; unknown slugs fall back to Am7.

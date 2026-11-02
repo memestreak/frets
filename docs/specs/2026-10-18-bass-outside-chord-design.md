@@ -4,7 +4,7 @@
 
 Tapping 2 2 2 1 1 1 on the Chords page (F♯ B E G♯ C F, F♯ in the bass)
 showed "No name". Above the F♯ the notes are F A♭ C E B, Fm(maj7) with a
-♯11, and a chart writes the voicing Fm(maj7)♯11/G♭. Name it could not find
+♯11, and a chart writes the shape Fm(maj7)♯11/G♭. Name it could not find
 it for two reasons: every note had to be a tone of one chord type, so a
 bass outside the chord ruled out every reading, and tonal has no
 m(maj7)♯11 type.

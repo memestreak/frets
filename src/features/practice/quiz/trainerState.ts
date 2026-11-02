@@ -1,4 +1,4 @@
-import { samePos, type Position } from '@/lib/music';
+import { sameSpot, type Spot } from '@/lib/music';
 import {
   applyMiss, applyPause, applySolve, freshAttempt, type QuizCore,
 } from '@/features/practice/quiz/quizFlow';
@@ -9,16 +9,16 @@ import { loadJson } from '@/lib/storage';
  * A wrong try: an answer (Name it), a board position (Find it), or a
  * played MIDI note with no place on the board (Find it by mic).
  */
-export type Wrong = number | Position;
+export type Wrong = number | Spot;
 
 /** State of either trainer: `S` is its settings, `Q` its question. */
 export interface TrainerState<S, Q> extends QuizCore<Wrong> {
   set: S;
   q: Q | null;
   /** Where the correct Find-it answer was tapped. */
-  picked: Position | null;
+  picked: Spot | null;
   /** Find-it taps on the right answer outside the range; not scored. */
-  far: Position[];
+  far: Spot[];
   /** True while the latest tap was one of those. */
   farLast: boolean;
   /** True while the latest note played was right in an octave out of reach. */
@@ -29,7 +29,7 @@ export interface TrainerState<S, Q> extends QuizCore<Wrong> {
 
 export type TrainerAction<S, Q> =
   | { type: 'answerName'; key: number }
-  | { type: 'answerFret'; pos: Position }
+  | { type: 'answerFret'; spot: Spot }
   /**
    * A note played into the mic: `midi` as heard, `heard` its name, and
    * `misses` whether a wrong note is scored as a miss.
@@ -47,24 +47,24 @@ export interface TrainerRules<S, Q> {
   key: (q: Q) => number;
   /** True when the question takes a named answer, false for a board tap. */
   named: (q: Q, set: S) => boolean;
-  isCorrect: (q: Q, pos: Position, set: S) => boolean;
+  isCorrect: (q: Q, spot: Spot, set: S) => boolean;
   /** The right answer beyond the user's own range: explained, not scored. */
-  isOutOfRange: (q: Q, pos: Position, set: S) => boolean;
+  isOutOfRange: (q: Q, spot: Spot, set: S) => boolean;
   /**
    * Where a played MIDI note sits on the board for this question, or null
    * when it has no place there. A trainer without it ignores the mic.
    */
-  placePitch?: (q: Q, midi: number, set: S) => Position | null;
+  placePitch?: (q: Q, midi: number, set: S) => Spot | null;
   /** Is a played MIDI note the right answer, in whatever octave? */
   rightPitch?: (q: Q, midi: number) => boolean;
 }
 
 type Taps = Pick<TrainerState<unknown, unknown>, 'wrong' | 'far'>;
 
-/** Has `pos` already been tapped on this question? */
-export const wasTapped = (state: Taps, pos: Position): boolean =>
-  state.far.some(p => samePos(p, pos))
-  || state.wrong.some(w => typeof w !== 'number' && samePos(w, pos));
+/** Has `spot` already been tapped on this question? */
+export const wasTapped = (state: Taps, spot: Spot): boolean =>
+  state.far.some(p => sameSpot(p, spot))
+  || state.wrong.some(w => typeof w !== 'number' && sameSpot(w, spot));
 
 const freshTries = () => ({
   picked: null, far: [], farLast: false, octaveLast: false, heard: null,
@@ -74,21 +74,21 @@ const newQuestion = <S, Q>(state: TrainerState<S, Q>, q: Q | null): TrainerState
   ...state, ...freshAttempt(), q, ...freshTries(),
 });
 
-/** A Find-it answer at `pos`: right, beyond the range, or a miss. */
+/** A Find-it answer at `spot`: right, beyond the range, or a miss. */
 function answerAt<S extends { pause: boolean }, Q>(
-  rules: TrainerRules<S, Q>, state: TrainerState<S, Q>, q: Q, pos: Position,
+  rules: TrainerRules<S, Q>, state: TrainerState<S, Q>, q: Q, spot: Spot,
 ): TrainerState<S, Q> {
   const { set } = state;
-  if (wasTapped(state, pos)) return state;
+  if (wasTapped(state, spot)) return state;
   const key = rules.key(q);
   const tries = { farLast: false, octaveLast: false, heard: null };
-  if (rules.isCorrect(q, pos, set)) {
-    return { ...applySolve(state, key, set.pause), ...tries, picked: pos };
+  if (rules.isCorrect(q, spot, set)) {
+    return { ...applySolve(state, key, set.pause), ...tries, picked: spot };
   }
-  if (rules.isOutOfRange(q, pos, set)) {
-    return { ...state, ...tries, far: [...state.far, pos], farLast: true };
+  if (rules.isOutOfRange(q, spot, set)) {
+    return { ...state, ...tries, far: [...state.far, spot], farLast: true };
   }
-  return { ...applyMiss(state, pos, key), ...tries };
+  return { ...applyMiss(state, spot, key), ...tries };
 }
 
 /** Saved settings and stats from `storageKey`, with a first question. */
@@ -125,24 +125,24 @@ export function trainerReducer<S extends { pause: boolean }, Q>(
     }
     case 'answerFret':
       if (!q || state.answered || rules.named(q, set)) return state;
-      return answerAt(rules, state, q, action.pos);
+      return answerAt(rules, state, q, action.spot);
     case 'answerPitch': {
       const { placePitch, rightPitch } = rules;
       if (!q || state.answered || rules.named(q, set) || !placePitch || !rightPitch) {
         return state;
       }
       const { midi, heard, misses } = action;
-      const pos = placePitch(q, midi, set);
+      const spot = placePitch(q, midi, set);
       const played = (next: TrainerState<S, Q>) =>
         next === state ? state : { ...next, heard };
-      if (pos && (rules.isCorrect(q, pos, set) || rules.isOutOfRange(q, pos, set))) {
-        return played(answerAt(rules, state, q, pos));
+      if (spot && (rules.isCorrect(q, spot, set) || rules.isOutOfRange(q, spot, set))) {
+        return played(answerAt(rules, state, q, spot));
       }
       if (rightPitch(q, midi)) {
         return { ...state, farLast: false, octaveLast: true, heard };
       }
       if (!misses) return state;
-      if (pos) return played(answerAt(rules, state, q, pos));
+      if (spot) return played(answerAt(rules, state, q, spot));
       if (state.wrong.includes(midi)) return state;
       return {
         ...applyMiss(state, midi, rules.key(q)), farLast: false, octaveLast: false, heard,

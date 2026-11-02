@@ -73,8 +73,8 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
       if (settingsOpen || tunerOpen || referenceSounding() || answered || q?.mode !== 'find') {
         return true;
       }
-      const pos = placeNotePitch(q, played);
-      if (!heldEnough(heldMs, pos != null && isCorrectNoteFret(q, pos, set))) return false;
+      const spot = placeNotePitch(q, played);
+      if (!heldEnough(heldMs, spot != null && isCorrectNoteFret(q, spot, set))) return false;
       dispatch({
         type: 'answerPitch', midi: played, heard: NOTE_LABELS[played % 12],
         misses: set.micMisses,
@@ -229,9 +229,9 @@ export default function NoteTrainer({ rng = Math.random }: { rng?: Rng }) {
               };
             }}
             onCellClick={mode === 'find' && !answered && q
-              ? pos => dispatch({ type: 'answerFret', pos })
+              ? spot => dispatch({ type: 'answerFret', spot })
               : undefined}
-            isCellDisabled={pos => wasTapped(state, pos)}
+            isCellDisabled={spot => wasTapped(state, spot)}
           />
         </BoardFrame>
         <AnswerCard

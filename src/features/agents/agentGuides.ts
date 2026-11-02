@@ -19,7 +19,7 @@ export const AGENT_GUIDES: readonly AgentGuide[] = [
   {
     page: '/chords',
     title: 'Chords',
-    summary: 'Chords and voicings, or a progression as one link per chord, that open on the Chords page.',
+    summary: 'Chords and shapes, or a progression as one link per chord, that open on the Chords page.',
     guide: '/chord-links.txt',
     skill: '/skills/frets-chords/SKILL.md',
   },

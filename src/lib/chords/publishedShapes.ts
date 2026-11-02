@@ -1,6 +1,6 @@
 import { TUNING } from '@/lib/music';
 import type { ChordInfo } from '@/lib/theory/chords';
-import type { Voicing } from './voicings';
+import type { Shape } from './shapes';
 import data from './data/haus-of-chords.json';
 
 /*
@@ -11,7 +11,7 @@ import data from './data/haus-of-chords.json';
  */
 
 interface PublishedShape {
-  /** "x-3-2-0-1-0", as `voicingKey` writes it. */
+  /** "x-3-2-0-1-0", as `shapeKey` writes it. */
   shape: string;
   /** Independent sources that publish it. */
   sources: number;
@@ -29,30 +29,30 @@ export const PUBLISHED_TYPES: Readonly<Record<string, PublishedType>> = data.typ
 
 export interface PublishedShapes {
   /** The open shapes for this root, as the source lists them. */
-  open: Voicing[];
+  open: Shape[];
   /** The moveable shapes on this root, minus near-duplicates (see `dropMuteVariants`). */
-  moveable: Voicing[];
+  moveable: Shape[];
   /** Every moveable shape on this root. */
-  allMoveable: Voicing[];
+  allMoveable: Shape[];
 }
 
-const parse = (shape: string): Voicing => shape.split('-').map(f => (f === 'x' ? null : Number(f)));
-const sounding = (v: Voicing) => v.filter((f): f is number => f !== null);
+const parse = (shape: string): Shape => shape.split('-').map(f => (f === 'x' ? null : Number(f)));
+const sounding = (v: Shape) => v.filter((f): f is number => f !== null);
 /** Pitch class of the lowest sounding note, which is the root. */
-const bassPc = (v: Voicing) => {
+const bassPc = (v: Shape) => {
   const s = v.findIndex(f => f !== null);
   return (TUNING[s] + v[s]!) % 12;
 };
 
 /** A shape written on C moved to `rootPc`, as low on the neck as it goes (the F barre at fret 1, not 13). */
-function slide(onC: Voicing, rootPc: number): Voicing {
+function slide(onC: Shape, rootPc: number): Shape {
   let shift = rootPc;
   while (Math.min(...sounding(onC)) + shift - 12 >= 1) shift -= 12;
   return onC.map(f => (f === null ? null : f + shift));
 }
 
 /** Whether `a` is `b` with one more string muted. */
-function isMuteVariant(a: Voicing, b: Voicing): boolean {
+function isMuteVariant(a: Shape, b: Shape): boolean {
   const differing = a.flatMap((f, s) => (f === b[s] ? [] : [s]));
   return differing.length === 1 && a[differing[0]] === null;
 }

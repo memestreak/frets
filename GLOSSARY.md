@@ -94,6 +94,10 @@ _Avoid_: setting (for a saved preference)
 One part of the Settings dialog, saved as one key,
 `frets.<page>.<section>`.
 
+**Settings group**:
+One page's set of Sections in the Settings dialog: General, Tab.
+_Avoid_: group (alone, for this)
+
 **Work**:
 What a page lets the viewer make and save by name, each under
 `frets.<page>.works.<id>`. On the Tab page, an Arrangement.

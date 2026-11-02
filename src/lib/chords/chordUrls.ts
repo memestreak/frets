@@ -1,5 +1,5 @@
 import { CHORD_ROOTS, CHORD_TYPES, type ChordRoot } from '@/lib/theory/chords';
-import { voicingKey, type Voicing } from './voicings';
+import { shapeKey, type Shape } from './shapes';
 
 /*
  * The Chords page's URL names the chord and the shape on the neck:
@@ -36,23 +36,23 @@ export const chordSlug = ({ root, type }: ChordChoice): string => rootSlug(root)
 /** The query parameter that names the chord. */
 export const CHORD_PARAM = 'chord';
 
-/** The query parameter that names a shape to open on: its `voicingKey`, "x-0-2-0-1-0". */
+/** The query parameter that names a shape to open on: its `shapeKey`, "x-0-2-0-1-0". */
 export const SHAPE_PARAM = 'shape';
 
 /**
  * The Chords page on a chord, a shape or both: a shape alone (notes with
  * no name) is named afresh, a chord alone opens on its first shape.
  */
-export function chordHref(choice: ChordChoice | null, shape?: Voicing): string {
+export function chordHref(choice: ChordChoice | null, shape?: Shape): string {
   const params = [
     ...(choice ? [`${CHORD_PARAM}=${chordSlug(choice)}`] : []),
-    ...(shape ? [`${SHAPE_PARAM}=${voicingKey(shape)}`] : []),
+    ...(shape ? [`${SHAPE_PARAM}=${shapeKey(shape)}`] : []),
   ];
   return params.length ? `/chords?${params.join('&')}` : '/chords';
 }
 
 /** The frets a `shape` value names, "x-0-2-0-1-0"; null unless six frets from 0 to `maxFret`. */
-export function shapeFromKey(key: string | null, maxFret: number): Voicing | null {
+export function shapeFromKey(key: string | null, maxFret: number): Shape | null {
   const parts = key?.split('-') ?? [];
   if (parts.length !== 6) return null;
   const frets = parts.map(p => (p === 'x' ? null : /^\d+$/.test(p) ? Number(p) : NaN));

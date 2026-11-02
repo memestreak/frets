@@ -14,7 +14,7 @@ import { Field, FretInput, FretPair } from '@/features/practice/quiz/SettingsPar
 import { TrainerHeader } from '@/features/practice/quiz/TrainerHeader';
 import { wasTapped } from '@/features/practice/quiz/trainerState';
 import { useTrainer } from '@/features/practice/quiz/useTrainer';
-import { MAX_FRET, MIN_WINDOW_SPAN, setWindowMax, setWindowMin } from '@/lib/fretWindow';
+import { MAX_FRET, MIN_RANGE_SPAN, setRangeMax, setRangeMin } from '@/lib/fretRange';
 import {
   activePool, correctFrets, generateIntervalQuestion, H_RANGE_MAX,
   INTERVAL_STORAGE_KEY, resetIntervalSettings, V_RANGE_MAX, withHRange, withVRange,
@@ -22,7 +22,7 @@ import {
 } from '@/features/practice/intervals/intervals';
 import {
   INTERVAL_LONG_NAMES, INTERVAL_NAMES, intervalClass, midi,
-  samePos, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
+  sameSpot, SHARP_NAMES, SIMPLE_INTERVALS, STRINGS, type Rng,
 } from '@/lib/music';
 import { itemPercent } from '@/features/practice/quiz/stats';
 import { initIntervalState, intervalReducer } from './intervalState';
@@ -87,7 +87,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
         // Other fingerings of the interval inside the box. The hint already
         // labels those cells, so the two never overprint.
         for (const p of correctFrets(q, set)) {
-          if (samePos(p, at)) continue;
+          if (sameSpot(p, at)) continue;
           dots.push({
             ...p, kind: 'also', ...DOT.correct, opacity: 0.55,
             label: INTERVAL_NAMES[q.semis], fontSize: 10,
@@ -176,13 +176,13 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
           <Field label="Fret range">
             <FretPair>
               <FretInput
-                label="Lowest fret" min={0} max={MAX_FRET - MIN_WINDOW_SPAN} value={set.minFret}
-                onCommit={v => update(setWindowMin(set, v))}
+                label="Lowest fret" min={0} max={MAX_FRET - MIN_RANGE_SPAN} value={set.minFret}
+                onCommit={v => update(setRangeMin(set, v))}
               />
               <span className="text-muted">to</span>
               <FretInput
-                label="Highest fret" min={MIN_WINDOW_SPAN} max={MAX_FRET} value={set.maxFret}
-                onCommit={v => update(setWindowMax(set, v))}
+                label="Highest fret" min={MIN_RANGE_SPAN} max={MAX_FRET} value={set.maxFret}
+                onCommit={v => update(setRangeMax(set, v))}
               />
             </FretPair>
           </Field>
@@ -240,9 +240,9 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
             dots={dots}
             scrollToFret={q?.root.f}
             onCellClick={mode === 'fret' && !answered && q
-              ? pos => dispatch({ type: 'answerFret', pos })
+              ? spot => dispatch({ type: 'answerFret', spot })
               : undefined}
-            isCellDisabled={pos => wasTapped(state, pos)}
+            isCellDisabled={spot => wasTapped(state, spot)}
           />
         </BoardFrame>
         <AnswerCard

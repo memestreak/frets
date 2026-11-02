@@ -2,7 +2,7 @@ import { STRINGS, type Tuning } from '@/lib/music';
 import { toneAt, toneColor } from './chordDots';
 import type { DotColor } from '@/components/fretboard/theme';
 import type { ChordInfo, ChordTone } from '@/lib/theory/chords';
-import { DIAGRAM_FRETS, diagramStartFret, type Voicing } from '@/lib/chords/voicings';
+import { DIAGRAM_FRETS, diagramStartFret, type Shape } from '@/lib/chords/shapes';
 
 /* Geometry of one small diagram, in SVG units. */
 const CELL = 24;
@@ -35,9 +35,9 @@ export interface DiagramLook {
 export const DIAGRAM_WIDTH = LEFT + DIAGRAM_FRETS * CELL + 6;
 
 /** A diagram's size in SVG units, and how many frets it draws. */
-export function diagramSize(voicing: Voicing, titled: boolean, startFret?: number) {
-  const start = startFret ?? diagramStartFret(voicing);
-  const frets = Math.max(DIAGRAM_FRETS, ...voicing.map(f => (f ? f - start + 1 : 0)));
+export function diagramSize(shape: Shape, titled: boolean, startFret?: number) {
+  const start = startFret ?? diagramStartFret(shape);
+  const frets = Math.max(DIAGRAM_FRETS, ...shape.map(f => (f ? f - start + 1 : 0)));
   return {
     width: LEFT + frets * CELL + 6,
     height: TOP + (titled ? TITLE : 0) + BOARD_HEIGHT + BOTTOM,
@@ -56,7 +56,7 @@ export const PAGE_LOOK: DiagramLook = {
 
 interface ChordDiagramProps {
   chord: ChordInfo;
-  voicing: Voicing;
+  shape: Shape;
   /** First fret drawn; by default `diagramStartFret`. The Scale lab starts every diagram at its position. */
   startFret?: number;
   /** By default `PAGE_LOOK`; an export passes concrete colours. */
@@ -66,16 +66,16 @@ interface ChordDiagramProps {
 }
 
 /**
- * One voicing as a small horizontal chord chart: `DIAGRAM_FRETS` frets from
+ * One shape as a small horizontal chord chart: `DIAGRAM_FRETS` frets from
  * `diagramStartFret` (more for a shape that reaches further, as one tapped
  * on the Chords page's neck may), the nut when that is fret 1, the starting
  * fret number under its column (1 too), × on muted strings, a ring on open strings. On the pages, dots
  * carry the degree colour and no text (`ToneKey` names the colours); the
  * root is square.
  */
-export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK, tuning }: ChordDiagramProps) {
-  const start = startFret ?? diagramStartFret(voicing);
-  const { width, height, frets } = diagramSize(voicing, Boolean(look.title), start);
+export function ChordDiagram({ chord, shape, startFret, look = PAGE_LOOK, tuning }: ChordDiagramProps) {
+  const start = startFret ?? diagramStartFret(shape);
+  const { width, height, frets } = diagramSize(shape, Boolean(look.title), start);
   const boardWidth = frets * CELL;
   const top = TOP + (look.title ? TITLE : 0);
   // Centre of a fretted note's column; open strings sit left of the nut.
@@ -122,7 +122,7 @@ export function ChordDiagram({ chord, voicing, startFret, look = PAGE_LOOK, tuni
       >
         {start}
       </text>
-      {voicing.map((fret, s) => {
+      {shape.map((fret, s) => {
         const cy = stringY(s);
         if (fret === null) {
           return (

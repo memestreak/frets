@@ -1,4 +1,4 @@
-import { positionsOnNeck } from '@/lib/music';
+import { spotsOnNeck } from '@/lib/music';
 import type { DiatonicChord } from '@/lib/theory/diatonic';
 import type { Scale } from '@/lib/theory/scales';
 
@@ -23,7 +23,7 @@ export function neckNotes(
 ): NeckNote[] {
   const bySemis = new Map(scale.degrees.map(d => [d.semis, d]));
   const shown = chord ? chord.semis : scale.degrees.map(d => d.semis);
-  return positionsOnNeck(scale.degrees[0].pc, shown, maxFret).map(({ s, f, semis }) => {
+  return spotsOnNeck(scale.degrees[0].pc, shown, maxFret).map(({ s, f, semis }) => {
     const d = bySemis.get(semis)!;
     if (!chord) return { s, f, note: d.note, label: d.label, degree: d.degree };
     const k = chord.semis.indexOf(semis);

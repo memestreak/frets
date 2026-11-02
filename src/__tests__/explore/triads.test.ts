@@ -16,7 +16,7 @@ describe('triadGrips', () => {
 
   it('plays only the set\'s strings, the bass on the lowest', () => {
     const [grip] = triadGrips(chordOf('A', 'm'), 0);
-    expect(grip.voicing.slice(3)).toEqual([null, null, null]);
+    expect(grip.frets.slice(3)).toEqual([null, null, null]);
     expect(grip.points.map(p => p.s)).toEqual([0, 1, 2]);
   });
 
@@ -49,8 +49,8 @@ describe('triadGrips', () => {
 
 describe('gripAt', () => {
   const grips = [
-    { inversion: 0, voicing: [], points: [{ s: 3, f: 5 }, { s: 4, f: 5 }] },
-    { inversion: 1, voicing: [], points: [{ s: 3, f: 9 }, { s: 4, f: 5 }] },
+    { inversion: 0, frets: [], points: [{ s: 3, f: 5 }, { s: 4, f: 5 }] },
+    { inversion: 1, frets: [], points: [{ s: 3, f: 9 }, { s: 4, f: 5 }] },
   ] as Grip[];
 
   it('picks the grip with a dot there, or none', () => {

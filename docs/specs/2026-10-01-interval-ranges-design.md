@@ -40,7 +40,7 @@ is 1 bumps the other to 2.
 notes four or five strings apart within a few frets are always more than an
 octave apart, so a tall box would behave like a shorter one.
 
-The fret window still bounds everything: the effective reach is the smaller
+The fret range still bounds everything: the effective reach is the smaller
 of `hRange - 1` and `maxFret - minFret`. Nothing links the two settings.
 
 Constants `V_RANGE_MAX = 6` and `H_RANGE_MAX = 12`, and `clampHRange(n)`
@@ -51,11 +51,11 @@ Constants `V_RANGE_MAX = 6` and `H_RANGE_MAX = 12`, and `clampHRange(n)`
 One pure function defines the box, and generation and judging both use it:
 
 ```ts
-/** Is `pos` in the box around `root` for a question in direction `up`? */
-inBox(root: Position, up: boolean, pos: Position, set): boolean
+/** Is `spot` in the box around `root` for a question in direction `up`? */
+inBox(root: Spot, up: boolean, spot: Spot, set): boolean
 ```
 
-`pos` is in the box when it is not the root itself,
+`spot` is in the box when it is not the root itself,
 `|pos.f - root.f| < hRange`, and one of:
 
 - **Another string**: the string lies in the question's direction
@@ -81,7 +81,7 @@ frets down); it is simply wrong.
   `d < 0`) and `intervalClass(d) === q.semis`;
 - `|d| <= 12`, unless `compound` is on.
 
-`correctFrets(q, set)` lists every correct fret inside the fret window.
+`correctFrets(q, set)` lists every correct fret inside the fret range.
 
 ### Question generation
 
@@ -123,7 +123,7 @@ a few milliseconds per question. The window now stops at fret 15; see
 The board does not show the box, and every cell in the window is tappable.
 An earlier version dimmed every cell outside the box and made those cells
 untappable; it was built, tried in the browser and rejected. `Fretboard` is
-unchanged by this work. (Frets outside the fret window, not the box, are
+unchanged by this work. (Frets outside the fret range, not the box, are
 now shaded and untappable; see `2026-10-09-interval-fixed-board-design.md`.)
 
 A tap is handled as:
@@ -139,7 +139,7 @@ A tap is handled as:
 - **Anything else**, inside or outside the box, including the root's own
   cell: an ordinary miss.
 
-The reducer state holds `far: Position[]` and `farLast: boolean` (whether
+The reducer state holds `far: Spot[]` and `farLast: boolean` (whether
 the latest tap was one of these, so the feedback line shows the right
 message). Both reset with each new question.
 
@@ -153,7 +153,7 @@ reveals nothing.
 
 ### Hold-for-hint
 
-The hint labels every cell in the fret window with its interval from the
+The hint labels every cell in the fret range with its interval from the
 root, whatever the ranges. An earlier version limited it to the box; that
 was rejected, since the hint is a reference for the whole board. It can
 therefore label a cell that Find-it would treat as out of range.

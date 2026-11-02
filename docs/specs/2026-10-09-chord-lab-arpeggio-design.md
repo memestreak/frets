@@ -56,7 +56,7 @@ empty, that column reads "Tap a note to see its shapes."
   both pages use it.
 - `arpeggioCaption(chord, maxFret)` (`src/features/chords/arpeggioCaption.ts`)
   writes the caption for both pages.
-- `VoicingGroups` loses its `showKey` prop: both pages show the key.
-- `arpeggioDots(chord, maxFret, voicing?)`: given a voicing, only its dots
+- `ShapeGroups` loses its `showKey` prop: both pages show the key.
+- `arpeggioDots(chord, maxFret, shape?)`: given a shape, only its dots
   keep their labels. The library passes none. (2026-10-19: now
   `arpeggioDots(chord, maxFret, labels?)`, every dot labelled.)

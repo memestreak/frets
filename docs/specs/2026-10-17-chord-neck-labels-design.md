@@ -29,7 +29,7 @@ picked, since the ask left them open.
 
 - `src/components/DotLabels.tsx`: the `DotLabels` type, `isDotLabels` and
   `DotLabelsPicker`, used by both pages.
-- `voicingDots` and `arpeggioDots` in `src/components/chords/chordDots.ts`
+- `shapeDots` and `arpeggioDots` in `src/components/chords/chordDots.ts`
   take an optional `labels`, Interval by default.
 - `src/features/chords/neckSettings.ts`: the key and its parser.
   `ChordsPage` keeps the choice beside the Arpeggio switch, so Back and

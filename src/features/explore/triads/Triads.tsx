@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { arpeggioDots, voicingDots } from '@/components/chords/chordDots';
+import { arpeggioDots, shapeDots } from '@/components/chords/chordDots';
 import { ToggleButton } from '@/components/controls';
 import { DotLabelsPicker } from '@/components/DotLabels';
 import { Fretboard } from '@/components/fretboard/Fretboard';
@@ -63,7 +63,7 @@ export default function Triads() {
   const dots = arpeggio
     ? arpeggioDots(chord, TRIADS_MAX_FRET, set.labels)
     : grips.flatMap((g, i) =>
-      voicingDots(chord, g.voicing, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
+      shapeDots(chord, g.frets, set.labels).map(d => ({ ...d, opacity: opacityOf(i) })));
   const links = grips.map((g, i) => ({
     points: g.points, label: INVERSION_NAMES[g.inversion], opacity: opacityOf(i),
   }));
@@ -115,7 +115,7 @@ export default function Triads() {
             dots={dots}
             links={links}
             stringStyle={s => ({ opacity: arpeggio || strings.includes(s) ? 1 : OFF_SET_STRING })}
-            onCellClick={pos => setPicked(gripAt(grips, pos, picked))}
+            onCellClick={spot => setPicked(gripAt(grips, spot, picked))}
             scrollToFret={grip ? grip.points[1].f : null}
             label={`${name} triads on the ${setName} strings`}
           />

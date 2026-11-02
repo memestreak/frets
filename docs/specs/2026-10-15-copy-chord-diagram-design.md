@@ -13,7 +13,7 @@ be edited, starting from the deduced one.
 ## Where
 
 Every small shape diagram in the Open and Moveable groups
-(`VoicingGroups`), so the Chord library and the Chord lab both have it,
+(`ShapeGroups`), so the Chord library and the Chord lab both have it,
 and the Chord lab's neck, which exports the shape played (whether or not
 the arpeggio is showing) under the name chosen in Name it. With every
 string muted the neck offers nothing. The Chord library's neck, the Scale

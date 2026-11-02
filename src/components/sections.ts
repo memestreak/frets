@@ -12,7 +12,7 @@ export interface Page {
   summary: string;
 }
 
-export interface Section {
+export interface Group {
   label: string;
   summary: string;
   /** The group's own index page, when it has one. */
@@ -20,7 +20,7 @@ export interface Section {
   pages: readonly Page[];
 }
 
-export const TOOLS: Section = {
+export const TOOLS: Group = {
   label: 'Tools',
   summary: 'See how scales and chords lie on the neck, look up a chord, tune up, keep time.',
   pages: [
@@ -62,7 +62,7 @@ export const TOOLS: Section = {
   ],
 };
 
-export const PRACTICE: Section = {
+export const PRACTICE: Group = {
   label: 'Practice',
   summary: 'Quizzes that drill the fretboard until you know it cold.',
   href: '/practice',
@@ -81,7 +81,7 @@ export const PRACTICE: Section = {
 };
 
 /** Pages about using Frets rather than about music. */
-export const MORE: Section = {
+export const MORE: Group = {
   label: 'More',
   summary: 'Ways to use Frets beyond its own pages.',
   pages: [
@@ -93,13 +93,13 @@ export const MORE: Section = {
   ],
 };
 
-export const SECTIONS: readonly Section[] = [TOOLS, PRACTICE, MORE];
+export const GROUPS: readonly Group[] = [TOOLS, PRACTICE, MORE];
 
 /** The group and page a pathname belongs to; either may be undefined. */
-export function locate(pathname: string): { section?: Section; page?: Page } {
-  for (const section of SECTIONS) {
-    const page = section.pages.find(p => pathname === p.href);
-    if (page || pathname === section.href) return { section, page };
+export function locate(pathname: string): { group?: Group; page?: Page } {
+  for (const group of GROUPS) {
+    const page = group.pages.find(p => pathname === p.href);
+    if (page || pathname === group.href) return { group, page };
   }
   return {};
 }

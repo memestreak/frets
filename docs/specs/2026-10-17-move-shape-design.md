@@ -32,7 +32,7 @@ details below are the defaults picked, since the ask left them open.
 
 ## Code
 
-- `moveShape(voicing, by, maxFret)` in `src/lib/chords/voicings.ts`: the
+- `moveShape(shape, by, maxFret)` in `src/lib/chords/shapes.ts`: the
   moved frets, or null when they would leave the neck.
-- `VoicingStepper` takes `canMoveDown`, `canMoveUp` and `onMove`;
+- `ShapeMover` takes `canMoveDown`, `canMoveUp` and `onMove`;
   `ChordsPage` moves the frets and keeps the transposed chord.

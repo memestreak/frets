@@ -4,17 +4,17 @@ import {
   correctFrets, defaultIntervalSettings, generateIntervalQuestion, inBox,
   INTERVAL_STORAGE_KEY, isCorrectFret, isOutOfRange, type IntervalSettings,
 } from '@/features/practice/intervals/intervals';
-import { intervalClass, midi, samePos, STRINGS, type Position } from '@/lib/music';
+import { intervalClass, midi, sameSpot, STRINGS, type Spot } from '@/lib/music';
 import { seededRng } from '../helpers/rng';
 
 /** The asked interval, read back from the board's root and target dots. */
 function askedSemis(): number {
-  const pos = (id: string) => {
+  const spot = (id: string) => {
     const el = screen.getByTestId(id);
     return { s: Number(el.dataset.s), f: Number(el.dataset.f) };
   };
-  const r = pos('dot-root');
-  const t = pos('dot-target');
+  const r = spot('dot-root');
+  const t = spot('dot-target');
   return intervalClass(midi(t.s, t.f) - midi(r.s, r.f));
 }
 
@@ -34,11 +34,11 @@ function renderFindIt(seed: number, patch: Partial<IntervalSettings> = {}) {
   return { set, q };
 }
 
-/** Every cell of the fret window. */
-const cells = (set: IntervalSettings): Position[] => STRINGS.flatMap(s =>
+/** Every cell of the fret range. */
+const cells = (set: IntervalSettings): Spot[] => STRINGS.flatMap(s =>
   Array.from({ length: set.maxFret - set.minFret + 1 }, (_, i) => ({ s, f: set.minFret + i })));
 
-const cellEl = (p: Position) => screen.getByTestId(`cell-${p.s}-${p.f}`);
+const cellEl = (p: Spot) => screen.getByTestId(`cell-${p.s}-${p.f}`);
 
 describe('IntervalTrainer', () => {
   beforeEach(() => {
@@ -89,7 +89,7 @@ describe('IntervalTrainer', () => {
     expect(screen.queryAllByTestId('dot-hint')).toHaveLength(0);
     fireEvent.keyDown(window, { key: ' ' });
     fireEvent.keyUp(window, { key: ' ' });
-    // Every cell in the fret window except the root's.
+    // Every cell in the fret range except the root's.
     expect(screen.getAllByTestId('dot-hint')).toHaveLength(cells(set).length - 1);
     expect(screen.getByRole('button', { name: /Hint/ })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(window, { key: ' ' });
@@ -145,16 +145,16 @@ describe('IntervalTrainer', () => {
 
   it('Find it: the right interval outside the range is explained, not scored', () => {
     const { set, q } = renderFindIt(8, { vRange: 2, hRange: 3 });
-    const farPos = cells(set).find(p => isOutOfRange(q, p, set));
-    if (!farPos) throw new Error('no out-of-range fingering in the window');
-    fireEvent.click(cellEl(farPos));
+    const farSpot = cells(set).find(p => isOutOfRange(q, p, set));
+    if (!farSpot) throw new Error('no out-of-range fingering in the window');
+    fireEvent.click(cellEl(farSpot));
 
     expect(screen.getByTestId('feedback')).toHaveTextContent(
       'Right interval, but outside your range — find a closer one',
     );
     expect(screen.getByTestId('dot-far')).toBeInTheDocument();
     expect(screen.queryByTestId('dot-wrong')).not.toBeInTheDocument();
-    expect(cellEl(farPos)).toHaveAttribute('aria-disabled', 'true');
+    expect(cellEl(farSpot)).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByTestId('stats-line')).toHaveTextContent('No answers yet this session');
 
     // The root's own cell is an ordinary miss, and takes over the feedback.
@@ -227,7 +227,7 @@ describe('IntervalTrainer', () => {
       .map(el => ({ s: Number(el.dataset.s), f: Number(el.dataset.f) }));
     expect(also).toHaveLength(all.length - 1);
     for (const p of also) {
-      expect(samePos(p, q.tgt)).toBe(false);
+      expect(sameSpot(p, q.tgt)).toBe(false);
       expect(isCorrectFret(q, p, set)).toBe(true);
     }
   });

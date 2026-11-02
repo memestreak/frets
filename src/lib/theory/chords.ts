@@ -137,7 +137,7 @@ export interface ChordTone {
   semis: number;
   /** Degree number 1–7 for the dot colour: a 9 is a 2, an 11 a 4, a 13 a 6. */
   degree: number;
-  /** False for tones a voicing may leave out (see `isOptional`). */
+  /** False for tones a shape may leave out (see `isOptional`). */
   required: boolean;
 }
 
@@ -155,7 +155,7 @@ export interface ChordInfo {
 }
 
 /**
- * A tone a voicing may leave out, as guitarists do: the perfect 5th in a
+ * A tone a shape may leave out, as guitarists do: the perfect 5th in a
  * chord of four or more notes, and in an 11th or 13th chord (one with a
  * 7th) the plain tones below the top one (the 9th; and the 11th under a
  * 13th). An added tone, as in add9(add11), is never left out.

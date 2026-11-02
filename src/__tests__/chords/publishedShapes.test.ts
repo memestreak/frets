@@ -1,12 +1,12 @@
 import { TUNING } from '@/lib/music';
 import { CHORD_ROOTS, chordOf, chordTypeDef, type ChordInfo } from '@/lib/theory/chords';
 import { PUBLISHED_TYPES, publishedShapes } from '@/lib/chords/publishedShapes';
-import { findVoicings, voicingKey, type Voicing } from '@/lib/chords/voicings';
+import { findShapes, shapeKey, type Shape } from '@/lib/chords/shapes';
 
-const keys = (vs: Voicing[]) => vs.map(voicingKey);
+const keys = (vs: Shape[]) => vs.map(shapeKey);
 
 /** Semitones above the root of each sounding string, low to high. */
-const tonesOf = (v: Voicing, chord: ChordInfo) =>
+const tonesOf = (v: Shape, chord: ChordInfo) =>
   v.flatMap((f, s) => (f === null ? [] : [(TUNING[s] + f - chord.rootPc + 120) % 12]));
 
 describe('the imported Haus of Chords data', () => {
@@ -30,7 +30,7 @@ describe('the imported Haus of Chords data', () => {
         const { open, allMoveable } = publishedShapes(chord)!;
         for (const v of [...open, ...allMoveable]) {
           const tones = tonesOf(v, chord);
-          const where = `${chord.symbol} ${voicingKey(v)}`;
+          const where = `${chord.symbol} ${shapeKey(v)}`;
           expect(tones[0], where).toBe(0);
           expect(tones.every(t => chord.tones.some(c => c.semis === t)), where).toBe(true);
           for (const t of chord.tones.filter(t => t.required)) expect(tones, where).toContain(t.semis);
@@ -68,9 +68,9 @@ describe('publishedShapes', () => {
   });
 });
 
-describe('findVoicings with published shapes', () => {
+describe('findShapes with published shapes', () => {
   it('shows the published shapes first and adds searched ones under Show all', () => {
-    const cmaj7 = findVoicings(chordOf('C', 'maj7'));
+    const cmaj7 = findShapes(chordOf('C', 'maj7'));
     expect(keys(cmaj7.open)).toEqual(['x-3-2-0-0-0']);
     expect(keys(cmaj7.moveable)).toContain('8-x-9-9-8-x'); // drop 3
     expect(keys(cmaj7.allMoveable)).toEqual(expect.arrayContaining(keys(cmaj7.moveable)));

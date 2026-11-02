@@ -68,9 +68,9 @@ describe('Find-it judging', () => {
   it('is neither for the right note on another string, or a wrong note', () => {
     const set = settings({ rFrom: 1, rTo: 12 });
     // E on the A string, fret 7; then F on the D string.
-    for (const pos of [{ s: 1, f: 7 }, { s: 2, f: 3 }]) {
-      expect(isCorrectNoteFret(q, pos, set)).toBe(false);
-      expect(isNoteOutOfRange(q, pos, set)).toBe(false);
+    for (const spot of [{ s: 1, f: 7 }, { s: 2, f: 3 }]) {
+      expect(isCorrectNoteFret(q, spot, set)).toBe(false);
+      expect(isNoteOutOfRange(q, spot, set)).toBe(false);
     }
   });
 });

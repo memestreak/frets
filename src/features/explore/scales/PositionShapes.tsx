@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-import { LAST_POSITION } from '@/lib/chords/voicings';
+import { LAST_POSITION } from '@/lib/chords/shapes';
 import { libraryHref, positionLabel, type PositionChord } from './positions';
 import type { DiatonicChord } from '@/lib/theory/diatonic';
 
@@ -58,7 +58,7 @@ export function PositionShapes({
             <div key={chord.index} className="position-tile">
               <button
                 {...(shown && shapeExport.triggerProps(
-                  { chord: info, voicing: shown, name: chord.symbol }, { drag: true, items: menuItems },
+                  { chord: info, shape: shown, name: chord.symbol }, { drag: true, items: menuItems },
                 ))}
                 type="button" className="shape-btn position-shape"
                 data-chord-index={chord.index}
@@ -68,7 +68,7 @@ export function PositionShapes({
               >
                 <span className="chord-numeral">{chord.numeral}</span>
                 {shown ? (
-                  <ChordDiagram chord={info} voicing={shown} startFret={position} />
+                  <ChordDiagram chord={info} shape={shown} startFret={position} />
                 ) : (
                   <span className="position-none">None here</span>
                 )}

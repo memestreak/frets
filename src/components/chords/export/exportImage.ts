@@ -3,20 +3,20 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { ChordDiagram, DIAGRAM_WIDTH, diagramSize } from '@/components/chords/ChordDiagram';
 import type { ChordInfo } from '@/lib/theory/chords';
-import { voicingKey, type Voicing } from '@/lib/chords/voicings';
+import { shapeKey, type Shape } from '@/lib/chords/shapes';
 import { BACKDROP, exportLook, type ExportStyle } from './exportStyle';
 
 /** What gets exported: a shape of a chord, and the name it goes by. */
 export interface ExportShape {
   chord: ChordInfo;
-  voicing: Voicing;
+  shape: Shape;
   /** The deduced name, or the one typed in the Export dialog; may be empty. */
   name: string;
 }
 
 /** The image's size in pixels: the diagram's own, scaled so five frets are `style.size` wide. */
-export function exportPixels({ voicing, name }: ExportShape, style: ExportStyle) {
-  const { width, height } = diagramSize(voicing, Boolean(exportLook(style, name).title));
+export function exportPixels({ shape, name }: ExportShape, style: ExportStyle) {
+  const { width, height } = diagramSize(shape, Boolean(exportLook(style, name).title));
   const scale = style.size / DIAGRAM_WIDTH;
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
@@ -31,11 +31,11 @@ const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.met
  * filled with white.
  */
 export function diagramSvg(shape: ExportShape, style: ExportStyle): string {
-  const { chord, voicing, name } = shape;
+  const { chord, name } = shape;
   const host = document.createElement('div');
   const root = createRoot(host);
   flushSync(() => {
-    root.render(createElement(ChordDiagram, { chord, voicing, look: exportLook(style, name) }));
+    root.render(createElement(ChordDiagram, { chord, shape: shape.shape, look: exportLook(style, name) }));
   });
   const svg = host.querySelector('svg')!;
   root.unmount();
@@ -92,8 +92,8 @@ export async function svgToPng(svg: string): Promise<Blob> {
 }
 
 /** "Am7_x-0-2-0-1-0", safe as a file name, with no spaces. */
-export function exportFileName({ voicing, name }: ExportShape): string {
-  return `${name.trim() || 'Chord'}_${voicingKey(voicing)}`.replace(/[\\/:*?"<>|\s]/g, '_');
+export function exportFileName({ shape, name }: ExportShape): string {
+  return `${name.trim() || 'Chord'}_${shapeKey(shape)}`.replace(/[\\/:*?"<>|\s]/g, '_');
 }
 
 /** Copies an SVG drawing as a PNG; resolves to the line the page shows. */

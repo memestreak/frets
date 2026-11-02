@@ -1,13 +1,13 @@
 import { TUNING } from '@/lib/music';
 import { CHORD_ROOTS, CHORD_TYPES, chordOf, type ChordInfo } from '@/lib/theory/chords';
 import {
-  DIAGRAM_FRETS, diagramStartFret, findVoicings, fingersNeeded, LAST_POSITION, moveShape,
-  POSITION_FRETS, shapesInPosition, voicingCaption, voicingKey, type Voicing,
-} from '@/lib/chords/voicings';
+  DIAGRAM_FRETS, diagramStartFret, findShapes, fingersNeeded, LAST_POSITION, moveShape,
+  POSITION_FRETS, shapesInPosition, shapeCaption, shapeKey, type Shape,
+} from '@/lib/chords/shapes';
 
-const keys = (vs: Voicing[]) => vs.map(voicingKey);
+const keys = (vs: Shape[]) => vs.map(shapeKey);
 
-function expectPlayable(v: Voicing, chord: ChordInfo) {
+function expectPlayable(v: Shape, chord: ChordInfo) {
   const strings = v.flatMap((f, s) => (f === null ? [] : [s]));
   const tones = strings.map(s => (TUNING[s] + v[s]! - chord.rootPc + 120) % 12);
   const chordTones = chord.tones.map(t => t.semis);
@@ -20,27 +20,27 @@ function expectPlayable(v: Voicing, chord: ChordInfo) {
   expect(fingersNeeded(v)).toBeLessThanOrEqual(4);
 }
 
-describe('findVoicings', () => {
+describe('findShapes', () => {
   it('finds the shapes every guitarist knows', () => {
-    const c = findVoicings(chordOf('C', 'M'));
+    const c = findShapes(chordOf('C', 'M'));
     expect(keys(c.open)).toContain('x-3-2-0-1-0');
     expect(keys(c.moveable)).toContain('8-10-10-9-8-8'); // E-shape barre
     expect(keys(c.moveable)).toContain('x-3-5-5-5-3'); // A-shape barre
 
-    const am7 = findVoicings(chordOf('A', 'm7'));
+    const am7 = findShapes(chordOf('A', 'm7'));
     expect(keys(am7.open)).toContain('x-0-2-0-1-0');
     expect(keys(am7.moveable)).toContain('5-7-5-5-5-5');
 
     // Same notes as the full F barre, but its own shape: the bass is on the D string.
-    expect(keys(findVoicings(chordOf('F', 'M')).moveable)).toContain('x-x-3-2-1-1');
-    expect(keys(findVoicings(chordOf('G', '7')).open)).toContain('3-2-0-0-0-1');
-    expect(keys(findVoicings(chordOf('E', 'M')).open)).toContain('0-2-2-1-0-0');
+    expect(keys(findShapes(chordOf('F', 'M')).moveable)).toContain('x-x-3-2-1-1');
+    expect(keys(findShapes(chordOf('G', '7')).open)).toContain('3-2-0-0-0-1');
+    expect(keys(findShapes(chordOf('E', 'M')).open)).toContain('0-2-2-1-0-0');
   });
 
   it('keeps every shape playable, the best few among all, and open apart from moveable', () => {
     for (const [root, id] of [['A', 'm7'], ['C', 'M'], ['G', '7'], ['Bb', '13'], ['F#', 'dim7']] as const) {
       const chord = chordOf(root, id);
-      const { open, moveable, allMoveable } = findVoicings(chord);
+      const { open, moveable, allMoveable } = findShapes(chord);
       for (const v of [...open, ...allMoveable]) expectPlayable(v, chord);
       expect(keys(allMoveable)).toEqual(expect.arrayContaining(keys(moveable)));
       expect(allMoveable.length).toBeGreaterThan(moveable.length);
@@ -50,27 +50,27 @@ describe('findVoicings', () => {
   });
 
   it('lists moveable shapes from the nut up', () => {
-    const lowest = (v: Voicing) => Math.min(...v.filter((f): f is number => f !== null));
-    const frets = findVoicings(chordOf('A', 'm7')).moveable.map(lowest);
+    const lowest = (v: Shape) => Math.min(...v.filter((f): f is number => f !== null));
+    const frets = findShapes(chordOf('A', 'm7')).moveable.map(lowest);
     expect(frets).toEqual([...frets].sort((a, b) => a - b));
   });
 
   it('keeps drop 3 grips, which leave out a middle string', () => {
     // C7♯11 has no published shapes, so these come from the search.
-    expect(keys(findVoicings(chordOf('C', '7#11')).allMoveable)).toContain('8-x-8-9-7-x');
+    expect(keys(findShapes(chordOf('C', '7#11')).allMoveable)).toContain('8-x-8-9-7-x');
   });
 
   it('allows a stretch across five frets', () => {
-    expect(keys(findVoicings(chordOf('A', 'm7')).allMoveable)).toContain('x-x-7-5-x-3');
+    expect(keys(findShapes(chordOf('A', 'm7')).allMoveable)).toContain('x-x-7-5-x-3');
   });
 
   it('has nothing open for a chord without an open shape', () => {
-    expect(findVoicings(chordOf('C', 'm6')).open).toEqual([]);
+    expect(findShapes(chordOf('C', 'm6')).open).toEqual([]);
   });
 
   it('runs fast enough to search every chord type', () => {
     const start = performance.now();
-    for (const t of CHORD_TYPES) findVoicings(chordOf(CHORD_ROOTS[3], t.id));
+    for (const t of CHORD_TYPES) findShapes(chordOf(CHORD_ROOTS[3], t.id));
     expect(performance.now() - start).toBeLessThan(5000);
   });
 });
@@ -89,8 +89,8 @@ describe('fingersNeeded', () => {
 
 describe('captions and diagram windows', () => {
   it('says where a shape sits', () => {
-    expect(voicingCaption([5, 7, 5, 5, 5, 5])).toBe('root on E · frets 5–7');
-    expect(voicingCaption([null, 0, 2, 0, 1, 0])).toBe('root on A · frets 1–2');
+    expect(shapeCaption([5, 7, 5, 5, 5, 5])).toBe('root on E · frets 5–7');
+    expect(shapeCaption([null, 0, 2, 0, 1, 0])).toBe('root on A · frets 1–2');
   });
 
   it('starts a diagram at fret 1 when the shape fits there', () => {
@@ -100,7 +100,7 @@ describe('captions and diagram windows', () => {
 
   it('fits every shape of every chord type in a diagram', () => {
     for (const t of CHORD_TYPES) {
-      const { open, allMoveable } = findVoicings(chordOf('A', t.id));
+      const { open, allMoveable } = findShapes(chordOf('A', t.id));
       for (const v of [...open, ...allMoveable]) {
         const fretted = v.filter((f): f is number => f !== null && f > 0);
         if (fretted.length) {
@@ -112,7 +112,7 @@ describe('captions and diagram windows', () => {
 });
 
 describe('shapesInPosition', () => {
-  const am7 = findVoicings(chordOf('A', 'm7'));
+  const am7 = findShapes(chordOf('A', 'm7'));
 
   it('offers the core shapes that fit in five frets, easiest first', () => {
     expect(keys(shapesInPosition(am7, 5))).toEqual([
@@ -122,7 +122,7 @@ describe('shapesInPosition', () => {
 
   it('finds a core moveable shape an octave up too', () => {
     // The library lists the F barre at fret 1; the last position finds it at fret 13.
-    const f = findVoicings(chordOf('F', 'M'));
+    const f = findShapes(chordOf('F', 'M'));
     expect(keys(f.moveable)).toContain('1-3-3-2-1-1');
     expect(keys(shapesInPosition(f, LAST_POSITION))).toContain('13-15-15-14-13-13');
   });
@@ -143,7 +143,7 @@ describe('shapesInPosition', () => {
     for (let first = 1; first <= LAST_POSITION; first++) expect(fits(first).length).toBeGreaterThan(0);
     const core = new Set(keys([...am7.open, ...am7.moveable]));
     const fallbacks = Array.from({ length: LAST_POSITION }, (_, i) => fits(i + 1))
-      .filter(list => !core.has(voicingKey(list[0])));
+      .filter(list => !core.has(shapeKey(list[0])));
     for (const list of fallbacks) expect(list).toHaveLength(1);
     expect(fallbacks.length).toBeGreaterThan(0);
   });
@@ -162,14 +162,14 @@ describe('moveShape', () => {
   });
 });
 
-describe('findVoicings in another tuning', () => {
+describe('findShapes in another tuning', () => {
   const DROP_D = [38, 45, 50, 55, 59, 64];
-  const tonesIn = (tuning: readonly number[], v: Voicing, chord: ChordInfo) =>
+  const tonesIn = (tuning: readonly number[], v: Shape, chord: ChordInfo) =>
     v.flatMap((f, s) => (f === null ? [] : [(tuning[s] + f - chord.rootPc + 120) % 12]));
 
   it('finds shapes whose notes are chord tones in that tuning, root in the bass', () => {
     const d = chordOf('D', 'M');
-    const found = findVoicings(d, DROP_D);
+    const found = findShapes(d, DROP_D);
     const all = [...found.open, ...found.allMoveable];
     expect(all.length).toBeGreaterThan(0);
     for (const v of all) {
@@ -183,11 +183,11 @@ describe('findVoicings in another tuning', () => {
 
   it('offers the published shapes only in standard tuning', () => {
     const c = chordOf('C', 'M');
-    expect(keys(findVoicings(c).open)).toContain('x-3-2-0-1-0');
+    expect(keys(findShapes(c).open)).toContain('x-3-2-0-1-0');
     // E♭ tuning sounds every string a semitone down: the open C shape is a B there.
     const down = TUNING.map(m => m - 1);
-    expect(keys(findVoicings(c, down).open)).not.toContain('x-3-2-0-1-0');
+    expect(keys(findShapes(c, down).open)).not.toContain('x-3-2-0-1-0');
     // Standard tuning an octave up is still standard tuning.
-    expect(findVoicings(c, TUNING.map(m => m + 12))).toEqual(findVoicings(c));
+    expect(findShapes(c, TUNING.map(m => m + 12))).toEqual(findShapes(c));
   });
 });

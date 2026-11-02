@@ -6,7 +6,7 @@
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
 import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
-import { type NoteSpot } from './runs';
+import { type NoteDrawnAt } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type DrawnMark } from './marks';
 import { litLook, type TabLook } from './tabLook';
@@ -55,7 +55,7 @@ export function ColumnDrawing({ placed, bar, rows, system, look, previous, slide
   rows: Rows;
   system: number;
   look: TabLook;
-  previous: Map<Note, NoteSpot>;
+  previous: Map<Note, NoteDrawnAt>;
   slides: Map<Note, 'up' | 'down'>;
   joins: Joins;
   staffStart: number;
