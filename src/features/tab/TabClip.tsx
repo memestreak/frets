@@ -1,6 +1,6 @@
-import { useId, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { memo, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteSpot, previousSpots, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
@@ -45,11 +45,13 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
   parts?: Parts;
+  /** `clip` laid out at `width` with `parts`, when the page has worked it out already; else it is worked out here. */
+  layout?: Layout;
   /** Which bars show their number (the View options). */
   barNumbers?: BarNumbers;
   /** Drawn this many times its size (an exported image at the page's Size); `width` is in the drawing's own units. */
@@ -116,7 +118,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
   onPickRhythm?: (at: { bar: number; column: number }, extend: boolean) => void;
 }) {
-  const layout = layoutClip(clip, width, parts);
+  const layout = useMemo(() => given ?? layoutClip(clip, width, parts), [given, clip, width, parts]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   const pickedWord = picked && picked.kind !== 'mark' ? picked : null;
@@ -404,7 +406,7 @@ export function TabClip({ clip, width, parts = 'tab', barNumbers = 'none', zoom 
       })}
     </svg>
   );
-}
+});
 
 /** A bar's number: its size, and how far in from the bar's opening line it starts. */
 /** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */

@@ -195,7 +195,7 @@ export function showsBarNumber(barNumbers: BarNumbers, firstOnLine: boolean): bo
 }
 
 /** The clip as the view lays it out: without its own line breaks unless the view keeps them. */
-export function laidOut(clip: Part, view: TabView): Part {
+export function laidOut(clip: Part, view: Pick<TabView, 'lineBreaks'>): Part {
   if (view.lineBreaks || (clip.systemsLayout === undefined && clip.defaultSystemsLayout === undefined)) return clip;
   return { ...clip, systemsLayout: undefined, defaultSystemsLayout: undefined };
 }

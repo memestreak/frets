@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEven
 import { PlayIcon } from '@/components/icons';
 import type { Part } from './clip';
 import { columnCount, placeOf } from './editing';
-import { layoutClip, type Layout, type Parts } from './layout';
+import type { Layout } from './layout';
 import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
@@ -529,8 +529,9 @@ function useReleaseFocusOnPressOutside(row: RefObject<HTMLElement | null>) {
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, width, parts, playback, mark, markOnly = false, layer }: {
-  clip: Part; width: number; parts: Parts; playback: Playback; mark: number | null;
+export function Playhead({ clip, layout, width, playback, mark, markOnly = false, layer }: {
+  /** The clip as drawn, and its layout at `width` (the page works it out once for everything over the tab). */
+  clip: Part; layout: Layout; width: number; playback: Playback; mark: number | null;
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
   markOnly?: boolean;
   /**
@@ -541,7 +542,6 @@ export function Playhead({ clip, width, parts, playback, mark, markOnly = false,
 }) {
   const under = layer === 'under';
   const heard = useHeardPosition(playback, !markOnly && playback.view.state === 'playing');
-  const layout = useMemo(() => layoutClip(clip, width, parts), [clip, width, parts]);
   const column = heard?.column ?? null;
   const loop = !markOnly && Array.isArray(playback.loop) ? playback.loop : null;
   const idleMark = playback.view.state === 'playing' ? null : mark;
@@ -647,11 +647,10 @@ function loopBracket(layout: Layout, loop: [number, number]): { system: number; 
  * The ends of the loop bracket as handles over the tab: drag either one forwards or backwards to
  * move that loop point, a column at a time (Jeremy, 2026-10-27). The start never passes the end.
  */
-export function LoopHandles({ clip, width, parts, playback }: { clip: Part; width: number; parts: Parts; playback: Playback }) {
+export function LoopHandles({ layout, width, playback }: { layout: Layout; width: number; playback: Playback }) {
   const drag = useRef<'start' | 'end' | null>(null);
   const loop = Array.isArray(playback.loop) ? playback.loop : null;
   if (!loop) return null;
-  const layout = layoutClip(clip, width, parts);
   const onMove = (e: ReactPointerEvent<SVGRectElement>) => {
     if (!drag.current) return;
     const box = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
