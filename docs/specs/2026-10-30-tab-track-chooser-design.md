@@ -70,6 +70,6 @@ until it does, and bar numbers are the same in every track.
 
 `tracks.test.ts` (editing track 2, `clipAction` with a track, bars kept for
 another track's music, every track laid out in step, multi-bar rests,
-`trackName`) and TabPage's "several tracks" tests
+`trackName`) and the page's tests in `tab/page/tracks.test.tsx`
 (the list, editing and ASCII of track 2, no list in AlphaTex or for one
 track, back to track 1 on Duplicate).

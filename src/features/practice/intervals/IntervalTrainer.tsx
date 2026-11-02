@@ -84,7 +84,7 @@ export default function IntervalTrainer({ rng = Math.random }: { rng?: Rng }) {
     if (mode === 'name' || answered) {
       const at = picked ?? q.tgt;
       if (mode === 'fret' && !hint) {
-        // Other fingerings of the interval inside the box. The hint already
+        // Other places the interval lies inside the box. The hint already
         // labels those cells, so the two never overprint.
         for (const p of correctFrets(q, set)) {
           if (sameSpot(p, at)) continue;

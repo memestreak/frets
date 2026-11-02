@@ -76,7 +76,7 @@ describe('isCorrectFret', () => {
 
   it('accepts any in-box spot a minor third above', () => {
     expect(isCorrectFret(q, { s: 2, f: 3 }, simple)).toBe(true);
-    // Same string, three frets up: a real fingering of the interval.
+    // Same string, three frets up: another place the interval lies.
     expect(isCorrectFret(q, { s: 1, f: 8 }, simple)).toBe(true);
   });
 

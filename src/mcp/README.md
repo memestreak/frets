@@ -10,7 +10,7 @@ and `docs/specs/2026-10-31-metronome-mcp-app-design.md` (the first tool).
 So far: the Metronome's `show_metronome` and the Tuner's `show_tuner`
 (`docs/specs/2026-11-01-tuner-mcp-app-design.md`).
 
-## The files
+## What's here
 
 - `server.ts` — `createFretsServer(apps)`: a server with every page's
   tools. `apps` is each built app's HTML by name. Stateless, no model, no

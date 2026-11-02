@@ -11,8 +11,7 @@ Next.js 16 App Router with static export (`out/`;
 Tailwind 4, Vitest, tonal (pinned to 6.4.3;
 `docs/adr/2026-11-02-tonal-pinned.md`).
 
-The app has no users yet: don't keep old URLs, storage keys or saved state
-working after a change (`docs/adr/2026-11-02-no-users-yet.md`).
+The app has no users yet (`docs/adr/2026-11-02-no-users-yet.md`).
 
 Every feature has a design spec in `docs/specs/`, named by date and topic;
 it rides in the same PR as the code. A spec wins over the prototypes in
@@ -114,13 +113,18 @@ changes or removes a key updates that page's `useShortcuts` list in the same
 PR (Tab: `src/features/tab/shortcuts.ts`; a palette key comes from `tools.ts`
 on its own).
 
+Every page lets go of a widget after use
+(`docs/specs/2026-10-30-let-go-after-use-design.md`) and of a selection on
+Esc or a press elsewhere (`docs/specs/2026-11-01-deselect-design.md`).
+
 Third-party material (the chord shapes, the tuner's recordings) is listed
 with its licence in `NOTICE.md` and credited in the README's Credits; add
 both for anything new.
 
 ## Styling
 
-- `src/styles/fretwood.css` is the Fretwood design system: its tokens (names
+- `src/styles/fretwood.css` is the Fretwood design system
+  (`docs/specs/2026-10-04-fretwood-design-system.md`): its tokens (names
   as in its `tokens.json`, light on `:root`, dark under
   `prefers-color-scheme` and `data-theme`), type and the shared component
   classes (`.btn-*`, `.seg`, `.card`, `.input`). It is imported into
@@ -150,7 +154,8 @@ Preferences follow the settings philosophy
 `frets.<page>.<section>` (app-wide: `frets.general.<section>`), each a JSON
 object, and every preference listed in the Settings dialog. The work lives
 under `frets.<page>.works.<id>`, with the page's index at `frets.<page>.works`.
-Pages not yet in Settings still use `frets.<section>.<page>`. The parser next
+Pages not yet in Settings keep their old keys, listed in `src/lib/README.md`.
+The parser next
 to each key validates every field; keep it in step with settings changes.
 
 ## Testing
