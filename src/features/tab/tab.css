@@ -466,8 +466,15 @@
 
 /* MOCK (PaletteMock.tsx, ?rail=a|b, issue #301): the rail of panels on the left of the clip.
    Every panel is one width, so switching panels never moves the clip; only opening and closing do. */
-.tab-rail-layout { display: grid; gap: 12px; align-items: start; grid-template-columns: 40px minmax(0, 1fr); }
+/* The rail and panel grow into the page's left margin, so the clip keeps its right edge and, while there
+   is room, its width (Jeremy, 2026-11-02): the grid starts 16px from the window's left edge, and the
+   clip, at most the page column's width, sits at its right end. */
+.tab-rail-layout {
+  display: grid; gap: 12px; align-items: start; grid-template-columns: 40px minmax(0, 1fr);
+  margin-left: calc(-1 * (max(0px, (100vw - 1240px) / 2) + 4px));
+}
 .tab-rail-layout[data-open] { grid-template-columns: 40px 17rem minmax(0, 1fr); }
+.tab-rail-layout > .min-w-0 { justify-self: end; width: 100%; max-width: calc(min(1240px, 100vw) - 40px); }
 .tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; }
 .tab-rail-button {
   position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
@@ -497,11 +504,11 @@
 .tab-rail-layout[data-look='b'] .tab-rail-panel {
   min-height: calc(100vh - 32px); padding-top: 4px; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
-.tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 16px; }
+.tab-rail-layout[data-look='b'] > .min-w-0 { padding-left: 16px; max-width: calc(min(1240px, 100vw) - 24px); }
 
 /* Under 900px the rail is a row over the clip and the open panel sits under it (Q6). */
 @media (max-width: 899px) {
-  .tab-rail-layout, .tab-rail-layout[data-open] { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .tab-rail-layout, .tab-rail-layout[data-open] { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-left: 0; }
   .tab-rail { position: static; flex-direction: row; }
   .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
   .tab-rail-panel { position: static; }

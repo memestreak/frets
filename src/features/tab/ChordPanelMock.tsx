@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
-import { findVoicings, voicingKey, type Voicing } from '@/lib/chords/voicings';
+import { findShapes, shapeKey, type Shape } from '@/lib/chords/shapes';
 import { chordOf, type ChordInfo } from '@/lib/theory/chords';
 import { findChord } from '@/lib/theory/chordSearch';
 import type { Part } from './clip';
@@ -50,7 +50,7 @@ function songChords(clip: Part): Map<string, number> {
   return uses;
 }
 
-/** The tuning low string first, as MIDI, which the voicing search takes. */
+/** The tuning low string first, as MIDI, which the shape search takes. */
 const lowFirst = (clip: Part): number[] => [...writtenStrings(clip.tuning)].reverse();
 
 interface ChordPanelProps {
@@ -65,7 +65,7 @@ interface ChordPanelProps {
 export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps) {
   const [added, setAdded] = useState<string[]>(['Dsus2']);
   const [picked, setPicked] = useState<string | null>(null);
-  const [shapeKey, setShapeKey] = useState<string | null>(null);
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
   const [what, setWhat] = useState<InsertWhat>('both');
   const [typed, setTyped] = useState('');
 
@@ -77,19 +77,19 @@ export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps)
 
   const tuning = useMemo(() => lowFirst(clip), [clip]);
   const current = entries.find(e => e.name === picked) ?? entries[0] ?? null;
-  const shapes = useMemo<Voicing[]>(() => {
+  const shapes = useMemo<Shape[]>(() => {
     if (!current?.chord) return [];
-    const v = findVoicings(current.chord, tuning);
+    const v = findShapes(current.chord, tuning);
     return [...v.open, ...v.moveable].slice(0, 9);
   }, [current, tuning]);
-  const shape = shapes.find(s => voicingKey(s) === shapeKey) ?? shapes[0] ?? null;
+  const shape = shapes.find(s => shapeKey(s) === pickedKey) ?? shapes[0] ?? null;
 
   const add = () => {
     const name = typed.trim();
     if (!name) return;
     if (!entries.some(e => e.name === name)) setAdded([...added, name]);
     setPicked(name);
-    setShapeKey(null);
+    setPickedKey(null);
     setTyped('');
   };
 
@@ -98,7 +98,7 @@ export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps)
     onInsert(withColumn(clip, cursor, column => {
       const next = what === 'notes' ? column : { ...column, chord: current.name };
       if (what === 'name' || !shape) return next;
-      // A voicing is low string first; a column's notes are high e first.
+      // A shape is low string first; a column's notes are high e first.
       return { ...next, notes: next.notes.map((_, s) => {
         const fret = shape[shape.length - 1 - s];
         return fret === null ? null : { fret };
@@ -123,10 +123,10 @@ export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps)
             <li key={entry.name}>
               <button
                 type="button" className="chord-panel-entry" aria-pressed={entry === current}
-                onMouseDown={keep} onClick={() => { setPicked(entry.name); setShapeKey(null); }}
+                onMouseDown={keep} onClick={() => { setPicked(entry.name); setPickedKey(null); }}
               >
                 <span className="chord-panel-thumb" aria-hidden="true">
-                  {entry.chord && first && <ChordDiagram chord={entry.chord} voicing={first} look={PLAIN_LOOK} tuning={tuning} />}
+                  {entry.chord && first && <ChordDiagram chord={entry.chord} shape={first} look={PLAIN_LOOK} tuning={tuning} />}
                 </span>
                 <span className="chord-panel-name">{entry.name}</span>
                 {entry.uses === 0
@@ -146,10 +146,10 @@ export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps)
               <div className="chord-panel-shapes">
                 {shapes.map(s => (
                   <button
-                    key={voicingKey(s)} type="button" className="chord-panel-shape" aria-pressed={s === shape}
-                    aria-label={`Shape ${voicingKey(s)}`} onMouseDown={keep} onClick={() => setShapeKey(voicingKey(s))}
+                    key={shapeKey(s)} type="button" className="chord-panel-shape" aria-pressed={s === shape}
+                    aria-label={`Shape ${shapeKey(s)}`} onMouseDown={keep} onClick={() => setPickedKey(shapeKey(s))}
                   >
-                    <ChordDiagram chord={current.chord!} voicing={s} look={PLAIN_LOOK} tuning={tuning} />
+                    <ChordDiagram chord={current.chord!} shape={s} look={PLAIN_LOOK} tuning={tuning} />
                   </button>
                 ))}
               </div>
@@ -172,7 +172,7 @@ export function ChordPanel({ clip, cursor, editing, onInsert }: ChordPanelProps)
   );
 }
 
-function firstShape(chord: ChordInfo, tuning: number[]): Voicing | null {
-  const v = findVoicings(chord, tuning);
+function firstShape(chord: ChordInfo, tuning: number[]): Shape | null {
+  const v = findShapes(chord, tuning);
   return v.open[0] ?? v.moveable[0] ?? null;
 }
