@@ -1,10 +1,18 @@
 import {
-  intervalClass, midi, NOTE_LABELS, pitchClass, positionsOnNeck, TUNING,
+  intervalClass, isStandardTuning, midi, NOTE_LABELS, pitchClass, positionsOnNeck, TUNING,
 } from '@/lib/music';
 
 describe('music', () => {
   it('uses standard tuning E2 A2 D3 G3 B3 E4', () => {
     expect([...TUNING]).toEqual([40, 45, 50, 55, 59, 64]);
+  });
+
+  it('counts a tuning as standard with all six strings on its notes, in any octave', () => {
+    expect(isStandardTuning(TUNING)).toBe(true);
+    expect(isStandardTuning([28, 45, 50, 55, 59, 64])).toBe(true);
+    expect(isStandardTuning([38, 45, 50, 55, 59, 64])).toBe(false);
+    // A tuning of the wrong length isn't standard, though its first strings match.
+    expect(isStandardTuning([40, 45, 50, 55])).toBe(false);
   });
 
   it('computes MIDI and pitch class from string and fret', () => {

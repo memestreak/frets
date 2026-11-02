@@ -1,6 +1,6 @@
 import {
-  DEFAULT_BEATS, DEFAULT_POLY, MAX_BPM, MIN_BPM, PRESETS, addTap, barClicks, countSyllable, cycleCell, defaultRhythm, defaultSteps,
-  parseGroups, retempo, tapBpm, tempoName, timeAt, toggleCell, withAllSubs, withBeatSubs, withSwing, withBeats, withGroups,
+  DEFAULT_BEATS, DEFAULT_POLY, PRESETS, barClicks, countSyllable, cycleCell, defaultRhythm, defaultSteps,
+  parseGroups, retempo, tempoName, timeAt, toggleCell, withAllSubs, withBeatSubs, withSwing, withBeats, withGroups,
   withPreset, withSound, withVoice,
 } from '@/features/metronome/rhythm';
 
@@ -157,30 +157,6 @@ describe('the clock', () => {
     const b = retempo(a, 2, 120);
     expect(timeAt(b, 2)).toBe(timeAt(a, 2));
     expect(timeAt(b, 3) - timeAt(b, 2)).toBe(0.5);
-  });
-});
-
-describe('tap tempo', () => {
-  it('needs two taps, then averages them', () => {
-    expect(tapBpm([0])).toBeNull();
-    expect(tapBpm([0, 500, 1000, 1500])).toBe(120);
-  });
-
-  it('starts again after a pause, and keeps the last 8 taps', () => {
-    expect(addTap([0, 500], 4000)).toEqual([4000]);
-    let taps: number[] = [];
-    for (let t = 0; t <= 5000; t += 500) taps = addTap(taps, t);
-    expect(taps).toHaveLength(8);
-  });
-
-  it('keeps within the metronome’s range', () => {
-    expect(tapBpm([0, 50])).toBe(MAX_BPM);
-    expect(tapBpm([0, 4000, 8000])).toBe(MIN_BPM);
-  });
-
-  it('reaches the slowest tempo: taps 3 seconds apart are one run', () => {
-    expect(addTap([0], 3000)).toEqual([0, 3000]);
-    expect(tapBpm([0, 3000])).toBe(MIN_BPM);
   });
 });
 

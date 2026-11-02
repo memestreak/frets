@@ -14,7 +14,8 @@
  * bar; a change to which voice a step plays is heard at once.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { addTap, barClicks, retempo, tapBpm, timeAt, type Anchor, type Rhythm, type SoundId } from './rhythm';
+import { addTap, tapBpm } from '@/lib/tapTempo';
+import { BPM_RANGE, barClicks, retempo, timeAt, type Anchor, type Rhythm, type SoundId } from './rhythm';
 import { soundWaves } from './sounds';
 
 /** How far ahead clicks are scheduled, and how often the timer looks. */
@@ -177,8 +178,8 @@ export function useMetronomeCore(initial: () => MetronomeStart) {
   /* Tap tempo. */
   const taps = useRef<number[]>([]);
   const tap = useCallback(() => {
-    taps.current = addTap(taps.current, performance.now());
-    const bpm = tapBpm(taps.current);
+    taps.current = addTap(taps.current, performance.now(), BPM_RANGE);
+    const bpm = tapBpm(taps.current, BPM_RANGE);
     if (bpm !== null) setRhythm(r => ({ ...r, bpm }));
   }, []);
 

@@ -808,8 +808,13 @@ export function whammyGoesOn(clip: Pick<Part, 'bars'>): Set<Column> {
   return out;
 }
 
-export function isStandardTuning(tuning: readonly string[]): boolean {
-  return tuning.every((n, i) => n === STANDARD_TUNING[i]);
+/**
+ * Whether a tuning's note names are standard tuning's, string for string. Names, as the clip keeps
+ * them, so a respelt tuning ("Fb") is kept as written; `isStandardTuning` in `@/lib/music` is the
+ * same test on MIDI notes.
+ */
+export function isStandardTuningNames(tuning: readonly string[]): boolean {
+  return tuning.length === STANDARD_TUNING.length && tuning.every((n, i) => n === STANDARD_TUNING[i]);
 }
 
 /** A clip of one track in standard tuning, with one empty bar. */

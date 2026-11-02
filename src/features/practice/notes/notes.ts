@@ -1,6 +1,7 @@
 import {
   pick, pitchClass, STRINGS, TUNING, type Position, type Rng,
 } from '@/lib/music';
+import { mod12 } from '@/lib/theory/notes';
 
 export type NoteMode = 'name' | 'find';
 
@@ -86,7 +87,7 @@ export function placeNotePitch(q: FindQuestion, midi: number): Position | null {
 
 /** Is a played MIDI note the asked note, in any octave? */
 export const isNotePitch = (q: NoteQuestion, midi: number): boolean =>
-  ((midi % 12) + 12) % 12 === q.pc;
+  mod12(midi) === q.pc;
 
 /**
  * Every question the settings allow. Find it lists a note once per string,
