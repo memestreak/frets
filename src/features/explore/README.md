@@ -32,3 +32,37 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   table) and the page,
   `CircleOfFifths.tsx`. Only the view is in the URL; nothing is saved.
 - `explore.css` — the CSS of all three pages, imported from `src/app/globals.css`.
+
+## Specs
+
+- `docs/specs/2026-10-30-music-theory-core-design.md`: all music theory moves
+  into src/lib/theory/, the only tonal importer
+- `docs/specs/2026-10-19-scale-lab-header-design.md`: the Scale lab's root
+  picker and Scale dropdown sit in the strip's row
+- `docs/specs/2026-10-18-triads-design.md`: the Triads page: every Grip of a
+  triad on a string set, all inversions
+- `docs/specs/2026-10-18-every-tile-shapes-design.md`: every diatonic tile
+  cycles its shapes; Open in Chords from the menu
+- `docs/specs/2026-10-16-steady-ladder-design.md`: selecting a chord no longer
+  moves the Ladder's notes
+- `docs/specs/2026-10-16-key-picker-design.md`: the root picker becomes a row
+  of tiles laid out like piano keys
+- `docs/specs/2026-10-16-chord-diagram-fret-label-design.md`: every small
+  shape diagram labels its starting fret
+- `docs/specs/2026-10-13-one-diatonic-chords-card-design.md`: one Diatonic
+  chords card: Triads / Sevenths, the Arpeggio, the Position
+- `docs/specs/2026-10-07-scale-lab-position-shapes-design.md`: the diatonic
+  chords as shapes in one Position, each tile cycling its shapes
+- `docs/specs/2026-10-07-circle-of-fifths-design.md`: the Circle of fifths:
+  the Key wheel and Modes on one page
+- `docs/specs/2026-10-04-scale-lab-design.md`: the Scale lab's first slice: a
+  scale on the neck and its diatonic chords
+- `docs/specs/2026-10-04-chord-diagrams-design.md`: the Scale lab draws a
+  selected chord against the scale (Ladder, Clock)
+
+## Decisions
+
+- `docs/adr/2026-11-02-spec-over-prototype.md`: the spec wins; Fretwood sets
+  the look
+- `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
+  only tonal importer

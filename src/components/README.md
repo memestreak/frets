@@ -86,3 +86,53 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 - `src/app/manifest.ts` and `public/icons/` make the app installable (home
   screen, "Install app"); no service worker yet, so no offline use. See
   `docs/specs/2026-10-06-installable-app-design.md`.
+
+## Specs
+
+- `docs/specs/2026-11-01-mock-switcher-design.md`: ?mock= options switch in
+  place from a small card; mocks never merge
+- `docs/specs/2026-11-01-deselect-design.md`: Esc or a press away lets any
+  selection go, on every page
+- `docs/specs/2026-10-30-let-go-after-use-design.md`: a control used with
+  mouse or finger lets go of the focus
+- `docs/specs/2026-10-30-keyboard-shortcuts-design.md`: ? shows the page's
+  keyboard shortcuts; each page keeps its list
+- `docs/specs/2026-10-29-settings-design.md`: one Settings dialog for every
+  Preference, one key per Section
+- `docs/specs/2026-10-19-tools-and-practice-design.md`: the pages fall in two
+  Groups, Tools and Practice
+- `docs/specs/2026-10-19-key-picker-two-tone-design.md`: the key picker's
+  sharps and flats a shade darker, like black keys
+- `docs/specs/2026-10-18-every-tile-shapes-design.md`: every diatonic tile
+  cycles its shapes; Open in Chords from the menu
+- `docs/specs/2026-10-17-export-size-design.md`: the Export dialog picks the
+  image's size and transparency
+- `docs/specs/2026-10-17-chord-neck-labels-design.md`: the Chords neck gets
+  Dot labels: Interval, Note or None
+- `docs/specs/2026-10-16-key-picker-design.md`: the root picker becomes a row
+  of tiles laid out like piano keys
+- `docs/specs/2026-10-16-chord-diagram-fret-label-design.md`: every small
+  shape diagram labels its starting fret
+- `docs/specs/2026-10-15-page-icons-design.md`: a pictogram tile for every
+  page card; a test checks each has one
+- `docs/specs/2026-10-15-copy-chord-diagram-design.md`: a right-click menu and
+  Export dialog copy a shape diagram as an image
+- `docs/specs/2026-10-06-simpler-chord-diagrams-design.md`: small shape
+  diagrams show colour without labels
+- `docs/specs/2026-10-06-installable-app-design.md`: a manifest and icons make
+  the app installable; no offline use yet
+- `docs/specs/2026-10-06-e-minor-mark-design.md`: the Frets mark and favicon
+  are an E minor chord
+- `docs/specs/2026-10-06-breadcrumb-navigation-design.md`: breadcrumb
+  navigation: home, group and page, with a panel of every page
+- `docs/specs/2026-10-04-practice-restructure-design.md`: shared code moves
+  out of the trainers into lib, components and hooks
+- `docs/specs/2026-10-04-fretwood-design-system.md`: Fretwood: the app's
+  tokens, type and shared component classes
+- `docs/specs/2026-10-01-soft-ui-design.md`: rounded cards and pill controls
+  (superseded by Fretwood)
+
+## Decisions
+
+- `docs/adr/2026-11-02-spec-over-prototype.md`: the spec wins; Fretwood sets
+  the look

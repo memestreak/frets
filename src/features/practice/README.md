@@ -63,3 +63,35 @@ Tuner page's panel in a dialog.
     because their initial state reads localStorage and draws a random
     question.
 - `practice.css` — the trainers' CSS (answer buttons, the board's frame, the hint and the mic), imported from `src/app/globals.css`.
+
+## Specs
+
+- `docs/specs/2026-10-17-tuner-design.md`: the first tuner, in a modal on the
+  Note trainer: strobe, strings, reference notes
+- `docs/specs/2026-10-17-note-trainer-mic-design.md`: Find it can be answered
+  by playing the note into the mic
+- `docs/specs/2026-10-09-interval-fixed-board-design.md`: the Interval
+  trainer's board keeps its size whatever the Fret range
+- `docs/specs/2026-10-09-hint-spacebar-design.md`: Space toggles the trainers'
+  hint, in place of H
+- `docs/specs/2026-10-05-answers-below-hint-toggle-design.md`: the answer card
+  moves below the board; the hint becomes a toggle
+- `docs/specs/2026-10-05-answer-buttons-touch-design.md`: the answer buttons
+  wrap to two rows on phones, for touch-sized targets
+- `docs/specs/2026-10-04-practice-restructure-design.md`: shared code moves
+  out of the trainers into lib, components and hooks
+- `docs/specs/2026-10-04-answer-arrow-keys-design.md`: arrow keys and Enter
+  answer Name it without the mouse
+- `docs/specs/2026-10-01-settings-dialog-design.md`: the trainers' settings
+  move to a dialog; session stats stay on the page
+- `docs/specs/2026-10-01-settings-defaults-design.md`: a Defaults button in
+  the trainers' settings dialog
+- `docs/specs/2026-10-01-notes-modes-design.md`: the Note trainer reduced to
+  Name it and Find it, both settings applying to both
+- `docs/specs/2026-10-01-interval-ranges-design.md`: the Interval trainer's
+  Box (vRange, hRange) drives questions and judging
+
+## Decisions
+
+- `docs/adr/2026-11-02-spec-over-prototype.md`: the spec wins; Fretwood sets
+  the look

@@ -95,3 +95,18 @@ Outside `src/`:
   `https://<branch>.frets-6e8.pages.dev/mcp`.
 - **Claude Code** (text only, no frame):
   `claude mcp add frets -- node mcp/dist/server.mjs`.
+
+## Specs
+
+- `docs/specs/2026-11-01-tuner-mcp-app-design.md`: the Tuner runs in a chat as
+  an MCP App, show_tuner
+- `docs/specs/2026-11-01-frets-mcp-server-design.md`: one MCP server, frets,
+  that every page adds its tools to
+- `docs/specs/2026-10-31-metronome-mcp-app-design.md`: the Metronome runs in a
+  chat as an MCP App
+
+## Decisions
+
+- `docs/adr/2026-11-02-static-export.md`: no server; /mcp is the one Pages
+  Function
+- `docs/adr/2026-11-02-one-mcp-server.md`: every page adds its tools to frets

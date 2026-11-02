@@ -273,3 +273,151 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `ClickOptions.tsx` — the Metronome toggle's right-click menu: count-in
   and click volume.
 - `FxButton.tsx` — FX and its light switch, and the FX dialog.
+
+## Specs
+
+- `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
+  per view, and Size over the clip
+- `docs/specs/2026-11-01-tab-tuning-collapse-design.md`: the tuning is picked
+  and folds to its name
+- `docs/specs/2026-11-01-tab-selection-look-design.md`: how a selection looks
+- `docs/specs/2026-11-01-tab-rest-lengths-design.md`: changing a rest's or
+  note's length keeps bars full
+- `docs/specs/2026-11-01-tab-double-click-edit-design.md`: a double-click
+  opens a word's edit dialog
+- `docs/specs/2026-11-01-tab-arrangement-header-design.md`: the title and
+  credits are picked, not edited, and the header folds
+- `docs/specs/2026-10-31-tab-drag-fret-string-design.md`: a fret number drags
+  to another string
+- `docs/specs/2026-10-31-tab-bars-stay-full-design.md`: bars stay full:
+  removed notes become rests, pastes write over
+- `docs/specs/2026-10-31-tab-arrangement-chooser-design.md`: Arrangements… as
+  a file chooser; Save instead of autosave
+- `docs/specs/2026-10-30-tab-tracks-design.md`: a Clip holds several Tracks
+  (the model)
+- `docs/specs/2026-10-30-tab-track-rests-design.md`: a Track's empty bars
+  drawn as multi-bar rests
+- `docs/specs/2026-10-30-tab-track-effects-design.md`: effects belong to a
+  Track; the metronome stays dry
+- `docs/specs/2026-10-30-tab-track-chooser-design.md`: pick the Track the page
+  shows, edits and plays
+- `docs/specs/2026-10-30-tab-note-input-mode-design.md`: normal mode and note
+  input, as separate modes
+- `docs/specs/2026-10-30-tab-musicxml-export-design.md`: MusicXML export
+- `docs/specs/2026-10-30-tab-musescore-selection-design.md`: selecting and
+  editing as MuseScore does (#238 step 1)
+- `docs/specs/2026-10-30-tab-guitar-pro-export-design.md`: Guitar Pro (.gp)
+  export
+- `docs/specs/2026-10-30-tab-export-format-list-design.md`: the Export
+  dialog's formats in one list, one Download button
+- `docs/specs/2026-10-30-music-theory-core-design.md`: all music theory moves
+  into src/lib/theory/, the only tonal importer
+- `docs/specs/2026-10-30-keyboard-shortcuts-design.md`: ? shows the page's
+  keyboard shortcuts; each page keeps its list
+- `docs/specs/2026-10-29-tab-whammy-design.md`: the whammy bar, drawn and
+  played
+- `docs/specs/2026-10-29-tab-uneven-bar-amounts-design.md`: a bar that doesn't
+  add up says by how much
+- `docs/specs/2026-10-29-tab-tempo-button-design.md`: the tempo in the score's
+  head, with tap tempo
+- `docs/specs/2026-10-29-tab-sound-decoding-design.md`: sounds decode off the
+  main thread
+- `docs/specs/2026-10-29-tab-sound-and-fx-in-clip-design.md`: the Sound and FX
+  are saved with the clip
+- `docs/specs/2026-10-29-tab-share-link-design.md`: an arrangement shared as a
+  /tab#tab= link
+- `docs/specs/2026-10-29-tab-fill-bars-setting-design.md`: filling short bars
+  with rests becomes a Preference, off by default
+- `docs/specs/2026-10-29-tab-delete-at-line-design.md`: Delete at the playback
+  line removes the rest before it
+- `docs/specs/2026-10-29-tab-credits-tuning-design.md`: the title, artist,
+  credits and tuning set from the score's head
+- `docs/specs/2026-10-29-tab-book-marks-design.md`: bend starts, capital X and
+  ghost chords as the book prints them
+- `docs/specs/2026-10-29-settings-design.md`: one Settings dialog for every
+  Preference, one key per Section
+- `docs/specs/2026-10-28-tab-sweet-child-verse-design.md`: Sweet Child round
+  2: the verse and chorus
+- `docs/specs/2026-10-28-tab-sweet-child-solo-two-design.md`: Sweet Child
+  round 4: the second solo
+- `docs/specs/2026-10-28-tab-sweet-child-solo-three-design.md`: Sweet Child
+  round 5: the end of Chorus 3 and Guitar Solo 3's start
+- `docs/specs/2026-10-28-tab-sweet-child-solo-six-design.md`: Sweet Child
+  round 8: Guitar Solo 3 to the Outro
+- `docs/specs/2026-10-28-tab-sweet-child-solo-four-design.md`: Sweet Child
+  round 6: the rest of Guitar Solo 3's first half
+- `docs/specs/2026-10-28-tab-sweet-child-solo-five-design.md`: Sweet Child
+  round 7: Guitar Solo 3 under the wah
+- `docs/specs/2026-10-28-tab-sweet-child-solo-design.md`: Sweet Child round 3:
+  the first solo
+- `docs/specs/2026-10-28-tab-sweet-child-outro-design.md`: Sweet Child round
+  9: the Outro's riff and solo
+- `docs/specs/2026-10-28-tab-sweet-child-intro-design.md`: Sweet Child round
+  1: a printed score's header and lines
+- `docs/specs/2026-10-28-tab-sweet-child-ending-design.md`: Sweet Child round
+  10: the end of the outro solo
+- `docs/specs/2026-10-28-tab-staff-drag-design.md`: notes move up and down on
+  the staff by dragging
+- `docs/specs/2026-10-28-tab-sound-preload-design.md`: an instrument loads
+  once, before Play, until it changes
+- `docs/specs/2026-10-28-tab-score-head-design.md`: the title, credits and
+  tuning drawn in the score's head
+- `docs/specs/2026-10-28-tab-playback-effects-design.md`: distortion and plate
+  reverb on playback
+- `docs/specs/2026-10-28-tab-pinned-playback-design.md`: the playback controls
+  stay in sight while scrolling
+- `docs/specs/2026-10-28-tab-metronome-design.md`: a metronome and count-in
+  for playback
+- `docs/specs/2026-10-28-tab-line-spacing-design.md`: each line only as tall
+  as what it draws
+- `docs/specs/2026-10-28-tab-line-breaks-design.md`: the clip's own line
+  breaks, from alphaTex's systems layout
+- `docs/specs/2026-10-28-tab-guitar-solo-3-design.md`: the Guitar Solo 3
+  excerpt drawn as Guitar Pro draws it
+- `docs/specs/2026-10-28-tab-fewer-bands-design.md`: fewer highlighted bands;
+  playback never highlights a region
+- `docs/specs/2026-10-28-tab-circled-tap-design.md`: a tap's circled T over
+  the tab and the staff
+- `docs/specs/2026-10-28-tab-arrangements-design.md`: My arrangements
+  (autosave and the one-list dialog since replaced)
+- `docs/specs/2026-10-27-tab-staff-entry-design.md`: notes can be entered from
+  the staff
+- `docs/specs/2026-10-27-tab-playback-options-design.md`: Play's right-click
+  options: where Stop leaves the cursor, a pause
+- `docs/specs/2026-10-27-tab-pick-marks-design.md`: a technique mark on the
+  tab can be picked and changed
+- `docs/specs/2026-10-27-tab-notation-design.md`: a standard-notation staff
+  over, under or instead of the tab
+- `docs/specs/2026-10-27-tab-instruments-design.md`: better playback
+  instruments, including a real piano
+- `docs/specs/2026-10-27-tab-held-bends-design.md`: held and released bends
+  round-trip from Guitar Pro
+- `docs/specs/2026-10-27-tab-hear-notes-design.md`: Hear notes plays each note
+  as it is entered
+- `docs/specs/2026-10-27-tab-alphatex-editing-design.md`: the AlphaTex view's
+  text can be edited directly
+- `docs/specs/2026-10-26-tab-words-design.md`: chord names, sections, tempo
+  and capo over the tab
+- `docs/specs/2026-10-26-tab-rhythm-design.md`: tuplets, grace notes, tremolo
+  picking and time signature changes
+- `docs/specs/2026-10-26-tab-playback-design.md`: playback with alphaTab's
+  synth: a transport, loop and speed
+- `docs/specs/2026-10-26-tab-note-marks-design.md`: the note marks: bends,
+  slides, hammer-ons and the rest
+- `docs/specs/2026-10-26-tab-export-design.md`: an Export options dialog for
+  the tab image
+- `docs/specs/2026-10-26-tab-examples-design.md`: a library of example clips
+  showing the syntax
+- `docs/specs/2026-10-25-tab-editing-design.md`: the keys and toolbar for
+  editing a clip
+- `docs/specs/2026-10-25-tab-alphatex-design.md`: alphaTex becomes the clip's
+  format
+- `docs/specs/2026-10-24-tab-editor-design.md`: the Tab page: a clip from
+  ASCII tab, drawn with rhythm, edited, exported
+
+## Decisions
+
+- `docs/adr/2026-11-02-no-users-yet.md`: no migrations of URLs, keys or saved
+  state
+- `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
+  only tonal importer
