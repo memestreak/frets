@@ -459,6 +459,22 @@ describe('TabPage arrangements', () => {
     expect(files(dialog, 'Samples').getAllByRole('button', { pressed: true })).toEqual([lines[1]]);
   });
 
+  it('sets each folder on the left a step in from its parent: its chevron\'s room kept empty (Jeremy, 2026-11-03)', async () => {
+    renderAt();
+    const dialog = openDialog();
+    const child = await places(dialog).findByRole('button', { name: 'Samples' });
+    const parent = places(dialog).getByRole('button', { name: 'Built-in' });
+    // The parent's chevron and the child's empty slot take the same room before each folder icon,
+    // and the child's whole line sits in a nested list, indented by that room (tab.css).
+    expect(parent.firstElementChild).toHaveClass('tab-chooser-fold');
+    expect(parent.firstElementChild?.querySelector('svg')).not.toBeNull();
+    expect(child.firstElementChild).toHaveClass('tab-chooser-fold');
+    expect(child.firstElementChild).toBeEmptyDOMElement();
+    expect(child.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+    expect(child.closest('li.tab-chooser-sub')).not.toBeNull();
+    expect(parent.closest('li.tab-chooser-sub')).toBeNull();
+  });
+
   it('lists only arrangements in the middle, never folders: they are on the left already (Jeremy, 2026-11-03)', async () => {
     keepMany(['Riff', 'Tex riff'], [{ id: 'f', name: 'Riffs', holds: ['Tex riff'] }]);
     renderAt();
