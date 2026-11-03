@@ -64,7 +64,7 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
   const panel = PANELS.find(p => p.id === open);
   return (
     <div className="tab-rail-layout" data-open={panel ? '' : undefined}>
-      <HoverTips>
+      <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
           {PANELS.map(p => (
             <button
@@ -82,7 +82,7 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
         </nav>
       </HoverTips>
       {panel && (
-        <HoverTips>
+        <HoverTips className="tab-rail-column">
           <aside className="tab-rail-panel" aria-label={panel.name}>
             <div className="tab-rail-panel-head">
               <h2 className="tab-rail-panel-title">{panel.name}</h2>
