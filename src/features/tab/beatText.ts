@@ -36,3 +36,43 @@ export function wrapBeatText(text: string, room: number): string[] {
   lines.push(line);
   return lines;
 }
+
+/** The least room a text wraps to, about 18 characters, so a text between close columns isn't a word a line. */
+export const BEAT_TEXT_MIN_ROOM = 100;
+
+/** Where a text on a line goes: its lines, and its first line's place in the line's text rows, from the top. */
+export interface PlacedBeatText {
+  lines: string[];
+  top: number;
+}
+
+/**
+ * The texts of one line (system), left to right, wrapped and stacked (issue #323). Each wraps to the room
+ * before the next text starts, or before `end`, but never to less than `BEAT_TEXT_MIN_ROOM`. A text that
+ * then still touches one before it moves up a level, as Dorico moves colliding text away from the
+ * staff: each takes the lowest level where it clears the texts already there. A level is as tall as its
+ * tallest text, level 0 is nearest the music, and `rows` is how many text rows the line takes.
+ */
+export function placeBeatTexts(texts: { x0: number; text: string }[], end: number): { placed: PlacedBeatText[]; rows: number } {
+  const wrapped = texts.map(({ x0, text }, k) => {
+    const nextStart = k + 1 < texts.length ? texts[k + 1].x0 : end + BEAT_TEXT_GAP;
+    const lines = wrapBeatText(text, Math.max(BEAT_TEXT_MIN_ROOM, nextStart - BEAT_TEXT_GAP - x0));
+    return { x0, lines, x1: x0 + Math.max(...lines.map(beatTextWidth)) };
+  });
+  // Each level's right end so far, and its height in rows.
+  const ends: number[] = [];
+  const heights: number[] = [];
+  const levels = wrapped.map(({ x0, x1, lines }) => {
+    let level = ends.findIndex(e => x0 >= e + BEAT_TEXT_GAP);
+    if (level < 0) level = ends.length;
+    ends[level] = x1;
+    heights[level] = Math.max(heights[level] ?? 0, lines.length);
+    return level;
+  });
+  // Levels from the top: the highest first.
+  const above = (level: number) => heights.slice(level + 1).reduce((sum, h) => sum + h, 0);
+  return {
+    placed: wrapped.map(({ lines }, k) => ({ lines, top: above(levels[k]) })),
+    rows: Math.max(1, heights.reduce((sum, h) => sum + h, 0)),
+  };
+}

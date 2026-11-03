@@ -763,7 +763,7 @@ function SystemWords({ system, rows, clip, look: plain, word }: { system: System
         const look = lookOf({ kind: 'text', index: placed.index });
         parts.push(
           <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
             fill={look.ink} data-testid="beat-text"
           >
             {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}

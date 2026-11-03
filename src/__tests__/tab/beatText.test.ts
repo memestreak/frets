@@ -3,7 +3,7 @@
  * docs/specs/2026-11-03-tab-text-wrap-design.md).
  */
 import * as alphaTab from '@coderline/alphatab';
-import { BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth, wrapBeatText } from '@/features/tab/beatText';
+import { BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_MIN_ROOM, beatTextWidth, placeBeatTexts, wrapBeatText } from '@/features/tab/beatText';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
@@ -46,6 +46,42 @@ describe('wrapBeatText', () => {
   });
 });
 
+describe('placeBeatTexts', () => {
+  it('wraps each text to the room before the next, all on one level when none touch', () => {
+    const { placed, rows } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 200, text: 'then this' }], 600);
+    expect(placed[0].lines.length).toBeGreaterThan(1);
+    for (const line of placed[0].lines) expect(beatTextWidth(line)).toBeLessThanOrEqual(200 - BEAT_TEXT_GAP);
+    // Both on level 0, which is as tall as its tallest text; each starts on its top row.
+    expect(placed.map(p => p.top)).toEqual([0, 0]);
+    expect(rows).toBe(placed[0].lines.length);
+  });
+
+  it('never wraps to less than the least room, even when the next text is close', () => {
+    const { placed } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 30, text: 'b' }], 600);
+    expect(placed[0].lines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
+    expect(placed[0].lines.some(line => line.includes(' '))).toBe(true);
+  });
+
+  it('moves a text that still touches the one before it up a level, over all of its rows', () => {
+    const { placed, rows } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 30, text: 'Expect two rests' }], 600);
+    const under = placed[0].lines.length;
+    expect(placed[1].top).toBe(0);
+    expect(placed[0].top).toBe(placed[1].lines.length);
+    expect(rows).toBe(under + placed[1].lines.length);
+  });
+
+  it('puts a text back on the lowest level it clears', () => {
+    // b touches a and moves up; c clears a, so it goes back down to level 0.
+    const { placed, rows } = placeBeatTexts([{ x0: 0, text: 'aaaa aaaa' }, { x0: 20, text: 'bbbb' }, { x0: 300, text: 'cccc' }], 600);
+    expect(rows).toBe(2);
+    expect(placed.map(p => p.top)).toEqual([1, 0, 1]);
+  });
+
+  it('takes one row for a line without texts', () => {
+    expect(placeBeatTexts([], 600)).toEqual({ placed: [], rows: 1 });
+  });
+});
+
 describe('layoutClip wraps free text', () => {
   /** Two texts two quarters apart, the first far longer than the room before the second. */
   const TWO = clipOf(`5.1.4{txt "${LONG}"} 5.1.4 5.1.4{txt "then this"} 5.1.4 |`);
@@ -78,14 +114,30 @@ describe('layoutClip wraps free text', () => {
     expect(empty.textLines).toEqual([]);
   });
 
-  it('pushes everything under the text row down one line per extra line of the line\'s longest text', () => {
-    const short = layoutClip(clipOf('5.1.8{txt "a" wahc} 5.1.8{txt "b"} 5.1.8 5.1.8 5.1.2 |'), 800).systems[0].rows;
-    const tall = layoutClip(clipOf(`5.1.8{txt "${LONG}" wahc} 5.1.8{txt "b"} 5.1.8 5.1.8 5.1.2 |`), 800);
+  it('pushes everything under the text row down one line per extra text row', () => {
+    const short = layoutClip(clipOf('5.1.4{txt "a" wahc} 5.1.4 5.1.4{txt "b"} 5.1.4 |'), 800).systems[0].rows;
+    const tall = layoutClip(clipOf(`5.1.4{txt "${LONG}" wahc} 5.1.4 5.1.4{txt "b"} 5.1.4 |`), 800);
     const lines = placedOf(tall)[0].textLines.length;
+    expect(tall.systems[0].textRows).toBe(lines);
     const rows = tall.systems[0].rows;
     expect(rows.text).toBe(short.text);
     expect(rows.wah! - short.wah!).toBe((lines - 1) * BEAT_TEXT_LINE);
     expect(rows.staffTop - short.staffTop).toBe((lines - 1) * BEAT_TEXT_LINE);
+  });
+
+  it('moves a text on the next eighth up, clear of a long one, and draws the long one under it', () => {
+    const layout = layoutClip(clipOf(`5.1.8{txt "${LONG}"} 5.1.8{txt "Expect: two rests"} 5.1.8 5.1.8 5.1.2 |`), 800);
+    const [first, second] = placedOf(layout);
+    expect(first.textLines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
+    expect(second.textTop).toBe(0);
+    expect(first.textTop).toBe(second.textLines.length);
+    expect(layout.systems[0].textRows).toBe(first.textLines.length + second.textLines.length);
+    // A press on each picks its own.
+    const { top, rows } = layout.systems[0];
+    expect(textAt(layout, second.x, top + rows.text!)).toEqual({ kind: 'text', index: 1 });
+    expect(textAt(layout, second.x, top + rows.text! + first.textTop * BEAT_TEXT_LINE)).toEqual({ kind: 'text', index: 0 });
+    const box = textBox(layout, { kind: 'text', index: 0 }, null)!;
+    expect(box.y).toBeGreaterThan(top + rows.text!);
   });
 
   it('pushes the notation staff down too', () => {
