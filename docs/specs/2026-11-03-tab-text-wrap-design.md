@@ -36,6 +36,10 @@ characters, as a chord name's does.
   (`placeBeatTexts`). Each text takes the lowest level where it clears the
   texts already there, so a later text that clears goes back down. A level
   is as tall as its tallest text; each text starts on its level's top row.
+- Then each text wraps again to the room before the next text left on its
+  own level, or the right edge, between the same least and most: a text
+  moved up makes room for the one under it (Jeremy, 2026-11-03). The 60
+  characters are each text's own limit.
 - Each text row is 13px (`BEAT_TEXT_LINE`) under the one before. The text
   row's top stays where it was, so the chord names over it don't move; the
   text rows past the first push everything under them down: the wah's row,
@@ -84,8 +88,10 @@ characters, as a chord name's does.
 - A text that still touches the one before it moves up a level, over all
   of that text's rows; a later text that clears goes back to level 0; a
   level is as tall as its tallest text; a line without texts takes one row.
+- A text moved up leaves its room to the text under it, up to the next text
+  on that level and no further.
 - On neighbouring eighths, the second text goes up and the long one is
-  drawn under it, and a press on each picks its own.
+  drawn under it on one line, and a press on each picks its own.
 - In a clip, a text wraps before the next text on its line; the last text on
   a line wraps at the drawing's right edge; a column with no text has no lines.
 - Rows under the text row (the wah's, the tab, the notation staff) move

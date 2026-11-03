@@ -56,10 +56,26 @@ describe('placeBeatTexts', () => {
     expect(rows).toBe(placed[0].lines.length);
   });
 
-  it('never wraps to less than the least room, even when the next text is close', () => {
-    const { placed } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 30, text: 'b' }], 600);
+  it('never wraps to less than the least room, even when the next text on its level is close', () => {
+    // b is moved up off a; c clears a's least room, so it stays on level 0, right after it.
+    const texts = [{ x0: 0, text: LONG }, { x0: 30, text: 'b' }, { x0: BEAT_TEXT_MIN_ROOM + BEAT_TEXT_GAP, text: 'c' }];
+    const { placed } = placeBeatTexts(texts, 600);
+    expect(placed.map(p => p.top)).toEqual([1, 0, 1]);
     expect(placed[0].lines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
     expect(placed[0].lines.some(line => line.includes(' '))).toBe(true);
+  });
+
+  it('gives a text the room a text moved up off it leaves, up to the next text on its own level', () => {
+    // b touches a's least room and moves up, so a runs on to c, the next text on level 0.
+    const texts = [{ x0: 0, text: LONG }, { x0: 30, text: 'b' }, { x0: 400, text: 'c' }];
+    const { placed, rows } = placeBeatTexts(texts, 600);
+    expect(placed[0].lines).toEqual([LONG]);
+    expect(placed.map(p => p.top)).toEqual([1, 0, 1]);
+    expect(rows).toBe(2);
+    // Up to c and no further.
+    const tight = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 30, text: 'b' }, { x0: 150, text: 'c' }], 600);
+    for (const line of tight.placed[0].lines) expect(beatTextWidth(line)).toBeLessThanOrEqual(150 - BEAT_TEXT_GAP);
+    expect(tight.placed[0].lines.length).toBeGreaterThan(1);
   });
 
   it('never runs a text past the most room, about 60 characters, however much is free', () => {
@@ -137,7 +153,8 @@ describe('layoutClip wraps free text', () => {
   it('moves a text on the next eighth up, clear of a long one, and draws the long one under it', () => {
     const layout = layoutClip(clipOf(`5.1.8{txt "${LONG}"} 5.1.8{txt "Expect: two rests"} 5.1.8 5.1.8 5.1.2 |`), 800);
     const [first, second] = placedOf(layout);
-    expect(first.textLines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
+    // With "Expect" moved up, the long one has the room to the line's end, so it fits on one line.
+    expect(first.textLines).toEqual([LONG]);
     expect(second.textTop).toBe(0);
     expect(first.textTop).toBe(second.textLines.length);
     expect(layout.systems[0].textRows).toBe(first.textLines.length + second.textLines.length);
