@@ -161,6 +161,10 @@ and in its spec.
   `2026-10-30-tab-note-input-mode-design.md`,
   `2026-10-31-tab-drag-fret-string-design.md`.
 - `inputLength.ts` — note input's length, set before a note goes in.
+- `grid.ts` — note input's grid, as Dorico's rhythmic grid: ← → stop at
+  each grid line inside a rest and once on a note, a note entered there
+  splits the rest, a press snaps to the nearest stop, Shift+Space moves on
+  by note input's length — `2026-11-01-tab-note-input-grid-design.md`.
 - `jumps.ts` — Ctrl/⌘+← → a bar, Home / End, with Shift growing the
   selection — `2026-10-30-tab-musescore-selection-design.md`.
 - `staffEntry.ts` — the staff's own cursor, the string and fret chosen for
@@ -306,6 +310,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   column wraps onto more lines
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
+- `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input's grid,
+  following note input's length or fixed, and ← → / Shift+Space by it
 - `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
   per view, and Size over the clip
 - `docs/specs/2026-11-01-tab-tuning-collapse-design.md`: the tuning is picked

@@ -1,6 +1,7 @@
 import { memo, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
@@ -38,6 +39,8 @@ export interface Highlight {
    * selected, filled, as MuseScore colours a selected note.
    */
   input?: boolean;
+  /** How far into its rest note input's cursor is, in ticks (issue #293): drawn that far along the rest. */
+  at?: number;
 }
 
 /**
@@ -46,7 +49,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -109,6 +112,16 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
    */
   shadow?: number | null;
+  /**
+   * Note input's grid in ticks (issue #293): a press beside the notes, and the shadow note, snap to the
+   * nearest note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
+   */
+  gridStep?: number | null;
+  /**
+   * How the grid is drawn over the cursor's bar in note input, as Dorico shows it (Settings › Tab › Editing):
+   * a ruler over the top staff, or faint lines across the staves.
+   */
+  gridLook?: GridLook | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -128,6 +141,12 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * does, for its menu (issue #276), but skips the time and key signatures, whose panels would open under
    * the bar menu, and the P.M. and let ring lines; there it only puts the cursor in the bar.
    */
+  /** In note input, a press's column moved to the nearest stop on the grid, with how far into its rest. */
+  const snapped = <T extends { bar: number; column: number }>(on: T | null, px: number): (T & { at?: number }) | null => {
+    if (!on || gridStep === null) return on;
+    const stop = stopNear(layout, on.bar, px, gridStep);
+    return stop ? { ...on, column: stop.column, at: stop.at } : on;
+  };
   const target = (e: PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>) => {
     const words = (e.button === 0 || e.button === 2) && !e.shiftKey;
     const box = e.currentTarget.getBoundingClientRect();
@@ -146,8 +165,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     const text = pressed && e.button === 2 && (pressed.kind === 'time' || pressed.kind === 'key') ? null : pressed;
     const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
     const rest = run || text || mark || !onPickRhythm || e.button !== 0 ? null : rhythmAt(layout, px, py);
-    const staff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
-    const hit = run || text || mark || rest || staff ? null : hitTest(layout, px, py);
+    const onStaff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
+    // A head pressed is that note; a line or space snaps to the grid, as the tab does.
+    const staff = onStaff && onStaff.string === null ? snapped(onStaff, px) : onStaff;
+    const hit = run || text || mark || rest || staff ? null : snapped(hitTest(layout, px, py), px);
     const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
     return { run, text, mark, rest, staff, hit, column, px, py };
   };
@@ -226,7 +247,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     if (shadow === null || headPress.current) return;
     const { text, mark, staff, hit } = target(e);
     const on = text || mark ? null : staff ?? hit;
-    const spot = on ? cursorSpot(layout, on.bar, on.column) : null;
+    const spot = on ? cursorSpot(layout, on.bar, on.column, on.at) : null;
     if (!on || !spot) {
       setHover(null);
       return;
@@ -287,7 +308,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     const { run, text, mark, rest, staff, hit } = target(e);
     if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
-  const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column) : null;
+  const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column, highlight.at) : null;
   const previous = previousDrawnAt(layout.systems);
   const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
   const slides = slideDirections(clip);
@@ -384,6 +405,26 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               selected={highlight?.range ?? null} selectedNote={selectedNote} litMark={lights.staff} word={pickedWord}
             />
           )}
+          {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
+            const placed = system.bars.find(b => b.index === highlight.cursor!.bar);
+            if (!placed) return null;
+            const lines = gridLines(placed, gridStep);
+            const top = rows.score ? rows.score.top : rows.staffTop;
+            const bottom = rows.staffBottom;
+            return (
+              <g pointerEvents="none" data-testid="grid-lines" data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                {gridLook === 'ruler' && (
+                  <>
+                    <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
+                    {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
+                  </>
+                )}
+                {gridLook === 'lines' && lines.map((l, k) => (
+                  <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
+                ))}
+              </g>
+            );
+          })()}
           {cursorOnStaff && !selectedNote && (
             <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
           )}

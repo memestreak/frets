@@ -5,7 +5,8 @@ import { isBarLine } from './barLines';
 import { columnAt, indexOf, noteAt, placeOf, runAround, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
-import type { FretDrag, StaffDrag, StaffHit } from './hitTest';
+import { splitRestAt } from './grid';
+import type { FretDrag, Hit, StaffDrag, StaffHit } from './hitTest';
 import { isWholeBarRest, type Layout } from './layout';
 import type { TextHit, WordHit } from './layoutText';
 import type { MarkHit } from './marks';
@@ -159,7 +160,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the tab: the cursor there, a note entered (note input) or a bar selected (normal mode); with Shift, the selection grows. */
-  const onPick = (hit: Cursor, extend: boolean) => {
+  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean) => {
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -175,8 +176,10 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const there = hasColumn && noteAt(left, hit);
       if (inputMode && hasColumn && !there) {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
-        commit(setFret(left, hit, 0, inputLength), hit, null);
-        hearNote(hit);
+        // Inside a rest it goes at the grid line pressed (issue #293).
+        const here = splitRestAt(left, hit, into);
+        commit(setFret(here.clip, here.cursor, 0, inputLength), here.cursor, null);
+        hearNote(here.cursor);
       } else if (!inputMode && !there && hasColumn) {
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
         commit(left, hit, barSelection(left, hit.bar));
@@ -224,10 +227,12 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (note) {
       toPitch(left, at, pitch);
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
-      // In note input a press on a line or space enters the shadow note's pitch there (issue #238).
-      const edit = stringAtPitch(left, at, pitch) === null ? toggleStaffNote(left, at, pitch, inputLength) : { clip: left, string: null };
-      toPitch(edit.clip, at, pitch);
-      if (edit.string !== null) hearNote({ ...at, string: edit.string });
+      // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
+      // the grid line pressed (issue #293).
+      const here = splitRestAt(left, at, hit.at ?? 0);
+      const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
+      toPitch(edit.clip, here.cursor, pitch);
+      if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
       toPitch(left, at, pitch);

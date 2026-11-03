@@ -80,13 +80,17 @@ describe('an empty bar is one Whole-bar rest', () => {
     expect(screen.getAllByTestId('rest')).toHaveLength(1);
   });
 
-  it('in note input, a press on a string anywhere over a 5/8 Whole-bar rest enters the note on beat 1, the Gap after it written by the meter', async () => {
+  it('in note input, a press on a string over a 5/8 Whole-bar rest enters the note at the grid line pressed (issue #293)', async () => {
     const text = '\\ts (5 8)\nr.4{d} r.4 | 3.6.8 5.6.8 7.6.8 8.6.4 |';
     await open('tab', text, 'rest');
     fireEvent.keyDown(editor(), { key: 'n' });
     const { bars: placed, rows, top } = layoutOf(text).systems[0];
-    // Over the second rest's own place, right of the middle.
+    // Over the second rest's own place: the note goes there, after a dotted quarter's rest.
     press(placed[0].columns[1].x, top + stringY(rows, 5));
+    expect(bars()).toBe('r.4{d} 0.6.4 | 3.6.8 5.6.8 7.6.8 8.6.4 |');
+    // Near the bar's start it goes on beat 1, the Gap after it written by the meter.
+    fireEvent.keyDown(editor(), { key: 'z', ctrlKey: true });
+    press(placed[0].columns[0].x, top + stringY(rows, 5));
     expect(bars()).toBe('0.6.4 r.8 r.4 | 3.6.8 5.6.8 7.6.8 8.6.4 |');
   });
 });
