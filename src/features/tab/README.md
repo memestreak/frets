@@ -112,6 +112,8 @@ and in its spec.
   `2026-10-30-tab-track-rests-design.md`.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
+- `beatText.ts` — free text over a column: its size and `wrapBeatText`,
+  which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
   gap, a stem via `rhythmAt`) and where the cursor is drawn.
 - `runs.ts` — marks over runs of columns (vibrato, let ring, P.M.) and
@@ -227,7 +229,10 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `/tab#example=<name>`; served by `src/app/tab/builtin.json/`.
 - `builtinFiles.ts` — finds the built-in files on disk (server and tests).
 - `builtin_arrangements/` — one `.atex` or `.txt` per arrangement, a
-  folder per topic (its README says how to add one).
+  folder per topic (its README says how to add one). `editing_tests/`
+  there shows one editing behaviour per file, for people to try; a change
+  to editing behaviour adds or updates one (the `test-arrangement` skill,
+  `.claude/skills/test-arrangement/`).
 - `useClipImport.ts` — import, built-ins, links and drops, each opened as
   a new arrangement.
 - `TabDialogs.tsx` — the Import dialog.
@@ -277,6 +282,10 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
+  column wraps onto more lines
+- `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
+  arrangements, the `editing_tests/` folder and its skill
 - `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
   per view, and Size over the clip
 - `docs/specs/2026-11-01-tab-tuning-collapse-design.md`: the tuning is picked

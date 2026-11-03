@@ -671,7 +671,7 @@ export default function TabPage() {
   );
 
   return (
-    <div className="grid gap-4">
+    <div className="tab-page flex flex-col gap-4">
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">

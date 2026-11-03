@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { LAYOUT_KEY, parseLayout } from '@/features/tab/TabRail';
 import { setUpPage, renderAt, editor, keys, alphaTex } from './helpers';
@@ -6,6 +8,14 @@ setUpPage();
 
 const railButton = (name: string) => screen.getByRole('button', { name });
 const panel = () => screen.queryByRole('complementary');
+
+/** The declarations of a rule in tab.css, found by its exact selector (the first such rule). */
+const rule = (selector: string) => {
+  const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+  const start = css.indexOf(`${selector} {`);
+  expect(start, selector).toBeGreaterThanOrEqual(0);
+  return css.slice(start, css.indexOf('}', start));
+};
 
 describe('the rail of panels (issue #301)', () => {
   it('opens Notes on a first visit, with the note input pencil, Duration and Rhythm', () => {
@@ -68,3 +78,24 @@ describe('parseLayout', () => {
     expect(parseLayout(JSON.stringify(['bars']))).toBe('notes');
   });
 });
+
+/* jsdom lays nothing out, so these pin the CSS that the browser check (issue: a short clip's page
+   scrolled to show the footer) relied on. */
+describe('the panel’s height', () => {
+  it('runs down the clip’s row, which takes the window’s spare height, not a whole window of its own', () => {
+    const { container } = renderAt();
+    const page = container.querySelector('.tab-page');
+    expect(page?.querySelector(':scope > .tab-rail-layout')).not.toBeNull();
+    expect(panel()?.parentElement).toHaveClass('tab-rail-column');
+    expect(rule('main:has(> .tab-page)')).toContain('flex-direction: column');
+    expect(rule('.tab-page')).toContain('flex: 1');
+    expect(rule('.tab-page > .tab-rail-layout')).toContain('flex: 1');
+    expect(rule('.tab-rail-column')).toContain('align-self: stretch');
+    const own = rule('.tab-rail-panel');
+    expect(own).toContain('height: 100%');
+    expect(own).toContain('max-height: calc(100vh - 32px)');
+    // No height of its own taken from the window: that put the footer a scroll away under a short clip.
+    expect(own).not.toMatch(/(^|[\s;])min-height:\s*calc\(100vh/);
+  });
+});
+

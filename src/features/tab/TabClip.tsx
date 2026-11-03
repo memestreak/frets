@@ -2,7 +2,8 @@ import { memo, useId, useMemo, useRef, useState, type MouseEvent, type PointerEv
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, BEAT_TEXT_INSET, BEAT_TEXT_SIZE, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
@@ -762,10 +763,13 @@ function SystemWords({ system, rows, clip, look: plain, word }: { system: System
         const look = lookOf({ kind: 'text', index: placed.index });
         parts.push(
           <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
             fill={look.ink} data-testid="beat-text"
           >
-            {placed.column.text}
+            {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}
+            {placed.textLines.map((line, k, lines) => (
+              <tspan key={k} x={placed.x - BEAT_TEXT_INSET} dy={k === 0 ? 0 : BEAT_TEXT_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
+            ))}
           </text>,
         );
       }

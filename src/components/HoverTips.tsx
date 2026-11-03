@@ -16,9 +16,10 @@ interface Tip {
  * Anything inside with a `data-tip` explains itself: resting the mouse on
  * it for a second shows the tip by the pointer, and reaching it with the
  * keyboard shows it under it at once. A press hides it. Touch screens get
- * no tips.
+ * no tips. `className` styles the box that holds them, e.g. to stretch it in
+ * a grid.
  */
-export function HoverTips({ children }: { children: ReactNode }) {
+export function HoverTips({ children, className }: { children: ReactNode; className?: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip | null>(null);
@@ -91,7 +92,7 @@ export function HoverTips({ children }: { children: ReactNode }) {
   }, [tip]);
 
   return (
-    <div ref={boxRef}>
+    <div ref={boxRef} className={className}>
       {children}
       {tip && (
         <div ref={tipRef} className="cof-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>

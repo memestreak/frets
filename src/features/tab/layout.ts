@@ -6,6 +6,7 @@
 import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -35,7 +36,7 @@ export interface Rows {
   wah: number | null;
   /** Chord names over their columns. */
   chords: number | null;
-  /** Free text over its column (alphaTex txt). */
+  /** Free text over its column (alphaTex txt): its first line's middle; a wrapped text's lines go on down from it. */
   text: number | null;
   /** Fermatas, over the tab when there is no staff to carry them. */
   fermatas: number | null;
@@ -142,6 +143,8 @@ export const BEND_LABEL_RAISE = 9;
 export function rowsFor(
   clip: Part, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 },
   freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
+  /** How many text rows the line's wrapped and stacked texts take (`placeBeatTexts`): the text row grows down by the rest. */
+  textLines = 1,
 ): Rows {
   const tab = parts !== 'staff';
   const columns = clip.bars.flatMap(b => b.columns);
@@ -181,13 +184,18 @@ export function rowsFor(
     lastWasSection = section;
     return y;
   };
+  // A row that takes more than one line: the rows after it start under its last.
+  const tall = (at: number | null, extra: number) => {
+    if (at !== null) y += extra;
+    return at;
+  };
   const words = {
     capo: row(used.capo),
     tempo: row(used.tempo),
     section: row(used.section, true),
     endings: row(used.endings),
     chords: row(used.chords),
-    text: row(used.text),
+    text: tall(row(used.text), (Math.max(1, textLines) - 1) * BEAT_TEXT_LINE),
     // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
     wah: row(used.wah),
   };
@@ -294,6 +302,10 @@ export interface PlacedColumn {
   /** On the staff: its note heads, low to high, and which way its stem goes. */
   heads: Head[];
   stemUp: boolean;
+  /** Its free text, wrapped to the room before the next text on the line (`beatText.ts`); empty without one. */
+  textLines: string[];
+  /** Its text's first line, in text rows down from the line's text row: above 0 when moved up clear of another. */
+  textTop: number;
 }
 
 export interface PlacedBar {
@@ -411,6 +423,8 @@ export interface System {
   /** On the staff: where the key signature's first sign goes. */
   keyX: number;
   first: boolean;
+  /** How many text rows its free texts take, wrapped and stacked (`placeBeatTexts`). */
+  textRows: number;
 }
 
 /** A line before its rows are worked out, once the bars on it are known. */
@@ -567,7 +581,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
-      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1,
     });
     complete.push(true);
     current = [];
@@ -624,7 +638,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = signRoom(columnHeads) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
-      const placed = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads) };
+      const placed = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0 };
       cx += cw;
       return placed;
     });
@@ -657,13 +671,25 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       column.bendRoom = (next ? next.x : lineEnd) - column.x - BEND_END_GAP;
       column.bendPeakRoom = next && preBent(next.column) ? next.x - column.x - PRE_BEND_CLEAR : column.bendRoom;
     });
+    // A text wraps to the room before the next text on the line, or before the drawing's right edge, and
+    // moves up clear of one it still touches (issue #323).
+    const texted = placed.filter(c => c.column.text);
+    const texts = placeBeatTexts(
+      texted.map(c => ({ x0: c.x - BEAT_TEXT_INSET, text: c.column.text! })),
+      Math.max(width, system.bars[system.bars.length - 1].x1),
+    );
+    texted.forEach((c, k) => {
+      c.textLines = texts.placed[k].lines;
+      c.textTop = texts.placed[k].top;
+    });
+    system.textRows = texts.rows;
   }
   // Each line gets the rows its own bars use, and the lines stack one under another.
   const stack = (reaches: StaffReach[]): Layout => {
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)));
+      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;
