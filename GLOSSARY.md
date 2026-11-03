@@ -164,6 +164,12 @@ every bar and up to three more, each absent from any bar it has no
 notes in.
 _Avoid_: layer
 
+**Whole-bar rest**:
+The one rest drawn centred in a bar with no note in its Voice, whatever
+the meter. The bar still stores the rests its meter calls for (two in
+5/8), picked together as one.
+_Avoid_: measure rest, bar rest
+
 ## Saved state
 
 **Preference**:
