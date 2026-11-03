@@ -79,6 +79,21 @@ The Tab page's Work: a named Clip saved under My arrangements.
 The music in an Arrangement: one or more Tracks over the bars they
 share.
 
+**Line break**:
+Where a Clip forces the music onto a new System, written in alphaTex
+as `\systemsLayout` and drawn only with "Clip's line breaks" on.
+Otherwise Systems wrap to the drawing's width.
+_Avoid_: system break
+
+**System**:
+One line of music across the drawing. A System holds every staff
+played at the same time, joined at the left edge by a bar line or
+bracket. In a guitar part that shows standard notation and tab
+together, the notation staff and the tab staff below it make one
+System. Frets shows one Track's System at a time; every Track breaks
+into the same Systems.
+_Avoid_: row (for a System; a row is one band within it)
+
 **Track**:
 One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
