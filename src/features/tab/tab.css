@@ -491,10 +491,19 @@
   content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
 }
 .tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
-/* As tall as the window; no overflow of its own, so a tool's panel (Bend, Tuplet) can open past its edge. */
+/* The page fills the window over the footer, and the rail's row takes the spare height, so the open
+   panel can run down to the footer without making a short clip's page scroll. */
+main:has(> .tab-page) { display: flex; flex-direction: column; }
+.tab-page { flex: 1; }
+.tab-page > .tab-rail-layout { flex: 1; }
+/* The rail and the panel each sit in a column as tall as the clip's row, so they stay in view
+   (sticky) while a long clip scrolls by. */
+.tab-rail-column { align-self: stretch; }
+/* Runs down the row, but no taller than the window, nor shorter than its tools. No overflow of its
+   own, so a tool's panel (Bend, Tuplet) can open past its edge. */
 .tab-rail-panel {
   position: sticky; top: 16px; z-index: 5; display: grid; gap: 14px; align-content: start;
-  min-height: calc(100vh - 32px); padding: 4px 14px 16px;
+  height: 100%; max-height: calc(100vh - 32px); min-height: min-content; padding: 4px 14px 16px;
   border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
 .tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -509,13 +518,14 @@
 /* Under 900px the rail is a row over the clip and the open panel sits under it. */
 @media (max-width: 899px) {
   .tab-rail-layout, .tab-rail-layout[data-open] {
-    grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: 12px; margin-left: 0;
+    grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-content: start; gap: 12px; margin-left: 0;
   }
   .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 0; }
+  .tab-rail-column { align-self: start; }
   .tab-rail { position: static; flex-direction: row; padding-right: 0; }
   .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
   .tab-rail-panel {
-    position: static; min-height: 0; padding: 4px 0 12px;
+    position: static; height: auto; min-height: 0; max-height: none; padding: 4px 0 12px;
     border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   }
   .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }

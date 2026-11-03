@@ -3,7 +3,7 @@
 /**
  * Arrangements… as a file chooser (issue #259; Jeremy picked the two panes, 2026-10-31): the places on
  * the left (My arrangements and its folders, then the built-in folders), the chosen folder's files in
- * the middle, each with a file icon, and the picked file's preview to their right once a file is picked. A press on a file picks it and shows its preview,
+ * the middle (only its files: its folders are on the left), each with a file icon, and the picked file's preview to their right once a file is picked. A press on a file picks it and shows its preview,
  * from which Insert puts it in at the page's cursor and Copy alphaTex copies its text; a double click,
  * Enter or Open opens it, and the dialog closes. The dialog keeps one height whatever it shows; the
  * panes scroll. On a phone it shows one folder at a time under a path ("Arrangements › Built-in ›
@@ -406,14 +406,15 @@ export function ArrangementChooser({
       ];
     }
     if (place.kind === 'mine') {
-      // In the two panes the folders are on the left; on a phone, they head the list.
+      // In the two panes the folders are on the left, never in the list (Jeremy, 2026-11-03); on a phone, they head it.
       const folderLines = place.folder === undefined && phone
         ? folders.map(f => folderLine(`folder:${f.id}`, f.name, () => goTo({ kind: 'mine', folder: f.id }), f.id))
         : [];
       return [...folderLines, ...mineIn(place.folder).map(mineLine)];
     }
     if (place.folder === undefined) {
-      return builtinFolders.map(f => folderLine(`bfolder:${f}`, folderTitle(f), () => goTo({ kind: 'builtin', folder: f })));
+      // Built-in holds only folders: on the left in the two panes, so the list there is empty.
+      return phone ? builtinFolders.map(f => folderLine(`bfolder:${f}`, folderTitle(f), () => goTo({ kind: 'builtin', folder: f }))) : [];
     }
     return builtinsIn(place.folder).map(builtinLine);
   };
