@@ -5,7 +5,8 @@ Step 1 of the build order in the Tab editing principles
 A5). The plan's evaluation is in
 https://claude.ai/artifact/5F2ZZv4B71wtNwXY3Y5hEA. Jeremy settled the
 questions below on 2026-11-03 (Q1–Q16 in the thread "Build the
-sounding-note layer").
+sounding-note layer"). Why the Clip stores Columns at all:
+`docs/adr/2026-11-03-edit-sounding-notes-store-columns.md`.
 
 Edits are to work on Sounding notes (A1): each note's string, fret, start
 and length, with a Tie chain counted as one note. The Clip keeps storing

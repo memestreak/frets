@@ -433,3 +433,5 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   state
 - `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
   only tonal importer
+- `docs/adr/2026-11-03-edit-sounding-notes-store-columns.md`: edits work on
+  Sounding notes; the Clip stores written Columns
