@@ -35,8 +35,11 @@ a PR is not done until each has one.
 `/grill-with-docs` (`.claude/skills/grill-with-docs/`) interviews Jeremy
 about a plan, writes the glossary and ADRs as they settle, and ends with
 the spec and the README updates. `/check-docs` reports where these
-artifacts have drifted from each other or the code. `plans/` is retired:
-the spec's "How" section is the work order; don't add to `plans/`.
+artifacts have drifted from each other or the code. The
+`test-arrangement` skill (`.claude/skills/test-arrangement/`) adds or
+updates a Tab test arrangement whenever editing behaviour changes.
+`plans/` is retired: the spec's "How" section is the work order; don't
+add to `plans/`.
 
 ## Keeping this file stable
 
