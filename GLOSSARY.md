@@ -75,15 +75,65 @@ names it.
 **Arrangement**:
 The Tab page's Work: a named Clip saved under My arrangements.
 
+**Beat group**:
+The beats a bar is counted in, from its time signature: 3+3 in 6/8,
+2+2+3 in a 7/8 bar that says so (`\beaming` in alphaTex). Beams, and
+the splits of notes and Gaps, follow where Beat groups meet.
+_Avoid_: group (alone)
+
 **Clip**:
 The music in an Arrangement: one or more Tracks over the bars they
 share.
+
+**Column**:
+Everything that sounds at one moment in one Voice of a bar: a note on
+any of the strings, or none, sharing one length. The Clip stores bars
+as Columns.
+_Avoid_: beat (Guitar Pro's word for it)
+
+**Gap**:
+Time in a Voice with no note. It is drawn as the rests the meter calls
+for, split where Beat groups meet; a rest is not kept as a thing of its
+own.
+_Avoid_: explicit rest
+
+**Grid**:
+The steps Note input's cursor stops at inside a Gap, and where a press
+snaps to: the Input length unless a fixed Grid is picked.
+
+**Input length**:
+The length the next note entered in Note input takes, chosen before the
+note goes in.
 
 **Line break**:
 Where a Clip forces the music onto a new System, written in alphaTex
 as `\systemsLayout` and drawn only with "Clip's line breaks" on.
 Otherwise Systems wrap to the drawing's width.
 _Avoid_: system break
+
+**Normal mode**:
+The Tab page's mode for picking and changing what is there; the page
+starts in it. Notes are entered in Note input.
+
+**Note input**:
+The Tab page's mode for entering notes, turned on and off with N or the
+pencil; Esc goes back to Normal mode.
+
+**Pickup bar**:
+A first bar shorter than its time signature on purpose, written `\ac`
+in alphaTex. No other bar is short.
+_Avoid_: anacrusis, upbeat bar
+
+**Rail**:
+The column of buttons at the Clip's left, each opening one panel of
+Tool groups: Notes, Articulations, Bars. The code's older name for the
+tools is the palette (`TabPalette.tsx`).
+
+**Sounding note**:
+A note as it sounds: its Voice, string, fret, start and length, with a
+Tie chain counted as one. Edits work on Sounding notes; the Clip stores
+Columns.
+_Avoid_: event
 
 **System**:
 One line of music across the drawing. A System holds every staff
@@ -94,9 +144,24 @@ System. Frets shows one Track's System at a time; every Track breaks
 into the same Systems.
 _Avoid_: row (for a System; a row is one band within it)
 
+**Tie chain**:
+Notes on one string, each tied to the next, that sound as one Sounding
+note. It is picked, deleted and lengthened as one.
+
+**Tool group**:
+A captioned set of tools in a Rail panel: Duration, Rhythm, Joins,
+Bends and the rest.
+_Avoid_: group (alone), palette group
+
 **Track**:
 One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
+
+**Voice**:
+One line of rhythm within a Track, with its own Columns, so notes can
+sound against each other with different lengths. A Track has one Voice
+today.
+_Avoid_: layer
 
 ## Saved state
 
