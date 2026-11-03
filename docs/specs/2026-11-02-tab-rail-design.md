@@ -24,7 +24,9 @@ question at a time; a higher-fidelity mock then offered two looks and he picked 
 - Each rail button's icon is one of its panel's tools: a quarter note, an accent, a repeat sign. Its
   tip names the panel. The open one is lit, with a bar on its outer edge.
 - The look is **Sidebar**: the rail and panel sit flush with the page, divided from it by thin lines,
-  and the panel runs the window's height. A panel's tools work as the palette's always have: pressing
+  and the panel runs down to the footer, no taller than the window (Jeremy, 2026-11-03: a short clip's
+  page fits the window, footer and all, with no scrolling). Beside a long clip the rail and the panel
+  stay in view as it scrolls. A panel's tools work as the palette's always have: pressing
   one keeps the tab's cursor and selection, and Bend, Tuplet, Octave line and Whammy bar open their
   choices beside the button.
 
