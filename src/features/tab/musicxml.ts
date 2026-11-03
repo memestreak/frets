@@ -13,7 +13,7 @@ import {
 import { beamGroups } from './beams';
 import { headerValue, creditsOf, CREDIT_TAGS } from './credits';
 import { instrumentName } from './instrument';
-import { multiRests } from './layout';
+import { isWholeBarRest, multiRests, plainRestColumn } from './layout';
 import { keyAccidentals, spellPitch, type Accidental, type Key } from '@/lib/theory/keys';
 import { openStrings, tuningShift, writtenStrings } from './notation';
 
@@ -386,13 +386,13 @@ function stringsOf(column: Column): number[] {
   return out;
 }
 
-/** A bar's notes on one staff: each column's notes, or its rest, in order; an empty bar is one bar's rest. */
+/** A bar's notes on one staff: each column's notes, or its rest, in order; an empty bar, or a Whole-bar rest with nothing on it, is one bar's rest. */
 function staffNotes(ctx: TrackContext, b: number, staff: 1 | 2, between?: (k: number, when: 'before' | 'after') => XmlNode[]): XmlNode[] {
   const { part } = ctx;
   const bar = part.bars[b];
   const time = timeAt(part, b);
   const key = keyAt(part, b);
-  if (bar.columns.length === 0) {
+  if (bar.columns.length === 0 || (isWholeBarRest(part, b) && bar.columns.every(plainRestColumn))) {
     return [el('note', {}, el('rest', { measure: 'yes' }), text('duration', barTicks(time) / ctx.divisionTicks), text('voice', staff === 1 ? 1 : 5), text('staff', staff))];
   }
   const beams = beamsOf(bar, time);

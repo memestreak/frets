@@ -4,6 +4,7 @@ import type { ClipAction, PartAction } from './clipState';
 import { clampCursor, columnCount, fillBar, START, type Cursor, type Selection } from './editing';
 import type { LastDigit } from './editorKeys';
 import type { WordHit } from './layoutText';
+import { cursorAtTime, rewrite, selectionAtTime } from './rewrite';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
 import { stringAtPitch } from './staffEntry';
@@ -105,8 +106,10 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
 
   const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
     if (next !== clip) dispatch({ type: 'replacePart', part: next });
-    setCursor(nextCursor);
-    setSelection(nextSelection);
+    // The dispatch writes the bars whose rhythm changed again by the meter; the cursor and selection follow by time.
+    const written = next === clip ? next : rewrite(clip, next);
+    setCursor(cursorAtTime(next, written, nextCursor));
+    setSelection(selectionAtTime(next, written, nextSelection));
     setPicked(null);
     setNotice(null);
   };

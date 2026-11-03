@@ -2,7 +2,7 @@
 
 import { type ReactNode } from 'react';
 import { isRest, TREMOLO_VALUES, tupletGroups, tupletLabel, type Column } from './clip';
-import { type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { wholeRestX, type PlacedBar, type PlacedColumn, type Rows } from './layout';
 import { beamGroups } from './beams';
 import { MultiRest } from './StaffDrawing';
 import { type MarkLit } from './marks';
@@ -28,6 +28,8 @@ export function Stems({ bar, rows, beat, look: barLook, selected = null, lit = (
   }
   const inRun = (p: PlacedColumn) => selected !== null && p.index >= selected[0] && p.index <= selected[1];
   const litLook = { ...barLook, ink: 'var(--select)' };
+  // A Whole-bar rest: one whole rest centred in the bar, as on the staff.
+  if (bar.wholeRest) return <Rest x={wholeRestX(bar)} y={rows.stemTop + 10} value={1} look={bar.columns.some(inRun) ? litLook : barLook} />;
   for (const placed of bar.columns) {
     const { column, x } = placed;
     // A selected column's stem, flags, dots and rest are drawn in the selection colour, as on the staff.

@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { barsPerLine, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
+import { barLength, barsPerLine, barTicks, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
@@ -326,6 +326,27 @@ export interface PlacedBar {
   columns: PlacedColumn[];
   /** One of the bars a multi-bar rest draws as one; null for a bar drawn by itself. */
   restRun: RestRun | null;
+  /** A full bar with no note: drawn as one Whole-bar rest, centred, whatever its Columns (`isWholeBarRest`). */
+  wholeRest: boolean;
+}
+
+/** Where a Whole-bar rest is centred: the middle of its Columns' room. */
+export function wholeRestX(bar: PlacedBar): number {
+  const first = bar.columns[0];
+  const last = bar.columns[bar.columns.length - 1];
+  return (first.start + last.start + last.width) / 2;
+}
+
+/**
+ * Whether bar `b` is drawn as one Whole-bar rest: a bar as long as its time signature, not in free
+ * time, with Columns and no note, grace note or tuplet in them (rests are Gaps, step 3). It may store
+ * more than one rest (5/8 `rq. rq`); they are drawn, picked and selected as one.
+ */
+export function isWholeBarRest(part: Part, b: number): boolean {
+  const bar = part.bars[b];
+  if (!bar || bar.columns.length === 0 || bar.freeTime) return false;
+  if (!bar.columns.every(c => isRest(c) && !c.grace && !c.duration.tuplet)) return false;
+  return barLength(bar) === barTicks(timeAt(part, b));
 }
 
 /**
@@ -346,7 +367,7 @@ export interface RestRun {
 export const MULTI_REST_WIDTH = 300;
 
 /** A rest with nothing on it or over it. */
-function plainRestColumn(c: Column): boolean {
+export function plainRestColumn(c: Column): boolean {
   return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
 }
 
@@ -650,7 +671,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     x = x0 + w;
     const time = timeAt(clip, index);
     const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
-    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns, restRun });
+    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns, restRun, wholeRest: !inRun && isWholeBarRest(clip, index) });
     if (inRun && index === run!.end) run = null;
     if (!restOn) wanted--;
   });

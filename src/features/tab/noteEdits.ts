@@ -5,7 +5,7 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, timeAt, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, timeAt, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
 import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, pasteOver, placeOf, selectedRange, withColumn, without } from './editing';
 
 /** Makes the target columns rests. */
@@ -67,11 +67,27 @@ export function cycleDots(clip: Part, target: Target): Part {
  * of several columns, a grace note or a tuplet just changes length.
  */
 function changeLength(clip: Part, target: Target, change: (duration: Duration) => Duration): Part {
+  // A rest is a Gap, whose length can't be set (rests are Gaps, step 3): only rests, nothing changes.
+  if (onlyRests(clip, target)) return clip;
   const at = loneColumn(clip, target);
   if (!at) return changeColumns(clip, target, column => ({ ...column, duration: change(column.duration) }));
   const column = columnAt(clip, at)!;
   const changed = { ...column, duration: change(column.duration) };
   return pasteOver(clip, at, { ...clip, bars: [{ columns: [changed] }] }).clip;
+}
+
+/** Whether every target column is a rest (not a grace note). */
+function onlyRests(clip: Part, { cursor, selection }: Target): boolean {
+  if (!selection) {
+    const column = columnAt(clip, cursor);
+    return !!column && !column.grace && isRest(column);
+  }
+  const [from, to] = selectedRange(selection);
+  for (let i = from; i <= to; i++) {
+    const column = columnAt(clip, { ...placeOf(clip, i), string: 0 });
+    if (!column || column.grace || !isRest(column)) return false;
+  }
+  return true;
 }
 
 /** The target's place when it is one column (not a grace note, not in a tuplet), else null. */

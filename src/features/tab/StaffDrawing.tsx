@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System, wholeRestX } from './layout';
 import type { Accidental } from '@/lib/theory/keys';
 import { accidentalLanes, keySigns, STAFF_LINES, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
@@ -292,6 +292,13 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: 
   if (bar.restRun) {
     const { first, span, count } = bar.restRun;
     return first ? <MultiRest span={span} count={count} y={stepY(score, 4)} countY={score.top - 8} look={look} reach={SPACE} /> : null;
+  }
+  if (bar.wholeRest) {
+    // A Whole-bar rest: one whole rest centred in the bar, whatever the meter and however many rests it stores.
+    const lit = selected !== null && bar.columns.some(p => p.index >= selected[0] && p.index <= selected[1]);
+    const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
+    const x = wholeRestX(bar) - GLYPHS.restWhole.width * SPACE / 2;
+    return <g data-testid="staff-rest"><Glyph name="restWhole" x={x} y={stepY(score, 6)} look={look} /></g>;
   }
   const parts: ReactNode[] = [];
   const { columns: geometry, groups, groupUp, beamY } = staffBar(bar, score);

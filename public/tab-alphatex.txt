@@ -465,6 +465,12 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
        a dot with a slanted stroke    r.8  (two dots: r.16, three r.32,
                                       four r.64)
 
+   A bar with nothing in it but one whole rest in its middle is a whole
+   bar's rest in any time: write it as the rests the meter calls for,
+   r.1 in 4/4, r.2{d} in 3/4 or 6/8, r.4{d} r.4 in 5/8. Frets writes the
+   rests between notes by the meter, so each beat shows (in 4/4 an
+   eighth on beat 1 is followed by r.8 r.4 r.2).
+
    Then count each bar against the time signature; if it doesn't add up,
    look again: the bar's total is the surest guide to a short stem. A
    time signature in the middle of the tab, after a bar line, is \ts

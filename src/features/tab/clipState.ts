@@ -3,7 +3,8 @@
  * as it was last saved or opened (`base`): the clip has unsaved changes while it isn't that very clip,
  * so undoing back to it leaves nothing unsaved (issue #259).
  */
-import { withPart, type Clip, type Part } from './clip';
+import { partOf, withPart, type Clip, type Part } from './clip';
+import { rewrite } from './rewrite';
 import type { FxSettings } from './effects';
 import { openOnLoad, type Draft, type Library } from './arrangements';
 
@@ -47,7 +48,10 @@ export type PartAction =
 /** The action on the whole clip `clip` that an edit of its track `track` makes; any other action as it is. */
 export function clipAction(clip: Clip, action: ClipAction | PartAction, track = 0): ClipAction {
   if (action.type === 'replacePart') {
-    return { type: 'replace', clip: withPart(clip, action.part, track), from: action.from && withPart(clip, action.from, track) };
+    // Every edit's bars whose rhythm changed are written again by the meter (rests are Gaps, step 3).
+    const before = action.from ?? partOf(clip, track, action.part.voice ?? 0);
+    const part = rewrite(before, action.part);
+    return { type: 'replace', clip: withPart(clip, part, track), from: action.from && withPart(clip, action.from, track) };
   }
   if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part, track) };
   return action;

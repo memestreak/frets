@@ -6,7 +6,7 @@ import { columnAt, indexOf, noteAt, placeOf, runAround, selectedRange, setFret, 
 import { elementsOf, stepElement } from './elements';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import type { FretDrag, StaffDrag, StaffHit } from './hitTest';
-import type { Layout } from './layout';
+import { isWholeBarRest, type Layout } from './layout';
 import type { TextHit, WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { removeMark } from './noteEdits';
@@ -200,7 +200,10 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
     lastDigitRef.current = null;
     const left = editing && at.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-    commit(left, hit, null);
+    // A Whole-bar rest storing more than one rest (5/8 `rq. rq`) is picked as one: all its rests selected.
+    const rests = isWholeBarRest(left, at.bar) ? left.bars[at.bar].columns.length : 1;
+    const whole = rests > 1 ? { anchor: indexOf(left, at.bar, 0), focus: indexOf(left, at.bar, rests - 1) } : null;
+    commit(left, whole ? { ...hit, column: 0 } : hit, whole);
     setStaffPitch(null);
     setColumnOnly(true);
   };

@@ -110,9 +110,11 @@ and in its spec.
 
 - `layout.ts` — `layoutClip`: systems, bars and columns at a width; `rowsFor`
   (the rows over the staff each line uses), `lineAt`, `spreadLines`,
-  `multiRests`, `bendShape` — `2026-10-28-tab-line-spacing-design.md`,
+  `multiRests`, `bendShape`, `isWholeBarRest` and `wholeRestX` (an empty
+  full bar drawn as one rest) — `2026-10-28-tab-line-spacing-design.md`,
   `2026-10-28-tab-line-breaks-design.md`,
-  `2026-10-30-tab-track-rests-design.md`.
+  `2026-10-30-tab-track-rests-design.md`,
+  `2026-11-03-tab-rests-are-gaps-design.md`.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
@@ -148,8 +150,12 @@ and in its spec.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures).
 - `sounding.ts` — a part's Voice's Columns read as Sounding notes (`readVoice`) and
-  written back by the meter (`writeVoice`, `spell`, `beatGroups`); no edit
-  uses it yet — `2026-11-03-tab-sounding-notes-design.md`.
+  written back by the meter (`writeVoice`, `spell`, `beatGroups`) —
+  `2026-11-03-tab-sounding-notes-design.md`.
+- `rewrite.ts` — after every edit (`clipAction`'s replacePart, `commit`),
+  the bars whose rhythm changed written again by the meter (`rewrite`),
+  and the cursor and selection moved to the same time (`cursorAtTime`,
+  `selectionAtTime`) — `2026-11-03-tab-rests-are-gaps-design.md`.
 - `normalMode.ts` — normal mode's edits: MuseScore's length digits, frets
   ±1, the next note in a chord, dragging a fret to another string —
   `2026-10-30-tab-note-input-mode-design.md`,
