@@ -285,6 +285,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-voices-design.md`: up to 4 Voices per Track,
+  read and written as alphaTex `\voice`; Voice 1 drawn and edited, every
+  Voice played
 - `docs/specs/2026-11-03-tab-sounding-notes-design.md`: Sounding notes
   read from Columns and written back by the meter (no visible change)
 - `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
@@ -438,3 +441,5 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   only tonal importer
 - `docs/adr/2026-11-03-edit-sounding-notes-store-columns.md`: edits work on
   Sounding notes; the Clip stores written Columns
+- `docs/adr/2026-11-03-part-is-one-voice.md`: a Part is one Voice of one
+  Track; other Voices ride along read-only

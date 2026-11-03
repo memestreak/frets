@@ -138,7 +138,8 @@ but take none of the syncopations above.
   - `SoundingNote`: Voice, string, fret, start and length in ticks from
     the Part's start, and its pieces, each with its offset, length and
     own `Note` marks.
-  - `readVoice(part, voice = 0)`: the Voice's Sounding notes, its Column
+  - `readVoice(part, voice = 0)` (now `readVoice(part)`, reading the
+    Part's own Voice: `2026-11-03-tab-voices-design.md`): the Voice's Sounding notes, its Column
     things at their times, its grace notes and tuplet blocks, and each
     bar's start, length and whether it is written by the meter.
   - `beatGroups(time)`: the table above, in ticks.

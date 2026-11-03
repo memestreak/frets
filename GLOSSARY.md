@@ -159,8 +159,9 @@ playback effects.
 
 **Voice**:
 One line of rhythm within a Track, with its own Columns, so notes can
-sound against each other with different lengths. A Track has one Voice
-today.
+sound against each other with different lengths. A Track has Voice 1 in
+every bar and up to three more, each absent from any bar it has no
+notes in.
 _Avoid_: layer
 
 ## Saved state
