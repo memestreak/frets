@@ -282,6 +282,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-sounding-notes-design.md`: Sounding notes
+  read from Columns and written back by the meter (no visible change)
 - `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
   column wraps onto more lines
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
