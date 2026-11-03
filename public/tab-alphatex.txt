@@ -221,7 +221,8 @@ then "." and its duration:
     txt "..."  free text over the beat, drawn in italics from that beat
                rightward: 0.1.1{txt "let ring, slowing"}. A long text
                wraps at its spaces onto more lines, before the next
-               beat's text or the right edge; one that still touches
+               beat's text or the right edge, and after about 60
+               characters at most; one that still touches
                the text before it is drawn a level higher. Write words
                printed over the tab that aren't a chord name, section or
                tempo ("rit.", "harm.", "fade out") this way.

@@ -39,6 +39,11 @@ export function wrapBeatText(text: string, room: number): string[] {
 
 /** The least room a text wraps to, about 18 characters, so a text between close columns isn't a word a line. */
 export const BEAT_TEXT_MIN_ROOM = 100;
+/**
+ * The most room a text runs to before it wraps, however much is free: about 60 characters, as long as
+ * "Text very near the line end runs to the edge and wraps there" (Jeremy, 2026-11-03).
+ */
+export const BEAT_TEXT_MAX_ROOM = beatTextWidth('Text very near the line end runs to the edge and wraps there');
 
 /** Where a text on a line goes: its lines, and its first line's place in the line's text rows, from the top. */
 export interface PlacedBeatText {
@@ -48,7 +53,8 @@ export interface PlacedBeatText {
 
 /**
  * The texts of one line (system), left to right, wrapped and stacked (issue #323). Each wraps to the room
- * before the next text starts, or before `end`, but never to less than `BEAT_TEXT_MIN_ROOM`. A text that
+ * before the next text starts, or before `end`, but never to less than `BEAT_TEXT_MIN_ROOM` or more than
+ * `BEAT_TEXT_MAX_ROOM`. A text that
  * then still touches one before it moves up a level, as Dorico moves colliding text away from the
  * staff: each takes the lowest level where it clears the texts already there. A level is as tall as its
  * tallest text, level 0 is nearest the music, and `rows` is how many text rows the line takes.
@@ -56,7 +62,8 @@ export interface PlacedBeatText {
 export function placeBeatTexts(texts: { x0: number; text: string }[], end: number): { placed: PlacedBeatText[]; rows: number } {
   const wrapped = texts.map(({ x0, text }, k) => {
     const nextStart = k + 1 < texts.length ? texts[k + 1].x0 : end + BEAT_TEXT_GAP;
-    const lines = wrapBeatText(text, Math.max(BEAT_TEXT_MIN_ROOM, nextStart - BEAT_TEXT_GAP - x0));
+    const room = Math.min(BEAT_TEXT_MAX_ROOM, Math.max(BEAT_TEXT_MIN_ROOM, nextStart - BEAT_TEXT_GAP - x0));
+    const lines = wrapBeatText(text, room);
     return { x0, lines, x1: x0 + Math.max(...lines.map(beatTextWidth)) };
   });
   // Each level's right end so far, and its height in rows.

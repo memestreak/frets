@@ -24,6 +24,9 @@ characters, as a chord name's does.
   there (a short last line isn't run to the width, so its end is not used).
 - The room is never less than 100px (`BEAT_TEXT_MIN_ROOM`), about 18
   characters.
+- Nor more than about 60 characters (`BEAT_TEXT_MAX_ROOM`, the width of
+  "Text very near the line end runs to the edge and wraps there"), however
+  much room is free (Jeremy, 2026-11-03).
 - When it is wider than its room, it breaks at its spaces into lines, each
   as long as fits (`wrapBeatText`). A word wider than the room is never
   split: it takes a line of its own, and may still reach past its room.
@@ -76,6 +79,8 @@ characters, as a chord name's does.
 - A room narrower than any two words gives a word a line; a word wider than
   the room is never split.
 - A text never wraps to less than 100px, even with the next text close.
+- A text never runs past about 60 characters before wrapping, even with
+  the whole line free.
 - A text that still touches the one before it moves up a level, over all
   of that text's rows; a later text that clears goes back to level 0; a
   level is as tall as its tallest text; a line without texts takes one row.

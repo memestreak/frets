@@ -3,7 +3,7 @@
  * docs/specs/2026-11-03-tab-text-wrap-design.md).
  */
 import * as alphaTab from '@coderline/alphatab';
-import { BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_MIN_ROOM, beatTextWidth, placeBeatTexts, wrapBeatText } from '@/features/tab/beatText';
+import { BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_MAX_ROOM, BEAT_TEXT_MIN_ROOM, beatTextWidth, placeBeatTexts, wrapBeatText } from '@/features/tab/beatText';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
@@ -60,6 +60,15 @@ describe('placeBeatTexts', () => {
     const { placed } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 30, text: 'b' }], 600);
     expect(placed[0].lines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
     expect(placed[0].lines.some(line => line.includes(' '))).toBe(true);
+  });
+
+  it('never runs a text past the most room, about 60 characters, however much is free', () => {
+    const sixty = 'Text very near the line end runs to the edge and wraps there';
+    expect(BEAT_TEXT_MAX_ROOM).toBe(beatTextWidth(sixty));
+    expect(placeBeatTexts([{ x0: 0, text: sixty }], 2000).placed[0].lines).toEqual([sixty]);
+    const longer = `${sixty} and on`;
+    const { placed } = placeBeatTexts([{ x0: 0, text: longer }], 2000);
+    expect(placed[0].lines).toEqual([sixty, 'and on']);
   });
 
   it('moves a text that still touches the one before it up a level, over all of its rows', () => {
