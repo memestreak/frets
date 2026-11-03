@@ -144,6 +144,9 @@ and in its spec.
   `2026-11-01-tab-rest-lengths-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures).
+- `sounding.ts` — a Voice's Columns read as Sounding notes (`readVoice`) and
+  written back by the meter (`writeVoice`, `spell`, `beatGroups`); no edit
+  uses it yet — `2026-11-03-tab-sounding-notes-design.md`.
 - `normalMode.ts` — normal mode's edits: MuseScore's length digits, frets
   ±1, the next note in a chord, dragging a fret to another string —
   `2026-10-30-tab-note-input-mode-design.md`,

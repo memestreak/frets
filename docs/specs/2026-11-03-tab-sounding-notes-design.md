@@ -60,6 +60,11 @@ as today. A second Voice stays a choice, never forced.
 - A chain with nothing of its own on its later pieces is written fresh
   (Q15): `q~e` on beat 1 of 4/4 becomes `q.`, and `e~e` inside a beat
   becomes `q`.
+- **Shaped marks** play or draw over the note's own length: a bend, a
+  slide out, and the Column's whammy bar. A note or Column carrying one
+  keeps its written pieces, neither split nor merged, or the shape would
+  move in time (found while building: `sweet_child/song-ending` bends
+  over a dotted quarter on the off-beat).
 
 ### Beat groups
 
@@ -154,9 +159,12 @@ but take none of the syncopations above.
   quarter long; a chain over a bar line is one note starting in the first
   bar; a chord is one Sounding note per string, starting together; rests
   give no notes.
-- A tied piece's own bend, chord name and wah are read at its place and
-  written back on the same piece, as its own written note
-  (`sweet_child/solo-bend-rise.atex` comes back exactly).
+- A tied piece's own bend and chord name are read at its place and
+  written back on the same piece, as its own written note (the held
+  bends at the start of bar 2 of `sweet_child/solo-bend-rise.atex`).
+- A bent note, and a Column with the whammy bar, keep their written
+  pieces: a bent dotted quarter on the off-beat stays `q.`, and a bent
+  `q~e` stays two notes.
 - Splitting a note copies palm mute, let ring, vibrato, tremolo picking,
   the octave line and the hairpin to every piece; hammer-on, slide in,
   accent, ghost, tap, harmonic, mordent and staccato stay on the first.
@@ -165,6 +173,7 @@ but take none of the syncopations above.
   tied into the second.
 - A short bar, an overfull bar and a free-time bar come back exactly; so
   does a tuplet block, and a grace note stays before its note.
+- Only the bars asked for are written.
 - `beatGroups` for every row of the table: 4/4 2+2, 3/4 1+1+1, 6/8 3+3,
   5/8 3+2, 7/8 2+2+3, 5/4 3+2, 7/4 4+3, 11/8 2+2+2+2+3.
 - Notes, simple time: `q h q`, `e q e`, `s e s`, `q. e`, `e. s` stay;
@@ -183,4 +192,6 @@ but take none of the syncopations above.
   5/8.
 - Every built-in arrangement read and written back: each bar already
   written by the meter comes back exactly, and every bar that changes is
-  listed in a committed snapshot, reviewed in the PR (Q10).
+  listed in a committed snapshot, reviewed in the PR (Q10). Three bars
+  change: `strumming` bar 2 `h ~h` → `w`, `outro-solo` bar 2 `q rh.` →
+  `q rq rh`, and `solo-bend-rise` bar 2's off-beat `e.` → `s ~e`.
