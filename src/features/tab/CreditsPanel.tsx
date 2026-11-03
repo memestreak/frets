@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * The title and credits (issues #202, #227), opened by a press on the title, the artist, a credit or
- * "Add artist and credits" in the score's head, with the pressed one's field focused: Title, Artist,
+ * The title and credits (issues #202, #227), opened by a press on the title, the artist or a credit
+ * in the score's head, with the pressed one's field focused: Title, Artist,
  * Words and Music. The title is needed (issue #281): while it is blank a red ⚠ says so and the clip
  * keeps the title it had; the others are optional. "Same people wrote both" folds Music into Words, as the head prints
  * one "Words & Music by" line. The head follows what is typed; Enter or a press away keeps it all as

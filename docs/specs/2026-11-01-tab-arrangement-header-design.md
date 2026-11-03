@@ -24,7 +24,8 @@ tuning and the tempo still open their panels on a press.
 - **Edit** or **Enter** opens the Title and credits panel on the title; a **double-click** opens it
   on the line pressed (the title's field or the artist's). Nothing stays picked once it opens.
 - A second press keeps it picked. **Esc**, Space (which plays), or a press anywhere else lets it go.
-- "Add artist and credits" (no credits yet) still opens the panel at once: there is nothing to pick.
+- With no artist or credits, nothing stands in their place (Jeremy, 2026-11-03: the "Add artist and
+  credits" line is gone); the title's Edit opens the panel, where they are added.
 - The `?` overlay lists Enter and Esc under "Picked title or credits".
 
 ## The title is needed
@@ -42,7 +43,7 @@ The title (the arrangement's name) needs at least one character that isn't a spa
 
 ## Folding
 
-- **Collapse header** hides the title and credits (and "Add artist and credits"). The tuning and
+- **Collapse header** hides the title and credits. The tuning and
   tempo stay over the drawing (Jeremy, 2026-11-01, Q2). The title moves to the card's bar, right after Size, in small muted
   text (13px, `--ink-muted`, truncated with … past 24 characters); a hidden h1 keeps the page's
   heading for screen readers.

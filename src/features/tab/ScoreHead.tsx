@@ -13,7 +13,8 @@
  * opens its panel (issues #202, #203, `docs/specs/2026-10-29-tab-credits-tuning-design.md`), and a
  * named tuning with strings listed has Collapse tuning, which hides the strings and keeps the name
  * (the View options' Tuning details), then Expand tuning. The tuning is always shown, as "Standard
- * tuning" when it is; an unset artist has a quiet "Add artist and credits" under the title. Under the tuning,
+ * tuning" when it is. An unset artist and credits draw nothing (no placeholder for an unset value): the
+ * title's Edit opens the panel where they are added. Under the tuning,
  * the first bar's tempo ("♩ = 120" when none is set), whose press opens the tempo panel
  * (`docs/specs/2026-10-29-tab-tempo-button-design.md`).
  */
@@ -63,7 +64,6 @@ export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCr
   // Always shown (Jeremy, 2026-10-29): standard tuning is named, so a press on it opens the tuning panel.
   const heading = tuning ? tuning.heading : 'Standard tuning';
   const hasCredits = !!artist || lines.length > 0;
-  const editCredits = openAt(onEditCredits && ((x, y) => onEditCredits(x, y, 'artist')));
   const editTempo = openAt(onEditTempo);
   // The first bar's tempo, always shown where it can be set (Jeremy, 2026-10-29): 120 when the clip names none.
   const tempo = clip.bars[0]?.tempo ?? (editTempo ? { bpm: DEFAULT_BPM } : null);
@@ -90,12 +90,6 @@ export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCr
             )}
           </>}
         </HeadPick>
-      )}
-      {/* An unset artist: a quiet line in the credits' place, always shown (no text that appears on hover). */}
-      {!folded && !hasCredits && editCredits && (
-        <div className="score-head-add">
-          <button type="button" className="score-add" onClick={editCredits}>Add artist and credits</button>
-        </div>
       )}
       {(tuning || onEditTuning) && (
         <div className="score-tuning" role="group" aria-label="Tuning" style={{ paddingLeft: HEAD.tuningIndent }}>

@@ -15,8 +15,8 @@ alphaTex. They are now set where they are drawn.
   standard tuning it reads "Standard tuning", on the left where a tuning prints, and a press on it
   opens the Tuning panel like any other tuning. The exported picture still leaves standard tuning
   unsaid, as printed scores do.
-- With no artist or credits, a quiet "Add artist and credits" (muted ink) stands in the credits'
-  place under the title, always shown, and opens the Title and credits panel on the artist's field.
+- With no artist or credits, nothing is drawn in their place (Jeremy, 2026-11-03, replacing the
+  quiet "Add artist and credits" line): the title's Edit opens the Title and credits panel.
 - Tuning (like Sound's `\instrument`) belongs to a track in alphaTex. Frets has one track, so the
   clip's tuning is that track's; nothing here should assume one tuning for a whole score, so that
   several tracks stay possible later.

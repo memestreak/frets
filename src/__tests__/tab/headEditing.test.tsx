@@ -39,9 +39,18 @@ afterEach(() => {
 });
 
 describe("the score head's credits", () => {
-  it('are added from the space under the title, shown as typed, and kept as one undo step', () => {
+  it('draw nothing in their place while unset: no "Add artist and credits" placeholder', () => {
     renderAt();
-    fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
+    expect(head()).not.toHaveTextContent('Add artist and credits');
+    expect(within(head()).queryByRole('button', { name: /artist/i })).toBeNull();
+    // Under the title comes the tuning straight away: nothing stands in the credits' place.
+    const names = within(head()).getAllByRole('button').map(b => b.textContent);
+    expect(names.slice(0, 2)).toEqual(['Untitled', 'Standard tuning']);
+  });
+
+  it("are added from the title's Edit, shown as typed, and kept as one undo step", () => {
+    renderAt();
+    editFromHead('Untitled', 'title');
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     fireEvent.change(within(panel).getByLabelText('Artist (optional)'), { target: { value: 'Band' } });
     expect(head()).toHaveTextContent('Band');
@@ -50,7 +59,6 @@ describe("the score head's credits", () => {
     expect(head()).toHaveTextContent('Words & Music by Ann');
     fireEvent.keyDown(within(panel).getByLabelText('Artist (optional)'), { key: 'Enter' });
     expect(screen.queryByRole('dialog', { name: 'Title and credits' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Add artist and credits' })).toBeNull();
 
     undo();
     expect(head()).not.toHaveTextContent('Band');
@@ -59,14 +67,13 @@ describe("the score head's credits", () => {
 
   it('go back as they were on Esc', () => {
     renderAt();
-    fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
+    editFromHead('Untitled', 'title');
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
     const artist = within(panel).getByLabelText('Artist (optional)');
     fireEvent.change(artist, { target: { value: 'Band' } });
     fireEvent.keyDown(artist, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(head()).not.toHaveTextContent('Band');
-    expect(screen.getByRole('button', { name: 'Add artist and credits' })).toBeInTheDocument();
   });
 
   it('open from the drawn credits, and words and music part when different people wrote them', async () => {
@@ -116,14 +123,13 @@ describe("the score head's title and credits panel", () => {
     expect(head()).not.toHaveTextContent('Band');
   });
 
-  it('opens on the artist from "Add artist and credits", and an emptied title keeps the one it had', () => {
+  it('keeps the title it had when the title is emptied', () => {
     renderAt();
     editFromHead('Untitled', 'title');
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Riff' } });
     fireEvent.keyDown(screen.getByLabelText('Title'), { key: 'Enter' });
-    fireEvent.click(screen.getByRole('button', { name: 'Add artist and credits' }));
+    editFromHead('Riff', 'title');
     const panel = screen.getByRole('dialog', { name: 'Title and credits' });
-    expect(within(panel).getByLabelText('Artist (optional)')).toHaveFocus();
     const title = within(panel).getByLabelText('Title');
     expect(title).toHaveValue('Riff');
     fireEvent.change(title, { target: { value: '   ' } });
