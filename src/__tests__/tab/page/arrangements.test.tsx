@@ -359,7 +359,7 @@ describe('TabPage arrangements', () => {
     for (const line of files(dialog, 'Rhythm').getAllByRole('button')) expect(line.querySelector('svg')).not.toBeNull();
     fireEvent.click(where().getByRole('button', { name: 'Built-in' }));
     expect(where().getByText('Built-in')).toHaveAttribute('aria-current', 'location');
-    expect(files(dialog, 'Built-in').getByRole('button', { name: 'Rhythm' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('list', { name: 'Built-in' })).toBeInTheDocument();
   });
 
   it('folds My arrangements and Built-in away when the one shown is pressed again', async () => {
@@ -457,6 +457,27 @@ describe('TabPage arrangements', () => {
     fireEvent.click(lines[0], { detail: 1 });
     fireEvent.click(lines[1], { detail: 1, shiftKey: true });
     expect(files(dialog, 'Samples').getAllByRole('button', { pressed: true })).toEqual([lines[1]]);
+  });
+
+  it('lists only arrangements in the middle, never folders: they are on the left already (Jeremy, 2026-11-03)', async () => {
+    keepMany(['Riff', 'Tex riff'], [{ id: 'f', name: 'Riffs', holds: ['Tex riff'] }]);
+    renderAt();
+    const dialog = openDialog();
+    await places(dialog).findByRole('button', { name: 'Rhythm' });
+    const folderLines = (list: string) => files(dialog, list).queryAllByRole('button').filter(b => b.classList.contains('tab-folder'));
+    // My arrangements: its arrangement, not the folder Riffs.
+    expect(places(dialog).getByRole('button', { name: 'Riffs' })).toBeInTheDocument();
+    expect(names(dialog)).toEqual(['Riff']);
+    expect(folderLines('My arrangements')).toEqual([]);
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Riffs' }));
+    expect(names(dialog, 'Riffs')).toEqual(['Tex riff']);
+    // Built-in holds only folders, so it lists nothing; a folder of it, only its arrangements.
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Built-in' }));
+    expect(files(dialog, 'Built-in').queryAllByRole('button')).toEqual([]);
+    expect(files(dialog, 'Built-in').getByText('Nothing here.')).toBeInTheDocument();
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Rhythm' }));
+    expect(folderLines('Rhythm')).toEqual([]);
+    expect(files(dialog, 'Rhythm').getAllByRole('button').length).toBeGreaterThan(0);
   });
 
   /** Saved arrangements named `names` (ids a, b, c…), the first open, in `folder` where given. */

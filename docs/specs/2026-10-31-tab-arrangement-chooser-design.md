@@ -76,7 +76,8 @@ Jeremy picked the two panes (mock b, over one folder at a time) on 2026-10-31.
 - **Where**: beside the title, the place shown ("Arrangements › Built-in ›
   Rhythm"); the earlier steps can be pressed.
 - **Files** in the middle: the chosen place's arrangements, one line each by name
-  with a file icon,
+  with a file icon, and never its folders, which are on the left already
+  (Jeremy, 2026-11-03: Built-in, which holds only folders, lists nothing);
   a saved one with its last change, Rename and Delete. Picking, Shift ranges,
   Cmd/Ctrl, Delete/Backspace and dragging the picked ones work as in #187.
   "Nothing saved here yet." in an empty folder.
