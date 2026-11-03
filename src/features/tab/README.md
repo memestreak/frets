@@ -144,6 +144,9 @@ and in its spec.
   `2026-11-01-tab-rest-lengths-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures).
+- `sounding.ts` — a Voice's Columns read as Sounding notes (`readVoice`) and
+  written back by the meter (`writeVoice`, `spell`, `beatGroups`); no edit
+  uses it yet — `2026-11-03-tab-sounding-notes-design.md`.
 - `normalMode.ts` — normal mode's edits: MuseScore's length digits, frets
   ±1, the next note in a chord, dragging a fret to another string —
   `2026-10-30-tab-note-input-mode-design.md`,
@@ -282,6 +285,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-sounding-notes-design.md`: Sounding notes
+  read from Columns and written back by the meter (no visible change)
 - `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
   column wraps onto more lines
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
@@ -431,3 +436,5 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   state
 - `docs/adr/2026-11-02-one-theory-core.md`: all theory in src/lib/theory/, the
   only tonal importer
+- `docs/adr/2026-11-03-edit-sounding-notes-store-columns.md`: edits work on
+  Sounding notes; the Clip stores written Columns

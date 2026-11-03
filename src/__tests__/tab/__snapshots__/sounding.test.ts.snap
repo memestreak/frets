@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the built-in arrangements > come back exactly, but for the bars listed here, written by the meter 1`] = `
+[
+  "articulations/strumming, track 1, bar 2: h ~h → w",
+  "sweet_child/outro-solo, track 1, bar 2: q rh. → q rq rh",
+  "sweet_child/solo-bend-rise, track 1, bar 2: ~q. ~e ~s e. s/3 s/3 s/3 s s → ~q. ~e ~s s ~e s/3 s/3 s/3 s s",
+]
+`;
