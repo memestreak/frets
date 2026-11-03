@@ -47,6 +47,12 @@ describe('typing', () => {
     expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 7, vibrato: 'slight' });
   });
 
+  it('carries a fret change on to the notes tied to it, across the bar line (editing_tests/fret-follows-tie)', () => {
+    const clip = setFret(clipOf('5.3.1 | -.3.2 -.3.2 |'), at(0, 0, 2), 7);
+    expect(bars(clip)).toBe('7.3.1 |\n-.3.2 -.3.2 |');
+    expect(noteAt(clip, at(1, 1, 2))).toEqual({ fret: 7, tie: true });
+  });
+
   it('names a hammer-on or pull-off by the frets, and follows a fret change', () => {
     let clip = clipOf('7.3.8 5.3.8 r.4 r.2 |');
     clip = toggleLegato(clip, only(at(0, 1, 2)));
