@@ -24,4 +24,5 @@ PR, or removes the file and its row when the behaviour is gone.
 | `delete-whole-bar.atex` | Delete on a bar selected whole leaves one whole rest | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |
 | `fret-follows-tie.atex` | A fret change carries on to the notes tied to it | `docs/specs/2026-10-25-tab-editing-design.md` |
+| `rests-follow-the-meter.atex` | Delete leaves a Gap written by the meter: rests that show each beat | `docs/specs/2026-11-03-tab-rests-are-gaps-design.md` |
 | `longer-note-writes-over.atex` | A longer note writes over what follows, split and tied at the bar line | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |

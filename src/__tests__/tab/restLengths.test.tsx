@@ -1,6 +1,7 @@
 /**
- * A selected rest's length (issue #290): the length keys and the Duration buttons change it, and its bar
- * stays full, as MuseScore's does; and a rest the tab alone draws is picked anywhere along it.
+ * Lengths and rests (issue #290, then rests are Gaps, step 3): a picked note's length keys keep its bar
+ * full; a picked rest is a Gap, whose length the keys and Duration buttons can't set
+ * (`docs/specs/2026-11-03-tab-rests-are-gaps-design.md`); a rest the tab alone draws is picked anywhere along it.
  */
 import { vi } from 'vitest';
 import * as alphaTab from '@coderline/alphatab';
@@ -14,7 +15,7 @@ import { writeBars } from '@/features/tab/alphatex';
 import { partOf, type Part } from '@/features/tab/clip';
 import { type Cursor, type Target } from '@/features/tab/editing';
 import { clearToRests, cycleDots, setValue, stepDuration } from '@/features/tab/noteEdits';
-import { layoutClip } from '@/features/tab/layout';
+import { layoutClip, wholeRestX } from '@/features/tab/layout';
 import { rhythmAt } from '@/features/tab/hitTest';
 
 // The built-in arrangements, served as the route serves them; nothing else is fetched.
@@ -37,30 +38,24 @@ const picked = (clip: Part, bar: number, column: number): Target => {
   return { cursor: at(bar, column), selection: { anchor: index, focus: index } };
 };
 
-describe('a selected rest keeps its bar full (issue #290)', () => {
+describe('a picked rest is a Gap: its length can\'t be set (rests are Gaps, step 3)', () => {
   const clip = clipOf('\\ts (4 4)\n3.6.4 r.4 5.6.4 7.6.4 |');
 
-  it('longer, it writes over what follows; a column covered in part leaves the rest of its time as rests', () => {
-    expect(bars(setValue(clip, picked(clip, 0, 1), 2))).toBe('3.6.4 r.2 7.6.4 |');
-    expect(bars(cycleDots(clip, picked(clip, 0, 1)))).toBe('3.6.4 r.4{d} r.8 7.6.4 |');
+  it('the length keys and Duration buttons leave a picked rest, or the cursor on one, as it was', () => {
+    for (const target of [picked(clip, 0, 1), { cursor: at(0, 1), selection: null }]) {
+      expect(setValue(clip, target, 2)).toBe(clip);
+      expect(cycleDots(clip, target)).toBe(clip);
+      expect(stepDuration(clip, target, 1)).toBe(clip);
+      expect(stepDuration(clip, target, -1)).toBe(clip);
+    }
+    // A run of rests alone, the same.
+    const rests = clipOf('\\ts (4 4)\n3.6.4 r.4 r.4 7.6.4 |');
+    expect(setValue(rests, { cursor: at(0, 1), selection: { anchor: 1, focus: 2 } }, 8)).toBe(rests);
   });
+});
 
-  it('shorter, the time it gives up becomes rests after it', () => {
-    expect(bars(stepDuration(clip, picked(clip, 0, 1), -1))).toBe('3.6.4 r.8 r.8 5.6.4 7.6.4 |');
-    expect(bars(setValue(clip, picked(clip, 0, 1), 16))).toBe('3.6.4 r.16 r.8{d} 5.6.4 7.6.4 |');
-  });
-
-  it('past the bar line it runs on into the next bar', () => {
-    const two = clipOf('\\ts (4 4)\n3.6.4 5.6.4 7.6.4 r.4 | 8.6.4 r.4 r.2 |');
-    expect(bars(setValue(two, picked(two, 0, 3), 2))).toBe('3.6.4 5.6.4 7.6.4 r.4 |\nr.4 r.4 r.2 |');
-    // A rest at the end of the clip gets a bar of rests to run into.
-    const last = clipOf('\\ts (4 4)\n3.6.2 r.2 |');
-    expect(bars(setValue(last, picked(last, 0, 1), 1))).toBe('3.6.2 r.2 |\nr.2 r.2 |');
-  });
-
-  it('with the cursor on it and nothing selected, the same', () => {
-    expect(bars(setValue(clip, { cursor: at(0, 1), selection: null }, 2))).toBe('3.6.4 r.2 7.6.4 |');
-  });
+describe('a picked note keeps its bar full (issue #290)', () => {
+  const clip = clipOf('\\ts (4 4)\n3.6.4 r.4 5.6.4 7.6.4 |');
 
   it('a note or a chord does the same; past the bar line a note is tied on (Jeremy, 2026-11-01)', () => {
     expect(bars(setValue(clip, picked(clip, 0, 0), 2))).toBe('3.6.2 5.6.4 7.6.4 |');
@@ -69,7 +64,7 @@ describe('a selected rest keeps its bar full (issue #290)', () => {
     expect(bars(setValue(chord, picked(chord, 0, 2), 1))).toBe('3.6.4 5.6.4 (5.5 7.6).2 |\n(-.5 -.6).2 r.2 |');
   });
 
-  it('a run of several columns, a grace note or a tuplet just changes length, as before', () => {
+  it('a run of several columns with a note, a grace note or a tuplet just changes length, as before', () => {
     expect(bars(setValue(clip, { cursor: at(0, 1), selection: { anchor: 1, focus: 2 } }, 8))).toBe('3.6.4 r.8 5.6.8 7.6.4 |');
   });
 });
@@ -98,7 +93,8 @@ describe('picking a rest the tab alone draws (issue #290)', () => {
     const { bars: placed, rows, top } = layout.systems[0];
     const y = top + rows.stemTop + 10;
     const half = placed[0].columns[2].x;
-    const whole = placed[1].columns[0].x;
+    // A Whole-bar rest is drawn centred in its bar (step 3).
+    const whole = wholeRestX(placed[1]);
     const quarter = placed[0].columns[1].x;
     expect(rhythmAt(layout, half + 11, y)).toEqual({ bar: 0, column: 2 });
     expect(rhythmAt(layout, whole - 11, y)).toEqual({ bar: 1, column: 0 });
@@ -158,37 +154,37 @@ describe('on the page (issue #290)', () => {
   const RIFF = '\\ts (4 4)\n3.6.4 r.4 5.6.4 7.6.4 |';
 
   it.each([
-    ['tab', { key: '^', code: 'Digit6', shiftKey: true }, '3.6.4 r.2 7.6.4 |'],
-    ['tab', { key: 'w' }, '3.6.4 r.2 7.6.4 |'],
-    ['tab', { key: 'q' }, '3.6.4 r.8 r.8 5.6.4 7.6.4 |'],
-    ['tab', { key: '.' }, '3.6.4 r.4{d} r.8 7.6.4 |'],
-    ['both', { key: '6' }, '3.6.4 r.2 7.6.4 |'],
-    ['staff', { key: '3' }, '3.6.4 r.16 r.8{d} 5.6.4 7.6.4 |'],
-    ['both', { key: '-' }, '3.6.4 r.8 r.8 5.6.4 7.6.4 |'],
-  ])('in %s view, %j on a picked rest', async (show, key, after) => {
+    ['tab', { key: '^', code: 'Digit6', shiftKey: true }],
+    ['tab', { key: 'w' }],
+    ['tab', { key: 'q' }],
+    ['tab', { key: '.' }],
+    ['both', { key: '6' }],
+    ['staff', { key: '3' }],
+    ['both', { key: '-' }],
+  ])('in %s view, %j on a picked rest does nothing (rests are Gaps)', async (show, key) => {
     await open(show, RIFF);
     pressRest(show);
     fireEvent.keyDown(editor(), key);
-    expect(frets()).toBe(after);
+    expect(frets()).toBe('3.6.4 r.4 5.6.4 7.6.4 |');
   });
 
-  it('a Duration button sets a picked rest’s length, and the rest stays picked and lit at its new length', async () => {
+  it('a Duration button does nothing on a picked rest, and no Duration button is lit for it', async () => {
     await open('tab', RIFF);
     pressRest('tab');
+    for (const name of [/^Whole note/, /^Half note/, /^Quarter note/, /^Eighth note/, /^Dotted/]) {
+      expect(screen.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false');
+    }
     fireEvent.click(screen.getByRole('button', { name: /^Half note/ }));
-    expect(frets()).toBe('3.6.4 r.2 7.6.4 |');
-    expect(screen.getByRole('button', { name: /^Half note/ })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.keyDown(editor(), { key: 'q' });
-    expect(frets()).toBe('3.6.4 r.4 r.4 7.6.4 |');
+    expect(frets()).toBe('3.6.4 r.4 5.6.4 7.6.4 |');
+    expect(screen.getByRole('button', { name: /^Half note/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('a digit on a picked rest with the tab alone sets its length', async () => {
+  it('a digit on a picked rest with the tab alone does nothing', async () => {
     await open('tab', RIFF);
     pressRest('tab');
     fireEvent.keyDown(editor(), { key: '6' });
-    expect(frets()).toBe('3.6.4 r.2 7.6.4 |');
     fireEvent.keyDown(editor(), { key: '3' });
-    expect(frets()).toBe('3.6.4 r.16 r.4{dd} 7.6.4 |');
+    expect(frets()).toBe('3.6.4 r.4 5.6.4 7.6.4 |');
   });
 
   it('with the tab alone a press on a note’s stem picks its column, and the length keys change it', async () => {
@@ -207,7 +203,8 @@ describe('on the page (issue #290)', () => {
     fireEvent.keyDown(editor(), { key: '6' });
     expect(frets()).toBe('3.6.2 5.6.4 7.6.4 |');
     fireEvent.keyDown(editor(), { key: '#', code: 'Digit3', shiftKey: true });
-    expect(frets()).toBe('3.6.16 r.4{dd} 5.6.4 7.6.4 |');
+    // The Gap it leaves is written by the meter: a sixteenth rest, an eighth, a quarter (step 3).
+    expect(frets()).toBe('3.6.16 r.16 r.8 r.4 5.6.4 7.6.4 |');
   });
 
   it('a bar selected and deleted becomes one whole rest (Jeremy, 2026-11-01)', async () => {
@@ -221,7 +218,7 @@ describe('on the page (issue #290)', () => {
     expect(frets()).toBe('r.8 r.8 r.8 r.8 r.8 r.8 |');
   });
 
-  it('a note deleted leaves its rest lit with no box round it, and the keys go on acting on it (Jeremy, 2026-11-01)', async () => {
+  it('a note deleted leaves its rest lit with no box round it; a length key then does nothing to it (Jeremy, 2026-11-01; step 3)', async () => {
     await open('both', '\\ts (4 4)\n3.6.4 5.6.4 7.6.4 8.6.4 | 3.6.2 r.2 |');
     // The fourth head of bar 1, pressed a little inside its left edge.
     const path = screen.getAllByTestId('staff-head')[3].querySelector('path')!;
@@ -233,6 +230,6 @@ describe('on the page (issue #290)', () => {
     expect(screen.queryByTestId('range-box')).toBeNull();
     expect(screen.getAllByTestId('staff-rest')[0].querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
     fireEvent.keyDown(editor(), { key: '4' });
-    expect(frets()).toBe('3.6.4 5.6.4 7.6.4 r.8 r.8 | 3.6.2 r.2 |');
+    expect(frets()).toBe('3.6.4 5.6.4 7.6.4 r.4 | 3.6.2 r.2 |');
   });
 });

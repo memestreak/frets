@@ -5,7 +5,7 @@
 
 import { isRest } from './clip';
 import { staffBar } from './staffGeometry';
-import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY } from './layout';
+import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY, wholeRestX } from './layout';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
 export interface Hit {
@@ -109,9 +109,12 @@ export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
   const bar = system.bars.find(b => x >= b.x0 && x < b.x1);
   if (!bar) return null;
   let column = 0;
-  bar.columns.forEach((c, i) => {
-    if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
-  });
+  // A Whole-bar rest is one thing: a press anywhere in it lands on beat 1.
+  if (!bar.wholeRest) {
+    bar.columns.forEach((c, i) => {
+      if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
+    });
+  }
   return { bar: bar.index, column, step, string: null };
 }
 
@@ -130,9 +133,12 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   if (!bar) return null;
   const string = Math.min(5, Math.max(0, Math.round((localY - rows.staffTop) / STRING_GAP)));
   let column = 0;
-  bar.columns.forEach((c, i) => {
-    if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
-  });
+  // A Whole-bar rest is one thing: a press anywhere in it lands on beat 1.
+  if (!bar.wholeRest) {
+    bar.columns.forEach((c, i) => {
+      if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
+    });
+  }
   return { bar: bar.index, column, string };
 }
 
@@ -205,6 +211,12 @@ export function rhythmAt(layout: Layout, x: number, y: number): { bar: number; c
   let best: { bar: number; column: number; off: number } | null = null;
   for (const bar of system.bars) {
     if (bar.restRun) continue;
+    if (bar.wholeRest) {
+      // One whole rest drawn centred: a press on it picks the bar's first rest (the page picks them all).
+      const off = Math.abs(wholeRestX(bar) - x);
+      if (off <= TAB_BAR_REST_REACH_X && (!best || off < best.off)) best = { bar: bar.index, column: 0, off };
+      continue;
+    }
     for (let column = 0; column < bar.columns.length; column++) {
       const placed = bar.columns[column];
       if (placed.column.grace || (rows.score && !isRest(placed.column))) continue;

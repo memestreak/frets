@@ -4,7 +4,7 @@
  * palette (`TabPalette.tsx`) and the keyboard both go through this table,
  * so a tip always names the key that does the same thing. Pure; no React.
  */
-import { type BendQuarters, type Part, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
+import { isRest, type BendQuarters, type Part, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
 import { whammyShape, type WhammyShape } from './whammy';
 import { columnAt, indexOf, noteAt, setDead, type Target } from './editing';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
@@ -254,7 +254,9 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
   const note = noteAt(clip, cursor);
   const bar = clip.bars[cursor.bar];
   const value = VALUE[id];
-  if (value) return column?.duration.value === value;
+  // A rest is a Gap: its length can't be set, so no Duration lights for it (rests are Gaps, step 3).
+  const rest = !!column && !column.grace && isRest(column);
+  if (value) return !rest && column?.duration.value === value;
   const tremolo = TREMOLO[id];
   if (tremolo) return column?.tremolo === tremolo;
   const mark = MARK[id];
@@ -264,7 +266,7 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
   }
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
-    case 'dot': return (column?.duration.dots ?? 0) > 0;
+    case 'dot': return !rest && (column?.duration.dots ?? 0) > 0;
     case 'tuplet': return !!column?.duration.tuplet;
     case 'bend': return !!note?.bend;
     case 'vibrato': return !!note?.vibrato;
