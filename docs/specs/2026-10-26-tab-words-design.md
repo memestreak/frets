@@ -81,7 +81,9 @@ nothing then has to be placed after text whose width is unknown.
 Jeremy asked for alphaTex's `txt "..."` after chord names. It is
 `Column.text`, drawn in italics, 11px, in a row of its own under the chord
 names (there only when a column has text), starting just left of its
-column and running right; it does not widen the column. The Text group's
+column and running right; it does not widen the column. (Since 2026-11-03,
+issue #323: a long text wraps onto more lines over its column; see
+`2026-11-03-tab-text-wrap-design.md`.) The Text group's
 "Text over this column" button (no key; T is tap) opens the same field as
 a chord name, and a press on drawn text opens it there. Empty clears it.
 The song-form example has one.

@@ -6,13 +6,13 @@
 import { barLineAt, barLineBox, isBarLine, type BarLineHit } from './barLines';
 import { type Section, type Tempo } from './clip';
 import { tempoNoteWidth } from './TempoNote';
-import { type Layout, lineAt, type PlacedBar, type System, chordWidth } from './layout';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
+import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth } from './layout';
 
-export const BEAT_TEXT_SIZE = 11;
-/** Free text starts a little left of its column's middle and runs right. */
-export const BEAT_TEXT_INSET = 4;
-export function beatTextWidth(text: string): number {
-  return text.length * 5.6;
+/** A free text's box: its widest line, and its lines from the text row down. */
+function beatTextBox(placed: PlacedColumn): { x0: number; x1: number; lines: number } {
+  const x0 = placed.x - BEAT_TEXT_INSET;
+  return { x0, x1: x0 + Math.max(0, ...placed.textLines.map(beatTextWidth)), lines: placed.textLines.length };
 }
 
 export const SECTION_SIZE = 14;
@@ -125,9 +125,9 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
         const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
         return w > 0 ? box(s, rows.chords, placed.x - w / 2, placed.x + w / 2) : null;
       }
-      const t = placed.column.text;
-      const x0 = placed.x - BEAT_TEXT_INSET;
-      return t ? box(s, rows.text, x0, x0 + beatTextWidth(t)) : null;
+      if (!placed.column.text) return null;
+      const text = beatTextBox(placed);
+      return box(s, rows.text === null ? null : rows.text + (text.lines - 1) * BEAT_TEXT_LINE / 2, text.x0, text.x1, 18 + (text.lines - 1) * BEAT_TEXT_LINE);
     }
     if (!('bar' in hit)) continue;
     if (hit.kind === 'ending') {
@@ -174,11 +174,12 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
       if (w > 0 && Math.abs(x - placed.x) <= w / 2 + 2) return { kind: 'chord', index: placed.index };
     }
   }
-  if (near(rows.text)) {
+  if (rows.text !== null) {
     for (const placed of system.bars.flatMap(b => b.columns)) {
-      const t = placed.column.text;
-      const x0 = placed.x - BEAT_TEXT_INSET;
-      if (t && x >= x0 - 2 && x <= x0 + beatTextWidth(t) + 2) return { kind: 'text', index: placed.index };
+      if (!placed.column.text) continue;
+      const text = beatTextBox(placed);
+      const down = localY >= rows.text - 8 && localY <= rows.text + (text.lines - 1) * BEAT_TEXT_LINE + 8;
+      if (down && x >= text.x0 - 2 && x <= text.x1 + 2) return { kind: 'text', index: placed.index };
     }
   }
   for (const bar of system.bars) {
