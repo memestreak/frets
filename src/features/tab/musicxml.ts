@@ -651,7 +651,7 @@ export function musicXmlLosses(clip: Clip): string[] {
       ...(track.header ?? []),
       ...track.bars.flatMap(bar => [
         ...(bar.extra ?? []),
-        ...bar.columns.flatMap(c => [...(c.extra ?? []), ...c.notes.flatMap(n => n?.extra ?? [])]),
+        ...bar.voices.flat().flatMap(c => [...(c.extra ?? []), ...c.notes.flatMap(n => n?.extra ?? [])]),
       ]),
     ]),
   ];

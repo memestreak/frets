@@ -188,6 +188,7 @@ export function perform(at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, 
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   vibratoOnBends(at, generator, settings);
   bendWhileTremoloPicking(at, generator);
+  oneNoteAString(generator);
   generator.generate();
   const masterBars = generator.tickLookup.masterBars;
   const bars = masterBars.map(b => ({
@@ -321,7 +322,44 @@ interface GeneratorInternals {
   _generateSlide(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, channel: number, tempo: number): void;
   _generateNote(note: ScoreNote, beatStart: number, beatDuration: number, tempo: number, ...rest: unknown[]): void;
   _generateTremoloPicking(note: ScoreNote, noteStart: number, noteDuration: { noteOnly: number }, noteKey: number, velocity: number, channel: number): void;
+  _getNoteDuration(note: ScoreNote, beatPlayDuration: number, tempo: number): NoteDuration;
   vibratoResolution: number;
+}
+
+/** How long alphaTab sounds a note, in ticks: as written, to the end of its ties or slide, and while it is let ring. */
+interface NoteDuration { noteOnly: number; untilTieOrSlideEnd: number; letRingEnd: number }
+
+/**
+ * A string sounds one note at a time: a note in one Voice stops when another Voice plays on its string
+ * (`docs/specs/2026-11-03-tab-voices-design.md`). alphaTab lets both ring, each its own length, so each
+ * note's length is cut where the first later note on its string in another Voice starts.
+ */
+function oneNoteAString(generator: AlphaTabModule.midi.MidiFileGenerator) {
+  const g = generator as unknown as GeneratorInternals;
+  const noteDuration = g._getNoteDuration.bind(g);
+  g._getNoteDuration = (note, beatPlayDuration, tempo) => {
+    const duration = noteDuration(note, beatPlayDuration, tempo);
+    const { beat } = note;
+    const start = beat.absolutePlaybackStart;
+    const end = start + Math.max(duration.noteOnly, duration.untilTieOrSlideEnd, duration.letRingEnd);
+    let cut = Infinity;
+    const bars = beat.voice.bar.staff.bars;
+    for (let b = beat.voice.bar.index; b < bars.length && bars[b].masterBar.start < end; b++) {
+      for (const voice of bars[b].voices) {
+        if (voice.index === beat.voice.index) continue;
+        for (const other of voice.beats) {
+          const at = other.absolutePlaybackStart;
+          if (at > start && at < Math.min(end, cut) && other.notes.some(n => n.string === note.string)) cut = at;
+        }
+      }
+    }
+    if (cut === Infinity) return duration;
+    const most = cut - start;
+    duration.noteOnly = Math.min(duration.noteOnly, most);
+    duration.untilTieOrSlideEnd = Math.min(duration.untilTieOrSlideEnd, most);
+    duration.letRingEnd = Math.min(duration.letRingEnd, most);
+    return duration;
+  };
 }
 
 /**

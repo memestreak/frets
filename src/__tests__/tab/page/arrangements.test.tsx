@@ -43,7 +43,7 @@ describe('TabPage arrangements', () => {
   const unsaved = () => screen.queryByTestId('unsaved') !== null;
   const saveAsDialog = () => screen.getByRole('dialog', { name: 'Save as' });
   const savedColumns = (id: string) =>
-    (JSON.parse(localStorage.getItem(arrangementKey(id))!) as Clip).tracks[0].bars.flatMap(b => b.columns).length;
+    (JSON.parse(localStorage.getItem(arrangementKey(id))!) as Clip).tracks[0].bars.flatMap(b => b.voices[0]).length;
 
   it('saves nothing until Save, and brings back unsaved changes after a reload, still unsaved', async () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);

@@ -20,9 +20,9 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     act(() => editor.focus());
     fireEvent.keyDown(editor, { key: '7' });
     const saved = pageClip() as unknown as Clip;
-    expect(saved.tracks[0].bars[0].columns).toHaveLength(1);
-    expect(saved.tracks[0].bars[0].columns[0].notes[2]).toEqual({ fret: 5 });
-    expect(saved.tracks[1].bars[0].columns[0].notes[0]).toEqual({ fret: 7 });
+    expect(saved.tracks[0].bars[0].voices[0]).toHaveLength(1);
+    expect(saved.tracks[0].bars[0].voices[0][0].notes[2]).toEqual({ fret: 5 });
+    expect(saved.tracks[1].bars[0].voices[0][0].notes[0]).toEqual({ fret: 7 });
     // The ASCII view is of the track picked; the AlphaTex view has every track, so no list there.
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     expect(screen.getByTestId('tab-ascii').textContent).toMatch(/^E\|-*0-+2/m);

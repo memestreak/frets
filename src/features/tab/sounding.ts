@@ -119,8 +119,9 @@ function isPlain(piece: Piece, first: Piece): boolean {
   return same(piece.note, continuation(first.note));
 }
 
-/** Reads a Voice of `part` as Sounding notes. A Track has one Voice today, Voice 0. */
-export function readVoice(part: Part, voice = 0): ReadVoice {
+/** Reads the part's Voice (`part.voice`, Voice 1 when none) as Sounding notes. */
+export function readVoice(part: Part): ReadVoice {
+  const voice = part.voice ?? 0;
   const read: ReadVoice = { voice, bars: [], notes: [], marks: [], graces: [], tuplets: [] };
   const open: (SoundingNote | null)[] = Array(STRING_COUNT).fill(null);
   let start = 0;

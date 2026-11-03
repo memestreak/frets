@@ -8,7 +8,10 @@
  * (a clip's `header`, and `extra` on bars, columns and notes) is written
  * back as it was read. Reading is `alphatexRead.ts`.
  */
-import { asClip, isRest, isStandardTuningNames, keyTex, partOf, type Bar, type Bend, type Clip, type Column, type Note, type Part, type Track } from './clip';
+import {
+  asClip, barTicks, ownVoice, fewestRests, isRest, isStandardTuningNames, keyTex, STRING_COUNT, type Bend, type Clip, type Column,
+  type MasterBar, type Note, type Part, type TimeSignature, type Track, type TrackBar,
+} from './clip';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
@@ -17,8 +20,11 @@ export function quoted(text: string): string {
   return `"${text.replace(/["\\]/g, '\\$&')}"`;
 }
 
-/** Where a note sits: bar, column and string (0 = high e). */
+/** Where a note sits: bar, column and string (0 = high e), in one Voice. */
 interface At { bar: number; column: number; string: number }
+
+/** A bar as the writer takes it: its marks and each Voice's Columns. */
+type WrittenBar = MasterBar & TrackBar;
 
 /** Semitones above C for each natural note name. */
 const NATURAL: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -52,11 +58,14 @@ function bendPoints({ quarters, pre, release, from, to }: Bend, tied: boolean): 
   return points.join(' ');
 }
 
-/** For every note, the effects it carries for a later note on its string (h, sl or ss). */
-function originMarks(bars: readonly Bar[]): Map<string, string[]> {
+/**
+ * For every note of one Voice (its Columns bar by bar), the effects it carries for the Voice's later
+ * note on its string (h, sl or ss): joins stay within a Voice, as alphaTab reads them.
+ */
+function originMarks(bars: readonly Column[][]): Map<string, string[]> {
   const marks = new Map<string, string[]>();
   const last: (At | null)[] = Array(6).fill(null);
-  bars.forEach((bar, b) => bar.columns.forEach((column, c) => column.notes.forEach((note, s) => {
+  bars.forEach((columns, b) => columns.forEach((column, c) => column.notes.forEach((note, s) => {
     if (!note) return;
     const prev = last[s];
     if (prev) {
@@ -160,10 +169,14 @@ export function writeAlphaTex(clip: Clip): string {
       if (clip.multiBarRests) lines.push('\\multiBarRest');
       if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
       if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
+      // Voices are written a bar at a time; a clip of one Voice writes none (`docs/specs/2026-11-03-tab-voices-design.md`).
+      if (clip.tracks.some(each => each.bars.some(bar => bar.voices.length > 1))) lines.push('\\voiceMode barWise');
       lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
     }
     lines.push(...trackLines(track));
-    lines.push(...wrapBars(barTokens(t === 0 ? partOf(clip).bars : track.bars)));
+    // The bar marks every track shares are written in the first track's bars only.
+    const bars = t === 0 ? clip.masterBars.map((master, b) => ({ ...master, ...track.bars[b] })) : track.bars;
+    lines.push(...wrapBars(barTokens(bars, clip.time)));
   });
   return `${lines.join('\n')}\n`;
 }
@@ -184,15 +197,22 @@ function trackLines(track: Track): string[] {
   return lines;
 }
 
-/** Each of the part's bars on one line, unwrapped: what tests and anything comparing bars want. */
-export function writeBars(part: Pick<Part, 'bars'>): string[] {
-  return barTokens(part.bars).map(tokens => tokens.join(' '));
+/** Each of the part's bars on one line, unwrapped (its own Voice only): what tests and anything comparing bars want. */
+export function writeBars(part: Pick<Part, 'bars' | 'time'>): string[] {
+  return barTokens(part.bars.map(bar => ({ ...ownVoice(bar), voices: [bar.columns] })), part.time).map(tokens => tokens.join(' '));
 }
 
-/** Each bar's marks, beats and closing bar line, as the tokens a line break may go between. */
-function barTokens(bars: readonly Bar[]): string[][] {
-  const marks = originMarks(bars);
+/**
+ * Each bar's marks, beats and closing bar line, as the tokens a line break may go between. A bar with
+ * more than one Voice writes each after `\voice`, Voice 1 first; an absent Voice before a present one
+ * is written as rests the bar's length, since bar-wise Voices are counted in order.
+ */
+function barTokens(bars: readonly WrittenBar[], firstTime: TimeSignature): string[][] {
+  const voiceCount = Math.max(1, ...bars.map(bar => bar.voices.length));
+  const marks = Array.from({ length: voiceCount }, (_, v) => originMarks(bars.map(bar => bar.voices[v] ?? [])));
+  let time = firstTime;
   return bars.map((bar, b) => {
+    if (bar.time) time = bar.time;
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
     if (bar.key) meta.push(`\\ks ${keyTex(bar.key)}`);
@@ -207,11 +227,21 @@ function barTokens(bars: readonly Bar[]): string[][] {
     if (bar.doubleBar) meta.push('\\db');
     if (bar.freeTime) meta.push('\\ft');
     meta.push(...(bar.extra ?? []));
-    const beats = bar.columns.map((_, c) => beatTex(bar.columns, b, c, marks));
+    const beats = bar.voices.length === 1
+      ? bar.voices[0].map((_, c, columns) => beatTex(columns, b, c, marks[0]))
+      : bar.voices.flatMap((columns, v) => {
+        const written = columns.length > 0 ? columns : restsFor(time);
+        return ['\\voice', ...written.map((_, c) => beatTex(written, b, c, marks[v]))];
+      });
     // The bar line goes with the last beat, so a wrapped bar never leaves it alone on a line.
     const last = beats.pop();
     return [...meta, ...beats, last === undefined ? '|' : `${last} |`];
   });
+}
+
+/** Rests as long as a bar of `time`. */
+function restsFor(time: TimeSignature): Column[] {
+  return fewestRests(barTicks(time)).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
 }
 
 /** The longest line the writer makes, unless one beat or bar mark is longer by itself. */
