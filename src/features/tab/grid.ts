@@ -197,20 +197,21 @@ export function advance(clip: Part, cursor: Cursor, at: number, length: number):
 }
 
 /**
- * Where the grid's lines fall across a drawn bar (Jeremy, 2026-11-01: drawn over the bar being written, as
- * Dorico shows its rhythmic grid): an x for each grid line from the bar's start to its end, `beat` on the
- * bar's beats. Lines fall along each column's room as time goes (`xAlong`), notes included.
+ * Where the grid is marked across a drawn bar (Jeremy, 2026-11-01: drawn over the bar being written, as
+ * Dorico shows its rhythmic grid): an x for each place a note can go, `beat` on the bar's beats. That is
+ * each note's start and each grid line inside a plain rest (`stopsIn`), so no mark falls inside a note's
+ * length, where the same voice can't take one (Jeremy, 2026-11-03). Grace notes, which take no time, get none.
  */
 export function gridLines(placed: PlacedBar, step: number): { x: number; beat: boolean }[] {
   if (step <= 0 || placed.columns.length === 0) return [];
   const lines: { x: number; beat: boolean }[] = [];
   let start = 0;
-  for (const c of placed.columns) {
-    const span = c.column.grace ? 0 : ticks(c.column.duration);
-    for (let line = Math.ceil(start / step) * step; line < start + span; line += step) {
-      lines.push({ x: xAlong(c, line - start), beat: line % placed.beat === 0 });
+  placed.columns.forEach((c, column) => {
+    if (c.column.grace) return;
+    for (const at of stopsIn(placed.bar, column, step)) {
+      lines.push({ x: xAlong(c, at), beat: (start + at) % placed.beat === 0 });
     }
-    start += span;
-  }
+    start += ticks(c.column.duration);
+  });
   return lines;
 }

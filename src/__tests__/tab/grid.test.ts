@@ -4,7 +4,7 @@ import { writeBars } from '@/features/tab/alphatex';
 import { partOf, type Part } from '@/features/tab/clip';
 import { setFret } from '@/features/tab/editing';
 import { parseEditing } from '@/features/tab/editingPrefs';
-import { advance, gridTicks, isInsideRest, lastStop, splitRestAt, stepGrid, stepInRest, stopNear, stopsIn } from '@/features/tab/grid';
+import { advance, gridLines, gridTicks, isInsideRest, lastStop, splitRestAt, stepGrid, stepInRest, stopNear, stopsIn } from '@/features/tab/grid';
 import { layoutClip } from '@/features/tab/layout';
 
 function clipOf(text: string): Part {
@@ -64,6 +64,19 @@ describe('note input’s grid (issue #293)', () => {
     // Half way along the dotted half's room is its second quarter of three.
     expect(stopNear(layout, 0, rest.x + rest.width / 2, gridTicks(4))).toMatchObject({ column: 1, at: 4 * SIXTEENTH });
     expect(stopNear(layout, 0, rest.x + rest.width / 2, gridTicks(16))).toMatchObject({ column: 1, at: 6 * SIXTEENTH });
+  });
+
+  it('marks only where a note can go: each note’s start and the grid lines inside rests, none inside a note', () => {
+    const clip = clipOf('\\ts (4 4)\n5.1.4 r.2{d} |');
+    const placed = layoutClip(clip, 800, 'tab').systems[0].bars[0];
+    const [note, rest] = placed.columns;
+    // An 8th grid: the quarter note's start only (not its second 8th), then every 8th of the dotted half.
+    const lines = gridLines(placed, gridTicks(8));
+    expect(lines).toHaveLength(1 + 6);
+    expect(lines[0]).toEqual({ x: note.x, beat: true });
+    expect(lines[1]).toEqual({ x: rest.x, beat: true });
+    expect(lines.filter(l => l.x > note.x && l.x < rest.x)).toEqual([]);
+    expect(lines.map(l => l.beat)).toEqual([true, true, false, true, false, true, false]);
   });
 
   it('steps finer and coarser, staying at a quarter and a thirty-second, and is kept as a preference', () => {

@@ -34,6 +34,9 @@ first.
    **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
    bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
    dropped.)
+   Only places a note can go are marked: each note's start and the grid lines inside rests, never one
+   inside a note's length, which the same voice can't take (Jeremy, 2026-11-03). Entering inside a note,
+   as Dorico does, is issue #332.
 
 ## How it works
 
