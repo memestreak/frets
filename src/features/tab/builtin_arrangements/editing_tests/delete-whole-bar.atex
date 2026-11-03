@@ -1,8 +1,7 @@
 \title "Delete on a whole bar"
 \ts (4 4)
-0.1.8{txt "Tab view: press bar 2's first 0, Ctrl/⌘+Shift+→, Delete"} 1.1.8 3.1.8
-  1.1.8 0.1.8 1.1.8 3.1.8 1.1.8 |
-0.4.8 2.4.8 3.4.8 2.4.8 0.4.8 2.4.8 3.4.8 2.4.8 |
-0.1.8{txt "Bar 2 is now one whole rest"} 1.1.8 3.1.8 1.1.8 0.1.8 1.1.8 3.1.8
-  1.1.8 |
+0.6.4 3.6.4 5.6.2 |
+0.4.8{txt "Tab view: press this 0, then Ctrl/⌘+Shift+→ and Delete"} 2.4.8 3.4.8
+  2.4.8 0.4.8 2.4.8 3.4.8 2.4.8 |
+5.6.1{txt "Bar 2 is now one whole rest"} |
 

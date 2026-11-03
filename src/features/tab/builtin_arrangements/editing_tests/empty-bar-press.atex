@@ -1,8 +1,6 @@
 \title "A press in an empty bar picks the bar"
 \ts (4 4)
-0.1.8{txt "Tab view: press anywhere in bar 2"} 1.1.8 3.1.8 1.1.8 0.1.8 1.1.8
-  3.1.8 1.1.8 |
-r.1 |
-0.1.8{txt "Bar 2 is boxed whole, not one column"} 1.1.8 3.1.8 1.1.8 0.1.8 1.1.8
-  3.1.8 1.1.8 |
+0.6.4 3.6.4 5.6.2 |
+r.1{txt "Tab view: press anywhere in this bar: the whole bar is boxed, not one column"} |
+5.6.1 |
 

@@ -46,47 +46,41 @@ arrangement that pins a guess is worse than none.
 
 - **One behaviour per file.** Two cases of one rule may share a file;
   two rules may not.
-- **The smallest Clip that shows it**: 4/4, standard tuning, plain notes,
-  laid out as:
-  1. a **steps bar**: eight eighths on the high E string
-     (`0.1.8 1.1.8 3.1.8 1.1.8 0.1.8 1.1.8 3.1.8 1.1.8`), the steps as
-     Text over its first column;
-  2. the bars under test (bar 2 on), with a bar before or after only
-     when the behaviour reaches across a bar line;
-  3. a **result bar**: the same eight eighths, what should happen as
-     Text over its first column.
-
-  Text doesn't make room for itself, so a narrow bar's text runs into
-  the next; the eighths give each text room. Keeping the texts off the
-  bars under test also means an edit (a Delete) can't take them away.
+- **The smallest Clip that shows it**: 4/4, standard tuning, two or three
+  bars of plain notes. Add a bar before and after when the behaviour
+  reaches across a bar line, so its edges show.
 - **No look-alikes**: nothing near the column under test that a slip of
   the hand could hit and still seem right.
 - Check the README table first; extend a file when it is the same rule.
 
 ## 3. Word it
 
-A person must be able to follow the steps with no guessing. The steps
-text says:
+A person must be able to follow the steps with no guessing. Text over
+this column (`{txt "..."}`) goes over the column it's about:
 
-- **The view**, first: "Tab view:", "Staff view:" or "Both view:".
-  The Clip can't set it (Staff | Tab | Both is a preference), so the text
-  must. Pick the view the behaviour is about; Tab when it's the same in
-  all.
-- **Exactly what to press**: the bar by number, and the note by its fret
-  as drawn ("bar 2's 5", "bar 2's first 0"). In Both view, say whether
-  on the tab or on the staff ("the staff head of bar 2's first note").
-  "Anywhere in bar 2" only when anywhere really works.
-- **Exactly which keys or buttons**, in order, with both platforms'
-  modifiers: "Ctrl/⌘+Shift+→, Delete"; a palette button by its tip
-  ("the Whole button in Notes › Duration").
+- **The steps**, over the column to press. They name **the view**
+  first: "Tab view:", "Staff view:" or "Both view:". The Clip can't set
+  it (Staff | Tab | Both is a preference), so the text must. Pick the
+  view the behaviour is about, or Tab when it's the same in all. Then
+  **what to press**, pointing at the column the text sits over and naming
+  it as drawn ("press this 0", "press this 5 (a half note)"). In Both
+  view, say whether that's on the tab or the staff. Use "anywhere in
+  this bar" only when anywhere really works. Then **the keys or buttons**,
+  in order, with both platforms' modifiers: "then Ctrl/⌘+Shift+→ and
+  Delete". Name a palette button by its tip ("the Whole button in Notes ›
+  Duration").
+- **The result**, over the column where it shows: "This (5) turns (7)".
+  When it shows on the same column, put it in the steps text. Say what
+  stays when a slip would move it.
+- **Texts an edit removes.** A text belongs to its column, so an edit
+  that rests or overwrites that column (Delete, a longer note) takes the
+  text with it. Put the result on a column the edit leaves alone, and
+  name the place by bar: "Bar 2 is now one whole rest".
 - One way to do it, the shortest, and the way you checked in the browser.
-
-The result text names what to look at by bar and fret too: "Bar 2 is
-now one whole rest", "Bar 3: a tied (5) for beats 1-2". Say what stays,
-when a slip would move it.
-
-Keep each text to one line of about fifty characters, so it fits over
-its bar. Use the glossary's words, not those under `_Avoid_`.
+- A long text wraps, and texts that would touch stack
+  (`docs/specs/2026-11-03-tab-text-wrap-design.md`), so length isn't a
+  problem, but keep each to a sentence or two. Use the glossary's words,
+  not those under `_Avoid_`.
 
 `\title` names the behaviour as a statement of what happens: "A longer
 note writes over what follows", not "Lengthen test".
