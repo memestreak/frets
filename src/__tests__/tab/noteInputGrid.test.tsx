@@ -127,6 +127,25 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.4 0.1.4 r.4 |');
   });
 
+  it('a press in an empty bar goes in at the grid line pressed, not only on beat 1', async () => {
+    const empty = '\\title "Grid"\n\\ts (4 4)\nr.1 |';
+    window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(empty)}`);
+    render(<TabPage />);
+    await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+    act(() => editor().focus());
+    const read = readAlphaTexWith(alphaTab, empty);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+    const rest = bars[0].columns[0];
+    // A quarter, the fixed grid a 16th: a press just past the bar's middle goes on beat 3.
+    keys('n', altKey('BracketRight'));
+    const over = { clientX: rest.x + rest.width / 2 + 2, clientY: top + rows.staffTop };
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    fireEvent.pointerDown(svg, { ...over, button: 0 });
+    fireEvent.pointerUp(svg, { ...over, button: 0 });
+    expect(bar()).toBe('r.2 0.1.4 r.4 |');
+  });
+
   it('Alt+G, Alt+[ ] and the palette’s Grid button set the grid, kept in Settings › Tab › Editing', async () => {
     await open();
     expect(gridButton()).not.toHaveAttribute('aria-pressed');

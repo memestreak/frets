@@ -131,15 +131,13 @@ export function xAlong(placed: PlacedColumn, at: number): number {
 
 /**
  * The stop nearest a press at `x` in bar `bar` (note input, issue #293): a column's note, or a grid line
- * inside a rest; beat 1 of a Whole-bar rest. Null for a bar not drawn, an empty bar or one inside a multi-bar rest.
+ * inside a rest, a Whole-bar rest's too (Jeremy, 2026-11-03). Null for a bar not drawn, an empty bar or one inside a multi-bar rest.
  */
 export function stopNear(layout: Layout, bar: number, x: number, step: number): { column: number; at: number; x: number } | null {
   for (const system of layout.systems) {
     const placed = system.bars.find(b => b.index === bar);
     if (!placed) continue;
     if (placed.restRun || placed.columns.length === 0) return null;
-    // A Whole-bar rest is pressed as one: its note goes on beat 1 (`2026-11-03-tab-rests-are-gaps-design.md`).
-    if (placed.wholeRest) return { column: 0, at: 0, x: placed.columns[0].x };
     let best: { column: number; at: number; x: number } | null = null;
     placed.columns.forEach((c, column) => {
       for (const at of stopsIn(placed.bar, column, step)) {
