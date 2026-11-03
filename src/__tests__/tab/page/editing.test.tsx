@@ -175,6 +175,8 @@ describe('TabPage editing', () => {
     keys('5');
     fireEvent.click(tool('Text over this column'));
     const field = screen.getByRole('textbox', { name: 'Text over the column' });
+    // Long enough for a few wrapped lines (issue #323); a chord name's field stops at 40.
+    expect(field).toHaveAttribute('maxLength', '200');
     fireEvent.change(field, { target: { value: 'let "it" ring' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.getByTestId('beat-text')).toHaveTextContent('let "it" ring');

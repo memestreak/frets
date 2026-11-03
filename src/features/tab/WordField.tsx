@@ -20,6 +20,8 @@ const CAPTIONS: Record<FieldKind, string> = {
 const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', capo: '3', ending: '2', repeat: '3' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
 const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1, repeat: 1 };
+/** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */
+const WORD_LENGTH = (kind: FieldKind) => (kind === 'text' ? 200 : 40);
 
 /**
  * A small field over the tab for a chord name, free text, a section or the capo, at the spot it is drawn.
@@ -60,7 +62,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       <input
         ref={inputRef} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
-        value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? 40}
+        value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? WORD_LENGTH(kind)}
         onChange={e => setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value)}
         onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(value, false)}
       />

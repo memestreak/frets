@@ -112,6 +112,8 @@ and in its spec.
   `2026-10-30-tab-track-rests-design.md`.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
+- `beatText.ts` — free text over a column: its size and `wrapBeatText`,
+  which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
   gap, a stem via `rhythmAt`) and where the cursor is drawn.
 - `runs.ts` — marks over runs of columns (vibrato, let ring, P.M.) and
@@ -277,6 +279,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
+  column wraps onto more lines
 - `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
   per view, and Size over the clip
 - `docs/specs/2026-11-01-tab-tuning-collapse-design.md`: the tuning is picked
