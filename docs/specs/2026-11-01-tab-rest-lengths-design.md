@@ -4,6 +4,8 @@ Issue #290 (Jeremy, 2026-11-01). Follows #276, which made rests selectable (PR #
 
 ## What it does
 
+> The rest half of this spec is gone: since step 3 a rest is a Gap whose length can't be set, and the length keys do nothing on a picked rest (`docs/specs/2026-11-03-tab-rests-are-gaps-design.md`). "Notes too" below still holds, its rests now written by the meter.
+
 With a rest picked by itself in normal mode (a press on it, or the cursor on it with no string), the length keys and the palette's Duration buttons change its length, as MuseScore's do:
 
 - 1–7 and Shift+1–7, in every view (Jeremy, 2026-11-01). 5 is a quarter. A rest has no fret for a digit to type, so with the tab alone the plain digits set its length too.

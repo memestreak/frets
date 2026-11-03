@@ -8,6 +8,8 @@ modifier.
 
 ## Behaviour
 
+Since step 3 the rests these leave are Gaps, written again by the meter rather than kept at the lengths below or as the fewest (`docs/specs/2026-11-03-tab-rests-are-gaps-design.md`).
+
 | Action | Now | Before |
 | --- | --- | --- |
 | Delete / Backspace on a selection | Its columns become rests of the same lengths; the selection stays. | Took the columns away. |

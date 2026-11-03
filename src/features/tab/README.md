@@ -288,6 +288,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-03-tab-rests-are-gaps-design.md`: rests are Gaps
+  written by the meter after each rhythm edit; an empty bar is one
+  Whole-bar rest; a rest's length can't be set
 - `docs/specs/2026-11-03-tab-voices-design.md`: up to 4 Voices per Track,
   read and written as alphaTex `\voice`; Voice 1 drawn and edited, every
   Voice played
