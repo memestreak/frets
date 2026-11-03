@@ -46,31 +46,47 @@ arrangement that pins a guess is worse than none.
 
 - **One behaviour per file.** Two cases of one rule may share a file;
   two rules may not.
-- **The smallest Clip that shows it**: 4/4, standard tuning, two or three
-  bars, plain notes. Add a bar before and after when the behaviour reaches
-  across bar lines, so its edges show.
+- **The smallest Clip that shows it**: 4/4, standard tuning, plain notes,
+  laid out as:
+  1. a **steps bar**: eight eighths on the high E string
+     (`0.1.8 1.1.8 3.1.8 1.1.8 0.1.8 1.1.8 3.1.8 1.1.8`), the steps as
+     Text over its first column;
+  2. the bars under test (bar 2 on), with a bar before or after only
+     when the behaviour reaches across a bar line;
+  3. a **result bar**: the same eight eighths, what should happen as
+     Text over its first column.
+
+  Text doesn't make room for itself, so a narrow bar's text runs into
+  the next; the eighths give each text room. Keeping the texts off the
+  bars under test also means an edit (a Delete) can't take them away.
 - **No look-alikes**: nothing near the column under test that a slip of
   the hand could hit and still seem right.
-- Check it against an existing file first; extend that one when it is the
-  same rule.
+- Check the README table first; extend a file when it is the same rule.
 
 ## 3. Word it
 
-Steps and expectations are Text over this column (`{txt "..."}` on the
-beat; the palette's Text group):
+A person must be able to follow the steps with no guessing. The steps
+text says:
 
-- Over the column to act on: what to do, in the app's words for keys and
-  buttons. "Pick this note, press W".
-- Over the column where the result shows: what should happen. "Its tied
-  half covers these two". When it shows on the same column, put both in
-  one text: "Select this bar, press Delete: one whole rest".
-- Say what stays too, when a slip would move it: "These two stay".
-- Short and apart: a text runs to the right and doesn't make room for
-  itself, so close columns' texts run into each other. Keep one text per
-  bar where you can, under about forty characters; when the column to act
-  on is narrow, put the step on the bar's first column and name the
-  column ("Select bar 2, press Delete").
-- Use the glossary's words, not those under `_Avoid_`.
+- **The view**, first: "Tab view:", "Staff view:" or "Both view:".
+  The Clip can't set it (Staff | Tab | Both is a preference), so the text
+  must. Pick the view the behaviour is about; Tab when it's the same in
+  all.
+- **Exactly what to press**: the bar by number, and the note by its fret
+  as drawn ("bar 2's 5", "bar 2's first 0"). In Both view, say whether
+  on the tab or on the staff ("the staff head of bar 2's first note").
+  "Anywhere in bar 2" only when anywhere really works.
+- **Exactly which keys or buttons**, in order, with both platforms'
+  modifiers: "Ctrl/⌘+Shift+→, Delete"; a palette button by its tip
+  ("the Whole button in Notes › Duration").
+- One way to do it, the shortest, and the way you checked in the browser.
+
+The result text names what to look at by bar and fret too: "Bar 2 is
+now one whole rest", "Bar 3: a tied (5) for beats 1-2". Say what stays,
+when a slip would move it.
+
+Keep each text to one line of about fifty characters, so it fits over
+its bar. Use the glossary's words, not those under `_Avoid_`.
 
 `\title` names the behaviour as a statement of what happens: "A longer
 note writes over what follows", not "Lengthen test".
@@ -91,8 +107,9 @@ note writes over what follows", not "Lengthen test".
   `readAlphaTexWith` and `writeAlphaTex` once and save the result.
 - Open `/tab?theme=light#example=<file>` in a browser (`npm run dev`),
   in a fresh page each time (an edited Clip asks to be saved before the
-  next link opens), follow the steps, and see that what happens is what
-  the text says and that no text runs into another. If the behaviour
+  next link opens), in the view the steps name, follow the steps exactly
+  as written, and see that what happens is what the result text says and
+  that no text runs into another. If the behaviour
   differs, the app or the text is wrong: find out which before going on.
 - Say in the PR description which test arrangements it adds, changes or
   removes.

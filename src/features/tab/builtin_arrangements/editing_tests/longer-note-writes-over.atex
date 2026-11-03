@@ -1,5 +1,8 @@
 \title "A longer note writes over what follows"
 \ts (4 4)
-0.6.4{txt "Pick the half note, press W"} 3.6.4 5.6.2 |
-7.5.4{txt "Tied half here; beats 3-4 stay"} 5.5.4 3.5.4 5.5.4 |
+0.1.8{txt "Tab view: press bar 2's 5 (a half note), then W"} 1.1.8 3.1.8 1.1.8
+  0.1.8 1.1.8 3.1.8 1.1.8 |
+0.6.4 3.6.4 5.6.2 | 7.5.4 5.5.4 3.5.4 5.5.4 |
+0.1.8{txt "Bar 3: a tied (5) for beats 1-2, then 3 and 5 stay"} 1.1.8 3.1.8
+  1.1.8 0.1.8 1.1.8 3.1.8 1.1.8 |
 

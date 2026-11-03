@@ -12,13 +12,20 @@ how editing behaves.
   `/tab#example=<file name>`, as every built-in does.
 - One behaviour per file. `\title` says what happens, as a statement ("A
   longer note writes over what follows").
-- The smallest Clip that shows it: 4/4, standard tuning, two or three bars
-  of plain notes.
-- Steps and expected results are Text over this column (`{txt "..."}`),
-  one per bar where it can be, short enough not to run into the next.
-  When the column to act on is narrow, the step goes on the bar's first
-  column and names the place ("Select bar 2, press Delete: one whole
-  rest").
+- The Clip is 4/4 in standard tuning, laid out as a steps bar, the bars
+  under test (bar 2 on), then a result bar. The steps and result bars are
+  eight eighths on the high E string, with the steps and the expected
+  result as Text over this column (`{txt "..."}`) on their first column.
+  A text doesn't make room for itself, so the eighths give it room. Off
+  the bars under test, an edit can't take a text away. Once Text wraps
+  (#323), this layout can be revisited.
+- The steps leave nothing to guess (Jeremy, 2026-11-03). They name the
+  view first ("Tab view:"), because Staff | Tab | Both is a preference the
+  Clip can't set. They name what to press by bar and fret as drawn
+  ("bar 2's first 0"), and on the tab or the staff in Both view. They name
+  the keys in order with both platforms' modifiers ("Ctrl/⌘+Shift+→,
+  Delete"). The result names what to look at the same way ("Bar 2 is now
+  one whole rest").
 - The folder's `README.md` lists each file, what it shows, and the spec or
   issue that pinned the behaviour. The Clip stays quiet: no references in
   its texts.

@@ -1,4 +1,8 @@
 \title "A tied note follows its fret"
 \ts (4 4)
-5.3.1{txt "Pick this note, type 7"} | -.3.1{txt "This turns 7 too"} |
+0.1.8{txt "Tab view: press bar 2's 5, then type 7"} 1.1.8 3.1.8 1.1.8 0.1.8
+  1.1.8 3.1.8 1.1.8 |
+5.3.1 | -.3.1 |
+0.1.8{txt "Bar 2 is now 7, and bar 3's (5) is (7)"} 1.1.8 3.1.8 1.1.8 0.1.8
+  1.1.8 3.1.8 1.1.8 |
 
