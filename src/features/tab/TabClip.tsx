@@ -1,7 +1,7 @@
 import { memo, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { beatTicks, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
 import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
-import { gridLines, stopNear } from './grid';
+import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
@@ -118,10 +118,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    */
   gridStep?: number | null;
   /**
-   * How the grid is drawn over the cursor's bar in note input (Jeremy, 2026-11-01, as Dorico shows it), while
-   * he picks a look: a a ruler over the top staff, b faint lines across the staves, c dots under the bottom one.
+   * How the grid is drawn over the cursor's bar in note input, as Dorico shows it (Settings › Tab › Editing):
+   * a ruler over the top staff, or faint lines across the staves.
    */
-  gridLook?: 'a' | 'b' | 'c' | null;
+  gridLook?: GridLook | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
   /**
@@ -412,18 +412,15 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             const top = rows.score ? rows.score.top : rows.staffTop;
             const bottom = rows.staffBottom;
             return (
-              <g pointerEvents="none" data-testid="grid-lines" stroke="var(--ink-muted)" fill="var(--ink-muted)">
-                {gridLook === 'a' && (
+              <g pointerEvents="none" data-testid="grid-lines" data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                {gridLook === 'ruler' && (
                   <>
                     <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
                     {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
                   </>
                 )}
-                {gridLook === 'b' && lines.map((l, k) => (
+                {gridLook === 'lines' && lines.map((l, k) => (
                   <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
-                ))}
-                {gridLook === 'c' && lines.map((l, k) => (
-                  <circle key={k} cx={l.x} cy={bottom + 5} r={l.beat ? 2 : 1.25} stroke="none" fillOpacity={0.7} />
                 ))}
               </g>
             );

@@ -24,6 +24,16 @@ export function isGridValue(value: unknown): value is GridValue {
   return (GRID_VALUES as readonly unknown[]).includes(value);
 }
 
+/** How the grid is drawn over the cursor's bar in note input (Jeremy, 2026-11-03): a ruler over the staff by default. */
+export const GRID_LOOKS = ['ruler', 'lines'] as const;
+export type GridLook = (typeof GRID_LOOKS)[number];
+export const DEFAULT_GRID_LOOK: GridLook = 'ruler';
+export const GRID_LOOK_NAMES: Record<GridLook, string> = { ruler: 'Ruler over the staff', lines: 'Lines across the bar' };
+
+export function isGridLook(value: unknown): value is GridLook {
+  return (GRID_LOOKS as readonly unknown[]).includes(value);
+}
+
 /** One grid step, in ticks. */
 export function gridTicks(grid: GridValue): number {
   return gridLength(grid);

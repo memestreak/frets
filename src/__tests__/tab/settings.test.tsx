@@ -114,7 +114,7 @@ describe('Settings', () => {
     expect(fill).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(fill);
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: true, fixedGrid: false, grid: 16 });
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: true, fixedGrid: false, grid: 16, gridLook: 'ruler' });
   });
 
   it('sets note input’s grid under Tab › Editing: note input’s length by default, or a fixed grid (issue #293)', () => {
@@ -128,7 +128,19 @@ describe('Settings', () => {
     fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));
     fireEvent.click(within(fixed).getByRole('button', { name: 'Eighth' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: true, grid: 8 });
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: true, grid: 8, gridLook: 'ruler' });
+  });
+
+  it('sets how note input’s grid is drawn under Tab › Editing: a ruler over the staff by default, or lines across the bar', () => {
+    render(<TabPage />);
+    openSettings();
+    fireEvent.click(section('Editing'));
+    const look = inDialog().getByRole('group', { name: 'Grid drawn as' });
+    expect(within(look).getByRole('button', { name: 'Ruler over the staff' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(look).queryByRole('button', { name: /Dots/ })).toBeNull();
+    fireEvent.click(within(look).getByRole('button', { name: 'Lines across the bar' }));
+    fireEvent.click(button('OK'));
+    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: false, grid: 16, gridLook: 'lines' });
   });
 
   it('resets a field to its default on a double-click on its label, staged, but never on its control', () => {

@@ -90,6 +90,20 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
+  it('draws the grid over the cursor’s bar in note input only: a ruler by default, lines when Settings says so', async () => {
+    await open();
+    expect(screen.queryByTestId('grid-lines')).toBeNull();
+    keys('n');
+    expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-look', 'ruler');
+    keys('Escape');
+    expect(screen.queryByTestId('grid-lines')).toBeNull();
+    cleanup();
+    localStorage.setItem(EDITING_KEY, JSON.stringify({ gridLook: 'lines' }));
+    await open();
+    keys('n');
+    expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-look', 'lines');
+  });
+
   it('out of note input, → moves a column at a time, as before', async () => {
     await open();
     keys('ArrowRight', 'ArrowRight');

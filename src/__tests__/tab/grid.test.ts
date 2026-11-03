@@ -75,6 +75,10 @@ describe('note input’s grid (issue #293)', () => {
     expect(parseEditing({}).fixedGrid).toBe(false);
     expect(parseEditing({ grid: 8 }).grid).toBe(8);
     expect(parseEditing({ grid: 64 }).grid).toBe(16);
+    // Drawn as a ruler over the staff unless Settings says lines across the bar.
+    expect(parseEditing({}).gridLook).toBe('ruler');
+    expect(parseEditing({ gridLook: 'lines' }).gridLook).toBe('lines');
+    expect(parseEditing({ gridLook: 'dots' }).gridLook).toBe('ruler');
   });
 
   it('Shift+Space moves on by a length over notes and rests, into the next bar and past the clip’s end', () => {

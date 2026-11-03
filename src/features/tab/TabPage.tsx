@@ -55,7 +55,6 @@ import { useTabPicking } from './useTabPicking';
 import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
-import { useMock } from '@/components/mocks/useMock';
 import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
@@ -94,16 +93,6 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * tab (`useTabPicking`), the fields and panels over it (`useHeadPanels`) and the file actions
  * (`useArrangementFile`).
  */
-/** The grid drawn over the bar in note input: three looks to pick from (Jeremy, 2026-11-01). */
-const GRID_LOOK_MOCK = {
-  param: 'mock', label: 'Grid',
-  options: [
-    { value: 'a', label: 'Ruler over the staff' },
-    { value: 'b', label: 'Lines across the bar' },
-    { value: 'c', label: 'Dots under the bar' },
-  ],
-} as const;
-
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
@@ -186,9 +175,7 @@ export default function TabPage() {
     editorRef, lastDigitRef, commit, leaveBar, startRegion, toPitch, cursorAt, setCursorAt,
   } = editor;
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
-  const { fixedGrid, grid } = prefs.editing;
-  // How the grid is drawn over the bar being written, while Jeremy picks (2026-11-01).
-  const gridLook = useMock(GRID_LOOK_MOCK);
+  const { fixedGrid, grid, gridLook } = prefs.editing;
   /** The grid's step in ticks: the fixed grid's, else note input's length (MuseScore's way, the default). */
   const gridStep = fixedGrid ? gridTicks(grid) : ticks(inputLength);
   /** The Grid panel's pick: a fixed grid, or null for Note length. */
@@ -830,7 +817,7 @@ export default function TabPage() {
                       clip={drawn} layout={layout} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       {...clipHandlers} columnReach={COLUMN_REACH}
                       highlight={highlight}
-                      shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook as 'a' | 'b' | 'c' | null}
+                      shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook}
                       picked={editing ? picked : null}
                       errors={errors}
                     />

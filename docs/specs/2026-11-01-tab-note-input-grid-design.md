@@ -29,8 +29,11 @@ first.
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
-7. **The grid is drawn over the cursor's bar** in note input, as Dorico shows it. Three looks offered as
-   mocks (`?mock=a|b|c`): a ruler over the top staff, faint lines across the bar, dots under it.
+7. **The grid is drawn over the cursor's bar** in note input, as Dorico shows it, its beats a little
+   stronger. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
+   **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
+   bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
+   dropped.)
 
 ## How it works
 
