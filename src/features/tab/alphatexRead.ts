@@ -9,7 +9,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  BEND_QUARTERS, isWhammy, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
@@ -44,7 +44,7 @@ const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'g
  * multi-bar rests, and the line breaks (`systemsLayout`, `defaultSystemsLayout`; read only when their values are
  * ones Frets offers, else kept as written).
  */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest']);
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest', 'voice', 'voicemode']);
 /** The line-break tags, read when their values are good. */
 const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
@@ -81,7 +81,7 @@ interface PropertiesNode { properties: PropertyNode[] }
 interface MetaNode extends Located { tag: { tag: { text: string } } }
 interface NoteNode { noteString?: { value: number }; noteEffects?: PropertiesNode }
 interface BeatNode { notes?: { notes: NoteNode[] }; beatEffects?: PropertiesNode; beatMultiplierValue?: { value: number } }
-interface BarNode { metaData: MetaNode[]; beats: BeatNode[] }
+interface BarNode { metaData: MetaNode[]; beats: BeatNode[]; pipe?: unknown }
 interface ScoreNode { bars: BarNode[] }
 
 /** A node's text as written. alphaTab's end offset stops short of a closing quote (double or single), so close it. */
@@ -218,9 +218,12 @@ function whammyOf(effects: PropertiesNode | undefined): number[] | null {
   return isWhammy(values) ? values : null;
 }
 
-/** Joins hammer-ons, pull-offs and slides to the note they lead to, the next on the same string. */
-function joinToNext(bars: TrackBar[], origins: Map<Note, AtNote>, at: AlphaTab, warn: (w: string) => void) {
-  const notes = bars.flatMap(b => b.columns.map(c => c.notes));
+/**
+ * Joins hammer-ons, pull-offs and slides to the note they lead to, the next on the same string in the
+ * same Voice (one Voice's Columns, bar by bar), as alphaTab reads them.
+ */
+function joinToNext(bars: Column[][], origins: Map<Note, AtNote>, at: AlphaTab, warn: (w: string) => void) {
+  const notes = bars.flatMap(columns => columns.map(c => c.notes));
   for (let s = 0; s < STRING_COUNT; s++) {
     const onString = notes.map(ns => ns[s]).filter((n): n is Note => n !== null);
     onString.forEach((note, i) => {
@@ -296,17 +299,18 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   for (const track of score.tracks) {
     const staff = track.staves[0];
     if (!staff || track.staves.length > 1) return { ok: false, errors: ['Frets reads one staff in each track.'] };
-    if (staff.bars.some(b => b.voices.slice(1).some(v => !v.isEmpty))) {
-      return { ok: false, errors: ['Frets reads one voice; this has more.'] };
-    }
+    const voices = Math.max(...staff.bars.map(b => b.voices.reduce((n, v, i) => (v.isEmpty ? n : i + 1), 1)));
+    if (voices > MAX_VOICES) return { ok: false, errors: [`Frets reads up to ${MAX_VOICES} voices; this has ${voices}.`] };
     const strings = staff.stringTuning.tunings.length;
     if (strings !== STRING_COUNT) return { ok: false, errors: [`Frets reads six-string tab; this has ${strings} strings.`] };
   }
-  /** Track `t`'s bar `b` in the tree; a track written with fewer bars than the score has none past its last. */
-  const nodeOf = (t: number, b: number): BarNode => {
-    const index = starts[t] + b;
-    return index < (starts[t + 1] ?? tree.bars.length) ? tree.bars[index] : { metaData: [], beats: [] };
-  };
+  const barWise = tree.bars.some(bar => bar.metaData.some(m => m.tag.tag.text.toLowerCase() === 'voicemode'
+    && /barwise/i.test(written(text, m))));
+  const voiceNodes = score.tracks.map((_, t) => voiceNodesOf(tree.bars.slice(starts[t], starts[t + 1] ?? tree.bars.length), barWise));
+  /** Track `t`'s bar `b` of Voice `v` in the tree; none (an empty node) where the track wrote none. */
+  const nodeOf = (t: number, b: number, v = 0): BarNode => voiceNodes[t][v]?.[b] ?? { metaData: [], beats: [] };
+  /** Every node of track `t`'s bar `b`, Voice 1's first: where its tags are. */
+  const nodesOf = (t: number, b: number): BarNode[] => voiceNodes[t].flatMap(nodes => (nodes[b] ? [nodes[b]] : []));
 
   const warnings: string[] = [];
   const warn = (w: string) => { if (!warnings.includes(w)) warnings.push(w); };
@@ -336,7 +340,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   let timeNow = time;
   const masterBars: MasterBar[] = score.masterBars.map((master, b) => {
     const bar: MasterBar = {};
-    const tags = new Set(score.tracks.flatMap((_, t) => nodeOf(t, b).metaData.map(m => m.tag.tag.text.toLowerCase())));
+    const tags = new Set(score.tracks.flatMap((_, t) => nodesOf(t, b).flatMap(node => node.metaData.map(m => m.tag.tag.text.toLowerCase()))));
     if (master.isRepeatStart) bar.repeatStart = true;
     if (master.repeatCount > 0) bar.repeatEnd = master.repeatCount;
     if (master.isDoubleBar) bar.doubleBar = true;
@@ -375,10 +379,9 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     let tag: string | undefined;
     let instrumentTag: string | undefined;
     const bars = score.masterBars.map((_, b): TrackBar => {
-      const barNode = nodeOf(t, b);
       const atBar = staff.bars[b];
-      const bar: TrackBar = { columns: [] };
-      for (const meta of barNode.metaData) {
+      const bar: TrackBar = { voices: [] };
+      for (const meta of nodesOf(t, b).flatMap(node => node.metaData)) {
         const name = meta.tag.tag.text.toLowerCase();
         if (TAGS.has(name)) continue;
         if (LAYOUT_TAGS.has(name) && t === 0 && b === 0 && layoutOk.has(name)) continue;
@@ -399,10 +402,16 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         if (b === 0 && !BAR_TAGS.has(name)) (t === 0 && tag === undefined ? header : trackHeader).push(written(text, meta));
         else (bar.extra ??= []).push(written(text, meta));
       }
-      bar.columns = columnsOf(text, barNode, atBar, staff, at, origins, kept, warn);
+      // Voice 1 is always there; another Voice with no notes in the bar is absent from it.
+      const count = Math.max(1, voiceNodes[t].length);
+      for (let v = 0; v < count; v++) {
+        const columns = columnsOf(text, nodeOf(t, b, v), atBar, v, staff, at, origins, kept, warn);
+        bar.voices.push(v === 0 || columns.some(c => !isRest(c)) ? columns : []);
+      }
+      while (bar.voices.length > 1 && bar.voices[bar.voices.length - 1].length === 0) bar.voices.pop();
       return bar;
     });
-    joinToNext(bars, origins, at, warn);
+    for (let v = 0; v < Math.max(1, voiceNodes[t].length); v++) joinToNext(bars.map(bar => bar.voices[v] ?? []), origins, at, warn);
 
     const track: Track = {
       name: tag === undefined ? '' : atTrack.name,
@@ -432,7 +441,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     name: score.title,
     time,
     masterBars: masterBars.length > 0 ? masterBars : [{}],
-    tracks: masterBars.length > 0 ? tracks : tracks.map(track => ({ ...track, bars: [{ columns: [] }] })),
+    tracks: masterBars.length > 0 ? tracks : tracks.map(track => ({ ...track, bars: [{ voices: [[]] }] })),
   };
   if (header.length > 0) clip.header = header;
   const trackStarts = score.tracks.map((_, t) => {
@@ -449,10 +458,37 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     warnings.push(`Kept but not drawn yet: ${list.join(', ')}.`);
   }
   clip.tracks.forEach((_, t) => {
-    const uneven = unevenMessage(partOf(clip, t));
-    if (uneven) warnings.push(clip.tracks.length > 1 ? `${trackName(clip, t)}: ${uneven}` : uneven);
+    const part = partOf(clip, t);
+    for (const line of [unevenMessage(part), hiddenVoicesMessage(part), ...stringClashes(part)]) {
+      if (line) warnings.push(clip.tracks.length > 1 ? `${trackName(clip, t)}: ${line}` : line);
+    }
   });
   return { ok: true, clip, warnings };
+}
+
+/**
+ * A track's nodes in the tree by Voice, then bar. Bar-wise (`\voiceMode barWise`), a bar's nodes run up
+ * to its "|", one Voice each in order. Staff-wise, the default, each `\voice` after the track's first
+ * bar starts the next Voice over from its first bar.
+ */
+function voiceNodesOf(nodes: BarNode[], barWise: boolean): BarNode[][] {
+  const out: BarNode[][] = [[]];
+  let voice = 0;
+  let bar = 0;
+  for (const node of nodes) {
+    const startsVoice = node.metaData.some(m => m.tag.tag.text.toLowerCase() === 'voice');
+    if (!barWise && startsVoice && bar > 0) {
+      voice++;
+      bar = 0;
+    }
+    (out[voice] ??= [])[bar] = node;
+    if (!barWise) bar++;
+    else if (node.pipe) {
+      bar++;
+      voice = 0;
+    } else voice++;
+  }
+  return out;
 }
 
 /** Whether a bar of the tree carries the tag. */
@@ -460,13 +496,13 @@ function hasTag(bar: BarNode | undefined, tag: string): boolean {
   return !!bar?.metaData.some(m => m.tag.tag.text.toLowerCase() === tag);
 }
 
-/** A bar's columns: the tree's beats, one per beat alphaTab made (a beat written "*3" stands for three). */
+/** A bar's columns in one Voice: the tree's beats, one per beat alphaTab made (a beat written "*3" stands for three). */
 function columnsOf(
-  text: string, barNode: BarNode, atBar: AtBar | undefined, staff: AtStaff, at: AlphaTab,
+  text: string, barNode: BarNode, atBar: AtBar | undefined, voice: number, staff: AtStaff, at: AlphaTab,
   origins: Map<Note, AtNote>, kept: Map<string, number>, warn: (w: string) => void,
 ): Column[] {
   const beatNodes = barNode.beats.flatMap(n => Array<BeatNode>(n.beatMultiplierValue?.value ?? 1).fill(n));
-  const atBeats = beatNodes.length === 0 ? [] : (atBar?.voices[0]?.beats ?? []);
+  const atBeats = beatNodes.length === 0 ? [] : (atBar?.voices[voice]?.beats ?? []);
   return atBeats.map((beat, i) => {
     const node = beatNodes[i];
     const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };

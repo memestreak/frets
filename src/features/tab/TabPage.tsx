@@ -11,7 +11,7 @@ import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, partOf, titled, trackName, withPart, unevenMessage, UNTITLED, type Clip, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, hiddenVoicesMessage, partOf, stringClashes, titled, trackName, withPart, unevenMessage, UNTITLED, type Clip, type Part } from './clip';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
@@ -65,6 +65,8 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
+/** The reader's warnings about Voices a paste leaves out: a hidden Voice, or two Voices on one string (`hiddenVoicesMessage`, `stringClashes`). */
+const VOICE_WARNING = /(a second voice|more voices), not drawn yet\.$|has two voices on string \d+\.$/;
 
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
@@ -539,7 +541,10 @@ export default function TabPage() {
       return;
     }
     putAtCursor(result.clip, insert);
-    if (result.warnings.length > 0) setNotice({ tone: 'info', lines: result.warnings });
+    // A paste takes Voice 1 (`docs/specs/2026-11-03-tab-voices-design.md`): it says so, and not what the other Voices hold.
+    const voices = result.clip.tracks[0].bars.some(bar => bar.voices.length > 1);
+    const lines = voices ? ['Pasted voice 1 only.', ...result.warnings.filter(line => !VOICE_WARNING.test(line))] : result.warnings;
+    if (lines.length > 0) setNotice({ tone: 'info', lines });
   };
   const pasteText = useEffectEvent((text: string, insert: boolean) => pasteTab(text, insert));
 
@@ -620,7 +625,8 @@ export default function TabPage() {
   const name = clip.name.trim() || UNTITLED;
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
-  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip)].filter(Boolean).join(' ');
+  // So are Voices the page doesn't draw yet, and two Voices on one string (`docs/specs/2026-11-03-tab-voices-design.md`).
+  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip), hiddenVoicesMessage(clip), ...stringClashes(clip)].filter(Boolean).join(' ');
 
   // In normal mode a column with no note picked is lit as a selection is, never boxed: arrowing onto a rest,
   // as MuseScore does, lights the rest (Jeremy, 2026-10-31: the box came back after Delete and the arrows).

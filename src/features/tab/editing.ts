@@ -7,7 +7,7 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barLength, barTicks, ticks, emptyPart, fewestRests, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barLength, barTicks, ticks, emptyPart, ownVoice, fewestRests, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
 import { writePart } from './alphatex';
 
 /** Where the cursor is: a column of a bar, and a string (0 = high e). In an empty bar the column is 0. */
@@ -442,7 +442,7 @@ export function removeEmptyBar(clip: Part, bar: number): { clip: Part; cursor: {
   return { clip: left, cursor: { bar: bar - 1, column: Math.max(0, left.bars[bar - 1].columns.length - 1) } };
 }
 
-/** The columns in `range` as a clip of their own, with the clip's time and tuning; bar lines between them are kept. */
+/** The columns in `range` as a clip of their own, with the clip's time and tuning, its own Voice only; bar lines between them are kept. */
 export function sliceClip(clip: Part, [from, to]: [number, number]): Part {
   let index = 0;
   const bars: Bar[] = [];
@@ -452,7 +452,8 @@ export function sliceClip(clip: Part, [from, to]: [number, number]): Part {
       index++;
       return keep;
     });
-    if (columns.length > 0) bars.push({ ...bar, columns });
+    // Copy takes the part's own Voice only (`docs/specs/2026-11-03-tab-voices-design.md`).
+    if (columns.length > 0) bars.push({ ...ownVoice(bar), columns });
   }
   const first = placeOf(clip, from).bar;
   return normalize({ ...emptyPart(), time: timeAt(clip, first), tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });

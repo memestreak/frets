@@ -80,9 +80,10 @@ at once, the later note cuts off the earlier one, as a real string does
 
 - alphaTex and Guitar Pro carry every Voice (Q7).
 - ASCII tab, MusicXML, PNG and SVG carry Voice 1 until step 8. When the
-  arrangement has another Voice, the export dialog says so in one quiet
-  line under the format: "Voice 1 only; other voices aren't in this
-  format yet." The line goes when the format holds every Voice.
+  arrangement has another Voice, the export dialog says so in the ⚠
+  beside the format, where it already names what MusicXML and Guitar Pro
+  leave out: "Voice 1 only; other voices aren't in this format yet." It
+  goes when the format holds every Voice.
 
 ## Edits
 
@@ -136,14 +137,19 @@ files and aren't affected.
 - `playback.ts`: a later note on a string cuts off another Voice's note
   still sounding on it.
 - `TabPage.tsx`: the line under the clip; the paste notice.
-  `TabExportDialog.tsx`: the Voice 1 line.
+  `TabExportDialog.tsx`: the Voice 1 ⚠.
 - `public/tab-alphatex.txt` and `public/skills/frets-tab/SKILL.md`: the
   page now reads `\voice`, up to 4, and draws Voice 1 only.
 - `GLOSSARY.md`: Voice (done in this session).
 
 ## Tests
 
-- `src/__tests__/tab/alphatex.test.ts` and `alphatexRead.test.ts`:
+`src/__tests__/tab/voices.test.ts` (alphaTex, the Clip, Sounding notes,
+edits, playback and Guitar Pro) and `src/__tests__/tab/page/voices.test.tsx`
+(the page), with the round trips of every built-in arrangement in the
+existing alphaTex and Guitar Pro tests:
+
+- alphaTex:
   - A one-Voice clip's text is unchanged (every built-in arrangement
     round-trips exactly), with no `\voice` or `\voiceMode`.
   - Bar-wise and staff-wise texts with two Voices read to the same clip.
@@ -161,7 +167,7 @@ files and aren't affected.
   - A Voice 2 of only rests in a bar reads as absent there.
   - A short Voice 2 bar gives "Bar 4's voice 2 doesn't add up to 4/4: 1
     beat short."
-- `src/__tests__/tab/clip.test.ts`:
+- The Clip:
   - `partOf(clip, 0, 1)` gives Voice 2's Columns; `withPart` puts them
     back and leaves Voice 1 alone.
   - An edit that adds a bar gives the other Voices nothing there; one that
@@ -169,16 +175,15 @@ files and aren't affected.
     rests.
   - `parseClip` refuses 0 or 5 Voices.
   - A bar is rests for multi-bar rests only when every Voice is.
-- `src/__tests__/tab/sounding.test.ts`: `readVoice` reads the Part's
-  Voice.
-- `src/__tests__/tab/editing.test.ts`: cut and Delete leave Voice 2 as it
+- Sounding notes: `readVoice` reads the Part's Voice.
+- Edits: cut and Delete leave Voice 2 as it
   was; copy writes no `\voice`.
-- `src/__tests__/tab/page/`: the line under the clip names the hidden
+- The page: the line under the clip names the hidden
   Voice and a string clash after opening a saved arrangement; pasting
   two-Voice text pastes Voice 1 and says "Pasted voice 1 only."; the
-  export dialog shows the Voice 1 line for ASCII, MusicXML, PNG and SVG
+  export dialog's ⚠ says "Voice 1 only" for ASCII, MusicXML, PNG and SVG
   and not for alphaTex or Guitar Pro.
-- `src/__tests__/tab/playback.test.ts`: both Voices are in the MIDI; a
+- Playback: both Voices are in the MIDI; a
   Voice 2 note on a string cuts off a Voice 1 note still sounding there.
-- `src/__tests__/tab/guitarPro.test.ts`: a two-Voice clip's file has both
+- Guitar Pro: a two-Voice clip's file has both
   Voices.

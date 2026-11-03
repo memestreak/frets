@@ -156,7 +156,7 @@ describe('TabPage export', () => {
       await waitFor(() => expect(heading()).toHaveTextContent('Tex riff'), SLOW);
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
       type(':8 5.5 7.5 |');
-      await waitFor(() => expect(pageClip().tracks[0].bars[0].columns).toHaveLength(2), SLOW);
+      await waitFor(() => expect(pageClip().tracks[0].bars[0].voices[0]).toHaveLength(2), SLOW);
       expect(pageClip().name).toBe('Tex riff');
     });
 

@@ -74,10 +74,13 @@ and in its spec.
 ## The clip and its formats
 
 - `clip.ts` — the model: a clip of tracks over shared `masterBars`
-  (signatures, repeats, tempo, sections); `Part` is one track with those
-  marks, made by `partOf` and put back by `withPart`; `parseClip`,
-  `timeAt`, `titled`, `barsPerLine`, `bendRaises`, `bendLandings` —
-  `2026-10-26-tab-rhythm-design.md`, `2026-10-30-tab-tracks-design.md`.
+  (signatures, repeats, tempo, sections), each track's bars holding up to
+  four Voices; `Part` is one Voice of one track with those marks, the
+  other Voices carried read-only (`otherVoices`), made by `partOf` and put
+  back by `withPart`; `hiddenVoicesMessage` and `stringClashes` for the
+  line under the clip; `parseClip`, `timeAt`, `titled`, `barsPerLine`,
+  `bendRaises`, `bendLandings` — `2026-10-26-tab-rhythm-design.md`,
+  `2026-10-30-tab-tracks-design.md`, `2026-11-03-tab-voices-design.md`.
 - `clipState.ts` — the clip with undo and redo, which arrangement it is,
   and the clip as last saved (`base`), so undoing back to it leaves nothing
   unsaved; `sameMusic` lets an FX change play on without a stop.
@@ -144,7 +147,7 @@ and in its spec.
   `2026-11-01-tab-rest-lengths-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures).
-- `sounding.ts` — a Voice's Columns read as Sounding notes (`readVoice`) and
+- `sounding.ts` — a part's Voice's Columns read as Sounding notes (`readVoice`) and
   written back by the meter (`writeVoice`, `spell`, `beatGroups`); no edit
   uses it yet — `2026-11-03-tab-sounding-notes-design.md`.
 - `normalMode.ts` — normal mode's edits: MuseScore's length digits, frets

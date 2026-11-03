@@ -207,15 +207,38 @@ export interface MasterBar {
   section?: Section;
 }
 
-/** A track's own bar: its notes, and what Frets keeps of it without drawing it. */
+/** The most Voices a Track holds, as Guitar Pro and MuseScore allow (`docs/specs/2026-11-03-tab-voices-design.md`). */
+export const MAX_VOICES = 4;
+
+/** A track's own bar: its Voices' notes, and what Frets keeps of it without drawing it. */
 export interface TrackBar {
-  columns: Column[];
+  /**
+   * Voice 1's Columns first, then up to three more Voices' (`MAX_VOICES`). A Voice absent from the bar,
+   * with no notes in it, is []; absent Voices after the last present one are left off.
+   */
+  voices: Column[][];
   /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\clef F4'). */
   extra?: string[];
 }
 
-/** A part's bar: its track's notes with the bar marks every track shares. */
-export interface Bar extends MasterBar, TrackBar {
+/** Another Voice of a part's bar, carried read-only: the part edits one Voice (`docs/adr/2026-11-03-part-is-one-voice.md`). */
+export interface OtherVoice {
+  /** From 0, Voice 1. */
+  voice: number;
+  columns: Column[];
+}
+
+/** A part's bar: one Voice of its track's notes, with the bar marks every track shares. */
+export interface Bar extends MasterBar {
+  /** The part's own Voice's Columns. */
+  columns: Column[];
+  /** alphaTex bar metadata Frets doesn't draw yet, kept as written ('\clef F4'). */
+  extra?: string[];
+  /**
+   * The track's other Voices present in this bar, only carried: an edit that copies the bar takes them
+   * with it, and one that adds a bar gives it none. Written back by `withPart`, so playback hears them.
+   */
+  otherVoices?: OtherVoice[];
   /**
    * Which of the clip's bars this one was made from (`partOf`), so `withPart` keeps the other tracks'
    * bars with it when edits add or take away bars; none on a bar an edit added.
@@ -350,6 +373,8 @@ export interface Track {
  */
 export interface Part {
   name: string;
+  /** The track's Voice its bars' `columns` are, from 0; none is Voice 1. */
+  voice?: number;
   time: TimeSignature;
   /** Six note names, lowest string first, as tuning is said; recorded and shown, not used. */
   tuning: string[];
@@ -440,7 +465,7 @@ export function fewestRests(room: number): Duration[] {
 }
 
 /** The time a bar's columns take; grace notes take none. */
-export function barLength(bar: Bar): number {
+export function barLength(bar: Pick<Bar, 'columns'>): number {
   return bar.columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
 }
 
@@ -525,6 +550,61 @@ export function timeInWords(t: number, time: TimeSignature): string {
   return listed(parts);
 }
 
+/** Bar numbers (from 0) as runs, counted from 1: "3–8", "2, 5 and 7–9". */
+export function barRuns(bars: readonly number[]): string {
+  const sorted = [...new Set(bars)].sort((a, b) => a - b);
+  const runs: string[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    let j = i;
+    while (sorted[j + 1] === sorted[j] + 1) j++;
+    runs.push(j === i ? `${sorted[i] + 1}` : `${sorted[i] + 1}–${sorted[j] + 1}`);
+    i = j;
+  }
+  return listed(runs);
+}
+
+/**
+ * The sentence naming the bars where the part carries Voices it doesn't show (`docs/specs/2026-11-03-tab-voices-design.md`):
+ * "Bars 3–8 have a second voice, not drawn yet.", or "more voices" when a third or fourth is there; null when none.
+ */
+export function hiddenVoicesMessage(part: Pick<Part, 'bars'>): string | null {
+  const bars = part.bars.flatMap((bar, b) => (bar.otherVoices?.length ? [b] : []));
+  if (bars.length === 0) return null;
+  const more = part.bars.some(bar => bar.otherVoices?.some(o => o.voice >= 2));
+  const one = bars.length === 1;
+  return `${one ? 'Bar' : 'Bars'} ${barRuns(bars)} ${one ? 'has' : 'have'} ${more ? 'more voices' : 'a second voice'}, not drawn yet.`;
+}
+
+/**
+ * A sentence for each bar and string where two of the part's Voices sound at once: "Bar 3 has two voices
+ * on string 2." A tied note sounds on; a grace note takes no time and is left out. Strings are numbered as
+ * tab numbers them, 1 the high e.
+ */
+export function stringClashes(part: Pick<Part, 'bars' | 'voice'>): string[] {
+  const out: string[] = [];
+  part.bars.forEach((bar, b) => {
+    if (!bar.otherVoices?.length) return;
+    const voices = [bar.columns, ...bar.otherVoices.map(o => o.columns)];
+    const spans = voices.map(columns => {
+      const on: [number, number][][] = Array.from({ length: STRING_COUNT }, () => []);
+      let t = 0;
+      for (const column of columns) {
+        if (column.grace) continue;
+        const end = t + ticks(column.duration);
+        column.notes.forEach((note, s) => { if (note) on[s].push([t, end]); });
+        t = end;
+      }
+      return on;
+    });
+    for (let s = 0; s < STRING_COUNT; s++) {
+      const clash = spans.some((a, i) => spans.some((c, k) => k > i
+        && a[s].some(([from, to]) => c[s].some(([f, e]) => from < e && f < to))));
+      if (clash) out.push(`Bar ${b + 1} has two voices on string ${s + 1}.`);
+    }
+  });
+  return out;
+}
+
 /** A list of numbers in words: "2", "2 and 5", "2, 5 and 7". */
 export function listed(numbers: readonly (number | string)[]): string {
   return numbers.length < 2 ? numbers.join('') : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
@@ -547,6 +627,7 @@ export function unevenMessage(clip: Pick<Part, 'time' | 'bars'>): string | null 
     parts.push(key === lastTime ? `bar ${i + 1}${amount}` : `bar ${i + 1} doesn't add up to ${key}${amount}`);
     lastTime = key;
   });
+  clip.bars.forEach((_, i) => parts.push(...otherVoicesUneven(clip, i)));
   if (parts.length === 0) return null;
   const line = `${parts.join('; ')}.`;
   return line[0].toUpperCase() + line.slice(1);
@@ -624,6 +705,20 @@ export function brokenTupletMessage(clip: Pick<Part, 'bars'>): string | null {
 }
 
 /** ": 1 beat short", ": a 16th over", or nothing when the bar fills its time (no way to be uneven, then). */
+/**
+ * A clause for each of bar `index`'s other Voices that doesn't fill it: "bar 4's voice 2 doesn't add up
+ * to 4/4: 1 beat short". An empty Voice is absent, never short.
+ */
+function otherVoicesUneven(clip: Pick<Part, 'time' | 'bars'>, index: number): string[] {
+  const time = timeAt(clip, index);
+  return (clip.bars[index].otherVoices ?? []).flatMap(({ voice, columns }) => {
+    const off = barLength({ columns }) - barTicks(time);
+    if (off === 0) return [];
+    const amount = amountText({ words: timeInWords(Math.abs(off), time), over: off > 0 });
+    return [`bar ${index + 1}'s voice ${voice + 1} doesn't add up to ${time.beats}/${time.value}${amount}`];
+  });
+}
+
 function amountText(by: { words: string; over: boolean } | null): string {
   return by ? `: ${by.words} ${by.over ? 'over' : 'short'}` : '';
 }
@@ -639,6 +734,7 @@ export function barErrors(clip: Pick<Part, 'time' | 'bars'>): Map<number, string
     const lines = [
       ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}${amountText(unevenBy(clip, b))}.`] : []),
       ...tupletProblems(bar, b),
+      ...otherVoicesUneven(clip, b).map(clause => `${clause[0].toUpperCase()}${clause.slice(1)}.`),
     ];
     if (lines.length > 0) errors.set(b, lines.join(' '));
   });
@@ -819,7 +915,7 @@ export function isStandardTuningNames(tuning: readonly string[]): boolean {
 
 /** A clip of one track in standard tuning, with one empty bar. */
 export function emptyClip(): Clip {
-  return { name: '', time: COMMON_TIME, masterBars: [{}], tracks: [{ name: '', tuning: [...STANDARD_TUNING], bars: [{ columns: [] }] }] };
+  return { name: '', time: COMMON_TIME, masterBars: [{}], tracks: [{ name: '', tuning: [...STANDARD_TUNING], bars: [{ voices: [[]] }] }] };
 }
 
 /** `emptyClip`'s one part. */
@@ -848,56 +944,90 @@ function copied<T extends object>(to: T, from: object, keys: readonly string[]):
 }
 
 /**
- * Track `index` of the clip as a part. With more than one track each bar says which of the clip's
- * bars it is (`Bar.origin`), so `withPart` can keep the other tracks in step with bars an edit adds or
- * takes away; a clip of one track needs none.
+ * Voice `voice` of track `index` of the clip as a part (`docs/adr/2026-11-03-part-is-one-voice.md`):
+ * that Voice's Columns as each bar's `columns`, the track's other Voices carried read-only. With more
+ * than one track, or Voice, each bar says which of the clip's bars it is (`Bar.origin`), so `withPart`
+ * can keep the music outside the part in step with bars an edit adds or takes away; a clip of one track
+ * and one Voice needs none.
  */
-export function partOf(clip: Clip, index = 0): Part {
-  const part = trackPart(clip, index);
-  if (clip.tracks.length > 1) part.alongside = clip.tracks.flatMap((_, t) => (t === index ? [] : [trackPart(clip, t)]));
+export function partOf(clip: Clip, index = 0, voice = 0): Part {
+  const part = trackPart(clip, index, voice);
+  if (clip.tracks.length > 1) part.alongside = clip.tracks.flatMap((_, t) => (t === index ? [] : [trackPart(clip, t, 0)]));
   return part;
 }
 
-/** Track `index` as a part, by itself. */
-function trackPart(clip: Clip, index: number): Part {
+/** Voice `voice` of track `index` as a part, by itself. */
+function trackPart(clip: Clip, index: number, voice: number): Part {
   const track = clip.tracks[index];
-  const bars = partBars(clip.masterBars, track.bars, clip.tracks.length > 1);
+  const bars = partBars(clip.masterBars, track.bars, counted(clip, index), voice);
   const part: Part = { name: clip.name, time: clip.time, tuning: track.tuning, bars };
+  if (voice > 0) part.voice = voice;
   return copied(copied(part, clip, CLIP_FIELDS), track, TRACK_FIELDS);
+}
+
+/** Whether a part of track `index` needs its bars' origins: there is music outside it, in other tracks or Voices. */
+function counted(clip: Clip, index: number): boolean {
+  return clip.tracks.length > 1 || clip.tracks[index].bars.some(bar => bar.voices.length > 1);
 }
 
 /**
  * A part's bars, made once for the same bars: a change of FX or sound keeps them, so whatever goes by
  * their identity (playback carrying on, the drawing's caches) sees the same music.
  */
-const madeBars = new WeakMap<MasterBar[], WeakMap<TrackBar[], { counted: boolean; bars: Bar[] }>>();
-function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boolean): Bar[] {
-  const forMaster = madeBars.get(masterBars) ?? new WeakMap<TrackBar[], { counted: boolean; bars: Bar[] }>();
+const madeBars = new WeakMap<MasterBar[], WeakMap<TrackBar[], Map<string, Bar[]>>>();
+function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boolean, voice: number): Bar[] {
+  const forMaster = madeBars.get(masterBars) ?? new WeakMap<TrackBar[], Map<string, Bar[]>>();
   madeBars.set(masterBars, forMaster);
-  const made = forMaster.get(trackBars);
-  if (made && made.counted === counted) return made.bars;
+  const made = forMaster.get(trackBars) ?? new Map<string, Bar[]>();
+  forMaster.set(trackBars, made);
+  const key = `${counted}:${voice}`;
+  const before = made.get(key);
+  if (before) return before;
   const bars = masterBars.map((master, b): Bar => {
-    const bar: Bar = { ...master, ...trackBars[b] };
+    const { voices, ...own } = trackBars[b];
+    const bar: Bar = { ...master, ...own, columns: voices[voice] ?? [] };
+    const others = voices.flatMap((columns, v) => (v === voice || columns.length === 0 ? [] : [{ voice: v, columns }]));
+    if (others.length > 0) bar.otherVoices = others;
     if (counted) bar.origin = b;
     return bar;
   });
-  forMaster.set(trackBars, { counted, bars });
+  made.set(key, bars);
   return bars;
+}
+
+/** The bar without the other Voices it carries: what copy takes. */
+export function ownVoice(bar: Bar): Bar {
+  if (!bar.otherVoices) return bar;
+  const own = { ...bar };
+  delete own.otherVoices;
+  return own;
+}
+
+/** A part's bar as its track's bar: the part's Voice and the other Voices it carries, in order. */
+function trackBarOf(bar: Bar, voice: number): TrackBar {
+  const voices: Column[][] = [];
+  voices[voice] = bar.columns;
+  for (const other of bar.otherVoices ?? []) voices[other.voice] = other.columns;
+  const all = Array.from(voices, columns => columns ?? []);
+  while (all.length > 1 && all[all.length - 1].length === 0) all.pop();
+  return copied({ voices: all }, bar, ['extra']) as TrackBar;
 }
 
 /**
  * The clip with `part` as its track `index`: the part's bar marks become every track's, and its notes,
- * tuning, capo and sound that track's. Each other track keeps its own bar where the part's came from
- * (`Bar.origin`), and has a bar of rests where an edit added one. A bar the edit took away goes from
- * every track, unless another track has more than rests there: then it stays, a bar of rests in this
- * track, so an edit never takes away music that isn't shown (Jeremy, 2026-10-30).
+ * tuning, capo and sound that track's, its Voice put back among the others. Each other track keeps its
+ * own bar where the part's came from (`Bar.origin`), and has a bar of rests where an edit added one. A
+ * bar the edit took away goes from every track, unless another track, or another Voice of this one,
+ * has more than rests there: then it stays, a bar of rests in this Voice, so an edit never takes away
+ * music that isn't shown (Jeremy, 2026-10-30; for Voices, 2026-11-03).
  */
 export function withPart(clip: Clip, part: Part, index = 0): Clip {
+  const voice = part.voice ?? 0;
   const kept = keptBars(clip, part, index);
   if (kept.length > 0) return withPart(clip, keepingBars(clip, part, index, kept), index);
   const track = clip.tracks[index];
   // Bars the edit left alone (a new sound, tuning or title) stay the very same, so the music reads as unchanged.
-  if (part.bars === partBars(clip.masterBars, track.bars, clip.tracks.length > 1)) {
+  if (part.bars === partBars(clip.masterBars, track.bars, counted(clip, index), voice)) {
     const tracks = clip.tracks.map((t, i) => (i === index ? copied({ ...t, tuning: part.tuning }, part, TRACK_FIELDS) : t));
     return copied({ ...clip, name: part.name, time: part.time, tracks }, part, CLIP_FIELDS);
   }
@@ -912,33 +1042,41 @@ export function withPart(clip: Clip, part: Part, index = 0): Clip {
   const inStep = from.length === clip.masterBars.length && from.every((o, b) => o === b);
   const tracks = clip.tracks.map((other, t): Track => {
     if (t === index) {
-      const bars = part.bars.map(bar => copied({ columns: bar.columns }, bar, ['extra']) as TrackBar);
+      const bars = part.bars.map(bar => trackBarOf(bar, voice));
       return copied({ ...other, tuning: part.tuning, bars }, part, TRACK_FIELDS);
     }
     if (inStep) return other;
-    return { ...other, bars: from.map((o, b) => (o === null ? restBar(part, b) : other.bars[o])) };
+    return { ...other, bars: from.map((o, b) => (o === null ? { voices: [restColumns(part, b)] } : other.bars[o])) };
   });
   const whole: Clip = { ...clip, name: part.name, time: part.time, masterBars, tracks };
   return copied(whole, part, CLIP_FIELDS);
 }
 
-/** The clip's bars that the edit `part` took away but another track has more than rests in. */
+/** The clip's bars that the edit `part` took away but another track, or another Voice of its own, has more than rests in. */
 function keptBars(clip: Clip, part: Part, index: number): number[] {
-  if (clip.tracks.length < 2) return [];
+  const voice = part.voice ?? 0;
   const left = new Set(part.bars.map(bar => bar.origin));
+  if (!counted(clip, index)) return [];
   return clip.masterBars.map((_, b) => b).filter(b =>
-    !left.has(b) && clip.tracks.some((track, t) => t !== index && !onlyRests(track.bars[b])));
+    !left.has(b) && clip.tracks.some((track, t) => {
+      const voices = track.bars[b].voices;
+      return t === index ? voices.some((columns, v) => v !== voice && !onlyRests(columns)) : voices.some(columns => !onlyRests(columns));
+    }));
 }
 
-/** Whether a track's bar holds nothing but rests: no notes, and nothing written over them. */
-function onlyRests(bar: TrackBar): boolean {
-  return bar.columns.every(column => isRest(column) && Object.keys(column).every(key => key === 'duration' || key === 'notes'));
+/** Whether a Voice's Columns are nothing but rests: no notes, and nothing written over them. */
+function onlyRests(columns: Column[]): boolean {
+  return columns.every(column => isRest(column) && Object.keys(column).every(key => key === 'duration' || key === 'notes'));
 }
 
-/** `part` with the clip's bars `kept` put back where they were, each a bar of rests in it. */
+/** `part` with the clip's bars `kept` put back where they were, each a bar of rests in its Voice. */
 function keepingBars(clip: Clip, part: Part, index: number, kept: number[]): Part {
-  const before = partOf(clip, index);
-  const restored = (b: number): Bar => ({ ...clip.masterBars[b], ...restBar(before, b), origin: b });
+  const before = partOf(clip, index, part.voice ?? 0);
+  const restored = (b: number): Bar => {
+    const bar: Bar = { ...clip.masterBars[b], columns: restColumns(before, b), origin: b };
+    if (before.bars[b].otherVoices) bar.otherVoices = before.bars[b].otherVoices;
+    return bar;
+  };
   const waiting = [...kept];
   const bars: Bar[] = [];
   for (const bar of part.bars) {
@@ -952,10 +1090,9 @@ function keepingBars(clip: Clip, part: Part, index: number, kept: number[]): Par
   return { ...part, bars };
 }
 
-/** A bar of rests for bar `b` of the part, as long as its time signature makes it. */
-function restBar(part: Part, b: number): TrackBar {
-  const columns = fewestRests(barTicks(timeAt(part, b))).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
-  return { columns };
+/** Rests for bar `b` of the part, as long as its time signature makes it. */
+function restColumns(part: Part, b: number): Column[] {
+  return fewestRests(barTicks(timeAt(part, b))).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
 }
 
 /** Track `index`'s name, as the track list and messages give it: its own, else "Track N". */
@@ -1065,7 +1202,8 @@ function isMasterBar(v: unknown): v is MasterBar {
 }
 
 function isTrackBar(v: unknown): v is TrackBar {
-  return isObj(v) && Array.isArray(v.columns) && v.columns.every(isColumn) && optStrings(v.extra);
+  return isObj(v) && Array.isArray(v.voices) && v.voices.length >= 1 && v.voices.length <= MAX_VOICES
+    && v.voices.every(voice => Array.isArray(voice) && voice.every(isColumn)) && optStrings(v.extra);
 }
 
 /** A line's bar count, as `systemsLayout` holds it: a whole number from 1. */

@@ -350,9 +350,12 @@ function plainRestColumn(c: Column): boolean {
   return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
 }
 
-/** A bar of rests and nothing else, as a multi-bar rest gathers: one whole-bar rest, or several that fill it. */
+/**
+ * A bar of rests and nothing else, as a multi-bar rest gathers: one whole-bar rest, or several that fill
+ * it, in every Voice (another Voice is present only where it has notes).
+ */
 function restBar(bar: Bar): boolean {
-  if (bar.columns.length === 0 || bar.ending !== undefined || bar.extra?.length) return false;
+  if (bar.columns.length === 0 || bar.ending !== undefined || bar.extra?.length || bar.otherVoices?.length) return false;
   return bar.columns.every(plainRestColumn);
 }
 

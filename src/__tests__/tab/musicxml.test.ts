@@ -143,7 +143,7 @@ describe('the MusicXML file', () => {
   it('writes an empty bar as a bar of rest', () => {
     const clip = clipOf('0.6.1 | 0.6.1 |');
     const [track] = clip.tracks;
-    const doc = docOf({ ...clip, tracks: [{ ...track, bars: [track.bars[0], { columns: [] }] }] });
+    const doc = docOf({ ...clip, tracks: [{ ...track, bars: [track.bars[0], { voices: [[]] }] }] });
     const rest = doc.querySelector('measure[number="2"] note rest');
     expect(rest?.getAttribute('measure')).toBe('yes');
   });
