@@ -146,6 +146,25 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('r.2 0.1.4 r.4 |');
   });
 
+  it('a press a 16th into an empty bar puts a quarter a 16th after the bar line', async () => {
+    const empty = '\\title "Grid"\n\\ts (4 4)\nr.1 |';
+    window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(empty)}`);
+    render(<TabPage />);
+    await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+    act(() => editor().focus());
+    const read = readAlphaTexWith(alphaTab, empty);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+    const rest = bars[0].columns[0];
+    keys('n', altKey('BracketRight'));
+    const over = { clientX: rest.x + rest.width / 16 + 1, clientY: top + rows.staffTop };
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    fireEvent.pointerDown(svg, { ...over, button: 0 });
+    fireEvent.pointerUp(svg, { ...over, button: 0 });
+    // The meter writes it across beat 2 as tied notes.
+    expect(bar()).toBe('r.16 0.1.16 -.1.8 -.1.16 r.16 r.8 r.2 |');
+  });
+
   it('Alt+G, Alt+[ ] and the palette’s Grid button set the grid, kept in Settings › Tab › Editing', async () => {
     await open();
     expect(gridButton()).not.toHaveAttribute('aria-pressed');
