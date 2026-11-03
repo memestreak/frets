@@ -4,6 +4,7 @@ import type { ClipAction, PartAction } from './clipState';
 import { clampCursor, columnCount, fillBar, START, type Cursor, type Selection } from './editing';
 import type { LastDigit } from './editorKeys';
 import type { WordHit } from './layoutText';
+import { isInsideRest } from './grid';
 import { cursorAtTime, rewrite, selectionAtTime } from './rewrite';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
@@ -66,6 +67,12 @@ export interface EditorState {
    */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
+  /**
+   * How many ticks into its rest note input's cursor is (`grid.ts`, issue #293): ← →, a press or Shift+Space
+   * move it there, and every commit puts it back to 0. It counts only while the cursor is still on that rest.
+   */
+  cursorAt: number;
+  setCursorAt: (at: Cursor, ticks: number) => void;
   /** The drawn clip's box, which takes the keys. */
   editorRef: React.RefObject<HTMLDivElement | null>;
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
@@ -98,10 +105,13 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
   const [picked, setPicked] = useState<Picked | null>(null);
   const [inputMode, setInputMode] = useState(false);
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
+  const [restSpot, setRestSpot] = useState<{ bar: number; column: number; at: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const lastDigitRef = useRef<LastDigit>(null);
 
   const cursor = clampCursor(clip, cursorAsSet);
+  const cursorAt = inputMode && restSpot && restSpot.bar === cursor.bar && restSpot.column === cursor.column && isInsideRest(clip, cursor, restSpot.at) ? restSpot.at : 0;
+  const setCursorAt = (at: Cursor, ticks: number) => setRestSpot(ticks > 0 ? { bar: at.bar, column: at.column, at: ticks } : null);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < columnCount(clip) ? selectionAsSet : null;
 
   const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
@@ -112,6 +122,7 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
     setSelection(selectionAtTime(next, written, nextSelection));
     setPicked(null);
     setNotice(null);
+    setRestSpot(null);
   };
 
   const startRegion = () => {
@@ -129,7 +140,7 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
     columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode,
-    inputLength, setInputLength, editorRef, lastDigitRef, commit,
+    inputLength, setInputLength, cursorAt, setCursorAt, editorRef, lastDigitRef, commit,
     leaveBar: (from, bar) => (fillBars ? fillBar(from, bar) : from),
     startRegion, toPitch,
   };

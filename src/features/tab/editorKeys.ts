@@ -4,7 +4,7 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { isRest, type Duration, type Part } from './clip';
+import { isRest, ticks, type Duration, type Part } from './clip';
 import { clampCursor, clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { clearToRests, makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
@@ -15,6 +15,7 @@ import { applyCyclingKey, applyTupletKey, toolForKey, type ToolId } from './tool
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { setValue } from './noteEdits';
 import { lengthOf, stepLength } from './inputLength';
+import { advance, lastStop, splitRestAt, stepInRest } from './grid';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
@@ -51,6 +52,12 @@ export interface EditorKeys {
   /** Note input's length (`inputLength.ts`): the next note entered on a rest takes it. */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
+  /** Note input's grid (`grid.ts`, issue #293), in ticks: where ← → stop inside a rest. */
+  gridStep: number;
+  /** How far into the cursor's rest note input's cursor is, in ticks: 0 at its start, and anywhere but a rest. */
+  cursorAt: number;
+  /** Puts note input's cursor that far into the rest at `at` (after a commit, which sets it back to 0). */
+  setCursorAt: (at: Cursor, ticks: number) => void;
   /** Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
   stepElement: (step: 1 | -1) => void;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
@@ -117,6 +124,16 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       e.preventDefault();
       return;
     }
+  }
+  // Shift+Space in note input moves the cursor on by the next note's length, over notes and rests, as
+  // Dorico's Space does; Space itself still plays (Jeremy, 2026-11-01).
+  if (key === ' ' && e.shiftKey && editor.inputMode && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    lastDigit.current = null;
+    const moved = advance(clip, cursor, editor.cursorAt, ticks(editor.inputLength));
+    commit(moved.clip, moved.cursor, null);
+    editor.setCursorAt(moved.cursor, moved.at);
+    return;
   }
   if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
     // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
@@ -192,19 +209,20 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     // A fret goes on a string; with none picked, ↑ ↓ or a press picks one first.
     if (columnOnly) return;
     const digit = Number(key);
-    // A fret typed on a rest in note input makes a note of note input's length.
+    // A fret typed on a rest in note input makes a note of note input's length, where the cursor is in the rest.
     const length = editor.inputMode ? editor.inputLength : undefined;
-    const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
+    const here = splitRestAt(clip, cursor, editor.cursorAt);
+    const spot = `${here.cursor.bar}:${here.cursor.column}:${here.cursor.string}`;
     const before = lastDigit.current;
     const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
     if (joined !== null && joined <= MAX_FRET) {
       lastDigit.current = null;
-      commit(setFret(clip, cursor, joined, length));
+      commit(setFret(here.clip, here.cursor, joined, length), here.cursor);
     } else {
       lastDigit.current = { spot, digit, at: e.timeStamp };
-      commit(setFret(clip, cursor, digit, length));
+      commit(setFret(here.clip, here.cursor, digit, length), here.cursor);
     }
-    editor.hearNote(cursor);
+    editor.hearNote(here.cursor);
     return;
   }
   lastDigit.current = null;
@@ -227,8 +245,18 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
       editor.startRegion();
     } else {
+      // In note input the cursor stops at each grid line inside a rest, and once on a note (issue #293).
+      const inside = editor.inputMode ? stepInRest(clip, cursor, editor.cursorAt, step, editor.gridStep) : null;
+      if (inside !== null) {
+        commit(clip, cursor, null);
+        editor.setCursorAt(cursor, inside);
+        return;
+      }
       const moved = moveColumn(clip, cursor, step, { fillBars: editor.fillBars });
       commit(moved.clip, moved.cursor, null);
+      // Coming back into a rest, ← lands on its last grid line.
+      const went = moved.cursor.bar !== cursor.bar || moved.cursor.column !== cursor.column;
+      if (editor.inputMode && step === -1 && went) editor.setCursorAt(moved.cursor, lastStop(moved.clip, moved.cursor, editor.gridStep));
     }
     return;
   }
@@ -441,9 +469,11 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     return true;
   }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {
-    const edit = toggleStaffNote(clip, cursor, pitch, editor.inputLength);
-    toPitch(edit.clip, cursor, pitch, editor.selection);
-    if (edit.string !== null) editor.hearNote({ ...cursor, string: edit.string });
+    // Inside a rest, the note goes where the cursor is in it (issue #293).
+    const here = splitRestAt(clip, cursor, editor.cursorAt);
+    const edit = toggleStaffNote(here.clip, here.cursor, pitch, editor.inputLength);
+    toPitch(edit.clip, here.cursor, pitch, editor.selection);
+    if (edit.string !== null) editor.hearNote({ ...here.cursor, string: edit.string });
     if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
     return true;
   }
