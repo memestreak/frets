@@ -290,6 +290,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `2026-10-28-tab-sound-preload-design.md`.
 - `audioOutput.ts` — the Web Audio output the synthesizer plays through;
   `ringOn`, `chokeAll`.
+- `seamlessLoop.ts` — loops the synthesizer with no gap at the loop's end
+  (issue #346) — `2026-10-26-tab-playback-design.md`.
 - `dryChannels.ts` — keeps the clicks' channels out of the effects.
 - `effects.ts` — distortion and reverb as Web Audio nodes —
   `2026-10-28-tab-playback-effects-design.md`.

@@ -205,3 +205,42 @@ dark), no longer Fretwood's clay red (`--primary`): red reads as a problem,
 and on the Tab page red stays for problems (as selection went blue in #276).
 Jeremy, 2026-11-01: "should be a muted green (not red)". The loop bracket
 keeps `--primary`.
+
+## A loop with no gap (issue #346)
+
+With no pause between loops set, the loop's start follows its end exactly
+on the beat (Jeremy, 2026-11-04: "I want the loop to be musical if I
+haven't added an explicit delay"). A pause between loops, when set, still
+waits as long as it says.
+
+alphaTab 1.8.4 loops from the sound heard, not the sound made: its
+sequencer stops at the loop's end and cuts the notes off, and only once the
+speakers have played everything made does it go back to the start and make
+more. Measured in Chromium at the audio node, a one-bar loop at 120 bpm
+came round about 45 ms late, with the last 60 ms silent (it varies with
+where the end falls in the node's 4096-frame block, up to about 93 ms).
+
+`seamlessLoop.ts` sends the sequencer back to the loop's start the moment
+it makes the loop's end, carrying over how far it went past it, so the
+start follows the end in the same stream of samples. The notes still
+sounding at the end die away as they would at their end; everything but
+the notes before the start (the sound, the volume, a bend) is set as it is
+there. The position the synthesizer reports goes back by the loop's length
+when the end is heard, so the playhead follows the sound; it waits on the
+loop's last column until then. A count-in ends as the sequencer goes round,
+so the loop's first bar is played, not the clicks that stood in for it.
+
+### Tests
+
+`src/__tests__/tab/seamlessLoop.test.ts` plays the real synthesizer and
+soundfont through the real output into a stand-in AudioContext and measures
+what reaches the speakers:
+
+- A one-bar loop: every click within 3 ms of a beat counted on from the
+  first, over two loops; no silence over 5 ms in the guitar.
+- A bar looped from the bar before it: the same, and the playhead goes
+  0–7 then 4–7 round and round, back on 4 when the start is heard.
+- Bars 1–2 looped from bar 2 after a count-in: no silence over 5 ms once
+  the notes start, so bar 1 plays when the loop comes round.
+- A 1 s pause between loops: the beat before the start again lasts 1.5 s,
+  to within 200 ms.
