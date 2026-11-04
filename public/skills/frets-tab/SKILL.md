@@ -23,8 +23,8 @@ disagree, it wins.
 
 - Six strings in standard tuning unless `\tuning` says otherwise. Up to
   four voices a track (`\voiceMode barWise`, then `\voice` before each
-  voice in a bar); the page draws only voice 1 for now, so keep the
-  melody there and hold a bass with ties where you can. Parts for several guitars go in tracks, each after its own
+  voice in a bar); the page draws them all, voice 1 stems up and voice 2
+  down, so a bass held under a melody goes in voice 2. Parts for several guitars go in tracks, each after its own
   `\track "<name>"` with the same number of bars; Frets keeps them all
   and shows one at a time, picked from a list (a link opens on the first);
   a part sits out a bar as `r.1 |`, and its rests in a row draw as one. Notes are `fret.string.duration`; string 1 is the high e.

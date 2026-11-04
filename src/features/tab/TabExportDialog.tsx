@@ -30,8 +30,6 @@ const FORMAT_LABELS: Record<TabExportFormat, string> = {
 };
 
 const isImage = (format: TabExportFormat) => format === 'png' || format === 'svg';
-/** The formats that hold Voice 1 only, for now. */
-const VOICE_1_ONLY = new Set<TabExportFormat>(['png', 'svg', 'ascii', 'musicxml']);
 
 /**
  * The Tab page's Export dialog: a Format list (PNG image, SVG image, ASCII
@@ -128,10 +126,8 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   const formatLoss = format === 'musicxml' && musicXmlLeft.length ? `The MusicXML file leaves out ${musicXmlLeft.join(' and ')}.`
     : format === 'guitarPro' && clip.tracks.some(t => t.fx?.on) ? 'The Guitar Pro file leaves out the FX.'
     : null;
-  // Only alphaTex and Guitar Pro hold every Voice until the page draws them (`docs/specs/2026-11-03-tab-voices-design.md`).
-  const voiceLoss = VOICE_1_ONLY.has(format) && clip.tracks.some(t => t.bars.some(bar => bar.voices.length > 1))
-    ? "Voice 1 only; other voices aren't in this format yet." : null;
-  const lossNote = [voiceLoss, formatLoss].filter(Boolean).join(' ') || null;
+  // Every format holds every Voice (step 9, Q14): ASCII tab merges them onto its one tab.
+  const lossNote = formatLoss;
 
   return (
     <dialog

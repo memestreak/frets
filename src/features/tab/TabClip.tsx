@@ -20,6 +20,7 @@ import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
+import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -55,8 +56,20 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
   clip: Part;
+  /**
+   * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
+   * part's own (the Active voice) are drawn in `--ink-muted`.
+   */
+  mutedVoices?: boolean;
+  /** A selection over several Voices (step 9, Q18): each other Voice's selected run of its own columns. */
+  voiceSelections?: ReadonlyMap<number, [number, number]>;
+  /**
+   * A press on another Voice's note, where the part's own Voice has none (step 9, Q5): that Voice (from 0)
+   * and the note, in its own columns' numbering.
+   */
+  onPickVoice?: (voice: number, hit: Hit) => void;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
   parts?: Parts;
@@ -240,6 +253,18 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       return;
     }
     const { text, mark, rest, staff, hit, column, px, py } = target(e);
+    // A right-click inside the selection keeps it, for its menu, as Dorico, MuseScore and GP8 do (step 9).
+    if (e.button === 2 && highlight?.range && !text && !mark) {
+      const on = rest ?? staff ?? hit;
+      const index = on ? layout.systems.flatMap(system => system.bars).find(bar => bar.index === on.bar)?.columns[on.column]?.index : undefined;
+      if (index !== undefined && index >= highlight.range[0] && index <= highlight.range[1]) return;
+    }
+    // Another Voice's note under the press, where the own Voice has none there: it is picked in its Voice.
+    const other = onPickVoice && e.button === 0 && !e.shiftKey && !text && !mark ? otherVoiceAt(px, py, staff, hit) : null;
+    if (other) {
+      onPickVoice!(other.voice, other.hit);
+      return;
+    }
     if (rest) {
       // A rest or a stem pressed in normal mode: its column alone is selected, or with Shift the run grows to it (issues #276, #290).
       onPickRhythm!(rest, e.shiftKey);
@@ -274,6 +299,21 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     else if (hit) onPick(hit, e.shiftKey, e.altKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
+  };
+  /** Another Voice's note under a press that finds no note of the part's own Voice there. */
+  const otherVoiceAt = (px: number, py: number, staff: StaffHit | null, hit: Hit | null): { voice: number; hit: Hit } | null => {
+    const ownNote = (staff && staff.string !== null) || (hit && clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+    if (ownNote) return null;
+    for (const v of voiceViews) {
+      const onHead = layout.parts !== 'tab' ? staffAt(v.layout, px, py) : null;
+      if (onHead && onHead.string !== null) return { voice: v.voice, hit: { bar: onHead.bar, column: onHead.column, string: onHead.string } };
+      const onTab = hitTest(v.layout, px, py);
+      if (!onTab) continue;
+      const placed = v.layout.systems.flatMap(system => system.bars).find(bar => bar.index === onTab.bar)?.columns[onTab.column];
+      // Near enough the note's number across, as a press on the part's own note is.
+      if (placed && placed.column.notes[onTab.string] && Math.abs(placed.x - px) <= ON_NOTE_REACH) return { voice: v.voice, hit: onTab };
+    }
+    return null;
   };
   /** A Shift+press on blank space: where it started, and what a press there does if it doesn't move. */
   const rectPress = useRef<{ x: number; y: number; clientX: number; clientY: number; press: () => void } | null>(null);
@@ -376,12 +416,26 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     if (text || head || (!mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column, highlight.at) : null;
-  const previous = previousDrawnAt(layout.systems);
-  const onStaff = layout.parts !== 'tab' ? staffMarks(layout) : null;
+  // The part's own Voice as drawn (none of its stand-in rests where it is absent), and each other Voice
+  // drawn the same way from a layout of its own (step 9).
+  const drawn = drawnLayout(layout);
+  const previous = previousDrawnAt(drawn.systems);
+  const onStaff = layout.parts !== 'tab' ? staffMarks(drawn) : null;
   const slides = slideDirections(clip);
   const joins: Joins = { carries: bendCarries(clip), raises: bendRaises(clip), landings: bendLandings(clip), legatoStarts: legatoStarts(clip), whammy: whammyJoins(clip) };
-  const arcs = legatoArcs(layout.systems);
-  const whammies = whammyDrawings(layout);
+  const arcs = legatoArcs(drawn.systems);
+  const whammies = whammyDrawings(drawn);
+  const voiceViews = otherVoices(layout).map(voice => {
+    const own = voicePart(clip, voice);
+    const view = voiceLayout(layout, clip, voice);
+    return {
+      voice, clip: own, layout: view, previous: previousDrawnAt(view.systems), slides: slideDirections(own),
+      joins: { carries: bendCarries(own), raises: bendRaises(own), landings: bendLandings(own), legatoStarts: legatoStarts(own), whammy: whammyJoins(own) } as Joins,
+      arcs: legatoArcs(view.systems), whammies: whammyDrawings(view), onStaff: layout.parts !== 'tab' ? staffMarks(view) : null,
+    };
+  });
+  const voiceLook = mutedVoices ? { ...look, ink: 'var(--ink-muted)' } : look;
+  const noLights: MarkLit = () => false;
   const lastBar = clip.bars.length - 1;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.
   const maskId = `tab-gaps${useId().replace(/[^\w-]/g, '')}`;
@@ -419,6 +473,15 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               fill={highlight.input ? 'none' : 'var(--select-soft)'} stroke="var(--select)" strokeWidth={1.5}
               data-testid={highlight.input ? 'input-cursor' : 'selected-note'}
             />
+          )}
+          {/* The Active voice's number by the cursor, when it isn't Voice 1 (step 9, Q5). */}
+          {!highlight.range && (clip.voice ?? 0) > 0 && (rows.tab || rows.score) && (
+            <text
+              x={spot.x + 14} y={(rows.score ? rows.score.top : stringY(rows, 0)) - 6} fontSize={10} fontWeight={600}
+              fill="var(--select)" fontFamily="var(--font-sans)" data-testid="cursor-voice"
+            >
+              {(clip.voice ?? 0) + 1}
+            </text>
           )}
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
           {/* Not in note input: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
@@ -487,17 +550,34 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               );
             })))}
           <SystemDrawing
-            system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
+            system={drawn.systems[si]} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
             selected={highlight?.range ?? null} lit={lights.tab} word={pickedWord}
+            masked={voiceViews.map(v => v.layout.systems[si])}
           />
           {rows.score && onStaff && (
             <StaffDrawing
-              system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'}
+              system={drawn.systems[si]} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'}
               selected={highlight?.range ?? null} selectedNote={selectedNote} litMark={lights.staff} word={pickedWord}
               tiedNotes={highlight?.tied && (highlight.range || highlight.staffPitch != null || !rows.tab) ? highlight.tied : undefined}
             />
           )}
+          {voiceViews.map(v => (
+            // Every other Voice, drawn as the part's own is but for the bar lines, signatures and words over bars (step 9).
+            <g key={`voice-${v.voice}`} data-testid="other-voice" data-voice={v.voice + 1} data-muted={mutedVoices || undefined}>
+              <SystemDrawing
+                system={v.layout.systems[si]} rows={rows} index={si} clip={v.clip} look={voiceLook} slides={v.slides}
+                previous={v.previous} joins={v.joins} legato={v.arcs.filter(a => a.system === si)} whammy={v.whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}-v${v.voice}`}
+                selected={voiceSelections?.get(v.voice) ?? null} lit={noLights} word={null} notesOnly
+              />
+              {rows.score && v.onStaff && (
+                <StaffDrawing
+                  system={v.layout.systems[si]} score={rows.score} clip={v.clip} look={voiceLook} lastBar={lastBar} marks={v.onStaff[si]} alone={layout.parts === 'staff'}
+                  selected={voiceSelections?.get(v.voice) ?? null} notesOnly
+                />
+              )}
+            </g>
+          ))}
           {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
             const placed = system.bars.find(b => b.index === highlight.cursor!.bar);
             if (!placed) return null;
@@ -564,6 +644,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
 /** A bar's number: its size, and how far in from the bar's opening line it starts. */
 /** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
 const RECT_START = 4;
+/** How far across from another Voice's fret number a press still picks it: about the number's half width and a little. */
+const ON_NOTE_REACH = 10;
 const BAR_NUMBER_SIZE = 9;
 const BAR_NUMBER_INSET = 2;
 
@@ -586,8 +668,12 @@ function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text:
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, masked = [], notesOnly = false }: {
   system: System;
+  /** The same line in the other Voices' layouts: the string lines stop short of their numbers too. */
+  masked?: System[];
+  /** Another Voice's notes and the marks on them, over the part's own drawing: no strings, bar lines or words over bars (step 9). */
+  notesOnly?: boolean;
   rows: Rows;
   /** The mask that keeps the string lines out from behind the numbers. */
   maskId: string;
@@ -611,22 +697,24 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
-  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} />;
+  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} columnsOnly={notesOnly} />;
   const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
+  if (notesOnly) return <>{words}{rowMarks}{notesOf(system, index, rows, look, previous, slides, joins, legato, whammy, selected, lit)}</>;
 
   // The staff: the time signature in front of it, then its lines with TAB on them, as tab is printed. The lines stop short of every note's number,
   // so nothing need be painted behind it and the cursor's band or a transparent image shows through.
   parts.push(
     <mask key="gaps" id={maskId} maskUnits="userSpaceOnUse" x={0} y={0} width={end + 1} height={rows.height}>
       <rect width={end + 1} height={rows.height} fill="#fff" />
-      {system.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
+      {[system, ...masked].flatMap((line, l) => line.bars.flatMap(bar => bar.columns.flatMap(placed => placed.column.notes.map((note, s) => {
         if (!note) return null;
-        const hidden = hiddenNumber(note, placed, bar, rows, joins);
+        // Another Voice's tied note may be numbered where the part's isn't: its gap is always cut.
+        const hidden = l === 0 && hiddenNumber(note, placed, bar, rows, joins);
         const lw = hidden ? 0 : labelWidth(note, placed.column);
-        return <rect key={`${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
-      })))}
+        return <rect key={`${l}-${placed.index}-${s}`} x={placed.x - lw / 2} y={stringY(rows, s) - 7} width={lw} height={14} fill="#000" />;
+      }))))}
     </mask>,
   );
   for (let s = 0; s < STRING_COUNT; s++) {
@@ -662,6 +750,16 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
 
   parts.push(<g key="row-marks">{rowMarks}</g>);
 
+  parts.push(...notesOf(system, index, rows, look, previous, slides, joins, legato, whammy, selected, lit));
+  return <>{parts}</>;
+}
+
+/** A line's notes and what is drawn with them on the tab: legato arcs, the whammy bar, each column, the stems. */
+function notesOf(
+  system: System, index: number, rows: Rows, look: TabLook, previous: Map<Note, NoteDrawnAt>, slides: Map<Note, 'up' | 'down'>, joins: Joins,
+  legato: LegatoArc[], whammy: WhammyDrawing[], selected: [number, number] | null, lit: MarkLit,
+): ReactNode[] {
+  const parts: ReactNode[] = [];
   // One arc over each legato run, rising with its length, as Guitar Pro draws it.
   for (const arc of legato) {
     const y = stringY(rows, arc.string) - 8;
@@ -703,8 +801,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     // Under a staff, the staff carries the rhythm.
     if (rows.tabStems) parts.push(<Stems key={`stems-${bar.index}`} bar={bar} rows={rows} look={look} selected={selected} lit={lit} />);
   }
-
-  return <>{parts}</>;
+  return parts;
 }
 
 /** What a whammy bar's run is labelled, as guitar books print it. */
@@ -818,8 +915,10 @@ function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: 
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-function SystemWords({ system, rows, clip, look: plain, word }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null }) {
+function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean }) {
   const parts: ReactNode[] = [];
+  // Another Voice's drawing carries only the words on its own columns: chord names and texts (step 9, Q13).
+  if (columnsOnly) return <>{columnWords(system, rows, word, plain)}</>;
   /** The look of a word: the selection's blue when it is the picked one (issue #276). */
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Endings: one bracket over each run of bars with the same ending.
@@ -878,6 +977,25 @@ function SystemWords({ system, rows, clip, look: plain, word }: { system: System
         </g>,
       );
     }
+    // "Free time" over the bar that starts it, after the bar's tempo when it has one.
+    if (rows.tempo !== null && startsFreeTime(clip, bar.index)) {
+      const after = tempo ? tempoParts(tempo).width + FREE_TIME_GAP : 0;
+      parts.push(
+        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={plain.ink} data-testid="free-time">
+          Free time
+        </text>,
+      );
+    }
+  }
+  parts.push(...columnWords(system, rows, word, plain));
+  return <>{parts}</>;
+}
+
+/** The words on a line's columns: chord names and free text. */
+function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
+  for (const bar of system.bars) {
     if (rows.chords !== null) {
       for (const placed of bar.columns) {
         if (!placed.column.chord) continue;
@@ -891,15 +1009,6 @@ function SystemWords({ system, rows, clip, look: plain, word }: { system: System
           </text>,
         );
       }
-    }
-    // "Free time" over the bar that starts it, after the bar's tempo when it has one.
-    if (rows.tempo !== null && startsFreeTime(clip, bar.index)) {
-      const after = tempo ? tempoParts(tempo).width + FREE_TIME_GAP : 0;
-      parts.push(
-        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={plain.ink} data-testid="free-time">
-          Free time
-        </text>,
-      );
     }
     if (rows.text !== null) {
       for (const placed of bar.columns) {
@@ -919,8 +1028,7 @@ function SystemWords({ system, rows, clip, look: plain, word }: { system: System
       }
     }
   }
-
-  return <>{parts}</>;
+  return parts;
 }
 
 /** A time signature's two numbers, close together round the staff's middle. */

@@ -79,6 +79,13 @@ export interface EditorKeys {
   setTupletFrom: (at: number | null) => void;
   /** `;`: the Tuplet panel at the cursor. */
   openTuplets: () => void;
+  /** Alt+1–4 (step 9, Q8): Voice `voice` (from 0) made active, or the picked or selected notes moved into it. */
+  voiceKey: (voice: number) => void;
+  /**
+   * An edit of the selection on every Voice in its time, as one undo step (step 9, Q19); false when the
+   * selection holds only the Active voice's notes, and the key makes the edit itself.
+   */
+  everyVoice: (edit: (part: Part, selection: Selection) => Part) => boolean;
   /** Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
   stepElement: (step: 1 | -1) => void;
   /** A picked Span's end a column later (1) or earlier (−1): Alt+Shift+→ / ← (step 8). */
@@ -115,6 +122,14 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
     editor.stepElement(key === 'ArrowRight' ? 1 : -1);
+    return;
+  }
+  // Alt+1–4 make that Voice active, or move the picked or selected notes into it (step 9, Q8); read by the
+  // key's place, as Alt types another character on a Mac.
+  const voiceDigit = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey ? /^Digit([1-4])$/.exec(e.code) : null;
+  if (voiceDigit) {
+    e.preventDefault();
+    editor.voiceKey(Number(voiceDigit[1]) - 1);
     return;
   }
   // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
@@ -205,7 +220,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     const value = valueForDigit(shiftedDigit);
     if (value && editor.inputMode) editor.setInputLength(lengthOf(value));
-    else if (value) commit(setValue(clip, target, value));
+    else if (value && !(target.selection && editor.everyVoice((part, run) => setValue(part, { ...target, selection: run }, value)))) commit(setValue(clip, target, value));
     return;
   }
   if (!editor.inputMode) {
@@ -319,7 +334,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     // In note input they change the next note's length; in normal mode, the selected notes'.
     if (editor.inputMode) editor.setInputLength(stepLength(editor.inputLength, longer ? 1 : -1));
-    else commit(stepDuration(clip, target, longer ? 1 : -1));
+    else if (!(target.selection && editor.everyVoice((part, run) => stepDuration(part, { ...target, selection: run }, longer ? 1 : -1)))) commit(stepDuration(clip, target, longer ? 1 : -1));
     return;
   }
   if (key === 'Insert') {
@@ -425,7 +440,8 @@ export function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
       leave(cut.clip, { ...cursor, ...cut.cursor });
     }
   } else if (selection) {
-    // The selection's notes become rests, and a bar it covers whole starts again as one rest (issue #290).
+    // The selection's notes become rests, and a bar it covers whole starts again as one rest (issue #290), in every Voice (step 9, Q19).
+    if (editor.everyVoice((part, run) => clearToRests(part, run).clip)) return;
     const cleared = clearToRests(clip, selection);
     commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
   } else if (column?.grace) {

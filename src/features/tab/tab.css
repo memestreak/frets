@@ -374,6 +374,8 @@
 .tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
 .tab-tool-box { position: relative; display: inline-flex; }
+/* The Voice row's numbers (step 9): the same size as the tools' glyphs. */
+.tab-voice-tool { font: 600 14px/1 var(--font-sans); }
 .tab-tool-panel {
   position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; gap: 8px; justify-items: start;
   padding: 12px; width: max-content; color: var(--ink);

@@ -17,8 +17,10 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null, tiedNotes = [], litMark = () => false, word = null }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null, tiedNotes = [], litMark = () => false, word = null, notesOnly = false }: {
   system: System;
+  /** Another Voice's notes over the part's own staff: no lines, clef, signatures or bar lines (step 9). */
+  notesOnly?: boolean;
   score: ScoreRows;
   clip: Part;
   look: TabLook;
@@ -43,6 +45,12 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
+  if (notesOnly) {
+    for (const bar of system.bars) parts.push(<StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={null} tiedNotes={[]} />);
+    const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
+    marks.forEach((mark, k) => parts.push(<StaffMarkDrawing key={`mark-${k}`} mark={mark} look={inRun(mark.hit.index) ? litLook(look, true) : look} />));
+    return <g data-testid="staff-voice">{parts}</g>;
+  }
   for (const step of STAFF_LINES) {
     const y = stepY(score, step);
     parts.push(<line key={`line-${step}`} x1={system.lineStart} x2={end} y1={y} y2={y} stroke={look.line} strokeWidth={1} />);
@@ -282,6 +290,15 @@ export function ghostChord(column: Column, heads: Head[]): boolean {
   return heads.length > 1 && heads.every(h => column.notes[h.string]?.ghost) && heads[heads.length - 1].step - heads[0].step <= GHOST_CHORD_SPREAD;
 }
 
+/**
+ * How far a rest moves, in steps, in a bar of two or more Voices (step 9, Q2): an up-stem Voice's up, a
+ * down-stem Voice's down, clear of the other's notes; none in a bar of one Voice.
+ */
+export function restShift(placed: PlacedColumn | undefined): number {
+  return placed?.voiceUp === undefined ? 0 : placed.voiceUp ? VOICE_REST_SHIFT : -VOICE_REST_SHIFT;
+}
+const VOICE_REST_SHIFT = 4;
+
 /** One bar's notes on the staff. */
 /** A note by its column's place in the clip and its string. */
 export interface NoteAt {
@@ -302,13 +319,14 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, ti
     const lit = selected !== null && bar.columns.some(p => p.index >= selected[0] && p.index <= selected[1]);
     const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
     const x = wholeRestX(bar) - GLYPHS.restWhole.width * SPACE / 2;
-    return <g data-testid="staff-rest"><Glyph name="restWhole" x={x} y={stepY(score, 6)} look={look} /></g>;
+    return <g data-testid="staff-rest"><Glyph name="restWhole" x={x} y={stepY(score, 6 + restShift(bar.columns[0]))} look={look} /></g>;
   }
   const parts: ReactNode[] = [];
   const { columns: geometry, groups, groupUp, beamY } = staffBar(bar, score);
 
   for (const placed of bar.columns) {
-    const { column, x, heads } = placed;
+    const { column, heads } = placed;
+    const x = placed.x + (placed.headShift ?? 0);
     // A selected column's heads, signs, ledger lines and rest are drawn in the selection colour, as MuseScore colours selected notes.
     const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
     const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
@@ -318,11 +336,12 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, ti
     const grace = column.grace ? GRACE_SCALE : 1;
     if (isRest(column) || heads.length === 0) {
       if (column.grace) continue;
-      const restStep = value === 1 ? 6 : 4;
+      const shift = restShift(placed);
+      const restStep = (value === 1 ? 6 : 4) + shift;
       const glyph = RESTS[value];
       const rx = x - GLYPHS[glyph].width * SPACE / 2;
-      parts.push(<g key={`rest-${key}`} data-testid="staff-rest"><Glyph name={glyph} x={rx} y={stepY(score, restStep)} look={look} /></g>);
-      for (let d = 0; d < dots; d++) parts.push(<circle key={`rdot-${key}-${d}`} cx={rx + GLYPHS[glyph].width * SPACE + 4 + d * 5} cy={stepY(score, 5)} r={1.6} fill={look.ink} />);
+      parts.push(<g key={`rest-${key}`} data-testid="staff-rest" data-step={restStep}><Glyph name={glyph} x={rx} y={stepY(score, restStep)} look={look} /></g>);
+      for (let d = 0; d < dots; d++) parts.push(<circle key={`rdot-${key}-${d}`} cx={rx + GLYPHS[glyph].width * SPACE + 4 + d * 5} cy={stepY(score, 5 + shift)} r={1.6} fill={look.ink} />);
       continue;
     }
     const { up, width, xs, stemX, tip, group } = geometry.get(placed)!;
@@ -331,6 +350,8 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, ti
     const chord = ghostChord(column, heads);
     heads.forEach((h, k) => {
       const note = column.notes[h.string];
+      // Another Voice's head at the same pitch and of the same kind stands for this one (step 9, Q2).
+      if (placed.sharedHeads?.has(h.string)) return;
       const picked = (selectedNote !== null && selectedNote.index === placed.index && selectedNote.string === h.string)
         || tiedNotes.some(t => t.index === placed.index && t.string === h.string);
       const look = picked ? { ...barLook, ink: 'var(--select)' } : columnLook;

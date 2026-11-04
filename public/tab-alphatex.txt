@@ -14,8 +14,8 @@ picture: nothing has to line up in columns.
 
 Six strings, and up to four voices a track. Riffs, solos, double stops
 and strummed chords fit in one voice; a bass line held under moving notes
-may go in a second (see "Voices" below), though the page draws only the
-first for now, so give held notes as ties in voice 1 where you can. Several guitar parts may be
+goes in a second (see "Voices" below), which the page draws stems down
+under the melody. Several guitar parts may be
 written as tracks (see "Tracks" below): Frets keeps them all and shows,
 edits and plays one at a time, picked from a list over the clip.
 
@@ -98,9 +98,9 @@ more than one voice, \voice before each voice's beats, voice 1 first. A
 voice that is there fills its bar like voice 1; a bar with only voice 1
 needs no \voice. Ties, hammer-ons and slides join notes in the same voice
 only, and two voices never play one string at the same time. Frets keeps
-every voice, plays them all, and writes them back in alphaTex and Guitar
-Pro; it draws, edits and exports as an image, ASCII tab or MusicXML only
-voice 1 for now, and says so under the clip.
+every voice, draws them all (in a bar with two, voice 1 stems up and
+voice 2 down; voices 3 and 4 likewise), plays and edits them, and writes
+them in every format: ASCII tab puts every voice's frets on its one tab.
 
     \voiceMode barWise
     \ts (4 4)
@@ -607,10 +607,9 @@ the same way, so a note on Frets' staff lands where it is on the page.
 - Key and time: the key signature is \ks (major or minor as the music
   reads, \ks Eminor), the time signature \ts; an accidental lasts to the
   end of its bar.
-- Two voices (stems up and stems down at once): Frets draws only voice 1
-  for now, though it keeps and plays a second. Keep the melody in voice
-  1; where a bass note starts with a melody note, put both in one chord
-  with the melody's length, and give a held bass as ties. Use a second
-  voice (see "Voices") only where ties can't say it. Say what you did.
+- Two voices (stems up and stems down at once): the melody, stems up,
+  in voice 1, and a bass held under it, stems down, in voice 2 (see
+  "Voices"), as the book prints them. Two voices never sound one string
+  at once. Say what you did.
 - When done, tell the user to open Notation, then Staff or Both, and
   compare the staff with the printed page.

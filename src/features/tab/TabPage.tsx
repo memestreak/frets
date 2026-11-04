@@ -11,10 +11,12 @@ import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
-import { barErrors, brokenTupletMessage, emptyClip, hiddenVoicesMessage, partOf, stringClashes, titled, trackName, withPart, unevenMessage, UNTITLED, ticks, type Clip, type Part } from './clip';
+import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, titled, trackName, withPart, unevenMessage, UNTITLED, ticks, type Clip, type Part } from './clip';
+import { cursorInVoice, moveToVoice, pastesVoices, pasteVoices, perVoice, selectionInVoice, sliceVoices, spansVoices, stepAcrossVoices, voiceRange, voiceSelections } from './voices';
+import type { Hit } from './hitTest';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnAt, columnCount, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -38,7 +40,7 @@ import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail } from './TabRail';
 import { TabExportDialog } from './TabExportDialog';
-import { writeAlphaTex } from './alphatex';
+import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
@@ -70,8 +72,8 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 
 /** How far above and below the drawn clip a press still moves the cursor or the playback line, in px: about the card's margin. */
 const COLUMN_REACH = 16;
-/** The reader's warnings about Voices a paste leaves out: a hidden Voice, or two Voices on one string (`hiddenVoicesMessage`, `stringClashes`). */
-const VOICE_WARNING = /(a second voice|more voices), not drawn yet\.$|has two voices on string \d+\.$/;
+/** The reader's warning of two Voices on one string (`stringClashes`): a paste that has one is refused with its own line (step 9, Q10). */
+const CLASH_WARNING = /has two voices on string \d+\.$/;
 
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
@@ -86,6 +88,8 @@ function hasEdit(hit: Picked): boolean {
 function hasDelete(hit: Picked): boolean {
   return !((hit.kind === 'time' || hit.kind === 'key') && hit.bar === 0);
 }
+/** The tools that act on the Active voice alone, not every Voice of a selection (step 9, Q19): ties, tuplets, grace notes, Beam overrides. */
+const ACTIVE_VOICE_ONLY: ReadonlySet<ToolId> = new Set<ToolId>(['tie', 'tuplet', 'grace', 'beamBreak', 'beamJoin']);
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
@@ -116,8 +120,15 @@ export default function TabPage() {
   const opened = state.id;
   const [trackPick, setTrackPick] = useState({ opened, track: 0 });
   const track = trackPick.opened === opened ? Math.min(trackPick.track, whole.tracks.length - 1) : 0;
+  /**
+   * The Active voice (step 9, `GLOSSARY.md`), from 0: the Voice the cursor types into, picked by Alt+1–4, the
+   * Rail's Voice row or a press on its notes; back to Voice 1 when the cursor leaves the tab, or another
+   * track or arrangement opens.
+   */
+  const [voicePick, setVoicePick] = useState({ opened, track: 0, voice: 0 });
+  const voice = voicePick.opened === opened && voicePick.track === track ? voicePick.voice : 0;
   // Its edits go back into the whole clip through `dispatch`.
-  const clip = useMemo(() => partOf(whole, track), [whole, track]);
+  const clip = useMemo(() => partOf(whole, track, voice), [whole, track, voice]);
   const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action, track));
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
   const wholeWith = (part: Part): Clip => (part === clip ? whole : withPart(whole, part, track));
@@ -176,13 +187,84 @@ export default function TabPage() {
   const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
-  const editor = useEditorState({ clip, dispatch, setNotice });
+  const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });
   const {
     cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
     staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
     tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
   } = editor;
+  /** The selection Select only voice made, which holds one Voice's notes alone while it stays as it was (Q21). */
+  const [onlyVoice, setOnlyVoice] = useState<Selection | null>(null);
+  const voiceOnly = selection !== null && onlyVoice === editor.selectionAsSet;
+  /**
+   * Another Voice made active (step 9, Q5, Q8): the cursor moves to the same time in it, and a selection to
+   * that Voice's notes at its time, unless `at` says where they go (a press on its note, a move into it).
+   */
+  const chooseVoice = (next: number, at?: { cursor: Cursor; selection: Selection | null }) => {
+    if (next === voice && !at) return;
+    const to = partOf(whole, track, next);
+    setVoicePick({ opened, track, voice: next });
+    setCursor(at ? at.cursor : cursorInVoice(clip, to, cursor));
+    setSelection(at ? at.selection : selection ? selectionInVoice(clip, selection, next) : null);
+    setPicked(null);
+    setCursorAt(cursor, 0);
+  };
+  /** A press on another Voice's note or rest (Q5): it is picked, and its Voice made active. */
+  const pickVoice = (next: number, hit: Hit) => {
+    chooseVoice(next, { cursor: { bar: hit.bar, column: hit.column, string: hit.string }, selection: null });
+    setColumnOnly(false);
+    setStaffPitch(null);
+    editorRef.current?.focus();
+  };
+  /**
+   * Alt+1–4 (Q8) or the menu's Move to voice: the picked or selected notes go into Voice `to` (Q11), stay
+   * picked or selected there, and it becomes active. False when there is nothing to move.
+   */
+  const moveToVoiceKey = (to: number): boolean => {
+    const moved = moveToVoice(whole, track, clip, { cursor, selection, columnOnly }, to);
+    if (!moved) return false;
+    const done = editor.commitVoices(moved.clip, moved.part, moved.cursor, selection ? moved.selection : null);
+    if (!done) return true;
+    setVoicePick({ opened, track, voice: to });
+    if (!selection) setColumnOnly(columnOnly);
+    return true;
+  };
+  /** Alt+1–4: with notes picked or selected in normal mode, they move into that Voice; else it becomes active. */
+  const voiceKey = (to: number) => {
+    const picksNotes = !inputMode && (selection !== null || (!columnOnly && noteAt(clip, cursor) !== null));
+    if (picksNotes && moveToVoiceKey(to)) return;
+    chooseVoice(to);
+  };
+  /** Select only voice ›: the selection keeps Voice `only`'s notes, and it becomes active (Q21). */
+  const selectOnlyVoice = (only: number) => {
+    if (!selection) return;
+    const kept = selectionInVoice(clip, selection, only);
+    if (!kept) return;
+    chooseVoice(only, { cursor: { ...cursor, ...placeOf(partOf(whole, track, only), Math.max(kept.anchor, kept.focus)) }, selection: kept });
+    setOnlyVoice(kept);
+  };
+  /**
+   * An edit of a selection run on every Voice it covers, as one undo step (Q19): Delete, cut, the Marks, the
+   * length keys. False when the selection holds the Active voice's notes alone, which the edit itself takes.
+   */
+  const everyVoice = (edit: (part: Part, selection: Selection) => Part): boolean => {
+    if (!selection || voiceOnly || !spansVoices(clip, selection)) return false;
+    const next = perVoice(whole, track, clip, selection, edit);
+    editor.commitVoices(next, partOf(next, track, voice), cursor, selection, true);
+    return true;
+  };
+  /** Alt+← →: the next note or rest by time in whichever Voice comes first (Q13), else the Active voice's next element. */
+  const stepElement = (step: 1 | -1) => {
+    const across = picked ? null : stepAcrossVoices(clip, cursor, step);
+    if (!across) return picking.stepToElement(step);
+    const to = partOf(whole, track, across.voice);
+    const column = to.bars[across.bar].columns[across.column];
+    const string = column.notes.findIndex(Boolean);
+    chooseVoice(across.voice, { cursor: { bar: across.bar, column: across.column, string: string >= 0 ? string : cursor.string }, selection: null });
+    setColumnOnly(string < 0);
+    setStaffPitch(null);
+  };
   /** Where the Tuplet panel `;` opened is, in the tab's units; null while it is shut (step 6, Q16). */
   const [tupletPanel, setTupletPanel] = useState<{ x: number; y: number } | null>(null);
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
@@ -274,6 +356,7 @@ export default function TabPage() {
       playback.stop();
       setEditing(false);
       setPicked(null);
+      chooseVoice(0);
     }
     setView(next);
   };
@@ -457,6 +540,8 @@ export default function TabPage() {
     }
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
+      // On a selection, a Mark goes on every Voice's notes in its time (Q19).
+      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) return;
       commitKeepingMark(applyTool(clip, target, id));
     }
   };
@@ -539,8 +624,8 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement, moveSpanEnd: picking.moveSpanEnd,
-    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -582,6 +667,8 @@ export default function TabPage() {
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
+    // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).
+    chooseVoice(0);
   };
 
   /**
@@ -590,15 +677,27 @@ export default function TabPage() {
    */
   const putAtCursor = (put: Clip, insert: boolean) => {
     const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
+    // Several Voices: each goes into its own Voice, from the cursor's time (step 9, Q20).
+    if (pastesVoices(put)) {
+      const made = pasteVoices(whole, track, clip, at, put, insert);
+      const run = voiceRange(made.part, voice, [made.from, made.to]);
+      const end = run ? placeOf(made.part, run[1]) : at;
+      const done = editor.commitVoices(made.clip, made.part, { ...cursor, ...end }, inputMode || !run ? null : { anchor: run[0], focus: run[1] });
+      if (done && !inputMode && run) startRegion();
+      setView('tab');
+      return done;
+    }
     const pasted = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
-    if (inputMode) commit(pasted.clip, pasted.cursor, null);
+    let done: boolean;
+    if (inputMode) done = commit(pasted.clip, pasted.cursor, null);
     else {
       // In normal mode what was put in is selected, as MuseScore leaves a paste (Jeremy, 2026-10-31).
       const start = isEmpty(clip) ? 0 : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
-      commit(pasted.clip, pasted.cursor, { anchor: start, focus: indexOf(pasted.clip, pasted.cursor.bar, pasted.cursor.column) });
-      startRegion();
+      done = commit(pasted.clip, pasted.cursor, { anchor: start, focus: indexOf(pasted.clip, pasted.cursor.bar, pasted.cursor.column) });
+      if (done) startRegion();
     }
     setView('tab');
+    return done;
   };
 
   /** Puts pasted tab over the time from the cursor (or in before it, `insert`), or says why it can't. */
@@ -608,10 +707,9 @@ export default function TabPage() {
       setNotice({ tone: 'error', lines: result.errors });
       return;
     }
-    putAtCursor(result.clip, insert);
-    // A paste takes Voice 1 (`docs/specs/2026-11-03-tab-voices-design.md`): it says so, and not what the other Voices hold.
-    const voices = result.clip.tracks[0].bars.some(bar => bar.voices.length > 1);
-    const lines = voices ? ['Pasted voice 1 only.', ...result.warnings.filter(line => !VOICE_WARNING.test(line))] : result.warnings;
+    // A paste that would sound one string in two Voices is refused, and says so itself (step 9, Q10).
+    if (!putAtCursor(result.clip, insert)) return;
+    const lines = result.warnings.filter(line => !CLASH_WARNING.test(line));
     if (lines.length > 0) setNotice({ tone: 'info', lines });
   };
   const pasteText = useEffectEvent((text: string, insert: boolean) => pasteTab(text, insert));
@@ -621,10 +719,16 @@ export default function TabPage() {
     const range = copiedRange();
     if (!range || !e.clipboardData) return;
     e.preventDefault();
-    e.clipboardData.setData('text/plain', copyText(clip, range));
+    // Every Voice of the selection, written with \voice when there are several (step 9, Q20).
+    // A picked note, or a selection of one Voice, is copied by itself.
+    e.clipboardData.setData('text/plain', writePart(selection && !voiceOnly ? sliceVoices(clip, range) : sliceClip(clip, range)));
     if (!cut) return;
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
     // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
+    if (everyVoice((part, run) => clearToRests(part, run).clip)) {
+      startRegion();
+      return;
+    }
     const cleared = clearToRests(clip, { anchor: range[0], focus: range[1] });
     commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     startRegion();
@@ -694,7 +798,7 @@ export default function TabPage() {
   const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   // So are Voices the page doesn't draw yet, and two Voices on one string (`docs/specs/2026-11-03-tab-voices-design.md`).
-  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip), hiddenVoicesMessage(clip), ...stringClashes(clip)].filter(Boolean).join(' ');
+  const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip), ...stringClashes(clip)].filter(Boolean).join(' ');
 
   // In normal mode a column with no note picked is lit as a selection is, never boxed: arrowing onto a rest,
   // as MuseScore does, lights the rest (Jeremy, 2026-10-31: the box came back after Delete and the arrows).
@@ -720,11 +824,16 @@ export default function TabPage() {
     tied: JSON.parse(tiedKey) as { index: number; string: number }[],
   }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode, cursorAt, tiedKey]);
   const errors = useMemo(() => barErrors(clip), [clip]);
+  // A selection covers every Voice in its time (Q12), drawn selected in each; not one Select only voice made.
+  const shownVoiceSelections = useMemo(
+    () => (shownSelection && !voiceOnly ? voiceSelections(clip, shownSelection) : undefined),
+    [clip, shownSelection, voiceOnly],
+  );
   const clipHandlers = useStableHandlers({
     onPick: picking.onPick, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
     onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
-    onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn,
+    onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
     onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
@@ -738,6 +847,15 @@ export default function TabPage() {
     },
   });
 
+  /** The Rail's Voice row (Q5): that Voice made active at the cursor's time, the keys back on the tab. */
+  const pressVoice = (v: number) => {
+    if (view !== 'tab') return;
+    editorRef.current?.focus();
+    chooseVoice(v);
+  };
+  /** Whether Voice `v` has notes in the cursor's bar, for its button's tip (Q17). */
+  const voicePresentAtCursor = (v: number) => v === voice ? clip.bars[cursor.bar]?.columns.some(c => c.notes.some(Boolean)) ?? false
+    : v === 0 || (clip.bars[cursor.bar]?.otherVoices?.some(o => o.voice === v) ?? false);
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
     <TabPalette
@@ -754,7 +872,8 @@ export default function TabPage() {
       onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
       inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined}
-      grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid} />
+      grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid}
+      voices={input ? { active: editing ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
   );
 
   return (
@@ -882,7 +1001,7 @@ export default function TabPage() {
                       highlight={highlight}
                       shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook}
                       picked={editing ? picked : null}
-                      errors={errors}
+                      errors={errors} mutedVoices={editing} voiceSelections={shownVoiceSelections}
                     />
                   </HoverTips>
                 </div>
@@ -954,6 +1073,7 @@ export default function TabPage() {
               setEditing(false);
               setPicked(null);
               setColumnOnly(false);
+              chooseVoice(0);
             }
             setMenu(null);
           }}
@@ -962,6 +1082,15 @@ export default function TabPage() {
             ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit!) }] : []),
             ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
           ] : [
+            // Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
+            ...(!inputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
+              label: 'Move to voice', onSelect: () => {},
+              items: [0, 1, 2, 3].filter(v => v !== voice).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => { moveToVoiceKey(v); } })),
+            }] : []),
+            ...(selection && !voiceOnly && spansVoices(clip, selection) ? [{
+              label: 'Select only voice', onSelect: () => {},
+              items: [voice, ...voiceSelections(clip, selection).keys()].sort((a, b) => a - b).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => selectOnlyVoice(v) })),
+            }] : []),
             // The bar under a right-click already has the cursor: the press put it there.
             { label: 'Insert bar before', onSelect: () => addBar('before') },
             { label: 'Insert bar after', onSelect: () => addBar('after') },

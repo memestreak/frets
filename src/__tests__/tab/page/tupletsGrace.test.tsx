@@ -228,11 +228,12 @@ describe('`,` and the Rest tool (Q12, Q13)', () => {
 });
 
 describe('the keys (Q14, Q16–Q18)', () => {
-  it('Alt+3, Shift+G and R do nothing; Alt+/ steps the slide as `/` did', async () => {
+  // Alt+3 is step 9's: it moves the picked note into Voice 3.
+  it('Shift+G and R do nothing; Alt+/ steps the slide as `/` did', async () => {
     const TWO = '5.1.4 7.1.4 r.2 |';
     await open(TWO);
     press(TWO, 0);
-    keys({ key: '£', altKey: true, code: 'Digit3' }, { key: 'G', shiftKey: true }, 'r');
+    keys({ key: 'G', shiftKey: true }, 'r');
     expect(alphaTex()).toBe(TWO);
     press(TWO, 1);
     keys({ key: '÷', altKey: true, code: 'Slash' });

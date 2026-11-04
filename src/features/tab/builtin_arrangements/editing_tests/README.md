@@ -39,3 +39,6 @@ PR, or removes the file and its row when the behaviour is gone.
 | `tuplet-entry.atex` | Tuplet entry: a triplet typed note by note, the Tuplet button lit while it is on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `tuplet-on-a-note.atex` | A tuplet on one picked note takes its time, the bar staying full | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `typed-note-ties-over.atex` | A note typed in note input past the bar line is tied over it | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
+| `voice-move.atex` | Alt+2 moves selected notes into voice 2; Select only voice › keeps one voice of a selection | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |
+| `voice-typing.atex` | N, Alt+2 and a fret make a second voice, Delete on its last note takes it away; a fret on a string voice 1 is sounding is refused | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |
+| `voices-drawn.atex` | A bass under a melody: stems by voice on the staff and the tab, notes starting together lined up, the other voice grey while editing | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |

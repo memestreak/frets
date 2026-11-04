@@ -18,7 +18,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, groups, className, grid, gridValue, onGrid }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, groups, className, grid, gridValue, onGrid, voices }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -46,6 +46,11 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   gridValue?: NoteValue;
   /** A grid picked in the button's panel, or null for Note length. */
   onGrid?: (grid: GridValue | null) => void;
+  /**
+   * The Voice row under Input (step 9, Q5): the Active voice lit (none while the tab hasn't the keys), a
+   * press making a Voice active, and whether each Voice has notes at the cursor, for its tip (Q17).
+   */
+  voices?: { active: number | null; onVoice: (voice: number) => void; present: (voice: number) => boolean };
 }) {
   const shown = groups ? TOOL_GROUPS.filter(group => groups.includes(group.label)) : TOOL_GROUPS;
   return (
@@ -66,6 +71,25 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
                 <path d="M5 19l1-4L16 5l3 3L9 18l-4 1zM14 7l3 3" strokeLinejoin="round" />
               </svg>
             </button>
+          </div>
+        </div>
+      )}
+      {voices && (
+        <div className="tab-palette-group" role="group" aria-label="Voice">
+          <span className="tab-palette-label" aria-hidden="true">Voice</span>
+          <div className="tab-palette-tools">
+            {[0, 1, 2, 3].map(v => (
+              <button
+                key={v} type="button" className="btn btn-secondary btn-toggle tab-tool tab-voice-tool" aria-label={`Voice ${v + 1}`}
+                aria-pressed={!disabled && voices.active === v} disabled={disabled}
+                data-tip={`Voice ${v + 1} (Alt+${v + 1})${voices.present(v) ? '' : ', type to add notes in it'}`}
+                // Keep the focus, and so the cursor, on the tab.
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => voices.onVoice(v)}
+              >
+                {v + 1}
+              </button>
+            ))}
           </div>
         </div>
       )}

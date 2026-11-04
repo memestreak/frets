@@ -9,7 +9,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
@@ -482,7 +482,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   }
   clip.tracks.forEach((_, t) => {
     const part = partOf(clip, t);
-    for (const line of [unevenMessage(part), hiddenVoicesMessage(part), ...stringClashes(part)]) {
+    for (const line of [unevenMessage(part), ...stringClashes(part)]) {
       if (line) warnings.push(clip.tracks.length > 1 ? `${trackName(clip, t)}: ${line}` : line);
     }
   });

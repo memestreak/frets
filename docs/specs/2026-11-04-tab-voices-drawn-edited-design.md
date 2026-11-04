@@ -275,3 +275,35 @@ page), with the existing round trips:
   and the import warnings; the string clash and short-voice sentences
   stay.
 - The `?` overlay lists Alt+1–4 in both groups.
+
+## Settled while building
+
+- **Accidentals are worked out Voice by Voice** in a bar, as Dorico and
+  MuseScore do; where Voices start together their heads still line up,
+  each Voice leaving room for the widest accidental at that moment.
+- **One copied Voice pastes into the Active voice.** A selection whose
+  notes are all in one Voice is copied as plain alphaTex (no `\voice`),
+  so it pastes wherever the cursor's Voice is; two or more Voices keep
+  their numbers (Q20).
+- **Alt+3 is Move to voice 3**, no longer one of the keys that do
+  nothing on a selection (step 6's test is changed to match).
+- **The Bend, Ottava and Whammy panels act on the Active voice only**,
+  as the ties and tuplets do: each is set on one note or run.
+- **Delete with the cursor off the tab** (on the playback line) acts on
+  the Active voice only, since there is no selection to cover the
+  other Voices.
+- **The built-in with `\voice` is the `voices-drawn` editing test**, so
+  the round-trip tests read and write a drawn second Voice; no song
+  arrangement was added.
+- **A Select only voice selection lapses after an edit**: the next
+  selection covers every Voice again.
+- **A right-click inside the selection keeps it** for the menu, as
+  Dorico, MuseScore and GP8 do; outside it, it picks what it lands on,
+  as before. Without this the menu's Move to voice and Select only voice
+  could only be reached on a selection from the keys (Shift+F10).
+- **Menus light one item at a time:** a hover moves the keys' focus to
+  the item, an open submenu keeps its item lit, and a hover on a plain
+  item shuts the submenu.
+- **Moving a note into a Voice that has a note there writes over it**,
+  as a paste does (Q11): moving Voice 1's first quarter into a Voice 2
+  that holds a half note there leaves Voice 2 a quarter and a rest.

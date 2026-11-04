@@ -12,6 +12,8 @@ everything Frets doesn't draw yet, and nothing in it has to line up.
 One voice only: every column has one duration. Riffs, solos, double stops
 and strummed chords fit; fingerstyle with a bass line held under moving
 notes does not (write the moving part and give held notes as ties).
+Frets writes ASCII tab of a clip with several voices with every voice's
+frets on the one tab, as it reads them: one voice.
 
 
 1. THE WHOLE TEXT

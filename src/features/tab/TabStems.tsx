@@ -16,6 +16,19 @@ export function Stems({ bar, rows, look: barLook, selected = null, lit = () => f
   /** The selected run of columns (places in the clip): their stems, flags, dots and rests, and a beam all of whose notes are in it, are drawn in `--select` (issue #276). */
   selected?: [number, number] | null;
 }) {
+  // In a bar of two or more Voices the up-stem Voices' stems go over the tab (step 9, Q4): drawn as
+  // under it, mirrored across the tab, with the rests and numbers turned back upright.
+  const over = bar.columns.some(p => p.voiceUp === true);
+  const upright = (y: number) => (over ? `translate(0 ${2 * y}) scale(1 -1)` : undefined);
+  const drawn = (<StemsUnder bar={bar} rows={rows} look={barLook} selected={selected} lit={lit} upright={upright} />);
+  return over
+    ? <g transform={`translate(0 ${rows.staffTop + rows.staffBottom}) scale(1 -1)`} data-testid="stems-over">{drawn}</g>
+    : drawn;
+}
+
+function StemsUnder({ bar, rows, look: barLook, selected, lit, upright }: {
+  bar: PlacedBar; rows: Rows; look: TabLook; lit: MarkLit; selected: [number, number] | null; upright: (y: number) => string | undefined;
+}) {
   const parts: ReactNode[] = [];
   const groups = beamGroups(bar);
   const grouped = new Map<Column, PlacedColumn[]>();
@@ -29,7 +42,7 @@ export function Stems({ bar, rows, look: barLook, selected = null, lit = () => f
   const inRun = (p: PlacedColumn) => selected !== null && p.index >= selected[0] && p.index <= selected[1];
   const litLook = { ...barLook, ink: 'var(--select)' };
   // A Whole-bar rest: one whole rest centred in the bar, as on the staff.
-  if (bar.wholeRest) return <Rest x={wholeRestX(bar)} y={rows.stemTop + 10} value={1} look={bar.columns.some(inRun) ? litLook : barLook} />;
+  if (bar.wholeRest) return <g transform={upright(rows.stemTop + 10)}><Rest x={wholeRestX(bar)} y={rows.stemTop + 10} value={1} look={bar.columns.some(inRun) ? litLook : barLook} /></g>;
   for (const placed of bar.columns) {
     const { column, x } = placed;
     // A selected column's stem, flags, dots and rest are drawn in the selection colour, as on the staff.
@@ -48,7 +61,7 @@ export function Stems({ bar, rows, look: barLook, selected = null, lit = () => f
       }
     }
     if (isRest(column)) {
-      parts.push(<Rest key={`rest-${key}`} x={x} y={rows.stemTop + 10} value={value} look={look} />);
+      parts.push(<g key={`rest-${key}`} transform={upright(rows.stemTop + 10)}><Rest x={x} y={rows.stemTop + 10} value={value} look={look} /></g>);
     } else if (value === 2) {
       parts.push(<line key={`stem-${key}`} x1={x} x2={x} y1={rows.stemBottom - 12} y2={rows.stemBottom} stroke={look.ink} strokeWidth={1.3} />);
     } else if (value >= 4) {
@@ -115,7 +128,7 @@ export function Stems({ bar, rows, look: barLook, selected = null, lit = () => f
           d={`M${x0} ${y - 4} V${y} H${Math.max(x0, mid - gap)} M${Math.min(x1, mid + gap)} ${y} H${x1} V${y - 4}`}
           fill="none" stroke={ink} strokeWidth={1} data-testid="tuplet-bracket"
         />
-        <text x={mid} y={rows.tuplet} fontSize={10} fontStyle="italic" fontWeight={700} fill={ink} textAnchor="middle" data-testid="tuplet">{label}</text>
+        <text x={mid} y={rows.tuplet} transform={upright(rows.tuplet - 4)} fontSize={10} fontStyle="italic" fontWeight={700} fill={ink} textAnchor="middle" data-testid="tuplet">{label}</text>
       </g>,
     );
   }

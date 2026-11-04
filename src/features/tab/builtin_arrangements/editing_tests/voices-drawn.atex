@@ -1,0 +1,11 @@
+\title "Every voice is drawn: a bass held under a melody"
+\voiceMode barWise
+\ts (4 4)
+\voice
+  0.1.8{txt "Both view: the melody (voice 1) stems up, the bass (voice 2) stems down. Notes that start together line up"}
+  3.1.8 2.2.8 0.2.8 3.2.4 2.3.4 \voice 0.6.2 3.5.2 |
+\voice
+  0.1.4{txt "Tab view: voice 1's stems go over the tab, voice 2's under it. Press any note: the other voice turns grey"}
+  r.4 3.2.2 \voice 0.6.4 0.6.4 2.4.4 r.4 |
+0.1.1{txt "Voice 1 alone: its stems under the tab, as always"} |
+

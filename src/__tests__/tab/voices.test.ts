@@ -6,9 +6,9 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  barErrors, hiddenVoicesMessage, parseClip, partOf, stringClashes, unevenMessage, withPart, type Clip, type Column,
+  barErrors, parseClip, partOf, stringClashes, unevenMessage, withPart, type Clip, type Column,
 } from '@/features/tab/clip';
-import { copyText, deleteColumns } from '@/features/tab/editing';
+import { deleteColumns } from '@/features/tab/editing';
 import { clearToRests } from '@/features/tab/noteEdits';
 import { writeGuitarProWith } from '@/features/tab/guitarPro';
 import { multiRests } from '@/features/tab/layout';
@@ -55,13 +55,11 @@ describe('reading Voices', () => {
     expect(!result.ok && result.errors).toEqual(['Frets reads up to 4 voices; this has 5.']);
   });
 
-  it('warns of a hidden Voice, naming its bars as runs', () => {
+  it('no longer warns of a second Voice: every Voice is drawn (step 9, Q15)', () => {
     const second = read('\\voiceMode barWise \\ts (4 4) 1.1.1 | 1.1.1 | \\voice 1.1.1 \\voice 0.6.1 | \\voice 1.1.1 \\voice 0.6.1 | 1.1.1 |');
-    expect(second.warnings).toEqual(['Bars 3–4 have a second voice, not drawn yet.']);
-    const one = read('\\voiceMode barWise \\ts (4 4) \\voice 1.1.1 \\voice 0.6.1 |');
-    expect(one.warnings).toEqual(['Bar 1 has a second voice, not drawn yet.']);
+    expect(second.warnings).toEqual([]);
     const more = read('\\voiceMode barWise \\ts (4 4) \\voice 1.1.1 \\voice 0.6.1 \\voice 0.5.1 | 1.1.1 |');
-    expect(more.warnings).toEqual(['Bar 1 has more voices, not drawn yet.']);
+    expect(more.warnings).toEqual([]);
   });
 
   it('warns of two Voices on one string at once, strings numbered as tab numbers them', () => {
@@ -152,14 +150,13 @@ describe('a part is one Voice', () => {
     expect(gone.tracks[0].bars).toHaveLength(1);
   });
 
-  it('leaves Voice 2 alone on cut and Delete, pulls it back with Ctrl/⌘+Delete, and copies Voice 1 only', () => {
+  it('leaves Voice 2 alone on cut and Delete of Voice 1 by itself, and pulls it back with Ctrl/⌘+Delete', () => {
     const part = partOf(clip);
     const cut = clearToRests(part, { anchor: 0, focus: 2 }).clip;
     expect(withPart(clip, cut).tracks[0].bars[0].voices[1]).toEqual(clip.tracks[0].bars[0].voices[1]);
     // Taking time moves every Voice of the Track, so Voice 2 keeps its place against Voice 1 (step 4, Q2).
     const deleted = deleteColumns(part, [0, 1]).clip;
     expect(withPart(clip, deleted).tracks[0].bars[0].voices.map(shown)).toEqual(['r:2 1.1:2', '0.6:2 r:2']);
-    expect(copyText(part, [0, 2])).not.toMatch(/\\voice/);
   });
 
   it('gathers a bar into a multi-bar rest only when every Voice rests in it', () => {
@@ -167,8 +164,7 @@ describe('a part is one Voice', () => {
     expect([...multiRests(partOf(rests))]).toEqual([[0, 2], [3, 2]]);
   });
 
-  it('says what is hidden for the part shown', () => {
-    expect(hiddenVoicesMessage(partOf(clip))).toBe('Bar 1 has a second voice, not drawn yet.');
+  it('finds no two Voices on one string in the part shown', () => {
     expect(stringClashes(partOf(clip))).toEqual([]);
   });
 });

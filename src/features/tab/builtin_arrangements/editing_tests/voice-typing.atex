@@ -1,0 +1,6 @@
+\title "Alt+2 and typing make a second voice"
+\ts (4 4)
+5.2.2{txt "Tab view: press this 5, then N, Alt+2 (a small 2 shows by the cursor), ↓ to string 5 and type 3"}
+  7.2.2{txt "A 3 in voice 2 under the 5, its stem down, rests after it. Esc, press the 3, Delete: voice 2 goes from the bar"} |
+5.2.1{txt "Tab view: press this 5, then N, Alt+2 and type 7 on string 2: nothing is typed, and the line under the tab says String 2 is sounding in voice 1 there"} |
+

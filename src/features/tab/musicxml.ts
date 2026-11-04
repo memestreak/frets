@@ -6,7 +6,7 @@
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
 import {
-  barNumber, barTicks, bendCarries, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
+  barNumber, barTicks, bendCarries, hasNotes, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
   beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
   type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
@@ -275,12 +275,16 @@ interface TrackContext {
   joins: Joins;
   carries: Map<Note, 'hold' | 'release'>;
   divisionTicks: number;
+  /** The track's Voice this context writes, from 0: `<voice>` 1–4 on the staff and 5–8 on the tab (step 9, Q14). */
+  voice: number;
+  /** In a bar where two or more Voices are written, the way this Voice's stems go: Voices 1 and 3 up, 2 and 4 down. */
+  stems: Set<number>;
 }
 
 /** One `note` element: a note of a column, or its rest, on staff 1 (notation) or 2 (tab). */
 function noteXml(ctx: TrackContext, column: Column, s: number | null, opts: {
   staff: 1 | 2; key: Key; chord: boolean; first: boolean; beams: XmlNode[]; accidental?: Accidental | null;
-  tuplet?: 'start' | 'stop' | 'both';
+  tuplet?: 'start' | 'stop' | 'both'; bar: number;
 }): XmlNode {
   const { staff, key } = opts;
   const note = s === null ? null : column.notes[s]!;
@@ -344,16 +348,22 @@ function noteXml(ctx: TrackContext, column: Column, s: number | null, opts: {
     !column.grace && text('duration', ticks(duration) / ctx.divisionTicks),
     note?.tie && el('tie', { type: 'stop' }),
     note && ctx.joins.tieStarts.has(note) && el('tie', { type: 'start' }),
-    text('voice', staff === 1 ? 1 : 5),
+    text('voice', voiceNumber(ctx, staff)),
     text('type', TYPE_NAMES[duration.value]),
     ...Array.from({ length: duration.dots }, () => el('dot')),
     opts.accidental !== undefined && opts.accidental !== null && text('accidental', ACCIDENTAL_NAMES[opts.accidental]),
     duration.tuplet && el('time-modification', {}, text('actual-notes', duration.tuplet), text('normal-notes', spanOf(duration))),
+    note && staff === 1 && ctx.stems.has(opts.bar) && text('stem', ctx.voice % 2 === 0 ? 'up' : 'down'),
     head,
     text('staff', staff),
     ...(opts.first ? opts.beams : []),
     notations.length > 0 && el('notations', {}, ...notations),
   );
+}
+
+/** A note's `<voice>`: the track's Voice from 1 on the staff, from 5 on the tab. */
+function voiceNumber(ctx: TrackContext, staff: 1 | 2): number {
+  return ctx.voice + (staff === 1 ? 1 : 5);
 }
 
 /**
@@ -393,7 +403,7 @@ function staffNotes(ctx: TrackContext, b: number, staff: 1 | 2, between?: (k: nu
   const time = timeAt(part, b);
   const key = keyAt(part, b);
   if (bar.columns.length === 0 || (isWholeBarRest(part, b) && bar.columns.every(plainRestColumn))) {
-    return [el('note', {}, el('rest', { measure: 'yes' }), text('duration', barTicks(time) / ctx.divisionTicks), text('voice', staff === 1 ? 1 : 5), text('staff', staff))];
+    return [el('note', {}, el('rest', { measure: 'yes' }), text('duration', barTicks(time) / ctx.divisionTicks), text('voice', voiceNumber(ctx, staff)), text('staff', staff))];
   }
   const beams = beamsOf(bar, time, beatGroupsAt(part, b));
   const tuplets = new Map<number, 'start' | 'stop' | 'both'>();
@@ -409,7 +419,7 @@ function staffNotes(ctx: TrackContext, b: number, staff: 1 | 2, between?: (k: nu
     strings.forEach((s, i) => {
       const note = s === null ? null : column.notes[s];
       out.push(noteXml(ctx, column, s, {
-        staff, key, chord: i > 0, first: i === 0, beams: beams[k], tuplet: tuplets.get(k),
+        staff, key, chord: i > 0, first: i === 0, beams: beams[k], tuplet: tuplets.get(k), bar: b,
         accidental: note ? accidentals.get(note) : undefined,
       }));
     });
@@ -454,17 +464,23 @@ function lineStarts(part: Part): Set<number> {
 }
 
 function partXml(clip: Clip, t: number, divisions: number): XmlNode {
-  const part = partOf(clip, t);
-  const ctx: TrackContext = {
-    part, open: writtenStrings(part.tuning), joins: joinsOf(part), carries: bendCarries(part), divisionTicks: WHOLE / 4 / divisions,
-  };
+  const track = clip.tracks[t];
+  // The Voices with notes in each bar: Voice 1 always, the others where they are present (step 9, Q14).
+  const present = track.bars.map(bar => bar.voices.flatMap((columns, v) => (v === 0 || hasNotes(columns) ? [v] : [])));
+  const stems = new Set(present.flatMap((voices, b) => (voices.length > 1 ? [b] : [])));
+  const voices = [...new Set(present.flat())].sort((a, c) => a - c).map(v => {
+    const part = partOf(clip, t, v);
+    const ctx: TrackContext = {
+      part, open: writtenStrings(part.tuning), joins: joinsOf(part), carries: bendCarries(part), divisionTicks: WHOLE / 4 / divisions, voice: v, stems,
+    };
+    return { voice: v, part, ctx, columns: part.bars.flatMap(bar => bar.columns), flat: 0 };
+  });
+  const { part } = voices[0];
   // Tempos, sections and "Free time" belong to the whole score, so the first part alone carries them.
   const scoreMarks = t === 0;
   const rests = multiRests(part);
   const lines = lineStarts(part);
   const shift = tuningShift(part.tuning);
-  const columns = part.bars.flatMap(bar => bar.columns);
-  let flat = 0;
 
   const measures = part.bars.map((bar, b) => {
     const time = timeAt(part, b);
@@ -510,9 +526,10 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
       if (startsFreeTime(part, b)) children.push(direction('above', words('Free time')));
     }
 
-    // Words, chord names and lines over runs, before and after the columns they belong to.
-    const between = (k: number, when: 'before' | 'after'): XmlNode[] => {
-      const column = bar.columns[k];
+    // Words, chord names and lines over runs, before and after the columns they belong to, in each Voice.
+    const between = (voice: (typeof voices)[number]) => (k: number, when: 'before' | 'after'): XmlNode[] => {
+      const { columns, flat } = voice;
+      const column = voice.part.bars[b].columns[k];
       const at = flat + k;
       const out: XmlNode[] = [];
       for (const mark of RUN_MARKS) {
@@ -528,10 +545,15 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
       }
       return out;
     };
-    children.push(...staffNotes(ctx, b, 1, between));
-    children.push(el('backup', {}, text('duration', barDuration(ctx, b))));
-    children.push(...staffNotes(ctx, b, 2));
-    flat += bar.columns.length;
+    // Each Voice present on the staff, then on the tab, backing up over the bar between them.
+    const here = voices.filter(v => present[b].includes(v.voice));
+    for (const staff of [1, 2] as const) {
+      here.forEach((voice, i) => {
+        if (staff === 2 || i > 0) children.push(el('backup', {}, text('duration', barDuration(here[i === 0 ? here.length - 1 : i - 1].ctx, b))));
+        children.push(...staffNotes(voice.ctx, b, staff, staff === 1 ? between(voice) : undefined));
+      });
+    }
+    for (const voice of voices) voice.flat += voice.part.bars[b].columns.length;
 
     const last = b === part.bars.length - 1;
     const style = bar.repeatEnd !== undefined || last ? 'light-heavy' : bar.doubleBar ? 'light-light' : bar.freeTime ? 'dashed' : null;

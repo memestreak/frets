@@ -53,7 +53,8 @@ export function staffBar(bar: PlacedBar, score: ScoreRows): StaffBarGeometry {
   const groupUp = new Map<PlacedColumn[], boolean>();
   const beamY = new Map<PlacedColumn[], number>();
   for (const g of groups) {
-    const up = stemUpFor(g.flatMap(p => p.heads).sort((a, b) => a.step - b.step));
+    // In a bar of two or more Voices each Voice's stems take its own side (step 9, Q2).
+    const up = g[0].voiceUp ?? stemUpFor(g.flatMap(p => p.heads).sort((a, b) => a.step - b.step));
     groupUp.set(g, up);
     const ends = g.filter(p => p.heads.length > 0).map(p => (up
       ? stepY(score, p.heads[p.heads.length - 1].step + STEM_STEPS)
@@ -62,7 +63,8 @@ export function staffBar(bar: PlacedBar, score: ScoreRows): StaffBarGeometry {
   }
   const columns = new Map<PlacedColumn, StaffColumn>();
   for (const placed of bar.columns) {
-    const { column, heads, x } = placed;
+    const { column, heads } = placed;
+    const x = placed.x + (placed.headShift ?? 0);
     if (isRest(column) || heads.length === 0) continue;
     const g = groupOf.get(placed) ?? null;
     const group = g && g.length > 1 ? g : null;
