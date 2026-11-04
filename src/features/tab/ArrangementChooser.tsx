@@ -500,7 +500,10 @@ export function ArrangementChooser({
             }
           }}
         >
-          {section && <span className={`tab-chooser-fold${closed[section] ? ' tab-chooser-folded' : ''}`}><ChevronDownIcon /></span>}
+          {/* A folder's own folders keep its chevron's room empty, so each sits a step in from its parent. */}
+          {section
+            ? <span className={`tab-chooser-fold${closed[section] ? ' tab-chooser-folded' : ''}`}><ChevronDownIcon /></span>
+            : <span className="tab-chooser-fold" aria-hidden="true" />}
           <FolderIcon />
           <span className="tab-row-text">{name}</span>
         </button>
