@@ -119,6 +119,11 @@ starts in it. Notes are entered in Note input.
 The Tab page's mode for entering notes, turned on and off with N or the
 pencil; Esc goes back to Normal mode.
 
+**Phrase**:
+A short stretch of music with a shape of its own, such as a riff, a
+fill or a solo line. Say phrase, riff or line.
+_Avoid_: lick
+
 **Pickup bar**:
 A first bar shorter than its time signature on purpose, written `\ac`
 in alphaTex. No other bar is short.

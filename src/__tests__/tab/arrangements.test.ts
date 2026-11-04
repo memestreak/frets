@@ -17,13 +17,13 @@ describe('arrangements', () => {
   it('stores a clip under its own key, listing it by its last change', () => {
     const riff = { ...emptyClip(), name: 'Riff' };
     let library = storeArrangement(EMPTY_LIBRARY, 'a', riff, 10);
-    library = storeArrangement(library, 'b', { ...riff, name: 'Lick' }, 20);
-    expect(library.items.map(i => i.name)).toEqual(['Lick', 'Riff']);
+    library = storeArrangement(library, 'b', { ...riff, name: 'Line' }, 20);
+    expect(library.items.map(i => i.name)).toEqual(['Line', 'Riff']);
     // An older change goes back where it was (an undone delete).
     library = storeArrangement(library, 'c', { ...riff, name: 'Old' }, 15);
     expect(library.items.map(i => i.id)).toEqual(['b', 'c', 'a']);
     expect(loadArrangement('a')?.name).toBe('Riff');
-    expect(localStorage.getItem(arrangementKey('b'))).toContain('Lick');
+    expect(localStorage.getItem(arrangementKey('b'))).toContain('Line');
   });
 
   it('opens the arrangement the index names, else a new empty clip, Untitled', () => {
