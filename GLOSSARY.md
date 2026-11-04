@@ -75,10 +75,17 @@ names it.
 **Arrangement**:
 The Tab page's Work: a named Clip saved under My arrangements.
 
+**Beam override**:
+A note's own beaming, set by hand: Break before (its beam stops before
+it) or Join to previous (its beam goes on from the note before). Without
+one a note is beamed by the Beat groups.
+_Avoid_: force beam, unbeam
+
 **Beat group**:
 The beats a bar is counted in, from its time signature: 3+3 in 6/8,
-2+2+3 in a 7/8 bar that says so (`\beaming` in alphaTex). Beams, and
-the splits of notes and Gaps, follow where Beat groups meet.
+2+2+3 in 7/8, or a grouping the time signature is given (`\beaming` in
+alphaTex). Beams, and the splits of notes and Gaps, follow where Beat
+groups meet.
 _Avoid_: group (alone)
 
 **Clip**:

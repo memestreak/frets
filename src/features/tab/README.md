@@ -321,6 +321,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-beat-groups-beams-design.md`: beams follow
+  the Beat groups; a Beat groups field for time signatures of five or
+  more; Break before and Join to previous per note
 - `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`: tuplets take
   a note's time or squeeze a selection, grace notes are added before;
   Tuplet entry and Grace entry in note input; `,` is Rest; Dorico's keys
