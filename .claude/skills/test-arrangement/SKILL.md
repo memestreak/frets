@@ -49,6 +49,10 @@ arrangement that pins a guess is worse than none.
 - **The smallest Clip that shows it**: 4/4, standard tuning, two or three
   bars of plain notes. Add a bar before and after when the behaviour
   reaches across a bar line, so its edges show.
+- **The result must stay drawn.** Every edit is written again by the
+  meter, so what the edit makes can be re-spelled before anyone sees it:
+  inside a bar, a tied pair that fits one value becomes one note
+  (`q~q` on beat 1 is drawn `h`). To show a tie, put it over a bar line.
 - **No look-alikes**: nothing near the column under test that a slip of
   the hand could hit and still seem right.
 - Check the README table first; extend a file when it is the same rule.
@@ -103,7 +107,10 @@ note writes over what follows", not "Lengthen test".
   in a fresh page each time (an edited Clip asks to be saved before the
   next link opens), in the view the steps name, follow the steps exactly
   as written, and see that what happens is what the result text says and
-  that no text runs into another. If the behaviour
+  that no text runs into another. Judge it by what is drawn (look at the
+  page or a screenshot), never by the AlphaTex view or the Clip alone: a
+  result can be right in the alphaTex and still not show what the text
+  promises. If the behaviour
   differs, the app or the text is wrong: find out which before going on.
 - Say in the PR description which test arrangements it adds, changes or
   removes.
