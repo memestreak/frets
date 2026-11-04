@@ -1,0 +1,8 @@
+\title "A Tie chain is picked and changed as one note"
+\ts (4 4)
+0.3.4{txt "The 5 and the (5) both go: this bar ends in a quarter rest, and bar 2 starts with one"}
+  0.3.4 0.3.4 5.3.4 |
+-.3.4{txt "Tab view: press this (5): the 5 before the bar line lights with it. Then Delete"}
+  0.3.4 0.3.2 |
+0.3.1 |
+

@@ -5,7 +5,7 @@ import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab
 import { parseEditing } from '@/features/tab/editingPrefs';
 import { clampCursor, copyText, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke, toggleTie } from '@/features/tab/noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke } from '@/features/tab/noteEdits';
 
 function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
@@ -39,12 +39,10 @@ describe('typing', () => {
     expect(bars(clip)).toBe('5.3.1 |');
   });
 
-  it('keeps a note\'s marks when its fret changes, but not a tie', () => {
-    let clip = clipOf('5.3.4 5.3{v}.4 r.2 |');
-    clip = toggleTie(clip, only(at(0, 1, 2)));
-    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 5, tie: true, vibrato: 'slight' });
-    clip = setFret(clip, at(0, 1, 2), 7);
-    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 7, vibrato: 'slight' });
+  it('a fret typed on a Tied note changes the whole chain and keeps the tie (step 5)', () => {
+    const clip = setFret(clipOf('5.3.4 -.3{v}.4 r.2 |'), at(0, 1, 2), 7);
+    expect(noteAt(clip, at(0, 0, 2))).toEqual({ fret: 7 });
+    expect(noteAt(clip, at(0, 1, 2))).toEqual({ fret: 7, tie: true, vibrato: 'slight' });
   });
 
   it('carries a fret change on to the notes tied to it, across the bar line (editing_tests/fret-follows-tie)', () => {

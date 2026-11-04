@@ -6,8 +6,9 @@
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { barTicks, isRest, ticks, timeAt, type Duration, type Part } from './clip';
 import { SPLITS_TUPLET } from './timeline';
-import { clampCursor, clearNote, columnAt, columnCount, cursorTime, deleteColumns, indexOf, insertTime, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
-import { clearToRests, makeRest, stepDuration } from './noteEdits';
+import { clampCursor, clearNote, columnAt, columnCount, cursorTime, deleteColumns, indexOf, insertTime, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type MoveOptions, type Selection, type Target } from './editing';
+import { chainPlaces, chainStart, chainTicks } from './ties';
+import { clearToRests, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
@@ -104,7 +105,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   }
   // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
   if (picked?.kind === 'mark') {
-    if (key === 'Delete' || key === 'Backspace') {
+    // A picked tie arc: `=` takes it away too, as the lit Tie tool does (step 5).
+    if (key === 'Delete' || key === 'Backspace' || (key === 't' && picked.mark === 'tie')) {
       e.preventDefault();
       editor.deletePicked(picked);
       return;
@@ -224,7 +226,9 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     const digit = Number(key);
     // A fret typed on a rest in note input makes a note of note input's length, where the cursor is in the rest.
     const length = editor.inputMode ? editor.inputLength : undefined;
-    const here = splitRestAt(clip, cursor, editor.cursorAt);
+    // A Tie chain is one note: a fret typed on any of it goes on its first note, and the rest follow (step 5).
+    const typedOn = noteAt(clip, cursor)?.tie ? chainStart(clip, cursor) : cursor;
+    const here = splitRestAt(clip, typedOn, editor.cursorAt);
     const spot = `${here.cursor.bar}:${here.cursor.column}:${here.cursor.string}`;
     const before = lastDigit.current;
     const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
@@ -265,13 +269,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         editor.setCursorAt(cursor, inside);
         return;
       }
-      let moved = moveColumn(clip, cursor, step);
-      // Note input steps over the tied-on part of a note, as one Sounding note (step 4).
-      while (editor.inputMode && onlyTiedOn(moved.clip, moved.cursor)) {
-        const next = moveColumn(moved.clip, moved.cursor, step);
-        if (next.cursor.bar === moved.cursor.bar && next.cursor.column === moved.cursor.column) break;
-        moved = next;
-      }
+      const moved = overTiedOn(moveColumn(clip, cursor, step), step);
       commit(moved.clip, moved.cursor, null);
       // Coming back into a rest, ← lands on its last grid line.
       const went = moved.cursor.bar !== cursor.bar || moved.cursor.column !== cursor.column;
@@ -296,8 +294,10 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         const cut = deleteColumns(clip, selectedRange(selection));
         leave(cut.clip, { ...cursor, ...cut.cursor });
       } else if (column) {
-        const i = indexOf(clip, cursor.bar, cursor.column);
-        const cut = deleteColumns(clip, [i, i]);
+        // A picked note takes its whole Tie chain's time (step 5).
+        const places = !columnOnly && noteAt(clip, cursor) ? chainPlaces(clip, cursor) : [cursor];
+        const last = places[places.length - 1];
+        const cut = deleteColumns(clip, [indexOf(clip, places[0].bar, places[0].column), indexOf(clip, last.bar, last.column)]);
         leave(cut.clip, { ...cursor, ...cut.cursor });
       } else {
         // An empty bar: the bar itself goes.
@@ -311,14 +311,15 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     } else if (!columnOnly && noteAt(clip, cursor)) {
       leave(clearNote(clip, cursor), cursor);
     } else if (column && !isRest(column)) {
-      // On an empty string of a column with notes: the column becomes a rest (Jeremy, 2026-10-27).
-      leave(makeRest(clip, { cursor, selection: null }), cursor);
+      // On an empty string of a column with notes: the column's notes go, their Tie chains whole (Jeremy, 2026-10-27; step 5).
+      const i = indexOf(clip, cursor.bar, cursor.column);
+      leave(clearToRests(clip, { anchor: i, focus: i }).clip, cursor);
     }
     // A rest, or an empty bar, stays: only Ctrl/⌘+Delete takes time away.
     return;
   }
-  // W and Q are MuseScore's longer and shorter (issue #238), beside + and −.
-  const longer = key === '+' || key === 'w';
+  // = and − are Dorico's longer and shorter, W and Q MuseScore's (issue #238); + (Shift+= on many keyboards) is = too.
+  const longer = key === '=' || key === '+' || key === 'w';
   if (longer || key === '-' || key === 'q') {
     handled();
     // In note input they change the next note's length; in normal mode, the selected notes'.
@@ -333,6 +334,12 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     const column = columnAt(clip, cursor);
     let at = cursorTime(clip, cursor) + (editor.inputMode ? editor.cursorAt : 0);
     let length = column && !column.grace ? ticks(column.duration) : barTicks(timeAt(clip, cursor.bar));
+    // A picked note of a Tie chain: a Gap as long as the whole chain, before it (step 5).
+    if (!editor.inputMode && !selection && !columnOnly && noteAt(clip, cursor) && chainPlaces(clip, cursor).length > 1) {
+      const start = chainStart(clip, cursor);
+      at = cursorTime(clip, start);
+      length = chainTicks(clip, cursor);
+    }
     if (editor.inputMode) length = ticks(editor.inputLength);
     else if (selection) {
       const [from, to] = selectedRange(selection);
@@ -377,7 +384,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     commit(tupleted);
     return;
   }
-  const tool = toolForKey(key, e.altKey);
+  const tool = toolForKey(key, e.altKey, e.code);
   if (tool) {
     handled();
     editor.onTool(tool);
@@ -456,8 +463,9 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
     return true;
   }
   if ((key === 'ArrowLeft' || key === 'ArrowRight') && !e.shiftKey && !chord && !e.altKey) {
-    // The next column is selected; normal mode adds no rests to step onto.
-    const moved = moveColumn(clip, cursor, key === 'ArrowLeft' ? -1 : 1, { grow: false }).cursor;
+    // The next column is selected; normal mode adds no rests to step onto. A Tie chain is one stop (step 5).
+    const step = key === 'ArrowLeft' ? -1 : 1;
+    const moved = overTiedOn(moveColumn(clip, cursor, step, { grow: false }), step, { grow: false }).cursor;
     const pitch = pitchAt(clip, moved);
     if (pitch === null) {
       commit(clip, moved, null);
@@ -605,7 +613,7 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
     return { clip: cut, line: before };
   }
   if (isRest(clip.bars[bar].columns[column])) return null;
-  return { clip: makeRest(clip, { cursor: { bar, column, string: 0 }, selection: null }), line: before + 1 };
+  return { clip: clearToRests(clip, { anchor: before, focus: before }).clip, line: before + 1 };
 }
 
 /**
@@ -668,6 +676,20 @@ function placeOfLast(clip: Part): { bar: number; column: number } {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };
   }
   return { bar: 0, column: 0 };
+}
+
+/**
+ * A move on past Columns that hold only tied-on notes, so a Tie chain is one stop (step 4 in note input,
+ * step 5 in normal mode). It stops where it can go no further.
+ */
+function overTiedOn(moved: { clip: Part; cursor: Cursor }, step: 1 | -1, options: MoveOptions = {}): { clip: Part; cursor: Cursor } {
+  let out = moved;
+  while (onlyTiedOn(out.clip, out.cursor)) {
+    const next = moveColumn(out.clip, out.cursor, step, options);
+    if (next.cursor.bar === out.cursor.bar && next.cursor.column === out.cursor.column) break;
+    out = next;
+  }
+  return out;
 }
 
 /** Whether the cursor's Column holds only notes tied on from the Column before. */

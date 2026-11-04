@@ -40,7 +40,8 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
         for (const kind of ['chord', 'text'] as const) if (drawn({ kind, index })) out.push({ kind, index });
         const strings = [...Array(STRING_COUNT).keys()].filter(s => column.notes[s]);
         if (strings.length === 0) out.push({ kind: 'rest', index });
-        for (const string of strings) out.push({ kind: 'note', index, string });
+        // A Tie chain is one stop, at its first note: a Tied note's own marks are still stops (step 5).
+        for (const string of strings) if (!column.notes[string]!.tie) out.push({ kind: 'note', index, string });
         out.push(...(marks.get(index) ?? []));
       }
       for (const kind of BAR_ENDS) {

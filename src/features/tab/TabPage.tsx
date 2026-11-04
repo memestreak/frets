@@ -27,6 +27,7 @@ import { writtenStrings } from './notation';
 import type { Notice } from './notice';
 import { pitchAtStep } from './staffEntry';
 import { markBox, markTool } from './marks';
+import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
@@ -207,6 +208,7 @@ export default function TabPage() {
   const target = {
     cursor,
     selection: selection ?? (columnOnly && columnAt(clip, cursor) ? { anchor: cursorIndex, focus: cursorIndex } : null),
+    alone: editor.alone,
   };
   // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
   const { playback: playbackSettings, setPlayback: setPlaybackSettings, metronome, setMetronome } = prefs;
@@ -419,6 +421,13 @@ export default function TabPage() {
     // In note input the Duration buttons set the next note's length, as the length keys do.
     else if (inputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
     else if (inputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
+    // A picked tie arc: the Tie tool takes it away, as Delete does (step 5).
+    else if (id === 'tie' && picked?.kind === 'mark' && picked.mark === 'tie') deletePicked(picked);
+    // In note input `=` adds a tied note of the input length after the note at the cursor (step 5).
+    else if (inputMode && id === 'tie') {
+      const tied = tieOnInput(clip, cursor, inputLength);
+      if (tied) commit(tied, cursor);
+    }
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
       commitKeepingMark(applyTool(clip, target, id));
@@ -643,11 +652,14 @@ export default function TabPage() {
   const showsCursor = editing && !picked;
   const { bar: cursorBar, column: cursorColumn, string: cursorString } = cursor;
   const boxed = selection !== null;
+  // A picked Tie chain lights all its written notes, and a selection the chains it runs on into (step 5).
+  const tiedKey = showsCursor && !inputMode ? JSON.stringify(litTiedNotes(clip, cursor, selection, columnOnly, editor.alone)) : '[]';
   const highlight = useMemo(() => ({
     cursor: showsCursor ? { bar: cursorBar, column: cursorColumn, string: cursorString } : null,
     range: litStart === null || litEnd === null ? null : [litStart, litEnd] as [number, number],
     boxed, columnOnly, staffPitch: staffCursor, input: inputMode, at: cursorAt,
-  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode, cursorAt]);
+    tied: JSON.parse(tiedKey) as { index: number; string: number }[],
+  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode, cursorAt, tiedKey]);
   const errors = useMemo(() => barErrors(clip), [clip]);
   const clipHandlers = useStableHandlers({
     onPick: picking.onPick, onPickRun: picking.onPickRun, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,

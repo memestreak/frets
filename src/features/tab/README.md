@@ -153,6 +153,12 @@ and in its spec.
 - `noteEdits.ts` — the palette's changes to notes: rhythm, tuplets, grace
   notes, marks, joins, bends, and `changeLength` —
   `2026-11-01-tab-rest-lengths-design.md`.
+- `ties.ts` — a Tie chain as one note: where it starts and ends
+  (`chainStart`, `chainPlaces`), the notes an edit on a selection takes
+  (`takenNotes`), its length (`lengthAnchor`, `chainDuration`), what is
+  drawn picked with it (`litTiedNotes`) and T, which ties forward
+  (`tieForward`, `tieOnInput`) —
+  `2026-11-04-tab-ties-forward-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures, the Pickup bar), and an Uneven bar's
   fixes (`moveExtra`, `fillWithRests`, `makePickup`).
@@ -307,6 +313,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-ties-forward-design.md`: T ties forward;
+  a Tie chain is picked, deleted, lengthened and re-fretted as one note;
+  Alt+press picks one Tied note for its own marks
 - `docs/specs/2026-11-04-tab-bars-always-full-design.md`: no edit makes an Uneven bar: long notes
   write over and tie by the meter, runs are laid out again, Insert and
   Ctrl/⌘+Delete push and pull every Voice, time signatures re-bar, the

@@ -41,6 +41,11 @@ export interface Highlight {
   input?: boolean;
   /** How far into its rest note input's cursor is, in ticks (issue #293): drawn that far along the rest. */
   at?: number;
+  /**
+   * Written notes of a Tie chain drawn picked besides the cursor's: the rest of a picked chain, or a
+   * chain a selection runs on into (`docs/specs/2026-11-04-tab-ties-forward-design.md`).
+   */
+  tied?: readonly { index: number; string: number }[];
 }
 
 /**
@@ -72,7 +77,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** On the page only: bars with something wrong, and what, drawn as a warning under the bar's start with the words as its tip. */
   errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
-  onPick?: (hit: Hit, extend: boolean) => void;
+  /** `alone`: Alt was held, so a Tied note is picked by itself, not its whole Tie chain. */
+  onPick?: (hit: Hit, extend: boolean, alone?: boolean) => void;
   /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
   onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo, or a time or key signature; with the press, in the drawing's own units. */
@@ -87,7 +93,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    */
   onPickColumn?: (index: number, extend: boolean) => void;
   /** A press on the notation staff: the column and line or space (and string, on a head); `extend` with Shift. */
-  onPickStaff?: (hit: StaffHit, extend: boolean) => void;
+  onPickStaff?: (hit: StaffHit, extend: boolean, alone?: boolean) => void;
   /**
    * A note head on the staff dragged up or down (issue #174). A press on a head that doesn't move is
    * still `onPickStaff`, when the pointer lets go.
@@ -208,15 +214,15 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     }
     if (staff && staff.string !== null && onDragStaff && e.button === 0) {
       // A head: a drag or a press, told apart when the pointer moves or lets go.
-      headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, last: null };
+      headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, alt: e.altKey, last: null };
       e.currentTarget.setPointerCapture?.(e.pointerId);
       return;
     }
     if (run) onPickRun!(run.mark, run.run.columns[0].index);
     else if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
-    else if (staff) onPickStaff!(staff, e.shiftKey);
-    else if (hit) onPick(hit, e.shiftKey);
+    else if (staff) onPickStaff!(staff, e.shiftKey, e.altKey);
+    else if (hit) onPick(hit, e.shiftKey, e.altKey);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
   };
@@ -249,7 +255,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     return true;
   };
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
-  const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; last: StaffDrag | null } | null>(null);
+  const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; alt: boolean; last: StaffDrag | null } | null>(null);
   /** Where the shadow note is drawn: on the staff at a step, or on a string of the tab; in the drawing's units. */
   const [hover, setHover] = useState<{ system: number; x: number; step: number | null; string: number | null } | null>(null);
   const showShadow = (e: PointerEvent<SVGSVGElement>) => {
@@ -283,7 +289,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     if (!press) return;
     headPress.current = null;
     if (press.last) onDragStaff!({ ...press.last, steps: cancelled ? 0 : press.last.steps, done: true });
-    else if (!cancelled) onPickStaff!(press.hit, press.shift);
+    else if (!cancelled) onPickStaff!(press.hit, press.shift, press.alt);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
   /** A press on a fret number: the note, where the pointer started, and the string it was last over. */
@@ -406,6 +412,19 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
         const selectedNote = cursorOnStaff ? staffNoteAt(system, highlight) : null;
         return (
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
+          {/* Under the numbers, as the cursor's box is, so the Tied note's number shows through. */}
+          {rows.tab && highlight?.tied && (highlight.range || highlight.staffPitch == null) && system.bars.flatMap(bar => bar.columns.flatMap(placed =>
+            highlight.tied!.filter(t => t.index === placed.index).map(t => {
+              const note = placed.column.notes[t.string];
+              // A Tied note the tab doesn't number (inside a bar, under the staff) lights on the staff only.
+              if (!note || hiddenNumber(note, placed, bar, rows, joins)) return null;
+              return (
+                <rect
+                  key={`tied-${t.index}-${t.string}`} x={placed.x - 12} y={stringY(rows, t.string) - 9} width={24} height={18} rx={4}
+                  fill="var(--select-soft)" stroke="var(--select)" strokeWidth={1.5} pointerEvents="none" data-testid="tied-note"
+                />
+              );
+            })))}
           <SystemDrawing
             system={system} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
@@ -415,6 +434,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             <StaffDrawing
               system={system} score={rows.score} clip={clip} look={look} lastBar={lastBar} marks={onStaff[si]} alone={layout.parts === 'staff'}
               selected={highlight?.range ?? null} selectedNote={selectedNote} litMark={lights.staff} word={pickedWord}
+              tiedNotes={highlight?.tied && (highlight.range || highlight.staffPitch != null || !rows.tab) ? highlight.tied : undefined}
             />
           )}
           {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {

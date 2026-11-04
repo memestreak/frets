@@ -2,6 +2,7 @@
  * The edits and moves of normal mode (issue #238, `docs/specs/2026-10-30-tab-note-input-mode-design.md`):
  * MuseScore's keys on what is selected, as against note input, where the cursor types. Pure.
  */
+import { chainStart } from './ties';
 import { type NoteValue, type Part, STRING_COUNT } from './clip';
 import { columnAt, MAX_FRET, normalize, placeOf, selectedRange, type Cursor, type Selection } from './editing';
 import { pitchOf } from './staffEntry';
@@ -28,7 +29,8 @@ export function selectedNotes(clip: Part, cursor: Cursor, selection: Selection |
     const note = columnAt(clip, at)?.notes[at.string];
     return note !== null && note !== undefined && note.fret !== null;
   };
-  if (!selection) return fretted(cursor) ? [cursor] : [];
+  // A Tie chain is one note: its first written note changes, and the rest follow it.
+  if (!selection) return fretted(cursor) ? [chainStart(clip, cursor)] : [];
   const [from, to] = selectedRange(selection);
   const places: Cursor[] = [];
   for (let i = from; i <= to; i++) {

@@ -69,10 +69,11 @@ describe('the length keys', () => {
     expect(bars(setValue(clip, run, 2))).toBe('1.1.2 r.8 2.1.8 -.1.4 | -.1.8 r.8 r.4 r.2 |');
   });
 
-  it('on a Tie chain work from its start; on the tied-on part, and on a tuplet note, they change nothing', () => {
+  it('on a Tie chain set its whole length from its start, from any of its notes (step 5); on a tuplet note they change nothing', () => {
+    // The chain is a dotted quarter as one note, so a half keeps the dot.
     const clip = clipOf('\\ts (4 4)\n1.1.4 -.1.8 r.8 r.2 |');
-    expect(bars(setValue(clip, { cursor: at(0, 0), selection: null }, 2))).toBe('1.1.2 r.2 |');
-    expect(setValue(clip, { cursor: at(0, 1), selection: null }, 2)).toBe(clip);
+    expect(bars(setValue(clip, { cursor: at(0, 0), selection: null }, 2))).toBe('1.1.2{d} r.4 |');
+    expect(bars(setValue(clip, { cursor: at(0, 1), selection: null }, 2))).toBe('1.1.2{d} r.4 |');
     const tuplet = clipOf('\\ts (4 4)\n1.1.4{tu 3} 2.1.4{tu 3} 3.1.4{tu 3} r.2 |');
     expect(setValue(tuplet, { cursor: at(0, 1), selection: null }, 2)).toBe(tuplet);
   });

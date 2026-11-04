@@ -153,6 +153,11 @@ A captioned set of tools in a Rail panel: Duration, Rhythm, Joins,
 Bends and the rest.
 _Avoid_: group (alone), palette group
 
+**Tied note**:
+One of the written notes a Tie chain is made of. Alt+press picks one
+alone, for marks of its own; everything else acts on the whole chain.
+_Avoid_: piece
+
 **Track**:
 One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
