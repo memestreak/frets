@@ -53,9 +53,9 @@ describe('the cursor on a column with no string picked', () => {
     expect(isOn(clip, cursor, 'ghost', true)).toBe(false);
   });
 
-  it('reads a column without notes as the cursor does; a rest lights no Duration (rests are Gaps, step 3)', () => {
+  it('reads a column without notes as the cursor does; a rest lights no Duration (rests are Gaps, step 3) and no Rest (step 6)', () => {
     const clip = clipOf('r.2 r.2 |');
-    expect(isOn(clip, cursor, 'rest', true)).toBe(true);
+    expect(isOn(clip, cursor, 'rest', true)).toBe(false);
     expect(isOn(clip, cursor, 'half', true)).toBe(false);
     expect(isOn(clipOf('r.4{d} r.8 r.2 |'), cursor, 'dot', true)).toBe(false);
   });

@@ -66,3 +66,12 @@ export function barTimeSpot(layout: Layout, bar: number): { x: number; y: number
   }
   return { x: 0, y: 0 };
 }
+
+/** Where the Tuplet panel `;` opens goes (step 6, Q16): just under the cursor's column on the tab. */
+export function cursorSpot(layout: Layout, at: { bar: number; column: number }): { x: number; y: number } {
+  for (const { bars, rows, top } of layout.systems) {
+    const placed = bars.find(b => b.index === at.bar);
+    if (placed) return { x: (placed.columns[at.column]?.x ?? placed.x0) - PANEL_LEAD, y: top + rows.staffBottom + 12 };
+  }
+  return { x: 0, y: 0 };
+}

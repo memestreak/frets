@@ -217,3 +217,33 @@ Grace entry and Delete on a picked tuplet number.
   it; the tips and the `?` overlay list `;`, `/`, Alt+/ and `,`.
 - alphaTex, MusicXML, Guitar Pro and ASCII tab of a triplet and a grace
   note made by these keys are the same as of ones typed in alphaTex.
+
+## Settled while building
+
+- **Another tuplet on a tuplet note** (a 5 picked on a triplet's note) is
+  refused with "Take the tuplet away first: these notes are in one
+  already.", as a selection holding a tuplet is (Q2). The same tuplet, or
+  None, takes it away (Q4).
+- **A tuplet's notes are grouped by their time**, as alphaTab groups them:
+  a group ends where its notes add up to a plain value. So a triplet
+  sixteenth typed after a triplet eighth (Q6) closes a group of its own
+  (`t8 t16` is three triplet sixteenths, an eighth's time), and the rest
+  of the first tuplet's time becomes a plain Gap. The note is still a
+  triplet sixteenth, as the spec asks; the stored form can't say more
+  without changing alphaTex (Q15).
+- **Tuplet entry on a note** that is in no tuplet starts a tuplet there,
+  over it, as on a Gap.
+- **A fret typed on a tuplet note** in note input sets its fret, and its
+  length to the Input length in the tuplet's ratio when that fits (Q5's
+  rule for the length keys).
+- **`,` with Tuplet entry on** writes the tuplet's whole time as a Gap at
+  its first `,` (the Gap must be spellable before any note makes the
+  tuplet), then steps the cursor one tuplet note at a time (Q12).
+- **The Tuplet panel `;` opens** starts with the lit tuplet picked for
+  ↑ ↓, or 3 when none is lit; 1 then 0, 1 or 2 within a second picks 10
+  to 12.
+- **A grace note keeps its place** when the meter writes its bar again:
+  the cursor on the second of two grace notes stays on the second.
+- **The rail's panel sits over the pinned playback bar**, so a tool's
+  panel (the Tuplet button's, with None at its end) can be pressed where
+  it runs past the rail.

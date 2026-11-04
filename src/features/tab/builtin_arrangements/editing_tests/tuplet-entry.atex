@@ -1,0 +1,6 @@
+\title "Tuplet entry types a tuplet note by note"
+\ts (4 4)
+0.6.4 3.6.4 5.6.2 |
+r.1{txt "Tab view: press on the top line here, then N, ↑, Shift+4 (an eighth), ; and 3, then 5 → 7 → 9"} |
+0.6.1{txt "Bar 2 now starts with a triplet of eighths (5 7 9) on beat 1. The Tuplet button stays lit until ; and 3 again"} |
+

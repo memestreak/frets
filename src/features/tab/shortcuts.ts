@@ -48,6 +48,9 @@ const INPUT: ShortcutGroup = {
     { keys: ['=', '−', 'W', 'Q'], does: 'Longer or shorter next note' },
     { keys: ['Shift+1–7'], does: 'Next note’s length (Shift+5 a quarter)' },
     { keys: ['Insert'], does: 'Insert a Gap, pushing the music after it on' },
+    { keys: [','], does: 'Rest of the next note’s length, then on' },
+    { keys: [';'], does: 'Tuplet entry: pick a tuplet (the same again, or None, stops it)' },
+    { keys: ['/'], does: 'Grace entry on or off: frets typed are grace notes' },
     { keys: ['Esc'], does: 'Leave note input' },
   ],
 };
@@ -63,6 +66,9 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
     { keys: ['1–7'], does: 'Length of a picked rest, stem or staff note (5 a quarter)' },
     { keys: ['Alt+press'], does: 'One tied note of a chain, for its own marks' },
+    { keys: [';'], does: 'Tuplet over the note, or the selection squeezed into one' },
+    { keys: ['/'], does: 'Grace note before the note' },
+    { keys: [','], does: 'Make rests of the notes, as Delete' },
   ],
 };
 
@@ -70,7 +76,7 @@ const PICKED: ShortcutGroup = {
   title: 'A picked word, bar line or mark',
   shortcuts: [
     { keys: ['Enter'], does: 'Edit it (a word or a repeat’s count)' },
-    { keys: ['Delete', 'Backspace'], does: 'Take it away' },
+    { keys: ['Delete', 'Backspace'], does: 'Take it away (a tuplet’s number: the notes made plain)' },
     { keys: ['Shift+F10'], does: 'Its menu (a right-click too)' },
     { keys: ['Esc'], does: 'Let it go' },
   ],

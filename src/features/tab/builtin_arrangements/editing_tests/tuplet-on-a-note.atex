@@ -1,0 +1,8 @@
+\title "A tuplet takes the picked note's time"
+\ts (4 4)
+0.6.4 3.6.4 5.6.2 |
+5.3.4{txt "Tab view: press this 5, then ; and 3"}
+  7.3.4{txt "This 7 stays on beat 2: the 5 is now a triplet eighth, then a triplet quarter rest"}
+  5.3.2 |
+0.6.1 |
+
