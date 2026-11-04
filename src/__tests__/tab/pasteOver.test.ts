@@ -51,8 +51,8 @@ describe('pasteOver', () => {
   });
 
   it('into an empty clip comes whole, with its name and time', () => {
-    const result = pasteOver(emptyPart(), at(0, 0), clipOf('\\title "Lick"\n\\ts (3 4)\n5.3.2{d} |'));
-    expect(result.clip.name).toBe('Lick');
+    const result = pasteOver(emptyPart(), at(0, 0), clipOf('\\title "Line"\n\\ts (3 4)\n5.3.2{d} |'));
+    expect(result.clip.name).toBe('Line');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
   });
 });

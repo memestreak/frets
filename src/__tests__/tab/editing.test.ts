@@ -298,9 +298,9 @@ describe('cut, copy and paste', () => {
   });
 
   it('pastes a whole clip into an empty one, with its name and time', () => {
-    const pasted = clipOf('\\title "Lick"\n\\ts (3 4)\n5.3.2{d} |');
+    const pasted = clipOf('\\title "Line"\n\\ts (3 4)\n5.3.2{d} |');
     const result = insertPaste(emptyPart(), at(0, 0, 0), pasted);
-    expect(result.clip.name).toBe('Lick');
+    expect(result.clip.name).toBe('Line');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
   });
 });
