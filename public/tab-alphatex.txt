@@ -139,6 +139,12 @@ then "." and its duration:
   order: {h v}, {b (0 4) v}.
 - The durations in each bar must add up to the time signature. Grace
   notes (section 4) take no time and don't count.
+- A pickup bar (an upbeat before bar 1) is the one bar that may be
+  short: write \ac at the start of the first bar, and it is as long as
+  the notes in it. Its rests count from the end of a full bar, so a
+  one-eighth pickup in 4/4 is \ac 5.3.8 and one on the last eighth after
+  a rest is \ac r.8 5.3.8. Frets numbers the bar after it bar 1. \ac on
+  any later bar is not a pickup.
 
 
 3. NOTE EFFECTS FRETS DRAWS

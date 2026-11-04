@@ -205,11 +205,12 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
   it('W and Q make a note longer and shorter, as + and − do', () => {
     renderAt();
     act(() => editor().focus());
+    // A fret on the Whole-bar rest is a whole note (step 4).
     keys('5', 'q');
     // The time given up is a rest; longer again, the note writes over it (issue #290).
-    expect(alphaTex()).toBe('5.1.8 r.8 |');
-    keys('w', 'w');
-    expect(alphaTex()).toBe('5.1.2 |');
+    expect(alphaTex()).toBe('5.1.2 r.2 |');
+    keys('q', 'w', 'w');
+    expect(alphaTex()).toBe('5.1.1 |');
   });
 
   it('Ctrl+Y redoes, as Ctrl+Shift+Z does', () => {
@@ -219,6 +220,6 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     undo();
     expect(alphaTex()).toBe('|');
     fireEvent.keyDown(document.body, { key: 'y', ctrlKey: true });
-    expect(alphaTex()).toBe('5.1.4 |');
+    expect(alphaTex()).toBe('5.1.1 |');
   });
 });

@@ -78,8 +78,9 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
     // Over a note, ← is one stop: back past the 9's rest onto the first note.
     keys('ArrowLeft', 'ArrowLeft', 'ArrowLeft');
+    // Typed over at the input length, a 16th, as note input writes (step 4): the rest of the quarter is a Gap.
     keys('3');
-    expect(bar()).toBe('3.1.4 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
+    expect(bar()).toBe('3.1.16 r.16 r.8 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
   });
 
   it('Shift+Space moves on by the next note’s length, over notes and into rests', async () => {

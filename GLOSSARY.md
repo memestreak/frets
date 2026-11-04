@@ -157,6 +157,12 @@ _Avoid_: group (alone), palette group
 One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
 
+**Uneven bar**:
+A bar whose Voice doesn't fill its time signature: short or overfull.
+Edits keep bars even, so one comes from an import or a link, and
+shows a ⚠. A Pickup bar is not uneven.
+_Avoid_: bad bar, incomplete bar
+
 **Voice**:
 One line of rhythm within a Track, with its own Columns, so notes can
 sound against each other with different lengths. A Track has Voice 1 in

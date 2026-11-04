@@ -6,7 +6,7 @@
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
 import {
-  barTicks, beatTicks, bendCarries, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
+  barNumber, barTicks, beatTicks, bendCarries, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
   spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
   type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
@@ -542,7 +542,8 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
         bar.repeatEnd !== undefined && el('repeat', { direction: 'backward', times: bar.repeatEnd }),
       ));
     }
-    return el('measure', { number: b + 1 }, ...children);
+    // A Pickup bar is measure 0, marked implicit, as notation programs number it; the first full bar is 1.
+    return el('measure', hasPickup(part) && b === 0 ? { number: 0, implicit: 'yes' } : { number: barNumber(part, b) }, ...children);
   });
   return el('part', { id: partId(t) }, ...measures);
 }

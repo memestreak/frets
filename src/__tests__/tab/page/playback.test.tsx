@@ -244,20 +244,22 @@ describe('TabPage playback', () => {
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     const firstBar = () => partOf(pageClip() as unknown as Clip).bars[0].columns.map(c => (c.notes.some(Boolean) ? 'note' : 'rest'));
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
-    // The line to the bar's end: Delete leaves the rest (bars stay full, issue #238), Ctrl+Delete takes it,
-    // then Backspace turns the 7 into a rest.
+    // The line to the bar's end: Delete leaves the rest (bars stay full, issue #238), and so does Ctrl+Delete,
+    // the clip's last bar ending in a Gap (step 4).
     for (let i = 0; i < 3; i++) fireEvent.keyDown(document.body, { key: 'ArrowRight' });
     fireEvent.keyDown(document.body, { key: 'Delete' });
     expect(firstBar()).toEqual(['note', 'note', 'rest']);
     fireEvent.keyDown(document.body, { key: 'Delete', ctrlKey: true });
-    expect(firstBar()).toEqual(['note', 'note']);
+    expect(firstBar()).toEqual(['note', 'note', 'rest']);
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    // Just after the 7, Backspace turns it into a rest, joined with the rest after it by the meter.
+    fireEvent.keyDown(document.body, { key: 'ArrowLeft' });
     fireEvent.keyDown(document.body, { key: 'Backspace' });
-    expect(firstBar()).toEqual(['note', 'rest']);
+    expect(firstBar()).toEqual(['note', 'rest', 'rest']);
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
-    // Each is one undo step.
+    // It is one undo step.
     undo();
-    expect(firstBar()).toEqual(['note', 'note']);
+    expect(firstBar()).toEqual(['note', 'note', 'rest']);
   });
 
   it('sets loop points from the selection, round the whole clip with none, and clears them', () => {

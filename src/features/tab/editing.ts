@@ -7,7 +7,9 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barLength, barTicks, ticks, emptyPart, ownVoice, fewestRests, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barSpan, hasPickup, isRest, ticks, emptyPart, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { emptyBarRests } from './sounding';
+import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
 
 /** Where the cursor is: a column of a bar, and a string (0 = high e). In an empty bar the column is 0. */
@@ -243,50 +245,66 @@ export function isPlainRest(column: Column): boolean {
   return !column.grace && !column.duration.tuplet && !column.notes.some(Boolean);
 }
 
+/** Where the cursor's Column starts in the Part, in ticks. */
+export function cursorTime(clip: Part, cursor: Cursor): number {
+  return timeOf(clip, cursor.bar, cursor.column);
+}
+
+/** Whether the cursor's bar holds no note: one Whole-bar rest. */
+function isEmptyBar(clip: Part, bar: number): boolean {
+  return clip.bars[bar].columns.every(isPlainRest);
+}
+
 /**
- * Before a note goes on a plain rest longer than the note before it (as → fills a bar with), the
- * rest is split: its first part takes that note's length and the rest of its time stays rests, the
- * fewest that fill it. So a run of quarters types on as before (Jeremy, 2026-10-26).
- *
- * With a `length` (note input's, issue #238) the note takes that length instead, shorter or longer: a
- * longer one takes its time from the plain rests after it in the bar, and past them runs over the bar.
+ * A note going on the cursor's rest, `change` making the rest's Column a note
+ * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`): with note input's `length` it is that long,
+ * written over what follows, split and tied by the meter; in normal mode it takes the rest's own
+ * length, or the whole bar on a Whole-bar rest stored as more than one rest (5/8) or a bar with
+ * nothing in it. With note input's `length`, a lone note retyped at another length is written over
+ * the same way. Null otherwise, where the note just goes in its Column.
  */
-function splitRest(clip: Part, cursor: Cursor, length?: Duration): Part {
-  const column = columnAt(clip, cursor);
-  if (!column || !isPlainRest(column)) return clip;
-  const want = length ?? lastNoteLength(clip, cursor);
+function noteOnRest(clip: Part, cursor: Cursor, change: (column: Column) => Column, length?: Duration): Part | null {
   const bar = clip.bars[cursor.bar];
-  let room = ticks(column.duration);
-  if (!length && ticks(want) >= room) return clip;
-  let end = cursor.column + 1;
-  while (room < ticks(want) && end < bar.columns.length && isPlainRest(bar.columns[end])) room += ticks(bar.columns[end++].duration);
-  const columns = [...bar.columns];
-  const after = room > ticks(want) ? fewestRests(room - ticks(want)).map(emptyColumn) : [];
-  columns.splice(cursor.column, end - cursor.column, { ...column, duration: { ...want } }, ...after);
-  return replaceBar(clip, cursor.bar, { ...bar, columns });
+  const column = bar.columns.length === 0 ? emptyColumn({ value: 4, dots: 0 }) : columnAt(clip, cursor);
+  if (!column) return null;
+  const at = cursorTime(clip, cursor);
+  // Retyping a lone note (not a chord's, a tuplet's or a grace note) at a new length writes over too, as Dorico's note input does.
+  const lone = !isRest(column) && !column.grace && !column.duration.tuplet && column.notes.every((note, s) => !note || s === cursor.string);
+  if (length && lone && ticks(column.duration) !== ticks(length)) return writeOver(clip, at, [change({ ...column, duration: { ...length } })]) ?? clip;
+  if (!isPlainRest(column)) return null;
+  if (length) return writeOver(clip, at, [change({ ...column, duration: { ...length } })]) ?? clip;
+  if (cursor.column === 0 && isEmptyBar(clip, cursor.bar) && bar.columns.length !== 1) {
+    return writeSpan(clip, at, change(column), barSpan(clip, cursor.bar)) ?? clip;
+  }
+  return null;
+}
+
+/** The cursor's Column changed by `change`: on a rest, as `noteOnRest` puts a note there. */
+function noteAtCursor(clip: Part, cursor: Cursor, change: (column: Column) => Column, length?: Duration): Part {
+  return normalize(noteOnRest(clip, cursor, change, length) ?? withColumn(clip, cursor, change, length));
 }
 
 /**
  * Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. On a rest
- * the note is the last note's length, or `length` when given (note input's, issue #238).
+ * the note is the rest's length, or `length` when given (note input's), written over what follows.
  */
 export function setFret(clip: Part, cursor: Cursor, fret: number, length?: Duration): Part {
-  return normalize(withColumn(splitRest(clip, cursor, length), cursor, column => ({
+  return noteAtCursor(clip, cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => {
       if (s !== cursor.string) return note;
       const rest = without(note ?? { fret }, 'tie');
       return { ...rest, fret };
     }),
-  }), length));
+  }), length);
 }
 
 /** A dead note (x) on the cursor's string. */
 export function setDead(clip: Part, cursor: Cursor): Part {
-  return normalize(withColumn(splitRest(clip, cursor), cursor, column => ({
+  return noteAtCursor(clip, cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => (s === cursor.string ? { fret: null, ...(note?.palmMute ? { palmMute: true } : {}) } : note)),
-  })));
+  }));
 }
 
 /** Clears the cursor's note. */
@@ -298,94 +316,42 @@ export function clearNote(clip: Part, cursor: Cursor): Part {
   })));
 }
 
-function isFull(clip: Part, index: number): boolean {
-  return barLength(clip.bars[index]) >= barTicks(timeAt(clip, index));
-}
-
-/** The rests that complete a bar: the fewest that fill the time it lacks. */
-function restsToFill(clip: Part, bar: number): Duration[] {
-  return fewestRests(barTicks(timeAt(clip, bar)) - barLength(clip.bars[bar]));
-}
-
-/**
- * A bar that doesn't add up yet, completed with the fewest rests after its last column; an empty bar
- * gets a whole bar's rest. A full bar, or a bar no plain rest can complete, comes back as it was.
- * With Settings' "Fill short bars with rests" on, the cursor leaving a bar (←, a press elsewhere, or
- * the tab losing focus) does this (Jeremy, 2026-10-27; off by default since 2026-10-29).
- */
-export function fillBar(clip: Part, bar: number): Part {
-  const here = clip.bars[bar];
-  if (!here || isFull(clip, bar)) return clip;
-  const rests = restsToFill(clip, bar);
-  if (rests.length === 0) return clip;
-  return normalize(replaceBar(clip, bar, { ...here, columns: [...here.columns, ...rests.map(emptyColumn)] }));
-}
-
-/**
- * One rest for the cursor to type on after a short bar's last column: as long as the column before
- * it, or the longest rest that fits when that would make the bar too long.
- */
-function restToTypeOn(clip: Part, cursor: Cursor): Duration {
-  const near = durationNear(clip, cursor);
-  const room = barTicks(timeAt(clip, cursor.bar)) - barLength(clip.bars[cursor.bar]);
-  return ticks(near) <= room ? near : fewestRests(room)[0] ?? near;
-}
-
-/** How the cursor moves: `grow` (off while selecting) lets → add columns; `fillBars` is Settings' "Fill short bars with rests". */
+/** How the cursor moves: `grow` (off while selecting) lets → start a new bar past the clip's end. */
 export interface MoveOptions {
   grow?: boolean;
-  fillBars?: boolean;
 }
 
 /**
- * The cursor one column left or right.
- *
- * With `fillBars` on, left off a bar's first column fills the bar it leaves (`fillBar`), and right
- * from the last column of a bar that doesn't add up yet fills it at once with the fewest rests that
- * complete it, anywhere in the clip, an empty bar included (a whole rest in 4/4; Jeremy, 2026-10-26),
- * and the cursor goes to the first of them.
- *
- * With it off (the default; Jeremy, 2026-10-29), a short bar stays short: left adds nothing, and right
- * from a short bar's last column (or into an empty bar) adds one rest to type on (`restToTypeOn`),
- * so the bar grows a column at a time until it adds up.
- *
- * Either way, right from the clip's last column, once its bar is full, starts a new bar with a rest
- * as long as the cursor's column, so typing runs on, and the fewest rests after it that fill the bar.
+ * The cursor one column left or right. Bars are always full, so → never adds a rest inside a bar; it
+ * moves on, out of a short imported bar too. Right from the clip's last column starts a new bar, a
+ * Whole-bar rest to type on (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
  */
-export function moveColumn(clip: Part, cursor: Cursor, step: 1 | -1, { grow = true, fillBars = false }: MoveOptions = {}): { clip: Part; cursor: Cursor } {
+export function moveColumn(clip: Part, cursor: Cursor, step: 1 | -1, { grow = true }: MoveOptions = {}): { clip: Part; cursor: Cursor } {
   const { bar, column } = cursor;
   if (step === -1) {
     if (column > 0) return { clip, cursor: { ...cursor, column: column - 1 } };
     if (bar === 0) return { clip, cursor };
     const columns = clip.bars[bar - 1].columns.length;
-    // Rests go after the bar left behind, so the columns of the bar before keep their places.
-    const left = grow && fillBars ? fillBar(clip, bar) : clip;
-    return { clip: left, cursor: { ...cursor, bar: bar - 1, column: Math.max(0, columns - 1) } };
+    return { clip, cursor: { ...cursor, bar: bar - 1, column: Math.max(0, columns - 1) } };
   }
   const here = clip.bars[bar];
   if (column < here.columns.length - 1) return { clip, cursor: { ...cursor, column: column + 1 } };
-  // An emptied bar counts too: its first rest goes where the cursor waits.
-  const short = grow && !isFull(clip, bar);
-  const rests = !short ? [] : fillBars ? restsToFill(clip, bar) : [restToTypeOn(clip, cursor)];
-  if (rests.length > 0) {
-    const grown = replaceBar(clip, bar, { ...here, columns: [...here.columns, ...rests.map(emptyColumn)] });
-    return { clip: normalize(grown), cursor: { ...cursor, column: here.columns.length } };
-  }
   if (bar < clip.bars.length - 1) return { clip, cursor: { ...cursor, bar: bar + 1, column: 0 } };
   if (!grow || here.columns.length === 0) return { clip, cursor };
-  // A new bar: a rest as long as the cursor's column, to type on, and the fewest rests after it that fill the bar.
-  const first = durationNear(clip, cursor);
-  const room = barTicks(timeAt(clip, bar)) - ticks(first);
-  const columns = [first, ...(room > 0 ? fewestRests(room) : [])].map(emptyColumn);
-  return { clip: { ...clip, bars: [...clip.bars, { columns }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
+  const time = timeAt(clip, bar);
+  return { clip: { ...clip, bars: [...clip.bars, { columns: emptyBarRests(time).map(emptyColumn) }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
 }
 
-/** A rest with the cursor column's duration, put before the cursor column (the Insert key). */
-export function insertColumn(clip: Part, cursor: Cursor): Part {
-  const bar = clip.bars[cursor.bar];
-  const columns = [...bar.columns];
-  columns.splice(cursor.column, 0, emptyColumn(durationNear(clip, cursor)));
-  return normalize(replaceBar(clip, cursor.bar, { ...bar, columns }));
+/**
+ * Insert: a Gap `length` long at time `at`, the music after it in every Voice later, across bar lines
+ * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`). The cursor goes to the Gap's first rest.
+ * Null when that would put a tuplet across a bar line.
+ */
+export function insertTime(clip: Part, at: number, length: number, cursor: Cursor): { clip: Part; cursor: Cursor } | null {
+  const pushed = pushTime(clip, at, length);
+  if (!pushed) return null;
+  const next = normalize(pushed);
+  return { clip: next, cursor: { ...cursor, ...placeAtTime(next, at) } };
 }
 
 /**
@@ -395,9 +361,10 @@ export function insertColumn(clip: Part, cursor: Cursor): Part {
  * the new bar's first rest.
  */
 export function insertBar(clip: Part, cursor: Cursor, where: 'before' | 'after'): { clip: Part; cursor: Cursor } {
-  const index = where === 'before' ? cursor.bar : cursor.bar + 1;
+  // A Pickup bar stays the first bar: a bar put in before it goes after it.
+  const index = where === 'before' && !(cursor.bar === 0 && hasPickup(clip)) ? cursor.bar : cursor.bar + 1;
   const time = index === 0 ? clip.time : timeAt(clip, index - 1);
-  const rests = fewestRests(barTicks(time)).map(emptyColumn);
+  const rests = emptyBarRests(time).map(emptyColumn);
   const bars = [...clip.bars];
   bars.splice(index, 0, { columns: rests });
   return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: index, column: 0 } };
@@ -406,30 +373,33 @@ export function insertBar(clip: Part, cursor: Cursor, where: 'before' | 'after')
 /* — removing, copying and pasting columns — */
 
 /**
- * The clip without the columns in `range` (places, inclusive), and where the cursor goes: the
- * column after them while it is in the same bar, else the column before them, so deleting a bar's
- * last note leaves the cursor in that bar. Emptying one bar keeps it, empty, with the cursor in it,
- * so → can fill it with rests again (Jeremy, 2026-10-26); bars a wider range empties go, unless
- * none would be left.
+ * Ctrl/⌘+Delete: the time of the columns in `range` (places, inclusive) taken away, the music after it
+ * in every Voice pulled back across bar lines (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+ * Bars the range covers whole go, marks and all; what it takes from a bar covered in part pulls the
+ * following music back, and the clip's last bar ends in a Gap: no other bar comes off the end. The
+ * cursor goes where the removed time began. With every bar gone, one empty bar is left.
  */
 export function deleteColumns(clip: Part, [from, to]: [number, number]): { clip: Part; cursor: { bar: number; column: number } } {
-  const first = placeOf(clip, from).bar;
-  const oneBar = placeOf(clip, to).bar === first;
-  let index = 0;
-  const bars: Bar[] = [];
-  for (const bar of clip.bars) {
-    const columns = bar.columns.filter(() => {
-      const keep = index < from || index > to;
-      index++;
-      return keep;
-    });
-    if (columns.length > 0 || bar.columns.length === 0 || oneBar) bars.push({ ...bar, columns });
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  const whole = (b: number) =>
+    isEmptyBar(clip, b) || ((b > first.bar || first.column === 0) && (b < last.bar || last.column === clip.bars[b].columns.length - 1));
+  const at = cursorTime(clip, { ...first, string: 0 });
+  // The time the range takes from the bars it covers in part.
+  let partial = 0;
+  for (let b = first.bar; b <= last.bar; b++) {
+    if (whole(b)) continue;
+    const columns = clip.bars[b].columns;
+    const c0 = b === first.bar ? first.column : 0;
+    const c1 = b === last.bar ? last.column : columns.length - 1;
+    for (let c = c0; c <= c1; c++) if (!columns[c].grace) partial += ticks(columns[c].duration);
   }
-  const left = bars.length > 0 ? normalize({ ...clip, bars }) : { ...clip, bars: [{ columns: [] }] };
-  if (oneBar && left.bars[first].columns.length === 0) return { clip: left, cursor: { bar: first, column: 0 } };
-  const afterInSameBar = to + 1 < columnCount(clip) && placeOf(clip, to + 1).bar === first;
-  const place = afterInSameBar ? from : Math.max(0, from - 1);
-  return { clip: left, cursor: placeOf(left, Math.min(place, Math.max(0, columnCount(left) - 1))) };
+  const kept = clip.bars.filter((_, b) => b < first.bar || b > last.bar || !whole(b));
+  if (kept.length === 0) return { clip: { ...clip, bars: [{ columns: [] }] }, cursor: { bar: 0, column: 0 } };
+  let left = normalize({ ...clip, bars: kept });
+  if (partial > 0) left = normalize(pullTime(left, at, at + partial) ?? left);
+  const end = timeOf(left, left.bars.length - 1, left.bars[left.bars.length - 1].columns.length);
+  return { clip: left, cursor: placeAtTime(left, Math.min(at, Math.max(0, end - 1))) };
 }
 
 /**
@@ -469,12 +439,20 @@ export function isEmpty(clip: Part): boolean {
   return clip.bars.every(b => b.columns.length === 0);
 }
 
+/** The pasted part's own Voice as one run of Columns, bar lines dropped, and how long it is. */
+function pastedColumns(pasted: Part): { columns: Column[]; length: number; last: number } {
+  const columns = pasted.bars.flatMap(b => b.columns.map(c => ({ ...c })));
+  const length = columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
+  const lastTimed = [...columns].reverse().find(c => !c.grace);
+  return { columns, length, last: lastTimed ? ticks(lastTimed.duration) : 0 };
+}
+
 /**
- * Insert paste (issue #238: the right-click menu's "Insert paste", Ctrl/⌘+Shift+V).
- * `pasted` put in at the cursor, before the cursor's column, as text is pasted at a caret: its
- * first bar's columns join the cursor's bar, each later bar is a new bar, and the rest of the
- * cursor's bar follows its last one. Into an empty clip, the pasted clip comes whole, with its
- * name, time and tuning. The cursor ends on the last pasted column.
+ * Insert paste (issue #238: the right-click menu's "Insert paste", Ctrl/⌘+Shift+V): `pasted` put in at
+ * the cursor's column, the music after it in every Voice pushed on by its length, across bar lines
+ * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`). The pasted bar lines are not kept. Into
+ * an empty clip, the pasted clip comes whole, with its name, time and tuning. The cursor ends on the
+ * last pasted column.
  */
 export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
@@ -483,89 +461,29 @@ export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: P
     const last = incoming.length - 1;
     return { clip: normalize({ ...pasted, bars: incoming }), cursor: { ...cursor, bar: last, column: incoming[last].columns.length - 1 } };
   }
-  const here = clip.bars[cursor.bar];
-  // Pasting on an empty bar puts the columns in it; on a column, before it.
-  const at = here.columns.length === 0 ? 0 : cursor.column;
-  const head = here.columns.slice(0, at);
-  const tail = here.columns.slice(at);
-  // The cursor's bar keeps its own repeat and ending marks; the bars the paste adds keep theirs.
-  const made: Bar[] = [{ ...here, columns: [...head, ...incoming[0].columns] }];
-  for (const bar of incoming.slice(1)) made.push({ ...bar, columns: [...bar.columns] });
-  const lastMade = made[made.length - 1];
-  const lastColumn = lastMade.columns.length - 1;
-  lastMade.columns = [...lastMade.columns, ...tail];
-  const bars = [...clip.bars.slice(0, cursor.bar), ...made, ...clip.bars.slice(cursor.bar + 1)];
-  return {
-    clip: normalize({ ...clip, bars }),
-    cursor: { ...cursor, bar: cursor.bar + made.length - 1, column: lastColumn },
-  };
-}
-
-/** The time a column takes in its bar: a grace note takes none. */
-function span(column: Column): number {
-  return column.grace ? 0 : ticks(column.duration);
-}
-
-/** A note as it goes on over a bar line: the same fret, tied, with none of its marks. */
-function tiedOn(column: Column): Column {
-  return { duration: column.duration, notes: column.notes.map(n => (n ? { fret: n.fret, tie: true } : null)) };
+  const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
+  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const pushed = pushTime(clip, at, length);
+  const written = pushed && writeOver(pushed, at, columns);
+  if (!written) return { clip, cursor };
+  const next = normalize(written);
+  return { clip: next, cursor: { ...cursor, ...placeAtTime(next, at + length - last) } };
 }
 
 /**
- * Paste, as MuseScore pastes (issue #238: bars stay full): `pasted` goes over the clip's time from the
- * cursor's column on, bar lines and all, so no bar gets longer or shorter. A column it covers in part
- * leaves the rest of its time as rests; a pasted note that would cross a bar line is split there and
- * tied over (a tuplet isn't split, so its bar runs over); bars of rests are added past the clip's end.
- * Into an empty clip the pasted clip comes whole, with its name, time and tuning. The cursor ends on
- * the last pasted column.
+ * Paste, as MuseScore pastes (issue #238: bars stay full): `pasted` written over the clip's time from
+ * the cursor's column on, bar lines and all, split and tied by the meter where it crosses them, a
+ * covered note's uncovered part a Gap; bars are added past the clip's end. Into an empty clip the
+ * pasted clip comes whole, with its name, time and tuning. The cursor ends on the last pasted column.
  */
 export function pasteOver(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
   if (isEmpty(clip)) return insertPaste(clip, cursor, pasted);
-  const queue = incoming.flatMap(b => b.columns.map(c => ({ ...c })));
-  const bars = clip.bars.map(b => ({ ...b, columns: [...b.columns] }));
-  let bar = cursor.bar;
-  let column = bars[bar].columns.length === 0 ? 0 : cursor.column;
-  let last = { bar, column };
-  while (queue.length > 0) {
-    if (bar === bars.length) {
-      const time = timeAt({ ...clip, bars }, bar - 1);
-      bars.push({ columns: fewestRests(barTicks(time)).map(emptyColumn) });
-    }
-    const here = bars[bar];
-    const head = here.columns.slice(0, column);
-    const old = here.columns.slice(column);
-    // The time this bar has from the column on: its columns', and what a short bar still lacks.
-    const start = head.reduce((sum, c) => sum + span(c), 0);
-    const room = Math.max(barTicks(timeAt({ ...clip, bars }, bar)), barLength(here)) - start;
-    const placed: Column[] = [];
-    let used = 0;
-    while (queue.length > 0 && (used < room || span(queue[0]) === 0)) {
-      const next = queue.shift()!;
-      const length = span(next);
-      const fits = fewestRests(room - used);
-      if (used + length <= room || next.duration.tuplet || fits.length === 0) {
-        placed.push(next);
-        used += length;
-        continue;
-      }
-      // Split at the bar line: what fits here, then the rest tied on into the next bar.
-      const [first, ...more] = fits;
-      const after = fewestRests(used + length - room);
-      placed.push({ ...next, duration: first }, ...more.map(d => ({ ...tiedOn(next), duration: d })));
-      queue.unshift(...after.map(d => ({ ...tiedOn(next), duration: d })));
-      used = room;
-    }
-    // The old columns the paste covered go; one it covers in part leaves the rest of its time as rests.
-    let covered = 0;
-    let k = 0;
-    while (k < old.length && covered < used) covered += span(old[k++]);
-    const leftover = covered > used ? fewestRests(covered - used).map(emptyColumn) : [];
-    here.columns = [...head, ...placed, ...leftover, ...old.slice(k)];
-    if (placed.length > 0) last = { bar, column: head.length + placed.length - 1 };
-    bar++;
-    column = 0;
-  }
-  return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, ...last } };
+  const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
+  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const written = writeOver(clip, at, columns);
+  if (!written) return { clip, cursor };
+  const next = normalize(written);
+  return { clip: next, cursor: { ...cursor, ...placeAtTime(next, at + length - last) } };
 }

@@ -8,6 +8,8 @@ modifier.
 
 ## Behaviour
 
+Since step 4, Insert, Insert paste and Ctrl/⌘+Delete push or pull the following music across bar lines in every Voice of the Track, and no edit leaves a bar short or overfull (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+
 Since step 3 the rests these leave are Gaps, written again by the meter rather than kept at the lengths below or as the fewest (`docs/specs/2026-11-03-tab-rests-are-gaps-design.md`).
 
 | Action | Now | Before |

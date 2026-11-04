@@ -5,8 +5,10 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, timeAt, type BendQuarters, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
-import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, pasteOver, placeOf, selectedRange, withColumn, without } from './editing';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, ticks, timeAt, type BendQuarters, type Column, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
+import { readVoice } from './sounding';
+import { timeOf, writeOver } from './timeline';
+import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, placeOf, selectedRange, withColumn, without } from './editing';
 
 /** Makes the target columns rests. */
 export function makeRest(clip: Part, target: Target): Part {
@@ -61,19 +63,46 @@ export function cycleDots(clip: Part, target: Target): Part {
 }
 
 /**
- * A new length for the target columns. A column picked by itself (a note, a chord or a rest) keeps its
- * bar full, as MuseScore's does (issue #290): longer, it writes over what follows, a note running past
- * the bar line tied on into the next bar; shorter, the time it gives up becomes rests after it. A run
- * of several columns, a grace note or a tuplet just changes length.
+ * A new length for the target columns, keeping bars full (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+ * One Column picked by itself starts where it did: longer, it writes over what follows, tied over bar
+ * lines by the meter; shorter, it leaves a Gap. A note it starts takes the new length whole, its Tie
+ * chain too; a Column that only carries tied notes on doesn't change (until Tie chains are picked as one).
+ * A run is laid out again from its start, each note with its new length and each Gap in it keeping its
+ * own. A grace note just changes; a note in a tuplet doesn't (until tuplets are rebuilt). An edit that
+ * would put a tuplet across a bar line changes nothing.
  */
 function changeLength(clip: Part, target: Target, change: (duration: Duration) => Duration): Part {
   // A rest is a Gap, whose length can't be set (rests are Gaps, step 3): only rests, nothing changes.
   if (onlyRests(clip, target)) return clip;
-  const at = loneColumn(clip, target);
-  if (!at) return changeColumns(clip, target, column => ({ ...column, duration: change(column.duration) }));
-  const column = columnAt(clip, at)!;
-  const changed = { ...column, duration: change(column.duration) };
-  return pasteOver(clip, at, { ...clip, bars: [{ columns: [changed] }] }).clip;
+  const { cursor, selection } = target;
+  const lone = !selection || selection.anchor === selection.focus;
+  if (lone) {
+    const at = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
+    const column = columnAt(clip, at);
+    if (!column) return clip;
+    if (column.grace) return changeColumns(clip, target, c => ({ ...c, duration: change(c.duration) }));
+    if (column.duration.tuplet || column.notes.every(n => !n || n.tie)) return clip;
+    const start = timeOf(clip, at.bar, at.column);
+    // The Sounding notes it starts end here at the latest: a shorter one leaves a Gap to there.
+    const ends = readVoice(clip).notes.filter(n => n.start === start).map(n => n.start + n.length);
+    const oldEnd = Math.max(start + ticks(column.duration), ...ends);
+    const written = writeOver(clip, start, [{ ...column, duration: change(column.duration) }], oldEnd);
+    return written ? normalize(written) : clip;
+  }
+  const [from, to] = selectedRange(selection);
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  const columns: Column[] = [];
+  for (let i = from; i <= to; i++) {
+    const column = columnAt(clip, { ...placeOf(clip, i), string: 0 })!;
+    if (column.duration.tuplet) return clip;
+    columns.push(column.grace || isRest(column) ? column : { ...column, duration: change(column.duration) });
+  }
+  const start = timeOf(clip, first.bar, first.column);
+  const lastColumn = clip.bars[last.bar].columns[last.column];
+  const oldEnd = timeOf(clip, last.bar, last.column) + (lastColumn.grace ? 0 : ticks(lastColumn.duration));
+  const written = writeOver(clip, start, columns, oldEnd);
+  return written ? normalize(written) : clip;
 }
 
 /** Whether every target column is a rest (not a grace note). */
@@ -88,15 +117,6 @@ function onlyRests(clip: Part, { cursor, selection }: Target): boolean {
     if (!column || column.grace || !isRest(column)) return false;
   }
   return true;
-}
-
-/** The target's place when it is one column (not a grace note, not in a tuplet), else null. */
-function loneColumn(clip: Part, { cursor, selection }: Target): Cursor | null {
-  if (selection && selection.anchor !== selection.focus) return null;
-  const at = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
-  const column = columnAt(clip, at);
-  if (!column || column.grace || column.duration.tuplet) return null;
-  return at;
 }
 
 /** Puts the target columns in one kind of tuplet (3 to 12, in its usual span), or none with null. */

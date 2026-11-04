@@ -5,6 +5,7 @@
  */
 import { partOf, withPart, type Clip, type Part } from './clip';
 import { rewrite } from './rewrite';
+import { reBarClip } from './timeline';
 import type { FxSettings } from './effects';
 import { openOnLoad, type Draft, type Library } from './arrangements';
 
@@ -43,7 +44,9 @@ export type ClipAction =
 /** An edit or a preview made on the part the page shows, which goes back into the whole clip (`withPart`). */
 export type PartAction =
   | { type: 'replacePart'; part: Part; from?: Part }
-  | { type: 'previewPart'; part: Part };
+  | { type: 'previewPart'; part: Part }
+  /** A time signature or Pickup bar changed in `part` from bar `from`: every Track re-barred up to bar `to` (`reBarClip`). */
+  | { type: 'reBarPart'; part: Part; from: number; to: number };
 
 /** The action on the whole clip `clip` that an edit of its track `track` makes; any other action as it is. */
 export function clipAction(clip: Clip, action: ClipAction | PartAction, track = 0): ClipAction {
@@ -52,6 +55,10 @@ export function clipAction(clip: Clip, action: ClipAction | PartAction, track = 
     const before = action.from ?? partOf(clip, track, action.part.voice ?? 0);
     const part = rewrite(before, action.part);
     return { type: 'replace', clip: withPart(clip, part, track), from: action.from && withPart(clip, action.from, track) };
+  }
+  if (action.type === 'reBarPart') {
+    const after = withPart(clip, action.part, track);
+    return { type: 'replace', clip: reBarClip(clip, after, action.from, action.to) ?? after };
   }
   if (action.type === 'previewPart') return { type: 'preview', clip: withPart(clip, action.part, track) };
   return action;

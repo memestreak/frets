@@ -29,7 +29,8 @@ disagree, it wins.
   and shows one at a time, picked from a list (a link opens on the first);
   a part sits out a bar as `r.1 |`, and its rests in a row draw as one. Notes are `fret.string.duration`; string 1 is the high e.
   Bars end with `|`.
-- Write `\ts` always, and check every bar adds up to its time signature.
+- Write `\ts` always, and check every bar adds up to its time signature. Only a pickup bar
+  may be short: write `\ac` at the start of the first bar.
 - Give the user a link that opens the tab, plus the text unless they ask
   for only one:
 

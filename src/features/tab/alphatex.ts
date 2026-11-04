@@ -215,6 +215,7 @@ function barTokens(bars: readonly WrittenBar[], firstTime: TimeSignature): strin
     if (bar.time) time = bar.time;
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
+    if (b === 0 && bar.pickup) meta.push('\\ac');
     if (bar.key) meta.push(`\\ks ${keyTex(bar.key)}`);
     if (bar.section) {
       const { text, marker } = bar.section;
