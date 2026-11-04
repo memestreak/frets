@@ -121,7 +121,6 @@ export default function TabPage() {
   const parts = notation.show;
   const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
-  const fillBars = prefs.editing.fillBars;
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
@@ -168,11 +167,11 @@ export default function TabPage() {
   const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
-  const editor = useEditorState({ clip, dispatch, setNotice, fillBars });
+  const editor = useEditorState({ clip, dispatch, setNotice });
   const {
     cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
     staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
-    editorRef, lastDigitRef, commit, leaveBar, startRegion, toPitch, cursorAt, setCursorAt,
+    editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
   } = editor;
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
   const { fixedGrid, grid, gridLook } = prefs.editing;
@@ -185,7 +184,6 @@ export default function TabPage() {
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
   const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
-  const quietBlur = useRef(false);
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
@@ -330,26 +328,13 @@ export default function TabPage() {
         return;
       }
     }
-    let index = Math.min(gap, count);
+    const index = Math.min(gap, count);
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
     // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
-    let left = whole;
-    if (editing) {
-      // Leaving fills the cursor's bar when Settings says to (as `onEditorBlur` would), but not while playing, as an edit stops playback;
-      // a line past that bar moves on by the rests added.
-      const playing = playback.view.state === 'playing';
-      const leftPart = playing ? clip : leaveBar(clip, cursor.bar);
-      const barEnd = clip.bars.slice(0, cursor.bar + 1).reduce((n, b) => n + b.columns.length, 0);
-      if (gap >= barEnd) index += columnCount(leftPart) - count;
-      left = wholeWith(leftPart);
-      if (left !== whole) dispatchClip({ type: 'replace', clip: left });
-      quietBlur.current = true;
-      editorRef.current?.blur();
-      quietBlur.current = false;
-    }
+    if (editing) editorRef.current?.blur();
     if (playback.seek(index)) return;
-    setPlayMark({ index, clip: left, cursor: cursorAsSet, selection: null });
+    setPlayMark({ index, clip: whole, cursor: cursorAsSet, selection: null });
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
   const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip: whole, cursor: cursorAsSet, selection: null });
@@ -492,7 +477,7 @@ export default function TabPage() {
   });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, fillBars, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
@@ -531,13 +516,6 @@ export default function TabPage() {
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
-    // Placing the playback line has filled the bar already, or left it alone while playing.
-    if (quietBlur.current) return;
-    const to = e.relatedTarget;
-    if (to instanceof Element && to.closest('.tab-card, .tab-palette, .tab-rail, .tab-rail-panel')) return;
-    if (!document.hasFocus()) return;
-    const filled = leaveBar(clip, cursor.bar);
-    if (filled !== clip) dispatch({ type: 'replacePart', part: filled });
   };
 
   /**
@@ -676,6 +654,7 @@ export default function TabPage() {
     onDragFret: inputMode ? undefined : picking.onDragFret, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn,
+    onPickWarning: head.openFix,
     onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
     // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else

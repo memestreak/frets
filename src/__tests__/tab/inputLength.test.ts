@@ -38,20 +38,20 @@ describe('note input’s length (issue #238)', () => {
 describe('setFret with a length', () => {
   const at = (column: number) => ({ bar: 0, column, string: 0 });
 
-  it('splits a longer rest, leaving the fewest rests after the note', () => {
-    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.2 r.4 |'), at(1), 7, { value: 16, dots: 0 }))).toBe('5.1.4 7.1.16 r.4{dd} r.4 |');
+  it('writes over part of a longer rest, the Gap after it spelt by the meter', () => {
+    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.2 r.4 |'), at(1), 7, { value: 16, dots: 0 }))).toBe('5.1.4 7.1.16 r.16 r.8 r.2 |');
   });
 
-  it('takes a longer note’s time from the plain rests after it', () => {
-    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.8 r.8 r.2 |'), at(1), 7, { value: 4, dots: 1 }))).toBe('5.1.4 7.1.4{d} r.4{d} |');
+  it('takes a longer note’s time from the rests after it, tied over the middle of the bar', () => {
+    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.8 r.8 r.2 |'), at(1), 7, { value: 4, dots: 1 }))).toBe('5.1.4 7.1.4 -.1.8 r.8 r.4 |');
   });
 
-  it('runs over the bar when the rests after it are too short', () => {
-    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.2 r.4 7.1.4 |'), at(1), 7, { value: 2, dots: 0 }))).toBe('5.1.2 7.1.2 7.1.4 |');
+  it('writes over the note after it rather than run over the bar', () => {
+    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.2 r.4 7.1.4 |'), at(1), 7, { value: 2, dots: 0 }))).toBe('5.1.2 7.1.2 |');
   });
 
-  it('leaves a column with notes its length, and with none given a rest still takes the last note’s', () => {
+  it('leaves a column with notes its length, and with none given a rest keeps its own length', () => {
     expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.2{d} |'), { bar: 0, column: 0, string: 1 }, 7, { value: 16, dots: 0 }))).toBe('(5.1 7.2).4 r.2{d} |');
-    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.2{d} |'), at(1), 7))).toBe('5.1.4 7.1.4 r.2 |');
+    expect(bars(setFret(clipOf('\\ts (4 4)\n5.1.4 r.2{d} |'), at(1), 7))).toBe('5.1.4 7.1.2{d} |');
   });
 });

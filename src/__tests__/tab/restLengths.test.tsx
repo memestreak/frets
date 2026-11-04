@@ -64,8 +64,8 @@ describe('a picked note keeps its bar full (issue #290)', () => {
     expect(bars(setValue(chord, picked(chord, 0, 2), 1))).toBe('3.6.4 5.6.4 (5.5 7.6).2 |\n(-.5 -.6).2 r.2 |');
   });
 
-  it('a run of several columns with a note, a grace note or a tuplet just changes length, as before', () => {
-    expect(bars(setValue(clip, { cursor: at(0, 1), selection: { anchor: 1, focus: 2 } }, 8))).toBe('3.6.4 r.8 5.6.8 7.6.4 |');
+  it('a run’s notes close up and its Gaps keep their length, the end left as a Gap (step 4, Q10)', () => {
+    expect(bars(setValue(clip, { cursor: at(0, 1), selection: { anchor: 1, focus: 2 } }, 8))).toBe('3.6.4 r.4 5.6.8 r.8 7.6.4 |');
   });
 });
 

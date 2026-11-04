@@ -1,5 +1,7 @@
 # Tab: filling short bars with rests becomes a setting
 
+> Gone since step 4: no edit makes a short bar, so the setting and → adding rests to a short bar went (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+
 Jeremy, 2026-10-29: "On our tab page, we added behavior that automatically
 added the appropriate number of rests to a bar if it didn't have the right
 number of rests. I would like to move that behavior to a setting, and have it

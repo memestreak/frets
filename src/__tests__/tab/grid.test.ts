@@ -48,8 +48,8 @@ describe('note input’s grid (issue #293)', () => {
     // Written on the beat, as printed music has it: an 8th and a 16th up to the cursor, a 16th and a half after.
     expect(bars(split.clip)).toBe('5.1.4 r.8 r.16 r.16 r.2 |');
     expect(split.cursor).toEqual(at(3));
-    // An eighth typed there takes its time from the rests after it.
-    expect(bars(setFret(split.clip, split.cursor, 7, { value: 8, dots: 0 }))).toBe('5.1.4 r.8 r.16 7.1.8 r.4{dd} |');
+    // An eighth typed there writes over the rests after it, tied over the middle of the bar.
+    expect(bars(setFret(split.clip, split.cursor, 7, { value: 8, dots: 0 }))).toBe('5.1.4 r.8 r.16 7.1.16 -.1.16 r.16 r.8 r.4 |');
     // At the rest's start, or off a rest, nothing changes.
     expect(splitRestAt(clip, at(1), 0).clip).toBe(clip);
     expect(splitRestAt(clip, at(0), SIXTEENTH).clip).toBe(clip);

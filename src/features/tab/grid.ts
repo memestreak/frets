@@ -8,8 +8,9 @@
  * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
  * its step in ticks.
  */
-import { barLength, barTicks, fewestRests, NOTE_VALUES, ticks, timeAt, type Bar, type Duration, type NoteValue, type Part } from './clip';
-import { emptyColumn, fillBar, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
+import { barLength, fewestRests, NOTE_VALUES, ticks, timeAt, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { emptyColumn, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
+import { emptyBarRests } from './sounding';
 import type { Layout, PlacedBar, PlacedColumn } from './layout';
 
 /** The grids offered, coarsest first (Jeremy, 2026-11-01). */
@@ -154,7 +155,7 @@ export function stopNear(layout: Layout, bar: number, x: number, step: number): 
  * Shift+Space in note input (Jeremy, 2026-11-01): the cursor moved on by `length` ticks from where it is
  * (`at` ticks into its column), over notes and rests alike, as Dorico's Space moves its caret. Inside a
  * plain rest it stops there; inside a note, at the column after it. Past a bar's end it goes on into the
- * next bar, and past the clip's last bar, a bar of rests is added (a short last bar is filled first).
+ * next bar, and past the clip's last bar, a bar of rests is added.
  */
 export function advance(clip: Part, cursor: Cursor, at: number, length: number): { clip: Part; cursor: Cursor; at: number } {
   let part = clip;
@@ -180,14 +181,8 @@ export function advance(clip: Part, cursor: Cursor, at: number, length: number):
       if (target < end) continue;
     }
     if (bar === part.bars.length - 1) {
-      const filled = fillBar(part, bar);
-      if (filled !== part && target < barLength(filled.bars[bar])) {
-        part = filled;
-        continue;
-      }
-      part = filled;
       const time = timeAt(part, bar);
-      part = { ...part, bars: [...part.bars, { columns: fewestRests(barTicks(time)).map(emptyColumn) }] };
+      part = { ...part, bars: [...part.bars, { columns: emptyBarRests(time).map(emptyColumn) }] };
     }
     target -= Math.max(end, barLength(part.bars[bar]));
     bar++;

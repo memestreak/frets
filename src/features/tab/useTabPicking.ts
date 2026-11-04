@@ -42,8 +42,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   dropLine: () => void;
 }) {
   const {
-    clip, dispatch, cursor, selection, editing, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, editorRef, lastDigitRef, commit, leaveBar, startRegion, toPitch,
+    clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, editorRef, lastDigitRef, commit, startRegion, toPitch,
   } = editor;
 
   /** Where a word over the tab belongs: its column, or its bar's first. */
@@ -76,10 +76,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const { bar, column } = placeOf(clip, hit.index);
     const at = { bar, column, string: hit.string ?? cursor.string };
     lastDigitRef.current = null;
-    const left = editing && bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
     // A hairpin's run isn't selected: no palette tool works on it, so it lights alone (issue #276).
     const run = hit.to !== undefined && hit.to !== hit.index && hit.mark !== 'hairpin';
-    commit(left, at, run ? { anchor: hit.index, focus: hit.to! } : null);
+    commit(clip, at, run ? { anchor: hit.index, focus: hit.to! } : null);
     setColumnOnly(hit.string === null);
     setPicked(hit);
     editorRef.current?.focus();
@@ -172,20 +171,19 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     } else {
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
-      const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
-      const there = hasColumn && noteAt(left, hit);
+      const there = hasColumn && noteAt(clip, hit);
       if (inputMode && hasColumn && !there) {
         // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
         // Inside a rest it goes at the grid line pressed (issue #293).
-        const here = splitRestAt(left, hit, into);
+        const here = splitRestAt(clip, hit, into);
         commit(setFret(here.clip, here.cursor, 0, inputLength), here.cursor, null);
         hearNote(here.cursor);
       } else if (!inputMode && !there && hasColumn) {
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
-        commit(left, hit, barSelection(left, hit.bar));
+        commit(clip, hit, barSelection(clip, hit.bar));
         startRegion();
       } else {
-        commit(left, hit, null);
+        commit(clip, hit, null);
         if (!inputMode && !there) setColumnOnly(true);
       }
     }
@@ -202,11 +200,10 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       return;
     }
     lastDigitRef.current = null;
-    const left = editing && at.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
     // A Whole-bar rest storing more than one rest (5/8 `rq. rq`) is picked as one: all its rests selected.
-    const rests = isWholeBarRest(left, at.bar) ? left.bars[at.bar].columns.length : 1;
-    const whole = rests > 1 ? { anchor: indexOf(left, at.bar, 0), focus: indexOf(left, at.bar, rests - 1) } : null;
-    commit(left, whole ? { ...hit, column: 0 } : hit, whole);
+    const rests = isWholeBarRest(clip, at.bar) ? clip.bars[at.bar].columns.length : 1;
+    const whole = rests > 1 ? { anchor: indexOf(clip, at.bar, 0), focus: indexOf(clip, at.bar, rests - 1) } : null;
+    commit(clip, whole ? { ...hit, column: 0 } : hit, whole);
     setStaffPitch(null);
     setColumnOnly(true);
   };
@@ -214,6 +211,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
   const onPickStaff = (hit: StaffHit, extend: boolean) => {
     lastDigitRef.current = null;
+    // A head pressed doesn't take the focus until now (issue #337); taken first, so the focus's own
+    // staff cursor (with the staff alone) gives way to the one set below.
+    editorRef.current?.focus();
     const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
     const note = hit.string === null ? null : noteAt(clip, at);
     const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
@@ -223,22 +223,21 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       startRegion();
       return;
     }
-    const left = editing && hit.bar !== cursor.bar ? leaveBar(clip, cursor.bar) : clip;
     if (note) {
-      toPitch(left, at, pitch);
+      toPitch(clip, at, pitch);
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
       // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).
-      const here = splitRestAt(left, at, hit.at ?? 0);
+      const here = splitRestAt(clip, at, hit.at ?? 0);
       const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
       toPitch(edit.clip, here.cursor, pitch);
       if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
-      toPitch(left, at, pitch);
+      toPitch(clip, at, pitch);
     } else {
       // In normal mode a press beside the heads selects the bar, as on the tab.
-      commit(left, at, left.bars[hit.bar].columns.length > 0 ? barSelection(left, hit.bar) : null);
+      commit(clip, at, clip.bars[hit.bar].columns.length > 0 ? barSelection(clip, hit.bar) : null);
       startRegion();
     }
   };
@@ -264,6 +263,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const carried = range && index >= range[0] && index <= range[1] ? selection : null;
       dragFrom.current = { clip, selection: carried, good: null };
       lastDigitRef.current = null;
+      editorRef.current?.focus();
     }
     const from = dragFrom.current;
     const note = noteAt(from.clip, at);

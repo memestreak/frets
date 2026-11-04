@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { setUpPage, renderAt, SLOW, editor, keys, alphaTex } from './helpers';
+import { setUpPage, renderAt, SLOW, editor, keys, alphaTex, undo } from './helpers';
 
 setUpPage();
 
@@ -37,29 +37,30 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     renderAt();
     act(() => editor().focus());
     keys('5', 'ArrowUp');
-    expect(alphaTex()).toBe('6.1.4 |');
+    expect(alphaTex()).toBe('6.1.1 |');
     keys('ArrowDown', 'ArrowDown');
-    expect(alphaTex()).toBe('4.1.4 |');
+    expect(alphaTex()).toBe('4.1.1 |');
     // The open string is as low as it goes.
     keys('0', 'ArrowDown');
-    expect(alphaTex()).toBe('0.1.4 |');
+    expect(alphaTex()).toBe('0.1.1 |');
     keys('4', { key: 'ArrowDown', ctrlKey: true });
-    expect(alphaTex()).toBe('9.2.4 |');
+    expect(alphaTex()).toBe('9.2.1 |');
     keys({ key: 'ArrowUp', metaKey: true });
-    expect(alphaTex()).toBe('4.1.4 |');
+    expect(alphaTex()).toBe('4.1.1 |');
   });
 
   it('in normal mode ← → select the next column and add no rests; in note input → adds one to type on', () => {
     renderAt();
     act(() => editor().focus());
     keys('5', 'ArrowRight', 'ArrowRight');
-    expect(alphaTex()).toBe('5.1.4 |');
+    expect(alphaTex()).toBe('5.1.1 |');
     // Going in picks no string; ↑ picks the last one back.
     keys('n', 'ArrowUp', 'ArrowRight', '7');
-    expect(alphaTex()).toBe('5.1.4 7.1.4 |');
+    // From the clip's last Column → starts a new bar, and 7 takes the length of the note there.
+    expect(alphaTex()).toBe('5.1.1 |\n7.1.1 |');
     // Back in normal mode, ← on a column with no note on the string selects the column.
     keys('Escape', 'ArrowDown');
-    expect(alphaTex()).toBe('5.1.4 6.1.4 |');
+    expect(alphaTex()).toBe('5.1.1 |\n6.1.1 |');
   });
 
   it('Alt+↑ ↓ select the next note up or down in the chord', () => {
@@ -69,19 +70,19 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     keys('n', 'ArrowDown', '5', 'ArrowDown', '7', 'Escape');
     // The B's 7 is selected; Alt+↑ selects the e's 5, which ↑ then raises.
     keys({ key: 'ArrowUp', altKey: true }, 'ArrowUp');
-    expect(alphaTex()).toBe('(6.1 7.2).4 |');
+    expect(alphaTex()).toBe('(6.1 7.2).4 r.4 r.2 |');
     keys({ key: 'ArrowDown', altKey: true }, 'ArrowDown');
-    expect(alphaTex()).toBe('(6.1 6.2).4 |');
+    expect(alphaTex()).toBe('(6.1 6.2).4 r.4 r.2 |');
   });
 
   it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', () => {
     renderAt();
     act(() => editor().focus());
     keys('5', { key: '^', shiftKey: true, code: 'Digit6' });
-    expect(alphaTex()).toBe('5.1.2 |');
+    expect(alphaTex()).toBe('5.1.2 r.2 |');
     // In note input the note already there keeps its length; the next one takes the new one.
     keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
-    expect(alphaTex()).toBe('5.1.2 |');
+    expect(alphaTex()).toBe('5.1.2 r.2 |');
     keys('ArrowUp', 'ArrowRight', '7');
     expect(alphaTex()).toMatch(/^5\.1\.2 7\.1\.8 /);
   });
@@ -100,12 +101,13 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     // The note already entered keeps its quarter.
     expect(alphaTex()).toMatch(/^5\.1\.4 /);
     keys('7', 'ArrowRight', 'w', '+', '3');
-    expect(alphaTex()).toMatch(/^5\.1\.4 7\.1\.16 3\.1\.4 /);
+    // The quarter crosses the middle of the bar, so it is tied there (step 4).
+    expect(alphaTex()).toMatch(/^5\.1\.4 7\.1\.16 3\.1\.16 -\.1\.8 -\.1\.16 /);
     // . dots the next note, not the one entered.
     keys('ArrowRight', '.');
     expect(button('Dotted, then double dotted')).toHaveAttribute('aria-pressed', 'true');
     keys('2');
-    expect(alphaTex()).toMatch(/^5\.1\.4 7\.1\.16 3\.1\.4 2\.1\.4\{d\} /);
+    expect(alphaTex()).toBe('5.1.4 7.1.16 3.1.16 -.1.8 -.1.16 2.1.16 -.1.8 -.1.8{d} r.16 |');
   });
 
   it('a note of note input’s length takes its time from the rests after it', async () => {
@@ -127,7 +129,7 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     keys('5');
     expect(alphaTex()).toBe('|');
     keys('ArrowDown', '5');
-    expect(alphaTex()).toBe('5.1.4 |');
+    expect(alphaTex()).toBe('5.1.4 r.4 r.2 |');
     // Off a note again (the B string, empty), going back in picks nothing.
     keys('ArrowDown', 'Escape', 'n');
     expect(screen.queryByTestId('input-cursor')).toBeNull();
@@ -169,7 +171,27 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     renderAt();
     act(() => editor().focus());
     keys('5', 'N');
-    expect(alphaTex()).toBe('5.1{nh}.4 |');
+    expect(alphaTex()).toBe('5.1{nh}.1 |');
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('Insert puts in a Gap as long as the picked note, the selection, or note input’s length, pushing the music on (step 4)', async () => {
+    const quarters = '\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |';
+    renderAt(`#tab=${encodeURIComponent(quarters)}`);
+    await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
+    act(() => editor().focus());
+    // Normal mode, the 2 picked: a quarter later.
+    keys('ArrowRight', 'Insert');
+    expect(alphaTex()).toBe('1.1.4 r.4 2.1.4 3.1.4 |\n4.1.4 r.4 r.2 |');
+    undo();
+    // Beats 2–3 selected: a half later. Undo left the cursor on the 2.
+    keys({ key: 'ArrowRight', shiftKey: true }, 'Insert');
+    expect(alphaTex()).toBe('1.1.4 r.4 r.4 2.1.4 |\n3.1.4 4.1.4 r.2 |');
+    undo();
+    // Note input, an eighth: an eighth later, notes tied over where the beats now fall.
+    keys('Escape');
+    act(() => editor().focus());
+    keys('n', 'ArrowDown', 'q', 'Insert');
+    expect(alphaTex()).toBe('1.1.4 r.8 2.1.8 -.1.8 3.1.4 4.1.8 |\n-.1.8 r.8 r.4 r.2 |');
   });
 });

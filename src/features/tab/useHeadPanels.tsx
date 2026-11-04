@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
-import { MAX_CAPO, type Part } from './clip';
+import { barErrors, MAX_CAPO, type Part } from './clip';
 import { columnAt, type Cursor } from './editing';
-import { setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
+import { setBarKey, setBarTime, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
+import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
-import { barTempoSpot, barTimeSpot, wordNow, wordSpot } from './fieldSpots';
+import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
+import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
@@ -37,7 +39,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Whether the drawn tab is shown (the Notation view), and has a width yet. */
   shown: { tab: boolean; drawn: boolean };
 }) {
-  const { clip, cursor, commit, dispatch, editorRef } = editor;
+  const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
   /** The bar whose time signature panel is open. */
@@ -47,6 +49,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Where a press opened the time or key signature panel; null when the palette did. */
   const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
   const [headPanel, setHeadPanel] = useState<HeadPanel | null>(null);
+  /** The Uneven bar whose ⚠ was pressed, and where: its popover holds the fix. */
+  const [fixBar, setFixBar] = useState<{ bar: number; x: number; y: number } | null>(null);
 
   /**
    * The tempo panel from the tab: the first bar's under the head's tempo, as a press on it opens it;
@@ -103,6 +107,22 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     setPanelAt(at);
     (kind === 'time' ? setTimeBar : setKeyBar)(bar);
   };
+  /** An Uneven bar's popover, just under the press on its ⚠ (`at`, in the drawing's units). */
+  const openFix = (bar: number, at: { x: number; y: number }) => {
+    closeSignatures();
+    setFixBar({ bar, x: at.x - PANEL_LEAD, y: at.y + PANEL_DROP });
+  };
+  const closeFix = useCallback((byKey: boolean) => {
+    setFixBar(null);
+    if (byKey) editorRef.current?.focus();
+  }, [editorRef]);
+  /** The fix made, and the popover let go of (let go after use); a fix that would split a tuplet is refused. */
+  const finishFix = (fixed: Part | null) => {
+    setFixBar(null);
+    editorRef.current?.focus();
+    if (fixed) commit(fixed);
+    else setNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
+  };
   /** Shuts both signature panels: a right-click menu opens in their place. */
   const closeSignatures = () => {
     setTimeBar(null);
@@ -112,6 +132,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const closeAll = () => {
     setWord(null);
     setHeadPanel(null);
+    setFixBar(null);
     closeSignatures();
   };
 
@@ -139,6 +160,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   };
 
   const { tab, drawn } = shown;
+  // Only while a popover is open: what its bar's ⚠ says.
+  const fixText = fixBar ? barErrors(clip).get(fixBar.bar) : undefined;
   const panels = (
     <>
       {tab && word && drawn && (
@@ -168,17 +191,21 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       {tab && headPanel?.kind === 'tuning' && (
         <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} onChange={commit} onClose={() => setHeadPanel(null)} />
       )}
+      {tab && fixBar !== null && fixText !== undefined && drawn && (
+        <BarFixPopover clip={clip} bar={fixBar.bar} text={fixText} x={fixBar.x} y={fixBar.y} onFix={finishFix} onClose={closeFix} />
+      )}
       {tab && timeBar !== null && timeBar < clip.bars.length && drawn && (
         <BarTimePanel
           clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(layout, timeBar))}
-          onChange={time => commit(setBarTime(clip, timeBar, time))} onClose={closeTimeBar}
+          onChange={time => commitReBar(setBarTime(clip, timeBar, time), timeBar)}
+          onPickup={length => commitReBar(setPickup(clip, length), 0)} onClose={closeTimeBar}
         />
       )}
     </>
   );
 
   return {
-    openWord, openSignature, closeSignatures, closeAll, panels,
+    openWord, openSignature, openFix, closeSignatures, closeAll, panels,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */
     openCredits: (x: number, y: number, field: HeadField) => setHeadPanel({ kind: 'credits', x, y, from: clip, field }),
     openTuning: (x: number, y: number) => setHeadPanel({ kind: 'tuning', x, y }),

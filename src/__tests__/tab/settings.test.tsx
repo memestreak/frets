@@ -106,15 +106,11 @@ describe('Settings', () => {
     expect(saved(PLAYBACK_KEY)).not.toHaveProperty('metronome');
   });
 
-  it('turns on filling short bars with rests under Tab › Editing, off by default', () => {
+  it('has no "Fill short bars with rests" under Tab › Editing: edits keep bars full (step 4)', () => {
     render(<TabPage />);
     openSettings();
     fireEvent.click(section('Editing'));
-    const fill = inDialog().getByRole('checkbox', { name: 'Fill short bars with rests' });
-    expect(fill).toHaveAttribute('aria-checked', 'false');
-    fireEvent.click(fill);
-    fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: true, fixedGrid: false, grid: 16, gridLook: 'ruler' });
+    expect(inDialog().queryByRole('checkbox', { name: /Fill short bars/ })).toBeNull();
   });
 
   it('sets note input’s grid under Tab › Editing: note input’s length by default, or a fixed grid (issue #293)', () => {
@@ -128,7 +124,7 @@ describe('Settings', () => {
     fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));
     fireEvent.click(within(fixed).getByRole('button', { name: 'Eighth' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: true, grid: 8, gridLook: 'ruler' });
+    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: true, grid: 8, gridLook: 'ruler' });
   });
 
   it('sets how note input’s grid is drawn under Tab › Editing: a ruler over the staff by default, or lines across the bar', () => {
@@ -140,7 +136,7 @@ describe('Settings', () => {
     expect(within(look).queryByRole('button', { name: /Dots/ })).toBeNull();
     fireEvent.click(within(look).getByRole('button', { name: 'Lines across the bar' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fillBars: false, fixedGrid: false, grid: 16, gridLook: 'lines' });
+    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: false, grid: 16, gridLook: 'lines' });
   });
 
   it('resets a field to its default on a double-click on its label, staged, but never on its control', () => {

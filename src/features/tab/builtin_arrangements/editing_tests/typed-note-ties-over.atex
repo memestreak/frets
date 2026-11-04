@@ -1,0 +1,8 @@
+\title "A note typed past the bar line is tied over it"
+\ts (4 4)
+0.6.4 2.6.4
+  3.6.4{txt "Tab view: press this 3, then →, N, ↓, Shift+6 (a half) and 5"}
+  r.4 |
+r.1 |
+0.6.1{txt "The 5 goes in after the 3 as a quarter, tied to a quarter (5) on beat 1 of bar 2; no ⚠"} |
+
