@@ -56,11 +56,17 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
+/**
+ * The ink of the Voices other than the Active voice while editing (step 9, Q6 b): `--line-strong`,
+ * lighter than `--ink-muted`, which sat too close to the ink to tell apart (Jeremy, 2026-11-04).
+ */
+export const MUTED_VOICE_INK = 'var(--line-strong)';
+
 export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
   clip: Part;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
-   * part's own (the Active voice) are drawn in `--ink-muted`.
+   * part's own (the Active voice) are drawn in `MUTED_VOICE_INK`.
    */
   mutedVoices?: boolean;
   /** A selection over several Voices (step 9, Q18): each other Voice's selected run of its own columns. */
@@ -434,7 +440,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       arcs: legatoArcs(view.systems), whammies: whammyDrawings(view), onStaff: layout.parts !== 'tab' ? staffMarks(view) : null,
     };
   });
-  const voiceLook = mutedVoices ? { ...look, ink: 'var(--ink-muted)' } : look;
+  const voiceLook = mutedVoices ? { ...look, ink: MUTED_VOICE_INK } : look;
   const noLights: MarkLit = () => false;
   const lastBar = clip.bars.length - 1;
   // The string lines are masked round each note's number; ids made safe for `url(#…)`.

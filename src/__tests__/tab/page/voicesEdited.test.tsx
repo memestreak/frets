@@ -12,6 +12,7 @@ import { readAscii } from '@/features/tab/ascii';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
+import { MUTED_VOICE_INK } from '@/features/tab/TabClip';
 import { setUpPage, RIFF, renderAt, keepOpen, notice, paste, editor, keys, alphaTex as written, undo, SLOW } from './helpers';
 
 setUpPage();
@@ -105,25 +106,25 @@ describe('the Active voice', () => {
 });
 
 describe('the other Voices muted', () => {
-  it('draws the other Voice\'s numbers in --ink-muted while the cursor is on the tab, in ink with nothing on it; one Voice mutes nothing', async () => {
+  it('draws the other Voice\'s numbers in the muted ink while the cursor is on the tab, in ink with nothing on it; one Voice mutes nothing', async () => {
     await open(MELODY);
     keys('Escape');
     expect(otherInk().length).toBeGreaterThan(0);
-    expect(otherInk().every(fill => fill !== 'var(--ink-muted)')).toBe(true);
+    expect(otherInk().every(fill => fill !== MUTED_VOICE_INK)).toBe(true);
     // A press focuses the tab in a browser; jsdom moves no focus on a press.
     act(() => editor().focus());
     press(MELODY, 0, 0, 1);
-    expect(otherInk().every(fill => fill === 'var(--ink-muted)')).toBe(true);
+    expect(otherInk().every(fill => fill === MUTED_VOICE_INK)).toBe(true);
     expect(document.querySelector('[data-testid="other-voice"]')).toHaveAttribute('data-muted', 'true');
     keys('Escape');
-    expect(otherInk().every(fill => fill !== 'var(--ink-muted)')).toBe(true);
+    expect(otherInk().every(fill => fill !== MUTED_VOICE_INK)).toBe(true);
   });
 
   it('draws nothing muted in a one-Voice clip', async () => {
     await open('5.2.4 7.2.4 r.2 |');
     press('5.2.4 7.2.4 r.2 |', 0, 0, 1);
     expect(document.querySelectorAll('[data-testid="other-voice"]')).toHaveLength(0);
-    expect(document.querySelectorAll('text[fill="var(--ink-muted)"]').length).toBe(0);
+    expect(document.querySelectorAll(`text[fill="${MUTED_VOICE_INK}"]`).length).toBe(0);
   });
 });
 

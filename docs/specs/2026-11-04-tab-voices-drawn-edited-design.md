@@ -83,9 +83,9 @@ only Voice 1 is laid out as now.
 - **The other Voices muted (Q6 b, Q22):** while the cursor or a pick is
   on the tab, in normal mode and in note input, on the staff and on the
   tab, the Active voice's notes, rests and Marks are drawn in ink and
-  the other Voices' in `--ink-muted`. Notes selected in other Voices are
-  still drawn selected, in `--select`. With nothing on the tab every
-  Voice is in ink. Exports, PNG and SVG are always in ink. A clip with
+  the other Voices' in `--line-strong` (lighter than `--ink-muted`).
+  Notes selected in other Voices are still drawn selected, in
+  `--select`. With nothing on the tab every Voice is in ink. Exports, PNG and SVG are always in ink. A clip with
   one Voice never mutes anything.
 
 ## Keys (Q8, Q17)
@@ -249,7 +249,7 @@ page), with the existing round trips:
   shows "2" by the cursor; Esc puts it back to 1.
 - The page: a press on a Voice 2 note makes Voice 2 active.
 - The page: with the cursor on the tab the other Voice's numbers are
-  drawn in `--ink-muted`; with nothing on the tab they are in ink; a PNG
+  drawn in `--line-strong`; with nothing on the tab they are in ink; a PNG
   or SVG export is all ink; a one-Voice clip mutes nothing.
 - The page: typing in an absent Voice 2 creates it with its rests;
   deleting its last note makes it absent again.

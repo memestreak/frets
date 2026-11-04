@@ -22,6 +22,7 @@ import {
 import { writePart } from '@/features/tab/alphatex';
 import { clearToRests } from '@/features/tab/noteEdits';
 import { stepDuration } from '@/features/tab/noteEdits';
+import { MUTED_VOICE_INK } from '@/features/tab/TabClip';
 
 function read(text: string): Clip {
   const result = readAlphaTexWith(alphaTab, `\\voiceMode barWise\n\\ts (4 4)\n${text}`);
@@ -139,7 +140,8 @@ describe('the exports', () => {
   it('PNG and SVG draw every Voice in ink, never muted', () => {
     const svg = tabSvg(partOf(read(HALF_OVER_QUARTERS)), { width: 800, transparent: false, name: true }, 'Voices', 'both');
     expect(svg).toContain('data-testid="other-voice"');
-    expect(svg).not.toContain('--ink-muted');
+    expect(svg).not.toContain('data-muted');
+    expect(svg).not.toContain(MUTED_VOICE_INK);
   });
 
   it('MusicXML writes voice 1, a backup, then voice 2 on the staff, stems up then down; the tab staff\'s are 5 and 6', () => {
