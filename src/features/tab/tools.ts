@@ -34,13 +34,13 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Duration',
     tools: [
-      { id: 'whole', label: 'Whole note', key: '7, or Shift+7 on a tab note; + − or W Q to step' },
-      { id: 'half', label: 'Half note', key: '6, or Shift+6 on a tab note; + − or W Q to step' },
-      { id: 'quarter', label: 'Quarter note', key: '5, or Shift+5 on a tab note; + − or W Q to step' },
-      { id: 'eighth', label: 'Eighth note', key: '4, or Shift+4 on a tab note; + − or W Q to step' },
-      { id: 'sixteenth', label: 'Sixteenth note', key: '3, or Shift+3 on a tab note; + − or W Q to step' },
-      { id: 'thirtySecond', label: 'Thirty-second note', key: '2, or Shift+2 on a tab note; + − or W Q to step' },
-      { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '1, or Shift+1 on a tab note; + − or W Q to step' },
+      { id: 'whole', label: 'Whole note', key: '7, or Shift+7 on a tab note; = − or W Q to step' },
+      { id: 'half', label: 'Half note', key: '6, or Shift+6 on a tab note; = − or W Q to step' },
+      { id: 'quarter', label: 'Quarter note', key: '5, or Shift+5 on a tab note; = − or W Q to step' },
+      { id: 'eighth', label: 'Eighth note', key: '4, or Shift+4 on a tab note; = − or W Q to step' },
+      { id: 'sixteenth', label: 'Sixteenth note', key: '3, or Shift+3 on a tab note; = − or W Q to step' },
+      { id: 'thirtySecond', label: 'Thirty-second note', key: '2, or Shift+2 on a tab note; = − or W Q to step' },
+      { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '1, or Shift+1 on a tab note; = − or W Q to step' },
       { id: 'dot', label: 'Dotted, then double dotted', key: '.' },
       { id: 'rest', label: 'Rest', key: 'R' },
     ],
@@ -58,7 +58,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Joins',
     tools: [
-      { id: 'tie', label: 'Tie to the next note', key: '=' },
+      { id: 'tie', label: 'Tie to the next note', key: 'T' },
       { id: 'legato', label: 'Hammer-on or pull-off from the note before', key: 'H' },
       { id: 'slide', label: 'Slide from the note before', key: '/' },
       { id: 'shiftSlide', label: 'Shift slide from the note before', key: '/' },
@@ -88,7 +88,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'ghost', label: 'Ghost note', key: 'G' },
       { id: 'harmonic', label: 'Natural harmonic', key: 'Shift+N' },
       { id: 'pinchHarmonic', label: 'Pinch harmonic', key: 'Shift+N' },
-      { id: 'tap', label: 'Tap', key: 'T' },
+      { id: 'tap', label: 'Tap', key: 'Alt+T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
       { id: 'wah', label: 'Wah: closed (+), open (o), then off', key: '' },
@@ -269,11 +269,12 @@ function chainEnd(clip: Part, cursor: Target['cursor']) {
 }
 
 /** The tool a key press does, for the keys that do exactly what one button does. */
-export function toolForKey(key: string, alt: boolean): ToolId | null {
-  if (alt) return null;
+export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null {
+  // T ties, as Dorico's T does, so Tap is Alt+T (by its code: Alt types another letter on a Mac).
+  if (alt) return code === 'KeyT' ? 'tap' : null;
   const keys: Record<string, ToolId> = {
-    '.': 'dot', r: 'rest', '=': 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
-    x: 'dead', g: 'ghost', t: 'tap', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
+    '.': 'dot', r: 'rest', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
+    x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName', G: 'grace',
   };
   return keys[key] ?? null;

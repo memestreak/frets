@@ -139,17 +139,19 @@ describe('one Tied note alone (Alt+press)', () => {
     expect(alphaTex()).toBe('7.3.2{d} r.4 |');
   });
 
-  it('is listed in the ? overlay', () => {
-    expect(TAB_SHORTCUTS.flatMap(g => g.shortcuts).some(s => s.keys.includes('Alt+press'))).toBe(true);
+  it('is listed in the ? overlay, with = and − for longer and shorter', () => {
+    const listed = TAB_SHORTCUTS.flatMap(g => g.shortcuts);
+    expect(listed.some(s => s.keys.includes('Alt+press'))).toBe(true);
+    expect(listed.filter(s => s.keys.includes('=') && s.keys.includes('−')).map(s => s.does)).toEqual(['Longer or shorter next note', 'Longer or shorter (the bar stays full)']);
   });
 });
 
-describe('`=` and the Tie tool', () => {
+describe('T, the Tie tool, and the keys round it', () => {
   it('the Tie tool’s tip is "Tie to the next note", and it lights only on a picked tie arc', async () => {
     const CHAIN = '7.3.4 -.3.4 r.2 |';
     await open(CHAIN);
     press(CHAIN, 0, 2);
-    expect(tool('Tie to the next note')).toHaveAttribute('data-tip', expect.stringMatching(/^Tie to the next note/));
+    expect(tool('Tie to the next note')).toHaveAttribute('data-tip', 'Tie to the next note (T)');
     expect(tool('Tie to the next note')).toHaveAttribute('aria-pressed', 'false');
     // The arc picked: the tool lights; Delete splits the chain, the note after played again at the same fret.
     const read = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${CHAIN}`);
@@ -164,12 +166,12 @@ describe('`=` and the Tie tool', () => {
     expect(alphaTex()).toBe('7.3.4 7.3.4 r.2 |');
   });
 
-  it('`=` on a picked tie arc unties too; `=` on a picked note never does', async () => {
+  it('T on a picked tie arc unties too; T on a picked note never does', async () => {
     const CHAIN = '7.3.4 -.3.4 r.2 |';
     await open(CHAIN);
     press(CHAIN, 0, 2);
-    // On the chain, `=` ties on into the rest after it: a half rest becomes a tied half, written as a whole note.
-    keys('=');
+    // On the chain, T ties on into the rest after it: a half rest becomes a tied half, written as a whole note.
+    keys('t');
     expect(alphaTex()).toBe('7.3.1 |');
     keys({ key: 'z', ctrlKey: true });
     const read = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${CHAIN}`);
@@ -179,11 +181,11 @@ describe('`=` and the Tie tool', () => {
     const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2, button: 0 };
     fireEvent.pointerDown(svg, at);
     fireEvent.pointerUp(svg, at);
-    keys('=');
+    keys('t');
     expect(alphaTex()).toBe('7.3.4 7.3.4 r.2 |');
   });
 
-  it('`=` in note input ties on a note of the input length, keeps the cursor on the chain, and plays nothing', async () => {
+  it('T in note input ties on a note of the input length, keeps the cursor on the chain, and plays nothing', async () => {
     const TUNE = '5.1.2 7.1.4 8.1.4 |';
     localStorage.setItem('frets.tab.playback', JSON.stringify({ hearNotes: true }));
     await open(TUNE);
@@ -191,16 +193,35 @@ describe('`=` and the Tie tool', () => {
     press(TUNE, 0, 0);
     keys({ key: '%', shiftKey: true, code: 'Digit5' });
     const before = heard.count;
-    keys('=');
+    keys('t');
     // A quarter tied on after the half, written over the 7: a dotted half.
     expect(alphaTex()).toBe('5.1.2{d} 8.1.4 |');
-    // The cursor stays on the chain, so `=` again makes it longer.
+    // The cursor stays on the chain, so T again makes it longer.
     expect(Math.abs(cursorX() - spot(TUNE, 0, 0).clientX)).toBeLessThan(13);
-    keys('=');
+    keys('t');
     expect(alphaTex()).toBe('5.1.1 |');
     expect(heard.count).toBe(before);
     // A fret typed is heard, so the count would have seen one (it enters a note of the input length, as on a lone note).
     keys('7');
     expect(heard.count).toBe(before + 1);
+  });
+
+  it('= and − make a picked note longer and shorter, as Dorico’s; Alt+T taps it (T was Tap)', async () => {
+    const TUNE = '5.1.4 r.4 r.2 |';
+    await open(TUNE);
+    press(TUNE, 0, 0);
+    keys('=');
+    expect(alphaTex()).toBe('5.1.2 r.2 |');
+    keys('-');
+    expect(alphaTex()).toBe('5.1.4 r.4 r.2 |');
+    expect(tool('Tap')).toHaveAttribute('data-tip', 'Tap (Alt+T)');
+    keys({ key: '†', altKey: true, code: 'KeyT' });
+    expect(alphaTex()).toBe('5.1.4{tt} r.4 r.2 |');
+  });
+
+  it('= in note input makes the next note longer', async () => {
+    await open('5.1.4 r.4 r.2 |');
+    keys('n', { key: '%', shiftKey: true, code: 'Digit5' }, '=');
+    expect(tool('Half note')).toHaveAttribute('aria-pressed', 'true');
   });
 });

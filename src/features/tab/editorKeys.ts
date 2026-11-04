@@ -97,7 +97,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
   if (picked?.kind === 'mark') {
     // A picked tie arc: `=` takes it away too, as the lit Tie tool does (step 5).
-    if (key === 'Delete' || key === 'Backspace' || (key === '=' && picked.mark === 'tie')) {
+    if (key === 'Delete' || key === 'Backspace' || (key === 't' && picked.mark === 'tie')) {
       e.preventDefault();
       editor.deletePicked(picked);
       return;
@@ -304,8 +304,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     // A rest, or an empty bar, stays: only Ctrl/⌘+Delete takes time away.
     return;
   }
-  // W and Q are MuseScore's longer and shorter (issue #238), beside + and −.
-  const longer = key === '+' || key === 'w';
+  // = and − are Dorico's longer and shorter, W and Q MuseScore's (issue #238); + (Shift+= on many keyboards) is = too.
+  const longer = key === '=' || key === '+' || key === 'w';
   if (longer || key === '-' || key === 'q') {
     handled();
     // In note input they change the next note's length; in normal mode, the selected notes'.
@@ -370,7 +370,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     commit(tupleted);
     return;
   }
-  const tool = toolForKey(key, e.altKey);
+  const tool = toolForKey(key, e.altKey, e.code);
   if (tool) {
     handled();
     editor.onTool(tool);
