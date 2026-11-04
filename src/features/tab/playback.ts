@@ -15,6 +15,7 @@ import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
 import { keepDry } from './dryChannels';
+import { loopSeamlessly } from './seamlessLoop';
 import type { EffectSettings } from './effects';
 import { decodeOnMainThread, lastFont, useDecoded } from './soundDecode';
 import { SoundDecoder } from './soundDecoder';
@@ -727,7 +728,7 @@ export class TabPlayer {
   private range: { startTick: number; endTick: number } | null = null;
   /**
    * The rest between the loop's end and its start again, in seconds (Jeremy, 2026-10-27); 0 loops
-   * straight round, as alphaTab's own looping does. With a rest, the clip plays to the loop's end and
+   * straight round, with no gap (`seamlessLoop.ts`). With a rest, the clip plays to the loop's end and
    * stops (its notes dying away as at the clip's end), and starts again from the loop's start after it.
    */
   private loopPause = 0;
@@ -758,15 +759,23 @@ export class TabPlayer {
       const floor = e.currentTick < this.reported && this.range ? this.range.startTick : this.heard.floor;
       this.reported = e.currentTick;
       this.heard = { tick: e.currentTick - this.output.aheadMs() * rate, at: performance.now(), rate, floor };
-      if (this.looping && this.range && e.currentTick >= this.range.endTick) this.loopEndAt ??= performance.now();
+      // At the loop's end the playhead waits there: for the rest, or for the position to go round,
+      // which comes a block of samples after the end is heard (`seamlessLoop.ts`).
+      if (this.looping && this.range && e.currentTick >= this.range.endTick) {
+        this.loopEndAt ??= performance.now();
+        return;
+      }
       // While the last notes ring out, the playhead stays on the last column.
       if (e.currentTick >= (this.loaded?.end ?? this.performance.endTick)) return;
       // During the count-in it waits where Play started.
       const counting = this.counted && e.currentTick < this.counted.end;
       onView({ column: counting ? this.counted!.column : columnAtTick(this.clip, this.performance, e.currentTick) });
     });
+    // Round the loop with no gap (issue #346); as it goes round, the clip's own MIDI takes over.
+    loopSeamlessly(synth, () => this.dropCountIn());
     synth.finished.on(() => {
-      // Round the loop (alphaTab goes back to its start right after this): the clip's own MIDI.
+      // Round the loop without the seamless way (Loop pressed after the end was made): alphaTab goes
+      // back to its start right after this.
       if (synth.isLooping) {
         this.dropCountIn();
         return;
@@ -908,8 +917,8 @@ export class TabPlayer {
 
   /**
    * The count-in has been heard and the loop comes round: the clip's own MIDI goes in place of the
-   * one with the count-in, without stopping (alphaTab goes on to the loop's start in it). Its ticks
-   * are the same, so the loop points hold.
+   * one with the count-in, without stopping (the sequencer goes on to the loop's start in it). Its
+   * ticks are the same, so the loop points hold.
    */
   private dropCountIn() {
     if (!this.counted || !this.performance || !this.loaded) return;
