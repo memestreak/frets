@@ -1,20 +1,20 @@
 import { useRef } from 'react';
 import type { Part } from './clip';
-import { removeBarLine, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
+import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
-import { columnAt, indexOf, noteAt, placeOf, runAround, selectedRange, setFret, type Cursor, type Selection } from './editing';
+import { columnAt, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import { splitRestAt } from './grid';
-import type { FretDrag, Hit, StaffDrag, StaffHit } from './hitTest';
+import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
+import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
 import { isWholeBarRest, type Layout } from './layout';
-import type { TextHit, WordHit } from './layoutText';
+import { textBox, type TextHit, type WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { removeMark } from './noteEdits';
 import { pitchAt } from './normalMode';
 import { writtenStrings } from './notation';
-import { RUN_MARKS, type RunMark } from './runs';
 import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
 import type { FieldKind } from './WordField';
 import type { EditorState, Picked } from './useEditorState';
@@ -38,13 +38,13 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   /** Opens a word's field, as Edit does (`useHeadPanels`). */
   openWord: (kind: FieldKind | 'tempo', at: Cursor) => void;
   /** Opens a bar's time or key signature panel under a press. */
-  openSignature: (kind: 'time' | 'key', bar: number, at: { x: number; y: number }) => void;
+  openSignature: (kind: 'time' | 'key', bar: number, at: { x: number; y: number } | null) => void;
   /** Takes the playback line away. */
   dropLine: () => void;
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, startRegion, toPitch,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
   /**
@@ -61,18 +61,13 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
 
   /**
-   * A press on a drawn chord name, text, section, tempo or capo picks it, with the cursor on its column or
-   * bar: outlined, with Edit and Delete to its right, and Enter or Delete do the same (Jeremy, 2026-10-27;
-   * a press had opened its field at once). One on a time signature opens its bar's panel.
+   * A press on a drawn chord name, text, section, tempo, capo or time or key signature picks it, with the
+   * cursor on its column or bar, lit blue; Enter, a double-click or its menu's Edit opens its field or panel
+   * (Jeremy, 2026-10-27; a signature, since step 8, as a word: a press had opened its panel at once).
    */
-  const onPickText = (hit: TextHit, press: { x: number; y: number }) => {
+  const onPickText = (hit: TextHit) => {
     const at = wordPlace(hit);
     commit(clip, at, null);
-    // A time or key signature opens its bar's panel, just under the press (Jeremy, 2026-10-27).
-    if (hit.kind === 'time' || hit.kind === 'key') {
-      openSignature(hit.kind, hit.bar, { x: press.x - PANEL_LEAD, y: press.y + PANEL_DROP });
-      return;
-    }
     setPicked(hit);
     editorRef.current?.focus();
   };
@@ -95,11 +90,16 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     editorRef.current?.focus();
   };
 
-  /** Opens the picked word's field, or a repeat's count's; a repeat's start and a double bar have none. */
+  /** Opens the picked word's field, a repeat's count's or a signature's panel under it; a repeat's start and a double bar have none. */
   const editPicked = (hit: WordHit) => {
     if (hit.kind === 'repeatStart' || hit.kind === 'doubleBar') return;
     const at = wordPlace(hit);
     commit(clip, at, null);
+    if (hit.kind === 'time' || hit.kind === 'key') {
+      const box = textBox(layout, hit, drawn.capo ?? null);
+      openSignature(hit.kind, hit.bar, box ? { x: box.x + box.width / 2 - PANEL_LEAD, y: box.y + box.height / 2 + PANEL_DROP } : null);
+      return;
+    }
     openWord(hit.kind === 'repeatEnd' || hit.kind === 'repeatCount' ? 'repeat' : hit.kind, at);
   };
 
@@ -118,6 +118,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
       if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);
       if (hit.kind === 'ending') commit(setEnding(clip, at.bar, null), at, null);
+      // A signature change later in the clip goes; bar 1's stays (step 8, Q3).
+      if (hit.kind === 'time' && at.bar > 0 && clip.bars[at.bar]?.time) commitReBar(setBarTime(clip, at.bar, null), at.bar);
+      if (hit.kind === 'key' && at.bar > 0 && clip.bars[at.bar]?.key) commit(setBarKey(clip, at.bar, null), at, null);
     }
     setColumnOnly(false);
     // After the clip above is drawn: the blur fills the cursor's bar, and must start from the clip without the mark.
@@ -207,8 +210,21 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
    * A press on a rest in normal mode (issue #276), or on a note's stem under the tab alone (issue #290): its
    * column alone is selected, as MuseScore selects one, not its bar; with Shift the selection grows to it.
    */
-  const onPickRhythm = (at: { bar: number; column: number }, extend: boolean) => {
+  const onPickRhythm = ({ lastBar, ...at }: { bar: number; column: number; lastBar?: number }, extend: boolean) => {
     const hit = { ...at, string: cursor.string };
+    if (lastBar !== undefined && !extend) {
+      // A multi-bar rest: every column of its bars selected (step 8, Q1).
+      const columns = clip.bars.slice(at.bar, lastBar + 1).reduce((n, b) => n + b.columns.length, 0);
+      lastDigitRef.current = null;
+      if (columns > 0) {
+        const anchor = indexOf(clip, at.bar, 0);
+        commit(clip, { ...placeOf(clip, anchor + columns - 1), string: cursor.string }, { anchor, focus: anchor + columns - 1 });
+        startRegion();
+      } else commit(clip, hit, null);
+      setStaffPitch(null);
+      setColumnOnly(true);
+      return;
+    }
     if (extend) {
       onPick(hit, true);
       return;
@@ -338,23 +354,57 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (moved && !drag.done) hearNote({ ...hit, string });
   };
 
+  /** A Span's Mark picked again where it now lies, its run selected for the tools as a press picks it (`onPickMark`). */
+  const repickSpan = (shown: Part, hit: MarkHit, [from, to]: [number, number]) => {
+    const [first, last] = spanAround(spanColumns(shown), hit.mark as SpanMark, from);
+    const next: MarkHit = { ...hit, index: first, to: Math.max(last, to) };
+    const run = next.to !== next.index && hit.mark !== 'hairpin';
+    setSelection(run ? { anchor: next.index, focus: next.to! } : null);
+    setCursor({ ...cursor, ...placeOf(shown, first) });
+    setPicked(next);
+  };
+
+  /** Where a Handle drag started from: the clip then, and the Span as it was. */
+  const spanFrom = useRef<{ clip: Part; hit: MarkHit } | null>(null);
   /**
-   * A press on a P.M. or let ring line selects every column under it, so its palette button shows
-   * pressed and one press turns the whole run off. The cursor goes to the run's first marked note.
+   * A picked Span's Handle dragged (step 8, Q5–Q8): the Span is drawn where it will land as the pointer
+   * moves; letting go is one undo step and leaves it picked; called off, it goes back.
    */
-  const onPickRun = (mark: RunMark, index: number) => {
-    lastDigitRef.current = null;
-    setColumnOnly(false);
-    const { has } = RUN_MARKS.find(r => r.mark === mark)!;
-    const [from, to] = runAround(clip, index, has);
-    const place = placeOf(clip, from);
-    const notes = clip.bars[place.bar].columns[place.column].notes;
-    const string = notes.findIndex(n => n?.[mark]);
-    commit(clip, { ...place, string }, { anchor: from, focus: to });
+  const onDragSpan = (drag: SpanDrag) => {
+    if (!isSpan(drag.hit.mark)) return;
+    if (!spanFrom.current) spanFrom.current = { clip, hit: drag.hit };
+    const { clip: base, hit } = spanFrom.current;
+    const mark = hit.mark as SpanMark;
+    const old: [number, number] = [hit.index, hit.to ?? hit.index];
+    const kind = spanKind(spanColumns(base)[old[0]], mark);
+    if (kind === null) return;
+    const want: [number, number] = drag.end === 'start' ? [drag.column, old[1]] : [old[0], drag.column];
+    const next = drag.cancelled ? old : clampSpan(base, mark, kind, old, want);
+    const shown = moveSpan(base, mark, old, next);
+    if (drag.done) {
+      spanFrom.current = null;
+      if (shown !== base) dispatch({ type: 'replacePart', part: shown, from: base });
+      else dispatch({ type: 'previewPart', part: base });
+    } else dispatch({ type: 'previewPart', part: shown });
+    repickSpan(shown, hit, next);
+  };
+
+  /** Alt+Shift+→ / ← on a picked Span: its end a column later or earlier, across lines of tab (Q9). */
+  const moveSpanEnd = (step: 1 | -1) => {
+    if (picked?.kind !== 'mark' || !isSpan(picked.mark)) return;
+    const mark = picked.mark;
+    const old: [number, number] = [picked.index, picked.to ?? picked.index];
+    const kind = spanKind(spanColumns(clip)[old[0]], mark);
+    if (kind === null) return;
+    const next = clampSpan(clip, mark, kind, old, [old[0], old[1] + step]);
+    const shown = moveSpan(clip, mark, old, next);
+    if (shown === clip) return;
+    dispatch({ type: 'replacePart', part: shown });
+    repickSpan(shown, picked, next);
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRun, onPickRect, onDragStaff, onDragFret,
-    stepToElement, editPicked, deletePicked,
+    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan,
+    stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }

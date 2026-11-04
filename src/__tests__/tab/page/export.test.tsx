@@ -16,26 +16,28 @@ describe('TabPage export', () => {
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert bar before', 'Insert bar after', 'Insert paste']);
   });
 
-  it('opens only the bar menu on a right-click on a drawn signature, not its panel too', () => {
+  it('picks a drawn signature on a right-click and opens its menu, Edit only on bar 1, not its panel', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     const svg = screen.getByRole('img', { name: /drawn as tab/ });
     fireEvent.pointerDown(svg, { clientX: 13, clientY: 65, button: 2 });
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }), { clientX: 13, clientY: 65 });
-    expect(screen.getByRole('menu', { name: 'Tab' })).toBeInTheDocument();
+    const menu = screen.getByRole('menu', { name: 'Selected' });
+    expect(within(menu).getByRole('menuitem', { name: /Edit/ })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: /Delete/ })).toBeNull();
     expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
   });
 
-  it('closes the panel a long press opened when the bar menu opens', () => {
+  it('a long press on a drawn signature picks it and opens its menu, with no panel', () => {
     vi.useFakeTimers();
     try {
       keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
       renderAt();
       const svg = screen.getByRole('img', { name: /drawn as tab/ });
       fireEvent.pointerDown(svg, { clientX: 13, clientY: 65, pointerType: 'touch' });
-      expect(screen.getByRole('dialog', { name: 'Time signature' })).toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
       act(() => { vi.advanceTimersByTime(600); });
-      expect(screen.getByRole('menu', { name: 'Tab' })).toBeInTheDocument();
+      expect(screen.getByRole('menu', { name: 'Selected' })).toBeInTheDocument();
       expect(screen.queryByRole('dialog', { name: 'Time signature' })).toBeNull();
     } finally {
       vi.useRealTimers();

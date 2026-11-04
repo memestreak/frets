@@ -1,8 +1,8 @@
+import { markAt } from '@/features/tab/marks';
 import { readAscii } from '@/features/tab/ascii';
 import { BEND_LABEL_RAISE, BEND_RISE, columnWidth, layoutClip, lineAt, rowsFor, stepY } from '@/features/tab/layout';
 import { boundaryAt, columnAt, hitTest, staffAt } from '@/features/tab/hitTest';
 import { textAt } from '@/features/tab/layoutText';
-import { runAt } from '@/features/tab/runs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { type Part, partOf } from '@/features/tab/clip';
@@ -151,11 +151,10 @@ describe('pressing the drawing', () => {
     expect(staffAt(low, x, stepY(low.systems[0].rows.score!, head.step))).toMatchObject({ bar: 0, column: 0, string: 5 });
   });
 
-  it('finds the P.M. run under a press on its label or line', () => {
-    const hit = runAt(layout, first.x, rows.palmMute!);
-    expect(hit?.mark).toBe('palmMute');
-    expect(hit?.run.columns).toEqual([first, second]);
-    expect(runAt(layout, first.x, rows.staffTop)).toBeNull();
+  it('finds the P.M. line under a press on its label or line, as one Mark over its run', () => {
+    const hit = markAt(layout, first.x, rows.palmMute!);
+    expect(hit).toMatchObject({ mark: 'palmMute', index: first.index, to: second.index, string: null });
+    expect(markAt(layout, first.x, rows.staffTop)).toBeNull();
   });
 });
 

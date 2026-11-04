@@ -84,11 +84,17 @@ export const doubleClick = (el: Element) => {
 
 
 
-/** A press on the time signature drawn in front of the first line (jsdom places the drawing at 0, 0). */
-export function pressFirstTimeSignature() {
+/** A press on the time signature drawn in front of the first line (jsdom places the drawing at 0, 0): it picks it (step 8). */
+export function pickFirstTimeSignature() {
   const svg = screen.getByRole('img', { name: /drawn as tab/ });
   // The numbers are centred 13 units in, round the middle of a staff that starts 30 down.
   fireEvent.pointerDown(svg, { clientX: 13, clientY: 65 });
+}
+
+/** The first line's time signature picked, then Enter: its panel opens. */
+export function pressFirstTimeSignature() {
+  pickFirstTimeSignature();
+  fireEvent.keyDown(screen.getByRole('textbox', { name: /Tab editor/ }), { key: 'Enter' });
 }
 
 /** The fret numbers drawn selected (in the selection colour): a selection lights its notes, with no band. */

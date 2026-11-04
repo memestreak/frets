@@ -36,6 +36,8 @@ through to the nearest note or does nothing.
 - **Tuplet number or bracket:** the whole group is selected. Delete makes
   the group plain notes.
 - **P.M. and let ring lines:** unchanged. They pick their run, as before.
+  (Since 2026-11-04 they are picked as Marks, with Handles, an Attachment
+  line and a tint on their notes: `2026-11-04-tab-pick-every-mark-design.md`.)
 
 ## Hit areas
 

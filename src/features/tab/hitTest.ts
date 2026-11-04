@@ -4,9 +4,10 @@
  */
 
 import { isRest } from './clip';
+import type { MarkHit } from './marks';
 import { xAlong } from './grid';
 import { staffBar } from './staffGeometry';
-import { HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY, wholeRestX } from './layout';
+import { accidentalRoom, HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY, wholeRestX } from './layout';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
 export interface Hit {
@@ -32,10 +33,13 @@ function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number
     bar.columns.forEach((placed, column) => {
       const drawn = geometry.get(placed);
       if (!drawn) return;
+      // A press on an accidental, left of the heads, is on its note too (step 8, Q1).
+      const signs = accidentalRoom(placed.heads);
       placed.heads.forEach((head, k) => {
         // Where the head is drawn: a head a second from its neighbour sits on the stem's other side (issue #276).
-        const dx = Math.abs(drawn.xs[k] + drawn.width / 2 - x);
-        if (dx > HEAD_REACH_X) return;
+        const centre = drawn.xs[k] + drawn.width / 2;
+        const dx = Math.abs(centre - x);
+        if (dx > HEAD_REACH_X + (x < centre ? signs : 0)) return;
         const dy = Math.abs(stepY(score, head.step) - localY);
         if (dy > HEAD_REACH_Y) return;
         const distance = dx + dy;
@@ -83,6 +87,15 @@ export interface StaffDrag {
  * pressed, the string the pointer is over now, and `done` when it lets go (`cancelled` when it let go
  * off the drawing, or the browser took the pointer).
  */
+/** A picked Span's Handle dragged (step 8): the Span, which end, the column it is over, and whether it let go or was called off. */
+export interface SpanDrag {
+  hit: MarkHit;
+  end: 'start' | 'end';
+  column: number;
+  done: boolean;
+  cancelled: boolean;
+}
+
 export interface FretDrag {
   hit: Hit;
   string: number;
@@ -208,17 +221,28 @@ const TAB_BAR_REST_REACH_X = 12;
  * lines (issue #276), or, with the tab alone, a rest or a note's stem where the tab's own rhythm draws
  * them under the strings (issue #290). A multi-bar rest and a grace note have none to pick.
  */
-export function rhythmAt(layout: Layout, x: number, y: number): { bar: number; column: number } | null {
+export function rhythmAt(layout: Layout, x: number, y: number): { bar: number; column: number; lastBar?: number } | null {
   const line = lineAt(layout, y);
   if (!line) return null;
   const { system, localY } = line;
   const { rows } = system;
+  // On the staff, a stem or a beam picks its column (step 8, Q4).
+  const stem = rows.score ? staffStemAt(system, rows.score, x, localY) : null;
+  if (stem) return stem;
   const [top, bottom] = rows.score ? [rows.score.top, rows.score.bottom] : rows.tabStems ? [rows.stemTop, rows.stemTop + 24] : [null, null];
   if (top === null || bottom === null || localY < top || localY > bottom) return null;
   // The nearest in reach, so a wide rest's reach doesn't take a press from a narrow stem or rest beside it.
   let best: { bar: number; column: number; off: number } | null = null;
   for (const bar of system.bars) {
-    if (bar.restRun) continue;
+    if (bar.restRun) {
+      // A multi-bar rest picks its bars, as a Whole-bar rest picks its bar (step 8, Q1).
+      const { span } = bar.restRun;
+      if (bar.restRun.first && x >= span.x0 && x <= span.x1) {
+        const last = system.bars.filter(b => b.restRun && b.restRun.span === span).at(-1)!;
+        return { bar: bar.index, column: 0, lastBar: last.index };
+      }
+      continue;
+    }
     if (bar.wholeRest) {
       // One whole rest drawn centred: a press on it picks the bar's first rest (the page picks them all).
       const off = Math.abs(wholeRestX(bar) - x);
@@ -234,4 +258,38 @@ export function rhythmAt(layout: Layout, x: number, y: number): { bar: number; c
     }
   }
   return best && { bar: best.bar, column: best.column };
+}
+
+/** How near a staff stem or beam a press must be, across and up or down. */
+const STEM_REACH = 4;
+const BEAM_REACH = 6;
+
+/**
+ * The column whose stem or beam is under a press on the notation staff (step 8, Q4): a stem picks its
+ * column, a beam the column whose stem is nearest the press. A press on a head is the note's, not the stem's.
+ */
+function staffStemAt(system: System, score: ScoreRows, x: number, localY: number): { bar: number; column: number } | null {
+  for (const bar of system.bars) {
+    if (bar.restRun) continue;
+    const geometry = staffBar(bar, score);
+    const onHead = bar.columns.some(p => Math.abs(p.x - x) <= HEAD_REACH_X && p.heads.some(h => Math.abs(stepY(score, h.step) - localY) <= SPACE / 2 + 1));
+    if (onHead) return null;
+    let best: { column: number; off: number } | null = null;
+    for (const [placed, c] of geometry.columns) {
+      if (c.tip === null || placed.column.grace) continue;
+      const ys = placed.heads.map(h => stepY(score, h.step));
+      const [y0, y1] = [Math.min(c.tip, ...ys), Math.max(c.tip, ...ys)];
+      const column = bar.columns.indexOf(placed);
+      if (Math.abs(x - c.stemX) <= STEM_REACH && localY >= y0 && localY <= y1) return { bar: bar.index, column };
+      // On its group's beam: the nearest stem along it.
+      if (c.group && Math.abs(localY - c.tip) <= BEAM_REACH) {
+        const stems = c.group.map(p => geometry.columns.get(p)?.stemX ?? p.x);
+        if (x < Math.min(...stems) || x > Math.max(...stems)) continue;
+        const off = Math.abs(x - c.stemX);
+        if (!best || off < best.off) best = { column, off };
+      }
+    }
+    if (best) return { bar: bar.index, column: best.column };
+  }
+  return null;
 }

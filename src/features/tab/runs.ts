@@ -4,7 +4,7 @@
  */
 
 import { STRING_COUNT, isLetRing, isPalmMuted, type Column, type Note } from './clip';
-import { BEND_PEAK, bendShape, type Layout, lineAt, type PlacedColumn, type System } from './layout';
+import { BEND_PEAK, bendShape, type PlacedColumn, type System } from './layout';
 
 /** The vibrato waves of a line: one over each run of neighbouring columns with vibrato, wide where any note's is. */
 export function vibratoRuns(system: System) {
@@ -76,21 +76,6 @@ export function runsIn(system: System, has: (column: Column) => boolean): Run[] 
   }
   close();
   return runs;
-}
-
-/** The run under a point, label or line, with the mark it draws; null when there is none. */
-export function runAt(layout: Layout, x: number, y: number): { mark: RunMark; run: Run } | null {
-  const line = lineAt(layout, y);
-  if (!line) return null;
-  const { system, localY } = line;
-  const { rows } = system;
-  for (const { mark, label, has } of RUN_MARKS) {
-    const rowY = rows[mark];
-    if (rowY === null || Math.abs(localY - rowY) > 7) continue;
-    const run = runsIn(system, has).find(r => x >= r.x0 - 2 && x <= Math.max(r.x1, r.x0 + runLabelWidth(label)) + 2);
-    if (run) return { mark, run };
-  }
-  return null;
 }
 
 /** Where a note was drawn: its line of tab and its column's centre. */

@@ -13,6 +13,7 @@ import { chainPlaces, chainStart, chainTicks } from './ties';
 import { clearToRests, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
+import { isSpan } from './spans';
 import type { Notice } from './notice';
 import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
@@ -80,6 +81,8 @@ export interface EditorKeys {
   openTuplets: () => void;
   /** Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
   stepElement: (step: 1 | -1) => void;
+  /** A picked Span's end a column later (1) or earlier (−1): Alt+Shift+→ / ← (step 8). */
+  moveSpanEnd: (step: 1 | -1) => void;
   /** Records an edit as one undo step and moves the cursor (by default it and the selection stay). */
   commit: (next: Part, cursor?: Cursor, selection?: Selection | null) => void;
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
@@ -89,7 +92,7 @@ export interface EditorKeys {
   startRegion: () => void;
   setPicked: (picked: null) => void;
   deletePicked: (hit: WordHit | MarkHit) => void;
-  editPicked: (hit: WordHit) => void;
+  editPicked: (hit: WordHit | MarkHit) => void;
   addBar: (where: 'before' | 'after') => void;
   onTool: (id: ToolId) => void;
   /** Sounds a note just entered (when the reader asked for it). */
@@ -122,11 +125,27 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       editor.deletePicked(picked);
       return;
     }
+    // A picked Span: Alt+Shift+→ / ← move its end a column, as Dorico's Shift+Alt+→ / ← (step 8, Q9).
+    if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && isSpan(picked.mark)) {
+      e.preventDefault();
+      editor.moveSpanEnd(key === 'ArrowRight' ? 1 : -1);
+      return;
+    }
+    // A picked tuplet's number: Enter opens the Tuplet panel, as its menu's Edit does (step 8).
+    if (key === 'Enter' && picked.mark === 'tuplet' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      editor.editPicked(picked);
+      return;
+    }
     editor.setPicked(null);
     if (key === 'Escape') {
       e.preventDefault();
       // Esc always leaves note input (Jeremy, 2026-11-03), a picked mark or word let go with it.
       if (editor.inputMode) editor.setInputMode(false);
+      // A Span's run, selected for the tools while it was picked, goes with it, and so does the column a
+      // Mark over the whole column put the cursor on (step 8).
+      if (selection) commit(clip, cursor, null);
+      editor.setColumnOnly(false);
       return;
     }
   }

@@ -75,6 +75,11 @@ names it.
 **Arrangement**:
 The Tab page's Work: a named Clip saved under My arrangements.
 
+**Attachment line**:
+A thin dotted line drawn from a picked Mark to the note it belongs to (to
+the first and last notes of a Span), as Dorico draws one; shown only
+while the Mark is picked.
+
 **Beam override**:
 A note's own beaming, set by hand: Break before (its beam stops before
 it) or Join to previous (its beam goes on from the note before). Without
@@ -112,6 +117,10 @@ as a grace note before the time at the cursor, taking no time.
 The steps Note input's cursor stops at inside a Gap, and where a press
 snaps to: the Input length unless a fixed Grid is picked.
 
+**Handle**:
+A small circle at each end of a picked Span, dragged to change which
+columns the Span covers, never the notes' time.
+
 **Input length**:
 The length the next note entered in Note input takes, chosen before the
 note goes in.
@@ -121,6 +130,12 @@ Where a Clip forces the music onto a new System, written in alphaTex
 as `\systemsLayout` and drawn only with "Clip's line breaks" on.
 Otherwise Systems wrap to the drawing's width.
 _Avoid_: system break
+
+**Mark**:
+Anything drawn for a note, a column or a bar other than its fret numbers
+and note heads: a technique, accent, tie, word, signature or bar-line
+sign. Each can be picked on its own.
+_Avoid_: annotation
 
 **Normal mode**:
 The Tab page's mode for picking and changing what is there; the page
@@ -150,6 +165,12 @@ A note as it sounds: its Voice, string, fret, start and length, with a
 Tie chain counted as one. Edits work on Sounding notes; the Clip stores
 Columns.
 _Avoid_: event
+
+**Span**:
+A Mark drawn as one line or wave over neighbouring columns that have it:
+let ring, P.M., vibrato, an octave line, a hairpin. Picked whole, with a
+Handle at each end.
+_Avoid_: run (for the Mark)
 
 **System**:
 One line of music across the drawing. A System holds every staff
