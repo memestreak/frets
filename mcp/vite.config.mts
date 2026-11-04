@@ -17,7 +17,15 @@ export default defineConfig({
   root,
   plugins: [react(), viteSingleFile()],
   publicDir: false,
-  resolve: { alias: { '@': path.resolve(repo, 'src') } },
+  // Soundfonts are assets too, so `?inline` can build them in (the Tab app's guitar).
+  assetsInclude: ['**/*.sf3'],
+  resolve: {
+    alias: [
+      // The Tab player's decoder worker can't be built into one file: decode on the main thread.
+      { find: /^\.\/soundDecoder$/, replacement: path.resolve(import.meta.dirname, 'apps/noWorkerDecoder.ts') },
+      { find: '@', replacement: path.resolve(repo, 'src') },
+    ],
+  },
   css: { postcss: repo },
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist'),

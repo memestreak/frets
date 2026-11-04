@@ -333,8 +333,37 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   and click volume.
 - `FxButton.tsx` — FX and its light switch, and the FX dialog.
 
+## The MCP App (`show_tab`)
+
+Issue #340, `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of
+guitar music in a chat, on Frets' MCP server (`src/mcp/README.md`). The
+model writes the line as JSON (the clip model, notes on a `string` and
+`fret` or at a `pitch`); the app draws and plays it, and nothing is edited
+or saved. Standard tuning only.
+
+- `mcp/tool.ts` — the tool's name, description and zod input; the whole
+  schema is in the definition, so its descriptions stay short.
+- `mcp/lineJson.ts` — `lineFromInput` checks a call and makes its `Part`
+  (pitches placed by `choosePlace`, as in staff entry; full bars; joins
+  with a note to join), each error naming the bar and column; `lineOf`
+  turns a `Part` back into the JSON, every note on its string and fret;
+  `describeLine`.
+- `mcp/register.ts` — `show_tab` and its app's resource. The result is a
+  line of text with the Frets link, and the checked line for the app.
+- `mcp/TabApp.tsx` — the app: shows the call's line, tells the model when
+  the user changes the bpm or the loop, unmounts the line on teardown so
+  the sound goes.
+- `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip` and the
+  playhead, then Play, Loop, the bpm, Staff | Tab | Both and Open in Frets.
+- The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
+  guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
+  `mcp/dist/tab.html`.
+
 ## Specs
 
+- `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar
+  music in a chat as staff over tab that plays (show_tab), then generated
+  phrases and progressions (show_phrase)
 - `docs/specs/2026-11-04-tab-pick-every-mark-design.md`: every Mark can
   be picked: P.M. and let ring lines, signatures, staff stems and beams;
   Spans get a Handle at each end; a picked Mark shows an Attachment line

@@ -74,7 +74,7 @@ describe('rhythmFromInput', () => {
 
 async function connectedClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createFretsServer({ metronome: '<p>app</p>', tuner: '<p>tuner</p>' }).connect(serverSide);
+  await createFretsServer({ metronome: '<p>app</p>', tab: '<p>tab</p>', tuner: '<p>tuner</p>' }).connect(serverSide);
   const client = new Client({ name: 'test', version: '1' });
   await client.connect(clientSide);
   return client;

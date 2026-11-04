@@ -5,9 +5,10 @@
  */
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import metronome from '../mcp/dist/metronome.html';
+import tab from '../mcp/dist/tab.html';
 import tuner from '../mcp/dist/tuner.html';
 import { createFretsServer } from '../src/mcp/server';
 
-const handler = createMcpHandler(() => createFretsServer({ metronome, tuner }));
+const handler = createMcpHandler(() => createFretsServer({ metronome, tab, tuner }));
 
 export const onRequest = ({ request }: { request: Request }): Promise<Response> => handler.fetch(request);
