@@ -51,8 +51,8 @@ describe('placeBeatTexts', () => {
     const { placed, rows } = placeBeatTexts([{ x0: 0, text: LONG }, { x0: 200, text: 'then this' }], 600);
     expect(placed[0].lines.length).toBeGreaterThan(1);
     for (const line of placed[0].lines) expect(beatTextWidth(line)).toBeLessThanOrEqual(200 - BEAT_TEXT_GAP);
-    // Both on level 0, which is as tall as its tallest text; each starts on its top row.
-    expect(placed.map(p => p.top)).toEqual([0, 0]);
+    // Both on level 0, which is as tall as its tallest text; each sits on its bottom row, by the music.
+    expect(placed.map(p => p.top)).toEqual([0, placed[0].lines.length - 1]);
     expect(rows).toBe(placed[0].lines.length);
   });
 
@@ -60,7 +60,8 @@ describe('placeBeatTexts', () => {
     // b is moved up off a; c clears a's least room, so it stays on level 0, right after it.
     const texts = [{ x0: 0, text: LONG }, { x0: 30, text: 'b' }, { x0: BEAT_TEXT_MIN_ROOM + BEAT_TEXT_GAP, text: 'c' }];
     const { placed } = placeBeatTexts(texts, 600);
-    expect(placed.map(p => p.top)).toEqual([1, 0, 1]);
+    // c sits on level 0's bottom row, beside a's last line.
+    expect(placed.map(p => p.top)).toEqual([1, 0, placed[0].lines.length]);
     expect(placed[0].lines).toEqual(wrapBeatText(LONG, BEAT_TEXT_MIN_ROOM));
     expect(placed[0].lines.some(line => line.includes(' '))).toBe(true);
   });
@@ -102,6 +103,20 @@ describe('placeBeatTexts', () => {
     expect(placed.map(p => p.top)).toEqual([1, 0, 1]);
   });
 
+  it('sits a short text on its level\'s bottom row, beside a wrapped one, not on its top row', () => {
+    // a wraps to three lines before b; b is one line on the same level, next to the music.
+    const a = 'one two three four five six seven eight nine';
+    const { placed, rows } = placeBeatTexts([{ x0: 0, text: a }, { x0: 108, text: 'b' }], 600);
+    expect(placed[0].lines.length).toBe(3);
+    expect(rows).toBe(3);
+    expect(placed.map(p => p.top)).toEqual([0, 2]);
+    // A level over a taller level 0 starts at the top: its one line is above a's three.
+    const moved = placeBeatTexts([{ x0: 0, text: a }, { x0: 20, text: 'bbbb' }], 100 + BEAT_TEXT_GAP);
+    expect(moved.placed[1].top).toBe(0);
+    expect(moved.placed[0].top).toBe(1);
+    expect(moved.rows).toBe(1 + moved.placed[0].lines.length);
+  });
+
   it('takes one row for a line without texts', () => {
     expect(placeBeatTexts([], 600)).toEqual({ placed: [], rows: 1 });
   });
@@ -137,6 +152,18 @@ describe('layoutClip wraps free text', () => {
     const [, empty, second] = placedOf(layoutClip(TWO, 800));
     expect(second.textLines).toEqual(['then this']);
     expect(empty.textLines).toEqual([]);
+  });
+
+  it('draws a short text beside a wrapped one next to the staff, on the long one\'s last row', () => {
+    const layout = layoutClip(TWO, 800);
+    const [first, , second] = placedOf(layout);
+    expect(first.textLines.length).toBeGreaterThan(1);
+    expect(second.textTop).toBe(first.textTop + first.textLines.length - 1);
+    // A press on the row next to the staff picks it; a press on the row above it doesn't.
+    const { top, rows } = layout.systems[0];
+    const y = top + rows.text! + second.textTop * BEAT_TEXT_LINE;
+    expect(textAt(layout, second.x, y)).toEqual({ kind: 'text', index: 2 });
+    expect(textAt(layout, second.x + 10, y - BEAT_TEXT_LINE)).toBeNull();
   });
 
   it('pushes everything under the text row down one line per extra text row', () => {
