@@ -161,6 +161,16 @@ describe('a loop coming round', () => {
     expect(back.ms).toBeLessThan(4000 + 200);
   });
 
+  it('plays the loop\'s first note each time round, at a tempo whose times land off its ticks', async () => {
+    // At 113 bpm bar 2's first note is timed a hair before bar 2's start (its time is summed from
+    // the events before it), and was left out when the loop came round (Jeremy, 2026-11-04).
+    const clip = clipOf(`\\tempo 113\n.\n:4 ${'5.1 '.repeat(4)}| ${'7.1 '.repeat(4)}| ${'5.1 '.repeat(4)}|`);
+    await player.play(clip, 4, [4, 7], 1, SOUND);
+    const { main } = render(7);
+    // Bar 2 three times round: a note on every beat, so the guitar never falls silent.
+    expect(longestSilence(main)).toBeLessThan(5);
+  });
+
   it('plays the loop\'s first bar, not the count-in, when it comes round after one', async () => {
         player.setCountIn(true, 1);
     // Bars 1 and 2 looped, from bar 2: the count-in takes bar 1's place the first time only.

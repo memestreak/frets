@@ -225,7 +225,10 @@ it makes the loop's end, carrying over how far it went past it, so the
 start follows the end in the same stream of samples. The notes still
 sounding at the end die away as they would at their end; everything but
 the notes before the start (the sound, the volume, a bend) is set as it is
-there. The position the synthesizer reports goes back by the loop's length
+there, the start found by tick rather than time (an event's time is summed
+from the ones before it, so a note on the start's tick can be timed a hair
+before the start's time; at 113 bpm a loop of bar 2 lost its first note).
+The position the synthesizer reports goes back by the loop's length
 when the end is heard, so the playhead follows the sound; it waits on the
 loop's last column until then. A count-in ends as the sequencer goes round,
 so the loop's first bar is played, not the clicks that stood in for it.
@@ -240,6 +243,8 @@ what reaches the speakers:
   first, over two loops; no silence over 5 ms in the guitar.
 - A bar looped from the bar before it: the same, and the playhead goes
   0–7 then 4–7 round and round, back on 4 when the start is heard.
+- Bar 2 looped from bar 2 at 113 bpm: no silence over 5 ms, so its first
+  note plays each time round.
 - Bars 1–2 looped from bar 2 after a count-in: no silence over 5 ms once
   the notes start, so bar 1 plays when the loop comes round.
 - A 1 s pause between loops: the beat before the start again lasts 1.5 s,

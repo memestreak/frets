@@ -19,9 +19,9 @@ const NOTE_ON = 128;
 const NOTE_OFF = 144;
 const PER_NOTE_PITCH_BEND = 96;
 
-/** One event of the sequencer's: its MIDI event and when it sounds, in milliseconds at speed 1. */
+/** One event of the sequencer's: its MIDI event (with its tick) and when it sounds, in milliseconds at speed 1. */
 interface SynthEvent {
-  event: { type: number } | null;
+  event: { type: number; tick: number } | null;
   isMetronome: boolean;
   time: number;
 }
@@ -95,9 +95,11 @@ export function loopSeamlessly(synth: AlphaTabModule.synth.AlphaSynth, onWrap: (
     s.synthesizer.noteOffAll(false);
     // Everything but the notes before the start (the sound, volume, a bend left on the strings) is
     // set as it is there; the notes ringing into the start from before it are not played, as alphaTab
-    // doesn't when it loops.
+    // doesn't when it loops. Before the start by tick, not time: an event's time is summed from the
+    // ones before it, so a note on the start's tick can land a hair before the start's time and would
+    // be left out (Jeremy, 2026-11-04: a loop of bar 2 lost its first note).
     let index = 0;
-    while (index < state.synthData.length && state.synthData[index].time < state.playbackRangeStartTime) {
+    while (index < state.synthData.length && (state.synthData[index].event?.tick ?? 0) < range.startTick) {
       const e = state.synthData[index];
       if (!e.isMetronome && e.event && e.event.type !== NOTE_ON && e.event.type !== NOTE_OFF && e.event.type !== PER_NOTE_PITCH_BEND) {
         s.synthesizer.dispatchEvent(e);
