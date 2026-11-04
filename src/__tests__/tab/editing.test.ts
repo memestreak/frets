@@ -5,7 +5,7 @@ import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab
 import { parseEditing } from '@/features/tab/editingPrefs';
 import { clampCursor, copyText, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleSlide, makeRest, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke } from '@/features/tab/noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleSlide, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke } from '@/features/tab/noteEdits';
 
 function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
@@ -61,12 +61,10 @@ describe('typing', () => {
     expect(toggleLegato(clip, only(at(0, 0, 2)))).toEqual(clip);
   });
 
-  it('makes a dead note and a rest', () => {
+  it('makes a dead note', () => {
     let clip = clipOf('(5.3 5.4).4 r.4 r.2 |');
     clip = setDead(clip, at(0, 0, 3));
     expect(bars(clip)).toBe('(5.3 x.4).4 r.4 r.2 |');
-    clip = makeRest(clip, only(at(0, 0, 0)));
-    expect(bars(clip)).toBe('r.4 r.4 r.2 |');
   });
 });
 

@@ -136,8 +136,12 @@ describe('TabPage editing', () => {
     act(() => editor().focus());
     // One eighth: the bar doesn't add up.
     expect(screen.getByTestId('bar-warning').getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and an 8th short.");
-    // A lone triplet eighth: nor is the triplet whole.
-    act(() => { fireEvent.keyDown(editor(), { key: '3', code: 'Digit3', altKey: true }); });
+  });
+
+  it('marks a linked bar holding a broken tuplet, the words as the tip', async () => {
+    // A lone triplet eighth (step 6: a tuplet made by the keys keeps the bar full, so this too comes from a link).
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.8{tu 3} |')}`);
+    await waitFor(() => expect(alphaTex()).toBe('5.1.8{tu 3} |'), SLOW);
     const warning = screen.getByTestId('bar-warning');
     expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and a quarter triplet short. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
   });

@@ -75,6 +75,21 @@ export interface EditorState {
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
   /**
+   * Tuplet entry (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`): in note input, the tuplet the
+   * typed notes go in as, picked from the Tuplet panel, or null. Leaving note input turns it off.
+   */
+  tupletEntry: number | null;
+  setTupletEntry: (n: number | null) => void;
+  /** Grace entry: in note input, typed frets go in as grace notes before the cursor's time (`/`). Leaving note input turns it off. */
+  graceEntry: boolean;
+  setGraceEntry: (on: boolean) => void;
+  /**
+   * Where a tuplet Tuplet entry began with a rest (`,`) starts, in ticks, until its first note makes it;
+   * null when none is waiting.
+   */
+  tupletFrom: number | null;
+  setTupletFrom: (at: number | null) => void;
+  /**
    * How many ticks into its rest note input's cursor is (`grid.ts`, issue #293): ← →, a press or Shift+Space
    * move it there, and every commit puts it back to 0. It counts only while the cursor is still on that rest.
    */
@@ -112,8 +127,20 @@ export function useEditorState({ clip, dispatch, setNotice }: {
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [alone, setAlone] = useState(false);
-  const [inputMode, setInputMode] = useState(false);
+  const [inputMode, setInputModeOnly] = useState(false);
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
+  const [tupletEntry, setTupletEntry] = useState<number | null>(null);
+  const [graceEntry, setGraceEntry] = useState(false);
+  const [tupletFrom, setTupletFrom] = useState<number | null>(null);
+  // Leaving note input turns Tuplet entry and Grace entry off.
+  const setInputMode = (on: boolean) => {
+    setInputModeOnly(on);
+    if (!on) {
+      setTupletEntry(null);
+      setGraceEntry(false);
+      setTupletFrom(null);
+    }
+  };
   const [restSpot, setRestSpot] = useState<{ bar: number; column: number; at: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const lastDigitRef = useRef<LastDigit>(null);
@@ -171,7 +198,7 @@ export function useEditorState({ clip, dispatch, setNotice }: {
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
     columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, inputMode, setInputMode,
-    inputLength, setInputLength, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, setNotice,
+    inputLength, setInputLength, tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, setNotice,
     startRegion, toPitch,
   };
 }

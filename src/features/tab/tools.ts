@@ -9,7 +9,7 @@ import { whammyShape, type WhammyShape } from './whammy';
 import { columnAt, indexOf, noteAt, placeOf, setDead, type Target } from './editing';
 import { chainDuration, chainPlaces, lengthAnchor, tieForward } from './ties';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTuplet, type MarkKind } from './noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleLegato, toggleStroke, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
@@ -42,14 +42,14 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'thirtySecond', label: 'Thirty-second note', key: '2, or Shift+2 on a tab note; = − or W Q to step' },
       { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '1, or Shift+1 on a tab note; = − or W Q to step' },
       { id: 'dot', label: 'Dotted, then double dotted', key: '.' },
-      { id: 'rest', label: 'Rest', key: 'R' },
+      { id: 'rest', label: 'Rest', key: ',' },
     ],
   },
   {
     label: 'Rhythm',
     tools: [
-      { id: 'tuplet', label: 'Tuplet', key: 'Alt+3, 5, 6 or 7' },
-      { id: 'grace', label: 'Grace note, just before the beat', key: 'Shift+G' },
+      { id: 'tuplet', label: 'Tuplet', key: ';' },
+      { id: 'grace', label: 'Grace note, just before the beat', key: '/' },
       { id: 'tremolo8', label: 'Tremolo picking in eighths', key: 'Shift+T' },
       { id: 'tremolo16', label: 'Tremolo picking in sixteenths', key: 'Shift+T' },
       { id: 'tremolo32', label: 'Tremolo picking in thirty-seconds', key: 'Shift+T' },
@@ -60,10 +60,10 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     tools: [
       { id: 'tie', label: 'Tie to the next note', key: 'T' },
       { id: 'legato', label: 'Hammer-on or pull-off from the note before', key: 'H' },
-      { id: 'slide', label: 'Slide from the note before', key: '/' },
-      { id: 'shiftSlide', label: 'Shift slide from the note before', key: '/' },
-      { id: 'slideBelow', label: 'Slide in from below', key: '/' },
-      { id: 'slideAbove', label: 'Slide in from above', key: '/' },
+      { id: 'slide', label: 'Slide from the note before', key: 'Alt+/' },
+      { id: 'shiftSlide', label: 'Shift slide from the note before', key: 'Alt+/' },
+      { id: 'slideBelow', label: 'Slide in from below', key: 'Alt+/' },
+      { id: 'slideAbove', label: 'Slide in from above', key: 'Alt+/' },
       { id: 'slideOutDown', label: 'Slide out downward', key: '\\' },
       { id: 'slideOutUp', label: 'Slide out upward', key: '\\' },
     ],
@@ -213,8 +213,6 @@ export function applyTool(clip: Part, target: Target, id: ToolId): Part {
   switch (id) {
     case 'dot': return cycleDots(clip, target);
     case 'vibrato': return cycleMark(clip, target, 'vibrato', VIBRATOS);
-    case 'grace': return toggleGrace(clip, target);
-    case 'rest': return makeRest(clip, target);
     case 'tie': return tieForward(clip, target);
     case 'legato': return toggleLegato(clip, target);
     case 'slide': return setSlide(clip, target, 'legato');
@@ -236,8 +234,9 @@ export function applyTool(clip: Part, target: Target, id: ToolId): Part {
 }
 
 /**
- * The clip after a key press that steps through a tool's choices (b, Shift+B, /, \\, V, N, A, Shift+T), or null
- * when the key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do.
+ * The clip after a key press that steps through a tool's choices (b, Shift+B, Alt+/, \\, V, N, A, Shift+T), or null
+ * when the key isn't one of them; those keys cycle rather than set one choice as the palette's buttons do. Alt+/
+ * comes as `/`: the editor reads it by the key's place, as Alt types another character on a Mac.
  */
 export function applyCyclingKey(clip: Part, target: Target, key: string): Part | null {
   const { cursor } = target;
@@ -252,15 +251,6 @@ export function applyCyclingKey(clip: Part, target: Target, key: string): Part |
   return null;
 }
 
-/**
- * The clip after Alt with 3, 5, 6 or 7 (a triplet … septuplet on the target, or plain again), or null
- * for any other key. Alt with a digit types other characters on some layouts, so the key's place is read.
- */
-export function applyTupletKey(clip: Part, target: Target, code: string): Part | null {
-  const n = ({ Digit3: 3, Digit5: 5, Digit6: 6, Digit7: 7 } as Record<string, number>)[code];
-  return n ? toggleTuplet(clip, target, n) : null;
-}
-
 /** The last written note of the cursor's Tie chain. */
 function chainEnd(clip: Part, cursor: Target['cursor']) {
   const places = chainPlaces(clip, cursor);
@@ -273,9 +263,9 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
   // T ties, as Dorico's T does, so Tap is Alt+T (by its code: Alt types another letter on a Mac).
   if (alt) return code === 'KeyT' ? 'tap' : null;
   const keys: Record<string, ToolId> = {
-    '.': 'dot', r: 'rest', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
+    '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
-    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName', G: 'grace',
+    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
   };
   return keys[key] ?? null;
 }
@@ -296,7 +286,8 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
   // A Tie chain lights its whole length when that is one written value (`q~e` a dotted quarter), else nothing (step 5).
   const anchor = column?.grace ? null : lengthAnchor(clip, cursor);
   const length = column?.grace ? column.duration : anchor ? chainDuration(clip, anchor) : null;
-  if (value) return !rest && length?.value === value;
+  // A grace note's value is written by its count, so no Duration lights for one either (step 6, Q9).
+  if (value) return !rest && !column?.grace && length?.value === value;
   const tremolo = TREMOLO[id];
   if (tremolo) return column?.tremolo === tremolo;
   const mark = MARK[id];
@@ -308,12 +299,13 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
   if (mark?.[0] === 'slideOut') return chainEnd(clip, cursor)?.slideOut === mark[1];
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
-    case 'dot': return !rest && (length?.dots ?? 0) > 0;
+    case 'dot': return !rest && !column?.grace && (length?.dots ?? 0) > 0;
     case 'tuplet': return !!column?.duration.tuplet;
     case 'bend': return !!note?.bend;
     case 'vibrato': return !!note?.vibrato;
     case 'grace': return !!column?.grace;
-    case 'rest': return !!column && column.notes.every(n => n === null);
+    // A rest can't be set, so the Rest tool never lights (step 6, Q13).
+    case 'rest': return false;
     // A tie lights only when its arc is picked (`markLights`): `=` on a note always ties on.
     case 'tie': return false;
     case 'legato': return !!note?.legato;

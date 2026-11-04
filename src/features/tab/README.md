@@ -150,9 +150,14 @@ and in its spec.
   pull back (`pullTime`), re-bar after a time signature or Pickup bar
   changes (`reBar`, `reBarClip`) and Move extra (`layFrom`) —
   `2026-11-04-tab-bars-always-full-design.md`.
-- `noteEdits.ts` — the palette's changes to notes: rhythm, tuplets, grace
-  notes, marks, joins, bends, and `changeLength` —
-  `2026-11-01-tab-rest-lengths-design.md`.
+- `noteEdits.ts` — the palette's changes to notes: rhythm, marks, joins,
+  bends, and `changeLength` — `2026-11-01-tab-rest-lengths-design.md`.
+- `tuplets.ts` — tuplets and grace notes that keep bars full: a tuplet over
+  one note (`tupletOver`), a selection squeezed (`squeezeTuplet`), a tuplet
+  taken away (`untuplet`), lengths and frets inside one (`lengthInTuplet`,
+  `typeInTuplet`), Tuplet entry's first note (`startTuplet`), and a grace
+  note added or removed (`addGrace`, `enterGrace`, `removeGrace`) —
+  `2026-11-04-tab-tuplets-grace-rest-design.md`.
 - `ties.ts` — a Tie chain as one note: where it starts and ends
   (`chainStart`, `chainPlaces`), the notes an edit on a selection takes
   (`takenNotes`), its length (`lengthAnchor`, `chainDuration`), what is
@@ -229,6 +234,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `BarTimePanel.tsx` — the time signature from a bar on, and bar 1's
   Pickup field.
 - `BarFixPopover.tsx` — an Uneven bar's ⚠, pressed: its fix.
+- `TupletPanel.tsx` — the Tuplet panel `;` opens at the cursor, kept to the keyboard.
 - `TimeSignatureFields.tsx` — the time signature panel's two fields.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
 - `barPanel.ts` — keeps the bar panels inside the tab.
@@ -313,6 +319,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`: tuplets take
+  a note's time or squeeze a selection, grace notes are added before;
+  Tuplet entry and Grace entry in note input; `,` is Rest; Dorico's keys
 - `docs/specs/2026-11-04-tab-ties-forward-design.md`: T ties forward;
   a Tie chain is picked, deleted, lengthened and re-fretted as one note;
   Alt+press picks one Tied note for its own marks

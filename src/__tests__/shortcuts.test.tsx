@@ -119,7 +119,8 @@ describe('ShortcutsOverlay', () => {
 describe('the Tab page’s shortcuts', () => {
   it('take the palette’s keys from its table, one row per key', () => {
     const rows = paletteShortcuts().shortcuts;
-    expect(rows.find(r => r.keys[0] === 'Shift+G')?.does).toBe('Grace note, just before the beat');
+    expect(rows.find(r => r.keys[0] === '/')?.does).toBe('Grace note, just before the beat');
+    expect(rows.find(r => r.keys[0] === 'Alt+/')?.does).toBe('Slide from the note before, then shift slide from the note before, then slide in from below, then slide in from above');
     expect(rows.find(r => r.keys[0] === 'A')?.does).toBe('Accent, then heavy accent');
     expect(rows.find(r => r.keys[0] === 'Mod+Enter')?.does).toBe('Insert a bar of rests after this bar');
     // A tool with no key has no row, and the note lengths are under Note input.

@@ -1,0 +1,7 @@
+\title "/ adds a grace note before the picked note"
+\ts (4 4)
+0.6.4 3.6.4 5.6.2 |
+5.3.4 7.3.4{txt "Tab view: press this 7, then /"}
+  5.3.2{txt "A small 7 (a slashed eighth) is before the 7, and nothing moved. Press / again: two sixteenths"} |
+0.6.1 |
+
