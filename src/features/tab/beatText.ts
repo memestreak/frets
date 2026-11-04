@@ -45,7 +45,7 @@ export const BEAT_TEXT_MIN_ROOM = 100;
  */
 export const BEAT_TEXT_MAX_ROOM = beatTextWidth('Text very near the line end runs to the edge and wraps there');
 
-/** Where a text on a line goes: its lines, and its first line's place in the line's text rows, from the top. */
+/** Where a text on a line goes: its lines, and its first line's place in the line's text rows, from the top (its last line is on its level's bottom row). */
 export interface PlacedBeatText {
   lines: string[];
   top: number;
@@ -59,8 +59,8 @@ export interface PlacedBeatText {
  * moves up a level, as Dorico moves colliding text away from the staff: each takes the lowest level
  * where it clears the texts already there. Then each text wraps again to the room before the next text
  * left on its own level (Jeremy, 2026-11-03: a text moved up makes room for the one under it), still no
- * more than `BEAT_TEXT_MAX_ROOM`. A level is as tall as its tallest text, level 0 is nearest the music,
- * and `rows` is how many text rows the line takes.
+ * more than `BEAT_TEXT_MAX_ROOM`. A level is as tall as its tallest text and each text sits on its
+ * level's bottom row; level 0 is nearest the music, and `rows` is how many text rows the line takes.
  */
 export function placeBeatTexts(texts: { x0: number; text: string }[], end: number): { placed: PlacedBeatText[]; rows: number } {
   const roomBefore = (x0: number, nextStart: number) =>
@@ -88,7 +88,9 @@ export function placeBeatTexts(texts: { x0: number; text: string }[], end: numbe
   // Levels from the top: the highest first.
   const above = (level: number) => heights.slice(level + 1).reduce((sum, h) => sum + h, 0);
   return {
-    placed: lines.map((l, k) => ({ lines: l, top: above(levels[k]) })),
+    // Each text sits on its level's bottom row, next to the music, as in Dorico and MuseScore: a short
+    // text beside a wrapped one stays by the staff rather than hanging from the top.
+    placed: lines.map((l, k) => ({ lines: l, top: above(levels[k]) + heights[levels[k]] - l.length })),
     rows: Math.max(1, heights.reduce((sum, h) => sum + h, 0)),
   };
 }
