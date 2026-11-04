@@ -57,6 +57,12 @@ export interface EditorState {
   picked: Picked | null;
   setPicked: (hit: Picked | null) => void;
   /**
+   * One Tied note picked alone (Alt+press, `docs/specs/2026-11-04-tab-ties-forward-design.md`): the cursor
+   * is on it, and marks go on it alone; every other edit still takes its whole Tie chain. Any commit lets it go.
+   */
+  alone: boolean;
+  setAlone: (on: boolean) => void;
+  /**
    * Note input (issue #238, as MuseScore's): N or the palette's pencil goes in and out, Esc out. In it the
    * cursor types and a press enters a note; out of it, in normal mode, a press selects what it is on.
    */
@@ -105,6 +111,7 @@ export function useEditorState({ clip, dispatch, setNotice }: {
   const [columnOnly, setColumnOnly] = useState(false);
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
+  const [alone, setAlone] = useState(false);
   const [inputMode, setInputMode] = useState(false);
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   const [restSpot, setRestSpot] = useState<{ bar: number; column: number; at: number } | null>(null);
@@ -123,6 +130,7 @@ export function useEditorState({ clip, dispatch, setNotice }: {
     setCursor(cursorAtTime(next, written, nextCursor));
     setSelection(selectionAtTime(next, written, nextSelection));
     setPicked(null);
+    setAlone(false);
     setNotice(null);
     setRestSpot(null);
   };
@@ -162,7 +170,7 @@ export function useEditorState({ clip, dispatch, setNotice }: {
 
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
-    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode,
+    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, inputMode, setInputMode,
     inputLength, setInputLength, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, setNotice,
     startRegion, toPitch,
   };

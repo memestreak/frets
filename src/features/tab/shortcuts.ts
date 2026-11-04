@@ -62,6 +62,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter (the bar stays full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
     { keys: ['1–7'], does: 'Length of a picked rest, stem or staff note (5 a quarter)' },
+    { keys: ['Alt+press'], does: 'One tied note of a chain, for its own marks' },
   ],
 };
 

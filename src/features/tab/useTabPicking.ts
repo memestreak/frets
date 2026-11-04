@@ -4,6 +4,7 @@ import { removeBarLine, setBeatText, setCapo, setChordName, setEnding, setSectio
 import { isBarLine } from './barLines';
 import { columnAt, indexOf, noteAt, placeOf, runAround, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
+import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import { splitRestAt } from './grid';
 import type { FretDrag, Hit, StaffDrag, StaffHit } from './hitTest';
@@ -43,8 +44,18 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, editorRef, lastDigitRef, commit, startRegion, toPitch,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, startRegion, toPitch,
   } = editor;
+
+  /**
+   * Where a press on a note puts the cursor (`docs/specs/2026-11-04-tab-ties-forward-design.md`): on a Tie
+   * chain's first note, the chain being one note, or with Alt (`alone`) on the Tied note pressed, picked by itself.
+   */
+  const notePlace = (at: Cursor, alone: boolean): Cursor => (alone ? at : chainStart(clip, at));
+  /** After the commit that put the cursor there: a Tied note picked by itself stays so. */
+  const markAlone = (at: Cursor, alone: boolean) => {
+    if (alone && isChained(clip, at)) setAlone(true);
+  };
 
   /** Where a word over the tab belongs: its column, or its bar's first. */
   const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
@@ -159,7 +170,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the tab: the cursor there, a note entered (note input) or a bar selected (normal mode); with Shift, the selection grows. */
-  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean) => {
+  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false) => {
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -182,9 +193,12 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
         commit(clip, hit, barSelection(clip, hit.bar));
         startRegion();
+      } else if (there) {
+        commit(clip, notePlace(hit, alone), null);
+        markAlone(hit, alone);
       } else {
         commit(clip, hit, null);
-        if (!inputMode && !there) setColumnOnly(true);
+        if (!inputMode) setColumnOnly(true);
       }
     }
   };
@@ -209,7 +223,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
-  const onPickStaff = (hit: StaffHit, extend: boolean) => {
+  const onPickStaff = (hit: StaffHit, extend: boolean, alone = false) => {
     lastDigitRef.current = null;
     // A head pressed doesn't take the focus until now (issue #337); taken first, so the focus's own
     // staff cursor (with the staff alone) gives way to the one set below.
@@ -224,7 +238,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       return;
     }
     if (note) {
-      toPitch(clip, at, pitch);
+      toPitch(clip, notePlace(at, alone), pitch);
+      markAlone(at, alone);
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
       // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).

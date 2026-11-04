@@ -6,9 +6,10 @@
  */
 import { isRest, type BendQuarters, type Part, type Duration, type NoteValue, type Ottava, type TremoloValue } from './clip';
 import { whammyShape, type WhammyShape } from './whammy';
-import { columnAt, indexOf, noteAt, setDead, type Target } from './editing';
+import { columnAt, indexOf, noteAt, placeOf, setDead, type Target } from './editing';
+import { chainDuration, chainPlaces, lengthAnchor, tieForward } from './ties';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTie, toggleTuplet, type MarkKind } from './noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, makeRest, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleGrace, toggleLegato, toggleStroke, toggleTuplet, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
@@ -57,7 +58,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Joins',
     tools: [
-      { id: 'tie', label: 'Tie to the note before', key: '=' },
+      { id: 'tie', label: 'Tie to the next note', key: '=' },
       { id: 'legato', label: 'Hammer-on or pull-off from the note before', key: 'H' },
       { id: 'slide', label: 'Slide from the note before', key: '/' },
       { id: 'shiftSlide', label: 'Shift slide from the note before', key: '/' },
@@ -156,12 +157,39 @@ const MARK: Partial<Record<ToolId, MarkKind>> = {
  * in the column, wherever the cursor is in it: a mark half the column had would look all on.
  */
 const COLUMN_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing', 'accent', 'staccato', 'mordent']);
+/** Column marks that last the note: on a Tie chain they go over its whole time. */
+const HELD_MARKS = new Set<MarkKind[0]>(['palmMute', 'letRing']);
 
 /** The target as whole columns: the selection, else the cursor's column. */
 function wholeColumns(clip: Part, target: Target): Target {
   if (target.selection || !columnAt(clip, target.cursor)) return target;
   const i = indexOf(clip, target.cursor.bar, target.cursor.column);
   return { ...target, selection: { anchor: i, focus: i } };
+}
+
+/**
+ * The target over a Tie chain's whole time, for marks drawn over Columns (tremolo picking, palm mute,
+ * let ring; spec Q5): the Columns of the cursor note's chain, from whichever of its notes; with no string
+ * picked, from the Column to the end of the longest chain starting there. One Tied note picked alone
+ * keeps its own Column.
+ */
+function chainColumns(clip: Part, target: Target): Target {
+  const { cursor, selection, alone } = target;
+  if (alone || (selection && selection.anchor !== selection.focus)) return target;
+  const place = selection ? placeOf(clip, selection.anchor) : cursor;
+  const column = columnAt(clip, { ...cursor, ...place });
+  if (!column) return target;
+  const strings = column.notes[cursor.string] ? [cursor.string] : column.notes.flatMap((n, s) => (n && !n.tie ? [s] : []));
+  let from = indexOf(clip, place.bar, place.column);
+  let to = from;
+  for (const string of strings) {
+    const places = chainPlaces(clip, { ...cursor, ...place, string });
+    const first = places[0];
+    const last = places[places.length - 1];
+    from = Math.min(from, indexOf(clip, first.bar, first.column));
+    to = Math.max(to, indexOf(clip, last.bar, last.column));
+  }
+  return from === to ? target : { ...target, selection: { anchor: from, focus: to } };
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
@@ -178,15 +206,16 @@ export function applyTool(clip: Part, target: Target, id: ToolId): Part {
   const value = VALUE[id];
   if (value) return setValue(clip, target, value);
   const tremolo = TREMOLO[id];
-  if (tremolo) return setTremolo(clip, target, tremolo);
+  if (tremolo) return setTremolo(clip, chainColumns(clip, target), tremolo);
   const mark = MARK[id];
+  if (mark && HELD_MARKS.has(mark[0])) return setMark(clip, chainColumns(clip, wholeColumns(clip, target)), mark);
   if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
     case 'dot': return cycleDots(clip, target);
     case 'vibrato': return cycleMark(clip, target, 'vibrato', VIBRATOS);
     case 'grace': return toggleGrace(clip, target);
     case 'rest': return makeRest(clip, target);
-    case 'tie': return toggleTie(clip, target);
+    case 'tie': return tieForward(clip, target);
     case 'legato': return toggleLegato(clip, target);
     case 'slide': return setSlide(clip, target, 'legato');
     case 'shiftSlide': return setSlide(clip, target, 'shift');
@@ -219,7 +248,7 @@ export function applyCyclingKey(clip: Part, target: Target, key: string): Part |
   if (key === 'v') return cycleMark(clip, target, 'vibrato', VIBRATOS);
   if (key === 'N') return cycleMark(clip, target, 'harmonic', ['natural', 'pinch', 'artificial']);
   if (key === 'a') return cycleMark(clip, wholeColumns(clip, target), 'accent', ['normal', 'heavy']);
-  if (key === 'T') return cycleTremolo(clip, target);
+  if (key === 'T') return cycleTremolo(clip, chainColumns(clip, target));
   return null;
 }
 
@@ -230,6 +259,13 @@ export function applyCyclingKey(clip: Part, target: Target, key: string): Part |
 export function applyTupletKey(clip: Part, target: Target, code: string): Part | null {
   const n = ({ Digit3: 3, Digit5: 5, Digit6: 6, Digit7: 7 } as Record<string, number>)[code];
   return n ? toggleTuplet(clip, target, n) : null;
+}
+
+/** The last written note of the cursor's Tie chain. */
+function chainEnd(clip: Part, cursor: Target['cursor']) {
+  const places = chainPlaces(clip, cursor);
+  const last = places[places.length - 1];
+  return last ? noteAt(clip, { ...last, string: cursor.string }) : null;
 }
 
 /** The tool a key press does, for the keys that do exactly what one button does. */
@@ -256,7 +292,10 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
   const value = VALUE[id];
   // A rest is a Gap: its length can't be set, so no Duration lights for it (rests are Gaps, step 3).
   const rest = !!column && !column.grace && isRest(column);
-  if (value) return !rest && column?.duration.value === value;
+  // A Tie chain lights its whole length when that is one written value (`q~e` a dotted quarter), else nothing (step 5).
+  const anchor = column?.grace ? null : lengthAnchor(clip, cursor);
+  const length = column?.grace ? column.duration : anchor ? chainDuration(clip, anchor) : null;
+  if (value) return !rest && length?.value === value;
   const tremolo = TREMOLO[id];
   if (tremolo) return column?.tremolo === tremolo;
   const mark = MARK[id];
@@ -264,15 +303,18 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     const notes = column?.notes.filter(n => n !== null) ?? [];
     return notes.length > 0 && notes.every(n => n[mark[0]] === mark[1]);
   }
+  // A slide out goes on a Tie chain's last note.
+  if (mark?.[0] === 'slideOut') return chainEnd(clip, cursor)?.slideOut === mark[1];
   if (mark) return note?.[mark[0]] === mark[1];
   switch (id) {
-    case 'dot': return !rest && (column?.duration.dots ?? 0) > 0;
+    case 'dot': return !rest && (length?.dots ?? 0) > 0;
     case 'tuplet': return !!column?.duration.tuplet;
     case 'bend': return !!note?.bend;
     case 'vibrato': return !!note?.vibrato;
     case 'grace': return !!column?.grace;
     case 'rest': return !!column && column.notes.every(n => n === null);
-    case 'tie': return !!note?.tie;
+    // A tie lights only when its arc is picked (`markLights`): `=` on a note always ties on.
+    case 'tie': return false;
     case 'legato': return !!note?.legato;
     case 'slide': return note?.slide === 'legato';
     case 'shiftSlide': return note?.slide === 'shift';

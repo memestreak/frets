@@ -11,6 +11,7 @@ import { barSpan, hasPickup, isRest, ticks, emptyPart, ownVoice, STRING_COUNT, t
 import { emptyBarRests } from './sounding';
 import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
+import { chainPlaces, chainStart, isTaken, takenNotes } from './ties';
 
 /** Where the cursor is: a column of a bar, and a string (0 = high e). In an empty bar the column is 0. */
 export interface Cursor {
@@ -222,6 +223,8 @@ function withColumns(clip: Part, [from, to]: [number, number], change: (column: 
 export interface Target {
   cursor: Cursor;
   selection: Selection | null;
+  /** One Tied note picked alone (Alt+press): a mark goes on it, not along its Tie chain. */
+  alone?: boolean;
 }
 
 export function changeColumns(clip: Part, { cursor, selection }: Target, change: (column: Column) => Column): Part {
@@ -285,10 +288,12 @@ function noteAtCursor(clip: Part, cursor: Cursor, change: (column: Column) => Co
 }
 
 /**
- * Puts a fret on the cursor's string, keeping the note's marks but not a tie or a dead note. On a rest
- * the note is the rest's length, or `length` when given (note input's), written over what follows.
+ * Puts a fret on the cursor's string, keeping the note's marks but not a dead note. On a note of a Tie
+ * chain the whole chain takes it, as one note (`docs/specs/2026-11-04-tab-ties-forward-design.md`). On a
+ * rest the note is the rest's length, or `length` when given (note input's), written over what follows.
  */
-export function setFret(clip: Part, cursor: Cursor, fret: number, length?: Duration): Part {
+export function setFret(clip: Part, at: Cursor, fret: number, length?: Duration): Part {
+  const cursor = noteAt(clip, at)?.tie ? chainStart(clip, at) : at;
   return noteAtCursor(clip, cursor, column => ({
     ...column,
     notes: column.notes.map((note, s) => {
@@ -307,13 +312,15 @@ export function setDead(clip: Part, cursor: Cursor): Part {
   }));
 }
 
-/** Clears the cursor's note. */
+/** Clears the cursor's note, its whole Tie chain with it. */
 export function clearNote(clip: Part, cursor: Cursor): Part {
   if (!columnAt(clip, cursor)) return clip;
-  return normalize(withColumn(clip, cursor, column => ({
+  const places = chainPlaces(clip, cursor);
+  const cleared = places.reduce((next, place) => withColumn(next, { ...place, string: cursor.string }, column => ({
     ...column,
     notes: column.notes.map((note, s) => (s === cursor.string ? null : note)),
-  })));
+  })), clip);
+  return normalize(cleared);
 }
 
 /** How the cursor moves: `grow` (off while selecting) lets → start a new bar past the clip's end. */
@@ -413,16 +420,24 @@ export function removeEmptyBar(clip: Part, bar: number): { clip: Part; cursor: {
   return { clip: left, cursor: { bar: bar - 1, column: Math.max(0, left.bars[bar - 1].columns.length - 1) } };
 }
 
-/** The columns in `range` as a clip of their own, with the clip's time and tuning, its own Voice only; bar lines between them are kept. */
+/**
+ * The columns in `range` as a clip of their own, with the clip's time and tuning, its own Voice only;
+ * bar lines between them are kept. It takes the notes an edit on the range takes (`takenNotes`): a Tie
+ * chain starting inside runs on to its end, and a note held on from before is left out.
+ */
 export function sliceClip(clip: Part, [from, to]: [number, number]): Part {
+  const taken = takenNotes(clip, { anchor: from, focus: to });
   let index = 0;
   const bars: Bar[] = [];
   for (const bar of clip.bars) {
-    const columns = bar.columns.filter(() => {
-      const keep = index >= from && index <= to;
-      index++;
-      return keep;
-    });
+    const columns: Column[] = [];
+    for (const column of bar.columns) {
+      const i = index++;
+      if (i < from || i > taken.last) continue;
+      const notes = column.notes.map((note, s) => (note && isTaken(taken.notes, i, s) ? note : null));
+      // Past the range only the chains run on: a Column's own things there aren't copied.
+      columns.push(i <= to ? { ...column, notes } : { duration: column.duration, notes });
+    }
     // Copy takes the part's own Voice only (`docs/specs/2026-11-03-tab-voices-design.md`).
     if (columns.length > 0) bars.push({ ...ownVoice(bar), columns });
   }

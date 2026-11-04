@@ -162,8 +162,9 @@ The Tie tool's tip becomes "Tie to the next note".
   whole chain, written by the meter.
 - Insert on a picked `q~e` chain adds a dotted-quarter Gap; Ctrl/⌘+Delete
   takes a dotted quarter.
-- The length key for a half on the second Tied note of `q~e` makes a half
-  from the chain's start.
+- The length key for a half on the second Tied note of `q~e` makes a
+  dotted half from the chain's start (the chain's dot stays, as a length
+  key keeps a note's); on `e~e` it makes a half.
 - Duration on `q~e` lights quarter and the dot; on `h~e` nothing; `.` on
   `q~q` makes `h.`; on `h~e` leaves the Clip unchanged.
 - A fret typed on the second Tied note changes both notes' fret and keeps
@@ -186,12 +187,44 @@ The Tie tool's tip becomes "Tie to the next note".
 - `=` with three Columns selected ties only where the next note has the
   same fret, and no fret changes.
 - `=` in note input, input length a quarter, on a half on beat 1 of
-  `h q q`: `h~q q`, cursor still on beat 1; `=` again ties over beat 4
-  too; on a rest, the Clip is unchanged; nothing is played.
+  `h q q`: `h. q` (the meter writes `h~q` as one dotted half), cursor
+  still on beat 1; `=` again ties over beat 4 too, a whole note; on a
+  rest, the Clip is unchanged; nothing is played.
 - A picked tie arc and Delete, or `=`, splits the chain: the note after is
   played again at the same fret; `=` on a picked note never unties; the
   Tie tool lights only on a picked tie arc.
 - The Tie tool's tip is "Tie to the next note"; the `?` overlay lists
   Alt+press.
-- alphaTex, MusicXML and Guitar Pro of a chain made with `=` are the same
-  as of one typed with `-`.
+- alphaTex, MusicXML, Guitar Pro and ASCII tab of a chain made with `=`
+  are the same as of one typed with `-`.
+
+## Settled while building
+
+- **The meter spells the chain after every edit.** `=` ties the Clip's
+  notes, and the bars it changed are written again by the meter (step
+  3), so a chain that fits one value becomes one note: `=` on beat 1 of
+  `q q h` gives `h h`, and in note input `h` then `=` gives `h.`, then
+  `w`. Ties only show where the meter needs them.
+- **`=` stops at a grace note on the same string.** A tie after a grace
+  note ties from the grace note in alphaTex, so `=` can't reach over one
+  on its own string and does nothing there; a grace note on another
+  string is passed over, as Q20 says.
+- **The length keys keep the chain's dot**, as they keep a single
+  note's: a half on `q~e` (a dotted quarter) makes a dotted half. `+ −`,
+  `W Q` and `.` do nothing on a chain that is no one written value
+  (`h~e`), as nothing lights for it.
+- **Insert and Ctrl/⌘+Delete with several Columns selected** take the
+  selection's own time, as before; only with a chain picked, or one
+  Column, do they take the chain's.
+- **A picked mark on a Tied note** (its bend, its slide out) is that
+  note's own: Delete takes it from that note only.
+- **A Tied note the tab doesn't number** (inside a bar in Both view)
+  lights on the staff only. A Tied note past a selection's box, or the
+  rest of a picked chain, is drawn with the box the picked note has,
+  under its number.
+- **A press doesn't sound in normal mode**, as before, so Q22's "plays
+  it once" is about Hear notes: an edit heard on a chain sounds once, at
+  the cursor, which is on its first note. `=` sounds nothing.
+- **A fret typed on a chain in note input** enters a note of the input
+  length at its start, over the whole chain: step 4's rule for a lone
+  note.

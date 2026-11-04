@@ -17,7 +17,7 @@ import { TapSign } from './TapSign';
  * first, the bar lines, and each column's heads, accidentals, stems, beams, flags, dots, rests, ties and
  * tuplet numbers. Over the tab it carries the rhythm, so the tab under it has no stems.
  */
-export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null, litMark = () => false, word = null }: {
+export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone = false, selected = null, selectedNote = null, tiedNotes = [], litMark = () => false, word = null }: {
   system: System;
   score: ScoreRows;
   clip: Part;
@@ -34,6 +34,8 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
    * in `--select` where they are, so a sign moved left for a chord lights with its note.
    */
   selectedNote?: NoteAt | null;
+  /** The other written notes of a picked Tie chain, lit as the picked note is (step 5). */
+  tiedNotes?: readonly NoteAt[];
   /** Whether a mark on the staff is the picked one, drawn in `--select` (issue #276). */
   litMark?: (hit: MarkHit) => boolean;
   /** The picked word or bar line: a picked repeat sign or double bar is drawn in `--select` on the staff too. */
@@ -63,7 +65,7 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} word={word} />);
     parts.push(
-      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={selectedNote} />,
+      <StaffBar key={`notes-${bar.index}`} bar={bar} score={score} look={look} alone={alone} selected={selected} selectedNote={selectedNote} tiedNotes={tiedNotes} />,
     );
   }
   const lit = litLook(look, true);
@@ -285,8 +287,8 @@ export interface NoteAt {
   string: number;
 }
 
-function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: {
-  bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null; selectedNote: NoteAt | null;
+function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, tiedNotes }: {
+  bar: PlacedBar; score: ScoreRows; look: TabLook; alone: boolean; selected: [number, number] | null; selectedNote: NoteAt | null; tiedNotes: readonly NoteAt[];
 }) {
   const look = barLook;
   if (bar.restRun) {
@@ -327,7 +329,8 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote }: 
     const chord = ghostChord(column, heads);
     heads.forEach((h, k) => {
       const note = column.notes[h.string];
-      const picked = selectedNote !== null && selectedNote.index === placed.index && selectedNote.string === h.string;
+      const picked = (selectedNote !== null && selectedNote.index === placed.index && selectedNote.string === h.string)
+        || tiedNotes.some(t => t.index === placed.index && t.string === h.string);
       const look = picked ? { ...barLook, ink: 'var(--select)' } : columnLook;
       // A dead note is an ×; a natural harmonic a diamond, as printed guitar music has them.
       const head = h.dead ? X_HEADS[shape] : note?.harmonic === 'natural' ? DIAMOND_HEADS[shape] : HEADS[shape];

@@ -1,5 +1,5 @@
-\title "A tied note follows its fret"
+\title "A fret typed on any note of a chain changes the whole chain"
 \ts (4 4)
-5.3.1{txt "Tab view: press this 5, then type 7"} |
--.3.1{txt "This (5) turns (7)"} |
+5.3.1{txt "This 5 turns 7 too, and the two stay tied"} |
+-.3.1{txt "Tab view: press this (5), then type 7"} |
 
