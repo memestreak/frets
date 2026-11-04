@@ -284,7 +284,7 @@ function tempoAt(clip: Part, index: number): number {
 }
 
 /** The stop square on the Play button while playing. */
-function StopIcon() {
+export function StopIcon() {
   return (
     <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden="true">
       <rect x={1.5} y={1.5} width={9} height={9} rx={1} fill="currentColor" />
@@ -315,7 +315,7 @@ function MetronomeIcon() {
   );
 }
 
-function LoopIcon() {
+export function LoopIcon() {
   return (
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" />

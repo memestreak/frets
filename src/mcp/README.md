@@ -7,8 +7,9 @@ connector, and each new tool arrives on the same URL. A tool can show an
 Designs: `docs/specs/2026-11-01-frets-mcp-server-design.md` (this layout)
 and `docs/specs/2026-10-31-metronome-mcp-app-design.md` (the first tool).
 
-So far: the Metronome's `show_metronome` and the Tuner's `show_tuner`
-(`docs/specs/2026-11-01-tuner-mcp-app-design.md`).
+So far: the Metronome's `show_metronome`, the Tuner's `show_tuner`
+(`docs/specs/2026-11-01-tuner-mcp-app-design.md`) and the Tab page's
+`show_tab` (`docs/specs/2026-11-04-show-tab-mcp-app-design.md`).
 
 ## What's here
 
@@ -42,6 +43,10 @@ Outside `src/`:
   with `mcp/vite.config.mts` into one self-contained `mcp/dist/<name>.html`
   (scripts, CSS and fonts inlined: a host's frame may load nothing from
   outside), then the stdio server with `mcp/vite.server.config.mts`.
+  Soundfonts (`.sf3`) count as assets, so `?inline` builds them in, and
+  `mcp/apps/noWorkerDecoder.ts` stands in for the Tab player's decoder
+  worker, which can't be built into one file: the app decodes on the main
+  thread.
 - `mcp/stdio.ts` → `mcp/dist/server.mjs` — the server over stdio, reading
   every `.html` beside it.
 - `functions/mcp.ts` — the server over HTTP at `/mcp`, a Cloudflare Pages
@@ -50,7 +55,8 @@ Outside `src/`:
   them.
 - `mcp/preview/` (`npm run mcp:preview`) — a stand-in host at
   http://localhost:5174 that runs the real server in the page and mounts
-  the metronome in frames, logging what the model would be told.
+  the chosen tool's app in frames (the metronome or the line), logging
+  what the model would be told.
 
 ## Adding a page's tools
 
@@ -78,7 +84,7 @@ Outside `src/`:
 ## Trying it
 
 - **In a browser, no Claude:** `npm run mcp:preview`, then open
-  http://localhost:5174 (the metronome only, so far).
+  http://localhost:5174 (the metronome and the line, so far).
 - **Claude Desktop:** run `npm run mcp:build`. Then in Settings › Developer
   › Edit Config, add the server below to `claude_desktop_config.json`, and
   quit and reopen Claude. Use node's full path (`which node`), since
@@ -98,6 +104,8 @@ Outside `src/`:
 
 ## Specs
 
+- `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar music
+  in a chat as staff over tab, show_tab (and later show_phrase)
 - `docs/specs/2026-11-01-tuner-mcp-app-design.md`: the Tuner runs in a chat as
   an MCP App, show_tuner
 - `docs/specs/2026-11-01-frets-mcp-server-design.md`: one MCP server, frets,

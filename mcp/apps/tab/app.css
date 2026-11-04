@@ -1,0 +1,8 @@
+/* The Tab MCP App: the shared base, the Tab page's classes, and the line's one layout (ChatTab.tsx). */
+@import "../base.css";
+@source "../../../src/features/tab";
+
+.chat-tab { display: grid; gap: 10px; padding: 12px 14px; }
+.chat-tab-music { min-width: 0; }
+.chat-tab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.chat-tab-views { margin-left: auto; }

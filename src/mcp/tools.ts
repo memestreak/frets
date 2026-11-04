@@ -3,10 +3,12 @@
  * server with one line here (`src/mcp/README.md`).
  */
 import { registerMetronomeTools } from '@/features/metronome/mcp/register';
+import { registerTabTools } from '@/features/tab/mcp/register';
 import { registerTunerTools } from '@/features/tuner/mcp/register';
 import type { RegisterTools } from './types';
 
 export const MCP_PAGES: readonly RegisterTools[] = [
   registerMetronomeTools,
   registerTunerTools,
+  registerTabTools,
 ];

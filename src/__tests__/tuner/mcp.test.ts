@@ -7,7 +7,7 @@ import { APP_URI, TOOL_NAME } from '@/features/tuner/mcp/tool';
 
 async function connectedClient() {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await createFretsServer({ metronome: '<p>metronome</p>', tuner: '<p>tuner</p>' }).connect(serverSide);
+  await createFretsServer({ metronome: '<p>metronome</p>', tab: '<p>tab</p>', tuner: '<p>tuner</p>' }).connect(serverSide);
   const client = new Client({ name: 'test', version: '1' });
   await client.connect(clientSide);
   return client;
