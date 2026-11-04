@@ -62,6 +62,8 @@ playback and every export stay as they are.
 
 ## Under the clip
 
+Step 9 draws, exports and edits every Voice, replacing this section: `2026-11-04-tab-voices-drawn-edited-design.md`.
+
 The quiet line under the clip, where the uneven-bars line goes, adds (Q8,
 Q12):
 
@@ -78,6 +80,8 @@ at once, the later note cuts off the earlier one, as a real string does
 
 ## Exports
 
+Step 9 draws, exports and edits every Voice, replacing this section: `2026-11-04-tab-voices-drawn-edited-design.md`.
+
 - alphaTex and Guitar Pro carry every Voice (Q7).
 - ASCII tab, MusicXML, PNG and SVG carry Voice 1 until step 8. When the
   arrangement has another Voice, the export dialog says so in the ⚠
@@ -86,6 +90,8 @@ at once, the later note cuts off the earlier one, as a real string does
   goes when the format holds every Voice.
 
 ## Edits
+
+Step 9 draws, exports and edits every Voice, replacing this section: `2026-11-04-tab-voices-drawn-edited-design.md`.
 
 The page edits Voice 1. Other Voices (Q9):
 

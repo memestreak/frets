@@ -72,6 +72,11 @@ names it.
 
 ## Tab
 
+**Active voice**:
+The Voice the cursor types into and the edits on one Voice act on, lit
+in the Rail's Voice row; the other Voices are drawn muted while you edit.
+_Avoid_: current voice, input voice
+
 **Arrangement**:
 The Tab page's Work: a named Clip saved under My arrangements.
 

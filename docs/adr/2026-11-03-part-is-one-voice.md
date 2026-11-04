@@ -12,6 +12,11 @@ Columns, and step 8 can give a Part the other Voices read-only, as
 Revisit when: step 8 finds drawing two Voices needs more than the other
 Voices read-only beside the edited one.
 
+Step 9 kept it (2026-11-04): layout lays every Voice out on one time line
+and drawing shows them all, while edits still work on one Voice's Part; an
+edit on a selection over several Voices runs Voice by Voice and commits
+once (`docs/specs/2026-11-04-tab-voices-drawn-edited-design.md`).
+
 ## Considered options
 
 - Every bar holds `voices: Column[][]` and every user of `.columns` picks

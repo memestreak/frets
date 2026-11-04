@@ -335,6 +335,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md`: every Voice
+  drawn, exported and edited, one at a time: the Active voice, Alt+1–4,
+  the others muted while you edit, selections over every Voice as Dorico
 - `docs/specs/2026-11-04-tab-pick-every-mark-design.md`: every Mark can
   be picked: P.M. and let ring lines, signatures, staff stems and beams;
   Spans get a Handle at each end; a picked Mark shows an Attachment line
