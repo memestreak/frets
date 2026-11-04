@@ -9,7 +9,7 @@ import { writePart } from '@/features/tab/alphatex';
 import { clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import { clickWave } from '@/lib/click';
 import {
-  midiUntil, noteAlone, columnAtTick, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
+  midiUntil, noteAlone, columnAtTick, heardAt, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
@@ -113,6 +113,29 @@ describe('playback', () => {
     expect(notes.notes).toEqual([null, null, null, { fret: 5 }, null, null]);
     const played = plain(alone);
     expect(played.endTick).toBe(Q);
+  });
+
+  it('keeps the playhead on the Active voice\'s own notes, gliding steadily, while another Voice\'s notes start (step 9)', () => {
+    const text = '\\voiceMode barWise\n\\voice 0.1.4 r.4 3.2.2 \\voice 0.6.4 0.6.4 2.4.4 r.4 |\n0.1.1 |';
+    const read = readAlphaTexWith(alphaTab, text);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    for (const voice of [0, 1]) {
+      const clip = partOf(read.clip, 0, voice);
+      const played = plain(clip);
+      // Every eighth through both bars: always a column, never gone.
+      const heard = Array.from({ length: 16 }, (_, i) => heardAt(clip, played, played.shift + i * Q / 2 + 10));
+      const columns = heard.map(h => h?.column ?? null);
+      expect(columns).toEqual(voice === 0
+        // Voice 1: the 0, the rest, the half note 3, then bar 2's whole note.
+        ? [0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3]
+        // Voice 2: four quarters, then bar 2's stand-in whole rest.
+        : [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4]);
+      // Through the half note 3 steadily, never back, though Voice 2's quarters start under it.
+      if (voice === 0) expect(heard.slice(4, 8).map(h => Math.round(h!.through * 4) / 4)).toEqual([0, 0.25, 0.5, 0.75]);
+      // Play starts from each column of the part's own Voice at its time.
+      expect([0, 1, 2].map(i => tickOf(clip, played, i) - played.shift)).toEqual(voice === 0 ? [0, Q, 2 * Q] : [0, Q, 2 * Q]);
+      expect(tickOf(clip, played, 3) - played.shift).toBe(voice === 0 ? 4 * Q : 3 * Q);
+    }
   });
 
   it('plays each column at its tick, and finds the column sounding at any tick', () => {
