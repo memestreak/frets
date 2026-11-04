@@ -297,6 +297,17 @@ function TremoloGlyph({ slashes }: { slashes: number }) {
   );
 }
 
+/** Notes on `stems` (x), joined by flat beams from x to x. */
+function BeamGlyph({ stems, beams }: { stems: number[]; beams: [number, number][] }) {
+  return (
+    <>
+      {stems.map(x => <ellipse key={`h${x}`} cx={x - 1.6} cy={18.5} rx={2.2} ry={1.6} fill="currentColor" stroke="none" />)}
+      {stems.map(x => <line key={`s${x}`} x1={x} y1={18} x2={x} y2={6} />)}
+      {beams.map(([a, b]) => <line key={`b${a}`} x1={a} y1={6} x2={b} y2={6} strokeWidth={2.6} />)}
+    </>
+  );
+}
+
 /** The whammy bar: a number with its line diving away under it, as tab prints a dive. */
 function WhammyGlyph() {
   return (
@@ -323,6 +334,9 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   tremolo8: <TremoloGlyph slashes={1} />,
   tremolo16: <TremoloGlyph slashes={2} />,
   tremolo32: <TremoloGlyph slashes={3} />,
+  // Two pairs of beamed notes, the beam broken between them; four under one beam.
+  beamBreak: <BeamGlyph stems={[5, 10, 14, 19]} beams={[[5, 10], [14, 19]]} />,
+  beamJoin: <BeamGlyph stems={[5, 10, 14, 19]} beams={[[5, 19]]} />,
   rest: <path d="M10 3 L14 8 L10 12 L14 16 Q9 15 11 20" />,
   tie: <><Label x={7} y={13} size={9}>5</Label><Label x={17} y={13} size={9}>(5)</Label><path d="M5 17 Q12 23 19 17" /></>,
   legato: <><path d="M4 14 Q12 4 20 14" /><Label y={20} size={9}>H</Label></>,

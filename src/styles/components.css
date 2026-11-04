@@ -92,6 +92,7 @@
 }
 /* The same soft fill as a ghost button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
 .shape-menu-item:hover, .shape-menu-item:focus { background: var(--primary-soft); outline: none; }
+.shape-menu-check { display: inline-block; width: 1.2em; }
 
 /* The Export dialog: the image on white, as it comes out. The colour is
    BACKDROP in exportStyle.ts; a test keeps them in step. */

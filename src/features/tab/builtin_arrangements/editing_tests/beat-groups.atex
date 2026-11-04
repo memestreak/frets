@@ -1,0 +1,6 @@
+\title "Beat groups set how a bar of 7/8 is beamed"
+\ts (7 8)
+0.3.8{txt "Tab view: press the 7/8 at the start, type 3+2+2 in Beat groups and press Enter. The beams change from 2+2+3 to 3+2+2 in both bars"}
+  2.3.8 3.3.8 5.3.8 3.3.8 2.3.8 0.3.8 |
+0.3.8 2.3.8 3.3.8 5.3.8 3.3.8 2.3.8 0.3.8 |
+

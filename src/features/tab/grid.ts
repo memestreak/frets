@@ -8,7 +8,7 @@
  * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
  * its step in ticks.
  */
-import { barLength, fewestRests, NOTE_VALUES, ticks, timeAt, tupletGroups, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { barLength, beatGroupsAt, fewestRests, NOTE_VALUES, ticks, timeAt, tupletGroups, type Bar, type Duration, type NoteValue, type Part } from './clip';
 import { emptyColumn, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
 import { emptyBarRests, tupletKind, tupletRests } from './sounding';
 import type { Layout, PlacedBar, PlacedColumn } from './layout';
@@ -216,7 +216,7 @@ export function advance(clip: Part, cursor: Cursor, at: number, length: number):
     }
     if (bar === part.bars.length - 1) {
       const time = timeAt(part, bar);
-      part = { ...part, bars: [...part.bars, { columns: emptyBarRests(time).map(emptyColumn) }] };
+      part = { ...part, bars: [...part.bars, { columns: emptyBarRests(time, beatGroupsAt(part, bar)).map(emptyColumn) }] };
     }
     target -= Math.max(end, barLength(part.bars[bar]));
     bar++;

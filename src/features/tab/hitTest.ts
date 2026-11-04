@@ -196,7 +196,7 @@ export function cursorSpot(layout: Layout, bar: number, column: number, at = 0):
   return null;
 }
 
-/* — beams: eighths and shorter within one beat are joined; in 4/4, plain eighths by the half bar — */
+/* — rhythm: rests and stems — */
 
 /** How far across from a rest's middle, or a stem, a press still picks it. */
 const REST_REACH_X = 9;

@@ -9,11 +9,11 @@ import { whammyShape, type WhammyShape } from './whammy';
 import { columnAt, indexOf, noteAt, placeOf, setDead, type Target } from './editing';
 import { chainDuration, chainPlaces, lengthAnchor, tieForward } from './ties';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleLegato, toggleStroke, type MarkKind } from './noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, setBeam, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleLegato, toggleStroke, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
-  | 'tuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'tie'
+  | 'tuplet' | 'grace' | 'tremolo8' | 'tremolo16' | 'tremolo32' | 'beamBreak' | 'beamJoin' | 'tie'
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
@@ -53,6 +53,8 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'tremolo8', label: 'Tremolo picking in eighths', key: 'Shift+T' },
       { id: 'tremolo16', label: 'Tremolo picking in sixteenths', key: 'Shift+T' },
       { id: 'tremolo32', label: 'Tremolo picking in thirty-seconds', key: 'Shift+T' },
+      { id: 'beamBreak', label: 'Break the beam before this note', key: '' },
+      { id: 'beamJoin', label: 'Join the beam to the note before', key: '' },
     ],
   },
   {
@@ -229,6 +231,8 @@ export function applyTool(clip: Part, target: Target, id: ToolId): Part {
     case 'repeatEnd': return cycleRepeatEnd(clip, target.cursor);
     case 'doubleBar': return toggleDoubleBar(clip, target.cursor);
     case 'ending': return cycleEnding(clip, target.cursor);
+    case 'beamBreak': return setBeam(clip, target, 'break');
+    case 'beamJoin': return setBeam(clip, target, 'join');
     default: return clip;
   }
 }

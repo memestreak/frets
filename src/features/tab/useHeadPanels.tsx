@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { barErrors, MAX_CAPO, type Part } from './clip';
 import { columnAt, type Cursor } from './editing';
-import { setBarKey, setBarTime, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
+import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
@@ -198,7 +198,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         <BarTimePanel
           clip={clip} bar={timeBar} {...(panelAt ?? barTimeSpot(layout, timeBar))}
           onChange={time => commitReBar(setBarTime(clip, timeBar, time), timeBar)}
-          onPickup={length => commitReBar(setPickup(clip, length), 0)} onClose={closeTimeBar}
+          onPickup={length => commitReBar(setPickup(clip, length), 0)}
+          onGroups={counts => commitReBar(setBeatGroups(clip, timeBar, counts), timeBar)} onClose={closeTimeBar}
         />
       )}
     </>

@@ -5,6 +5,8 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 're
 export interface MenuItem {
   label: string;
   onSelect: () => void;
+  /** A setting the item turns on and off: shown ticked when on (a `menuitemcheckbox`). */
+  checked?: boolean;
 }
 
 interface ShapeMenuProps {
@@ -41,7 +43,7 @@ export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: Shap
       left: align === 'end' || x + width + margin > window.innerWidth ? Math.max(margin, x - width) : x,
       top: y + height + margin > window.innerHeight ? Math.max(margin, y - height) : y,
     });
-    el.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    el.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
   }, [x, y, align]);
 
   const close = useEffectEvent(onClose);
@@ -67,7 +69,7 @@ export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: Shap
   }, []);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    const buttons = [...ref.current!.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    const buttons = [...ref.current!.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
     const at = buttons.indexOf(document.activeElement as HTMLElement);
     const focus = (i: number) => buttons[(i + buttons.length) % buttons.length]?.focus();
     switch (e.key) {
@@ -83,6 +85,7 @@ export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: Shap
     e.stopPropagation();
   };
 
+  const checks = items.some(item => item.checked !== undefined);
   return (
     <div
       ref={ref} role="menu" aria-label={label} className="shape-menu"
@@ -92,13 +95,16 @@ export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: Shap
     >
       {items.map(item => (
         <button
-          key={item.label} type="button" role="menuitem" className="shape-menu-item"
+          key={item.label} type="button" className="shape-menu-item"
+          role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={item.checked}
           tabIndex={-1}
           onClick={() => {
             onClose(true);
             item.onSelect();
           }}
         >
+          {/* A menu with a setting in it keeps a column for the tick, so every label lines up. */}
+          {checks && <span className="shape-menu-check" aria-hidden="true">{item.checked ? '✓' : ''}</span>}
           {item.label}
         </button>
       ))}

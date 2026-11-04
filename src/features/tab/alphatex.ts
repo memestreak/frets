@@ -9,7 +9,7 @@
  * back as it was read. Reading is `alphatexRead.ts`.
  */
 import {
-  asClip, barTicks, ownVoice, fewestRests, isRest, isStandardTuningNames, keyTex, STRING_COUNT, type Bend, type Clip, type Column,
+  asClip, barTicks, defaultGroupCounts, ownVoice, fewestRests, isRest, isStandardTuningNames, keyTex, STRING_COUNT, type Bend, type Clip, type Column,
   type MasterBar, type Note, type Part, type TimeSignature, type Track, type TrackBar,
 } from './clip';
 import { fxLine } from './fxLine';
@@ -112,6 +112,15 @@ function graceValue(columns: Column[], index: number): Column['duration']['value
   return size === 1 ? 8 : size === 2 ? 16 : 32;
 }
 
+/**
+ * Beat groups as alphaTex `\beaming`, counted in eighths or shorter: alphaTab 1.8.4 reads a 4 there as a
+ * quadruple whole note, so 4/4's 2+2 is written `(8 4 4)`.
+ */
+function beamingTex(time: TimeSignature, groups: number[]): string {
+  const unit = Math.max(8, time.value);
+  return `\\beaming (${unit} ${groups.map(n => (n * unit) / time.value).join(' ')})`;
+}
+
 function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
   const column = columns[index];
   // A grace note is written plain, at the length alphaTab gives it.
@@ -131,6 +140,9 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
   if (column.fermata) effects.push(`fermata ${column.fermata}`);
   if (column.whammy) effects.push(`tb (${column.whammy.join(' ')})`);
+  // A Beam override is written on the Column before, as alphaTab reads it.
+  const nextBeam = columns[index + 1]?.beam;
+  if (nextBeam) effects.push(nextBeam === 'break' ? 'beam split' : 'beam merge');
   effects.push(...(column.extra ?? []));
   const after = `.${value}${effects.length ? `{${effects.join(' ')}}` : ''}`;
   if (isRest(column)) return `r${after}`;
@@ -211,10 +223,18 @@ function barTokens(bars: readonly WrittenBar[], firstTime: TimeSignature): strin
   const voiceCount = Math.max(1, ...bars.map(bar => bar.voices.length));
   const marks = Array.from({ length: voiceCount }, (_, v) => originMarks(bars.map(bar => bar.voices[v] ?? [])));
   let time = firstTime;
+  let ownGroups = false;
   return bars.map((bar, b) => {
     if (bar.time) time = bar.time;
     const meta: string[] = [];
     if (bar.time) meta.push(`\\ts (${bar.time.beats} ${bar.time.value})`);
+    // Beat groups with their time signature; after a time signature with groups of its own, the next
+    // one writes its default too, since alphaTab carries a \beaming on to the next.
+    if (b === 0 || bar.time) {
+      const groups = bar.beatGroups ?? (ownGroups ? defaultGroupCounts(time) : null);
+      if (groups) meta.push(beamingTex(time, groups));
+      ownGroups = !!bar.beatGroups;
+    }
     if (b === 0 && bar.pickup) meta.push('\\ac');
     if (bar.key) meta.push(`\\ks ${keyTex(bar.key)}`);
     if (bar.section) {

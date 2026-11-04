@@ -5,9 +5,10 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, ticks, timeAt, type BendQuarters, type Column, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue } from './clip';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, ticks, timeAt, type BendQuarters, type Column, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue, type BeamOverride } from './clip';
 import { readVoice } from './sounding';
-import { chainDuration, chainPlaces, isTaken, lengthAnchor, takenNotes } from './ties';
+import { chainDuration, chainPlaces, chainStart, isTaken, lengthAnchor, takenNotes } from './ties';
+import { isBeamable, unbeamed } from './beams';
 import { timeOf, writeOver } from './timeline';
 import { isProblem, lengthInTuplet, untuplet } from './tuplets';
 import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, placeOf, selectedRange, withColumn, without } from './editing';
@@ -118,7 +119,7 @@ function changeLength(clip: Part, target: Target, change: (duration: Duration | 
     // The Sounding notes it starts end here at the latest: a shorter one leaves a Gap to there.
     const ends = readVoice(clip).notes.filter(n => n.start === start).map(n => n.start + n.length);
     const oldEnd = Math.max(start + ticks(column.duration), ...ends);
-    const written = writeOver(clip, start, [{ ...column, duration }], oldEnd);
+    const written = writeOver(clip, start, [{ ...unbeamed(column), duration }], oldEnd);
     return written ? normalize(written) : clip;
   }
   const [from, to] = selectedRange(selection);
@@ -128,13 +129,18 @@ function changeLength(clip: Part, target: Target, change: (duration: Duration | 
   for (let i = from; i <= to; i++) {
     const column = columnAt(clip, { ...placeOf(clip, i), string: 0 })!;
     if (column.duration.tuplet) return clip;
-    columns.push(column.grace || isRest(column) ? column : { ...column, duration: change(column.duration) ?? column.duration });
+    const duration = change(column.duration);
+    columns.push(column.grace || isRest(column) || !duration || sameDuration(duration, column.duration) ? column : { ...unbeamed(column), duration });
   }
   const start = timeOf(clip, first.bar, first.column);
   const lastColumn = clip.bars[last.bar].columns[last.column];
   const oldEnd = timeOf(clip, last.bar, last.column) + (lastColumn.grace ? 0 : ticks(lastColumn.duration));
   const written = writeOver(clip, start, columns, oldEnd);
   return written ? normalize(written) : clip;
+}
+
+function sameDuration(a: Duration, b: Duration): boolean {
+  return a.value === b.value && a.dots === b.dots && a.tuplet === b.tuplet && a.tupletSpan === b.tupletSpan;
 }
 
 /** Whether every target column is a rest (not a grace note). */
@@ -418,3 +424,54 @@ export function cycleBendShape(clip: Part, cursor: Cursor): Part {
 }
 
 /* — words over the tab — */
+
+/* — Beam overrides (`docs/specs/2026-11-04-tab-beat-groups-beams-design.md`) — */
+
+/** Whether Column `column` of bar `bar` can take a Beam override: a beamable note with one just before it in the bar (spec Q11). */
+export function canBeam(clip: Part, bar: number, column: number): boolean {
+  const columns = clip.bars[bar]?.columns ?? [];
+  return column > 0 && !!columns[column] && isBeamable(columns[column]) && isBeamable(columns[column - 1]);
+}
+
+/**
+ * The Columns a beam tool acts on (spec Q10): on a selection, Join on each selected note but the first,
+ * Break on each; else the cursor's note, a Tie chain's first. Only those that can take one.
+ */
+function beamTargets(clip: Part, { cursor, selection }: Target, kind: BeamOverride): { bar: number; column: number }[] {
+  if (!selection || selection.anchor === selection.focus) {
+    const at = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
+    const start = columnAt(clip, at) && !columnAt(clip, at)!.grace ? chainStart(clip, at) : at;
+    return canBeam(clip, start.bar, start.column) ? [{ bar: start.bar, column: start.column }] : [];
+  }
+  const [from, to] = selectedRange(selection);
+  const places: { bar: number; column: number }[] = [];
+  for (let i = kind === 'join' ? from + 1 : from; i <= to; i++) {
+    const place = placeOf(clip, i);
+    if (canBeam(clip, place.bar, place.column)) places.push(place);
+  }
+  return places;
+}
+
+/** Whether a beam tool is lit: every note it acts on has that override (spec Q8, Q10). */
+export function beamLit(clip: Part, target: Target, kind: BeamOverride): boolean {
+  const places = beamTargets(clip, target, kind);
+  return places.length > 0 && places.every(p => clip.bars[p.bar].columns[p.column].beam === kind);
+}
+
+/** Whether a beam tool does anything on the target: some note it acts on can take an override. */
+export function canBeamTarget(clip: Part, target: Target, kind: BeamOverride): boolean {
+  return beamTargets(clip, target, kind).length > 0;
+}
+
+/** A beam tool pressed (spec Q8, Q10): the override on every note it acts on, or, when lit, Automatic on all. */
+export function setBeam(clip: Part, target: Target, kind: BeamOverride): Part {
+  const places = beamTargets(clip, target, kind);
+  if (places.length === 0) return clip;
+  const off = beamLit(clip, target, kind);
+  const bars = clip.bars.map(bar => ({ ...bar, columns: [...bar.columns] }));
+  for (const { bar, column } of places) {
+    const was = bars[bar].columns[column];
+    bars[bar].columns[column] = off ? unbeamed(was) : { ...was, beam: kind };
+  }
+  return { ...clip, bars };
+}

@@ -251,6 +251,19 @@ then "." and its duration:
                tempo ("rit.", "harm.", "fade out") this way.
 
 
+Beams. Frets beams eighths and shorter by itself: in 4/4 by the beat,
+plain eighths four together in each half bar; in 3/4 and 2/4 in pairs;
+in 5/8, 6/8, 7/8 and the like by the beat groups. Never over a rest or a
+bar line. To beam otherwise, as the picture shows:
+
+    beam split   on a beat: the beam stops after it
+    beam merge   on a beat: the beam goes on to the next beat
+
+so 0.3.8 0.3.8{beam split} 0.3.8 0.3.8 r.2 is two pairs where Frets would
+draw four together, and in 3/4 0.3.8 0.3.8{beam merge} 0.3.8 0.3.8 r.4
+beams four eighths across the beat.
+
+
 5. REPEATS AND ENDINGS
 ----------------------
 
@@ -258,6 +271,12 @@ Put these at the start of a bar, before its beats:
 
     \ts (3 4)                  a new time signature from this bar on;
                                the one in the header holds until then
+    \beaming (8 3 2 2)         with \ts, its beat groups, here 3+2+2
+                               eighths in 7/8: beams and rests follow
+                               them until the next \ts. Leave it out
+                               for the usual groups (7/8 2+2+3, 5/8
+                               3+2, 6/8 3+3); count in eighths (4/4's
+                               halves are (8 4 4)), never in 4s.
     \section "Verse"           a section starts here, its name in bold;
     \section ("A" "Chorus")    with a rehearsal mark, "A", in a box
     \tempo 90                  the tempo from this bar on, in bpm

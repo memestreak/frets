@@ -175,7 +175,7 @@ tests in `page/`):
   eighths in 4/4 in two fours; six eighths in 3/4 and four in 2/4 in
   pairs; sixteenths in 4/4 by the beat.
 - The Beat groups field shows for 5/8, 6/8, 7/8, 5/4 and 7/4, not for
-  4/4, 3/4 or 2/4; it shows for a 4/4 bar read with `\beaming (8 3 3 2)`.
+  4/4, 3/4 or 2/4; it shows for a 3/4 bar read with `\beaming (8 4 2)`, as 2+1.
 - Typing `3+2+2` in 7/8 bar 1's field beams its eighths 3+2+2 in every
   bar to the next time signature, and writes `\beaming (8 3 2 2)`;
   `2+2+2` gives a ⚠ whose tip is "Adds up to 6; the bar has 7", keeps the
@@ -210,3 +210,25 @@ tests in `page/`):
 - MusicXML of a 7/8 bar in 2+2+3 and of a Break and a Join has beams in
   the same groups as drawn; Guitar Pro of the same writes the bar's beam
   groups and the beats' beaming.
+
+## Settled while building
+
+- **`\beaming` is written in eighths or shorter.** alphaTab 1.8.4 reads
+  `\beaming (4 …)` as a quadruple whole note, so a grouping in 5/4 or
+  7/4, and 4/4's default after a bar with its own, is written in eighths:
+  `(8 4 4)` for 4/4. Reading maps alphaTab's quadruple whole back to a
+  quarter, so older text still reads.
+- **In meters counted in quarters or halves, Beat groups split notes and
+  rests by the groups, but beams still go by the beat**, as Q1 has them;
+  4/4's four eighths together stays within one group.
+- **The Tests line on the field's showing uses 3/4 `\beaming (8 4 2)`,**
+  not 4/4 `(8 3 3 2)`: groups are counted in the time signature's lower
+  number, and 3+3+2 eighths isn't whole quarters, so that one is kept as
+  written and gives the bar no groups of its own.
+- **A length change on a selection drops an override only on the notes
+  whose length changes;** the same length again keeps them.
+- **The right-click menu's two items are ticked as set** (a menu item
+  with a tick, `menuitemcheckbox`), a small addition to the shared menu.
+- **Both overrides need a beamable note right before them** to light or
+  change anything: Break on a note after a rest is as much a no-op as
+  Join there.

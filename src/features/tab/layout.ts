@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { barLength, barsPerLine, barTicks, beatTicks, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
+import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSignature, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
@@ -319,10 +319,11 @@ export interface PlacedBar {
   timeX: number | null;
   /** On the staff: where a key signature change's first sign goes, when the bar starts one. */
   keyX: number | null;
-  /** Ticks in one of its beats: eighths and shorter are beamed within one. */
+  /** Ticks in one of its beats: the note input grid marks each. */
   beat: number;
-  /** In 4/4: plain eighths are beamed by the half bar, four together. */
-  halfBars: boolean;
+  time: TimeSignature;
+  /** Its Beat groups in ticks: beams follow them (`beams.ts`). */
+  groups: number[];
   columns: PlacedColumn[];
   /** One of the bars a multi-bar rest draws as one; null for a bar drawn by itself. */
   restRun: RestRun | null;
@@ -671,7 +672,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     x = x0 + w;
     const time = timeAt(clip, index);
     const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
-    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), halfBars: time.beats === 4 && time.value === 4, columns, restRun, wholeRest: !inRun && isWholeBarRest(clip, index) });
+    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), time, groups: beatGroupsAt(clip, index), columns, restRun, wholeRest: !inRun && isWholeBarRest(clip, index) });
     if (inRun && index === run!.end) run = null;
     if (!restOn) wanted--;
   });

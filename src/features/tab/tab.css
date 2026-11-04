@@ -330,6 +330,10 @@
 /* The time signature under the clip's name: a raised button with the numbers stacked, and its panel. */
 .tab-time-field { display: grid; gap: 6px; justify-items: start; }
 .tab-time-caption { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+/* The Beat groups field: room for 2+2+2+3, and its small red ⚠ beside it when what was typed doesn't add up. */
+.tab-groups-row { display: inline-flex; align-items: center; gap: 6px; }
+.tab-groups-input { width: calc(9ch + 20px); }
+.tab-groups-problem { display: inline-flex; color: var(--danger); cursor: default; }
 .tab-time-stepper {
   display: inline-flex; align-items: center; height: 28px; padding: 2px; border-radius: 8px;
   background: var(--surface-sunken); border: 1px solid var(--line); font-weight: 600;

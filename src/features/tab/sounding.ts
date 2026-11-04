@@ -8,7 +8,7 @@
  * Columns, so a short or overfull bar (kept as written) doesn't move the bars after it.
  */
 import {
-  barLength, barSpan, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
+  barLength, barSpan, beatGroupsAt, defaultGroupCounts, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
   WHOLE, type Column, type Duration, type Note, type NoteValue, type Part, type TimeSignature,
 } from './clip';
 
@@ -77,7 +77,7 @@ export interface ReadVoice {
 /** Note marks that last the whole note: a split copies them to every piece. Every other mark is an attack mark. */
 const HELD_NOTE_MARKS = ['palmMute', 'letRing', 'vibrato'] as const;
 const HELD_COLUMN_MARKS = ['tremolo', 'ottava', 'hairpin'] as const;
-const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'wah', 'fermata', 'whammy', 'extra'] as const;
+const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'wah', 'fermata', 'whammy', 'beam', 'extra'] as const;
 
 function picked<T extends object>(from: T, keys: readonly string[]): Partial<T> {
   const out: Record<string, unknown> = {};
@@ -175,30 +175,12 @@ export function readVoice(part: Part): ReadVoice {
 
 /**
  * The Beat groups a bar of `time` is counted in, in ticks: 4/4 as two halves, 6/8 as two dotted
- * quarters, 5/8 as 3+2, 7/8 as 2+2+3 (the spec's table). `beatGroups` is the default for every
- * time signature; a bar's own grouping can be passed to the writer instead.
+ * quarters, 5/8 as 3+2, 7/8 as 2+2+3 (the spec's table): each time signature's default. The writer
+ * counts a bar in its own time signature's groups (`beatGroupsAt`), which may differ.
  */
 export function beatGroups(time: TimeSignature): number[] {
   const unit = WHOLE / time.value;
-  const counts = groupCounts(time);
-  return counts.map(n => n * unit);
-}
-
-function groupCounts({ beats, value }: TimeSignature): number[] {
-  if (value <= 4) {
-    if (beats === 4 && value === 4) return [2, 2];
-    if (beats === 5) return [3, 2];
-    if (beats === 6) return [3, 3];
-    if (beats === 7) return [4, 3];
-    return Array(beats).fill(1);
-  }
-  if (beats % 3 === 0) return Array(beats / 3).fill(3);
-  if (beats === 5) return [3, 2];
-  if (beats === 1 || beats === 2) return [beats];
-  // Twos, ending in a three when the count is odd (7/8 = 2+2+3, 11/8 = 2+2+2+2+3).
-  const twos = Array(Math.floor(beats / 2)).fill(2);
-  if (beats % 2 === 1) twos[twos.length - 1] = 3;
-  return twos;
+  return defaultGroupCounts(time).map(n => n * unit);
 }
 
 /** The finest step positions are told apart at: a 256th, the shortest rest step. */
@@ -440,7 +422,7 @@ export function graceValues(columns: Column[]): Column[] {
 export interface WriteOptions {
   /** The bars to write by the meter; every other bar keeps its Columns. All of them when left out. */
   bars?: number[];
-  /** A bar's own Beat groups, in ticks, in place of `beatGroups`. */
+  /** A bar's Beat groups, in ticks, in place of its time signature's (`beatGroupsAt`). */
   groupsOf?: (bar: number) => number[] | undefined;
 }
 
@@ -454,7 +436,7 @@ export function writeVoice(part: Part, read: ReadVoice, options: WriteOptions = 
   const bars = part.bars.map((bar, b) => {
     const span = read.bars[b];
     if ((asked && !asked.has(b)) || !span?.byMeter) return bar;
-    const groups = options.groupsOf?.(b) ?? beatGroups(span.time);
+    const groups = options.groupsOf?.(b) ?? beatGroupsAt(part, b);
     return { ...bar, columns: writeBar(read, b, meterOf(span.time, groups), groups, meterOffset(part, b)) };
   });
   return { ...part, bars };

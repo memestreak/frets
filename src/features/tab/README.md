@@ -123,7 +123,10 @@ and in its spec.
   gap, a stem via `rhythmAt`) and where the cursor is drawn.
 - `runs.ts` — marks over runs of columns (vibrato, let ring, P.M.) and
   legato joins.
-- `beams.ts` — which notes a beam joins; plain eighths four together in 4/4.
+- `beams.ts` — which notes a beam joins: by the Beat groups (or the beat),
+  plain eighths four together in 4/4, then each note's Beam override
+  (`beamGroups`, `isBeamable`, `unbeamed`) —
+  `2026-11-04-tab-beat-groups-beams-design.md`.
 - `marks.ts` — where each technique mark is so a press picks it, its
   palette tool, `markLights`, `mordentSign` —
   `2026-10-27-tab-pick-marks-design.md`.
@@ -151,7 +154,8 @@ and in its spec.
   changes (`reBar`, `reBarClip`) and Move extra (`layFrom`) —
   `2026-11-04-tab-bars-always-full-design.md`.
 - `noteEdits.ts` — the palette's changes to notes: rhythm, marks, joins,
-  bends, and `changeLength` — `2026-11-01-tab-rest-lengths-design.md`.
+  bends, and `changeLength` — `2026-11-01-tab-rest-lengths-design.md`; the
+  Beam override tools (`setBeam`, `beamLit`, `canBeamTarget`).
 - `tuplets.ts` — tuplets and grace notes that keep bars full: a tuplet over
   one note (`tupletOver`), a selection squeezed (`squeezeTuplet`), a tuplet
   taken away (`untuplet`), lengths and frets inside one (`lengthInTuplet`,
@@ -166,7 +170,8 @@ and in its spec.
   `2026-11-04-tab-ties-forward-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures, the Pickup bar), and an Uneven bar's
-  fixes (`moveExtra`, `fillWithRests`, `makePickup`).
+  fixes (`moveExtra`, `fillWithRests`, `makePickup`), and a time
+  signature's Beat groups (`setBeatGroups`).
 - `sounding.ts` — a part's Voice's Columns read as Sounding notes (`readVoice`) and
   written back by the meter (`writeVoice`, `spell`, `beatGroups`) —
   `2026-11-03-tab-sounding-notes-design.md`.
@@ -231,7 +236,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents) and Bars (Bars, Text), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `BarTimePanel.tsx` — the time signature from a bar on, and bar 1's
+- `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
+  field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
 - `BarFixPopover.tsx` — an Uneven bar's ⚠, pressed: its fix.
 - `TupletPanel.tsx` — the Tuplet panel `;` opens at the cursor, kept to the keyboard.

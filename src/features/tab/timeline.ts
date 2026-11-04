@@ -8,7 +8,7 @@
  * lines and spells every piece by the meter, a note tied on; the commit's rewrite (`rewrite.ts`)
  * then writes every bar whose rhythm changed by the meter, as for every edit.
  */
-import { barLength, barSpan, barTicks, isRest, meterOffset, partOf, STRING_COUNT, ticks, timeAt, withTrackParts, type Bar, type Clip, type Column, type OtherVoice, type Part, type TimeSignature } from './clip';
+import { barLength, barSpan, barTicks, beatGroupsAt, isRest, meterOffset, partOf, STRING_COUNT, ticks, timeAt, withTrackParts, type Bar, type Clip, type Column, type OtherVoice, type Part, type TimeSignature } from './clip';
 import { continuation, meterOf, readVoice, spell, writeVoice } from './sounding';
 
 /** A stretch of a Voice's stream: one Column, a whole tuplet group, or a grace note (no time). */
@@ -228,12 +228,14 @@ interface Span {
   length: number;
   time: TimeSignature;
   offset: number;
+  /** Its Beat groups in ticks; the time signature's default when left out. */
+  groups?: number[];
 }
 
 /** A piece `length` long, `at` ticks into a bar, spelled by the meter: the Column, then its tied-on pieces. */
 function spelled(column: Column, at: number, length: number, span: Span): Column[] {
   const kind = isRest(column) ? 'rest' : 'note';
-  const durations = spell(meterOf(span.time), span.offset + at, length, kind);
+  const durations = spell(meterOf(span.time, span.groups), span.offset + at, length, kind);
   return durations.map((duration, k) => ({ ...(k === 0 ? column : laterPiece(column)), duration }));
 }
 
@@ -341,10 +343,11 @@ function otherBars(part: Part): Map<number, VoiceBars> {
 function spanAt(part: Part, b: number): Span {
   const index = Math.min(b, part.bars.length - 1);
   const time = timeAt(part, index);
-  if (b >= part.bars.length) return { length: barTicks(time), time, offset: 0 };
+  const groups = beatGroupsAt(part, index);
+  if (b >= part.bars.length) return { length: barTicks(time), time, offset: 0, groups };
   // A free-time bar keeps its written length.
   const length = part.bars[b].freeTime ? writtenLength(part, b) : barSpan(part, b);
-  return { length, time, offset: meterOffset(part, b) };
+  return { length, time, offset: meterOffset(part, b), groups };
 }
 
 /** A Voice's bars from `from` on as one stream. */
@@ -530,9 +533,10 @@ export function reBar(before: Part, after: Part, from: number, to: number, minBa
   const others = [...otherBars(before)].map(([voice, bars]) => [voice, bars.slice(from, to)] as const);
   const rooms = own.map((_columns, i) => barSpan(before, from + i));
   const time = timeAt(after, from);
+  const groups = beatGroupsAt(after, from);
   const spanOf = (i: number): Span => (i === 0
-    ? { length: barSpan(after, from), time, offset: meterOffset(after, from) }
-    : { length: barTicks(time), time, offset: 0 });
+    ? { length: barSpan(after, from), time, offset: meterOffset(after, from), groups }
+    : { length: barTicks(time), time, offset: 0, groups });
   // At the clip's end the Gap after the last note is no music to keep: no bar of rests is added for it.
   const laid = layVoices([own, ...others.map(([, bars]) => bars)], rooms, spanOf, minBars, to === before.bars.length);
   if (!laid) return null;

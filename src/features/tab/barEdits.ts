@@ -4,7 +4,7 @@
  */
 
 import { C_MAJOR, sameKey, type Key } from '@/lib/theory/keys';
-import { barLength, barSpan, barTicks, keyAt, meterOffset, timeAt, type Bar, type Column, type Part, type TimeSignature, type Tempo } from './clip';
+import { barLength, barSpan, barTicks, beatGroupsAt, keyAt, meterOffset, timeAt, type Bar, type Column, type Part, type TimeSignature, type Tempo } from './clip';
 import { type Cursor, columnAt, emptyColumn, normalize, replaceBar, withColumn, without } from './editing';
 import { meterOf, spell } from './sounding';
 import { layFrom } from './timeline';
@@ -136,6 +136,20 @@ export function setBarTime(clip: Part, index: number, time: TimeSignature | null
   return normalize(replaceBar(clip, index, time ? { ...bar, time } : without(bar, 'time')));
 }
 
+/**
+ * The Beat groups of the time signature bar `index` is in, set from that bar on (counted in its lower
+ * number; null for its default). Part of the time signature (spec Q4): on the first bar they are the
+ * clip's own; on a later bar with no change of its own, the bar gets a change of the same meter with
+ * these groups. The editor re-writes the bars they cover (`commitReBar`).
+ */
+export function setBeatGroups(clip: Part, index: number, counts: number[] | null): Part {
+  const own = clip.bars[index]?.time !== undefined || index === 0;
+  const bar = clip.bars[index];
+  const time = timeAt(clip, index);
+  const next: Bar = counts ? { ...bar, ...(own ? {} : { time }), beatGroups: counts } : without(bar, 'beatGroups');
+  return normalize(replaceBar(clip, index, next));
+}
+
 /** The unit the Pickup field counts in: the beat its time signature writes (a quarter in 4/4, an eighth in 6/8). */
 export function pickupUnit(time: TimeSignature): number {
   return barTicks(time) / time.beats;
@@ -188,7 +202,7 @@ export function barFixes(clip: Part, index: number): { over: boolean; short: boo
 export function fillWithRests(clip: Part, index: number): Part {
   const bar = clip.bars[index];
   const span = barSpan(clip, index);
-  const meter = meterOf(timeAt(clip, index));
+  const meter = meterOf(timeAt(clip, index), beatGroupsAt(clip, index));
   const offset = meterOffset(clip, index);
   const filled = (columns: Column[]) => {
     const length = barLength({ columns });

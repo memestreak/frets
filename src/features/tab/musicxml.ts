@@ -6,8 +6,8 @@
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
 import {
-  barNumber, barTicks, beatTicks, bendCarries, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
-  spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
+  barNumber, barTicks, bendCarries, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
+  beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
   type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
 import { beamGroups } from './beams';
@@ -235,10 +235,10 @@ function joinsOf(part: Part): Joins {
 }
 
 /** A beam's MusicXML state at each column of a bar, one list per column (first note of the chord only). */
-function beamsOf(bar: Bar, time: TimeSignature): XmlNode[][] {
+function beamsOf(bar: Bar, time: TimeSignature, groups: number[]): XmlNode[][] {
   const out: XmlNode[][] = bar.columns.map(() => []);
-  const placed = { columns: bar.columns.map((column, index) => ({ column, index })), halfBars: time.beats === 4 && time.value === 4 };
-  for (const group of beamGroups(placed, beatTicks(time))) {
+  const placed = { columns: bar.columns.map((column, index) => ({ column, index })), time, groups };
+  for (const group of beamGroups(placed)) {
     if (group.columns.length < 2) continue;
     const levels = group.columns.map(p => BEAMS[p.column.duration.value]);
     group.columns.forEach((p, k) => {
@@ -395,7 +395,7 @@ function staffNotes(ctx: TrackContext, b: number, staff: 1 | 2, between?: (k: nu
   if (bar.columns.length === 0 || (isWholeBarRest(part, b) && bar.columns.every(plainRestColumn))) {
     return [el('note', {}, el('rest', { measure: 'yes' }), text('duration', barTicks(time) / ctx.divisionTicks), text('voice', staff === 1 ? 1 : 5), text('staff', staff))];
   }
-  const beams = beamsOf(bar, time);
+  const beams = beamsOf(bar, time, beatGroupsAt(part, b));
   const tuplets = new Map<number, 'start' | 'stop' | 'both'>();
   for (const group of tupletGroups(bar.columns)) {
     tuplets.set(group.from, group.from === group.to ? 'both' : 'start');

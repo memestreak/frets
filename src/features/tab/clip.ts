@@ -155,9 +155,17 @@ export interface Column {
    * (a pull-up) aren't drawn, so they are kept as written in `extra`.
    */
   whammy?: number[];
+  /**
+   * A Beam override (`docs/specs/2026-11-04-tab-beat-groups-beams-design.md`): the beam stops before
+   * this Column (`break`) or goes on from the one before it (`join`). Written as alphaTex `{beam split}`
+   * or `{beam merge}` on the Column before; none is Automatic, by the Beat groups.
+   */
+  beam?: BeamOverride;
   /** alphaTex beat effects Frets doesn't draw yet, kept as written ("tb (0 -4 0)"). */
   extra?: string[];
 }
+
+export type BeamOverride = 'break' | 'join';
 
 /** An octave line: play an octave (8) or two (15) above (va, ma) or below (vb, mb) where it is written. */
 export type Ottava = '8va' | '8vb' | '15ma' | '15mb';
@@ -210,6 +218,12 @@ export interface MasterBar {
    * (alphaTex `\ac`), counted as the end of a full bar (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
    */
   pickup?: number;
+  /**
+   * The Beat groups of the time signature set here (on the first bar, the clip's own), counted in its
+   * lower number (7/8 as 3+2+2: [3, 2, 2]); none for the time signature's default (`defaultGroupCounts`).
+   * Part of the time signature: it holds to the next one (alphaTex `\beaming`).
+   */
+  beatGroups?: number[];
 }
 
 /** The most Voices a Track holds, as Guitar Pro and MuseScore allow (`docs/specs/2026-11-03-tab-voices-design.md`). */
@@ -504,12 +518,69 @@ export function timeAt(clip: Pick<Part, 'time' | 'bars'>, index: number): TimeSi
   return clip.time;
 }
 
-/** Whether bar `index` starts a new time signature, one that differs from the bar before it. */
+/** Whether bar `index` starts a new time signature, one that differs from the bar before it in meter or Beat groups. */
 export function changesTime(clip: Pick<Part, 'time' | 'bars'>, index: number): boolean {
   const time = clip.bars[index]?.time;
   if (index === 0 || !time) return false;
   const before = timeAt(clip, index - 1);
-  return time.beats !== before.beats || time.value !== before.value;
+  return time.beats !== before.beats || time.value !== before.value || !sameGroups(groupCountsAt(clip, index), groupCountsAt(clip, index - 1));
+}
+
+/* — Beat groups (`docs/specs/2026-11-04-tab-beat-groups-beams-design.md`) — */
+
+/**
+ * The Beat groups a time signature is counted in by default, in its lower number: 4/4 as 2+2, 5/4 as
+ * 3+2, 6/4 3+3, 7/4 4+3, other quarter meters one a beat; over 8 or shorter threes when the count
+ * divides by three, 5 as 3+2, 1 and 2 as one group, else twos ending in a three (7/8 2+2+3).
+ */
+export function defaultGroupCounts({ beats, value }: TimeSignature): number[] {
+  if (value <= 4) {
+    if (beats === 4 && value === 4) return [2, 2];
+    if (beats === 5) return [3, 2];
+    if (beats === 6) return [3, 3];
+    if (beats === 7) return [4, 3];
+    return Array(beats).fill(1);
+  }
+  if (beats % 3 === 0) return Array(beats / 3).fill(3);
+  if (beats === 5) return [3, 2];
+  if (beats === 1 || beats === 2) return [beats];
+  const twos = Array(Math.floor(beats / 2)).fill(2);
+  if (beats % 2 === 1) twos[twos.length - 1] = 3;
+  return twos;
+}
+
+/** Whether `counts` are Beat groups of `time`: whole numbers from 1 adding up to its top number. */
+export function isGroupingOf(counts: readonly number[], time: TimeSignature): boolean {
+  return counts.length > 0 && counts.every(n => Number.isInteger(n) && n >= 1) && counts.reduce((a, b) => a + b, 0) === time.beats;
+}
+
+export function sameGroups(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((n, i) => n === b[i]);
+}
+
+/** The bar whose time signature bar `index` is in: the last one at or before it that sets one, else the first. */
+export function timeBarOf(clip: Pick<Part, 'bars'>, index: number): number {
+  for (let b = Math.min(index, clip.bars.length - 1); b > 0; b--) if (clip.bars[b].time) return b;
+  return 0;
+}
+
+/** The Beat groups bar `index` is counted in, in its time signature's lower number. */
+export function groupCountsAt(clip: Pick<Part, 'time' | 'bars'>, index: number): number[] {
+  const own = clip.bars[timeBarOf(clip, index)]?.beatGroups;
+  const time = timeAt(clip, index);
+  return own && isGroupingOf(own, time) ? own : defaultGroupCounts(time);
+}
+
+/** The Beat groups bar `index` is counted in, in ticks. */
+export function beatGroupsAt(clip: Pick<Part, 'time' | 'bars'>, index: number): number[] {
+  const unit = WHOLE / timeAt(clip, index).value;
+  return groupCountsAt(clip, index).map(n => n * unit);
+}
+
+/** Whether bar `index`'s time signature has Beat groups of its own, not its default. */
+export function hasOwnGroups(clip: Pick<Part, 'time' | 'bars'>, index: number): boolean {
+  const own = clip.bars[timeBarOf(clip, index)]?.beatGroups;
+  return !!own && isGroupingOf(own, timeAt(clip, index)) && !sameGroups(own, defaultGroupCounts(timeAt(clip, index)));
 }
 
 /** Whether a bar starts a run of free-time bars, so it says "Free time" with its time signature in brackets. */
@@ -952,7 +1023,7 @@ export function emptyPart(): Part {
 /* — a clip's tracks as parts, and back (issue #237) — */
 
 /** The fields a part's bar takes from the clip's bar, the ones every track shares. */
-const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section', 'pickup'] as const;
+const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section', 'pickup', 'beatGroups'] as const;
 /** The clip's own fields a part carries as they are. */
 const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests'] as const;
 /** The track's own fields a part carries and an edit may change. */
@@ -1220,7 +1291,7 @@ function isColumn(v: unknown): v is Column {
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optOneOf(v.wah, ['open', 'closed']) && optOneOf(v.hairpin, ['crescendo', 'decrescendo'])
-    && optOneOf(v.fermata, FERMATAS)
+    && optOneOf(v.fermata, FERMATAS) && optOneOf(v.beam, ['break', 'join'])
     && (v.whammy === undefined || isWhammy(v.whammy))
     && optStrings(v.extra);
 }
@@ -1234,6 +1305,7 @@ function isMasterBar(v: unknown): v is MasterBar {
     && optBool(v.doubleBar)
     && optBool(v.freeTime)
     && (v.pickup === undefined || (Number.isInteger(v.pickup) && (v.pickup as number) > 0))
+    && (v.beatGroups === undefined || (Array.isArray(v.beatGroups) && v.beatGroups.length > 0 && v.beatGroups.every(n => Number.isInteger(n) && n >= 1)))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)));
