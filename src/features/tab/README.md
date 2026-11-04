@@ -307,6 +307,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-ties-forward-design.md`: `=` ties forward;
+  a Tie chain is picked, deleted, lengthened and re-fretted as one note;
+  Alt+press picks one Tied note for its own marks
 - `docs/specs/2026-11-04-tab-bars-always-full-design.md`: no edit makes an Uneven bar: long notes
   write over and tie by the meter, runs are laid out again, Insert and
   Ctrl/⌘+Delete push and pull every Voice, time signatures re-bar, the

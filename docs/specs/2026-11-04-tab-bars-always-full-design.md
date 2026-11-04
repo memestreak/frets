@@ -50,7 +50,8 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
   whole Sounding note's length, its Tie chain included (a quarter tied to
   an eighth, made a half, is a half from the same start). On a Column that
   only carries tied notes on, they do nothing until step 5 picks Tie chains
-  as one.
+  as one (since then they set the whole chain's length:
+  `docs/specs/2026-11-04-tab-ties-forward-design.md`).
 - **In a tuplet**: the length keys do nothing on a note inside a tuplet
   until step 6. Triplet and Grace keep today's behaviour, and the ⚠ they
   can leave, until step 6 rebuilds them.
