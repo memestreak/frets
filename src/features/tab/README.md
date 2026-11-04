@@ -68,8 +68,8 @@ and in its spec.
   (Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing,
   Export), held as page state so Settings and the page's own controls
   change the same values — `2026-10-29-settings-design.md`.
-- `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): `fillBars`, off
-  by default — `2026-10-29-tab-fill-bars-setting-design.md`.
+- `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): note input's
+  grid — `2026-11-01-tab-note-input-grid-design.md`.
 
 ## The clip and its formats
 
@@ -141,14 +141,21 @@ and in its spec.
 
 - `editing.ts` — the cursor, selection and frets; edits that add, move or
   remove columns and bars; `normalize`, cut, copy, `pasteOver`,
-  `insertPaste`, `clearToRests`, `fillBar` —
+  `insertPaste`, `insertTime`, `clearToRests` —
   `2026-10-25-tab-editing-design.md`,
   `2026-10-31-tab-bars-stay-full-design.md`.
+- `timeline.ts` — the edits that change time, on a Voice as one stream
+  with the bar lines taken out, laid back into bars by their time
+  signatures: write over (`writeOver`, `writeSpan`), push (`pushTime`),
+  pull back (`pullTime`), re-bar after a time signature or Pickup bar
+  changes (`reBar`, `reBarClip`) and Move extra (`layFrom`) —
+  `2026-11-04-tab-bars-always-full-design.md`.
 - `noteEdits.ts` — the palette's changes to notes: rhythm, tuplets, grace
   notes, marks, joins, bends, and `changeLength` —
   `2026-11-01-tab-rest-lengths-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
-  endings, double bars, signatures).
+  endings, double bars, signatures, the Pickup bar), and an Uneven bar's
+  fixes (`moveExtra`, `fillWithRests`, `makePickup`).
 - `sounding.ts` — a part's Voice's Columns read as Sounding notes (`readVoice`) and
   written back by the meter (`writeVoice`, `spell`, `beatGroups`) —
   `2026-11-03-tab-sounding-notes-design.md`.
@@ -213,7 +220,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents) and Bars (Bars, Text), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `BarTimePanel.tsx` — the time signature from a bar on.
+- `BarTimePanel.tsx` — the time signature from a bar on, and bar 1's
+  Pickup field.
+- `BarFixPopover.tsx` — an Uneven bar's ⚠, pressed: its fix.
 - `TimeSignatureFields.tsx` — the time signature panel's two fields.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
 - `barPanel.ts` — keeps the bar panels inside the tab.

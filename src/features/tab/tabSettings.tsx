@@ -192,7 +192,6 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       section<EditingPrefs>({
         id: 'editing', name: 'Editing', value: prefs.editing, defaults: DEFAULT_EDITING, save: prefs.setEditing,
         fields: [
-          checkField('fillBars', 'Fill short bars with rests'),
           twoWayField('fixedGrid', 'Note input grid', 'Fixed', 'Note length'),
           choiceField<EditingPrefs, 'grid', GridValue>('grid', 'Fixed grid', GRID_VALUES.map(g => [g, GRID_NAMES[g]] as const), { enabled: v => v.fixedGrid }),
           choiceField<EditingPrefs, 'gridLook', GridLook>('gridLook', 'Grid drawn as', GRID_LOOKS.map(l => [l, GRID_LOOK_NAMES[l]] as const)),

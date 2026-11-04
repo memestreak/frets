@@ -4,8 +4,9 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { isRest, ticks, type Duration, type Part } from './clip';
-import { clampCursor, clearNote, columnAt, columnCount, deleteColumns, fillBar, indexOf, insertColumn, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { barTicks, isRest, ticks, timeAt, type Duration, type Part } from './clip';
+import { SPLITS_TUPLET } from './timeline';
+import { clampCursor, clearNote, columnAt, columnCount, cursorTime, deleteColumns, indexOf, insertTime, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
 import { clearToRests, makeRest, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
@@ -41,8 +42,6 @@ export interface EditorKeys {
   lastDigit: RefObject<LastDigit>;
   /** Each drawn line of tab's first and last column, for Shift+Home / End (worked out only when asked). */
   lines: () => Lines;
-  /** Settings' "Fill short bars with rests": → and ← complete a short bar they leave. */
-  fillBars: boolean;
   /**
    * Note input (issue #238): the cursor types, as the tab always did. Off, normal mode: what the
    * cursor is on is selected, and MuseScore's keys change it.
@@ -252,7 +251,13 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
         editor.setCursorAt(cursor, inside);
         return;
       }
-      const moved = moveColumn(clip, cursor, step, { fillBars: editor.fillBars });
+      let moved = moveColumn(clip, cursor, step);
+      // Note input steps over the tied-on part of a note, as one Sounding note (step 4).
+      while (editor.inputMode && onlyTiedOn(moved.clip, moved.cursor)) {
+        const next = moveColumn(moved.clip, moved.cursor, step);
+        if (next.cursor.bar === moved.cursor.bar && next.cursor.column === moved.cursor.column) break;
+        moved = next;
+      }
       commit(moved.clip, moved.cursor, null);
       // Coming back into a rest, ← lands on its last grid line.
       const went = moved.cursor.bar !== cursor.bar || moved.cursor.column !== cursor.column;
@@ -309,7 +314,28 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   }
   if (key === 'Insert') {
     handled();
-    commit(insertColumn(clip, cursor), cursor, null);
+    // A Gap pushing the music on (spec Q21): note input's length where the cursor is, else the picked
+    // note's or rest's length, or the selection's whole time.
+    const column = columnAt(clip, cursor);
+    let at = cursorTime(clip, cursor) + (editor.inputMode ? editor.cursorAt : 0);
+    let length = column && !column.grace ? ticks(column.duration) : barTicks(timeAt(clip, cursor.bar));
+    if (editor.inputMode) length = ticks(editor.inputLength);
+    else if (selection) {
+      const [from, to] = selectedRange(selection);
+      const first = placeOf(clip, from);
+      const last = placeOf(clip, to);
+      at = cursorTime(clip, { ...first, string: 0 });
+      const lastColumn = clip.bars[last.bar].columns[last.column];
+      length = cursorTime(clip, { ...last, string: 0 }) + (lastColumn.grace ? 0 : ticks(lastColumn.duration)) - at;
+    }
+    if (length <= 0) return;
+    const inserted = insertTime(clip, at, length, cursor);
+    if (!inserted) {
+      editor.onNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
+      return;
+    }
+    commit(inserted.clip, inserted.cursor, null);
+    if (!editor.inputMode) editor.startRegion();
     return;
   }
   if (key === 'Escape') {
@@ -483,8 +509,8 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
 /**
  * The keys that jump by more than a column (issue #238, `jumps.ts`): Ctrl/⌘+← → a bar and
  * Ctrl/⌘+Home / End the clip's ends move the cursor; with Shift they grow the selection that way,
- * as Shift+Home / End grow it to the ends of the line. Moving lets any selection go, and leaving a
- * short bar fills it when Settings says to, as ← → do. True when the key was one of them.
+ * as Shift+Home / End grow it to the ends of the line. Moving lets any selection go. True when the key
+ * was one of them.
  */
 function jumpKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   if (e.altKey) return false;
@@ -499,9 +525,7 @@ function jumpKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys):
     editor.startRegion();
     return true;
   }
-  const to = jumpCursor(clip, cursor, jump);
-  const left = editor.fillBars && to.bar !== cursor.bar ? fillBar(clip, cursor.bar) : clip;
-  commit(left, to, null);
+  commit(clip, jumpCursor(clip, cursor, jump), null);
   return true;
 }
 
@@ -560,7 +584,12 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
   const before = Math.min(line, columnCount(clip)) - 1;
   if (before < 0) return null;
   const { bar, column } = placeOf(clip, before);
-  if (removeTime) return { clip: deleteColumns(clip, [before, before]).clip, line: before };
+  if (removeTime) {
+    const cut = deleteColumns(clip, [before, before]).clip;
+    // The clip's last bar ends in a Gap: taking a rest from its end changes nothing, and the line stays.
+    if (JSON.stringify(cut.bars) === JSON.stringify(clip.bars)) return null;
+    return { clip: cut, line: before };
+  }
   if (isRest(clip.bars[bar].columns[column])) return null;
   return { clip: makeRest(clip, { cursor: { bar, column, string: 0 }, selection: null }), line: before + 1 };
 }
@@ -623,4 +652,10 @@ function placeOfLast(clip: Part): { bar: number; column: number } {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };
   }
   return { bar: 0, column: 0 };
+}
+
+/** Whether the cursor's Column holds only notes tied on from the Column before. */
+function onlyTiedOn(clip: Part, cursor: Cursor): boolean {
+  const notes = (columnAt(clip, cursor)?.notes ?? []).filter(note => note !== null);
+  return notes.length > 0 && notes.every(note => note.tie);
 }

@@ -47,7 +47,7 @@ const INPUT: ShortcutGroup = {
     { keys: ['0–9'], does: 'Fret (two digits quickly for 10 and up)' },
     { keys: ['+', '−', 'W', 'Q'], does: 'Longer or shorter next note' },
     { keys: ['Shift+1–7'], does: 'Next note’s length (Shift+5 a quarter)' },
-    { keys: ['Insert'], does: 'Insert a column' },
+    { keys: ['Insert'], does: 'Insert a Gap, pushing the music after it on' },
     { keys: ['Esc'], does: 'Leave note input' },
   ],
 };

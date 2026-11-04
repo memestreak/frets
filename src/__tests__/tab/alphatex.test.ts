@@ -127,9 +127,11 @@ describe('readAlphaTex', () => {
     expect(clipOf(out)).toEqual(partOf(result.clip));
   });
 
-  it('names a kept \\ac tag a pickup bar, not an accent', () => {
-    const result = read('\\ac 5.3.4 |');
-    expect(result.ok && result.warnings.join(' ')).toMatch(/\\ac \(pickup bar\)/);
+  it('reads the first bar\'s \\ac as a Pickup bar, and names one kept on a later bar, not an accent', () => {
+    const first = read('\\ac 5.3.4 | 5.3.1 |');
+    expect(first.ok && first.warnings).toEqual([]);
+    const later = read('5.3.1 | \\ac 5.3.4 |');
+    expect(later.ok && later.warnings.join(' ')).toMatch(/\\ac \(pickup bar after the first bar\)/);
   });
 
   it('reads and writes let ring, ghost notes, accents, staccato, wide vibrato, slides out and pinch harmonics', () => {

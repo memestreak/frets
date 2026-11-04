@@ -16,14 +16,16 @@ const bars = (clip: Part) => writeBars(clip).join('\n');
 describe('deleteAtLine', () => {
   // A bar ending in an eighth rest, as in his picture, then a second bar.
   const clip = clipOf(':4 5.3 :2 r{d} :8 7.3 r | :1 3.2 |');
+  // The same bar even, as edits keep it: Ctrl/⌘ pulls the music back (step 4).
+  const even = clipOf(':4 5.3 :2 r :8 7.3 r | :1 3.2 |');
 
   it('leaves a rest just before the line as it is: bars stay full (issue #238)', () => {
     expect(deleteAtLine(clip, 4, null)).toBeNull();
   });
 
-  it('with Ctrl/⌘ takes the rest just before the line, and the line steps back over it', () => {
-    const cut = deleteAtLine(clip, 4, null, true)!;
-    expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 :2 r{d} :8 7.3 | :1 3.2 |')));
+  it('with Ctrl/⌘ takes the rest just before the line and pulls the music after it back', () => {
+    const cut = deleteAtLine(even, 4, null, true)!;
+    expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 r r :8 7.3 3.2 | -.2.2{dd} r.8 |')));
     expect(cut.line).toBe(3);
   });
 
@@ -49,15 +51,15 @@ describe('deleteAtLine', () => {
     const rests = deleteAtLine(clip, null, { anchor: 3, focus: 1 })!;
     expect(bars(rests.clip)).toBe(bars(clipOf(':4 5.3 :2 r{d} :8 r r | :1 3.2 |')));
     expect(rests.line).toBe(1);
-    const cut = deleteAtLine(clip, null, { anchor: 3, focus: 1 }, true)!;
-    expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 | :1 3.2 |')));
+    const cut = deleteAtLine(even, null, { anchor: 3, focus: 1 }, true)!;
+    expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 3.2 :2 -.2 | :4 -.2 r :2 r |')));
     expect(cut.line).toBe(1);
   });
 
-  it('with Ctrl/⌘ leaves a bar empty when its only rest goes', () => {
+  it('with Ctrl/⌘ takes away a bar whose only rest goes', () => {
     const one = clipOf(':4 5.3 5.3 5.3 5.3 | :1 r | :1 3.2 |');
     const cut = deleteAtLine(one, 5, null, true)!;
-    expect(cut.clip.bars.map(b => b.columns.length)).toEqual([4, 0, 1]);
+    expect(bars(cut.clip)).toBe(bars(clipOf(':4 5.3 5.3 5.3 5.3 | :1 3.2 |')));
     expect(cut.line).toBe(4);
   });
 });

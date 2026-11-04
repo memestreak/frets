@@ -8,7 +8,7 @@
  * Columns, so a short or overfull bar (kept as written) doesn't move the bars after it.
  */
 import {
-  barLength, barTicks, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
+  barLength, barSpan, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
   WHOLE, type Column, type Duration, type Note, type Part, type TimeSignature,
 } from './clip';
 
@@ -128,7 +128,7 @@ export function readVoice(part: Part): ReadVoice {
   part.bars.forEach((bar, b) => {
     const time = timeAt(part, b);
     const length = barLength(bar);
-    const byMeter = !bar.freeTime && length === barTicks(time) && tupletProblems(bar, b).length === 0;
+    const byMeter = !bar.freeTime && length === barSpan(part, b) && tupletProblems(bar, b).length === 0;
     read.bars.push({ start, length, time, byMeter });
 
     const timed = bar.columns.filter(c => !c.grace);
@@ -369,12 +369,12 @@ export function writeVoice(part: Part, read: ReadVoice, options: WriteOptions = 
     const span = read.bars[b];
     if ((asked && !asked.has(b)) || !span?.byMeter) return bar;
     const groups = options.groupsOf?.(b) ?? beatGroups(span.time);
-    return { ...bar, columns: writeBar(read, b, meterOf(span.time, groups), groups) };
+    return { ...bar, columns: writeBar(read, b, meterOf(span.time, groups), groups, meterOffset(part, b)) };
   });
   return { ...part, bars };
 }
 
-function writeBar(read: ReadVoice, b: number, meter: Meter, groups: number[]): Column[] {
+function writeBar(read: ReadVoice, b: number, meter: Meter, groups: number[], offset = 0): Column[] {
   const { start, length, time } = read.bars[b];
   const end = start + length;
   const notes = read.notes.filter(n => n.start < end && n.start + n.length > start);
@@ -428,8 +428,8 @@ function writeBar(read: ReadVoice, b: number, meter: Meter, groups: number[]): C
     const own = kept.get(from) === to - from ? durationOf(to - from) : null;
     const durations = own ? [own]
       : sounding.length === 0
-        ? (from === start && to === end ? emptyBarRests(time, groups) : spell(meter, from - start, to - from, 'rest'))
-        : spell(meter, from - start, to - from, 'note');
+        ? (from === start && to === end && offset === 0 ? emptyBarRests(time, groups) : spell(meter, offset + from - start, to - from, 'rest'))
+        : spell(meter, offset + from - start, to - from, 'note');
     durations.forEach((duration, k) => {
       const notesHere: (Note | null)[] = Array(STRING_COUNT).fill(null);
       for (const n of sounding) notesHere[n.string] = k === 0 ? noteAt(n, from) : continuation(n.pieces[0].note);

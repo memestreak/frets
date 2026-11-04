@@ -166,13 +166,17 @@ No key is added or removed, so the `?` overlay is unchanged.
 
 ## How
 
-- `src/features/tab/timeline.ts` (pure, new): on a `ReadVoice`,
-  `writeOver(read, at, notes)`, `push(read, at, length)` and
-  `pullBack(read, at, length)`, and `rebar(read, spans)` to lay the notes
-  onto new bar spans; each returns the Sounding notes, Gaps and tuplet
-  blocks, which `writeVoice` spells by the meter over every bar touched.
-  Bar spans come from the time signatures (and the Pickup bar), not the
-  written lengths, past the edit's start.
+- `src/features/tab/timeline.ts` (pure, new): a Voice from the edit's
+  bar on as one stream of Columns (a tuplet group whole, a grace note
+  taking no time), the bar lines taken out. `writeOver`, `writeSpan`,
+  `pushTime` and `pullTime` change the stream; `layStream` lays it back
+  into bars by their time signatures (and the Pickup bar), splitting a
+  Column at a bar line and tying it on, and `writeVoice` spells the bars
+  laid by the meter. The laying stops at the first bar line past the
+  edit where the music is back on one of its old bar lines, so bars past
+  the edit's reach keep their Columns. `reBar` and `reBarClip` lay a
+  stretch of bars again by new time signatures, every Voice and Track;
+  `layFrom` lays every bar from one on (Move extra).
 - `editing.ts` and `noteEdits.ts`: `setFret`, `setDead`, `changeLength`
   (one note, runs, Tie chains), `pasteOver`, `insertPaste`, Insert and
   `deleteColumns` call the timeline. A time shift reads and writes every
@@ -195,6 +199,28 @@ No key is added or removed, so the `?` overlay is unchanged.
   (`.claude/skills/test-arrangement/`).
 - Update `public/tab-alphatex.txt` and `public/skills/frets-tab/SKILL.md`
   for `\ac`.
+
+## Settled while building
+
+Small points the questions didn't reach, decided by the rules above:
+
+- An edit that would put a tuplet across a bar line is refused, with "That
+  would put a tuplet across a bar line." under the clip; so is a time
+  signature change or Move extra that would.
+- In note input, a fret typed on the string of a lone note (not a chord's,
+  a tuplet's or a grace note) at another input length writes over at that
+  length, as Dorico's and MuseScore's note input do; on another string it
+  joins the chord at the chord's length, as before.
+- In note input, ← and → step over the tied-on part of a note, the Tie
+  chain being one Sounding note.
+- A re-bar that reaches the clip's end drops the Gap after the last note,
+  so changing 4/4 to 3/4 and back leaves no bar of rests.
+- Move extra lays each Voice by itself: a Voice that fills the bar keeps
+  its place.
+- Ctrl/⌘+Delete on the Gap that ends the clip does nothing, and the
+  playback line stays.
+- Insert bar before a Pickup bar puts the new bar after it: the Pickup bar
+  stays first.
 
 ## Tests
 

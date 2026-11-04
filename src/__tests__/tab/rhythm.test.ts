@@ -297,9 +297,9 @@ describe('time signature changes', () => {
     const clip = clipOf('\\ts (4 4)\n0.6.1 |\n\\ts (2 4) 0.6.4 0.6.4 |\n');
     const moved = moveColumn(clip, at(1, 1, 5), 1);
     expect(moved.cursor.bar).toBe(2);
-    // A grace note takes no time, so a bar of one grace note and one quarter still has room.
+    // → adds no rest inside a short bar: it moves on to a new bar (step 4).
     const grace = clipOf('\\ts (2 4)\n5.3.8{gr} 7.3.4 |\n');
-    expect(moveColumn(grace, at(0, 1, 2), 1).cursor).toEqual(at(0, 2, 2));
+    expect(moveColumn(grace, at(0, 1, 2), 1).cursor).toEqual(at(1, 0, 2));
   });
 
   it('go with copied columns, which take the time they were in', () => {
@@ -307,7 +307,9 @@ describe('time signature changes', () => {
     expect(sliceClip(clip, [2, 3]).time).toEqual({ beats: 3, value: 4 });
     expect(copyText(clip, [2, 3])).toBe('\\ts (3 4)\n0.5.2{d} | \\ts (4 4) 0.6.1 |\n');
     const pasted = insertPaste(clipOf('\\ts (4 4)\n0.6.1 |\n'), at(0, 1, 0), clipOf('\\ts (4 4)\n0.6.1 |\n\\ts (3 4) 0.5.2{d} |\n'));
-    expect(pasted.clip.bars[1].time).toEqual({ beats: 3, value: 4 });
+    // Insert paste leaves the pasted bar lines behind, time signatures with them: the music takes the clip's bars (step 4).
+    expect(pasted.clip.bars[1].time).toBeUndefined();
+    expect(writeBars(pasted.clip).join(' ')).toBe('0.6.1 | 0.6.1 | 0.5.2{d} r.4 |');
   });
 
   it('are drawn inside the bar, which grows to fit them, and a press on one says which bar', () => {

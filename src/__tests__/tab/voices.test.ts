@@ -152,12 +152,13 @@ describe('a part is one Voice', () => {
     expect(gone.tracks[0].bars).toHaveLength(1);
   });
 
-  it('leaves Voice 2 alone on cut and Delete, and copies Voice 1 only', () => {
+  it('leaves Voice 2 alone on cut and Delete, pulls it back with Ctrl/⌘+Delete, and copies Voice 1 only', () => {
     const part = partOf(clip);
     const cut = clearToRests(part, { anchor: 0, focus: 2 }).clip;
     expect(withPart(clip, cut).tracks[0].bars[0].voices[1]).toEqual(clip.tracks[0].bars[0].voices[1]);
+    // Taking time moves every Voice of the Track, so Voice 2 keeps its place against Voice 1 (step 4, Q2).
     const deleted = deleteColumns(part, [0, 1]).clip;
-    expect(withPart(clip, deleted).tracks[0].bars[0].voices[1]).toEqual(clip.tracks[0].bars[0].voices[1]);
+    expect(withPart(clip, deleted).tracks[0].bars[0].voices.map(shown)).toEqual(['r:2 1.1:2', '0.6:2 r:2']);
     expect(copyText(part, [0, 2])).not.toMatch(/\\voice/);
   });
 

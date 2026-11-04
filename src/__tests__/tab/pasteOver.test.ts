@@ -36,12 +36,13 @@ describe('pasteOver', () => {
   it('splits a note that would cross the bar line, tied over', () => {
     const result = pasteOver(clip, at(0, 3), clipOf('9.2.2 |'));
     expect(bars(result.clip)).toBe('1.1.4 2.1.4 3.1.4 9.2.4 |\n-.2.4 6.1.4 7.1.4 8.1.4 |');
-    expect(result.cursor).toEqual(at(1, 0));
+    // The cursor goes to the start of the last Sounding note pasted, not its tied-on part.
+    expect(result.cursor).toEqual(at(0, 3));
   });
 
   it('adds bars of rests past the end of the clip', () => {
     const result = pasteOver(clip, at(1, 3), clipOf('9.2.4 10.2.4 |'));
-    expect(bars(result.clip)).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |\n5.1.4 6.1.4 7.1.4 9.2.4 |\n10.2.4 r.2{d} |');
+    expect(bars(result.clip)).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |\n5.1.4 6.1.4 7.1.4 9.2.4 |\n10.2.4 r.4 r.2 |');
   });
 
   it('fills what a short bar lacks before going on', () => {

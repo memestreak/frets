@@ -205,6 +205,11 @@ export interface MasterBar {
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
+  /**
+   * On the first bar only: a Pickup bar this many ticks long, shorter than its time signature on purpose
+   * (alphaTex `\ac`), counted as the end of a full bar (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+   */
+  pickup?: number;
 }
 
 /** The most Voices a Track holds, as Guitar Pro and MuseScore allow (`docs/specs/2026-11-03-tab-voices-design.md`). */
@@ -464,6 +469,27 @@ export function fewestRests(room: number): Duration[] {
   return rests.sort((a, b) => ticks(b) - ticks(a));
 }
 
+/** Whether the Part starts with a Pickup bar. */
+export function hasPickup(clip: Pick<Part, 'bars'>): boolean {
+  return (clip.bars[0]?.pickup ?? 0) > 0;
+}
+
+/** How long bar `index` should be: a Pickup bar's own length, else its time signature's. */
+export function barSpan(clip: Pick<Part, 'time' | 'bars'>, index: number): number {
+  const pickup = index === 0 ? clip.bars[0]?.pickup : undefined;
+  return pickup && pickup > 0 ? pickup : barTicks(timeAt(clip, index));
+}
+
+/** Where in a full bar of its time signature bar `index`'s first Column falls: a Pickup bar is a bar's end. */
+export function meterOffset(clip: Pick<Part, 'time' | 'bars'>, index: number): number {
+  return barTicks(timeAt(clip, index)) - barSpan(clip, index);
+}
+
+/** The number bar `index` (from 0) is drawn and named with: counted from 1, a Pickup bar not counted. */
+export function barNumber(clip: Pick<Part, 'bars'>, index: number): number {
+  return hasPickup(clip) ? index : index + 1;
+}
+
 /** The time a bar's columns take; grace notes take none. */
 export function barLength(bar: Pick<Bar, 'columns'>): number {
   return bar.columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
@@ -498,13 +524,13 @@ export function startsFreeTime(clip: Pick<Part, 'bars'>, index: number): boolean
 export function isUneven(clip: Pick<Part, 'time' | 'bars'>, index: number): boolean {
   const bar = clip.bars[index];
   if (bar.columns.length === 0 && clip.bars.every(b => b.columns.length === 0)) return false;
-  return barLength(bar) !== barTicks(timeAt(clip, index));
+  return barLength(bar) !== barSpan(clip, index);
 }
 
 /** How far a bar is from filling its time signature, in words ("1 beat and a 32nd"), and which way; null when it fills it. */
 export function unevenBy(clip: Pick<Part, 'time' | 'bars'>, index: number): { words: string; over: boolean } | null {
   const time = timeAt(clip, index);
-  const off = barLength(clip.bars[index]) - barTicks(time);
+  const off = barLength(clip.bars[index]) - barSpan(clip, index);
   return off === 0 ? null : { words: timeInWords(Math.abs(off), time), over: off > 0 };
 }
 
@@ -599,7 +625,7 @@ export function stringClashes(part: Pick<Part, 'bars' | 'voice'>): string[] {
     for (let s = 0; s < STRING_COUNT; s++) {
       const clash = spans.some((a, i) => spans.some((c, k) => k > i
         && a[s].some(([from, to]) => c[s].some(([f, e]) => from < e && f < to))));
-      if (clash) out.push(`Bar ${b + 1} has two voices on string ${s + 1}.`);
+      if (clash) out.push(`Bar ${barNumber(part, b)} has two voices on string ${s + 1}.`);
     }
   });
   return out;
@@ -624,7 +650,7 @@ export function unevenMessage(clip: Pick<Part, 'time' | 'bars'>): string | null 
     const time = timeAt(clip, i);
     const key = `${time.beats}/${time.value}`;
     const amount = amountText(unevenBy(clip, i));
-    parts.push(key === lastTime ? `bar ${i + 1}${amount}` : `bar ${i + 1} doesn't add up to ${key}${amount}`);
+    parts.push(key === lastTime ? `bar ${barNumber(clip, i)}${amount}` : `bar ${barNumber(clip, i)} doesn't add up to ${key}${amount}`);
     lastTime = key;
   });
   clip.bars.forEach((_, i) => parts.push(...otherVoicesUneven(clip, i)));
@@ -700,7 +726,7 @@ export function tupletGroups(columns: Column[]): { from: number; to: number; dur
 
 /** The line that names every tuplet missing notes or with extra ones, or null when every one is whole. */
 export function brokenTupletMessage(clip: Pick<Part, 'bars'>): string | null {
-  const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, b));
+  const lines = clip.bars.flatMap((bar, b) => tupletProblems(bar, barNumber(clip, b) - 1));
   return lines.length > 0 ? lines.join(' ') : null;
 }
 
@@ -715,7 +741,7 @@ function otherVoicesUneven(clip: Pick<Part, 'time' | 'bars'>, index: number): st
     const off = barLength({ columns }) - barTicks(time);
     if (off === 0) return [];
     const amount = amountText({ words: timeInWords(Math.abs(off), time), over: off > 0 });
-    return [`bar ${index + 1}'s voice ${voice + 1} doesn't add up to ${time.beats}/${time.value}${amount}`];
+    return [`bar ${barNumber(clip, index)}'s voice ${voice + 1} doesn't add up to ${time.beats}/${time.value}${amount}`];
   });
 }
 
@@ -732,8 +758,8 @@ export function barErrors(clip: Pick<Part, 'time' | 'bars'>): Map<number, string
   clip.bars.forEach((bar, b) => {
     const time = timeAt(clip, b);
     const lines = [
-      ...(isUneven(clip, b) ? [`Bar ${b + 1} doesn't add up to ${time.beats}/${time.value}${amountText(unevenBy(clip, b))}.`] : []),
-      ...tupletProblems(bar, b),
+      ...(isUneven(clip, b) ? [`Bar ${barNumber(clip, b)} doesn't add up to ${time.beats}/${time.value}${amountText(unevenBy(clip, b))}.`] : []),
+      ...tupletProblems(bar, barNumber(clip, b) - 1),
       ...otherVoicesUneven(clip, b).map(clause => `${clause[0].toUpperCase()}${clause.slice(1)}.`),
     ];
     if (lines.length > 0) errors.set(b, lines.join(' '));
@@ -926,7 +952,7 @@ export function emptyPart(): Part {
 /* — a clip's tracks as parts, and back (issue #237) — */
 
 /** The fields a part's bar takes from the clip's bar, the ones every track shares. */
-const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section'] as const;
+const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section', 'pickup'] as const;
 /** The clip's own fields a part carries as they are. */
 const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests'] as const;
 /** The track's own fields a part carries and an edit may change. */
@@ -1050,6 +1076,17 @@ export function withPart(clip: Clip, part: Part, index = 0): Clip {
   });
   const whole: Clip = { ...clip, name: part.name, time: part.time, masterBars, tracks };
   return copied(whole, part, CLIP_FIELDS);
+}
+
+/**
+ * The clip with every track's bars as `parts` have them (one part per track, each Voice 1 with its other
+ * Voices carried), all with the same bars: a re-bar, which moves every track's music at once. The bar
+ * marks are the first part's; the tracks keep their tuning, sound and the rest.
+ */
+export function withTrackParts(clip: Clip, parts: Part[]): Clip {
+  const masterBars = parts[0].bars.map(bar => copied({}, bar, MASTER_FIELDS) as MasterBar);
+  const tracks = clip.tracks.map((track, t): Track => ({ ...track, bars: parts[t].bars.map(bar => trackBarOf(bar, 0)) }));
+  return { ...clip, time: parts[0].time, masterBars, tracks };
 }
 
 /** The clip's bars that the edit `part` took away but another track, or another Voice of its own, has more than rests in. */
@@ -1196,6 +1233,7 @@ function isMasterBar(v: unknown): v is MasterBar {
     && (v.repeatEnd === undefined || (Number.isInteger(v.repeatEnd) && (v.repeatEnd as number) >= 2))
     && optBool(v.doubleBar)
     && optBool(v.freeTime)
+    && (v.pickup === undefined || (Number.isInteger(v.pickup) && (v.pickup as number) > 0))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
     && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)));

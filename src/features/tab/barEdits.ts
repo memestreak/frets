@@ -4,8 +4,10 @@
  */
 
 import { C_MAJOR, sameKey, type Key } from '@/lib/theory/keys';
-import { keyAt, type Part, type TimeSignature, type Tempo } from './clip';
-import { type Cursor, columnAt, normalize, replaceBar, withColumn, without } from './editing';
+import { barLength, barSpan, barTicks, keyAt, meterOffset, timeAt, type Bar, type Column, type Part, type TimeSignature, type Tempo } from './clip';
+import { type Cursor, columnAt, emptyColumn, normalize, replaceBar, withColumn, without } from './editing';
+import { meterOf, spell } from './sounding';
+import { layFrom } from './timeline';
 
 /** The free text over the cursor's column; empty or blank clears it. */
 export function setBeatText(clip: Part, cursor: Cursor, text: string): Part {
@@ -123,9 +125,33 @@ export function setEnding(clip: Part, bar: number, n: number | null): Part {
  * starts a change, and null (or the time signature already in force) takes the change away.
  */
 export function setBarTime(clip: Part, index: number, time: TimeSignature | null): Part {
-  if (index === 0) return time ? normalize({ ...clip, time }) : clip;
+  if (index === 0) {
+    if (!time) return clip;
+    // A Pickup bar keeps its length while it is still shorter than a bar of the new time signature.
+    const pickup = clip.bars[0]?.pickup;
+    const next = pickup && pickup >= barTicks(time) ? replaceBar(clip, 0, without(clip.bars[0], 'pickup')) : clip;
+    return normalize({ ...next, time });
+  }
   const bar = clip.bars[index];
   return normalize(replaceBar(clip, index, time ? { ...bar, time } : without(bar, 'time')));
+}
+
+/** The unit the Pickup field counts in: the beat its time signature writes (a quarter in 4/4, an eighth in 6/8). */
+export function pickupUnit(time: TimeSignature): number {
+  return barTicks(time) / time.beats;
+}
+
+/**
+ * The first bar made a Pickup bar `length` ticks long, or a full bar with 0
+ * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`); a length of a whole bar or more is none. The
+ * music is not re-barred here: the editor re-bars it from bar 1 (`commitReBar`).
+ */
+export function setPickup(clip: Part, length: number): Part {
+  const bar = without(clip.bars[0], 'pickup');
+  const keep = length > 0 && length < barTicks(timeAt(clip, 0));
+  if (!keep && clip.bars[0].pickup === undefined) return clip;
+  if (keep && clip.bars[0].pickup === length) return clip;
+  return replaceBar(clip, 0, keep ? { ...bar, pickup: length } : bar);
 }
 
 /**
@@ -141,3 +167,45 @@ export function setBarKey(clip: Part, index: number, key: Key | null): Part {
 }
 
 /* — moving — */
+
+/* — fixing an Uneven bar, from its ⚠ (`docs/specs/2026-11-04-tab-bars-always-full-design.md`) — */
+
+/** Every Voice of the bar, its own first: the Part's Columns, then those it carries. */
+function voicesOf(bar: Bar): Column[][] {
+  return [bar.columns, ...(bar.otherVoices ?? []).map(other => other.columns)];
+}
+
+/** Which fixes bar `index` takes: Move extra into next bar when a Voice is overfull, Fill with rests (and, on bar 1, Make pickup bar) when one is short. */
+export function barFixes(clip: Part, index: number): { over: boolean; short: boolean; pickup: boolean } {
+  const span = barSpan(clip, index);
+  const lengths = voicesOf(clip.bars[index]).filter((columns, v) => v === 0 || columns.length > 0).map(columns => barLength({ columns }));
+  const over = lengths.some(length => length > span);
+  const short = lengths.some(length => length < span) && !(clip.bars.every(bar => bar.columns.length === 0));
+  return { over, short, pickup: short && !over && index === 0 && lengths[0] > 0 && lengths.every(length => length <= lengths[0]) };
+}
+
+/** Bar `index` with the time each short Voice lacks put at its end as a Gap, written by the meter. */
+export function fillWithRests(clip: Part, index: number): Part {
+  const bar = clip.bars[index];
+  const span = barSpan(clip, index);
+  const meter = meterOf(timeAt(clip, index));
+  const offset = meterOffset(clip, index);
+  const filled = (columns: Column[]) => {
+    const length = barLength({ columns });
+    if (columns.length === 0 || length >= span) return columns;
+    return [...columns, ...spell(meter, offset + length, span - length, 'rest').map(emptyColumn)];
+  };
+  const next: Bar = { ...bar, columns: bar.columns.length === 0 ? bar.columns : filled(bar.columns) };
+  if (bar.otherVoices) next.otherVoices = bar.otherVoices.map(other => ({ ...other, columns: filled(other.columns) }));
+  return replaceBar(clip, index, next);
+}
+
+/** Bar `index` with the time past its end moved into the next bar, pushing the music after it along, in every Voice: nothing is lost. */
+export function moveExtra(clip: Part, index: number): Part | null {
+  return layFrom(clip, index);
+}
+
+/** Bar 1 made a Pickup bar as long as its music, even when that is part of a beat. */
+export function makePickup(clip: Part): Part {
+  return setPickup(clip, Math.max(...voicesOf(clip.bars[0]).map(columns => barLength({ columns }))));
+}

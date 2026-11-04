@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Duration, Part } from './clip';
 import type { ClipAction, PartAction } from './clipState';
-import { clampCursor, columnCount, fillBar, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnCount, START, type Cursor, type Selection } from './editing';
 import type { LastDigit } from './editorKeys';
 import type { WordHit } from './layoutText';
 import { isInsideRest } from './grid';
@@ -9,6 +9,7 @@ import { cursorAtTime, rewrite, selectionAtTime } from './rewrite';
 import type { MarkHit } from './marks';
 import type { Notice } from './notice';
 import { stringAtPitch } from './staffEntry';
+import { placeAtTime, reBar, reBarEnd, SPLITS_TUPLET, timeOf } from './timeline';
 
 /** A chord name, text, section, tempo, capo, ending, bar line or technique mark picked by a press. */
 export type Picked = WordHit | MarkHit;
@@ -79,8 +80,10 @@ export interface EditorState {
   lastDigitRef: React.RefObject<LastDigit>;
   /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
   commit: (next: Part, nextCursor?: Cursor, nextSelection?: Selection | null) => void;
-  /** The cursor's bar as left: filled with rests when Settings says to. */
-  leaveBar: (from: Part, bar: number) => Part;
+  /** A time signature or Pickup bar changed from bar `at`: every Track re-barred from there (step 4). */
+  commitReBar: (changed: Part, at: number) => void;
+  /** Says something on the line under the clip. */
+  setNotice: (notice: Notice | null) => void;
   /**
    * Starting a run of selected columns lets go of the note the cursor was on (Jeremy, 2026-10-28): no
    * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
@@ -90,12 +93,11 @@ export interface EditorState {
   toPitch: (next: Part, at: Cursor, pitch: number, nextSelection?: Selection | null) => void;
 }
 
-/** The editor's state over the shown track `clip`; `fillBars` is Settings' "Fill short bars with rests". */
-export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
+/** The editor's state over the shown track `clip`. */
+export function useEditorState({ clip, dispatch, setNotice }: {
   clip: Part;
   dispatch: (action: ClipAction | PartAction) => void;
   setNotice: (notice: Notice | null) => void;
-  fillBars: boolean;
 }): EditorState {
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
   const [selectionAsSet, setSelection] = useState<Selection | null>(null);
@@ -125,6 +127,27 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
     setRestSpot(null);
   };
 
+  /**
+   * A time signature or Pickup bar changed from bar `at` (`changed`, its bars otherwise as they were):
+   * the music from there to the next time signature change is re-barred in every Track, and the
+   * cursor stays at the same time. A tuplet that would cross a new bar line refuses the change.
+   */
+  const commitReBar = (changed: Part, at: number) => {
+    if (changed === clip) return;
+    const to = reBarEnd(clip, at);
+    const shown = reBar(clip, changed, at, to);
+    if (!shown) {
+      setNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
+      return;
+    }
+    dispatch({ type: 'reBarPart', part: changed, from: at, to });
+    setCursor({ ...cursor, ...placeAtTime(shown, timeOf(clip, cursor.bar, cursor.column)) });
+    setSelection(null);
+    setPicked(null);
+    setNotice(null);
+    setRestSpot(null);
+  };
+
   const startRegion = () => {
     setColumnOnly(true);
     setStaffPitch(null);
@@ -140,8 +163,7 @@ export function useEditorState({ clip, dispatch, setNotice, fillBars }: {
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
     columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode,
-    inputLength, setInputLength, cursorAt, setCursorAt, editorRef, lastDigitRef, commit,
-    leaveBar: (from, bar) => (fillBars ? fillBar(from, bar) : from),
+    inputLength, setInputLength, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, setNotice,
     startRegion, toPitch,
   };
 }

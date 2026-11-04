@@ -9,7 +9,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  barLength, barTicks, BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
@@ -61,7 +61,7 @@ const BAR_TAGS = new Set([
 
 /** What a few kept keywords are, for the line that lists them; tags keep their backslash (\ac is a pickup bar, ac an accent). */
 const KEPT_NAMES: Record<string, string> = {
-  '\\ac': 'pickup bar',
+  '\\ac': 'pickup bar after the first bar',
   th: 'tapped harmonic',
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
   tp: 'tremolo picking', tb: 'whammy bar',
@@ -384,6 +384,8 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       for (const meta of nodesOf(t, b).flatMap(node => node.metaData)) {
         const name = meta.tag.tag.text.toLowerCase();
         if (TAGS.has(name)) continue;
+        // The first bar's \ac makes it a Pickup bar, read below; a later bar's is kept as written.
+        if (b === 0 && name === 'ac') continue;
         if (LAYOUT_TAGS.has(name) && t === 0 && b === 0 && layoutOk.has(name)) continue;
         if (b === 0 && name === 'instrument') {
           instrumentTag = written(text, meta);
@@ -437,6 +439,11 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     return track;
   });
 
+  // A Pickup bar is as long as its music, as alphaTab reads `\ac`; one as long as a full bar is just a bar.
+  if (score.tracks.some((_, t) => nodesOf(t, 0).some(node => hasTag(node, 'ac')))) {
+    const length = Math.max(0, ...tracks.flatMap(track => track.bars[0]?.voices.map(columns => barLength({ columns })) ?? []));
+    if (length > 0 && length < barTicks(time) && masterBars[0]) masterBars[0].pickup = length;
+  }
   const clip: Clip = {
     name: score.title,
     time,
