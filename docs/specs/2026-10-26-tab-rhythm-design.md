@@ -33,6 +33,9 @@ six or seven in the time of four.
   longer tuplet is kept as written. ASCII writes "t9" and "e3:4". The
   palette's four tuplet buttons became one Tuplet button with a panel
   (3 · 5 · 6 · 7 · 9 · 10 · 11 · 12 · None), like Bend; Alt+3/5/6/7 stay.
+  (Since step 6 the keys are Dorico's: `;` opens this panel, `/` is Grace,
+  and what a tuplet or grace note does to time is
+  `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`.)
 - `Column.grace?: 'before' | 'on'`. A grace note takes no time: `barLength`
   skips it, and so do beams and the check for a full bar.
   - alphaTab sets a grace note's length from its group whatever is written:

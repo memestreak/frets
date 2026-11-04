@@ -313,6 +313,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`: tuplets take
+  a note's time or squeeze a selection, grace notes are added before;
+  Tuplet entry and Grace entry in note input; `,` is Rest; Dorico's keys
 - `docs/specs/2026-11-04-tab-ties-forward-design.md`: T ties forward;
   a Tie chain is picked, deleted, lengthened and re-fretted as one note;
   Alt+press picks one Tied note for its own marks
