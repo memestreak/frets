@@ -298,6 +298,10 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-bars-always-full-design.md`: no edit makes an Uneven bar: long notes
+  write over and tie by the meter, runs are laid out again, Insert and
+  Ctrl/⌘+Delete push and pull every Voice, time signatures re-bar, the
+  Pickup bar, the ⚠'s fixes; the Fill setting goes
 - `docs/specs/2026-11-03-tab-rests-are-gaps-design.md`: rests are Gaps
   written by the meter after each rhythm edit; an empty bar is one
   Whole-bar rest; a rest's length can't be set

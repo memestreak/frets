@@ -76,6 +76,8 @@ not the Column's number:
 
 ## Not in this step
 
+Step 4 has since done the first two (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
+
 - The "Fill short bars with rests" setting stays until step 4 (Q1), with
   the rest of bars always full (A10).
 - A fret typed on a rest in normal mode keeps taking the last note's
