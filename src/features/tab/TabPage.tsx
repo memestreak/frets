@@ -18,7 +18,7 @@ import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, inser
 import { isBarLine, type BarLineHit } from './barLines';
 import { clearToRests, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, lineKeyDown } from './editorKeys';
+import { editorKeyDown, popupTakesEscape, lineKeyDown } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
@@ -372,6 +372,13 @@ export default function TabPage() {
       e.preventDefault();
       if (gridKey === 'toggle') prefs.setEditing(p => ({ ...p, fixedGrid: !p.fixedGrid }));
       else prefs.setEditing(p => ({ ...p, fixedGrid: true, grid: p.fixedGrid ? stepGrid(p.grid, gridKey) : p.grid }));
+      return;
+    }
+    // Esc anywhere on the page leaves note input (Jeremy, 2026-11-03): after a press off the tab, on the rail or a
+    // control too. An open panel, menu or dialog takes it first, as in Dorico and MuseScore; the next Esc leaves.
+    if (e.key === 'Escape' && inputMode && !(e.target as Element | null)?.closest?.('.tab-editor') && !popupTakesEscape(e)) {
+      e.preventDefault();
+      enterInput(false);
       return;
     }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
