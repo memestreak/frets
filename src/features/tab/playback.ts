@@ -10,7 +10,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writePart } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { STRING_COUNT, TREMOLO_VALUES, type Part, type Note } from './clip';
+import { STRING_COUNT, TREMOLO_VALUES, WHOLE, ticks, type Part, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
@@ -622,8 +622,53 @@ export function noteAlone(clip: Part, bar: number, column: number, string: numbe
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
 export function columnOfBeat(clip: Part, beat: Beat): number | null {
   const bar = beat.voice.bar.index;
-  if (bar >= clip.bars.length || beat.index >= clip.bars[bar].columns.length) return null;
-  return indexOf(clip, bar, beat.index);
+  if (bar >= clip.bars.length) return null;
+  if (beat.voice.index === (clip.voice ?? 0) && beat.index < clip.bars[bar].columns.length) return indexOf(clip, bar, beat.index);
+  // Another Voice's beat (step 9): the part's own Column sounding at its time.
+  const own = ownColumnAt(clip, bar, beat.playbackStart * TICKS_PER_SCORE_TICK);
+  return own ? indexOf(clip, bar, own.column) : null;
+}
+
+/**
+ * The part's own Column sounding `t` ticks (Frets') into bar `bar`, with where it starts and how long it
+ * lasts; grace notes take no time, so they are never it. The part is one Voice (the Active voice), which
+ * the score may not have in that bar (an absent Voice's stand-in rests), so this goes by time.
+ */
+function ownColumnAt(clip: Part, bar: number, t: number): { column: number; start: number; length: number } | null {
+  let found: { column: number; start: number; length: number } | null = null;
+  let start = 0;
+  (clip.bars[bar]?.columns ?? []).forEach((column, c) => {
+    if (column.grace) return;
+    const length = ticks(column.duration);
+    if (t >= start) found = { column: c, start, length };
+    start += length;
+  });
+  return found;
+}
+
+/**
+ * Where the music is at MIDI tick `now`: the part's own Column sounding, and how far through it. In a bar
+ * with several Voices (step 9) it goes by the part's own Column at that time, so the playhead glides
+ * through the Active voice's notes alone, never back or off.
+ */
+export function heardAt(clip: Part, perf: Performance, now: number): HeardPosition | null {
+  const found = perf.lookup.findBeat(new Set([0]), now - perf.shift);
+  if (!found) return null;
+  const bar = found.beat.voice.bar.index;
+  // With other Voices in the bar, the lookup's beats are cut wherever any Voice starts a note, so a
+  // beat found may be another Voice's or only part of the own note: it goes by the own Column's time.
+  if ((clip.bars[bar]?.otherVoices?.length ?? 0) > 0 || found.beat.voice.index !== (clip.voice ?? 0)) {
+    const played = perf.bars.find(b => now >= b.start && now < b.end);
+    const into = played ? (now - played.start) * TICKS_PER_SCORE_TICK : 0;
+    const own = played ? ownColumnAt(clip, bar, into) : null;
+    if (!own) return null;
+    const through = own.length > 0 ? (into - own.start) / own.length : 0;
+    return { column: indexOf(clip, bar, own.column), through: Math.min(1, Math.max(0, through)) };
+  }
+  const column = columnOfBeat(clip, found.beat);
+  if (column === null) return null;
+  const through = found.tickDuration > 0 ? (now - perf.shift - found.start) / found.tickDuration : 0;
+  return { column, through: Math.min(1, Math.max(0, through)) };
 }
 
 /** The column sounding at a tick, or null. */
@@ -632,10 +677,27 @@ export function columnAtTick(clip: Part, performance: Performance, tick: number)
   return found ? columnOfBeat(clip, found.beat) : null;
 }
 
-/** The score's beat for a column of the clip. */
+/**
+ * The score's beat for a column of the clip, in the part's own Voice. Where the score has no such beat
+ * (an absent Voice's stand-in rests), the first Voice's beat sounding at the column's time, and how many
+ * of the score's ticks into it the column starts.
+ */
 function beatOf(performance: Performance, clip: Part, index: number): Beat | null {
+  return placedBeat(performance, clip, index)?.beat ?? null;
+}
+
+function placedBeat(performance: Performance, clip: Part, index: number): { beat: Beat; offset: number } | null {
   const { bar, column } = placeOf(clip, index);
-  return performance.score.tracks[0]?.staves[0]?.bars[bar]?.voices[0]?.beats[column] ?? null;
+  const voices = performance.score.tracks[0]?.staves[0]?.bars[bar]?.voices ?? [];
+  const own = voices[clip.voice ?? 0];
+  const columns = clip.bars[bar]?.columns ?? [];
+  if (own && own.beats.length === columns.length) return own.beats[column] ? { beat: own.beats[column], offset: 0 } : null;
+  let t = 0;
+  for (let c = 0; c < column && c < columns.length; c++) if (!columns[c].grace) t += ticks(columns[c].duration);
+  const at = t / TICKS_PER_SCORE_TICK;
+  const beats = voices[0]?.beats ?? [];
+  const beat = [...beats].reverse().find(b => b.playbackStart <= at) ?? beats[0];
+  return beat ? { beat, offset: at - beat.playbackStart } : null;
 }
 
 /** The ticks from the start of one column to the end of another, the first time each is played. */
@@ -650,8 +712,8 @@ export function ticksOf(clip: Part, performance: Performance, [from, to]: [numbe
 
 /** The tick a column first starts on. */
 export function tickOf(clip: Part, performance: Performance, index: number): number {
-  const beat = beatOf(performance, clip, index);
-  return (beat ? performance.lookup.getBeatStart(beat) : 0) + performance.shift;
+  const placed = placedBeat(performance, clip, index);
+  return (placed ? performance.lookup.getBeatStart(placed.beat) + placed.offset : 0) + performance.shift;
 }
 
 /* — sound: a Web Audio output for the synthesizer — */
@@ -676,6 +738,8 @@ export interface HeardPosition {
 
 /** alphaTab's ticks in a quarter note. */
 const QUARTER_TICKS = 960;
+/** Frets' ticks (`clip.ts`) in one of the score's (alphaTab's 960 a quarter). */
+const TICKS_PER_SCORE_TICK = WHOLE / (4 * QUARTER_TICKS);
 /**
  * How long the playhead goes on moving on its own after the synthesizer last said where it is. It
  * says so about every tenth of a second; past this the sound has stalled, so the playhead waits.
@@ -1014,11 +1078,7 @@ export class TabPlayer {
     this.shown = { tick: now, at: time };
     // During the count-in the playhead waits where Play started.
     if (this.counted && now < this.counted.end) return { column: this.counted.column, through: 0 };
-    const found = perf.lookup.findBeat(new Set([0]), now - perf.shift);
-    const column = found ? columnOfBeat(clip, found.beat) : null;
-    if (!found || column === null) return null;
-    const through = found.tickDuration > 0 ? (now - perf.shift - found.start) / found.tickDuration : 0;
-    return { column, through: Math.min(1, Math.max(0, through)) };
+    return heardAt(clip, perf, now);
   }
 
   setSpeed(speed: number) {

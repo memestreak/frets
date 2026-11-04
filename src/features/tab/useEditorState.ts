@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { Duration, Part } from './clip';
+import type { Clip, Duration, Part } from './clip';
 import type { ClipAction, PartAction } from './clipState';
 import { clampCursor, columnCount, START, type Cursor, type Selection } from './editing';
 import type { LastDigit } from './editorKeys';
@@ -10,6 +10,7 @@ import type { MarkHit } from './marks';
 import type { Notice } from './notice';
 import { stringAtPitch } from './staffEntry';
 import { placeAtTime, reBar, reBarEnd, SPLITS_TUPLET, timeOf } from './timeline';
+import { clashMessage } from './voices';
 
 /** A chord name, text, section, tempo, capo, ending, bar line or technique mark picked by a press. */
 export type Picked = WordHit | MarkHit;
@@ -99,8 +100,18 @@ export interface EditorState {
   editorRef: React.RefObject<HTMLDivElement | null>;
   /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
   lastDigitRef: React.RefObject<LastDigit>;
-  /** Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. */
-  commit: (next: Part, nextCursor?: Cursor, nextSelection?: Selection | null) => void;
+  /**
+   * Records an edit as one undo step and moves the cursor; a change that changed nothing is not a step. An
+   * edit that would sound a string in two Voices at once is refused, and the line under the clip says why
+   * (step 9, Q10); it returns whether the edit went in.
+   */
+  commit: (next: Part, nextCursor?: Cursor, nextSelection?: Selection | null) => boolean;
+  /**
+   * An edit of several Voices at once (step 9, Q19) as one undo step: the whole clip `next`, and the Active
+   * voice's Part of it, `part`. With `follow` the cursor and selection are the Part's as it was, and follow
+   * by time; else they are already `part`'s. Refused as `commit` refuses.
+   */
+  commitVoices: (next: Clip, part: Part, nextCursor?: Cursor, nextSelection?: Selection | null, follow?: boolean) => boolean;
   /** A time signature or Pickup bar changed from bar `at`: every Track re-barred from there (step 4). */
   commitReBar: (changed: Part, at: number) => void;
   /** Says something on the line under the clip. */
@@ -115,8 +126,10 @@ export interface EditorState {
 }
 
 /** The editor's state over the shown track `clip`. */
-export function useEditorState({ clip, dispatch, setNotice }: {
+export function useEditorState({ clip, dispatch, replace, setNotice }: {
   clip: Part;
+  /** Puts an edited whole clip in, as one undo step. */
+  replace: (next: Clip) => void;
   dispatch: (action: ClipAction | PartAction) => void;
   setNotice: (notice: Notice | null) => void;
 }): EditorState {
@@ -150,16 +163,33 @@ export function useEditorState({ clip, dispatch, setNotice }: {
   const setCursorAt = (at: Cursor, ticks: number) => setRestSpot(ticks > 0 ? { bar: at.bar, column: at.column, at: ticks } : null);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < columnCount(clip) ? selectionAsSet : null;
 
-  const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
-    if (next !== clip) dispatch({ type: 'replacePart', part: next });
-    // The dispatch writes the bars whose rhythm changed again by the meter; the cursor and selection follow by time.
-    const written = next === clip ? next : rewrite(clip, next);
+  /** An edit's clash with another Voice, said under the clip; true when there is one. */
+  const refused = (next: Part) => {
+    const clash = next === clip ? null : clashMessage(clip, next);
+    if (clash) setNotice({ tone: 'error', lines: [clash] });
+    return clash !== null;
+  };
+  /** After an edit: the cursor and selection follow by time, and what was picked goes. */
+  const followed = (next: Part, written: Part, nextCursor: Cursor, nextSelection: Selection | null) => {
     setCursor(cursorAtTime(next, written, nextCursor));
     setSelection(selectionAtTime(next, written, nextSelection));
     setPicked(null);
     setAlone(false);
     setNotice(null);
     setRestSpot(null);
+  };
+  const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
+    if (refused(next)) return false;
+    if (next !== clip) dispatch({ type: 'replacePart', part: next });
+    // The dispatch writes the bars whose rhythm changed again by the meter; the cursor and selection follow by time.
+    followed(next, next === clip ? next : rewrite(clip, next), nextCursor, nextSelection);
+    return true;
+  };
+  const commitVoices = (next: Clip, part: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection, follow = false) => {
+    if (refused(part)) return false;
+    replace(next);
+    followed(follow ? clip : part, part, nextCursor, nextSelection);
+    return true;
   };
 
   /**
@@ -198,7 +228,7 @@ export function useEditorState({ clip, dispatch, setNotice }: {
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
     columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, inputMode, setInputMode,
-    inputLength, setInputLength, tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, setNotice,
+    inputLength, setInputLength, tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitVoices, commitReBar, setNotice,
     startRegion, toPitch,
   };
 }

@@ -661,18 +661,6 @@ export function barRuns(bars: readonly number[]): string {
 }
 
 /**
- * The sentence naming the bars where the part carries Voices it doesn't show (`docs/specs/2026-11-03-tab-voices-design.md`):
- * "Bars 3–8 have a second voice, not drawn yet.", or "more voices" when a third or fourth is there; null when none.
- */
-export function hiddenVoicesMessage(part: Pick<Part, 'bars'>): string | null {
-  const bars = part.bars.flatMap((bar, b) => (bar.otherVoices?.length ? [b] : []));
-  if (bars.length === 0) return null;
-  const more = part.bars.some(bar => bar.otherVoices?.some(o => o.voice >= 2));
-  const one = bars.length === 1;
-  return `${one ? 'Bar' : 'Bars'} ${barRuns(bars)} ${one ? 'has' : 'have'} ${more ? 'more voices' : 'a second voice'}, not drawn yet.`;
-}
-
-/**
  * A sentence for each bar and string where two of the part's Voices sound at once: "Bar 3 has two voices
  * on string 2." A tied note sounds on; a grace note takes no time and is left out. Strings are numbered as
  * tab numbers them, 1 the high e.
@@ -1056,7 +1044,7 @@ export function partOf(clip: Clip, index = 0, voice = 0): Part {
 /** Voice `voice` of track `index` as a part, by itself. */
 function trackPart(clip: Clip, index: number, voice: number): Part {
   const track = clip.tracks[index];
-  const bars = partBars(clip.masterBars, track.bars, counted(clip, index), voice);
+  const bars = partBars(clip.masterBars, track.bars, counted(clip, index), voice, clip.time);
   const part: Part = { name: clip.name, time: clip.time, tuning: track.tuning, bars };
   if (voice > 0) part.voice = voice;
   return copied(copied(part, clip, CLIP_FIELDS), track, TRACK_FIELDS);
@@ -1072,17 +1060,20 @@ function counted(clip: Clip, index: number): boolean {
  * their identity (playback carrying on, the drawing's caches) sees the same music.
  */
 const madeBars = new WeakMap<MasterBar[], WeakMap<TrackBar[], Map<string, Bar[]>>>();
-function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boolean, voice: number): Bar[] {
+function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boolean, voice: number, time: TimeSignature): Bar[] {
   const forMaster = madeBars.get(masterBars) ?? new WeakMap<TrackBar[], Map<string, Bar[]>>();
   madeBars.set(masterBars, forMaster);
   const made = forMaster.get(trackBars) ?? new Map<string, Bar[]>();
   forMaster.set(trackBars, made);
-  const key = `${counted}:${voice}`;
+  const key = `${counted}:${voice}:${time.beats}/${time.value}`;
   const before = made.get(key);
   if (before) return before;
   const bars = masterBars.map((master, b): Bar => {
     const { voices, ...own } = trackBars[b];
-    const bar: Bar = { ...master, ...own, columns: voices[voice] ?? [] };
+    // A Voice other than Voice 1 absent from a bar is there as its rests, so the cursor and edits go
+    // through it as through an empty bar; `trackBarOf` drops it again while it has no notes (step 9, Q9).
+    const columns = voices[voice]?.length || voice === 0 ? voices[voice] ?? [] : restColumns({ time, bars: masterBars as Bar[] }, b);
+    const bar: Bar = { ...master, ...own, columns };
     const others = voices.flatMap((columns, v) => (v === voice || columns.length === 0 ? [] : [{ voice: v, columns }]));
     if (others.length > 0) bar.otherVoices = others;
     if (counted) bar.origin = b;
@@ -1090,6 +1081,26 @@ function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boole
   });
   made.set(key, bars);
   return bars;
+}
+
+/**
+ * Whether a Voice's Columns in a bar hold anything but rests: a note, a grace note, or words on a column.
+ * A Voice other than Voice 1 without is absent from the bar (`docs/specs/2026-11-03-tab-voices-design.md`).
+ */
+export function hasNotes(columns: readonly Column[]): boolean {
+  return columns.some(c => c.grace || c.text || c.chord || c.extra?.length || c.notes.some(n => n !== null));
+}
+
+/**
+ * Voice `voice`'s Columns in bar `b` of a part, as `partOf` gives them for that Voice: its own, else, for
+ * a Voice absent there, the rests that stand in for it. Their places count as that Voice's Part counts.
+ */
+export function voiceColumns(part: Pick<Part, 'time' | 'bars' | 'voice'>, b: number, voice: number): Column[] {
+  const bar = part.bars[b];
+  if ((part.voice ?? 0) === voice) return bar.columns;
+  const other = bar.otherVoices?.find(o => o.voice === voice);
+  if (other) return other.columns;
+  return voice === 0 ? [] : restColumns(part, b);
 }
 
 /** The bar without the other Voices it carries: what copy takes. */
@@ -1103,8 +1114,8 @@ export function ownVoice(bar: Bar): Bar {
 /** A part's bar as its track's bar: the part's Voice and the other Voices it carries, in order. */
 function trackBarOf(bar: Bar, voice: number): TrackBar {
   const voices: Column[][] = [];
-  voices[voice] = bar.columns;
-  for (const other of bar.otherVoices ?? []) voices[other.voice] = other.columns;
+  voices[voice] = voice > 0 && !hasNotes(bar.columns) ? [] : bar.columns;
+  for (const other of bar.otherVoices ?? []) voices[other.voice] = other.voice > 0 && !hasNotes(other.columns) ? [] : other.columns;
   const all = Array.from(voices, columns => columns ?? []);
   while (all.length > 1 && all[all.length - 1].length === 0) all.pop();
   return copied({ voices: all }, bar, ['extra']) as TrackBar;
@@ -1124,7 +1135,7 @@ export function withPart(clip: Clip, part: Part, index = 0): Clip {
   if (kept.length > 0) return withPart(clip, keepingBars(clip, part, index, kept), index);
   const track = clip.tracks[index];
   // Bars the edit left alone (a new sound, tuning or title) stay the very same, so the music reads as unchanged.
-  if (part.bars === partBars(clip.masterBars, track.bars, counted(clip, index), voice)) {
+  if (part.bars === partBars(clip.masterBars, track.bars, counted(clip, index), voice, clip.time)) {
     const tracks = clip.tracks.map((t, i) => (i === index ? copied({ ...t, tuning: part.tuning }, part, TRACK_FIELDS) : t));
     return copied({ ...clip, name: part.name, time: part.time, tracks }, part, CLIP_FIELDS);
   }
@@ -1199,7 +1210,7 @@ function keepingBars(clip: Clip, part: Part, index: number, kept: number[]): Par
 }
 
 /** Rests for bar `b` of the part, as long as its time signature makes it. */
-function restColumns(part: Part, b: number): Column[] {
+function restColumns(part: Pick<Part, 'time' | 'bars'>, b: number): Column[] {
   return fewestRests(barTicks(timeAt(part, b))).map(duration => ({ duration, notes: Array<Note | null>(STRING_COUNT).fill(null) }));
 }
 

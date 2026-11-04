@@ -46,7 +46,8 @@ and in its spec.
   `2026-10-25-tab-editing-design.md`. Its tests are in
   `src/__tests__/tab/page/`, one file per area, sharing `helpers.tsx`.
 - `useEditorState.ts` — the cursor, selection, picked thing, note input and
-  `commit`.
+  `commit` (and `commitVoices` for an edit of several Voices), which refuse
+  an edit that sounds one string in two Voices.
 - `useTabPicking.ts` — presses, drags and Alt+← → on the tab.
 - `useHeadPanels.tsx` — the word fields, the signature panels and the
   score head's panels.
@@ -79,7 +80,7 @@ and in its spec.
   (signatures, repeats, tempo, sections), each track's bars holding up to
   four Voices; `Part` is one Voice of one track with those marks, the
   other Voices carried read-only (`otherVoices`), made by `partOf` and put
-  back by `withPart`; `hiddenVoicesMessage` and `stringClashes` for the
+  back by `withPart`; `stringClashes` for the
   line under the clip; `parseClip`, `timeAt`, `titled`, `barsPerLine`,
   `bendRaises`, `bendLandings` — `2026-10-26-tab-rhythm-design.md`,
   `2026-10-30-tab-tracks-design.md`, `2026-11-03-tab-voices-design.md`.
@@ -93,7 +94,7 @@ and in its spec.
   the comments are, and which line a spot in the text is on —
   `2026-10-27-tab-alphatex-editing-design.md`.
 - `ascii.ts` — `readAscii` (errors, warnings, guessed durations) and
-  `writeAscii`; `public/tab-ascii.txt` is the format, its examples are
+  `writeAscii`, every Voice merged onto the one tab (`mergedVoices`); `public/tab-ascii.txt` is the format, its examples are
   tests, and `src/__tests__/tab/fixtures/` holds the forgiven spellings.
 - `readTab.ts` — tells ASCII tab from alphaTex by the text alone.
 - `credits.ts` — the artist, words and music from the clip's header, the
@@ -116,7 +117,11 @@ and in its spec.
   full bar drawn as one rest) — `2026-10-28-tab-line-spacing-design.md`,
   `2026-10-28-tab-line-breaks-design.md`,
   `2026-10-30-tab-track-rests-design.md`,
-  `2026-11-03-tab-rests-are-gaps-design.md`.
+  `2026-11-03-tab-rests-are-gaps-design.md`; every Voice on one time line
+  (`PlacedBar.voices`), stems, rests and heads by Voice —
+  `2026-11-04-tab-voices-drawn-edited-design.md`.
+- `voiceLayers.ts` — each other Voice as a layout and a part of its own,
+  so `TabClip` draws it as it draws the part's own, muted while editing.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
@@ -176,6 +181,12 @@ and in its spec.
   drawn picked with it (`litTiedNotes`) and T, which ties forward
   (`tieForward`, `tieOnInput`) —
   `2026-11-04-tab-ties-forward-design.md`.
+- `voices.ts` — editing every Voice: a selection's runs in the other
+  Voices (`voiceSelections`), an edit run on each (`perVoice`), the string
+  clash check (`clashMessage`), Move to voice (`moveToVoice`), copy and
+  paste of several Voices (`sliceVoices`, `pasteVoices`) and Alt+← → by
+  time across them (`stepAcrossVoices`) —
+  `2026-11-04-tab-voices-drawn-edited-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
   endings, double bars, signatures, the Pickup bar), and an Uneven bar's
   fixes (`moveExtra`, `fillWithRests`, `makePickup`), and a time
@@ -364,6 +375,9 @@ or saved. Standard tuning only.
 - `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar
   music in a chat as staff over tab that plays (show_tab), then generated
   phrases and progressions (show_phrase)
+- `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md`: every Voice
+  drawn, exported and edited, one at a time: the Active voice, Alt+1–4,
+  the others muted while you edit, selections over every Voice as Dorico
 - `docs/specs/2026-11-04-tab-pick-every-mark-design.md`: every Mark can
   be picked: P.M. and let ring lines, signatures, staff stems and beams;
   Spans get a Handle at each end; a picked Mark shows an Attachment line

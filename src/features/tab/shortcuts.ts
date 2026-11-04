@@ -52,6 +52,7 @@ const INPUT: ShortcutGroup = {
     { keys: [','], does: 'Rest of the next note’s length, then on' },
     { keys: [';'], does: 'Tuplet entry: pick a tuplet (the same again, or None, stops it)' },
     { keys: ['/'], does: 'Grace entry on or off: frets typed are grace notes' },
+    { keys: ['Alt+1–4'], does: 'Make voice 1–4 active' },
     { keys: ['Esc'], does: 'Leave note input' },
   ],
 };
@@ -70,6 +71,7 @@ const NORMAL: ShortcutGroup = {
     { keys: [';'], does: 'Tuplet over the note, or the selection squeezed into one' },
     { keys: ['/'], does: 'Grace note before the note' },
     { keys: [','], does: 'Make rests of the notes, as Delete' },
+    { keys: ['Alt+1–4'], does: 'Move to voice 1–4 (nothing picked: make it active)' },
   ],
 };
 

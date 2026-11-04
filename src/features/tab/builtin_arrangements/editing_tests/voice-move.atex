@@ -1,0 +1,11 @@
+\title "Alt+2 moves notes into voice 2"
+\voiceMode barWise
+\ts (4 4)
+\voice 5.2.4{txt "Tab view: press this 5, Shift+→, then Alt+2"} 7.2.4
+  8.2.4{txt "The 5 and 7 drop into voice 2, stems down, a rest left in voice 1. Ctrl/⌘+Z puts them back"}
+  7.2.4 \voice r.2 3.5.2 |
+\voice
+  5.2.4{txt "Tab view: press this 5, Shift+→ three times (both voices light), right-click, Select only voice › Voice 2, Delete"}
+  7.2.4 8.2.4{txt "Only the bass goes, voice 1 stays"} 7.2.4 \voice 3.5.2
+  5.5.2 |
+

@@ -3,7 +3,7 @@
  * (lines of tab), bars and columns, in SVG units. Pure; `TabClip.tsx` only
  * draws what this returns, so the page and the exported images agree.
  */
-import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSignature, changesKey, changesTime, isRest, startsFreeTime, keyAt, ticks, timeAt, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
+import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSignature, changesKey, changesTime, hasNotes, isRest, MAX_VOICES, startsFreeTime, keyAt, ticks, timeAt, voiceColumns, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
@@ -140,6 +140,16 @@ export const BEND_LABEL_RAISE = 9;
  * The rows a clip (or one line of it, as `lineClip` makes) needs, top to bottom: the words over
  * everything, the staff, the tab's marks, the tab.
  */
+/** The room over the tab for the up-stem Voices' stems, beams and tuplet numbers, as under it. */
+const STEMS_OVER_ROOM = 50;
+
+/** Whether a part's bar draws two or more Voices, so each Voice's stems take its side (step 9, Q2, Q4). */
+export function severalVoices(bar: Bar, ownVoice = 0): boolean {
+  if (!bar.otherVoices?.length) return false;
+  const ownDrawn = ownVoice === 0 ? bar.columns.length > 0 : hasNotes(bar.columns);
+  return bar.otherVoices.length + (ownDrawn ? 1 : 0) >= 2;
+}
+
 export function rowsFor(
   clip: Part, parts: Parts = 'tab', reach: StaffReach = { high: 8, low: 0 },
   freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
@@ -147,7 +157,8 @@ export function rowsFor(
   textLines = 1,
 ): Rows {
   const tab = parts !== 'staff';
-  const columns = clip.bars.flatMap(b => b.columns);
+  // Every Voice's columns: another Voice's chord names, texts and marks take their rows too (step 9).
+  const columns = clip.bars.flatMap(b => [...b.columns, ...(b.otherVoices ?? []).flatMap(o => o.columns)]);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
   const used = {
     capo: !!clip.capo,
@@ -235,7 +246,9 @@ export function rowsFor(
   // stands a line higher (`bendRaises`).
   const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) || notes.some(n => n.bend?.from !== undefined)
     ? BEND_LABEL_STEP : 0;
-  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? ROW_GAP + BEND_RISE + BEND_LABEL_RAISE + stacked : 16));
+  // A bar of two Voices with no staff over the tab: the up-stem Voices' stems go over the tab (step 9, Q4).
+  const stemsOver = score === null && clip.bars.some(bar => severalVoices(bar, clip.voice ?? 0));
+  const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? ROW_GAP + BEND_RISE + BEND_LABEL_RAISE + stacked : 16)) + (stemsOver ? STEMS_OVER_ROOM : 0);
   const staffBottom = staffTop + 5 * STRING_GAP;
   // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
   const tabStems = score === null;
@@ -306,6 +319,26 @@ export interface PlacedColumn {
   textLines: string[];
   /** Its text's first line, in text rows down from the line's text row: above 0 when moved up clear of another. */
   textTop: number;
+  /**
+   * In a bar where two or more Voices are present: whether its Voice is an up-stem one (Voices 1 and 3) or
+   * a down-stem one (2 and 4), which sets its stems, rests and marks' side (step 9, Q2). None otherwise.
+   */
+  voiceUp?: boolean;
+  /**
+   * On the staff, in a bar of two or more Voices: how far right its heads and stem move, beside another
+   * Voice's heads a second away (the up-stem one on the right), or the same pitch with another kind of head.
+   */
+  headShift?: number;
+  /** On the staff: the strings whose head another Voice's same pitch and kind of head stands for (shared). */
+  sharedHeads?: Set<number>;
+}
+
+/** One of the Voices a bar carries besides the part's own, placed on the bar's time line with it (step 9). */
+export interface PlacedVoice {
+  /** The Voice, from 0. */
+  voice: number;
+  /** Its Columns, placed; `index` counts as that Voice's own Part counts its columns. */
+  columns: PlacedColumn[];
 }
 
 export interface PlacedBar {
@@ -329,6 +362,13 @@ export interface PlacedBar {
   restRun: RestRun | null;
   /** A full bar with no note: drawn as one Whole-bar rest, centred, whatever its Columns (`isWholeBarRest`). */
   wholeRest: boolean;
+  /** The other Voices present in the bar, placed on its time line; none in a bar of one Voice (step 9, Q1). */
+  voices?: PlacedVoice[];
+  /**
+   * The part's own Voice is absent from the bar (a Voice other than Voice 1 with no notes there): its
+   * stand-in rests are placed, for the cursor and the grid, but not drawn (step 9, Q9).
+   */
+  hidden?: boolean;
 }
 
 /** Where a Whole-bar rest is centred: the middle of its Columns' room. */
@@ -568,6 +608,169 @@ export function stemUpFor(heads: Head[]): boolean {
   return far < 2 * MIDDLE_STEP;
 }
 
+/** A bar's Voices on one time line: each own column's room, and the other Voices' columns to place by them. */
+interface BarVoices {
+  /** Each of the part's own columns' room: the time line's spots it covers. */
+  ownWidths: number[];
+  /** The least the bar's room may be squeezed to. */
+  least: number;
+  /** Whether two or more Voices are drawn in the bar: then each Voice's stems take its side (Q2). */
+  several: boolean;
+  /** The part's own Voice is absent: its stand-in rests are placed but not drawn. */
+  hidden: boolean;
+  /** The other Voices present, each column's first and last spot on the time line. */
+  others: { voice: number; columns: Column[]; heads: Head[][]; from: number[]; to: number[] }[];
+  /** Each own column's first and last spot, and every spot's room. */
+  ownFrom: number[];
+  ownTo: number[];
+  spots: number[];
+  /**
+   * Each spot's room for accidentals, the most any Voice's notes starting there need: every Voice's notes
+   * at one time stand at one x, right of all their signs.
+   */
+  spotSigns: number[];
+}
+
+/**
+ * The bar's Voices on one time line, or null for a bar of one Voice (drawn as before). A spot stands at
+ * each moment any Voice starts a column (grace notes at their own spots before it); each spot is as wide
+ * as the columns sounding over it need, a column's room shared out by time over the spots it covers, and
+ * at least what its numbers need where it starts. The part's own columns cover the spots from theirs to
+ * the next, so they still tile the bar, and the edits' indexes stay as they are (step 9, Q1).
+ */
+function barVoices(clip: Part, b: number, staff: boolean, open: number[], ownHeads: Head[][]): BarVoices | null {
+  const bar = clip.bars[b];
+  const present = bar.otherVoices ?? [];
+  if (present.length === 0 || bar.columns.length === 0) return null;
+  const ownVoice = clip.voice ?? 0;
+  const hidden = ownVoice > 0 && !hasNotes(bar.columns);
+  const headsOf = (columns: Column[]) => (staff ? barHeads({ ...clip, bars: clip.bars.map((x, i) => (i === b ? { ...x, columns } : x)) }, b, open) : columns.map(() => []));
+  const lines = [
+    { voice: ownVoice, columns: bar.columns, heads: ownHeads, drawn: !hidden },
+    ...present.map(o => ({ voice: o.voice, columns: o.columns, heads: headsOf(o.columns), drawn: true })),
+  ];
+  // Each column's place on the time line: its start, and grace notes ranked before the note they lead to.
+  const keyed = lines.map(line => {
+    let t = 0;
+    return line.columns.map((column, k) => {
+      let rank = 0;
+      if (column.grace) {
+        let n = 0;
+        while (line.columns[k + n]?.grace) n++;
+        rank = -n;
+      }
+      const at = { t, rank, length: column.grace ? 0 : ticks(column.duration) };
+      t += at.length;
+      return at;
+    });
+  });
+  const spotKeys = [...new Set(keyed.flatMap(line => line.map(k => `${k.t}:${k.rank}`)))]
+    .map(key => key.split(':').map(Number) as [number, number])
+    .sort((a, c) => a[0] - c[0] || a[1] - c[1]);
+  const spotOf = new Map(spotKeys.map((k, i) => [`${k[0]}:${k[1]}`, i]));
+  const end = Math.max(...keyed.map(line => line.reduce((t, k) => t + k.length, 0)));
+  const spotLength = spotKeys.map((k, i) => (k[1] < 0 ? 0 : (spotKeys[i + 1]?.[0] ?? end) - k[0]));
+  const ranges = keyed.map(line => {
+    const from = line.map(k => spotOf.get(`${k.t}:${k.rank}`)!);
+    const to = from.map((f, k) => (k + 1 < from.length ? from[k + 1] - 1 : spotKeys.length - 1));
+    return { from, to };
+  });
+  const spots = spotKeys.map(() => 0);
+  const spotSigns = spotKeys.map(() => 0);
+  lines.forEach((line, l) => {
+    if (!line.drawn) return;
+    line.columns.forEach((column, k) => {
+      if (staff) spotSigns[ranges[l].from[k]] = Math.max(spotSigns[ranges[l].from[k]], signRoom(line.heads[k]));
+      const room = staff ? staffWidth(column, line.heads[k]) : columnWidth(column);
+      const { from, to } = { from: ranges[l].from[k], to: ranges[l].to[k] };
+      const length = keyed[l][k].length;
+      for (let s = from; s <= to; s++) {
+        const share = length === 0 ? (s === from ? room : 0) : (room * spotLength[s]) / length;
+        spots[s] = Math.max(spots[s], s === from ? Math.max(share, leastWidth(column, line.heads[k], staff)) : share);
+      }
+    });
+  });
+  const sum = (from: number, to: number) => spots.slice(from, to + 1).reduce((t, w) => t + w, 0);
+  const ownWidths = bar.columns.map((_, k) => sum(ranges[0].from[k], ranges[0].to[k]));
+  const least = Math.max(...lines.filter(line => line.drawn).map(line => line.columns.reduce((t, c, k) => t + leastWidth(c, line.heads[k], staff), 0)));
+  return {
+    ownWidths, least, several: lines.filter(line => line.drawn).length > 1, hidden,
+    others: lines.slice(1).map((line, k) => ({ voice: line.voice, columns: line.columns, heads: line.heads, from: ranges[k + 1].from, to: ranges[k + 1].to })),
+    ownFrom: ranges[0].from, ownTo: ranges[0].to, spots, spotSigns,
+  };
+}
+
+/** Where another Voice's column sits on its bar's time line: by the own column whose room each of its ends falls in. */
+interface Anchor { start: PlacedColumn; startAt: number; end: PlacedColumn; endAt: number; inset: number; signs: number }
+const anchors = new WeakMap<PlacedColumn, Anchor>();
+
+/** The other Voices of a bar, placed by the part's own columns (`barVoices`). */
+function placeOthers(multi: BarVoices, own: PlacedColumn[], places: number[], squeeze: number): PlacedVoice[] {
+  // Where each spot starts and ends, as a fraction of the own column it falls in.
+  const spotAt = (s: number, edge: 'start' | 'end'): { column: PlacedColumn; at: number } => {
+    const k = multi.ownFrom.findIndex((f, i) => f <= s && multi.ownTo[i] >= s);
+    const column = own[k];
+    const total = multi.ownWidths[k];
+    const before = multi.spots.slice(multi.ownFrom[k], s).reduce((t, w) => t + w, 0) + (edge === 'end' ? multi.spots[s] : 0);
+    return { column, at: total > 0 ? before / total : 0 };
+  };
+  return multi.others.map(other => ({
+    voice: other.voice,
+    columns: other.columns.map((column, k): PlacedColumn => {
+      const start = spotAt(other.from[k], 'start');
+      const end = spotAt(other.to[k], 'end');
+      const heads = other.heads[k];
+      const placed: PlacedColumn = {
+        column, index: places[other.voice] + k, x: 0, start: 0, width: 0, bendRoom: 0, bendPeakRoom: 0, heads,
+        stemUp: stemUpFor(heads), textLines: [], textTop: 0,
+      };
+      if (multi.several) {
+        placed.voiceUp = other.voice % 2 === 0;
+        placed.stemUp = placed.voiceUp;
+      }
+      anchors.set(placed, { start: start.column, startAt: start.at, end: end.column, endAt: end.at, inset: noteInset(column), signs: multi.spotSigns[other.from[k]] * Math.min(1, squeeze) });
+      followAnchor(placed);
+      return placed;
+    }),
+  }));
+}
+
+/**
+ * Heads of two Voices at one time on the staff (step 9, Q2): a second apart, they sit side by side, the
+ * up-stem Voice's on the right; the same pitch shares one head when both are the same kind (both black or
+ * both white), else they sit side by side.
+ */
+function sideBySide(bar: PlacedBar): void {
+  const drawn = [...(bar.hidden ? [] : bar.columns), ...(bar.voices ?? []).flatMap(v => v.columns)];
+  const kind = (p: PlacedColumn) => (p.column.duration.value === 1 ? 0 : p.column.duration.value === 2 ? 1 : 2);
+  for (const up of drawn) {
+    if (up.voiceUp !== true || up.heads.length === 0 || up.column.grace) continue;
+    for (const down of drawn) {
+      if (down.voiceUp !== false || down.heads.length === 0 || down.column.grace || Math.abs(down.start - up.start) > 0.5) continue;
+      let beside = false;
+      for (const h of up.heads) {
+        for (const d of down.heads) {
+          if (Math.abs(h.step - d.step) === 1) beside = true;
+          if (h.step === d.step && h.shows === d.shows) {
+            if (kind(up) === kind(down)) (down.sharedHeads ??= new Set()).add(d.string);
+            else beside = true;
+          }
+        }
+      }
+      if (beside) up.headShift = HEAD_WIDTH;
+    }
+  }
+}
+
+/** Puts another Voice's column where its anchor's own columns now are. */
+function followAnchor(placed: PlacedColumn): void {
+  const a = anchors.get(placed);
+  if (!a) return;
+  placed.start = a.start.start + a.startAt * a.start.width;
+  placed.width = Math.max(0, a.end.start + a.endAt * a.end.width - placed.start);
+  placed.x = placed.start + Math.min(a.inset, placed.width / 2) + a.signs;
+}
+
 export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Layout {
   const staff = parts !== 'tab';
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
@@ -585,6 +788,10 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
   const open = writtenStrings(clip.tuning);
   const heads = staff ? clip.bars.map((_, b) => barHeads(clip, b, open)) : clip.bars.map(bar => bar.columns.map(() => []));
   const widthOf = (column: Column, b: number, c: number) => (staff ? staffWidth(column, heads[b][c]) : columnWidth(column));
+  const ownVoice = clip.voice ?? 0;
+  // Where each Voice's columns start in its own Part, bar by bar, so a press on another Voice's note says
+  // which column of that Voice it is.
+  const voicePlace = Array.from({ length: MAX_VOICES }, () => 0);
 
   const rests = multiRests(clip);
   let run: { span: RestRun['span']; count: number; end: number; share: number } | null = null;
@@ -622,7 +829,10 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     if (count) run = { span: { x0: 0, x1: 0 }, count, end: index + count - 1, share: MULTI_REST_WIDTH / count };
     const inRun = run !== null && index <= run.end;
     // A multi-bar rest's bars share its room: the first takes its lead, the last the closing room.
-    const own = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, c, k) => sum + widthOf(c, index, k), 0);
+    // A bar of more than one Voice lays them out on one time line (step 9, Q1).
+    const multi = inRun ? null : barVoices(clip, index, staff, open, heads[index]);
+    const ownRoom = (k: number) => (multi ? multi.ownWidths[k] : widthOf(bar.columns[k], index, k));
+    const own = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, _, k) => sum + ownRoom(k), 0);
     // As wide as the widest track's bar, its columns spread to fill it, so every track has the same lines.
     const company = inRun ? { inner: 0, least: 0 } : alongsideRoom(clip, index, staff);
     const inner = Math.max(own, company.inner);
@@ -636,6 +846,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     const restOn = inRun && !count;
     const lineFull = modelled && wanted <= 0 && !restOn;
     const leastInner = inRun || bar.columns.length === 0 ? inner
+      : multi ? Math.max(company.least, multi.least)
       : Math.max(company.least, bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0));
     const overflows = modelled ? xLeast + (asks - inner + leastInner) > width : x + asks > width;
     if (current.length > 0 && (lineFull || overflows)) {
@@ -659,20 +870,30 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     let cx = x0 + lead;
     const columns = bar.columns.map((column, k) => {
       const columnHeads = heads[index][k];
-      const cw = inRun ? inner / bar.columns.length : Math.max(minColumnWidth(column), widthOf(column, index, k) * spread * squeeze);
+      const least = multi?.hidden ? 0 : minColumnWidth(column);
+      const cw = inRun ? inner / bar.columns.length : Math.max(least, ownRoom(k) * spread * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
-      const signs = signRoom(columnHeads) / 2;
+      const signs = (multi ? multi.spotSigns[multi.ownFrom[k]] : signRoom(columnHeads)) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
-      const placed = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0 };
+      const placed: PlacedColumn = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0 };
+      if (multi?.several) {
+        placed.voiceUp = ownVoice % 2 === 0;
+        placed.stemUp = placed.voiceUp;
+      }
       cx += cw;
       return placed;
     });
+    const voices = multi ? placeOthers(multi, columns, voicePlace, squeeze) : undefined;
+    for (let v = 0; v < MAX_VOICES; v++) if (v !== ownVoice) voicePlace[v] += voiceColumns(clip, index, v).length;
     if (squeeze < 1 && !inRun) w = cx - x0 + closing;
     xLeast += (w - inner) + Math.min(inner, leastInner);
     x = x0 + w;
     const time = timeAt(clip, index);
     const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
-    current.push({ bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), time, groups: beatGroupsAt(clip, index), columns, restRun, wholeRest: !inRun && isWholeBarRest(clip, index) });
+    const placedBar: PlacedBar = { bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), time, groups: beatGroupsAt(clip, index), columns, restRun, wholeRest: !inRun && !multi?.hidden && isWholeBarRest(clip, index) };
+    if (voices && voices.length > 0) placedBar.voices = voices;
+    if (multi?.hidden) placedBar.hidden = true;
+    current.push(placedBar);
     if (inRun && index === run!.end) run = null;
     if (!restOn) wanted--;
   });
@@ -687,18 +908,26 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       if (bar.restRun?.last) bar.restRun.span.x1 = bar.x1;
     }
   }
-  // How far right of each note its bend's arrows may run: to just before the next note on the line.
+  // The other Voices' columns follow their own Voice's, wherever spreading the lines moved them.
+  for (const system of drafts) for (const bar of system.bars) for (const v of bar.voices ?? []) for (const placed of v.columns) followAnchor(placed);
+  if (staff) for (const system of drafts) for (const bar of system.bars) if (bar.voices) sideBySide(bar);
+  // How far right of each note its bend's arrows may run: to just before the next note on the line, in its Voice.
   for (const system of drafts) {
     const placed = system.bars.flatMap(b => b.columns);
-    placed.forEach((column, k) => {
-      const next = placed[k + 1];
-      const lineEnd = system.bars[system.bars.length - 1].x1;
+    const lineEnd = system.bars[system.bars.length - 1].x1;
+    const bendRooms = (list: PlacedColumn[]) => list.forEach((column, k) => {
+      const next = list[k + 1];
       column.bendRoom = (next ? next.x : lineEnd) - column.x - BEND_END_GAP;
       column.bendPeakRoom = next && preBent(next.column) ? next.x - column.x - PRE_BEND_CLEAR : column.bendRoom;
     });
+    bendRooms(placed);
+    for (let v = 0; v < MAX_VOICES; v++) {
+      const list = system.bars.flatMap(b => b.voices?.find(o => o.voice === v)?.columns ?? []);
+      if (list.length > 0) bendRooms(list);
+    }
     // A text wraps to the room before the next text on the line, or before the drawing's right edge, and
-    // moves up clear of one it still touches (issue #323).
-    const texted = placed.filter(c => c.column.text);
+    // moves up clear of one it still touches (issue #323). Every Voice's texts share the row.
+    const texted = [...placed, ...system.bars.flatMap(b => (b.voices ?? []).flatMap(v => v.columns))].filter(c => c.column.text).sort((a, b) => a.x - b.x);
     const texts = placeBeatTexts(
       texted.map(c => ({ x0: c.x - BEAT_TEXT_INSET, text: c.column.text! })),
       Math.max(width, system.bars[system.bars.length - 1].x1),
@@ -721,7 +950,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     });
     return { parts, systems, height: top };
   };
-  const reaches = drafts.map(draft => staffReach(clip, heads, staff, draft.bars.map(b => b.index)));
+  const reaches = drafts.map(draft => staffReach(draft.bars, staff));
   const layout = stack(reaches);
   if (!staff) return layout;
   // A bend's arrow and label on the staff, and an octave line over them, reach as far as they are
@@ -865,24 +1094,26 @@ export const VIBRATO_OVER_MARKS = 17;
 /** From the top of everything else on the staff up to an octave line (or down, under it). */
 export const OTTAVA_CLEAR = 33;
 /** How far the heads and stems of the given bars (one line's) reach above and below the staff, in steps. */
-function staffReach(clip: Part, heads: Head[][][], marks: boolean, bars: number[]): StaffReach {
+function staffReach(bars: PlacedBar[], marks: boolean): StaffReach {
   let high = 8;
   let low = 0;
   // Over every column, in steps: the vibrato's band, then an octave line over all of it.
   let vibrato = -Infinity;
   let ottavaAbove = false;
   let ottavaBelow = false;
-  bars.forEach(i => heads[i].forEach((column, k) => {
+  // Every Voice drawn in the bar, each with its own stems' side (step 9).
+  bars.flatMap(bar => [...(bar.hidden ? [] : bar.columns), ...(bar.voices ?? []).flatMap(v => v.columns)]).forEach(placed => {
+    const column = placed.heads;
     if (column.length === 0) return;
     const top = column[column.length - 1].step;
     const bottom = column[0].step;
-    const up = stemUpFor(column);
+    const up = placed.voiceUp ?? stemUpFor(column);
     const reachUp = top + (up ? STEM_STEPS + 2 : 1);
     const reachDown = bottom - (up ? 1 : STEM_STEPS + 2);
     high = Math.max(high, reachUp);
     low = Math.min(low, reachDown);
     if (!marks) return;
-    const c = clip.bars[i].columns[k];
+    const c = placed.column;
     const notes = c.notes.filter((n): n is Note => n !== null);
     // Accents and staccato stand at the heads, away from the stem.
     if (notes.some(n => n.accent || n.staccato)) {
@@ -903,7 +1134,7 @@ function staffReach(clip: Part, heads: Head[][][], marks: boolean, bars: number[
     if (notes.some(n => n.vibrato || n.mordent)) vibrato = Math.max(vibrato, Math.max(reachUp, 8) + Math.ceil((VIBRATO_CLEAR + 4) * 2 / SPACE));
     if (c.ottava === '8va' || c.ottava === '15ma') ottavaAbove = true;
     if (c.ottava === '8vb' || c.ottava === '15mb') ottavaBelow = true;
-  }));
+  });
   high = Math.max(high, vibrato);
   // The octave line, its label reaching into the gap under the row over the staff.
   const ottavaSteps = Math.round(OTTAVA_CLEAR * 2 / SPACE);

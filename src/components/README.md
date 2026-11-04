@@ -32,7 +32,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   and dot colours as tokens, and `DEGREES`, the colour per degree number),
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
-  for the neck; `export/`, the shapes' menu, Export dialog and PNG export),
+  for the neck; `export/`, the shapes' menu (`ShapeMenu`, with submenus: an item's `items`, opened by a press, hover or →), Export dialog and PNG export),
   `src/components/controls.tsx` and `icons.tsx`, `src/components/HoverTips.tsx`
   (the one-second tip for any `data-tip`; the Circle of fifths and the Tab
   palette), `src/components/DotLabels.tsx`

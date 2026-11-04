@@ -9,7 +9,7 @@
  * character for character.
  */
 import {
-  barTicks, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
+  barTicks, hasNotes, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
   asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
@@ -706,11 +706,51 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
 }
 
 /**
+ * The part with every Voice's notes on its one run of Columns (step 9, Q14): ASCII tab has one Voice, so
+ * each moment some Voice starts a note is a Column, its notes those starting then (the part's own Voice's
+ * first on a string both use), lasting until the next such moment.
+ */
+export function mergedVoices(clip: Part): Part {
+  if (!clip.bars.some(bar => bar.otherVoices?.some(o => hasNotes(o.columns)))) return clip;
+  const bars = clip.bars.map(bar => {
+    const others = (bar.otherVoices ?? []).filter(o => hasNotes(o.columns)).map(o => o.columns);
+    if (others.length === 0) return bar;
+    const starting = new Map<number, Column[]>();
+    let end = 0;
+    for (const columns of [bar.columns, ...others]) {
+      let t = 0;
+      for (const column of columns) {
+        if (column.grace) continue;
+        starting.set(t, [...(starting.get(t) ?? []), column]);
+        t += ticks(column.duration);
+      }
+      end = Math.max(end, t);
+    }
+    const times = [...starting.keys()].sort((a, b) => a - b);
+    const columns = times.map((t, i): Column => {
+      const here = starting.get(t)!;
+      const room = (times[i + 1] ?? end) - t;
+      // Notes in preference to rests, and the part's own Voice's first.
+      const sounding = here.filter(c => c.notes.some(Boolean));
+      const base = sounding[0] ?? here[0];
+      const notes = base.notes.map((note, s) => note ?? sounding.find(c => c.notes[s])?.notes[s] ?? null);
+      const duration = here.find(c => ticks(c.duration) === room)?.duration ?? nearestDuration(room);
+      return { ...base, duration, notes };
+    });
+    const merged = { ...bar, columns };
+    delete merged.otherVoices;
+    return merged;
+  });
+  return { ...clip, bars };
+}
+
+/**
  * The clip in the canonical form of `tab-ascii.txt`. Reading it back gives the same clip, but for
  * what ASCII tab can't hold: grace notes, tremolo picking and time signature changes are left out.
  * With `rhythm` false (the ASCII Tab view's option), the rhythm line is left out too.
  */
-export function writeAscii(clip: Part, { rhythm = true }: { rhythm?: boolean } = {}): string {
+export function writeAscii(part: Part, { rhythm = true }: { rhythm?: boolean } = {}): string {
+  const clip = mergedVoices(part);
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
