@@ -1,6 +1,6 @@
 # Tab
 
-A new tool, `/tab`, for a clip of guitar tablature: a riff, lick, solo or
+A new tool, `/tab`, for a clip of guitar tablature: a riff, phrase, solo or
 strummed part, imported from ASCII tab or typed, drawn with rhythm stems
 and playing techniques, edited, and copied or dragged out as an image or as
 ASCII tab. Asked for by Jeremy on 2026-10-24 and reshaped on 2026-10-25 in

@@ -97,6 +97,10 @@ for, split where Beat groups meet; a rest is not kept as a thing of its
 own.
 _Avoid_: explicit rest
 
+**Grace entry**:
+A toggle in Note input, on `/`, lit while on: each fret typed goes in
+as a grace note before the time at the cursor, taking no time.
+
 **Grid**:
 The steps Note input's cursor stops at inside a Gap, and where a press
 snaps to: the Input length unless a fixed Grid is picked.
@@ -118,6 +122,11 @@ starts in it. Notes are entered in Note input.
 **Note input**:
 The Tab page's mode for entering notes, turned on and off with N or the
 pencil; Esc goes back to Normal mode.
+
+**Phrase**:
+A short stretch of music with a shape of its own, such as a riff, a
+fill or a solo line. Say phrase, riff or line.
+_Avoid_: lick
 
 **Pickup bar**:
 A first bar shorter than its time signature on purpose, written `\ac`
@@ -161,6 +170,11 @@ _Avoid_: piece
 **Track**:
 One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
+
+**Tuplet entry**:
+A toggle in Note input, picked from the Tuplet panel (`;`), lit while
+on: the notes typed go in as a tuplet of the Input length, a new one
+starting when the last is full.
 
 **Uneven bar**:
 A bar whose Voice doesn't fill its time signature: short or overfull.

@@ -139,22 +139,22 @@ describe('TabPage arrangements', () => {
     // Enter makes the folder and picks it, the focus on the list; nothing is saved and the dialog stays.
     fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
     const field = within(dialog).getByRole('textbox', { name: 'New folder name' });
-    fireEvent.change(field, { target: { value: 'Licks' } });
+    fireEvent.change(field, { target: { value: 'Lines' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    const licks = loadLibrary().folders.find(f => f.name === 'Licks')!;
-    expect(folderList()).toHaveValue(licks.id);
+    const lines = loadLibrary().folders.find(f => f.name === 'Lines')!;
+    expect(folderList()).toHaveValue(lines.id);
     expect(folderList()).toHaveFocus();
     expect(dialog).toHaveAttribute('open');
     expect(loadLibrary().items).toEqual([]);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-    expect(loadLibrary().items).toMatchObject([{ name: 'Riff', folder: licks.id }]);
+    expect(loadLibrary().items).toMatchObject([{ name: 'Riff', folder: lines.id }]);
     // Save with a new folder's name still open makes it too; left empty it is "New folder".
     fireEvent.click(screen.getByRole('button', { name: 'Save as…' }));
     dialog = saveAsDialog();
     expect(folderList()).toHaveValue('');
     fireEvent.click(within(dialog).getByRole('button', { name: 'New folder' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-    expect(loadLibrary().folders.map(f => f.name).sort()).toEqual(['Licks', 'New folder', 'Riffs']);
+    expect(loadLibrary().folders.map(f => f.name).sort()).toEqual(['Lines', 'New folder', 'Riffs']);
   });
 
   it('saves with Ctrl/⌘+S, opens Save as with Shift, and Arrangements… with Ctrl/⌘+O, anywhere on the page', () => {
@@ -279,7 +279,7 @@ describe('TabPage arrangements', () => {
   });
 
   it('renames from the list, saving the name at once: the open one\'s title follows, its other changes still unsaved', async () => {
-    keepMany(['Riff', 'Lick']);
+    keepMany(['Riff', 'Line']);
     renderAt();
     typeNine();
     const dialog = openDialog();
@@ -291,15 +291,15 @@ describe('TabPage arrangements', () => {
     expect(JSON.parse(localStorage.getItem(arrangementKey('a'))!).name).toBe('Old riff');
     expect(unsaved()).toBe(true);
     // Esc gives up a rename and leaves the dialog open.
-    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Lick' }));
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Line' }));
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Other' } });
     fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { key: 'Escape' });
-    expect(names(dialog).sort()).toEqual(['Lick', 'Old riff']);
+    expect(names(dialog).sort()).toEqual(['Line', 'Old riff']);
     // Another one is renamed where it is saved; leaving the field keeps the name.
-    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Lick' }));
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Lick 2' } });
+    fireEvent.click(files(dialog).getByRole('button', { name: 'Rename Line' }));
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Arrangement name' }), { target: { value: 'Line 2' } });
     fireEvent.blur(within(dialog).getByRole('textbox', { name: 'Arrangement name' }));
-    expect(names(dialog).sort()).toEqual(['Lick 2', 'Old riff']);
+    expect(names(dialog).sort()).toEqual(['Line 2', 'Old riff']);
     expect(heading()).toHaveTextContent('Old riff');
     // Undo takes back the 9, not the name.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -424,21 +424,21 @@ describe('TabPage arrangements', () => {
     expect(folder.closest('li')).not.toHaveClass('tab-drop');
     // Renamed on the left.
     fireEvent.click(places(dialog).getByRole('button', { name: 'Rename Riffs' }));
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Folder name' }), { target: { value: 'Licks' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Folder name' }), { target: { value: 'Lines' } });
     fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Folder name' }), { key: 'Enter' });
-    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Licks']);
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Lines']);
     // Moving both in, then deleting the folder, opens a new clip.
     fireEvent.click(places(dialog).getByRole('button', { name: 'My arrangements' }));
-    drag(row(/^Tex riff /), places(dialog).getByRole('button', { name: 'Licks' }));
-    drag(row(/^Riff /), places(dialog).getByRole('button', { name: 'Licks' }));
-    fireEvent.click(places(dialog).getByRole('button', { name: 'Delete Licks' }));
+    drag(row(/^Tex riff /), places(dialog).getByRole('button', { name: 'Lines' }));
+    drag(row(/^Riff /), places(dialog).getByRole('button', { name: 'Lines' }));
+    fireEvent.click(places(dialog).getByRole('button', { name: 'Delete Lines' }));
     await settle();
     expect(loadLibrary().folders).toEqual([]);
     expect(loadLibrary().items).toEqual([]);
     expect(heading()).toHaveTextContent('Untitled');
-    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Licks.');
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Deleted the folder Lines.');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Undo' }));
-    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Licks']);
+    expect(loadLibrary().folders.map(f => f.name)).toEqual(['Lines']);
     expect(loadLibrary().items.map(i => i.name).sort()).toEqual(['Riff', 'Tex riff']);
   });
 

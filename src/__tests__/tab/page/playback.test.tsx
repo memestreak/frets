@@ -279,14 +279,50 @@ describe('TabPage playback', () => {
     fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
-    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points');
+    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points (L)');
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(loop());
     fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
-    expect(loop()).toHaveAttribute('data-tip', 'Loop the selected notes');
+    expect(loop()).toHaveAttribute('data-tip', 'Loop the selected notes (L)');
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('sets and clears the loop points on L, as the Loop button, on the tab and off it, but not in a field or hidden', () => {
+    renderAt(`#tab=${encodeURIComponent(OTHER)}`);
+    const loop = () => screen.getByRole('button', { name: 'Loop' });
+    const editor = screen.getByRole('textbox', { name: /Tab editor/ });
+    // Off the tab: round the whole clip, then cleared.
+    fireEvent.keyDown(document.body, { key: 'l' });
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(document.body, { key: 'l' });
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    // On the tab, with notes selected: round them, and no Let ring is written.
+    const before = JSON.stringify(pageClip());
+    act(() => editor.focus());
+    fireEvent.keyDown(editor, { key: 'ArrowRight' });
+    fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+    fireEvent.keyDown(editor, { key: 'l' });
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points (L)');
+    expect(JSON.stringify(pageClip())).toBe(before);
+    // The same notes again: cleared. A held key toggles once.
+    fireEvent.keyDown(editor, { key: 'l' });
+    fireEvent.keyDown(editor, { key: 'l', repeat: true });
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    // Not in a field, nor with Shift, Ctrl or Alt.
+    const speed = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    act(() => speed.focus());
+    fireEvent.keyDown(speed, { key: 'l' });
+    for (const mod of ['shiftKey', 'ctrlKey', 'altKey', 'metaKey']) fireEvent.keyDown(document.body, { key: mod === 'shiftKey' ? 'L' : 'l', [mod]: true });
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    // Hidden, L does nothing; shown again, the loop is still off.
+    act(() => speed.blur());
+    fireEvent.click(toggle());
+    fireEvent.keyDown(document.body, { key: 'l' });
+    fireEvent.click(toggle());
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('plays on Space anywhere on the page while the footer shows, but not in a field', () => {

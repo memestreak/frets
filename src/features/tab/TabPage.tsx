@@ -16,9 +16,12 @@ import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
-import { clearToRests, setBend, setOttava, setTuplet, setWhammy } from './noteEdits';
+import { clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
+import { applyTuplet, isProblem } from './tuplets';
+import { TupletPanel } from './TupletPanel';
+import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, popupTakesEscape, lineKeyDown } from './editorKeys';
+import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, type EditorKeys } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
@@ -173,7 +176,10 @@ export default function TabPage() {
     cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
     staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
+    tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
   } = editor;
+  /** Where the Tuplet panel `;` opened is, in the tab's units; null while it is shut (step 6, Q16). */
+  const [tupletPanel, setTupletPanel] = useState<{ x: number; y: number } | null>(null);
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
   const { fixedGrid, grid, gridLook } = prefs.editing;
   /** The grid's step in ticks: the fixed grid's, else note input's length (MuseScore's way, the default). */
@@ -383,6 +389,13 @@ export default function TabPage() {
       enterInput(false);
       return;
     }
+    // L anywhere on the page does what the Loop button does, while the footer shows (Jeremy, 2026-11-04), as
+    // the Space key plays; Let ring, which had L, is on I, Guitar Pro 8's key for it.
+    if (e.key === 'l' && plain && showPlayback && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
+      e.preventDefault();
+      if (!e.repeat) playback.toggleLoop(selectedColumns);
+      return;
+    }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
       e.preventDefault();
       enterInput(!inputMode);
@@ -421,6 +434,11 @@ export default function TabPage() {
     // In note input the Duration buttons set the next note's length, as the length keys do.
     else if (inputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
     else if (inputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
+    // `,` and the Rest tool: a Gap of the Input length in note input, Delete in normal mode (step 6, Q12–Q13).
+    else if (id === 'rest') restKey(editorKeys());
+    // `/` and the Grace tool: Grace entry on and off in note input, else a grace note before the picked note (Q8, Q11).
+    else if (id === 'grace' && inputMode) setGraceEntry(!graceEntry);
+    else if (id === 'grace') graceKey(editorKeys());
     // A picked tie arc: the Tie tool takes it away, as Delete does (step 5).
     else if (id === 'tie' && picked?.kind === 'mark' && picked.mark === 'tie') deletePicked(picked);
     // In note input `=` adds a tied note of the input length after the note at the cursor (step 5).
@@ -438,6 +456,31 @@ export default function TabPage() {
   const commitKeepingMark = (next: Part) => {
     commit(next);
     if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
+  };
+
+  /**
+   * A tuplet picked in the Tuplet panel (the button's, or `;`'s at the cursor), step 6. In note input it turns
+   * Tuplet entry on, or off for the same tuplet or None (Q6); in normal mode it goes over the picked note's
+   * time, squeezes the selection, or takes the tuplet away (Q1, Q2, Q4), or the line under the clip says why not.
+   */
+  const pickTuplet = (n: number | null) => {
+    if (!editing) return;
+    if (inputMode) {
+      setTupletEntry(n === null || n === tupletEntry ? null : n);
+      setTupletFrom(null);
+      return;
+    }
+    const next = applyTuplet(clip, target, n);
+    if (isProblem(next)) setNotice({ tone: 'error', lines: [next.problem] });
+    else commit(next);
+  };
+  /** `;`: the Tuplet panel just under the cursor's column. */
+  const openTuplets = () => {
+    if (view === 'tab') setTupletPanel(cursorSpot(layout, cursor));
+  };
+  const closeTuplets = (byKey: boolean) => {
+    setTupletPanel(null);
+    if (byKey) editorRef.current?.focus();
   };
 
   /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
@@ -485,11 +528,14 @@ export default function TabPage() {
     return places.length ? [[Math.min(...places), Math.max(...places)] as [number, number]] : [];
   });
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, {
+  /** The editor as the keys (and the Rest and Grace tools) find it. */
+  const editorKeys = (): EditorKeys => ({
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());
 
   /**
    * The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. Not
@@ -522,6 +568,8 @@ export default function TabPage() {
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
     // Its right-click menu takes the focus for a moment and gives it back: what is picked stays picked, and lit.
     if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
+    // So does the Tuplet panel `;` opens (step 6).
+    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.tab-tuplet-panel')) return;
     setEditing(false);
     setPicked(null);
     setColumnOnly(false);
@@ -683,9 +731,12 @@ export default function TabPage() {
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
     <TabPalette
       // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-      isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id) : isOn(clip, cursor, id, columnOnly)))} kinds={paletteKinds}
+      isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id)
+        // In note input Grace lights while Grace entry is on (step 6, Q11).
+        : inputMode && id === 'grace' ? graceEntry : isOn(clip, cursor, id, columnOnly)))}
+      kinds={inputMode && lit ? { ...paletteKinds, tuplet: tupletEntry ? { ...inputLength, tuplet: tupletEntry } : null } : paletteKinds}
       onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
-      onTuplet={n => onPanelChoice(() => setTuplet(clip, target, n))}
+      onTuplet={pickTuplet}
       onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
       inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined}
@@ -834,6 +885,12 @@ export default function TabPage() {
             {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
             {head.panels}
+            {view === 'tab' && tupletPanel && (
+              <TupletPanel
+                {...tupletPanel} current={inputMode ? tupletEntry : (cursorKinds.tuplet?.tupletSpan ? null : cursorKinds.tuplet?.tuplet ?? null)}
+                onPick={n => { closeTuplets(true); pickTuplet(n); }} onClose={closeTuplets}
+              />
+            )}
           </div>
           </div>
         </div>

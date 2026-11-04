@@ -55,6 +55,8 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
 - **In a tuplet**: the length keys do nothing on a note inside a tuplet
   until step 6. Triplet and Grace keep today's behaviour, and the ⚠ they
   can leave, until step 6 rebuilds them.
+  (Since step 6 the length keys work within the tuplet, and tuplets and
+  grace notes keep bars full: `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`.)
 - A grace note's length still changes as before; it takes no time.
 
 ## Typing (A12, Q14)

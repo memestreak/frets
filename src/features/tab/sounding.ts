@@ -9,7 +9,7 @@
  */
 import {
   barLength, barSpan, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
-  WHOLE, type Column, type Duration, type Note, type Part, type TimeSignature,
+  WHOLE, type Column, type Duration, type Note, type NoteValue, type Part, type TimeSignature,
 } from './clip';
 
 /** One written note of a Sounding note: the first, or one tied on after it. */
@@ -349,6 +349,92 @@ export function emptyBarRests(time: TimeSignature, groups = beatGroups(time)): D
   return groups.flatMap(g => spell(meter, (at += g) - g, g, 'rest'));
 }
 
+/* — tuplet rests and grace values (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`) — */
+
+/** Only the tuplet fields of a duration. */
+export function tupletKind(duration: Duration): Pick<Duration, 'tuplet' | 'tupletSpan'> {
+  return duration.tupletSpan ? { tuplet: duration.tuplet, tupletSpan: duration.tupletSpan } : { tuplet: duration.tuplet };
+}
+
+/**
+ * Rests `length` ticks long in a tuplet of `kind`: the fewest of its own values, longest first, as
+ * printed music writes a tuplet's rests (spec Q3). Null when no set of its values fills it.
+ */
+export function tupletRests(length: number, kind: Pick<Duration, 'tuplet' | 'tupletSpan'>): Duration[] | null {
+  const out: Duration[] = [];
+  let left = length;
+  for (const value of NOTE_VALUES) {
+    const d: Duration = { value, dots: 0, ...kind };
+    while (ticks(d) <= left) {
+      out.push(d);
+      left -= ticks(d);
+    }
+  }
+  return left === 0 ? out : null;
+}
+
+/** Whether a Column is a rest with nothing of its own on it. */
+export function isBareRest(column: Column): boolean {
+  return !column.grace && !column.notes.some(Boolean) && Object.keys(column).every(k => k === 'duration' || k === 'notes');
+}
+
+/**
+ * A tuplet group's Columns as the meter writes them: every run of bare rests in it written again as
+ * the fewest rests in the tuplet's values (spec Q3). The Columns as they are when a run can't be.
+ */
+export function spellTupletRests(columns: Column[]): Column[] {
+  const out: Column[] = [];
+  let run: Column[] = [];
+  const flush = () => {
+    if (run.length === 0) return;
+    const length = run.reduce((sum, c) => sum + ticks(c.duration), 0);
+    const rests = tupletRests(length, tupletKind(run[0].duration));
+    out.push(...(rests ? rests.map(d => ({ duration: d, notes: Array<Note | null>(STRING_COUNT).fill(null) })) : run));
+    run = [];
+  };
+  for (const column of columns) {
+    if (isBareRest(column) && column.duration.tuplet) {
+      run.push(column);
+      continue;
+    }
+    flush();
+    out.push(column);
+  }
+  flush();
+  return out;
+}
+
+/** Whether a tuplet group's Columns hold no note: the tuplet goes, its time a Gap (spec Q5). */
+export function isEmptyTuplet(columns: Column[]): boolean {
+  return columns.every(c => !c.notes.some(Boolean));
+}
+
+/** A grace note's value by how many are before the note, as books and alphaTab have them: an eighth, two sixteenths, thirty-seconds (spec Q9). */
+export function graceValue(count: number): NoteValue {
+  return count <= 1 ? 8 : count === 2 ? 16 : 32;
+}
+
+/** A bar's Columns with every run of grace notes written by its count (spec Q9). */
+export function graceValues(columns: Column[]): Column[] {
+  const out = [...columns];
+  let i = 0;
+  while (i < out.length) {
+    if (!out[i].grace) {
+      i++;
+      continue;
+    }
+    let end = i;
+    while (end + 1 < out.length && out[end + 1].grace) end++;
+    const value = graceValue(end - i + 1);
+    for (let k = i; k <= end; k++) {
+      const d = out[k].duration;
+      if (d.value !== value || d.dots !== 0) out[k] = { ...out[k], duration: { ...d, value, dots: 0 } };
+    }
+    i = end + 1;
+  }
+  return out;
+}
+
 /* — writing — */
 
 export interface WriteOptions {
@@ -379,7 +465,10 @@ function writeBar(read: ReadVoice, b: number, meter: Meter, groups: number[], of
   const end = start + length;
   const notes = read.notes.filter(n => n.start < end && n.start + n.length > start);
   const marks = read.marks.filter(m => m.bar === b);
-  const tuplets = read.tuplets.filter(t => t.bar === b);
+  // A tuplet with no note left goes, its time a Gap (spec Q5); the rests in one are its fewest (Q3).
+  const tuplets = read.tuplets
+    .filter(t => t.bar === b && !isEmptyTuplet(t.columns))
+    .map(t => ({ ...t, columns: spellTupletRests(t.columns) }));
   const graces = read.graces.filter(g => g.bar === b && !tuplets.some(t => g.at > t.start && g.at < t.end));
 
   const cuts = new Set<number>([start, end]);
@@ -442,7 +531,8 @@ function writeBar(read: ReadVoice, b: number, meter: Meter, groups: number[], of
     });
   }
   columns.push(...graces.filter(g => g.at === end).map(g => g.column));
-  return columns;
+  // Grace notes are valued by how many come before a note (spec Q9).
+  return graceValues(columns);
 }
 
 /** The written note a Sounding note has at `at`: its first, a piece of its own that starts there, or a plain tie on. */

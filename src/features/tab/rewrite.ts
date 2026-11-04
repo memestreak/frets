@@ -121,8 +121,9 @@ function columnAtTime(from: Bar, to: Bar, column: number, end = false): number {
   }
   if (!end && from.columns[c].grace) {
     // A grace note keeps its place among the grace notes before the same note.
-    const exact = now.findIndex((t, k) => t === starts[c] && to.columns[k].grace);
-    if (exact >= 0) return exact;
+    const ordinal = starts.slice(0, c).filter((t, k) => t === starts[c] && from.columns[k].grace).length;
+    const graces = now.flatMap((t, k) => (t === starts[c] && to.columns[k].grace ? [k] : []));
+    if (graces.length > 0) return graces[Math.min(ordinal, graces.length - 1)];
   }
   return found;
 }

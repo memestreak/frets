@@ -9,12 +9,9 @@ import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALU
 import { readVoice } from './sounding';
 import { chainDuration, chainPlaces, isTaken, lengthAnchor, takenNotes } from './ties';
 import { timeOf, writeOver } from './timeline';
+import { isProblem, lengthInTuplet, untuplet } from './tuplets';
 import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, placeOf, selectedRange, withColumn, without } from './editing';
 
-/** Makes the target columns rests. */
-export function makeRest(clip: Part, target: Target): Part {
-  return changeColumns(clip, target, column => ({ ...emptyColumn(column.duration), ...(column.extra ? { extra: column.extra } : {}) }));
-}
 
 /**
  * Delete (and cut) on a selection, as MuseScore's: the notes it takes (`takenNotes`) go, each Tie chain
@@ -49,10 +46,11 @@ export function clearToRests(clip: Part, selection: Selection): { clip: Part; se
   const bars = rested.bars.map((bar, b) =>
     b >= first.bar && b <= last.bar && whole(b) ? { ...bar, columns: fewestRests(barTicks(timeAt(rested, b))).map(emptyColumn) } : bar,
   );
-  const next = normalize({ ...rested, bars });
+  // A grace note left with no note goes, leaving no Gap (step 6, Q10).
+  const next = normalize({ ...rested, bars: bars.map(bar => (bar.columns.some(c => c.grace && !c.notes.some(Boolean)) ? { ...bar, columns: bar.columns.filter(c => !(c.grace && !c.notes.some(Boolean))) } : bar)) });
   // The same places, a bar started again counted from its first rest to its last.
-  const start = indexOf(next, first.bar, whole(first.bar) ? 0 : first.column);
-  const end = indexOf(next, last.bar, whole(last.bar) ? next.bars[last.bar].columns.length - 1 : last.column);
+  const start = indexOf(next, first.bar, whole(first.bar) ? 0 : Math.min(first.column, Math.max(0, next.bars[first.bar].columns.length - 1)));
+  const end = indexOf(next, last.bar, whole(last.bar) ? next.bars[last.bar].columns.length - 1 : Math.min(last.column, next.bars[last.bar].columns.length - 1));
   return { clip: next, selection: selection.anchor <= selection.focus ? { anchor: start, focus: end } : { anchor: end, focus: start } };
 }
 
@@ -91,7 +89,7 @@ export function cycleDots(clip: Part, target: Target): Part {
  * lines by the meter; shorter, it leaves a Gap. A note it starts takes the new length whole, its Tie
  * chain too; a Column that only carries tied notes on doesn't change (until Tie chains are picked as one).
  * A run is laid out again from its start, each note with its new length and each Gap in it keeping its
- * own. A grace note just changes; a note in a tuplet doesn't (until tuplets are rebuilt). An edit that
+ * own. A grace note doesn't change; a note in a tuplet changes within it (`tuplets.ts`). An edit that
  * would put a tuplet across a bar line changes nothing.
  */
 function changeLength(clip: Part, target: Target, change: (duration: Duration | null) => Duration | null): Part {
@@ -103,12 +101,17 @@ function changeLength(clip: Part, target: Target, change: (duration: Duration | 
     const pressed = selection ? { ...cursor, ...placeOf(clip, selection.anchor) } : cursor;
     const pressedColumn = columnAt(clip, pressed);
     if (!pressedColumn) return clip;
-    if (pressedColumn.grace) return changeColumns(clip, target, c => ({ ...c, duration: change(c.duration) ?? c.duration }));
+    // A grace note is valued by how many come before its note: the keys don't change it (step 6, Q9).
+    if (pressedColumn.grace) return clip;
     // A Tie chain is one note: the keys work from its first written note, whichever was picked (step 5).
     const at = lengthAnchor(clip, pressed);
     if (!at) return clip;
     const column = columnAt(clip, at)!;
-    if (column.duration.tuplet) return clip;
+    // In a tuplet the length changes within it only (step 6, Q5).
+    if (column.duration.tuplet) {
+      const duration = change(column.duration);
+      return duration ? lengthInTuplet(clip, at, duration) : clip;
+    }
     const duration = change(chainDuration(clip, at));
     if (!duration) return clip;
     const start = timeOf(clip, at.bar, at.column);
@@ -148,30 +151,9 @@ function onlyRests(clip: Part, { cursor, selection }: Target): boolean {
   return true;
 }
 
-/** Puts the target columns in one kind of tuplet (3 to 12, in its usual span), or none with null. */
 /** Puts the target columns under an octave line, or takes it away with null: the Octave line button's panel. */
 export function setOttava(clip: Part, target: Target, ottava: Ottava | null): Part {
   return changeColumns(clip, target, c => (ottava ? { ...c, ottava } : without(c, 'ottava')));
-}
-
-export function setTuplet(clip: Part, target: Target, tuplet: number | null): Part {
-  return changeColumns(clip, target, column => {
-    const plain = without(without(column.duration, 'tuplet'), 'tupletSpan');
-    return { ...column, duration: tuplet ? { ...plain, tuplet } : plain };
-  });
-}
-
-/** Makes the target columns one kind of tuplet (a triplet, quintuplet …); the same kind again makes them plain. */
-export function toggleTuplet(clip: Part, target: Target, tuplet: number): Part {
-  const now = columnAt(clip, target.cursor)?.duration;
-  const on = now?.tuplet !== tuplet || now.tupletSpan !== undefined;
-  return setTuplet(clip, target, on ? tuplet : null);
-}
-
-/** Makes the target columns grace notes, played just before the beat; pressed again on a grace note, plain notes. */
-export function toggleGrace(clip: Part, target: Target): Part {
-  const on = !columnAt(clip, target.cursor)?.grace;
-  return changeColumns(clip, target, column => (on ? { ...column, grace: 'before' } : without(column, 'grace')));
 }
 
 /** Tremolo picks the target columns as fast as `value`; the same speed again stops it. */
@@ -316,7 +298,7 @@ export function cycleMark<K extends MarkName>(clip: Part, target: Target, mark: 
 
 /**
  * The clip without one drawn mark (a picked mark's Delete, issue #128): from its note, or from every
- * note of its column for a mark drawn over the column; a tuplet's whole group goes plain. The notes stay.
+ * note of its column for a mark drawn over the column; a tuplet is taken away (`untuplet`). The notes stay.
  */
 export function removeMark(clip: Part, hit: MarkHit): Part {
   const { bar, column } = placeOf(clip, hit.index);
@@ -342,7 +324,11 @@ export function removeMark(clip: Part, hit: MarkHit): Part {
     case 'whammy': return changeColumns(clip, wholeColumn, c => without(c, 'whammy'));
     case 'fermata': return changeColumns(clip, wholeColumn, c => without(c, 'fermata'));
     case 'tremolo': return changeColumns(clip, wholeColumn, c => without(c, 'tremolo'));
-    case 'tuplet': return setTuplet(clip, wholeColumn, null);
+    case 'tuplet': {
+      // The tuplet goes and its notes are laid out again, plain (step 6, Q4).
+      const plain = untuplet(clip, cursor);
+      return isProblem(plain) ? clip : plain;
+    }
     case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));
     case 'hairpin': return changeColumns(clip, wholeColumn, c => without(c, 'hairpin'));
   }

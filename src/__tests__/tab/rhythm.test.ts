@@ -9,11 +9,12 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { barErrors, brokenTupletMessage, changesTime, parseClip, ticks, timeAt, timeInWords, tupletGroups, unevenMessage, WHOLE, type TimeSignature, type Part, partOf, asClip } from '@/features/tab/clip';
 import { copyText, moveColumn, insertPaste, sliceClip, type Cursor } from '@/features/tab/editing';
 import { setBarTime } from '@/features/tab/barEdits';
-import { cycleTremolo, setTremolo, setTuplet, toggleGrace, toggleTuplet } from '@/features/tab/noteEdits';
+import { cycleTremolo, setTremolo } from '@/features/tab/noteEdits';
+import { addGrace, applyTuplet } from '@/features/tab/tuplets';
 import { layoutClip } from '@/features/tab/layout';
 import { beamGroups } from '@/features/tab/beams';
 import { textAt } from '@/features/tab/layoutText';
-import { applyCyclingKey, applyTool, applyTupletKey, isOn, toolForKey } from '@/features/tab/tools';
+import { applyCyclingKey, applyTool, isOn, toolForKey } from '@/features/tab/tools';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);
 function clipOf(text: string): Part {
@@ -73,22 +74,17 @@ describe('tuplets', () => {
     expect(thirteen.warnings.join(' ')).toMatch(/tu \(tuplet\) ×13/);
   });
 
-  it('are toggled one kind at a time, from the palette or Alt with the digit', () => {
+  it('are set from the Tuplet panel and taken away by the same one or None (step 6); Alt+digits are no key', () => {
     let clip = clipOf('5.3.8 7.3.8 8.3.8 r.8 r.2 |');
-    clip = toggleTuplet(clip, all(at(0, 0, 2), 2), 3);
-    expect(bars(clip)).toBe('5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} r.8 r.2 |');
-    clip = applyTupletKey(clip, only(at(0, 0, 2)), 'Digit5')!;
-    expect(clip.bars[0].columns[0].duration.tuplet).toBe(5);
+    clip = applyTuplet(clip, all(at(0, 0, 2), 2), 3) as Part;
+    // Squeezed into beat 1: the eighth they took past it is a Gap.
+    expect(bars(clip)).toBe('5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} r.4 r.2 |');
     expect(isOn(clip, at(0, 0, 2), 'tuplet')).toBe(true);
-    clip = applyTupletKey(clip, only(at(0, 0, 2)), 'Digit5')!;
+    clip = applyTuplet(clip, only(at(0, 0, 2)), null) as Part;
     expect(clip.bars[0].columns[0].duration).toEqual({ value: 8, dots: 0 });
     expect(isOn(clip, at(0, 0, 2), 'tuplet')).toBe(false);
-    expect(applyTupletKey(clip, only(at(0, 0, 2)), 'Digit4')).toBeNull();
-    // The Tuplet panel sets any of them, and None makes the columns plain.
-    clip = setTuplet(clip, all(at(0, 0, 2), 2), 11);
-    expect(clip.bars[0].columns.slice(0, 3).map(c => c.duration.tuplet)).toEqual([11, 11, 11]);
-    clip = setTuplet(clip, all(at(0, 0, 2), 2), null);
-    expect(bars(clip)).toBe('5.3.8 7.3.8 8.3.8 r.8 r.2 |');
+    for (const code of ['Digit3', 'Digit5', 'Digit6', 'Digit7']) expect(toolForKey('£', true, code)).toBeNull();
+    expect(toolForKey(';', false)).toBeNull();
   });
 
   it('take a digit after the rhythm letter in ASCII tab', () => {
@@ -163,16 +159,17 @@ describe('grace notes', () => {
     expect(bars(clip)).toBe('5.3.8{gr ob} 7.3.4 5.3.8{gr b} 7.3.2{d} |');
   });
 
-  it('are toggled with the palette or Shift+G, and keep their own length while they are grace notes', () => {
-    let clip = clipOf('5.3.4 7.3.4 r.2 |');
-    clip = toggleGrace(clip, only(at(0, 0, 2)));
-    expect(bars(clip)).toBe('5.3.8{gr} 7.3.4 r.2 |');
-    expect(isOn(clip, at(0, 0, 2), 'grace')).toBe(true);
-    expect(clip.bars[0].columns[0].duration.value).toBe(4);
-    clip = applyTool(clip, only(at(0, 0, 2)), 'grace');
-    expect(bars(clip)).toBe('5.3.4 7.3.4 r.2 |');
-    expect(toolForKey('G', false)).toBe('grace');
+  it('are added with the palette or `/` before the picked note (step 6); Shift+G is no key', () => {
+    const clip = clipOf('5.3.4 7.3.4 r.2 |');
+    const added = addGrace(clip, at(0, 0, 2), false)!;
+    expect(bars(added.clip)).toBe('5.3.8{gr} 5.3.4 7.3.4 r.2 |');
+    expect(isOn(added.clip, at(0, 0, 2), 'grace')).toBe(true);
+    expect(toolForKey('/', false)).toBe('grace');
+    expect(toolForKey('G', false)).toBeNull();
     expect(toolForKey('g', false)).toBe('ghost');
+    // Let ring is on I, as Guitar Pro 8's; L is the page's, for the loop points (Jeremy, 2026-11-04).
+    expect(toolForKey('i', false)).toBe('letRing');
+    expect(toolForKey('l', false)).toBeNull();
   });
 
   it('are left out of ASCII tab, which has no way to write them', () => {

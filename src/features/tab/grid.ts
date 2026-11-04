@@ -8,9 +8,9 @@
  * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
  * its step in ticks.
  */
-import { barLength, fewestRests, NOTE_VALUES, ticks, timeAt, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { barLength, fewestRests, NOTE_VALUES, ticks, timeAt, tupletGroups, type Bar, type Duration, type NoteValue, type Part } from './clip';
 import { emptyColumn, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
-import { emptyBarRests } from './sounding';
+import { emptyBarRests, tupletKind, tupletRests } from './sounding';
 import type { Layout, PlacedBar, PlacedColumn } from './layout';
 
 /** The grids offered, coarsest first (Jeremy, 2026-11-01). */
@@ -57,11 +57,34 @@ function columnStart(bar: Bar, column: number): number {
  */
 export function stopsIn(bar: Bar, column: number, step: number): number[] {
   const here = bar.columns[column];
+  // In a tuplet's rest the stops are its tuplet notes' places, whatever the grid (step 6, Q7).
+  const tuplet = here && isTupletRestColumn(here) ? tupletStops(bar, column) : null;
+  if (tuplet) return tuplet;
   if (!here || !isPlainRest(here) || step <= 0) return [0];
   const start = columnStart(bar, column);
   const end = start + ticks(here.duration);
   const stops = [0];
   for (let line = (Math.floor(start / step) + 1) * step; line < end; line += step) stops.push(line - start);
+  return stops;
+}
+
+/** A rest inside a tuplet: ← → stop at each tuplet note in it. */
+function isTupletRestColumn(column: Bar['columns'][number]): boolean {
+  return !column.grace && !!column.duration.tuplet && !column.notes.some(Boolean);
+}
+
+/** The stops in a tuplet's rest, in ticks from its start: each place of a tuplet note of the group it is in. */
+function tupletStops(bar: Bar, column: number): number[] | null {
+  const timed = bar.columns.flatMap((c, k) => (c.grace ? [] : [k]));
+  const group = tupletGroups(timed.map(k => bar.columns[k])).find(g => timed[g.from] <= column && timed[g.to] >= column);
+  if (!group) return null;
+  const groupStart = columnStart(bar, timed[group.from]);
+  const length = timed.slice(group.from, group.to + 1).reduce((sum, k) => sum + ticks(bar.columns[k].duration), 0);
+  const unit = length / (group.duration.tuplet ?? 1);
+  const start = columnStart(bar, column);
+  const end = start + ticks(bar.columns[column].duration);
+  const stops = [0];
+  for (let line = groupStart + unit; line < end - 1e-6; line += unit) if (line > start + 1e-6) stops.push(Math.round(line - start));
   return stops;
 }
 
@@ -83,7 +106,7 @@ export function lastStop(clip: Part, cursor: Cursor, step: number): number {
 /** Whether `at` is still a place inside the cursor's column a note could go: a plain rest longer than it. */
 export function isInsideRest(clip: Part, cursor: Cursor, at: number): boolean {
   const here = clip.bars[cursor.bar]?.columns[cursor.column];
-  return !!here && at > 0 && isPlainRest(here) && at < ticks(here.duration);
+  return !!here && at > 0 && (isPlainRest(here) || isTupletRestColumn(here)) && at < ticks(here.duration);
 }
 
 /**
@@ -94,8 +117,19 @@ export function isInsideRest(clip: Part, cursor: Cursor, at: number): boolean {
 export function splitRestAt(clip: Part, cursor: Cursor, at: number): { clip: Part; cursor: Cursor } {
   if (!isInsideRest(clip, cursor, at)) return { clip, cursor };
   const bar = clip.bars[cursor.bar];
+  const here = bar.columns[cursor.column];
+  if (isTupletRestColumn(here)) {
+    // A tuplet's rest splits into rests in the tuplet's own values.
+    const kind = tupletKind(here.duration);
+    const head = tupletRests(at, kind);
+    const tail = tupletRests(ticks(here.duration) - at, kind);
+    if (!head || !tail) return { clip, cursor };
+    const columns = [...bar.columns];
+    columns.splice(cursor.column, 1, ...head.map(emptyColumn), ...tail.map(emptyColumn));
+    return { clip: normalize(replaceBar(clip, cursor.bar, { ...bar, columns })), cursor: { ...cursor, column: cursor.column + head.length } };
+  }
   const start = columnStart(bar, cursor.column);
-  const end = start + ticks(bar.columns[cursor.column].duration);
+  const end = start + ticks(here.duration);
   const before = restsOnBeat(start, start + at).map(emptyColumn);
   const after = restsOnBeat(start + at, end).map(emptyColumn);
   const columns = [...bar.columns];
@@ -171,7 +205,7 @@ export function advance(clip: Part, cursor: Cursor, at: number, length: number):
         const span = c.grace ? 0 : ticks(c.duration);
         if (span > 0 && target < start + span) {
           if (target === start) return { clip: part, cursor: { ...cursor, bar, column }, at: 0 };
-          if (isPlainRest(c)) return { clip: part, cursor: { ...cursor, bar, column }, at: target - start };
+          if (isPlainRest(c) || isTupletRestColumn(c)) return { clip: part, cursor: { ...cursor, bar, column }, at: target - start };
           // Inside a note: the next column, or the next bar's start.
           target = start + span;
           break;

@@ -108,10 +108,10 @@ describe('markTool and removeMark', () => {
     expect(notesOf(removeMark(clip, pick(clip, 'vibrato')))).toBe('(5.2 3.3).4 r.4 r.2 |');
   });
 
-  it('takes a whole tuplet away', () => {
+  it('takes a whole tuplet away: its notes plain from its start, over what follows (step 6, Q4)', () => {
     const clip = clipOf('5.3.8{tu 3} 7.3.8{tu 3} 8.3.8{tu 3} r.4 r.2 |');
     const hit = pick(clip, 'tuplet');
     expect(markTool(clip, hit)).toBe('tuplet');
-    expect(notesOf(removeMark(clip, hit))).toBe('5.3.8 7.3.8 8.3.8 r.4 r.2 |');
+    expect(notesOf(removeMark(clip, hit))).toBe('5.3.8 7.3.8 8.3.8 r.8 r.2 |');
   });
 });
