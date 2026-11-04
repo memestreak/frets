@@ -313,9 +313,12 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   };
   // A press on blank space (or above or below the staff) doesn't take the focus, so no cursor
   // appears there; nor does one on a chord name, section or tempo, whose field has just taken it.
+  // Nor does a press on a staff head, picked only when the pointer lets go or moves: focus taken now
+  // would light the old cursor until then (issue #337); `onPickStaff` and `onDragStaff` take it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
     const { run, text, mark, rest, staff, hit } = target(e);
-    if (text || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
+    const head = staff && staff.string !== null && onDragStaff && e.button === 0;
+    if (text || head || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column, highlight.at) : null;
   const previous = previousDrawnAt(layout.systems);
