@@ -63,5 +63,11 @@ export const MCP_SERVER = {
       title: 'Tuner',
       summary: 'Ask to tune your guitar, and a tuner that listens through your mic appears in the chat.',
     },
+    {
+      name: 'show_tab',
+      page: '/tab',
+      title: 'Staff and tab',
+      summary: 'Ask for a riff, a phrase or an exercise, and it appears in the chat as staff over tab that plays.',
+    },
   ] as readonly McpTool[],
 };

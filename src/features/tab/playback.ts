@@ -58,6 +58,28 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
 ];
 
 export type Sound = number;
+
+/**
+ * Soundfonts built into the page, by the URL the site serves each from, for a frame that may load
+ * nothing from outside (the Tab MCP App, `mcp/apps/tab/main.tsx`). With them set, SONiVOX isn't
+ * loaded, so only sounds with a font of their own here can play.
+ */
+let builtInFonts: ReadonlyMap<string, Uint8Array> | null = null;
+
+/** Plays from these soundfonts only, instead of fetching them and SONiVOX from the site. */
+export function setBuiltInFonts(fonts: Readonly<Record<string, Uint8Array>>) {
+  builtInFonts = new Map(Object.entries(fonts));
+}
+
+/** A soundfont's bytes: a fresh copy of a built-in one (the decoder takes the copy it is given), else fetched. */
+async function fontBytes(url: string): Promise<Uint8Array> {
+  const inline = builtInFonts?.get(url);
+  if (inline) return inline.slice();
+  if (builtInFonts) throw new Error(`no built-in soundfont ${url}`);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`the sound didn't load (${response.status})`);
+  return new Uint8Array(await response.arrayBuffer());
+}
 export const DEFAULT_SOUND: Sound = 25;
 const SOUND_PROGRAMS = new Set(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([program]) => program)));
 
@@ -793,15 +815,14 @@ export class TabPlayer {
   /** Loads alphaTab and the soundfont; the view hears every change. */
   static async create(onView: (view: Partial<PlayerView>) => void): Promise<TabPlayer> {
     const at = await loadAlphaTab();
-    const response = await fetch(SOUNDFONT_URL);
-    if (!response.ok) throw new Error(`the soundfont didn't load (${response.status})`);
-    const soundfont = new Uint8Array(await response.arrayBuffer());
+    // Built-in sounds play without SONiVOX.
+    const soundfont = builtInFonts ? null : await fontBytes(SOUNDFONT_URL);
     const output = new WebAudioOutput();
     const synth = new at.synth.AlphaSynth(output, 500);
     // The clicks are heard past the effects, never distorted or in the reverb.
     keepDry(synth, [METRONOME_CHANNEL, COUNT_IN_CHANNEL], output.dry);
-    synth.loadSoundFont(soundfont, false);
-    synth.loadSoundFont(clickSoundFont(), true);
+    if (soundfont) synth.loadSoundFont(soundfont, false);
+    synth.loadSoundFont(clickSoundFont(), soundfont !== null);
     return new TabPlayer(at, synth, output, onView);
   }
 
@@ -1101,9 +1122,7 @@ export class TabPlayer {
     if (!loading) {
       loading = (async () => {
         this.decoder.start();
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`the sound didn't load (${response.status})`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
+        const bytes = await fontBytes(url);
         this.synth.loadSoundFont(bytes, true);
         // The synthesizer keeps its own copy of the samples' bytes, so these can go to the worker.
         const font = lastFont(this.synth);
