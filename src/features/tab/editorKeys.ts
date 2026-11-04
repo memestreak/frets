@@ -23,6 +23,15 @@ import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDi
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
 
+/** What takes Esc before note input does: an open panel, menu or dialog closes first, as in Dorico and MuseScore. */
+const POPUPS = '[role="dialog"], [role="menu"], dialog[open]';
+
+/** Whether a panel, menu or dialog is open, or the key came from inside one: its Esc closes it, not note input. */
+export function popupTakesEscape(e: { target: EventTarget | null }): boolean {
+  const target = e.target as Element | null;
+  return Boolean(target?.closest?.(POPUPS)) || document.querySelector(POPUPS) !== null;
+}
+
 /** The digit just typed, so a second one soon after on the same spot makes a two-digit fret. */
 export type LastDigit = { spot: string; digit: number; at: number } | null;
 
@@ -105,6 +114,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     editor.setPicked(null);
     if (key === 'Escape') {
       e.preventDefault();
+      // Esc always leaves note input (Jeremy, 2026-11-03), a picked mark or word let go with it.
+      if (editor.inputMode) editor.setInputMode(false);
       return;
     }
   }
@@ -123,6 +134,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     editor.setPicked(null);
     if (key === 'Escape') {
       e.preventDefault();
+      if (editor.inputMode) editor.setInputMode(false);
       return;
     }
   }
@@ -149,6 +161,8 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     editor.setInputMode(!editor.inputMode);
     return;
   }
+  // A panel open over the tab with the keys still here (a bar's time signature) takes Esc itself, and closes.
+  if (key === 'Escape' && popupTakesEscape(e)) return;
   if (key === 'Escape' && editor.inputMode) {
     handled();
     editor.setInputMode(false);
@@ -608,6 +622,8 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
  * made so), Delete and Backspace take what is before it (`deleteAtLine`), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
  */
 export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, select, placeLine, editAtLine }: LineKeys) {
+  // A key something on the page has handled already (a picked title's Esc) is not the line's.
+  if (e.defaultPrevented) return;
   const remove = e.key === 'Delete' || e.key === 'Backspace';
   // Ctrl/⌘ only with Delete, which then takes the time away (issue #238).
   if (e.altKey || ((e.ctrlKey || e.metaKey) && !remove)) return;

@@ -73,6 +73,8 @@ Jeremy picked the two panes (mock b, over one folder at a time) on 2026-10-31.
   Pressing My arrangements or Built-in while it is the place shown folds its
   folders away, or back (a small chevron says which); pressing it from elsewhere
   shows it unfolded (Jeremy, 2026-10-31).
+  Each folder sits a step in from the one it is in: its folder icon under its
+  parent's name (Jeremy, 2026-11-03).
 - **Where**: beside the title, the place shown ("Arrangements › Built-in ›
   Rhythm"); the earlier steps can be pressed.
 - **Files** in the middle: the chosen place's arrangements, one line each by name

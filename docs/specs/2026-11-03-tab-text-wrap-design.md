@@ -88,6 +88,9 @@ characters, as a chord name's does.
 - A text that still touches the one before it moves up a level, over all
   of that text's rows; a later text that clears goes back to level 0; a
   level is as tall as its tallest text; a line without texts takes one row.
+- A one-line text beside a three-line text on the same level sits on the
+  level's bottom row (its top is 2 rows down), not on its top row; a level
+  above a taller level 0 starts at the top.
 - A text moved up leaves its room to the text under it, up to the next text
   on that level and no further.
 - On neighbouring eighths, the second text goes up and the long one is

@@ -174,7 +174,8 @@ function HeadPick<F extends string>({ onEdit: open, editLabel, editField, tool, 
     if (!picked) return;
     const field = (e.target as HTMLElement).dataset.headField as F | undefined;
     if (e.key === 'Escape') {
-      e.stopPropagation();
+      // Handled, so the page's keys leave the playback line be; they still leave note input (Jeremy, 2026-11-03).
+      e.preventDefault();
       onPick(false);
       (document.activeElement as HTMLElement | null)?.blur();
     } else if (e.key === 'Enter' && field) {

@@ -15,6 +15,10 @@ input.
   brings the keys to the tab.
 - **Esc** in note input goes back to normal mode, keeping the tab and what the cursor was on. Esc in
   normal mode leaves the tab, as before.
+  Esc leaves note input wherever the keys are on the page (Jeremy, 2026-11-03, issue #334): off the
+  tab, on the rail or a control, with a mark, word or the score head's title picked (the pick goes
+  too). An open panel, menu or dialog takes Esc first and closes, as in Dorico and MuseScore; the next
+  Esc leaves note input.
 - Harmonic moves from N to **Shift+N**, still stepping natural, pinch, artificial, off.
 
 ## Normal mode

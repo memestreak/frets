@@ -384,7 +384,8 @@
 .tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
 .tab-chooser-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; }
 .tab-chooser-places { min-height: 0; overflow-y: auto; border-right: 1px solid var(--line); padding-right: 12px; }
-.tab-chooser-sub { list-style: none; padding-left: 12px; }
+/* A child folder's (empty) chevron sits under its parent's folder icon, its folder icon under the parent's name. */
+.tab-chooser-sub { list-style: none; padding-left: 22px; }
 .tab-chooser-place > svg { flex: none; color: var(--ink-muted); }
 .tab-chooser-places .tab-chooser-place[aria-current='true'] { border-color: transparent; background: var(--surface-sunken); }
 .tab-chooser-files { min-height: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -405,7 +406,7 @@
 }
 .tab-chooser-back { align-self: flex-start; }
 /* My arrangements' and Built-in's fold: pointing down while their folders show, right while folded away. */
-.tab-chooser-fold { display: inline-flex; flex: none; margin-left: -4px; color: var(--ink-muted); }
+.tab-chooser-fold { display: inline-flex; flex: none; width: 14px; margin-left: -4px; color: var(--ink-muted); }
 .tab-chooser-fold svg { width: 14px; height: 14px; }
 .tab-chooser-folded { transform: rotate(-90deg); }
 /* A thin scroll bar in the theme's colours, for panes that scroll. */
