@@ -10,6 +10,7 @@ const PAGE: ShortcutGroup = {
   title: 'Page',
   shortcuts: [
     { keys: ['Space'], does: 'Play or stop' },
+    { keys: ['L'], does: 'Loop points on or off, round the selection if there is one' },
     { keys: ['N'], does: 'Note input on or off' },
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },

@@ -399,8 +399,8 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   const percent = Math.round(speed * 100);
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
-    ? 'Loop the selected notes'
-    : loop ? 'Clear the loop points' : 'Loop the whole clip (select notes to loop just those)';
+    ? 'Loop the selected notes (L)'
+    : loop ? 'Clear the loop points (L)' : 'Loop the whole clip (L). Select notes to loop just those';
   const playLabel = view.state === 'loading' ? 'Loading the sound…' : playing ? 'Stop' : 'Play';
   useReleaseFocusOnPressOutside(row);
   return (

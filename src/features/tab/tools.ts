@@ -83,7 +83,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'mordent', label: 'Mordent: the note, the one above it, and back', key: '' },
       { id: 'lowerMordent', label: 'Lower mordent: the note, the one below it, and back', key: '' },
       { id: 'palmMute', label: 'Palm mute', key: 'M' },
-      { id: 'letRing', label: 'Let ring', key: 'L' },
+      { id: 'letRing', label: 'Let ring', key: 'I' },
       { id: 'dead', label: 'Dead note', key: 'X' },
       { id: 'ghost', label: 'Ghost note', key: 'G' },
       { id: 'harmonic', label: 'Natural harmonic', key: 'Shift+N' },
@@ -263,7 +263,7 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
   // T ties, as Dorico's T does, so Tap is Alt+T (by its code: Alt types another letter on a Mac).
   if (alt) return code === 'KeyT' ? 'tap' : null;
   const keys: Record<string, ToolId> = {
-    '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', l: 'letRing',
+    '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', i: 'letRing',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
   };

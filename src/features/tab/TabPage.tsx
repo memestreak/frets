@@ -389,6 +389,13 @@ export default function TabPage() {
       enterInput(false);
       return;
     }
+    // L anywhere on the page does what the Loop button does, while the footer shows (Jeremy, 2026-11-04), as
+    // the Space key plays; Let ring, which had L, is on I, Guitar Pro 8's key for it.
+    if (e.key === 'l' && plain && showPlayback && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
+      e.preventDefault();
+      if (!e.repeat) playback.toggleLoop(selectedColumns);
+      return;
+    }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
       e.preventDefault();
       enterInput(!inputMode);

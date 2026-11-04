@@ -49,6 +49,9 @@ The controls sit under that line:
   the loop is never less than one note, and the tab keeps no focus or
   selection from a drag. Dragged while playing, the loop changes at once;
   an end dragged back behind the playhead sends it round to the start.
+  L anywhere on the page does what the button does, as Space plays (Jeremy,
+  2026-11-04), but not in a field, a dialog or a menu, and not while the
+  controls are hidden; Let ring moved from L to I, Guitar Pro 8's key for it.
 - **Speed.** A number field, 25% to 150% of the clip's own tempo, with
   stacked up and down buttons (5% a press, as are ↑ ↓ in the field) and
   "92 bpm" beside it: the tempo where the playhead is, times the speed
@@ -193,7 +196,9 @@ In Chromium, with the sound's peak measured at the audio node:
   other; dragging the end in behind the playhead while it loops sends it
   round to the start.
 - Space plays and stops with the focus off the tab, but not in the Speed
-  field; hidden, it does nothing.
+  field; hidden, it does nothing. L sets and clears the loop points as the
+  button does, from the tab and off it, but not in the Speed field or while
+  hidden.
 - At the end of the clip, Play shows again and the playhead goes away.
 - Checked in light and dark, at 1200 px and on a 390 px phone.
 

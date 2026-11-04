@@ -117,12 +117,12 @@ describe('TabPage editing', () => {
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
   });
 
-  it('steps V, Shift+N, A and \\ through their kinds, and toggles L, G and S', () => {
+  it('steps V, Shift+N, A and \\ through their kinds, and toggles I, G and S', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
     keys('n', 'ArrowDown');
-    keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'l', 'g', 's');
+    keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'i', 'g', 's');
     expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 r.4 r.2 |');
     expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
     keys('v', 'g');
