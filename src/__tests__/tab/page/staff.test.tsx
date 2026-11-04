@@ -268,6 +268,41 @@ describe('dragging notes on the staff (issue #174)', () => {
       const lit = screen.getAllByText(/^[357]$/).filter(t => t.closest('[data-testid="tab-system"]') && t.getAttribute('fill') === 'var(--select)');
       expect(lit.map(t => t.textContent).sort()).toEqual(['3', '5', '7']);
     });
+
+    it('a staff head held down lights nothing until it lets go, after a bar was selected and let go (issue #337)', async () => {
+      localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'both' }));
+      renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.6.4 7.5.4 3.4.4 5.3.4 | 8.6.4 10.5.4 12.4.4 9.3.4 |')}`);
+      await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
+      act(() => editor().focus());
+      // Bar 1 selected by a press beside its heads, then let go by a press off the bars, which takes the focus away.
+      press({ clientX: headAt(0).clientX + 20, clientY: headAt(3).clientY - 20 });
+      expect(screen.getAllByTestId('range-box')).toHaveLength(1);
+      fireEvent.pointerDown(document.body);
+      act(() => editor().blur());
+      expect(screen.queryByTestId('range-box')).toBeNull();
+      // Bar 2's 10 held down. A browser focuses the drawing on a mouse down it isn't told to keep (jsdom doesn't).
+      const lit = () => [...screen.queryAllByTestId('selected-note'), ...screen.queryAllByTestId('column-cursor'), ...screen.queryAllByTestId('staff-selected')];
+      fireEvent.pointerDown(svg(), { ...headAt(5), button: 0 });
+      if (fireEvent.mouseDown(svg(), { ...headAt(5), button: 0 })) act(() => editor().focus());
+      expect(editor()).not.toHaveFocus();
+      expect(lit()).toEqual([]);
+      // Letting go picks the 10 on the staff, and only it lights.
+      fireEvent.pointerUp(svg(), { ...headAt(5), button: 0 });
+      expect(editor()).toHaveFocus();
+      expect(screen.getAllByTestId('staff-head')[5]).toHaveAttribute('data-selected');
+      expect(lit()).toEqual([screen.getByTestId('staff-selected')]);
+    });
+
+    it('a staff head dragged takes the focus as it starts to move (issue #337)', async () => {
+      await open();
+      act(() => editor().blur());
+      fireEvent.pointerDown(svg(), { ...headAt(2), button: 0 });
+      expect(fireEvent.mouseDown(svg(), { ...headAt(2), button: 0 })).toBe(false);
+      fireEvent.pointerMove(svg(), { ...headAt(2), clientY: headAt(2).clientY - 10, button: 0 });
+      expect(editor()).toHaveFocus();
+      fireEvent.pointerUp(svg(), { ...headAt(2), clientY: headAt(2).clientY - 10, button: 0 });
+      expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
+    });
   });
 
   it('moves the note a line or space at a time, a semitone with Shift, and the chord with Ctrl, each one undo step', async () => {

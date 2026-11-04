@@ -211,6 +211,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
   const onPickStaff = (hit: StaffHit, extend: boolean) => {
     lastDigitRef.current = null;
+    // A head pressed doesn't take the focus until now (issue #337); taken first, so the focus's own
+    // staff cursor (with the staff alone) gives way to the one set below.
+    editorRef.current?.focus();
     const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
     const note = hit.string === null ? null : noteAt(clip, at);
     const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
@@ -260,6 +263,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const carried = range && index >= range[0] && index <= range[1] ? selection : null;
       dragFrom.current = { clip, selection: carried, good: null };
       lastDigitRef.current = null;
+      editorRef.current?.focus();
     }
     const from = dragFrom.current;
     const note = noteAt(from.clip, at);
