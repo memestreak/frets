@@ -31,6 +31,8 @@ disagree, it wins.
   Bars end with `|`.
 - Write `\ts` always, and check every bar adds up to its time signature. Only a pickup bar
   may be short: write `\ac` at the start of the first bar.
+- Frets beams by the beat groups (7/8 as 2+2+3). Give another grouping with `\beaming (8 3 2 2)` after
+  its `\ts`, and a single beam break or join with `{beam split}` or `{beam merge}` on the beat before.
 - Give the user a link that opens the tab, plus the text unless they ask
   for only one:
 

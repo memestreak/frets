@@ -9,15 +9,15 @@ import { type MarkLit } from './marks';
 import { litLook as lightUp, type TabLook } from './tabLook';
 
 /** Stems, beams, flags, dots, tremolo slashes, tuplet numbers and rests under the staff; grace notes get none. */
-export function Stems({ bar, rows, beat, look: barLook, selected = null, lit = () => false }: {
-  bar: PlacedBar; rows: Rows; beat: number; look: TabLook;
+export function Stems({ bar, rows, look: barLook, selected = null, lit = () => false }: {
+  bar: PlacedBar; rows: Rows; look: TabLook;
   /** Whether a tremolo or tuplet here is the picked mark, drawn in `--select` (issue #276). */
   lit?: MarkLit;
   /** The selected run of columns (places in the clip): their stems, flags, dots and rests, and a beam all of whose notes are in it, are drawn in `--select` (issue #276). */
   selected?: [number, number] | null;
 }) {
   const parts: ReactNode[] = [];
-  const groups = beamGroups(bar, beat);
+  const groups = beamGroups(bar);
   const grouped = new Map<Column, PlacedColumn[]>();
   for (const g of groups) for (const p of g.columns) grouped.set(p.column, g.columns);
 

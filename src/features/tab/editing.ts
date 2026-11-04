@@ -7,7 +7,7 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barSpan, hasPickup, isRest, ticks, emptyPart, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barSpan, beatGroupsAt, defaultGroupCounts, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
 import { emptyBarRests } from './sounding';
 import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
@@ -154,19 +154,36 @@ const sameTime = (a: TimeSignature, b: TimeSignature) => a.beats === b.beats && 
 
 /**
  * A time signature set on the first bar becomes the clip's, and one that repeats the time signature
- * already in force is dropped, so a bar's `time` always marks a change.
+ * already in force, meter and Beat groups both, is dropped, so a bar's `time` always marks a change.
+ * Beat groups are kept only with a time signature, and only when they add up and aren't its default.
  */
 function tidyTimes(clip: Part): Part {
   let time = clip.bars[0]?.time ?? clip.time;
+  let groups = defaultGroupCounts(time);
   const bars = clip.bars.map((bar, b) => {
-    if (!bar.time) return bar;
-    if (b > 0 && !sameTime(bar.time, time)) {
-      time = bar.time;
-      return bar;
+    const own = b === 0 || bar.time ? ownGroups(bar.beatGroups, b === 0 ? time : bar.time!) : undefined;
+    let out: Bar = own ? { ...bar, beatGroups: own } : without(bar, 'beatGroups');
+    if (b === 0) {
+      groups = own ?? defaultGroupCounts(time);
+      return out;
     }
-    return without(bar, 'time');
+    if (!bar.time) return out;
+    const next = own ?? defaultGroupCounts(bar.time);
+    if (!sameTime(bar.time, time) || !sameGroups(next, groups)) {
+      time = bar.time;
+      groups = next;
+      return out;
+    }
+    out = without(out, 'time');
+    return without(out, 'beatGroups');
   });
   return { ...clip, time: clip.bars[0]?.time ?? clip.time, bars };
+}
+
+/** A time signature's own Beat groups, kept when they add up and differ from its default. */
+function ownGroups(counts: number[] | undefined, time: TimeSignature): number[] | undefined {
+  if (!counts || !isGroupingOf(counts, time) || sameGroups(counts, defaultGroupCounts(time))) return undefined;
+  return counts;
 }
 
 /* — changing columns and notes — */
@@ -346,7 +363,7 @@ export function moveColumn(clip: Part, cursor: Cursor, step: 1 | -1, { grow = tr
   if (bar < clip.bars.length - 1) return { clip, cursor: { ...cursor, bar: bar + 1, column: 0 } };
   if (!grow || here.columns.length === 0) return { clip, cursor };
   const time = timeAt(clip, bar);
-  return { clip: { ...clip, bars: [...clip.bars, { columns: emptyBarRests(time).map(emptyColumn) }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
+  return { clip: { ...clip, bars: [...clip.bars, { columns: emptyBarRests(time, beatGroupsAt(clip, bar)).map(emptyColumn) }] }, cursor: { ...cursor, bar: bar + 1, column: 0 } };
 }
 
 /**
@@ -371,7 +388,7 @@ export function insertBar(clip: Part, cursor: Cursor, where: 'before' | 'after')
   // A Pickup bar stays the first bar: a bar put in before it goes after it.
   const index = where === 'before' && !(cursor.bar === 0 && hasPickup(clip)) ? cursor.bar : cursor.bar + 1;
   const time = index === 0 ? clip.time : timeAt(clip, index - 1);
-  const rests = emptyBarRests(time).map(emptyColumn);
+  const rests = emptyBarRests(time, index === 0 ? beatGroupsAt(clip, 0) : beatGroupsAt(clip, index - 1)).map(emptyColumn);
   const bars = [...clip.bars];
   bars.splice(index, 0, { columns: rests });
   return { clip: normalize({ ...clip, bars }), cursor: { ...cursor, bar: index, column: 0 } };

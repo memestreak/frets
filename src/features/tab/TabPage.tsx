@@ -16,7 +16,7 @@ import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { clampCursor, columnAt, columnCount, copyText, indexOf, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
-import { clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
+import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
 import { TupletPanel } from './TupletPanel';
 import { cursorSpot } from './fieldSpots';
@@ -216,6 +216,8 @@ export default function TabPage() {
     selection: selection ?? (columnOnly && columnAt(clip, cursor) ? { anchor: cursorIndex, focus: cursorIndex } : null),
     alone: editor.alone,
   };
+  /** What the beam tools act on: the cursor's note or the selection (`setBeam`). */
+  const beamTarget = { cursor, selection: target.selection };
   // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
   const { playback: playbackSettings, setPlayback: setPlaybackSettings, metronome, setMetronome } = prefs;
   const showPlayback = playbackSettings.shown;
@@ -733,7 +735,10 @@ export default function TabPage() {
       // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
       isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id)
         // In note input Grace lights while Grace entry is on (step 6, Q11).
-        : inputMode && id === 'grace' ? graceEntry : isOn(clip, cursor, id, columnOnly)))}
+        : inputMode && id === 'grace' ? graceEntry
+        // A beam tool lights for every note it acts on having its override (spec Q8, Q10).
+        : id === 'beamBreak' || id === 'beamJoin' ? beamLit(clip, target, id === 'beamBreak' ? 'break' : 'join')
+        : isOn(clip, cursor, id, columnOnly)))}
       kinds={inputMode && lit ? { ...paletteKinds, tuplet: tupletEntry ? { ...inputLength, tuplet: tupletEntry } : null } : paletteKinds}
       onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
       onTuplet={pickTuplet}
@@ -953,6 +958,9 @@ export default function TabPage() {
             { label: 'Insert bar after', onSelect: () => addBar('after') },
             // Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238).
             { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) },
+            // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).
+            ...(canBeamTarget(clip, beamTarget, 'break') ? [{ label: 'Break beam before', checked: beamLit(clip, beamTarget, 'break'), onSelect: () => onTool('beamBreak') }] : []),
+            ...(canBeamTarget(clip, beamTarget, 'join') ? [{ label: 'Join beam to previous', checked: beamLit(clip, beamTarget, 'join'), onSelect: () => onTool('beamJoin') }] : []),
           ]}
         />
       )}

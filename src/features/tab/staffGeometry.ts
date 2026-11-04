@@ -47,7 +47,7 @@ function headXs(heads: Head[], left: number, up: boolean, width: number): number
 
 /** A bar's columns on the staff: a beamed group's stems all go one way, decided by all its heads, and end on one flat beam. */
 export function staffBar(bar: PlacedBar, score: ScoreRows): StaffBarGeometry {
-  const groups = beamGroups(bar, bar.beat).map(g => g.columns);
+  const groups = beamGroups(bar).map(g => g.columns);
   const groupOf = new Map<PlacedColumn, PlacedColumn[]>();
   for (const g of groups) for (const p of g) groupOf.set(p, g);
   const groupUp = new Map<PlacedColumn[], boolean>();

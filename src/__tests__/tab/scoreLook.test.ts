@@ -148,14 +148,14 @@ describe('view options', () => {
 describe('beams', () => {
   it('join plain eighths four at a time in 4/4, by the half bar', () => {
     const bar = layoutClip(clipOf(EIGHTS), 800).systems[0].bars[0];
-    expect(beamGroups(bar, bar.beat).map(g => g.columns.map(c => c.index))).toEqual([[0, 1, 2, 3], [4, 5, 6, 7]]);
+    expect(beamGroups(bar).map(g => g.columns.map(c => c.index))).toEqual([[0, 1, 2, 3], [4, 5, 6, 7]]);
   });
 
   it('stay by the beat in 2/4, and where a beat has sixteenths', () => {
     const two = layoutClip(clipOf('\\ts (2 4) 1.1.8 1.1.8 1.1.8 1.1.8 |'), 800).systems[0].bars[0];
-    expect(beamGroups(two, two.beat).map(g => g.columns.length)).toEqual([2, 2]);
+    expect(beamGroups(two).map(g => g.columns.length)).toEqual([2, 2]);
     const mixed = layoutClip(clipOf('1.1.8 1.1.8 1.1.16 1.1.16 1.1.8 r.2 |'), 800).systems[0].bars[0];
-    expect(beamGroups(mixed, mixed.beat).map(g => g.columns.length)).toEqual([2, 3]);
+    expect(beamGroups(mixed).map(g => g.columns.length)).toEqual([2, 3]);
   });
 });
 

@@ -9,7 +9,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  barLength, barTicks, BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, hiddenVoicesMessage, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
@@ -338,6 +338,9 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
   // The bar marks every track shares, from alphaTab's master bars and the tags any track wrote for them.
   const firstStaff = score.tracks[0].staves[0];
   let timeNow = time;
+  let groupsNow = defaultGroupCounts(time);
+  /** The bars whose `\beaming` was read as Beat groups; any other is kept as written. */
+  const beamingRead = new Set<number>();
   const masterBars: MasterBar[] = score.masterBars.map((master, b) => {
     const bar: MasterBar = {};
     const tags = new Set(score.tracks.flatMap((_, t) => nodesOf(t, b).flatMap(node => node.metaData.map(m => m.tag.tag.text.toLowerCase()))));
@@ -363,6 +366,18 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       if (!isTimeSignature(later.beats, later.value)) warn(`Frets doesn't offer ${later.beats}/${later.value}; bar ${b + 1} keeps ${timeNow.beats}/${timeNow.value}.`);
       else if (later.beats !== timeNow.beats || later.value !== timeNow.value) bar.time = timeNow = later;
     }
+    // A new meter starts with its default Beat groups; the same meter carries them on, as alphaTab does.
+    if (bar.time) groupsNow = defaultGroupCounts(timeNow);
+    const counts = tags.has('beaming') ? groupsOfBeaming(master, timeNow) : null;
+    if (counts) {
+      beamingRead.add(b);
+      if (!sameGroups(counts, groupsNow)) {
+        // Beat groups are part of a time signature (spec Q4): new ones in the same meter are a change.
+        if (b > 0 && !bar.time) bar.time = timeNow;
+        groupsNow = counts;
+      }
+      if (!sameGroups(counts, defaultGroupCounts(timeNow)) && (b === 0 || bar.time)) bar.beatGroups = counts;
+    }
     // A key signature as written, even one the bar before already had, so the text reads back the same.
     const atBar = firstStaff.bars[b];
     if (atBar && tags.has('ks')) {
@@ -384,6 +399,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       for (const meta of nodesOf(t, b).flatMap(node => node.metaData)) {
         const name = meta.tag.tag.text.toLowerCase();
         if (TAGS.has(name)) continue;
+        if (name === 'beaming' && beamingRead.has(b)) continue;
         // The first bar's \ac makes it a Pickup bar, read below; a later bar's is kept as written.
         if (b === 0 && name === 'ac') continue;
         if (LAYOUT_TAGS.has(name) && t === 0 && b === 0 && layoutOk.has(name)) continue;
@@ -510,7 +526,7 @@ function columnsOf(
 ): Column[] {
   const beatNodes = barNode.beats.flatMap(n => Array<BeatNode>(n.beatMultiplierValue?.value ?? 1).fill(n));
   const atBeats = beatNodes.length === 0 ? [] : (atBar?.voices[voice]?.beats ?? []);
-  return atBeats.map((beat, i) => {
+  const columns = atBeats.map((beat, i) => {
     const node = beatNodes[i];
     const column: Column = { duration: durationOf(beat, warn), notes: Array<Note | null>(STRING_COUNT).fill(null) };
     if (beat.pickStroke === at.model.PickStroke.Down) column.stroke = 'down';
@@ -540,6 +556,39 @@ function columnsOf(
     if (extra.length > 0) column.extra = extra;
     return column;
   });
+  // `{beam split}` and `{beam merge}` on a beat are the next Column's Beam override; on the bar's last beat they are kept.
+  columns.forEach((column, i) => {
+    const k = column.extra?.findIndex(e => BEAM_OVERRIDE.test(e)) ?? -1;
+    if (k < 0 || i + 1 >= columns.length) return;
+    columns[i + 1].beam = /split/i.test(column.extra![k]) ? 'break' : 'join';
+    column.extra!.splice(k, 1);
+    if (column.extra!.length === 0) delete column.extra;
+    const left = (kept.get('beam') ?? 1) - 1;
+    if (left > 0) kept.set('beam', left);
+    else kept.delete('beam');
+  });
+  return columns;
+}
+
+/** A kept `beam` effect that is a Beam override on the next beat. */
+const BEAM_OVERRIDE = /^beam\s+\(?\s*(split|merge)\s*\)?$/i;
+
+/**
+ * A bar's `\beaming` as Beat groups of `time`, counted in its lower number: `(16 6 4 4)` in 7/8 is
+ * 3+2+2. Null when the bar has several, or one in units that don't make whole beats, or one that doesn't
+ * add up: kept as written.
+ */
+function groupsOfBeaming(master: Score['masterBars'][number], time: TimeSignature): number[] | null {
+  // alphaTab drops a bar's own rules that equal the ones before it, so read the rules in force there
+  // (`actualBeamingRules`, set by alphaTab 1.8.4 but missing from its types).
+  const inForce = (master as { actualBeamingRules?: typeof master.beamingRules }).actualBeamingRules;
+  const rules = master.beamingRules ?? inForce;
+  if (!rules || rules.groups.size !== 1) return null;
+  const [[duration, sizes]] = [...rules.groups];
+  // alphaTab 1.8.4 reads `\beaming (4 …)` as a quadruple whole note (-4): it means quarters.
+  const unit = (duration as number) === -4 ? 4 : (duration as number);
+  const counts = sizes.map((size: number) => (size * time.value) / unit);
+  return isGroupingOf(counts, time) ? counts : null;
 }
 
 /**

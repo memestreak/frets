@@ -12,6 +12,7 @@ import { columnAt, emptyColumn, normalize, placeOf, replaceBar, selectedRange, w
 import { chainDuration, chainTicks, lengthAnchor, type Place } from './ties';
 import { graceValues, isBareRest, tupletKind as kindOf, tupletRests } from './sounding';
 import { SPLITS_TUPLET, timeOf, writeOver } from './timeline';
+import { unbeamed } from './beams';
 
 /* — what the page says when a tuplet can't be made — */
 
@@ -136,7 +137,7 @@ export function tupletOver(part: Part, cursor: Cursor, n: number): Edited {
   const rests = tupletRests(ticks(unit) * (n - 1), kindFor(n));
   if (!rests) return { problem: TUPLET_CANT_WRITE };
   const start = timeOf(part, anchor.bar, anchor.column);
-  const columns = [{ ...column, duration: unit }, ...rests.map(emptyColumn)];
+  const columns = [{ ...unbeamed(column), duration: unit }, ...rests.map(emptyColumn)];
   const written = writeOver(part, start, columns, start + chainTicks(part, anchor));
   return written ? normalize(written) : { problem: SPLITS_TUPLET };
 }
@@ -156,7 +157,7 @@ export function squeezeTuplet(part: Part, from: number, to: number, n: number): 
   const kind = kindFor(n);
   const plain = (c: Column) => ticks({ value: c.duration.value, dots: c.duration.dots });
   const shortest = Math.min(...timed.map(plain));
-  const squeezed = columns.map(c => (c.grace ? c : { ...c, duration: { ...c.duration, ...kind } }));
+  const squeezed = columns.map(c => (c.grace ? c : { ...unbeamed(c), duration: { ...c.duration, ...kind } }));
   const length = squeezed.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
   const group = (shortest * (TUPLET_SPANS[n] ?? 1));
   const filled = Math.ceil(length / group - 1e-9) * group;
@@ -180,7 +181,7 @@ export function untuplet(part: Part, place: Place): Edited {
   const group = groupAt(part, place);
   if (!group) return part;
   const bar = part.bars[group.bar];
-  const columns = bar.columns.slice(group.from, group.to + 1).map(c => (c.grace ? c : { ...c, duration: without(without(c.duration, 'tuplet'), 'tupletSpan') }));
+  const columns = bar.columns.slice(group.from, group.to + 1).map(c => (c.grace ? c : { ...unbeamed(c), duration: without(without(c.duration, 'tuplet'), 'tupletSpan') }));
   while (columns.length > 0 && isBareRest(columns[columns.length - 1])) columns.pop();
   const written = writeOver(part, group.start, columns, group.start + group.length);
   return written ? normalize(written) : { problem: SPLITS_TUPLET };
@@ -297,7 +298,7 @@ export function lengthInTuplet(part: Part, place: Place, duration: Duration): Pa
   const k = place.column - group.from;
   const column = columns[k];
   const at = columns.slice(0, k).reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
-  const written: Column = { ...column, duration: { ...duration, ...kindOf(group.duration) } };
+  const written: Column = { ...unbeamed(column), duration: { ...duration, ...kindOf(group.duration) } };
   const oldEnd = at + ticks(column.duration);
   // Shorter: the note's own time is cut, its end becomes tuplet rests.
   const replaced = ticks(written.duration) < ticks(column.duration)

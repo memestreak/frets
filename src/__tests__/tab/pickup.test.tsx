@@ -30,7 +30,7 @@ const withPickup = (part: Part, length: number) => reBar(part, setPickup(part, l
 describe('the Pickup field', () => {
   const panel = (text: string) => {
     const onPickup = vi.fn();
-    render(<BarTimePanel clip={clipOf(text)} bar={0} x={0} y={0} onChange={() => {}} onPickup={onPickup} onClose={() => {}} />);
+    render(<BarTimePanel clip={clipOf(text)} bar={0} x={0} y={0} onChange={() => {}} onPickup={onPickup} onGroups={() => {}} onClose={() => {}} />);
     return onPickup;
   };
 
@@ -55,7 +55,7 @@ describe('the Pickup field', () => {
   });
 
   it('is only on bar 1’s panel', () => {
-    render(<BarTimePanel clip={clipOf('\\ts (4 4)\n1.1.1 | 2.1.1 |')} bar={1} x={0} y={0} onChange={() => {}} onPickup={() => {}} onClose={() => {}} />);
+    render(<BarTimePanel clip={clipOf('\\ts (4 4)\n1.1.1 | 2.1.1 |')} bar={1} x={0} y={0} onChange={() => {}} onPickup={() => {}} onGroups={() => {}} onClose={() => {}} />);
     expect(screen.queryByRole('spinbutton', { name: 'Pickup bar, in beats' })).toBeNull();
   });
 });

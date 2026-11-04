@@ -182,7 +182,7 @@ describe('grace notes', () => {
   it('end a beam, take no time in it and are drawn narrow', () => {
     const clip = clipOf('5.3.8 7.3.8{gr} 8.3.8 7.3.8{gr} 5.3.16 7.3.16 r.4 r.2 |');
     const bar = layoutClip(clip, 800).systems[0].bars[0];
-    expect(beamGroups(bar, WHOLE / 4).map(g => g.columns.map(c => c.index))).toEqual([[0], [2], [4, 5]]);
+    expect(beamGroups(bar).map(g => g.columns.map(c => c.index))).toEqual([[0], [2], [4, 5]]);
     expect(bar.columns[1].width).toBeLessThan(bar.columns[0].width);
   });
 });

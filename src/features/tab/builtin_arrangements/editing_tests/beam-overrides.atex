@@ -1,0 +1,9 @@
+\title "A Beam override breaks or joins a beam at one note"
+\ts (4 4)
+0.3.8 2.3.8
+  3.3.8{txt "Tab view: press this 3, then the Break the beam before this note button in the Rail's Rhythm group. The beam of four breaks before it, into two and two"}
+  5.3.8
+  7.3.8{txt "Tab view: press this 7, then the Join the beam to the note before button. The beam from the 3 now runs on to the end of the bar; press the button again and it stops before this 7 again"}
+  5.3.8 3.3.8 2.3.8 |
+0.6.1 |
+
