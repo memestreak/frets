@@ -1,7 +1,9 @@
 \title "= ties the note on to the next one"
 \ts (4 4)
-5.3.4{txt "Tab view: press this 5, then =. The 7 after it turns (5), tied to it, and the two are written as one half note"}
-  7.3.4 r.2 |
-3.2.2{txt "Tab view: press this 3, then N, Shift+5 (a quarter) and =. A quarter (3) is tied on after it, writing over the next 0; = again ties on another"}
-  0.2.4 0.2.4 |
+0.3.4 0.3.4 0.3.4 5.3.4{txt "Tab view: press this 5, then ="} |
+7.3.4{txt "This 7 turns (5), tied over the bar line to the 5"} 0.3.4 0.3.2 |
+0.2.4 0.2.4 0.2.4
+  3.2.4{txt "Tab view: press this 3, then N, Shift+5 (a quarter) and ="} |
+0.2.4 0.2.4
+  0.2.2{txt "A quarter (3) is tied on over the bar line, in place of the 0 on beat 1. Press = again: the (3) becomes a half, over the next 0 too"} |
 
