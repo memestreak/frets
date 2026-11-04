@@ -327,6 +327,10 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Specs
 
+- `docs/specs/2026-11-04-tab-pick-every-mark-design.md`: every Mark can
+  be picked: P.M. and let ring lines, signatures, staff stems and beams;
+  Spans get a Handle at each end; a picked Mark shows an Attachment line
+  and tints its notes
 - `docs/specs/2026-11-04-tab-beat-groups-beams-design.md`: beams follow
   the Beat groups; a Beat groups field for time signatures of five or
   more; Break before and Join to previous per note

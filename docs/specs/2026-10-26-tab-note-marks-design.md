@@ -93,6 +93,8 @@ should not highlight the tablature."
   (`runAround`). The cursor goes to the run's first marked note, so the
   mark's button shows pressed, and one press of it, or of M or L, turns the
   whole run off.
+  (Since 2026-11-04 a press picks the line as a Mark instead:
+  `2026-11-04-tab-pick-every-mark-design.md`.)
 - A press lands on the tab only on the staff of a bar: between 10 units
   above the top string and 10 below the bottom one (the cursor's band).
   Marks over the staff, the rhythm under it, and the space past the last bar
