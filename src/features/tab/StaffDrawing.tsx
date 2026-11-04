@@ -52,16 +52,18 @@ export function StaffDrawing({ system, score, clip, look, lastBar, marks, alone 
   // The treble clef curls round the G line. Guitar is written an octave above how it sounds; as in
   // most guitar books, the clef carries no 8 to say so (Jeremy, 2026-10-27).
   parts.push(<Glyph key="clef" name="gClef" x={system.lineStart + 3} y={stepY(score, 2)} look={look} />);
-  parts.push(<KeySignature key="key" score={score} x={system.keyX} fifths={keyAt(clip, system.bars[0].index).fifths} look={look} />);
-  if (system.timeX !== null) parts.push(<StaffTime key="time" time={clip.time} x={system.timeX} score={score} look={look} />);
+  // A picked signature is drawn in `--select` (step 8).
+  const sig = (kind: 'time' | 'key', bar: number) => litLook(look, sameWord(word, { kind, bar }));
+  parts.push(<KeySignature key="key" score={score} x={system.keyX} fifths={keyAt(clip, system.bars[0].index).fifths} look={sig('key', system.bars[0].index)} />);
+  if (system.timeX !== null) parts.push(<StaffTime key="time" time={clip.time} x={system.timeX} score={score} look={sig('time', 0)} />);
 
   for (const bar of system.bars) {
     if (bar.timeX !== null) {
       const free = startsFreeTime(clip, bar.index);
-      parts.push(<StaffTime key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} score={score} look={look} brackets={free} />);
+      parts.push(<StaffTime key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} score={score} look={sig('time', bar.index)} brackets={free} />);
     }
     if (bar.keyX !== null && changesKey(clip, bar.index)) {
-      parts.push(<KeySignature key={`key-${bar.index}`} score={score} x={bar.keyX} fifths={keyAt(clip, bar.index).fifths} look={look} />);
+      parts.push(<KeySignature key={`key-${bar.index}`} score={score} x={bar.keyX} fifths={keyAt(clip, bar.index).fifths} look={sig('key', bar.index)} />);
     }
     parts.push(<StaffBarLines key={`bar-${bar.index}`} bar={bar} score={score} look={look} final={bar.index === lastBar} word={word} />);
     parts.push(
@@ -138,7 +140,7 @@ const KEY_SIGN_STEP = 8;
 
 function KeySignature({ score, x, fifths, look }: { score: ScoreRows; x: number; fifths: number; look: TabLook }) {
   return (
-    <g data-testid="key-signature">
+    <g data-testid="key-signature" data-selected={look.ink === 'var(--select)' || undefined}>
       {keySigns({ fifths }).map(({ step, sharp }, k) => (
         <Glyph key={k} name={sharp ? 'accidentalSharp' : 'accidentalFlat'} x={x + k * KEY_SIGN_STEP} y={stepY(score, step)} look={look} />
       ))}

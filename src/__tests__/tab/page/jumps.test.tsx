@@ -156,9 +156,12 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(screen.getByTestId('selected-note')).toBeInTheDocument();
     alt('ArrowLeft');
     expect(isLit(screen.getByTestId('chord-name'))).toBe(true);
-    // At the start nothing is before it: the chord name stays picked.
+    // Before it, bar 1's time signature (step 8); at the start nothing is before that, so it stays picked.
     alt('ArrowLeft');
-    expect(isLit(screen.getByTestId('chord-name'))).toBe(true);
+    expect(isLit(screen.getAllByTestId('time-signature')[0])).toBe(true);
+    expect(isLit(screen.getByTestId('chord-name'))).toBe(false);
+    alt('ArrowLeft');
+    expect(isLit(screen.getAllByTestId('time-signature')[0])).toBe(true);
   });
 
   it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {

@@ -154,21 +154,51 @@ to other notes by dragging its body.
 
 ## How
 
-- `runs.ts`: `runAt` returns a Span as a `MarkHit` (`palmMute`,
-  `letRing`, with `to`); `spanEnds` gives each Span's Handles.
-- `marks.ts`: `DrawnMark` gains `palmMute`, `letRing`; `markNotes` and
-  `attachment(layout, hit)` give the notes to tint and the line's ends;
-  `markTool` lights Palm mute and Let ring.
+- `spans.ts` (new): which Marks are Spans, the run of columns round a
+  column (`spanAround`), where a dragged end may go (`clampSpan`: stops
+  before a rest for Marks on notes, at another kind, keeps a Tie chain
+  whole) and the clip with the Span moved (`moveSpan`).
+- `attachment.ts` (new): for the picked Mark or word, the notes to
+  tint, the Attachment lines and a Span's Handles; `handleAt` and
+  `columnNear` for a drag.
+- `marks.ts`: `DrawnMark` gains `palmMute` and `letRing`, boxed on their
+  label and line; a Span's hit covers its whole run (`index` to `to`,
+  across lines); `markTool` lights Palm mute and Let ring. `runs.ts`
+  loses `runAt`.
 - `layoutText.ts` / `useTabPicking.ts`: a signature press picks a
-  `WordHit` of kind `timeSignature` or `keySignature`; `hasEdit` covers
-  them and tuplets.
-- `hitTest.ts`: `rhythmAt` takes staff stems and beams; multi-bar rests.
-- `noteEdits.ts`: `setSpan(clip, hit, from, to)` marks and unmarks
-  columns, Tie chains whole, for the Handles and Alt+Shift+← →.
-- `TabClip.tsx`: draws the Handles, the Attachment line and the tint
-  for the picked Mark; a Handle drag previews and commits once.
-- `elements.ts`: the new stops; `shortcuts.ts`: the keys.
-- `editing_tests/`: add `pick-spans.atex` and `pick-everything.atex`.
+  `WordHit` of kind `time` or `key`; Enter, a double-click and Edit open
+  its panel; Delete takes a later change away. `onDragSpan` previews a
+  Handle drag and commits it once; `moveSpanEnd` is Alt+Shift+← →.
+- `hitTest.ts`: `rhythmAt` takes staff stems and beams and multi-bar
+  rests (`lastBar`); a press on an accidental is on its note.
+- `noteEdits.ts`: `removeMark` takes P.M. and let ring off a Span.
+- `TabClip.tsx` / `StaffDrawing.tsx`: the tint, the Attachment lines and
+  the Handles, page only; signatures lit when picked.
+- `elements.ts`: the new stops; `shortcuts.ts`: the keys; `TabPage.tsx`:
+  the menu (Edit for signatures and tuplets, no Delete on bar 1's
+  signatures).
+- `editing_tests/`: `pick-spans.atex` and `pick-every-mark.atex`.
+
+## Settled while building
+
+- A press on the clef picks the line's key signature, as it opened it
+  before (2026-10-27).
+- An Attachment line from a Mark drawn over the staff (a chord name,
+  text, a fermata over Both) goes to the note head, not down through
+  the staff to the tab.
+- A picked Span's columns stay selected for the tools, so its tool and
+  Delete work on its notes, but they are drawn only as the tint, not as
+  a selection. A hairpin's columns are not selected, as before.
+- Esc on a picked Mark lets go of that selection too, and of the column
+  a Mark over the whole column put the cursor on.
+- The Handles sit 2 units outside the Span's drawn ends, so the start
+  Handle doesn't cover the label's first letter.
+- Alt+← → stop on bar 1's signatures and on each change, not on every
+  bar's.
+- A key signature's box ends where the time signature after it starts,
+  so a press on the time signature never picks the key.
+- A press on a note's accidental, left of its head on the staff, picks
+  the note (dots, brackets and ghost brackets were in reach already).
 
 ## Tests
 

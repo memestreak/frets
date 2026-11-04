@@ -25,7 +25,7 @@ import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, type E
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
-import { textBox, type TextHit, type WordHit } from './layoutText';
+import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
 import type { Notice } from './notice';
 import { pitchAtStep } from './staffEntry';
@@ -75,11 +75,16 @@ const VOICE_WARNING = /(a second voice|more voices), not drawn yet\.$|has two vo
 
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
- * ending, or a repeat's end or count. Marks, a repeat's start and a double bar have only Delete; a time or
- * key signature opens its panel on a press.
+ * ending, a repeat's end or count, a time or key signature (its panel, step 8), or a tuplet's number (the
+ * Tuplet panel). Other marks, a repeat's start and a double bar have only Delete.
  */
-function hasEdit(hit: { kind: string }): hit is WordHit {
-  return !['mark', 'repeatStart', 'doubleBar', 'time', 'key'].includes(hit.kind);
+function hasEdit(hit: Picked): boolean {
+  if (hit.kind === 'mark') return hit.mark === 'tuplet';
+  return !['repeatStart', 'doubleBar'].includes(hit.kind);
+}
+/** Whether a picked thing's menu has Delete: not bar 1's signatures, which a clip always has. */
+function hasDelete(hit: Picked): boolean {
+  return !((hit.kind === 'time' || hit.kind === 'key') && hit.bar === 0);
 }
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
@@ -189,7 +194,7 @@ export default function TabPage() {
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = editing && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : WORD_TOOL[picked.kind];
+  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
@@ -256,7 +261,9 @@ export default function TabPage() {
     drawn, layout, hearNote, setNotice, openWord: head.openWord,
     openSignature: head.openSignature, dropLine: () => setPlayMark(null),
   });
-  const { editPicked, deletePicked } = picking;
+  const { deletePicked } = picking;
+  /** A picked thing's Edit: a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
+  const editPicked = (hit: Picked) => (hit.kind === 'mark' ? openTuplets() : picking.editPicked(hit));
 
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
@@ -532,7 +539,7 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement: picking.stepToElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets,
     commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
@@ -692,8 +699,10 @@ export default function TabPage() {
   // In normal mode a column with no note picked is lit as a selection is, never boxed: arrowing onto a rest,
   // as MuseScore does, lights the rest (Jeremy, 2026-10-31: the box came back after Delete and the arrows).
   const columnLit = editing && !picked && !inputMode && columnOnly && staffCursor == null && columnAt(clip, cursor) !== null;
-  const litStart = selection ? selectedRange(selection)[0] : columnLit ? cursorIndex : null;
-  const litEnd = selection ? selectedRange(selection)[1] : columnLit ? cursorIndex : null;
+  // A picked Mark's run of columns is selected for the tools, but drawn as the Mark's tint, not a selection (step 8).
+  const shownSelection = picked?.kind === 'mark' ? null : selection;
+  const litStart = shownSelection ? selectedRange(shownSelection)[0] : columnLit ? cursorIndex : null;
+  const litEnd = shownSelection ? selectedRange(shownSelection)[1] : columnLit ? cursorIndex : null;
 
   /*
    * What the drawing is handed, the same from one render to the next while it shows the same thing, so
@@ -701,7 +710,7 @@ export default function TabPage() {
    */
   const showsCursor = editing && !picked;
   const { bar: cursorBar, column: cursorColumn, string: cursorString } = cursor;
-  const boxed = selection !== null;
+  const boxed = shownSelection !== null;
   // A picked Tie chain lights all its written notes, and a selection the chains it runs on into (step 5).
   const tiedKey = showsCursor && !inputMode ? JSON.stringify(litTiedNotes(clip, cursor, selection, columnOnly, editor.alone)) : '[]';
   const highlight = useMemo(() => ({
@@ -712,8 +721,8 @@ export default function TabPage() {
   }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode, cursorAt, tiedKey]);
   const errors = useMemo(() => barErrors(clip), [clip]);
   const clipHandlers = useStableHandlers({
-    onPick: picking.onPick, onPickRun: picking.onPickRun, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
-    onDragFret: inputMode ? undefined : picking.onDragFret, onPickRect: picking.onPickRect,
+    onPick: picking.onPick, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
+    onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn,
     onPickWarning: head.openFix,
@@ -949,9 +958,9 @@ export default function TabPage() {
             setMenu(null);
           }}
           items={menu.hit ? [
-            // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete.
-            ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit as WordHit) }] : []),
-            { label: 'Delete', onSelect: () => deletePicked(menu.hit!) },
+            // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete; bar 1's signatures: Edit.
+            ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit!) }] : []),
+            ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
           ] : [
             // The bar under a right-click already has the cursor: the press put it there.
             { label: 'Insert bar before', onSelect: () => addBar('before') },

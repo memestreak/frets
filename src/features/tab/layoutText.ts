@@ -71,7 +71,7 @@ export function barTextX(bar: PlacedBar): number {
  * What a press on the words over the staff, or on a time signature, is on: a chord name or free text
  * (its column's place in the clip), or a bar's section, tempo or time signature (the first line's is bar 0's).
  */
-export type TextHit = WordHit | { kind: 'time'; bar: number } | { kind: 'key'; bar: number };
+export type TextHit = WordHit;
 
 export const CAPO_SIZE = 11;
 /** The capo's words, as drawn: "Capo 3". */
@@ -81,9 +81,10 @@ export function capoText(capo: number): string {
 
 /**
  * A word over the staff that can be picked: a chord name, free text, a section, a tempo, the capo or an
- * ending; or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
+ * ending; a time or key signature (step 8: the bar it is drawn at, the first line's time signature bar
+ * 0's); or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
  */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending'; bar: number } | BarLineHit;
+export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
 
 /** Whether a picked word (or none) is this one. */
 export function sameWord(picked: WordHit | null, hit: WordHit): boolean {
@@ -138,6 +139,7 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     }
     const bar = system.bars.find(b => b.index === hit.bar);
     if (!bar) continue;
+    if (hit.kind === 'time' || hit.kind === 'key') return signatureBox(system, bar, hit.kind);
     const x0 = barTextX(bar);
     if (hit.kind === 'section') {
       if (!bar.bar.section) return null;
@@ -152,6 +154,24 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
 
 /** How far from a time signature's centre a press is on it. */
 const TIME_REACH = 11;
+
+/** The box round a drawn time or key signature, as `textAt` finds it; null when the bar doesn't draw one. */
+function signatureBox(system: System, bar: System['bars'][number], kind: 'time' | 'key'): { x: number; y: number; width: number; height: number } | null {
+  const { rows } = system;
+  const [top, bottom] = rows.score ? [rows.score.top - 4, rows.score.bottom + 4] : [rows.staffTop, rows.staffBottom];
+  const tall = (x0: number, x1: number) => ({ x: x0, y: system.top + top, width: x1 - x0, height: bottom - top });
+  if (kind === 'time') {
+    const first = system.bars[0] === bar && system.timeX !== null;
+    const x = first ? system.timeX : bar.timeX;
+    return x === null ? null : tall(x - TIME_REACH, x + TIME_REACH);
+  }
+  if (!rows.score) return null;
+  // The key stops where a time signature drawn after it starts.
+  const timeX = system.bars[0] === bar && system.timeX !== null ? system.timeX : bar.timeX;
+  const end = (x: number) => (timeX === null ? x : Math.min(x, timeX - TIME_REACH));
+  if (system.bars[0] === bar && bar.keyX === null) return tall(system.lineStart, end(system.staffStart));
+  return bar.keyX === null ? null : tall(bar.keyX - 4, end((bar.columns[0]?.x ?? bar.x1) - 6));
+}
 
 /** The chord name, section, tempo, capo, ending, bar line or time signature under a point; null when there is none. */
 export function textAt(layout: Layout, x: number, y: number): TextHit | null {

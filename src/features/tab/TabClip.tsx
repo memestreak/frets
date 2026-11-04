@@ -1,11 +1,11 @@
-import { memo, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { gridLines, stopNear, type GridLook } from './grid';
-import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
-import { columnRuns, RUN_MARKS, runAt, runLabelWidth, runsIn, type RunMark, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
+import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
@@ -19,6 +19,7 @@ import { TempoNote } from './TempoNote';
 import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
+import { attachment, columnNear, handleAt, type Handle } from './attachment';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -54,7 +55,7 @@ export interface Highlight {
  * and knows no ASCII. On the page it also draws the editor's `highlight`
  * and says where a press lands with `onPick`.
  */
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickRun, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, x, y }: {
   clip: Part;
   width: number;
   /** The tab, the notation staff, or both (the staff over the tab). */
@@ -79,8 +80,6 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   /** `alone`: Alt was held, so a Tied note is picked by itself, not its whole Tie chain. */
   onPick?: (hit: Hit, extend: boolean, alone?: boolean) => void;
-  /** A press on a P.M. or let ring line: its mark and the place in the clip of a column under it. */
-  onPickRun?: (mark: RunMark, index: number) => void;
   /** A press on a chord name, section or tempo, or a time or key signature; with the press, in the drawing's own units. */
   onPickText?: (hit: TextHit, at: { x: number; y: number }) => void;
   /** A press on an Uneven bar's ⚠: its bar, and where, in the drawing's units. */
@@ -104,6 +103,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * is still `onPick`, at once, so the note is selected before it moves.
    */
   onDragFret?: (drag: FretDrag) => void;
+  /** A picked Span's Handle dragged (step 8): the column it is over, as it moves and when it lets go. */
+  onDragSpan?: (drag: SpanDrag) => void;
   /**
    * Shift+drag from blank space (issue #238): the first and last column the rectangle took in. A
    * Shift+press there that doesn't move still extends the selection, as before.
@@ -138,16 +139,56 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    */
   columnReach?: number;
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
-  onPickRhythm?: (at: { bar: number; column: number }, extend: boolean) => void;
+  onPickRhythm?: (at: { bar: number; column: number; lastBar?: number }, extend: boolean) => void;
 }) {
   const layout = useMemo(() => given ?? layoutClip(clip, width, parts), [given, clip, width, parts]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
+  // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
+  const attached = useMemo(() => attachment(layout, picked ?? null, clip.capo ?? null), [layout, picked, clip.capo]);
+  /** A Handle being dragged: which, and the column it was last over. */
+  const spanPress = useRef<{ handle: Handle; column: number | null } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const toUnits = (e: PointerEvent<SVGSVGElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    return { px: (e.clientX - box.left) * scale, py: (e.clientY - box.top) * scale };
+  };
+  const dragSpan = (e: PointerEvent<SVGSVGElement>) => {
+    const press = spanPress.current;
+    if (!press || picked?.kind !== 'mark') return false;
+    const column = columnNear(layout, press.handle.system, toUnits(e).px);
+    if (column !== null && column !== press.column) {
+      press.column = column;
+      onDragSpan!({ hit: picked, end: press.handle.end, column, done: false, cancelled: false });
+    }
+    return true;
+  };
+  const dropSpan = (e: PointerEvent<SVGSVGElement> | null, cancelled: boolean) => {
+    const press = spanPress.current;
+    if (!press || picked?.kind !== 'mark') return false;
+    spanPress.current = null;
+    setDragging(false);
+    if (e) e.currentTarget.releasePointerCapture?.(e.pointerId);
+    onDragSpan!({ hit: picked, end: press.handle.end, column: press.column ?? (press.handle.end === 'start' ? picked.index : picked.to ?? picked.index), done: true, cancelled });
+    return true;
+  };
+  // Esc while dragging a Handle puts the Span back (Q8).
+  useEffect(() => {
+    if (!dragging) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      dropSpan(null, true);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  });
   const pickedWord = picked && picked.kind !== 'mark' ? picked : null;
   /**
-   * What a press at a point in the drawing is on. A right-click picks a word, bar line or mark, as a press
-   * does, for its menu (issue #276), but skips the time and key signatures, whose panels would open under
-   * the bar menu, and the P.M. and let ring lines; there it only puts the cursor in the bar.
+   * What a press at a point in the drawing is on. A right-click picks a word, signature, bar line or mark,
+   * as a press does, for its menu (issue #276, step 8).
    */
   /** In note input, a press's column moved to the nearest stop on the grid, with how far into its rest. */
   const snapped = <T extends { bar: number; column: number }>(on: T | null, px: number): (T & { at?: number }) | null => {
@@ -166,22 +207,31 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     if (py < 0 || py >= layout.height) {
       const edge = py < 0 ? 0 : layout.height - 1;
       const column = onPickColumn ? boundaryAt(layout, px, edge) : null;
-      return { run: null, text: null, mark: null, rest: null, staff: null, hit: null, column, px, py };
+      return { text: null, mark: null, rest: null, staff: null, hit: null, column, px, py };
     }
-    const run = onPickRun && words && e.button === 0 ? runAt(layout, px, py) : null;
-    const pressed = !run && onPickText && words ? textAt(layout, px, py) : null;
-    const text = pressed && e.button === 2 && (pressed.kind === 'time' || pressed.kind === 'key') ? null : pressed;
-    const mark = !run && !text && onPickMark && words ? markAt(layout, px, py) : null;
-    const rest = run || text || mark || !onPickRhythm || e.button !== 0 ? null : rhythmAt(layout, px, py);
-    const onStaff = run || text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
+    const text = onPickText && words ? textAt(layout, px, py) : null;
+    const mark = !text && onPickMark && words ? markAt(layout, px, py) : null;
+    const rest = text || mark || !onPickRhythm || e.button !== 0 ? null : rhythmAt(layout, px, py);
+    const onStaff = text || mark || rest || !onPickStaff ? null : staffAt(layout, px, py);
     // A head pressed is that note; a line or space snaps to the grid, as the tab does.
     const staff = onStaff && onStaff.string === null ? snapped(onStaff, px) : onStaff;
-    const hit = run || text || mark || rest || staff ? null : snapped(hitTest(layout, px, py), px);
-    const column = run || text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
-    return { run, text, mark, rest, staff, hit, column, px, py };
+    const hit = text || mark || rest || staff ? null : snapped(hitTest(layout, px, py), px);
+    const column = text || mark || rest || staff || hit || !onPickColumn ? null : boundaryAt(layout, px, py);
+    return { text, mark, rest, staff, hit, column, px, py };
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
+    // A picked Span's Handle takes the press before anything under it.
+    if (onDragSpan && e.button === 0 && attached.handles.length > 0) {
+      const { px, py } = toUnits(e);
+      const handle = handleAt(attached.handles, px, py);
+      if (handle) {
+        spanPress.current = { handle, column: null };
+        setDragging(true);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        return;
+      }
+    }
     const warning = onPickWarning && e.button === 0 ? (e.target as Element).closest?.('[data-warning-bar]') : null;
     if (warning) {
       const box = e.currentTarget.getBoundingClientRect();
@@ -189,7 +239,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       onPickWarning!(Number(warning.getAttribute('data-warning-bar')), { x: (e.clientX - box.left) * scale, y: (e.clientY - box.top) * scale });
       return;
     }
-    const { run, text, mark, rest, staff, hit, column, px, py } = target(e);
+    const { text, mark, rest, staff, hit, column, px, py } = target(e);
     if (rest) {
       // A rest or a stem pressed in normal mode: its column alone is selected, or with Shift the run grows to it (issues #276, #290).
       onPickRhythm!(rest, e.shiftKey);
@@ -197,7 +247,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     }
     // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
     const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
-    if (onPickRect && e.shiftKey && e.button === 0 && !run && !text && !mark && !onNote) {
+    if (onPickRect && e.shiftKey && e.button === 0 && !text && !mark && !onNote) {
       const press = () => {
         if (staff) onPickStaff!(staff, true);
         else if (hit) onPick(hit, true);
@@ -218,8 +268,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       e.currentTarget.setPointerCapture?.(e.pointerId);
       return;
     }
-    if (run) onPickRun!(run.mark, run.run.columns[0].index);
-    else if (text) onPickText!(text, { x: px, y: py });
+    if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
     else if (staff) onPickStaff!(staff, e.shiftKey, e.altKey);
     else if (hit) onPick(hit, e.shiftKey, e.altKey);
@@ -322,9 +371,9 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   // Nor does a press on a staff head, picked only when the pointer lets go or moves: focus taken now
   // would light the old cursor until then (issue #337); `onPickStaff` and `onDragStaff` take it.
   const keepFocus = (e: MouseEvent<SVGSVGElement>) => {
-    const { run, text, mark, rest, staff, hit } = target(e);
+    const { text, mark, rest, staff, hit } = target(e);
     const head = staff && staff.string !== null && onDragStaff && e.button === 0;
-    if (text || head || (!run && !mark && !rest && !staff && !hit)) e.preventDefault();
+    if (text || head || (!mark && !rest && !staff && !hit)) e.preventDefault();
   };
   const spot = highlight?.cursor ? cursorSpot(layout, highlight.cursor.bar, highlight.cursor.column, highlight.at) : null;
   const previous = previousDrawnAt(layout.systems);
@@ -340,11 +389,11 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     <svg
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { run, text, mark } = target(e); onDoubleClick(text, !!(run || mark)); } : undefined}
-      onPointerMove={onDragStaff || onDragFret || shadow !== null || onPickRect ? e => { if (!drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
+      onPointerMove={onDragStaff || onDragFret || onDragSpan || shadow !== null || onPickRect ? e => { if (!dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
-      onPointerUp={onDragStaff || onDragFret || onPickRect ? e => { if (!dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
-      onPointerCancel={onDragStaff || onDragFret || onPickRect ? e => { if (!dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerUp={onDragStaff || onDragFret || onDragSpan || onPickRect ? e => { if (!dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onDragFret || onDragSpan || onPickRect ? e => { if (!dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (
@@ -412,6 +461,18 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
         const selectedNote = cursorOnStaff ? staffNoteAt(system, highlight) : null;
         return (
         <g key={si} transform={`translate(0 ${system.top})`} data-testid="tab-system">
+          {/* A picked Mark's notes, tinted softly under their numbers and heads: not lit as picked (step 8, Q18). */}
+          {attached.tint.length > 0 && system.bars.flatMap(bar => bar.columns.flatMap(placed => attached.tint.filter(t => t.index === placed.index).flatMap(t => {
+            const note = placed.column.notes[t.string];
+            if (!note) return [];
+            const out: ReactNode[] = [];
+            if (rows.tab && !hiddenNumber(note, placed, bar, rows, joins)) out.push(
+              <rect key={`tint-${t.index}-${t.string}`} x={placed.x - 10} y={stringY(rows, t.string) - 8} width={20} height={16} rx={4} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-note" />,
+            );
+            const head = rows.score ? placed.heads.find(h => h.string === t.string) : undefined;
+            if (head) out.push(<ellipse key={`tint-head-${t.index}-${t.string}`} cx={placed.x} cy={stepY(rows.score!, head.step)} rx={8} ry={6} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-head" />);
+            return out;
+          })))}
           {/* Under the numbers, as the cursor's box is, so the Tied note's number shows through. */}
           {rows.tab && highlight?.tied && (highlight.range || highlight.staffPitch == null) && system.bars.flatMap(bar => bar.columns.flatMap(placed =>
             highlight.tied!.filter(t => t.index === placed.index).map(t => {
@@ -489,6 +550,13 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
         </g>
         );
       })}
+      {/* A picked Mark's Attachment lines and a Span's Handles: on the page only, over everything (step 8). */}
+      {attached.lines.map((l, k) => (
+        <line key={`attach-${k}`} x1={l.x} x2={l.x} y1={l.y0} y2={l.y1} stroke="var(--select)" strokeWidth={1} strokeDasharray="1.5 2.5" strokeLinecap="round" pointerEvents="none" data-testid="attachment-line" />
+      ))}
+      {onDragSpan && attached.handles.map(h => (
+        <circle key={`handle-${h.end}-${h.system}`} cx={h.x} cy={h.y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} style={{ cursor: 'ew-resize' }} data-testid="span-handle" data-end={h.end} />
+      ))}
     </svg>
   );
 });
@@ -578,11 +646,13 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   ));
   // The time signature stands in front of the staff, and a change just inside the bar it starts; under
   // the notation staff, only on that staff (Jeremy, 2026-10-27).
-  if (!rows.score && system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={look} />);
+  // A picked time signature is drawn in `--select` (step 8).
+  const timeLook = (bar: number) => litLook(look, sameWord(word, { kind: 'time', bar }));
+  if (!rows.score && system.timeX !== null) parts.push(<TimeNumbers key="time" time={clip.time} x={system.timeX} rows={rows} look={timeLook(0)} />);
   for (const bar of rows.score ? [] : system.bars) {
     if (bar.timeX !== null) {
       const brackets = startsFreeTime(clip, bar.index);
-      parts.push(<TimeNumbers key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} rows={rows} look={look} brackets={brackets} />);
+      parts.push(<TimeNumbers key={`time-${bar.index}`} time={timeAt(clip, bar.index)} x={bar.timeX} rows={rows} look={timeLook(bar.index)} brackets={brackets} />);
     }
   }
 
@@ -660,8 +730,8 @@ function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: 
       const lw = runLabelWidth(label);
       // A run shorter than its label is the label alone: its line and end tick would cross the word.
       const longer = x1 > x0 + lw + 2;
-      // A press on the line selects its run, which lights it (issue #276).
-      const picked = columns.every(c => inRun(c.index));
+      // A press on the line picks it as a Mark (step 8), or its columns selected light it (issue #276).
+      const picked = columns.every(c => inRun(c.index)) || lit(mark, columns[0].index, null, columns[columns.length - 1].index);
       const ink = litLook(look, picked).ink;
       parts.push(
         <g key={`${name}-${columns[0].index}`} data-testid={name} data-selected={picked || undefined}>
@@ -704,7 +774,7 @@ function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: 
       const y = rows.hairpins;
       const [x0, x1] = [run.from.x - 4, run.end];
       const [narrow, wide] = run.kind === 'crescendo' ? [x0, x1] : [x1, x0];
-      const picked = lit('hairpin', run.from.index, null);
+      const picked = lit('hairpin', run.from.index, null, run.to.index);
       parts.push(
         <path
           key={`hairpin-${run.from.index}`} d={`M${wide} ${y - 4} L${narrow} ${y} L${wide} ${y + 4}`}
@@ -718,7 +788,7 @@ function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: 
   if (rows.vibrato !== null) {
     for (const run of vibratoRuns(system)) {
       const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
-      const on = inRun(run.from.index) || lit('vibrato', run.from.index, null);
+      const on = inRun(run.from.index) || lit('vibrato', run.from.index, null, run.to.index);
       parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={litLook(look, on).ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
     }
   }

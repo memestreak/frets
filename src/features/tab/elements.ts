@@ -1,7 +1,7 @@
 /**
  * Alt+← → (issue #238, as MuseScore's "next element"): every thing on the clip a press can pick, in
  * reading order, so the keys step through marks and words as well as notes. In each column: its bar's
- * words first when it opens the bar (capo, section, tempo, ending), then its chord name and text, then its
+ * signatures and words first when it opens the bar (time, key, capo, section, tempo, ending), then its chord name and text, then its
  * notes from the high string down (or the rest), then its marks; a bar's repeat start before its columns,
  * and its repeat end, count and double bar line after them. Pure; built from what is drawn.
  */
@@ -14,7 +14,7 @@ import { markBoxes, type MarkHit } from './marks';
 export type Element = { kind: 'note'; index: number; string: number } | { kind: 'rest'; index: number } | MarkHit | WordHit;
 
 /** What a bar opens with, and what it closes with (issue #276: bar lines are picked too). */
-const BAR_WORDS = ['capo', 'section', 'tempo', 'ending', 'repeatStart'] as const;
+const BAR_WORDS = ['time', 'key', 'capo', 'section', 'tempo', 'ending', 'repeatStart'] as const;
 const BAR_ENDS = ['repeatEnd', 'repeatCount', 'doubleBar'] as const;
 
 export function elementsOf(clip: Part, layout: Layout): Element[] {
@@ -34,7 +34,10 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
     for (const bar of system.bars) {
       for (const kind of BAR_WORDS) {
         const hit: WordHit = { kind, bar: bar.index };
-        if ((kind !== 'capo' || bar.index === 0) && drawn(hit)) out.push(hit);
+        // A signature is a stop where the clip has one: bar 1's, and each change (step 8).
+        const own = kind === 'time' ? clip.bars[bar.index]?.time !== undefined : kind === 'key' ? clip.bars[bar.index]?.key !== undefined : true;
+        const onFirst = kind === 'capo' || kind === 'time' || kind === 'key' ? bar.index === 0 : true;
+        if ((onFirst || (own && kind !== 'capo')) && drawn(hit)) out.push(hit);
       }
       for (const { column, index } of bar.columns) {
         for (const kind of ['chord', 'text'] as const) if (drawn({ kind, index })) out.push({ kind, index });

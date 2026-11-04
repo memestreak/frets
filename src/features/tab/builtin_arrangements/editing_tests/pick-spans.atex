@@ -1,0 +1,10 @@
+\title "A let ring or P.M. line is picked as one Mark, and its ends dragged"
+\ts (4 4)
+0.3{lr}.8{txt "Tab view: press the let ring line over these notes. It turns blue, its notes get a soft tint, a dotted line runs down to its first and last notes, and a small circle sits at each end. Drag the right circle two notes on: the line joins the next let ring line"}
+  2.3{lr}.8 3.3.8 2.3.8 0.3{lr}.8 2.3{lr}.8 3.3.8 5.3.8 |
+5.4{pm}.4{txt "Tab view: press the P.M. line, then Delete. The P.M. line goes and the four notes stay"}
+  5.4{pm}.4 7.4{pm}.4 5.4{pm}.4 |
+7.2{v}.4{txt "Tab view: press the vibrato wave, then Alt+Shift+→ twice. The wave now reaches the third note of the bar"}
+  8.2.4 7.2.4 5.2.4 |
+0.6.1 |
+

@@ -3,16 +3,18 @@
  * `docs/specs/2026-10-27-tab-pick-marks-design.md`): where each one is, which palette tool sets it,
  * and taking it away. Pure; the boxes follow what `TabClip.tsx` draws.
  */
-import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Part, type Note } from './clip';
+import { bendCarries, bendRaises, columnAccent, columnMordent, isRest, TREMOLO_VALUES, tupletGroups, type Column, type Part, type Note } from './clip';
 import { BEND_LABEL_STEP, BEND_RISE, bendShape, lineAt, SPACE, stepY, stringY, TAP_RADIUS, type Layout } from './layout';
-import { columnRuns, previousDrawnAt, vibratoRuns } from './runs';
+import { columnRuns, previousDrawnAt, RUN_MARKS, runLabelWidth, runsIn, vibratoRuns } from './runs';
+import { isSpan, spanAround } from './spans';
 import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 import { whammyDrawings } from './whammy';
 
-/** The marks a press can pick. P.M. and let ring lines pick their run instead (`runAt`). */
+/** The marks a press can pick (every Mark but the words and bar lines, `layoutText.ts`). */
 export type DrawnMark =
+  | 'palmMute' | 'letRing'
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
   | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
   | 'whammy' | 'hairpin';
@@ -23,7 +25,10 @@ export interface MarkHit {
   mark: DrawnMark;
   index: number;
   string: number | null;
-  /** The last column of a mark drawn across several: a tuplet's group, a vibrato's run, an octave line. */
+  /**
+   * The last column of a mark drawn across several: a tuplet's group, or a Span (`spans.ts`), whose
+   * `index` and `to` are its first and last columns in the whole clip, across lines of tab.
+   */
   to?: number;
   /** Pressed where the notation staff draws it, not on the tab: its outline goes there. */
   on?: 'staff';
@@ -89,6 +94,15 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
     /** A row's thin mark: tall enough to press. */
     const rowMark = (mark: DrawnMark, index: number, x0: number, x1: number, rowY: number) =>
       add(mark, index, null, x0, rowY - THIN_REACH, x1, rowY + THIN_REACH);
+    // P.M. and let ring: the label and its dashed line, picked as one Mark (step 8, Q2).
+    for (const { mark, label, has } of RUN_MARKS) {
+      const rowY = rows[mark];
+      if (rowY === null) continue;
+      for (const run of runsIn(system, has)) {
+        const first = run.columns[0].index;
+        add(mark, first, null, run.x0 - 2, rowY - THIN_REACH, Math.max(run.x1, run.x0 + runLabelWidth(label)) + 2, rowY + THIN_REACH, run.columns[run.columns.length - 1].index);
+      }
+    }
     // A vibrato over neighbouring notes is one wave, picked whole.
     if (rows.vibrato !== null) {
       for (const run of vibratoRuns(system)) {
@@ -177,7 +191,14 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
     for (const { placed, box } of whammies[si]) add('whammy', placed.index, null, box.x, box.y, box.x + box.width, box.y + box.height);
     for (const { hit, box } of onStaff[si]) out.push({ hit, box: { ...box, y: top + box.y } });
   });
-  return out;
+  // A Span is one Mark across bars and lines of tab: each drawn piece names the whole of it.
+  const columns: (Column | undefined)[] = [];
+  for (const system of layout.systems) for (const bar of system.bars) for (const p of bar.columns) columns[p.index] = p.column;
+  return out.map(({ hit, box }) => {
+    if (!isSpan(hit.mark)) return { hit, box };
+    const [from, to] = spanAround(columns, hit.mark, hit.index);
+    return { hit: { ...hit, index: from, to }, box };
+  });
 }
 
 /** How far round a note's number a press is on the note, not a mark drawn near it. */
@@ -210,7 +231,10 @@ export function markAt(layout: Layout, x: number, y: number): MarkHit | null {
 
 /** Whether two hits are the same mark. */
 export function sameMark(a: MarkHit, b: MarkHit): boolean {
-  return a.mark === b.mark && a.index === b.index && a.string === b.string;
+  if (a.mark !== b.mark) return false;
+  // A Span drawn on two lines of tab is one Mark: its pieces overlap the whole.
+  if (isSpan(a.mark)) return a.index <= (b.to ?? b.index) && b.index <= (a.to ?? a.index);
+  return a.index === b.index && a.string === b.string;
 }
 
 /** The box round a picked mark, where its menu opens from the keyboard; null when it isn't drawn now. */
@@ -225,7 +249,7 @@ function pickedCopy(layout: Layout, hit: MarkHit): { hit: MarkHit; box: Box } | 
 }
 
 /** Whether a mark drawn on the tab is the picked one: its column's place, and its note's string (null for the column's). */
-export type MarkLit = (mark: DrawnMark, index: number, string: number | null) => boolean;
+export type MarkLit = (mark: DrawnMark, index: number, string: number | null, to?: number) => boolean;
 
 /**
  * Which drawn mark lights (issue #276): the picked one is drawn in `--select`, as a selected note is, on
@@ -235,7 +259,7 @@ export function markLights(layout: Layout, picked: MarkHit | null): { tab: MarkL
   const copy = picked && pickedCopy(layout, picked);
   if (!picked || !copy) return { tab: () => false, staff: () => false };
   if (copy.hit.on === 'staff') return { tab: () => false, staff: hit => sameMark(hit, picked) };
-  return { tab: (mark, index, string) => sameMark({ kind: 'mark', mark, index, string }, picked), staff: () => false };
+  return { tab: (mark, index, string, to) => sameMark({ kind: 'mark', mark, index, string, ...(to === undefined ? {} : { to }) }, picked), staff: () => false };
 }
 
 /** The note a mark is on, or the column's notes for a mark over the whole column. */
@@ -274,6 +298,8 @@ export function markTool(clip: Part, hit: MarkHit): ToolId | null {
       return note?.slide ? tools[note.slide] : null;
     }
     case 'vibrato': return notes.some(n => n.vibrato) ? 'vibrato' : null;
+    case 'palmMute': return notes.some(n => n.palmMute) ? 'palmMute' : null;
+    case 'letRing': return notes.some(n => n.letRing) ? 'letRing' : null;
     case 'ottava': return column?.ottava ? 'ottava' : null;
     case 'pinch': return notes.some(n => n.harmonic === 'pinch') ? 'pinchHarmonic' : null;
     // No palette button sets it (the N key's cycle does), so none lights.

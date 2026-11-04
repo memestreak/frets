@@ -320,6 +320,8 @@ export function removeMark(clip: Part, hit: MarkHit): Part {
     case 'slide': return changeNotes(clip, note, n => without(n, 'slide'));
     case 'tie': return changeNotes(clip, note, n => without(n, 'tie'));
     case 'vibrato': return changeNotes(clip, wholeColumn, n => without(n, 'vibrato'));
+    case 'palmMute': return changeNotes(clip, wholeColumn, n => without(n, 'palmMute'));
+    case 'letRing': return changeNotes(clip, wholeColumn, n => without(n, 'letRing'));
     case 'pinch': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'pinch' ? without(n, 'harmonic') : n));
     case 'artificial': return changeNotes(clip, wholeColumn, n => (n.harmonic === 'artificial' ? without(without(n, 'harmonic'), 'harmonicFret') : n));
     case 'accent': return changeNotes(clip, wholeColumn, n => without(n, 'accent'));

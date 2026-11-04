@@ -19,14 +19,14 @@ describe('elementsOf and stepElement (Alt+← →, issue #238)', () => {
   const clip = clipOf('\\ts (4 4)\n\\section "Intro"\n:4 (5.1 7.2){ch "A"} 7.3{v} r 3.4{ac} |');
   const list = elementsOf(clip, layoutClip(clip, 800, 'tab'));
 
-  it('lists words, notes from the high string down, rests and marks in reading order', () => {
-    expect(list.map(name)).toEqual(['section bar 0', 'chord 0', 'note 0/0', 'note 0/1', 'note 1/2', 'vibrato 1', 'rest 2', 'note 3/3', 'accent 3']);
+  it('lists signatures, words, notes from the high string down, rests and marks in reading order', () => {
+    expect(list.map(name)).toEqual(['time bar 0', 'section bar 0', 'chord 0', 'note 0/0', 'note 0/1', 'note 1/2', 'vibrato 1', 'rest 2', 'note 3/3', 'accent 3']);
   });
 
   it('steps forward and back, and stops at either end', () => {
     expect(name(stepElement(list, { kind: 'note', index: 1, string: 2 }, 1)!)).toBe('vibrato 1');
-    expect(name(stepElement(list, list[5], 1)!)).toBe('rest 2');
-    expect(name(stepElement(list, list[2], -1)!)).toBe('chord 0');
+    expect(name(stepElement(list, list[6], 1)!)).toBe('rest 2');
+    expect(name(stepElement(list, list[3], -1)!)).toBe('chord 0');
     expect(stepElement(list, list[0], -1)).toBeNull();
     expect(stepElement(list, list[list.length - 1], 1)).toBeNull();
   });
@@ -35,6 +35,17 @@ describe('elementsOf and stepElement (Alt+← →, issue #238)', () => {
     expect(name(stepElement(list, { kind: 'column', index: 0 }, 1)!)).toBe('note 0/0');
     expect(name(stepElement(list, { kind: 'column', index: 0 }, -1)!)).toBe('chord 0');
     expect(name(stepElement(list, { kind: 'column', index: 2 }, 1)!)).toBe('note 3/3');
+  });
+});
+
+describe('Alt+← → stops added in step 8', () => {
+  it('steps onto a time signature, before its bar’s words, and onto a let ring Span with its first column’s marks', () => {
+    const clip = clipOf('\\ts (4 4)\n5.1.4 7.3{lr}.4 8.3{lr}.4 r.4 |\n\\ts (3 4)\n\\section "B"\n3.4.2{d} |');
+    const list = elementsOf(clip, layoutClip(clip, 800, 'tab')).map(name);
+    expect(list).toContain('letRing 1');
+    expect(list.indexOf('letRing 1')).toBe(list.indexOf('note 1/2') + 1);
+    expect(list.indexOf('time bar 1')).toBe(list.indexOf('section bar 1') - 1);
+    expect(list.filter(n => n.startsWith('letRing'))).toEqual(['letRing 1']);
   });
 });
 

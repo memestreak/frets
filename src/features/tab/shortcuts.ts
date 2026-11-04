@@ -74,10 +74,11 @@ const NORMAL: ShortcutGroup = {
 };
 
 const PICKED: ShortcutGroup = {
-  title: 'A picked word, bar line or mark',
+  title: 'A picked word, signature, bar line or mark',
   shortcuts: [
-    { keys: ['Enter'], does: 'Edit it (a word or a repeat’s count)' },
+    { keys: ['Enter'], does: 'Edit it (a word, a repeat’s count, a signature or a tuplet’s number)' },
     { keys: ['Delete', 'Backspace'], does: 'Take it away (a tuplet’s number: the notes made plain)' },
+    { keys: ['Alt+Shift+Left', 'Alt+Shift+Right'], does: 'Move a picked line’s end a column (let ring, P.M., vibrato, octave line, hairpin)' },
     { keys: ['Shift+F10'], does: 'Its menu (a right-click too)' },
     { keys: ['Esc'], does: 'Let it go' },
   ],

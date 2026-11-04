@@ -28,9 +28,11 @@ and in its spec.
   and every newly drawn feature gets one.
 - A key added or changed goes in `shortcuts.ts` in the same PR.
 - What is selected or picked is drawn in `--select`, blue
-  (`2026-11-01-tab-selection-look-design.md`); a picked word, bar line or
-  mark has Edit and Delete in a right-click menu, and a double-click opens
-  its Edit (`2026-11-01-tab-double-click-edit-design.md`).
+  (`2026-11-01-tab-selection-look-design.md`); a picked word, signature,
+  bar line or mark has Edit and Delete in a right-click menu, and a
+  double-click opens its Edit (`2026-11-01-tab-double-click-edit-design.md`).
+  A picked Mark tints its notes and draws its Attachment line; a Span has
+  Handles (`2026-11-04-tab-pick-every-mark-design.md`).
 
 ## The page
 
@@ -121,12 +123,18 @@ and in its spec.
   which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
   gap, a stem via `rhythmAt`) and where the cursor is drawn.
-- `runs.ts` — marks over runs of columns (vibrato, let ring, P.M.) and
-  legato joins.
+- `runs.ts` — where marks over runs of columns are drawn (vibrato, let
+  ring, P.M.) and legato joins.
 - `beams.ts` — which notes a beam joins: by the Beat groups (or the beat),
   plain eighths four together in 4/4, then each note's Beam override
   (`beamGroups`, `isBeamable`, `unbeamed`) —
   `2026-11-04-tab-beat-groups-beams-design.md`.
+- `spans.ts` — the Spans (let ring, P.M., vibrato, octave lines, hairpins):
+  which columns one covers, and moving its ends (`clampSpan`, `moveSpan`)
+  — `2026-11-04-tab-pick-every-mark-design.md`.
+- `attachment.ts` — what a picked Mark belongs to: its notes' tint, its
+  Attachment lines and a Span's Handles —
+  `2026-11-04-tab-pick-every-mark-design.md`.
 - `marks.ts` — where each technique mark is so a press picks it, its
   palette tool, `markLights`, `mordentSign` —
   `2026-10-27-tab-pick-marks-design.md`.
