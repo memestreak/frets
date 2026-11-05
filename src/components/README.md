@@ -49,6 +49,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   button step; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a
   small rotary knob for a volume or level; `reset` for a double-click,
   `disabled` to grey it), shared by Tab and the Metronome,
+  `src/components/TapPulse.tsx` (`useTapPulse`: a Tap button's green
+  flash on each press, with `.tap-press`/`.tap-pulse` in
+  `src/styles/components.css`; the Metronome's Tap and show_tab's),
   `src/components/LetGoAfterUse.tsx` and `src/hooks/useLetGoAfterUse.ts`
   (mounted once by `AppShell`: a button, link or list used with the mouse
   or a finger lets go of the focus, so no widget stays outlined or keeps

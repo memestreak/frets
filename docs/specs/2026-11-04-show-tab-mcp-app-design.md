@@ -185,7 +185,8 @@ were not found to, so plan as if every chat pays.
   back) that reaches every tempo Frets writes, 20 to 400 bpm, whatever
   the line's own (not the Tab page's Speed range of 25% to 150%), and
   Tap next to it (two taps or more in time set the bpm, T too, as in
-  the Tab page's tempo panel and the Metronome; within the same range), a Staff / Tab / Both switch
+  the Tab page's tempo panel and the Metronome; within the same range;
+  a press gives and flashes green, as the Metronome's Tap does), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens
   the line on the Tab page in a new tab.
 - Follows the host's theme; teardown stops playback and closes the audio.
@@ -267,6 +268,7 @@ were not found to, so plan as if every chat pays.
   nothing the call gave.
 - Two taps 500 ms apart on Tap set 120 bpm, and the model is told; one
   tap changes nothing.
+- A press on Tap flashes it afresh each time (`.tap-pulse`).
 - T taps too, but not while the bpm field is being typed in.
 - The bpm field and Tap reach 20 to 400 bpm on a line at 90: 300 bpm
   tapped is kept, 600 stops at 400, 21 is kept.

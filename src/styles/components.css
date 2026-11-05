@@ -392,3 +392,13 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
 .mock-switcher-row { display: flex; align-items: center; gap: 8px; }
 .mock-switcher-label { min-width: 3.5em; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); }
 .mock-switcher .seg-opt { padding: 4px 9px; font-size: 12px; }
+
+/* A Tap button's press (TapPulse.tsx; the Metronome's Tap and show_tab's): it gives a little and a
+   green flash fades from it, so each tap is felt. */
+.tap-press { position: relative; overflow: hidden; transition: transform 80ms ease-out; }
+.tap-press:active { transform: scale(0.95); }
+.tap-pulse {
+  position: absolute; inset: 0; border-radius: inherit; background: var(--secondary); pointer-events: none;
+  animation: tap-pulse 260ms ease-out forwards;
+}
+@keyframes tap-pulse { from { opacity: 0.55; } to { opacity: 0; } }

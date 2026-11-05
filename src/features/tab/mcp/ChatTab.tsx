@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { PlayIcon } from '@/components/icons';
+import { useTapPulse } from '@/components/TapPulse';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
@@ -117,6 +118,12 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
     if (tapped !== null) playback.setSpeed(tapped / clipBpm);
   };
   useLetterKey('t', tap);
+  // The button gives and flashes on each press, as the Metronome's Tap does.
+  const { pulse, flash } = useTapPulse();
+  const pressTap = () => {
+    tap();
+    pulse();
+  };
   // The chat sets only points, never 'whole'.
   useEffect(() => onHeard({ bpm, loop: Array.isArray(loop) ? loop : null }), [bpm, loop, onHeard]);
 
@@ -164,17 +171,18 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
         </div>
         {/* Timed from the press, not the release, so the beat is where the finger lands. */}
         <button
-          type="button" className="btn btn-secondary tab-tap" data-tip="Tap twice or more in time to set the bpm (T)"
+          type="button" className="btn btn-secondary tab-tap tap-press" data-tip="Tap twice or more in time to set the bpm (T)"
           onMouseDown={e => e.preventDefault()}
-          onPointerDown={e => { if (e.button === 0) tap(); }}
+          onPointerDown={e => { if (e.button === 0) pressTap(); }}
           // Enter on the focused button taps; Space plays, as everywhere in the frame (useSpaceKey).
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.repeat) {
               e.preventDefault();
-              tap();
+              pressTap();
             }
           }}
         >
+          {flash}
           Tap
         </button>
         {player.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}

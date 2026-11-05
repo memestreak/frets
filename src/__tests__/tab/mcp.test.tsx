@@ -423,6 +423,20 @@ describe('the app', () => {
     }
   });
 
+  it('flashes Tap on each press, as the Metronome’s Tap does', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    await screen.findByRole('button', { name: 'Tap' });
+    expect(tapButton()).toHaveClass('tap-press');
+    expect(tapButton().querySelector('.tap-pulse')).toBeNull();
+    tapAt([1000], pressTap);
+    const first = tapButton().querySelector('.tap-pulse');
+    expect(first).not.toBeNull();
+    tapAt([1500], pressTap);
+    // A fresh flash each time, so its fade starts over.
+    expect(tapButton().querySelector('.tap-pulse')).not.toBe(first);
+  });
+
   it('taps on T too, but not while the bpm is being typed', async () => {
     const { bridge } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));
