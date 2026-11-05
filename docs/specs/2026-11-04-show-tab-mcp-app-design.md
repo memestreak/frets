@@ -189,9 +189,10 @@ were not found to, so plan as if every chat pays.
   a press gives and flashes green, as the Metronome's Tap does), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens
   the line on the Tab page in a new tab.
-- Blue where the site is rust: inside the card, `--primary` is the
-  selection's denim (`--select`), so Loop when on, the buttons' hover,
-  the loop bracket and Open in Frets are blue.
+- Blue controls where the site is rust: in the row of controls,
+  `--primary` is the selection's denim (`--select`), so Loop when on,
+  the buttons' hover and Open in Frets are blue. The loop bracket over
+  the music stays rust.
 - Follows the host's theme; teardown stops playback and closes the audio.
   Nothing is saved.
 - **No editing in the first version** (Q14): the app passes `TabClip` no
