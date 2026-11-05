@@ -111,8 +111,8 @@ export interface Playback {
    * notes, they go); with none, round the whole clip, or off when there are some.
    */
   toggleLoop: (selection: [number, number] | null) => void;
-  /** Moves the loop points, as dragging an end of their bracket does. */
-  setLoopPoints: (points: [number, number]) => void;
+  /** Moves the loop points, as dragging an end of their bracket does; null takes them away. */
+  setLoopPoints: (points: [number, number] | null) => void;
   setSpeed: (speed: number) => void;
   /** Moves the playing clip to a column; false when nothing is playing. */
   seek: (index: number) => boolean;

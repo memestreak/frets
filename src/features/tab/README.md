@@ -358,20 +358,24 @@ or saved. Standard tuning only.
   (pitches placed by `choosePlace`, as in staff entry; full bars; joins
   with a note to join), each error naming the bar and column; `lineOf`
   turns a `Part` back into the JSON, every note on its string and fret;
-  `describeLine`.
+  `describeLine`; `loopPoints`, `loopOf` and `describeLoop` for the loop
+  points a call sets and the model hears back.
 - `mcp/register.ts` — `show_tab` and its app's resource. The result is a
   line of text with the Frets link, and the checked line for the app.
-- `mcp/TabApp.tsx` — the app: shows the call's line, tells the model when
-  the user changes the bpm or the loop, unmounts the line on teardown so
-  the sound goes.
-- `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip` and the
-  playhead, then Play, Loop, the bpm, Staff | Tab | Both and Open in Frets.
+- `mcp/TabApp.tsx` — the app: shows the call's line and loop points, tells
+  the model when the user changes the bpm or the loop points, unmounts the
+  line on teardown so the sound goes.
+- `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
+  playhead and the loop bracket with its handles, then Play, Loop (L), the
+  bpm, Staff | Tab | Both and Open in Frets.
 - The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
   guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
   `mcp/dist/tab.html`.
 
 ## Specs
 
+- `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in
+  show_tab, set by the model and dragged by the user in the chat
 - `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar
   music in a chat as staff over tab that plays (show_tab), then generated
   phrases and progressions (show_phrase)

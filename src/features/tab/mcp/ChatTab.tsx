@@ -1,7 +1,9 @@
 /**
  * The line as the Tab MCP App shows it (#340, `docs/specs/2026-11-04-show-tab-mcp-app-design.md`): the
- * Tab page's own drawing (`TabClip`, the playhead) and sound (`usePlayback`), with a row of controls
- * under it: Play, Loop, the bpm, Staff | Tab | Both, and Open in Frets. Nothing is edited or saved.
+ * Tab page's own drawing (`TabClip`, the playhead, the loop bracket and its handles) and sound
+ * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm, Staff | Tab | Both, and Open in
+ * Frets. Nothing is edited or saved; the loop points are the one thing the user moves on the music
+ * (`docs/specs/2026-11-05-show-tab-loop-points-design.md`).
  */
 import { useEffect, useMemo, useState } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
@@ -12,11 +14,12 @@ import { writePart } from '../alphatex';
 import { DEFAULT_BPM, type Part } from '../clip';
 import { DEFAULT_FX } from '../effects';
 import { layoutClip, type Parts } from '../layout';
-import { LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
+import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
 import { DEFAULT_SOUND, MAX_SPEED, MIN_SPEED } from '../playback';
 import { shareLink } from '../shareLink';
 import { TabClip } from '../TabClip';
 import { useWidth } from '../useWidth';
+import type { LoopPoints } from './lineJson';
 import { SITE } from './register';
 import type { View } from './tool';
 
@@ -30,16 +33,35 @@ const VIEWS: readonly { view: View; label: string }[] = [
 /** The volume the line plays at: the Tab page's Volume knob is left out, the host's own volume stands. */
 const VOLUME = 0.8;
 
-/** What the user changed that the model should hear about: the bpm, and whether it loops. */
+/** What the user changed that the model should hear about: the bpm, and the loop points, if any. */
 export interface Heard {
   bpm: number;
-  loop: boolean;
+  loop: LoopPoints | null;
 }
 
-export function ChatTab({ part, view: asked, onOpen, onHeard }: {
+/**
+ * L anywhere in the frame calls `onPress`, as on the Tab page, except while typing in a field (the
+ * bpm). Held down, it calls once.
+ */
+function useLoopKey(onPress: () => void) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'l' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
+      e.preventDefault();
+      if (!e.repeat) onPress();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onPress]);
+}
+
+export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }: {
   part: Part;
   /** How the call asked for it to be drawn; the switch starts there. */
   view: View;
+  /** The loop points the call set, or null. */
+  loop: LoopPoints | null;
   /** Opens a link outside the chat (the host's `openLink`). */
   onOpen: (url: string) => void;
   /** The bpm or the loop changed. */
@@ -64,9 +86,23 @@ export function ChatTab({ part, view: asked, onOpen, onHeard }: {
   useSpaceKey(() => playback.toggle(0));
   useLetGoAfterUse();
 
+  // A new line comes with its own loop points, or none, in place of the user's.
+  const { setLoopPoints } = playback;
+  useEffect(() => {
+    setLoopPoints(askedLoop);
+    // setLoopPoints is made afresh on every draw; only a new line sets them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [part, askedLoop]);
+
+  // Loop always puts the bracket over the whole line, so both its ends are there to drag in.
+  const columns = part.bars.reduce((n, b) => n + b.columns.length, 0);
+  const toggleLoop = () => setLoopPoints(loop ? null : [0, columns - 1]);
+  useLoopKey(toggleLoop);
+
   const clipBpm = part.bars[0]?.tempo?.bpm ?? DEFAULT_BPM;
   const bpm = Math.round(clipBpm * speed);
-  useEffect(() => onHeard({ bpm, loop: loop !== null }), [bpm, loop, onHeard]);
+  // The chat sets only points, never 'whole'.
+  useEffect(() => onHeard({ bpm, loop: Array.isArray(loop) ? loop : null }), [bpm, loop, onHeard]);
 
   // The link Open in Frets opens: the line as the Tab page's own `#tabz=`.
   const [link, setLink] = useState<string | null>(null);
@@ -79,13 +115,13 @@ export function ChatTab({ part, view: asked, onOpen, onHeard }: {
   }, [part]);
 
   const playLabel = player.state === 'loading' ? 'Loading the sound…' : playing ? 'Stop' : 'Play';
-  const toggleLoop = () => playback.toggleLoop(null);
   return (
     <section className="card chat-tab" aria-label="Staff and tab">
       <div ref={ref} className="chat-tab-music relative">
         {layout && <Playhead clip={part} layout={layout} width={width} playback={playback} mark={null} layer="under" />}
         {layout && <TabClip clip={part} layout={layout} width={width} parts={parts} title={`The line, drawn as ${VIEWS.find(v => v.view === view)!.label.toLowerCase()}`} />}
         {layout && <Playhead clip={part} layout={layout} width={width} playback={playback} mark={null} layer="over" />}
+        {layout && <LoopHandles layout={layout} width={width} playback={playback} />}
       </div>
       <div className="chat-tab-row">
         <button
@@ -96,7 +132,8 @@ export function ChatTab({ part, view: asked, onOpen, onHeard }: {
         </button>
         <button
           type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null}
-          data-tip={loop ? 'Stop looping' : 'Loop the line'} onClick={toggleLoop}
+          data-tip={loop ? 'Clear the loop points (L)' : 'Loop the line (L). Drag the ends of the bracket to loop part of it'}
+          onMouseDown={e => e.preventDefault()} onClick={toggleLoop}
         >
           <LoopIcon />
         </button>

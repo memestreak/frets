@@ -178,7 +178,9 @@ were not found to, so plan as if every chat pays.
   (`mcp/apps/noWorkerDecoder.ts`); measured in Chromium, Play sounds about
   1.2 s after the first press. The built `tab.html` is 4.0 MB, 2.0 MB
   gzipped.
-- **Controls**: Play | Stop (Space too), Loop (the whole line), a bpm
+- **Controls**: Play | Stop (Space too), Loop (the whole line; loop
+  points the model sets and the user drags since
+  `2026-11-05-show-tab-loop-points-design.md`), a bpm
   field (drag, arrows or type; a double-click puts the line's own tempo
   back), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens

@@ -13,7 +13,7 @@ export const TOOL_NAME = 'show_tab';
 export const APP_URI = 'ui://tab/app.html';
 
 export const TOOL_DESCRIPTION = [
-  'Show a line of guitar music in the chat as standard notation over tab, with Play, Loop, a bpm field and Open in Frets.',
+  'Show a line of guitar music in the chat as standard notation over tab, with Play, Loop (whose ends the user can drag), a bpm field and Open in Frets.',
   'Use it for a riff, a phrase or an exercise you write note by note. Standard tuning.',
   'Each bar must add up to its time signature. A failed check says which bar and column to fix.',
 ].join(' ');
@@ -46,11 +46,21 @@ const column = z.object({
   chord: z.string().optional().describe('A chord name over the column, such as "Am7".'),
 });
 
+/** One end of the loop: a bar, and a column in it, counted from 1. */
+const loopEnd = z.object({
+  bar: z.number().int().min(1),
+  column: z.number().int().min(1).optional(),
+});
+
 export const toolInput = {
   bpm: z.number().int().min(MIN_BPM).max(MAX_BPM).optional().describe('Tempo in bpm; 120 when left out.'),
   time: z.tuple([z.number().int(), z.number().int()]).optional().describe('Time signature as [beats, note value]: [4, 4] (the default), [3, 4], [6, 8].'),
   capo: z.number().int().min(1).max(MAX_CAPO).optional().describe('Capo fret; frets count from it.'),
   view: z.enum(['both', 'staff', 'tab']).optional().describe('What to draw: both (the default), staff only or tab only.'),
+  loop: z.object({
+    start: loopEnd.optional().describe('Where the loop starts; the bar\'s first column when column is left out, the line\'s start when left out.'),
+    end: loopEnd.optional().describe('Where it ends, included; the bar\'s last column when column is left out, the line\'s end when left out.'),
+  }).optional().describe('Loop points, set but not played: Play is the user\'s. {} loops the whole line.'),
   bars: z.array(z.object({ columns: z.array(column) })).min(1),
 };
 
@@ -59,3 +69,5 @@ export type LineInput = z.infer<typeof inputSchema>;
 export type NoteInput = z.infer<typeof note>;
 export type ColumnInput = z.infer<typeof column>;
 export type View = NonNullable<LineInput['view']>;
+export type LoopInput = NonNullable<LineInput['loop']>;
+export type LoopEnd = z.infer<typeof loopEnd>;

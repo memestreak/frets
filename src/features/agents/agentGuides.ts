@@ -67,7 +67,7 @@ export const MCP_SERVER = {
       name: 'show_tab',
       page: '/tab',
       title: 'Staff and tab',
-      summary: 'Ask for a riff, a phrase or an exercise, and it appears in the chat as staff over tab that plays.',
+      summary: 'Ask for a riff, a phrase or an exercise, and it appears in the chat as staff over tab that plays and loops where you drag the loop points.',
     },
   ] as readonly McpTool[],
 };

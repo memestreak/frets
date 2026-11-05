@@ -13,7 +13,7 @@ import { builtinsFrom, SAMPLES_FOLDER } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { STANDARD_TUNING, partOf, type Bar, type Column, type Note, type Part } from '@/features/tab/clip';
 import { APP_INFO, REPORT_DELAY_MS, TabApp } from '@/features/tab/mcp/TabApp';
-import { describeLine, lineFromInput, lineOf, noteMidi } from '@/features/tab/mcp/lineJson';
+import { describeLine, describeLoop, lineFromInput, lineOf, loopOf, noteMidi } from '@/features/tab/mcp/lineJson';
 import { APP_URI, TOOL_NAME } from '@/features/tab/mcp/tool';
 import { readLink } from '@/features/tab/shareLink';
 import { choosePlace } from '@/features/tab/staffEntry';
@@ -196,6 +196,46 @@ async function connectedClient() {
   return client;
 }
 
+describe('the loop points', () => {
+  /** Three bars of four quarters: columns 0–3, 4–7 and 8–11 across the line. */
+  const three = { bars: [bar([]), bar([]), bar([])] };
+  const loopOn = (loop: unknown) => made({ ...three, loop }).loop;
+
+  it('has none when the call sets none', () => {
+    expect(made(three).loop).toBeNull();
+  });
+
+  it('counts bars and columns from 1, as the model does, and fills in what is left out', () => {
+    expect(loopOn({})).toEqual([0, 11]);
+    expect(loopOn({ start: { bar: 2 } })).toEqual([4, 11]);
+    expect(loopOn({ end: { bar: 2 } })).toEqual([0, 7]);
+    expect(loopOn({ start: { bar: 2, column: 3 }, end: { bar: 3, column: 1 } })).toEqual([6, 8]);
+    expect(loopOn({ start: { bar: 2 }, end: { bar: 2 } })).toEqual([4, 7]);
+  });
+
+  it('refuses a bar or column the line hasn’t got, and a start after the end', () => {
+    expect(error({ ...three, loop: { start: { bar: 4 } } })).toBe('Loop start: there is no bar 4; the line has 3.');
+    expect(error({ ...three, loop: { end: { bar: 2, column: 5 } } })).toBe('Loop end: bar 2 has 4 columns.');
+    expect(error({ ...three, loop: { start: { bar: 3 }, end: { bar: 1 } } })).toBe('Loop: the start comes after the end.');
+    expect(error({ ...three, loop: { start: { bar: 0 } } })).toMatch(/^loop, start, bar: /);
+  });
+
+  it('gives the points back in the call’s shape, a column only where it isn’t the bar’s edge', () => {
+    const { part } = made(three);
+    expect(loopOf(part, [0, 11])).toEqual({ start: { bar: 1 }, end: { bar: 3 } });
+    expect(loopOf(part, [6, 8])).toEqual({ start: { bar: 2, column: 3 }, end: { bar: 3, column: 1 } });
+    expect(made({ ...three, loop: loopOf(part, [6, 8]) }).loop).toEqual([6, 8]);
+  });
+
+  it('says them in words', () => {
+    const { part } = made(three);
+    expect(describeLoop(part, [0, 11])).toBe('the whole line');
+    expect(describeLoop(part, [4, 7])).toBe('bar 2');
+    expect(describeLoop(part, [4, 11])).toBe('bars 2 to 3');
+    expect(describeLoop(part, [4, 8])).toBe('bar 2 to bar 3, column 1');
+  });
+});
+
 describe('the server', () => {
   it('lists show_tab with its app, its whole definition under 1,500 tokens', async () => {
     const { tools } = await (await connectedClient()).listTools();
@@ -227,6 +267,13 @@ describe('the server', () => {
     expect(result.structuredContent).toEqual({ line: lineOf(part), view: 'tab' });
   });
 
+  it('names the loop points in its answer, and hands them to the app', async () => {
+    const args = { bars: [bar([]), bar([])], loop: { start: { bar: 2 } } };
+    const result = await (await connectedClient()).callTool({ name: TOOL_NAME, arguments: args });
+    expect((result.content as { text: string }[])[0].text).toMatch(/^Shown: 2 bars in 4\/4 at 120 bpm, as staff over tab, loop points on bar 2\. Open in Frets: /);
+    expect(result.structuredContent).toMatchObject({ loop: { start: { bar: 2 }, end: { bar: 2 } } });
+  });
+
   it('says what is wrong with a call it can’t make', async () => {
     const result = await (await connectedClient()).callTool({ name: TOOL_NAME, arguments: { bars: [{ columns: [col(4, [{ string: 1, fret: 0 }])] }] } });
     expect(result.isError).toBe(true);
@@ -254,12 +301,14 @@ vi.mock('@/features/tab/playback', async importOriginal => {
 async function mountApp() {
   const [appSide, hostSide] = InMemoryTransport.createLinkedPair();
   const told: string[] = [];
+  const context: unknown[] = [];
   const opened: string[] = [];
   const bridge = new AppBridge(null, { name: 'host', version: '1' }, { updateModelContext: { text: {} }, openLinks: {} }, {
     hostContext: { theme: 'dark' },
   });
   bridge.onupdatemodelcontext = async params => {
     told.push((params.content?.[0] as { text: string }).text);
+    context.push(params.structuredContent);
     return {};
   };
   bridge.onopenlink = async ({ url }) => {
@@ -275,7 +324,7 @@ async function mountApp() {
   app.connect = () => realConnect(appSide);
   render(<TabApp app={app} />);
   await act(() => initialized);
-  return { bridge, told, opened };
+  return { bridge, told, context, opened };
 }
 
 const LINE = { bpm: 90, bars: [bar([{ string: 5, fret: 0 }])] };
@@ -303,10 +352,42 @@ describe('the app', () => {
       for (let i = 0; i < 2; i++) act(() => screen.getByRole('button', { name: 'Faster' }).click());
       act(() => screen.getByRole('button', { name: 'Loop' }).click());
       await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
-      expect(told).toEqual(['The user is now playing the line at 100 bpm, looping.']);
+      expect(told).toEqual(['The user is now playing the line at 100 bpm, looping the whole line.']);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('starts with the call’s loop points without telling the model, and L takes them away and puts the bracket over the whole line', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { bridge, told, context } = await mountApp();
+      await act(() => bridge.sendToolInput({ arguments: { ...LINE, bars: [...LINE.bars, bar([])], loop: { start: { bar: 2 } } } }));
+      const loop = await screen.findByRole('button', { name: 'Loop' });
+      await waitFor(() => expect(loop).toHaveAttribute('aria-pressed', 'true'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told).toEqual([]);
+      act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' })); });
+      expect(loop).toHaveAttribute('aria-pressed', 'false');
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told).toEqual(['The user is now playing the line at 90 bpm, not looping.']);
+      expect(context.at(-1)).toEqual({ bpm: 90, loop: null });
+      act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' })); });
+      expect(loop).toHaveAttribute('aria-pressed', 'true');
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told.at(-1)).toBe('The user is now playing the line at 90 bpm, looping the whole line.');
+      expect(context.at(-1)).toEqual({ bpm: 90, loop: { start: { bar: 1 }, end: { bar: 2 } } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves L alone while the bpm is being typed', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+    act(() => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', bubbles: true })); });
+    expect(screen.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('opens the line on the Tab page through the host', async () => {
