@@ -110,9 +110,10 @@ export interface Playback {
   toggle: (from: number, until?: number | null) => void;
   /**
    * Loop pressed: with notes selected, the loop points go round them (pressed again on the same
-   * notes, they go); with none, round the whole clip, or off when there are some.
+   * notes, they go); with none, round the whole clip, or off when there are some. Returns the new
+   * loop points, so the page can let the selection go once they take it.
    */
-  toggleLoop: (selection: [number, number] | null) => void;
+  toggleLoop: (selection: [number, number] | null) => Loop | null;
   /** Moves the loop points, as dragging an end of their bracket does; null takes them away. */
   setLoopPoints: (points: [number, number] | null) => void;
   setSpeed: (speed: number) => void;
@@ -261,6 +262,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
       const next: Loop | null = selection && !same ? selection : loop ? null : 'whole';
       setLoop(next);
       player.current?.setLoop(next);
+      return next;
     },
     setLoopPoints: points => {
       setLoop(points);
@@ -346,7 +348,7 @@ export function trackLabel(name: string, index: number): string {
   return chars.length <= TRACK_LABEL_LENGTH ? full : `${chars.slice(0, TRACK_LABEL_LENGTH - 1).join('')}…`;
 }
 
-export function PlaybackFooter({ clip, playback, from, until, selection, shown, onShow, track, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, onLoop, shown, onShow, track, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Part;
   playback: Playback;
   /** The track shown and played: its name ('' for none) and place, which label its Sound and FX. */
@@ -362,11 +364,13 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   /** Whether the controls show; hidden, only the small button does. */
   shown: boolean;
   onShow: (shown: boolean) => void;
-  /** The column a Play starts from: the selection's first, else the cursor's, else the first. */
+  /** The column a Play starts from: the selection's first, else the loop's, else the cursor's, else the first. */
   from: number;
   /** The column a Play stops at the end of, or null to play on: "Stop playback at region end". */
   until: number | null;
   selection: [number, number] | null;
+  /** Loop pressed: the page sets the loop points (`toggleLoop`), as L does. */
+  onLoop: () => void;
   /** Whether each note entered sounds, the toggle after Loop. */
   hearNotes: boolean;
   onHearNotes: (on: boolean) => void;
@@ -441,7 +445,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           </button>
           <button
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null} data-tip={loopTip}
-            onMouseDown={e => e.preventDefault()} onClick={() => playback.toggleLoop(selection)}
+            onMouseDown={e => e.preventDefault()} onClick={onLoop}
           >
             <LoopIcon />
           </button>
