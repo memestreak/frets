@@ -13,7 +13,8 @@ the same change made to the MCP apps version of this playback toolbar."
   playhead is (or where Play starts): the clip's own tempo there, times the
   speed. Typing, stepping or dragging it sets the speed relative to that
   tempo; it never changes the clip's own tempo (the tempo panel still
-  does). The caption under it reads "Speed · 83%".
+  does). The caption under it reads "Speed · 83%", centred under the
+  number alone, not the number and Tap together (Jeremy, 2026-11-05).
 - **Its "bpm" is a Tap button.** At rest it reads "bpm" in muted text, as
   a unit does; on hover (and when focused from the keyboard, or pressed)
   it is outlined as a button and reads "Tap". Both words take the same
@@ -65,4 +66,5 @@ there. (My reading; Jeremy to confirm.)
   "133%" after taps at 120 bpm on a line at 90; a double-click on the
   caption puts 90 back.
 - Checked in a browser, light and dark: hover turns "bpm" into "Tap"
-  with nothing moving.
+  with nothing moving; the caption's centre is the number's, to the
+  pixel, on the Tab page and in show_tab (jsdom has no layout to test it).
