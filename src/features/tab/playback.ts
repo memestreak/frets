@@ -10,7 +10,7 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writePart } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { STRING_COUNT, TREMOLO_VALUES, WHOLE, ticks, type Part, type Note } from './clip';
+import { DEFAULT_BPM, MAX_BPM, MIN_BPM, STRING_COUNT, TREMOLO_VALUES, WHOLE, ticks, type Part, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
@@ -28,9 +28,25 @@ type TickLookup = AlphaTabModule.midi.MidiTickLookup;
 
 /** Where the soundfont is served from. */
 export const SOUNDFONT_URL = '/soundfont/sonivox.sf3';
-/** The speeds the slider offers, as fractions of the clip's own tempo. */
-export const MIN_SPEED = 0.25;
-export const MAX_SPEED = 1.5;
+/** The slowest and fastest alphaTab's synthesizer plays, as fractions of the written tempo. */
+const SYNTH_MIN_SPEED = 0.125;
+const SYNTH_MAX_SPEED = 8;
+
+/**
+ * The speeds the Speed field offers for a clip, in whole percent of its own tempo: as far as every
+ * tempo in it stays within the 20 to 400 bpm a tempo may be set to (Jeremy, 2026-11-05; it had been
+ * 25% to 150%, so a 120 bpm clip stopped at 180). alphaTab's synthesizer plays no slower than 12.5%
+ * and no faster than 800%, so a clip at 400 bpm slows to 52 and one at 20 speeds up to 160.
+ */
+export function speedRange(clip: Part): { min: number; max: number } {
+  const tempos = [clip.bars[0]?.tempo?.bpm ?? DEFAULT_BPM, ...clip.bars.flatMap(bar => (bar.tempo ? [bar.tempo.bpm] : []))];
+  const slowest = Math.min(...tempos);
+  const fastest = Math.max(...tempos);
+  return {
+    min: Math.ceil(Math.max(SYNTH_MIN_SPEED, MIN_BPM / slowest) * 100),
+    max: Math.floor(Math.min(SYNTH_MAX_SPEED, MAX_BPM / fastest) * 100),
+  };
+}
 
 /**
  * The sounds the footer offers, grouped by General MIDI family, by program number: only the sounds

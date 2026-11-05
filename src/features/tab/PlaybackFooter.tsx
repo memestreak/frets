@@ -16,7 +16,7 @@ import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from '@/components/VolumeKnob';
-import { MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
@@ -102,7 +102,10 @@ export interface Playback {
   /** The clip's own tempo where the playhead is (or at the start), before the speed. */
   bpm: number;
   loop: Loop | null;
+  /** A fraction of the clip's own tempo, within `speeds`. */
   speed: number;
+  /** The speeds the clip may play at, in whole percent (`speedRange`). */
+  speeds: { min: number; max: number };
   /** Plays from `from` (a column), or stops; `until`, a column, stops playback at its end. */
   toggle: (from: number, until?: number | null) => void;
   /**
@@ -147,7 +150,10 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
 }): Playback {
   const [view, setView] = useState<PlayerView>(IDLE);
   const [loop, setLoop] = useState<Loop | null>(null);
-  const [speed, setSpeedState] = useState(1);
+  const [chosenSpeed, setSpeedState] = useState(1);
+  // A tempo edited since the speed was set may leave it out of range: it plays at the nearest speed allowed.
+  const speeds = speedRange(clip);
+  const speed = Math.min(speeds.max, Math.max(speeds.min, chosenSpeed * 100)) / 100;
   const player = useRef<TabPlayer | null>(null);
   // The player reports the column about ten times a second; the page draws again only when it changes.
   const update = (change: Partial<PlayerView>) =>
@@ -234,6 +240,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
     bpm: tempoAt(clip, view.column ?? 0),
     loop,
     speed,
+    speeds,
     toggle: (from, until = null) => {
       if (view.state === 'playing') {
         player.current?.halt();
@@ -456,7 +463,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           <div className="tab-captioned" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
             <div className="tab-slot">
               <NumberField
-                value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
+                value={percent} min={playback.speeds.min} max={playback.speeds.max} step={5} unit="%"
                 label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
               />
             </div>

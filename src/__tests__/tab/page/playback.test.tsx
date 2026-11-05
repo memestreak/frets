@@ -127,7 +127,7 @@ describe('TabPage playback', () => {
     expect(transpose).toHaveValue('0');
   });
 
-  it('sets the speed with its buttons, the arrow keys and a typed number, kept within 25 to 150%', () => {
+  it('sets the speed with its buttons, the arrow keys and a typed number, kept within 17 to 333%: 20 to 400 bpm at 120', () => {
     renderAt();
     const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
     expect(field).toHaveValue('100');
@@ -141,13 +141,29 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('80');
     fireEvent.change(field, { target: { value: '10' } });
     fireEvent.blur(field);
-    expect(field).toHaveValue('25');
+    expect(field).toHaveValue('17');
+    expect(screen.getByText('20 bpm')).toBeInTheDocument();
     fireEvent.change(field, { target: { value: '999' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(field).toHaveValue('150');
+    expect(field).toHaveValue('333');
+    expect(screen.getByText('400 bpm')).toBeInTheDocument();
     fireEvent.change(field, { target: { value: '70' } });
     fireEvent.keyDown(field, { key: 'Escape' });
-    expect(field).toHaveValue('150');
+    expect(field).toHaveValue('333');
+  });
+
+  it('plays a speed the new tempo puts past 400 bpm at the fastest it allows', () => {
+    renderAt();
+    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    fireEvent.change(field, { target: { value: '300' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(screen.getByText('360 bpm')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByTestId('score-head')).getByRole('button', { name: /^Tempo:/ }));
+    const bpm = within(screen.getByRole('dialog', { name: 'Tempo' })).getByRole('spinbutton', { name: 'Tempo (bpm)' });
+    fireEvent.change(bpm, { target: { value: '200' } });
+    fireEvent.keyDown(bpm, { key: 'Enter' });
+    expect(field).toHaveValue('200');
+    expect(screen.getByText('400 bpm')).toBeInTheDocument();
   });
 
   it('turns "Hear notes as you enter them" on and off, and remembers it', () => {
