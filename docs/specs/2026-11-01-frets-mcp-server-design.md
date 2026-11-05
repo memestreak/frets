@@ -45,7 +45,9 @@ pretty-printed. "What the model sees" logs everything a host passes on to
 the model (all but `_meta`), each entry folded to one line: every tool from
 `tools/list` with its description, schema and a rough token count, each
 call's whole result (text and `structuredContent`), and each app's context
-update. Clear empties the log. The chat column's width is set by
+update. An opened entry is split into labelled parts: a result's or update's
+text (`content`) and its structured data (`structuredContent`), a tool's
+description and input schema, then anything else. Clear empties the log. The chat column's width is set by
 dragging its right edge (from 280 px up to the room there is), or by ← →
 on it.
 

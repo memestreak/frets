@@ -30,9 +30,15 @@ const log = (line: string, detail?: unknown) => {
     const summary = document.createElement('summary');
     summary.textContent = line;
     summary.addEventListener('click', () => summary.blur());
-    const pre = document.createElement('pre');
-    pre.textContent = pretty(detail, 36); // the log is narrow
-    entry.append(summary, pre);
+    entry.append(summary);
+    for (const { title, body } of sections(detail as Record<string, unknown>)) {
+      const head = document.createElement('div');
+      head.className = 'section';
+      head.textContent = title;
+      const pre = document.createElement('pre');
+      pre.textContent = body;
+      entry.append(head, pre);
+    }
   }
   $('log').prepend(entry);
 };
@@ -42,6 +48,35 @@ const forModel = (message: Record<string, unknown>) => {
   delete seen._meta;
   return seen;
 };
+/**
+ * A message split into what each part is: a result's or update's text (`content`) and its
+ * structured data (`structuredContent`); a tool's description and input schema; then the rest.
+ */
+function sections(message: Record<string, unknown>): { title: string; body: string }[] {
+  const json = (value: unknown) => pretty(value, 36); // the log is narrow
+  const out: { title: string; body: string }[] = [];
+  const rest = { ...message };
+  if (Array.isArray(rest.content)) {
+    const parts = rest.content as { type: string; text?: string }[];
+    out.push({ title: 'Text (content)', body: parts.map(c => (c.type === 'text' ? c.text : json(c))).join('\n\n') });
+    delete rest.content;
+  }
+  if ('structuredContent' in rest) {
+    out.push({ title: 'Structured data (structuredContent)', body: json(rest.structuredContent) });
+    delete rest.structuredContent;
+  }
+  if (typeof rest.description === 'string') {
+    out.push({ title: 'Description', body: rest.description });
+    delete rest.description;
+  }
+  if ('inputSchema' in rest) {
+    out.push({ title: 'Input schema (inputSchema)', body: json(rest.inputSchema) });
+    delete rest.inputSchema;
+  }
+  const others = Object.entries(rest).filter(([, v]) => v !== undefined);
+  if (others.length) out.push({ title: out.length ? 'Also' : 'Message', body: json(Object.fromEntries(others)) });
+  return out;
+}
 /** A rough token count (about 4 characters a token), for a sense of what a tool costs. */
 const tokens = (value: unknown) => `~${Math.round(JSON.stringify(value).length / 4)} tokens`;
 
