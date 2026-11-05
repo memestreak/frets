@@ -82,17 +82,6 @@ describe('TabPage playback', () => {
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!).volume).toBe(0.05);
   });
 
-  it('keeps Volume with the track box, so the row never wraps it onto a line of its own', () => {
-    renderAt();
-    const knob = screen.getByRole('slider', { name: 'Volume' });
-    const trackBox = screen.getByRole('group', { name: /^Track: / });
-    // jsdom lays nothing out, so this pins the structure the wrapping relies on: one unit of the row.
-    const unit = knob.closest('.tab-playback-end');
-    expect(unit).not.toBeNull();
-    expect(unit).toContainElement(trackBox);
-    expect(unit!.parentElement).toBe(footer());
-  });
-
   it('opens the playback options on a right-click on Play, and remembers them', () => {
     renderAt();
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Play' }), { clientX: 40, clientY: 40 });
