@@ -3,7 +3,7 @@
  * the JSON both ways, the checks, the server's answers, and the app in a stand-in host.
  */
 import * as alphaTab from '@coderline/alphatab';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { App } from '@modelcontextprotocol/ext-apps';
 import { AppBridge } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { Client } from '@modelcontextprotocol/client';
@@ -408,7 +408,7 @@ describe('the app', () => {
       now.mockRestore();
     }
   }
-  const tapButton = () => screen.getByRole('button', { name: 'Tap' });
+  const tapButton = () => screen.getByRole('button', { name: 'Tap tempo' });
   const pressTap = () => { tapButton().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })); };
   const pressT = () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' })); };
 
@@ -432,7 +432,7 @@ describe('the app', () => {
   it('flashes Tap on each press, as the Metronome’s Tap does', async () => {
     const { bridge } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));
-    await screen.findByRole('button', { name: 'Tap' });
+    await screen.findByRole('button', { name: 'Tap tempo' });
     expect(tapButton()).toHaveClass('tap-press');
     expect(tapButton().querySelector('.tap-pulse')).toBeNull();
     tapAt([1000], pressTap);
@@ -441,6 +441,20 @@ describe('the app', () => {
     tapAt([1500], pressTap);
     // A fresh flash each time, so its fade starts over.
     expect(tapButton().querySelector('.tap-pulse')).not.toBe(first);
+  });
+
+  it('has one Tap, the field\'s "bpm" (reading "Tap" on hover), and the percentage under the field', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const group = await screen.findByRole('group', { name: 'Tempo' });
+    expect(screen.getAllByRole('button', { name: 'Tap tempo' })).toHaveLength(1);
+    expect(within(group).getByRole('button', { name: 'Tap tempo' })).toHaveTextContent('bpmTap');
+    expect(within(group).getByText(/^Speed ·/)).toHaveTextContent('Speed · 100%');
+    tapAt([1000, 1500], pressTap);
+    // 120 bpm on a line at 90.
+    expect(within(group).getByText(/^Speed ·/)).toHaveTextContent('Speed · 133%');
+    fireEvent.doubleClick(within(group).getByText(/^Speed ·/));
+    expect(within(group).getByRole('spinbutton', { name: 'Tempo (bpm)' })).toHaveValue('90');
   });
 
   it('taps on T too, but not while the bpm is being typed', async () => {

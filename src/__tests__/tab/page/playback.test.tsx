@@ -127,43 +127,139 @@ describe('TabPage playback', () => {
     expect(transpose).toHaveValue('0');
   });
 
-  it('sets the speed with its buttons, the arrow keys and a typed number, kept within 17 to 333%: 20 to 400 bpm at 120', () => {
+  it('sets the speed in bpm with its buttons, the arrow keys and a typed number, kept within 20 to 400 bpm at 120, the percentage under it', () => {
     renderAt();
-    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
-    expect(field).toHaveValue('100');
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+    const caption = () => screen.getByText(/^Speed ·/);
+    expect(field).toHaveValue('120');
+    expect(caption()).toHaveTextContent('Speed · 100%');
+    // No percentage field any more.
+    expect(screen.queryByRole('spinbutton', { name: 'Speed (percent)' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
-    expect(field).toHaveValue('105');
+    expect(field).toHaveValue('125');
     fireEvent.click(screen.getByRole('button', { name: 'Slower' }));
     fireEvent.keyDown(field, { key: 'ArrowDown' });
-    expect(field).toHaveValue('95');
-    fireEvent.change(field, { target: { value: '80' } });
+    expect(field).toHaveValue('115');
+    fireEvent.change(field, { target: { value: '60' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(field).toHaveValue('80');
+    expect(field).toHaveValue('60');
+    expect(caption()).toHaveTextContent('Speed · 50%');
     fireEvent.change(field, { target: { value: '10' } });
     fireEvent.blur(field);
-    expect(field).toHaveValue('17');
-    expect(screen.getByText('20 bpm')).toBeInTheDocument();
+    expect(field).toHaveValue('20');
+    expect(caption()).toHaveTextContent('Speed · 17%');
     fireEvent.change(field, { target: { value: '999' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(field).toHaveValue('333');
-    expect(screen.getByText('400 bpm')).toBeInTheDocument();
+    expect(field).toHaveValue('400');
+    expect(caption()).toHaveTextContent('Speed · 333%');
     fireEvent.change(field, { target: { value: '70' } });
     fireEvent.keyDown(field, { key: 'Escape' });
-    expect(field).toHaveValue('333');
+    expect(field).toHaveValue('400');
+  });
+
+  it('keeps its width whatever the bpm and percentage: three digits always, the percentage the room of 800%', async () => {
+    // A clip from 20 to 200 bpm: at its start the field reaches only 20 to 40, two digits.
+    renderAt(`#tab=${encodeURIComponent('\\tempo 20 0.6.4 | \\tempo 200 0.6.4 |')}`);
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+    await waitFor(() => expect(field).toHaveAttribute('aria-valuemax', '40'));
+    expect(field.style.width).toBe('3ch');
+    // The percentage sits in a box that keeps the widest one's room (its ::before, "800%").
+    expect(screen.getByText(/^Speed ·/).querySelector('.tab-speed-percent')).toHaveTextContent(/^100%$/);
+  });
+
+  it("changes only the playback's speed, never the clip's own tempo", () => {
+    renderAt();
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+    fireEvent.change(field, { target: { value: '90' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(field).toHaveValue('90');
+    expect(within(screen.getByTestId('score-head')).getByRole('button', { name: /^Tempo:/ })).toHaveAccessibleName(/120/);
   });
 
   it('plays a speed the new tempo puts past 400 bpm at the fastest it allows', () => {
     renderAt();
-    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
-    fireEvent.change(field, { target: { value: '300' } });
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+    fireEvent.change(field, { target: { value: '360' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(screen.getByText('360 bpm')).toBeInTheDocument();
+    expect(screen.getByText('300%')).toBeInTheDocument();
     fireEvent.click(within(screen.getByTestId('score-head')).getByRole('button', { name: /^Tempo:/ }));
     const bpm = within(screen.getByRole('dialog', { name: 'Tempo' })).getByRole('spinbutton', { name: 'Tempo (bpm)' });
     fireEvent.change(bpm, { target: { value: '200' } });
     fireEvent.keyDown(bpm, { key: 'Enter' });
-    expect(field).toHaveValue('200');
-    expect(screen.getByText('400 bpm')).toBeInTheDocument();
+    expect(field).toHaveValue('400');
+    expect(screen.getByText('200%')).toBeInTheDocument();
+  });
+
+  describe('its "bpm", a Tap button', () => {
+    let now = 0;
+    beforeEach(() => {
+      now = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+    });
+    afterEach(() => vi.restoreAllMocks());
+    const tapAt = (ms: number) => {
+      now = ms;
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'Tap tempo' }), { button: 0 });
+    };
+
+    it('reads "bpm", and "Tap" on hover, in the same place', () => {
+      renderAt();
+      const tap = screen.getByRole('button', { name: 'Tap tempo' });
+      expect(tap).toHaveTextContent('bpmTap');
+      expect(tap.querySelector('.tab-bpm-hover')).toHaveTextContent('Tap');
+      expect(tap).toHaveAttribute('data-tip', 'Tap twice or more in time to set the bpm');
+      // Named apart from the Tap tool (the technique) in the rail.
+      expect(screen.queryByRole('button', { name: 'Tap' })?.closest('.tab-bpm') ?? null).toBeNull();
+    });
+
+    it('sets the speed from two taps or more in time, leaving the clip at its tempo; one tap changes nothing', () => {
+      renderAt();
+      const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+      tapAt(1000);
+      expect(field).toHaveValue('120');
+      tapAt(1600);
+      expect(field).toHaveValue('100');
+      expect(screen.getByText(/^Speed ·/)).toHaveTextContent('Speed · 83%');
+      tapAt(2200);
+      expect(field).toHaveValue('100');
+      expect(within(screen.getByTestId('score-head')).getByRole('button', { name: /^Tempo:/ })).toHaveAccessibleName(/120/);
+    });
+
+    it('taps within 20 to 400 bpm, flashes on each press, and Enter taps too', () => {
+      renderAt();
+      const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+      tapAt(1000);
+      tapAt(1100);
+      expect(field).toHaveValue('400');
+      const tap = screen.getByRole('button', { name: 'Tap tempo' });
+      const first = tap.querySelector('.tap-pulse');
+      expect(first).not.toBeNull();
+      tapAt(1250);
+      expect(tap.querySelector('.tap-pulse')).not.toBe(first);
+      now = 1400;
+      fireEvent.keyDown(tap, { key: 'Enter' });
+      expect(field).toHaveValue('400');
+      now = 1550;
+      fireEvent.keyDown(tap, { key: 'Enter' });
+      // 150 ms apart: 400 bpm, the most.
+      expect(field).toHaveValue('400');
+    });
+
+    it('keeps the focus where it was: a press on it takes none', () => {
+      renderAt();
+      const tap = screen.getByRole('button', { name: 'Tap tempo' });
+      const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      tap.dispatchEvent(press);
+      expect(press.defaultPrevented).toBe(true);
+    });
+
+    it('does not reset the speed on a double-click', () => {
+      renderAt();
+      const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+      fireEvent.click(screen.getByRole('button', { name: 'Faster' }));
+      fireEvent.doubleClick(screen.getByRole('button', { name: 'Tap tempo' }));
+      expect(field).toHaveValue('125');
+    });
   });
 
   it('turns "Hear notes as you enter them" on and off, and remembers it', () => {
@@ -177,24 +273,24 @@ describe('TabPage playback', () => {
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ hearNotes: false });
   });
 
-  it('resets the speed to 100% on a double-click on its caption or the bpm in it, or its number, not its step buttons', () => {
+  it("resets the speed to the clip's tempo (100%) on a double-click on its caption or the percentage in it, or its number, not its step buttons", () => {
     renderAt();
-    const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
     const faster = screen.getByRole('button', { name: 'Faster' });
     fireEvent.click(faster);
     fireEvent.click(faster);
     fireEvent.doubleClick(faster);
-    expect(field).toHaveValue('110');
+    expect(field).toHaveValue('130');
     fireEvent.doubleClick(screen.getByText(/^Speed ·/));
-    expect(field).toHaveValue('100');
+    expect(field).toHaveValue('120');
     fireEvent.click(faster);
-    fireEvent.doubleClick(screen.getByText(/bpm$/));
-    expect(field).toHaveValue('100');
+    fireEvent.doubleClick(screen.getByText(/^Speed ·/).querySelector('.tab-caption-value')!);
+    expect(field).toHaveValue('120');
     fireEvent.click(faster);
     act(() => field.focus());
     fireEvent.change(field, { target: { value: '60' } });
     fireEvent.doubleClick(field);
-    expect(field).toHaveValue('100');
+    expect(field).toHaveValue('120');
   });
 
   it('puts the line between columns at a press just above or below the drawing, with the controls hidden', () => {
@@ -328,7 +424,7 @@ describe('TabPage playback', () => {
     fireEvent.keyDown(editor, { key: 'l', repeat: true });
     expect(loop()).toHaveAttribute('aria-pressed', 'false');
     // Not in a field, nor with Shift, Ctrl or Alt.
-    const speed = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    const speed = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
     act(() => speed.focus());
     fireEvent.keyDown(speed, { key: 'l' });
     for (const mod of ['shiftKey', 'ctrlKey', 'altKey', 'metaKey']) fireEvent.keyDown(document.body, { key: mod === 'shiftKey' ? 'L' : 'l', [mod]: true });
@@ -343,8 +439,8 @@ describe('TabPage playback', () => {
 
   it('plays on Space anywhere on the page while the footer shows, but not in a field', () => {
     renderAt(`#tab=${encodeURIComponent(OTHER)}`);
-    act(() => screen.getByRole('spinbutton', { name: 'Speed (percent)' }).focus());
-    fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (percent)' }), { key: ' ' });
+    act(() => screen.getByRole('spinbutton', { name: 'Speed (bpm)' }).focus());
+    fireEvent.keyDown(screen.getByRole('spinbutton', { name: 'Speed (bpm)' }), { key: ' ' });
     expect(screen.queryByRole('button', { name: /Loading the sound|Stop/ })).toBeNull();
     act(() => (document.activeElement as HTMLElement).blur());
     fireEvent.keyDown(document.body, { key: ' ' });
@@ -359,12 +455,12 @@ describe('TabPage playback', () => {
     fireEvent.change(sound, { target: { value: '0' } });
     expect(sound).not.toHaveFocus();
 
-    const speed = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
+    const speed = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
     act(() => speed.focus());
-    fireEvent.change(speed, { target: { value: '80' } });
+    fireEvent.change(speed, { target: { value: '96' } });
     fireEvent.keyDown(speed, { key: 'Enter' });
     expect(speed).not.toHaveFocus();
-    expect(speed).toHaveValue('80');
+    expect(speed).toHaveValue('96');
 
     // The tab keeps a press above the staff from taking the focus; the list still lets go of it.
     act(() => sound.focus());

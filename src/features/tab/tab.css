@@ -268,6 +268,11 @@
 }
 /* The bpm in a caption: its digits don't jiggle as the speed changes. */
 .tab-caption-value { font-variant-numeric: tabular-nums; }
+/* Speed's percentage keeps the room of the widest, 800%, so the caption never changes width: the
+   number sits at the left of that room. */
+.tab-speed-percent { display: inline-grid; justify-items: start; }
+.tab-speed-percent::before { content: "800%"; visibility: hidden; }
+.tab-speed-percent::before, .tab-speed-percent > * { grid-area: 1 / 1; }
 /* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
 .tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
 .tab-play:hover { filter: brightness(1.1); }
@@ -281,6 +286,25 @@
 /* The loop bracket's ends, over the tab: drag them sideways. */
 .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
 .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+:root { --tab-bpm-tap: 48px; }
+/* The bpm field and, after it, its word "bpm", a Tap button (BpmField.tsx, issue #373): at rest it
+   reads as the field's unit, plain muted text; on hover (or focused from the keyboard, or pressed) it
+   is a button and reads "Tap". Both words share one cell, so nothing moves. */
+/* The caption centres under the number alone (Jeremy, 2026-11-05): Tap hangs out to the right of it,
+   and the captioned group keeps room for it with a margin outside its box. */
+.tab-bpm { position: relative; display: flex; align-items: center; }
+.tab-captioned:has(> .tab-slot > .tab-bpm) { margin-right: calc(var(--tab-bpm-tap) + 4px); }
+.tab-bpm-tap {
+  position: absolute; left: calc(100% + 4px); width: var(--tab-bpm-tap);
+  display: inline-grid; place-items: center; padding-inline: 0;
+  box-shadow: none; background: transparent; color: var(--ink-muted);
+  font: 400 14px/20px var(--font-sans);
+}
+.tab-bpm-word { grid-area: 1 / 1; }
+.tab-bpm-hover { visibility: hidden; }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) { box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--ink); }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) .tab-bpm-word { visibility: hidden; }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) .tab-bpm-hover { visibility: visible; }
 /* A knob with its name beside it (the FX dialog's). */
 .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
 /* The volume, at the row's far right. */

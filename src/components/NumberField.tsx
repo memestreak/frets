@@ -25,7 +25,7 @@ export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void
 const DRAG_PX_PER_STEP = 10;
 const DRAG_THRESHOLD_PX = 3;
 
-export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
+export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, chars = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
   value: number;
   min: number;
   max: number;
@@ -35,6 +35,11 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
   dragStep?: number;
   /** Digits after the point, as shown and as kept. */
   decimals?: number;
+  /**
+   * At least this many characters wide, for a range that moves (Tab's Speed: its ends follow the tempo
+   * at the playhead), so the field keeps its width.
+   */
+  chars?: number;
   /** Shown after the number, inside the box: `%`, `s`. A long unit goes outside it instead. */
   unit?: string;
   /** The field's accessible name, and the buttons'. */
@@ -131,7 +136,7 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
   };
 
   // Room for the longest value, its sign included.
-  const width = Math.max(max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
+  const width = Math.max(chars, max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
     <span className="number-field" data-disabled={disabled || undefined}>
       <input disabled={disabled}

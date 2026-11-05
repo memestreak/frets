@@ -184,7 +184,9 @@ were not found to, so plan as if every chat pays.
   field (drag, arrows or type; a double-click puts the line's own tempo
   back) that reaches every tempo Frets writes, 20 to 400 bpm, whatever
   the line's own (not the Tab page's Speed range of 25% to 150%), and
-  Tap next to it (two taps or more in time set the bpm, T too, as in
+  Tap next to it (since #373 the field's own "bpm", reading "Tap" on
+  hover, with "Speed · 100%" under the field;
+  `2026-11-05-tab-speed-bpm-design.md`) (two taps or more in time set the bpm, T too, as in
   the Tab page's tempo panel and the Metronome; within the same range;
   a press gives and flashes green, as the Metronome's Tap does), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens

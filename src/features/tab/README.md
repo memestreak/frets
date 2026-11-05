@@ -345,6 +345,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `PlaybackFooter.tsx` — the footer under the tab: Play, Loop, Hear notes,
   Metronome, Speed, Transpose, Volume, Sound, FX; the playhead in
   `--playhead`; `trackLabel` — `2026-10-27-tab-hear-notes-design.md`.
+- `BpmField.tsx` — Speed's bpm field, its "bpm" a Tap button reading
+  "Tap" on hover; show_tab's too — `2026-11-05-tab-speed-bpm-design.md`.
 - `PinnedPlayback.tsx` — keeps the footer at the window's bottom while the
   card runs past it — `2026-10-28-tab-pinned-playback-design.md`.
 - `PlaybackOptions.tsx` — Play's right-click menu —
@@ -376,8 +378,8 @@ or saved. Standard tuning only.
   line on teardown so the sound goes.
 - `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
   playhead and the loop bracket with its handles, then Play, Loop (L), the
-  bpm and Tap (T), Staff | Tab | Both and Open in Frets; a selection, made
-  as on the Tab page, only for Loop to loop.
+  bpm (its "bpm" taps, T too; `BpmField`), Staff | Tab | Both and Open in
+  Frets; a selection, made as on the Tab page, only for Loop to loop.
 - The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
   guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
   `mcp/dist/tab.html`.
@@ -387,6 +389,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-05-tab-speed-bpm-design.md`: Speed as one bpm
+  field, its percentage in the caption and its "bpm" a Tap button, on
+  the Tab page and in show_tab (issue #373).
 - `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
   set, its `\chord` shapes kept in the clip and its chord names understood
 - `docs/specs/2026-11-05-show-tab-selection-design.md`: select notes in
