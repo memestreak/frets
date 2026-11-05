@@ -33,8 +33,10 @@ either end directly, and shows which part of the box can be moved.
 
 How it looks (Jeremy, 2026-11-05, after mocks of a knob half way down each edge, a grip bar along it and
 pins at opposite corners): a **knob**, the ring a Span's Handle has, on the box's **bottom corners**: the
-bottom left for the start, the bottom right for the end. A knob is drawn only while the pointer is over it
-(within its reach) or it is being dragged; the rest of the time the box shows no handles. On a touch
+bottom left for the start, the bottom right for the end. Both knobs are drawn while the pointer is anywhere
+over the selected run (inside its box, or within a knob's reach of it), and while one is dragged
+(Jeremy, 2026-11-05: first only over the knob itself, then anywhere over the box); the rest of the time
+the box shows no handles. On a touch
 screen, with no hover, the knob is still there to drag, unseen.
 
 How others do it (from their manuals and memory, not checked in the apps): Dorico, MuseScore and Guitar
@@ -67,7 +69,9 @@ applies it with `commit`, keeping the selection it started from for Esc.
 - A picked Span's run has no Range handles, only its own Handles.
 - A knob is on the bottom left corner (start) and bottom right corner (end), taken within its reach, not
   half way up the edge nor at its top.
-- A knob shows only while the pointer is over it: over the end's, only the end's; over the start's,
-  only the start's; between them or off the drawing, neither; while dragged, it stays shown.
+- Both knobs show while the pointer is inside the box, away from the corners, and within a knob's reach
+  outside a corner; over a note outside the box or off the drawing, neither; while one is dragged, both.
+- Over a run on two lines, inside either line's box counts; past the last box's end beyond the reach
+  doesn't.
 - Where an end lands: the column whose room holds the pointer; before or after a line's columns, its
   first or last; above the drawing, the first line; below it, the last.

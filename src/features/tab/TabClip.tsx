@@ -20,7 +20,7 @@ import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
-import { boxSpan, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeEnd, type RangeHandle, RANGE_HANDLE_REACH } from './rangeBox';
+import { boxSpan, overRange, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle, RANGE_HANDLE_REACH } from './rangeBox';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -177,16 +177,16 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   // A boxed run's Range handles: on the page only, not on a run a picked Mark selects.
   const handleRange = onDragRange && highlight?.boxed ? highlight.range : null;
   const handles = useMemo(() => (handleRange ? rangeHandles(layout, handleRange) : []), [handleRange, layout]);
-  /** The Range handle the pointer is over: its knob shows only then, or while it is dragged. */
-  const [hoveredEnd, setHoveredEnd] = useState<RangeEnd | null>(null);
+  /** Whether the pointer is over the selected run: its knobs show only then, or while one is dragged. */
+  const [hovered, setHovered] = useState(false);
   /** A Range handle being dragged: which end, and the column it was last over. */
   const rangePress = useRef<{ handle: RangeHandle; column: number | null } | null>(null);
   const hoverRange = (e: PointerEvent<SVGSVGElement>) => {
     // While one is dragged it stays shown.
-    if (rangePress.current || (handles.length === 0 && hoveredEnd === null)) return;
+    if (rangePress.current || (!handleRange && !hovered)) return;
     const { px, py } = toUnits(e);
-    const end = rangeHandleAt(handles, px, py)?.end ?? null;
-    if (end !== hoveredEnd) setHoveredEnd(end);
+    const over = handleRange !== null && overRange(layout, handleRange, px, py);
+    if (over !== hovered) setHovered(over);
   };
   const dragRange = (e: PointerEvent<SVGSVGElement>) => {
     const press = rangePress.current;
@@ -287,7 +287,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       const handle = rangeHandleAt(handles, px, py);
       if (handle) {
         rangePress.current = { handle, column: null };
-        setHoveredEnd(handle.end);
+        setHovered(true);
         setDragging(true);
         e.currentTarget.setPointerCapture?.(e.pointerId);
         return;
@@ -504,7 +504,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
       onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { hoverRange(e); if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
-      onPointerLeave={shadow !== null || onDragRange ? () => { if (shadow !== null) setHover(null); if (!rangePress.current) setHoveredEnd(null); } : undefined}
+      onPointerLeave={shadow !== null || onDragRange ? () => { if (shadow !== null) setHover(null); if (!rangePress.current) setHovered(false); } : undefined}
       onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
       onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
@@ -693,7 +693,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       {attached.lines.map((l, k) => (
         <line key={`attach-${k}`} x1={l.x} x2={l.x} y1={l.y0} y2={l.y1} stroke="var(--select)" strokeWidth={1} strokeDasharray="1.5 2.5" strokeLinecap="round" pointerEvents="none" data-testid="attachment-line" />
       ))}
-      {handles.map(h => <RangeGrip key={`range-handle-${h.end}`} handle={h} shown={h.end === hoveredEnd} />)}
+      {handles.map(h => <RangeGrip key={`range-handle-${h.end}`} handle={h} shown={hovered} />)}
       {onDragSpan && attached.handles.map(h => (
         <circle key={`handle-${h.end}-${h.system}`} cx={h.x} cy={h.y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} style={{ cursor: 'ew-resize' }} data-testid="span-handle" data-end={h.end} />
       ))}
@@ -1185,7 +1185,7 @@ function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
 
 /**
  * A selected run's Range handle: a knob on its box's bottom corner, drawn only while the pointer is over
- * it or it is dragged (Jeremy, 2026-11-05), over a clear area that shows the ↔ pointer over all its reach.
+ * the run or a knob is dragged (Jeremy, 2026-11-05), over a clear area that shows the ↔ pointer over all its reach.
  */
 function RangeGrip({ handle, shown }: { handle: RangeHandle; shown: boolean }) {
   const { x, bottom: y, end } = handle;

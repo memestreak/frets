@@ -3,7 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { layoutClip, stepY, stringY } from '@/features/tab/layout';
 import { partOf, type Part } from '@/features/tab/clip';
-import { draggedRange, RANGE_HANDLE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
+import { draggedRange, overRange, RANGE_HANDLE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
 import { rhythmAt } from '@/features/tab/hitTest';
 import { staffBar } from '@/features/tab/staffGeometry';
 
@@ -70,6 +70,16 @@ describe('Range handles (docs/specs/2026-11-05-tab-range-handles-design.md)', ()
     // Not half way up the edge, nor at its top.
     expect(rangeHandleAt(handles, start.x, (start.top + start.bottom) / 2)).toBeNull();
     expect(rangeHandleAt(handles, end.x, end.top)).toBeNull();
+  });
+
+  it('the pointer is over a run inside any of its boxes, or within a knob’s reach of one', () => {
+    const [first, second] = rangeBoxes(layout.systems, [4, 9]);
+    expect(overRange(layout, [4, 9], first.x + first.width / 2, first.y + first.height / 2)).toBe(true);
+    expect(overRange(layout, [4, 9], second.x + 2, second.y + 2)).toBe(true);
+    expect(overRange(layout, [4, 9], first.x - RANGE_HANDLE_REACH, first.y + first.height + RANGE_HANDLE_REACH)).toBe(true);
+    expect(overRange(layout, [4, 9], first.x - RANGE_HANDLE_REACH - 1, first.y + 4)).toBe(false);
+    // On the second line, past the box's end.
+    expect(overRange(layout, [4, 9], second.x + second.width + RANGE_HANDLE_REACH + 1, second.y + 4)).toBe(false);
   });
 
   it('a dragged end lands on the column whose room is under the pointer, on that line; off a line, its nearest column', () => {

@@ -99,6 +99,16 @@ export function rangeHandleAt(handles: readonly RangeHandle[], x: number, y: num
 }
 
 /**
+ * Whether the pointer is over a selected run: inside one of its boxes, or within a knob's reach of one.
+ * Both knobs show while it is (Jeremy, 2026-11-05).
+ */
+export function overRange(layout: Layout, range: [number, number], x: number, y: number): boolean {
+  return rangeBoxes(layout.systems, range).some(box =>
+    x >= box.x - RANGE_HANDLE_REACH && x <= box.x + box.width + RANGE_HANDLE_REACH
+    && y >= box.y - RANGE_HANDLE_REACH && y <= box.y + box.height + RANGE_HANDLE_REACH);
+}
+
+/**
  * Where a dragged Range handle lands: the column whose room is under the pointer, so the note pointed at
  * is taken in, as a Shift+press takes it in; on the line under the pointer, or the nearest line above or
  * below the drawing. Past a line's first or last column, that column. Unlike a Span's Handle, a Range
