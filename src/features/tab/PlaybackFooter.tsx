@@ -471,27 +471,30 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
             />
             <span className="text-(--ink-muted)">semitones</span>
           </div>
-          {/* The track's own: its Sound and FX in one thin box, labelled with its name (Jeremy, 2026-10-30). */}
-          <div className="tab-track-box" role="group" aria-label={`Track: ${track.name.trim() || `Track ${track.index + 1}`}`}>
-          <label className="tab-sound">
-            <span className="tab-track-name" data-tip={label === fullName ? undefined : fullName}>{label}</span>
-            {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
-            <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
-              {SOUND_FAMILIES.map(([family, sounds]) => (
-                <optgroup key={family} label={family}>
-                  {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
-          <FxButton fx={effects} onFx={onEffects} />
-          </div>
-          {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
-          {/* At the row's far right (Jeremy, 2026-10-28). */}
-          <div className="tab-volume tab-volume-end">
-            <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
-            <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
+          {/* The track box and Volume wrap as one, so Volume never drops to a line of its own. */}
+          <div className="tab-playback-end">
+            {/* The track's own: its Sound and FX in one thin box, labelled with its name (Jeremy, 2026-10-30). */}
+            <div className="tab-track-box" role="group" aria-label={`Track: ${track.name.trim() || `Track ${track.index + 1}`}`}>
+            <label className="tab-sound">
+              <span className="tab-track-name" data-tip={label === fullName ? undefined : fullName}>{label}</span>
+              {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
+              <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
+                {SOUND_FAMILIES.map(([family, sounds]) => (
+                  <optgroup key={family} label={family}>
+                    {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
+            <FxButton fx={effects} onFx={onEffects} />
+            </div>
+            {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
+            {/* At the row's far right (Jeremy, 2026-10-28). */}
+            <div className="tab-volume tab-volume-end">
+              <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
+              <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
+            </div>
           </div>
         </div>
       )}

@@ -272,6 +272,9 @@
 /* The volume: a small knob, captioned like Speed. */
 .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
 .tab-volume-end { margin-left: auto; }
+/* The track box, then Volume at the far right: one unit in the row's wrapping, filling the rest of
+   its line, so Volume stays level with the track box rather than dropping alone under it. */
+.tab-playback-end { display: flex; flex: 1 0 auto; flex-wrap: wrap; align-items: center; gap: 12px 16px; min-width: 0; }
 /* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
 /* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30); its name, cut to
    ten characters, sits right-aligned in a fixed width (room for ten of most letters) so the box doesn't
