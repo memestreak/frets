@@ -267,10 +267,11 @@ Play, Loop, Hear notes and Metronome keep no caption: they have tips. The
 gap between controls goes back to 16px. A double-click on Speed's or
 Transpose's caption still resets it.
 
-Mocks, while Jeremy picks: **a** keeps "120 bpm" and "semitones" beside
-their fields (the row about 890px wide, from 1,126px); **b** puts the bpm
-in Speed's caption ("Speed · 120 bpm") and drops "semitones", which the
-field's tip and name still say (about 760px).
+Speed's caption carries the bpm ("Speed · 120 bpm"), and Transpose's
+caption is "Transpose", with the unit, semitones, in its tip and the
+field's name (Jeremy picked this from two mocks, 2026-11-05; the other kept
+"120 bpm" and "semitones" beside the fields). The row needs about 760px,
+from 1,126px.
 
 The show_tab MCP app's row has no names to move: its only words beside a
 control are the unit "bpm" and the Tap button.

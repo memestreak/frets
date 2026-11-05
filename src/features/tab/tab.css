@@ -268,9 +268,6 @@
 }
 /* The bpm in a caption: its digits don't jiggle as the speed changes. */
 .tab-caption-value { font-variant-numeric: tabular-nums; }
-/* A captioned field and the unit beside it (Speed's bpm, Transpose's semitones). */
-.tab-labelled { display: flex; align-items: flex-start; gap: 8px; }
-.tab-unit { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
 /* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
 .tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
 .tab-play:hover { filter: brightness(1.1); }
@@ -284,8 +281,6 @@
 /* The loop bracket's ends, over the tab: drag them sideways. */
 .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
 .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
-/* Wide enough for "300 bpm", so nothing moves as the speed does. */
-.tab-speed-value { width: 60px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 /* A knob with its name beside it (the FX dialog's). */
 .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
 /* The volume, at the row's far right. */

@@ -161,7 +161,7 @@ describe('TabPage playback', () => {
     expect(JSON.parse(localStorage.getItem(PLAYBACK_KEY)!)).toMatchObject({ hearNotes: false });
   });
 
-  it('resets the speed to 100% on a double-click on its label, number or bpm, not its step buttons', () => {
+  it('resets the speed to 100% on a double-click on its caption or the bpm in it, or its number, not its step buttons', () => {
     renderAt();
     const field = screen.getByRole('spinbutton', { name: 'Speed (percent)' });
     const faster = screen.getByRole('button', { name: 'Faster' });
@@ -169,7 +169,7 @@ describe('TabPage playback', () => {
     fireEvent.click(faster);
     fireEvent.doubleClick(faster);
     expect(field).toHaveValue('110');
-    fireEvent.doubleClick(screen.getByText('Speed'));
+    fireEvent.doubleClick(screen.getByText(/^Speed ·/));
     expect(field).toHaveValue('100');
     fireEvent.click(faster);
     fireEvent.doubleClick(screen.getByText(/bpm$/));

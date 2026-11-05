@@ -324,17 +324,21 @@ describe('TabPage', () => {
     expect(within(box).getByText('Track 1')).not.toHaveAttribute('data-tip');
   });
 
-  it('names Speed and Transpose under their fields; a double-click on a name resets it', async () => {
+  it('names Speed (with its bpm) and Transpose under their fields; a double-click on a name resets it', async () => {
     renderAt(`#tab=${encodeURIComponent(TEX)}`);
     await screen.findByRole('heading', { name: 'Tex riff' }, SLOW);
     const speed = screen.getByRole('group', { name: 'Speed' });
     fireEvent.click(within(speed).getByRole('button', { name: 'Faster' }));
     expect(within(speed).getByRole('spinbutton', { name: 'Speed (percent)' })).toHaveValue('105');
-    fireEvent.doubleClick(within(speed).getByText('Speed'));
+    expect(within(speed).getByText(/^Speed ·/)).toHaveTextContent(/^Speed · \d+ bpm$/);
+    fireEvent.doubleClick(within(speed).getByText(/^Speed ·/));
     expect(within(speed).getByRole('spinbutton', { name: 'Speed (percent)' })).toHaveValue('100');
     const transpose = screen.getByRole('group', { name: 'Transpose' });
     fireEvent.click(within(transpose).getByRole('button', { name: 'Transpose up' }));
     expect(within(transpose).getByRole('spinbutton', { name: 'Transpose (semitones)' })).toHaveValue('+1');
+    // Semitones is in the tip, not beside the field.
+    expect(transpose).toHaveAttribute('data-tip', 'Transpose, in semitones');
+    expect(within(transpose).queryByText(/semitones/)).toBeNull();
     fireEvent.doubleClick(within(transpose).getByText('Transpose'));
     expect(within(transpose).getByRole('spinbutton', { name: 'Transpose (semitones)' })).toHaveValue('0');
   });

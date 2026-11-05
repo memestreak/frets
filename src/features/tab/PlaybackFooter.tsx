@@ -20,17 +20,6 @@ import { MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, typ
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
-import { useMock, type Mock } from '@/components/mocks/useMock';
-
-/**
- * Mock (Jeremy picks, then it goes): with each control's name under it, whether its unit (the bpm,
- * "semitones") stays beside the field (a) or joins the caption (b), the narrower row.
- */
-const UNITS_MOCK: Mock = {
-  param: 'mock', label: 'Units',
-  options: [{ value: 'a', label: 'Units beside' }, { value: 'b', label: 'Units below' }],
-};
-
 /**
  * Tab › Playback, saved: whether the controls show (shown at first, Jeremy 2026-10-28), the volume,
  * the transposition, Hear notes and Play's right-click options. The sound is the clip's.
@@ -408,7 +397,6 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
   const bpm = Math.round(playback.bpm * speed);
-  const unitsBeside = useMock(UNITS_MOCK) === 'a';
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes (L)'
@@ -463,35 +451,27 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           >
             <MetronomeIcon />
           </button>
-          {/* A double-click on the caption, the number or the bpm resets the speed to 100%. */}
+          {/* A double-click on the caption or the number resets the speed to 100%. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
-          <div className="tab-labelled" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
-            <div className="tab-captioned">
-              <div className="tab-slot">
-                <NumberField
-                  value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
-                  label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
-                />
-              </div>
-              <span className="tab-caption" aria-hidden="true">
-                {unitsBeside ? 'Speed' : <>Speed · <span className="tab-caption-value">{bpm} bpm</span></>}
-              </span>
+          <div className="tab-captioned" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
+            <div className="tab-slot">
+              <NumberField
+                value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
+                label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
+              />
             </div>
-            {unitsBeside && <span className="tab-slot tab-speed-value">{bpm} bpm</span>}
+            <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{bpm} bpm</span></span>
           </div>
-          {/* A double-click on the caption, the number or "semitones" puts it back to 0. */}
+          {/* A double-click on the caption or the number puts it back to 0. The unit, semitones, is in the tip and the field's name. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}
-          <div className="tab-labelled" role="group" aria-label="Transpose" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
-            <div className="tab-captioned" data-tip={unitsBeside ? undefined : 'Transpose, in semitones'}>
-              <div className="tab-slot">
-                <NumberField
-                  value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
-                  label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
-                />
-              </div>
-              <span className="tab-caption" aria-hidden="true">Transpose</span>
+          <div className="tab-captioned" role="group" aria-label="Transpose" data-tip="Transpose, in semitones" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
+            <div className="tab-slot">
+              <NumberField
+                value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
+                label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
+              />
             </div>
-            {unitsBeside && <span className="tab-slot tab-unit">semitones</span>}
+            <span className="tab-caption" aria-hidden="true">Transpose</span>
           </div>
           {/* The track's own: its Sound and FX in one thin box, captioned with its name (Jeremy, 2026-10-30). */}
           <div className="tab-captioned" role="group" aria-label={`Track: ${fullName}`}>
