@@ -51,6 +51,20 @@ and editing the list (rename, delete) are #368.
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
   definition gets one with the shape it was inserted with.
+- **Hear** (Jeremy, 2026-11-05: "a small toggle in the chord panel that
+  enables playback when a chord is clicked on"). A small speaker toggle by
+  the name, off at first. While on, picking a chord or a shape sounds its
+  shape, strummed down, a quarter at 120 bpm, with the track's sound
+  (`shapeAlone`, `Player.hearShape`). It is a Playback preference
+  (`hearChords` in `frets.tab.playback`), listed in Settings as "Hear
+  chords picked in the Chords panel".
+- **Delete** (Jeremy, 2026-11-05: "A right-click menu should support
+  delete. For now, we can disable that option if the chord is used"). A
+  right-click (or long press, Shift+F10) on a chord in the list opens a
+  menu with Delete, which takes every definition of that name out of the
+  set (`withoutChord`). For a chord a column uses, Delete is shown
+  disabled, its tooltip saying to clear its name from those columns
+  first. Menu items can now be disabled (`MenuItem.disabled`, `hint`).
 - Presses on the panel's buttons keep the tab's focus and cursor, as the
   palette's do.
 
@@ -79,9 +93,13 @@ Settled while building (my calls, open to change):
 - `TabRail.tsx`: `PanelId` gains `chords`; the Chords button after the
   tool panels; the open panel is lifted to the page (`useOpenPanel`) so
   Edit can open it; `parseLayout` reads `chords`.
+- `playback.ts`: `shapeAlone`, `Player.hearShape`; `PlaybackFooter.tsx`:
+  `hearShape`, and `hearChords` in the Playback settings; `tabSettings.tsx`
+  lists it.
+- `ShapeMenu.tsx`: `disabled` and `hint` on a menu item.
 - `ChordPanel.tsx`: the panel; `chordOfName`, `namesForColumn`,
   `fretsOfColumn`, `insertedColumn`.
-- `chordSet.ts`: `withChordShape`, `withNewChord`.
+- `chordSet.ts`: `withChordShape`, `withNewChord`, `withoutChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
 - `tab.css`: the panel's look.
@@ -92,9 +110,7 @@ Settled while building (my calls, open to change):
   (#368).
 - Diagrams over names and in exports (#242).
 - Keys for the panel.
-- Hearing a chord or shape when it is picked: Jeremy, 2026-11-05, "Do
-  not play back the chord on click (yet)". The evaluation's "hear chord
-  yes" waits for a later step.
+- Deleting a chord a column uses (with its names).
 
 ## Tests
 
@@ -116,3 +132,9 @@ Settled while building (my calls, open to change):
 - These notes are: a C column offers "C"; picking it writes `ch "C"`.
 - Insert Name, Notes and Both each write what they say at the cursor.
 - `parseLayout` reads `chords`.
+- `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
+  down. `parsePlaybackSettings` reads `hearChords`, false by default.
+- Hear is off at first; its toggle turns it on and saves `hearChords`.
+- Delete on an unused chord takes its definition out and leaves nothing
+  picked; on a used one it is `aria-disabled`, with its hint, and does
+  nothing.

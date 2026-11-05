@@ -7,6 +7,10 @@ export interface MenuItem {
   onSelect: () => void;
   /** A setting the item turns on and off: shown ticked when on (a `menuitemcheckbox`). */
   checked?: boolean;
+  /** Shown but not chosen (`aria-disabled`): it can still take the focus, so the keys find it and its hint. */
+  disabled?: boolean;
+  /** A tooltip: why a disabled item can't be chosen. */
+  hint?: string;
   /** A submenu (its label ends in ›): opened by a press, a hover or →, closed by ← or Esc. Its own `onSelect` is not used. */
   items?: MenuItem[];
 }
@@ -130,12 +134,13 @@ export function ShapeMenu({ x, y, label, items, onClose, align = 'start' }: Shap
     <button
       key={item.label} type="button" className="shape-menu-item"
       role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={item.checked}
-      tabIndex={-1}
+      tabIndex={-1} aria-disabled={item.disabled || undefined} title={item.hint}
       onMouseEnter={e => {
         if (top) setSub(null);
         e.currentTarget.focus();
       }}
       onClick={() => {
+        if (item.disabled) return;
         onClose(true);
         item.onSelect();
       }}

@@ -113,7 +113,7 @@ and in its spec.
 - `chordSet.ts` — a track's Chord set: its `\chord` definitions
   (`Track.chords`, each a name and shape) and the names only typed over
   columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`;
-  `withChordShape` and `withNewChord`, the Chords panel's changes to it.
+  `withChordShape`, `withNewChord` and `withoutChord`, the Chords panel's changes to it.
 - `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
   `2026-10-30-tab-track-effects-design.md`.
 - `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex) and reading
@@ -265,7 +265,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `ChordPanel.tsx` — the rail's Chords panel: the chord a name's Edit or double-click opens it at, its shapes (the definition's marked; picking one changes it), names for the cursor column's notes, the track's Chord set with New chord (from a name, or the cursor column's fingering), and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
+- `ChordPanel.tsx` — the rail's Chords panel: the chord a name's Edit or double-click opens it at, its shapes (the definition's marked; picking one changes it, and sounds it while its Hear toggle is on), names for the cursor column's notes, the track's Chord set with New chord (from a name, or the cursor column's fingering) and a right-click Delete for an unused chord, and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.

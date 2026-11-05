@@ -93,6 +93,9 @@
 /* The same soft fill as a ghost button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
 .shape-menu-item:hover, .shape-menu-item:focus { background: var(--primary-soft); outline: none; }
 .shape-menu-check { display: inline-block; width: 1.2em; }
+/* An item that can't be chosen now (its hint says why): muted, with no fill on hover. */
+.shape-menu-item[aria-disabled="true"] { color: var(--ink-muted); cursor: default; }
+.shape-menu-item[aria-disabled="true"]:hover, .shape-menu-item[aria-disabled="true"]:focus { background: none; }
 /* A submenu opens beside its item, level with it. */
 .shape-menu-sub { position: relative; display: grid; }
 .shape-menu-sub > .shape-menu-item { display: flex; align-items: center; }

@@ -129,3 +129,9 @@ export function withNewChord<T extends WithChords>(track: T, name: string, frets
   if (chords.some(def => def.name === name)) return track;
   return { ...track, chords: [...chords, frets ? { name, frets: [...frets] } : { name }] };
 }
+
+/** The track with every definition of `name` taken out of its Chord set (the Chords panel's Delete, for an unused chord). */
+export function withoutChord<T extends WithChords>(track: T, name: string): T {
+  if (!track.chords?.some(def => def.name === name)) return track;
+  return { ...track, chords: track.chords.filter(def => def.name !== name) };
+}

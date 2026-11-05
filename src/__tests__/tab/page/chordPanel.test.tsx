@@ -191,3 +191,42 @@ describe('the cursor column', () => {
     expect(written().includes('r.4{ch "C"}')).toBe(!notes);
   });
 });
+
+describe('the list’s right-click menu', () => {
+  const entry = (name: string) => within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: new RegExp(`^${name}`) });
+
+  it('Delete takes an unused chord out of the set, and nothing stays picked', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(entry('C'));
+    fireEvent.contextMenu(entry('C'));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'C' })).getByRole('menuitem', { name: 'Delete' }));
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(definitions()).toEqual(['\\chord ("G" 3 0 0 0 2 3) {showname true}']);
+    expect(within(inPanel().getByRole('region', { name: 'This track’s chords' })).queryByRole('button', { name: /^C/ })).toBeNull();
+    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('G');
+  });
+
+  it('Delete is disabled for a chord a column uses, and says why', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.contextMenu(entry('G'));
+    const item = within(screen.getByRole('menu', { name: 'G' })).getByRole('menuitem', { name: 'Delete' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    expect(item).toHaveAttribute('title', 'Used in this track: clear its name from those columns first');
+    fireEvent.click(item);
+    expect(definitions()).toHaveLength(2);
+  });
+});
+
+describe('Hear', () => {
+  it('is off at first; its toggle turns it on and keeps it in the Playback preferences', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    const toggle = inPanel().getByRole('button', { name: 'Hear chords as you pick them' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(localStorage.getItem('frets.tab.playback')!)).toMatchObject({ hearChords: true });
+  });
+});

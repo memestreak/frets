@@ -606,3 +606,12 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 }
 .chord-panel-new:hover { color: var(--ink); background: var(--surface-sunken); }
 .chord-panel-new:focus-visible { outline: none; }
+/* The Hear toggle by the name: a small speaker, lit while on. */
+.chord-panel-hear {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
+}
+.chord-panel-hear:hover { color: var(--ink); background: var(--surface-sunken); }
+.chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
+.chord-panel-hear:focus-visible { outline: none; }
+.chord-panel-hear svg { width: 18px; height: 18px; }

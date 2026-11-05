@@ -958,6 +958,8 @@ export default function TabPage() {
           <ChordPanel
             key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
             onChange={next => commit(next)}
+            hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))}
+            onHear={frets => playback.hearShape(frets)}
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
           />
         )}
