@@ -1,6 +1,6 @@
 /**
- * Tap tempo: the tempo of a few presses in a row, for the Metronome page's Tap and the Tab page's
- * tempo panel. Pure; each page keeps the press times and passes its own bpm range.
+ * Tap tempo: the tempo of a few presses in a row, for the Metronome page's Tap, the Tab page's
+ * tempo panel and the show_tab app's Tap. Pure; each keeps the press times and passes its own bpm range.
  */
 
 /** The slowest and fastest tempo a page offers, in bpm. */

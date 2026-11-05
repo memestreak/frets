@@ -373,7 +373,7 @@ or saved. Standard tuning only.
   line on teardown so the sound goes.
 - `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
   playhead and the loop bracket with its handles, then Play, Loop (L), the
-  bpm, Staff | Tab | Both and Open in Frets.
+  bpm and Tap (T), Staff | Tab | Both and Open in Frets.
 - The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
   guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
   `mcp/dist/tab.html`.

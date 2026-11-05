@@ -1,8 +1,9 @@
 'use client';
 
 /** The controls every view shares: the head, Start, Tap, the number fields, and the sound. */
-import { createContext, useContext, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { createContext, useContext, useRef, type PointerEvent, type ReactNode } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
+import { useTapPulse } from '@/components/TapPulse';
 import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import {
@@ -100,20 +101,20 @@ export function PlayButton({ m, round }: { m: Metronome; round?: boolean }) {
 
 /** Tap tempo: a lighter green than Start, as big, and it pulses on every press. */
 export function TapButton({ m, round }: { m: Metronome; round?: boolean }) {
-  const [pulse, setPulse] = useState(0);
+  const { pulse, flash } = useTapPulse();
   const press = () => {
     m.tap();
-    setPulse(p => p + 1);
+    pulse();
   };
   return (
     <button
-      type="button" className={`btn metronome-tap${round ? ' metronome-round' : ''}`}
+      type="button" className={`btn tap-press metronome-tap${round ? ' metronome-round' : ''}`}
       data-tip="Tap twice or more in time to set the tempo (T)"
       // On the press, not the release, so the tap lands when the finger does.
       onPointerDown={e => { if (e.button === 0) press(); }}
       onKeyDown={e => { if (e.key === 'Enter') press(); }}
     >
-      {pulse > 0 && <span key={pulse} className="metronome-tap-pulse" aria-hidden="true" />}
+      {flash}
       Tap
     </button>
   );

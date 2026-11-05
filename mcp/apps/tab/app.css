@@ -3,6 +3,10 @@
 @source "../../../src/features/tab";
 
 .chat-tab { display: grid; gap: 10px; padding: 12px 14px; }
+/* The controls are blue, not the site's rust (Jeremy, 2026-11-05): their primary is the selection's
+   denim, so Loop when on, the buttons' hover and Open in Frets are blue. The loop bracket over the
+   music stays rust. */
+.chat-tab-row { --primary: var(--select); --primary-soft: var(--select-soft); }
 .chat-tab-music { min-width: 0; }
 .chat-tab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .chat-tab-views { margin-left: auto; }

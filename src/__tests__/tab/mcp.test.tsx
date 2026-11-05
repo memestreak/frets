@@ -390,6 +390,80 @@ describe('the app', () => {
     expect(screen.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  /** Taps at these times, in milliseconds, by `press` (one tap each). */
+  function tapAt(times: number[], press: () => void) {
+    const now = vi.spyOn(performance, 'now');
+    try {
+      for (const t of times) {
+        now.mockReturnValue(t);
+        act(press);
+      }
+    } finally {
+      now.mockRestore();
+    }
+  }
+  const tapButton = () => screen.getByRole('button', { name: 'Tap' });
+  const pressTap = () => { tapButton().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })); };
+  const pressT = () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' })); };
+
+  it('sets the bpm from two taps or more, and tells the model', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const { bridge, told } = await mountApp();
+      await act(() => bridge.sendToolInput({ arguments: LINE }));
+      const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+      tapAt([1000], pressTap);
+      expect(field).toHaveValue('90');
+      tapAt([1500, 2000], pressTap);
+      expect(field).toHaveValue('120');
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told).toEqual(['The user is now playing the line at 120 bpm, not looping.']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('flashes Tap on each press, as the Metronome’s Tap does', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    await screen.findByRole('button', { name: 'Tap' });
+    expect(tapButton()).toHaveClass('tap-press');
+    expect(tapButton().querySelector('.tap-pulse')).toBeNull();
+    tapAt([1000], pressTap);
+    const first = tapButton().querySelector('.tap-pulse');
+    expect(first).not.toBeNull();
+    tapAt([1500], pressTap);
+    // A fresh flash each time, so its fade starts over.
+    expect(tapButton().querySelector('.tap-pulse')).not.toBe(first);
+  });
+
+  it('taps on T too, but not while the bpm is being typed', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+    tapAt([1000, 1600], pressT);
+    expect(field).toHaveValue('100');
+    tapAt([5000, 5500], () => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true })); });
+    expect(field).toHaveValue('100');
+  });
+
+  it('reaches every tempo Frets writes, 20 to 400 bpm, whatever the line’s own, from Tap and the field', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+    expect(field).toHaveAttribute('aria-valuemin', '20');
+    expect(field).toHaveAttribute('aria-valuemax', '400');
+    // 300 bpm tapped, well past 1.5 times the line's 90, is kept.
+    tapAt([1000, 1200, 1400], pressTap);
+    expect(field).toHaveValue('300');
+    // 600 bpm tapped stops at 400.
+    tapAt([6000, 6100, 6200], pressTap);
+    expect(field).toHaveValue('400');
+    // 21 bpm tapped, under a quarter of 90, is kept.
+    tapAt([12000, 14857], pressTap);
+    expect(field).toHaveValue('21');
+  });
+
   it('opens the line on the Tab page through the host', async () => {
     const { bridge, opened } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));

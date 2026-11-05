@@ -182,9 +182,17 @@ were not found to, so plan as if every chat pays.
   points the model sets and the user drags since
   `2026-11-05-show-tab-loop-points-design.md`), a bpm
   field (drag, arrows or type; a double-click puts the line's own tempo
-  back), a Staff / Tab / Both switch
+  back) that reaches every tempo Frets writes, 20 to 400 bpm, whatever
+  the line's own (not the Tab page's Speed range of 25% to 150%), and
+  Tap next to it (two taps or more in time set the bpm, T too, as in
+  the Tab page's tempo panel and the Metronome; within the same range;
+  a press gives and flashes green, as the Metronome's Tap does), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens
   the line on the Tab page in a new tab.
+- Blue controls where the site is rust: in the row of controls,
+  `--primary` is the selection's denim (`--select`), so Loop when on,
+  the buttons' hover and Open in Frets are blue. The loop bracket over
+  the music stays rust.
 - Follows the host's theme; teardown stops playback and closes the audio.
   Nothing is saved.
 - **No editing in the first version** (Q14): the app passes `TabClip` no
@@ -262,5 +270,11 @@ were not found to, so plan as if every chat pays.
   nothing from outside the frame (checked by hand in `mcp/preview/`).
 - The app tells the model a changed bpm and loop once the user stops, and
   nothing the call gave.
+- Two taps 500 ms apart on Tap set 120 bpm, and the model is told; one
+  tap changes nothing.
+- A press on Tap flashes it afresh each time (`.tap-pulse`).
+- T taps too, but not while the bpm field is being typed in.
+- The bpm field and Tap reach 20 to 400 bpm on a line at 90: 300 bpm
+  tapped is kept, 600 stops at 400, 21 is kept.
 - Open in Frets asks the host to open the `#tabz=` link.
 - Teardown takes the line away and lets the player go.

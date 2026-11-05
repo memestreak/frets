@@ -1,21 +1,23 @@
 /**
  * The line as the Tab MCP App shows it (#340, `docs/specs/2026-11-04-show-tab-mcp-app-design.md`): the
  * Tab page's own drawing (`TabClip`, the playhead, the loop bracket and its handles) and sound
- * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm, Staff | Tab | Both, and Open in
- * Frets. Nothing is edited or saved; the loop points are the one thing the user moves on the music
+ * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm and Tap, Staff | Tab | Both, and
+ * Open in Frets. Nothing is edited or saved; the loop points are the one thing the user moves on the music
  * (`docs/specs/2026-11-05-show-tab-loop-points-design.md`).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { PlayIcon } from '@/components/icons';
+import { useTapPulse } from '@/components/TapPulse';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
+import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
-import { DEFAULT_BPM, type Part } from '../clip';
+import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
 import { DEFAULT_FX } from '../effects';
 import { layoutClip, type Parts } from '../layout';
 import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
-import { DEFAULT_SOUND, MAX_SPEED, MIN_SPEED } from '../playback';
+import { DEFAULT_SOUND } from '../playback';
 import { shareLink } from '../shareLink';
 import { TabClip } from '../TabClip';
 import { useWidth } from '../useWidth';
@@ -30,6 +32,12 @@ const VIEWS: readonly { view: View; label: string }[] = [
   { view: 'both', label: 'Both' },
 ];
 
+/**
+ * The bpm field's and Tap's range: every tempo Frets writes, whatever the line's own (Jeremy, 2026-11-05),
+ * not the Tab page's Speed range of a quarter to 1.5 times it.
+ */
+const BPM_RANGE: BpmRange = { min: MIN_BPM, max: MAX_BPM };
+
 /** The volume the line plays at: the Tab page's Volume knob is left out, the host's own volume stands. */
 const VOLUME = 0.8;
 
@@ -40,20 +48,20 @@ export interface Heard {
 }
 
 /**
- * L anywhere in the frame calls `onPress`, as on the Tab page, except while typing in a field (the
- * bpm). Held down, it calls once.
+ * A letter key anywhere in the frame calls `onPress`, as on the Tab page (L loops, T taps), except while
+ * typing in a field (the bpm). Held down, it calls once.
  */
-function useLoopKey(onPress: () => void) {
+function useLetterKey(letter: string, onPress: () => void) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== 'l' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.key.toLowerCase() !== letter || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if ((e.target as Element | null)?.closest?.('input, select, textarea')) return;
       e.preventDefault();
       if (!e.repeat) onPress();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onPress]);
+  }, [letter, onPress]);
 }
 
 export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }: {
@@ -97,10 +105,25 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   // Loop always puts the bracket over the whole line, so both its ends are there to drag in.
   const columns = part.bars.reduce((n, b) => n + b.columns.length, 0);
   const toggleLoop = () => setLoopPoints(loop ? null : [0, columns - 1]);
-  useLoopKey(toggleLoop);
+  useLetterKey('l', toggleLoop);
 
   const clipBpm = part.bars[0]?.tempo?.bpm ?? DEFAULT_BPM;
   const bpm = Math.round(clipBpm * speed);
+
+  // Tap tempo, as in the Tab page's tempo panel: the press times of the run of taps so far.
+  const taps = useRef<number[]>([]);
+  const tap = () => {
+    taps.current = addTap(taps.current, performance.now(), BPM_RANGE);
+    const tapped = tapBpm(taps.current, BPM_RANGE);
+    if (tapped !== null) playback.setSpeed(tapped / clipBpm);
+  };
+  useLetterKey('t', tap);
+  // The button gives and flashes on each press, as the Metronome's Tap does.
+  const { pulse, flash } = useTapPulse();
+  const pressTap = () => {
+    tap();
+    pulse();
+  };
   // The chat sets only points, never 'whole'.
   useEffect(() => onHeard({ bpm, loop: Array.isArray(loop) ? loop : null }), [bpm, loop, onHeard]);
 
@@ -141,11 +164,27 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type the tempo */}
         <div className="tab-speed" role="group" aria-label="Tempo" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
           <NumberField
-            value={bpm} min={Math.ceil(clipBpm * MIN_SPEED)} max={Math.floor(clipBpm * MAX_SPEED)} step={5} dragStep={1}
+            value={bpm} min={BPM_RANGE.min} max={BPM_RANGE.max} step={5} dragStep={1}
             label="Tempo (bpm)" upLabel="Faster" downLabel="Slower" onChange={b => playback.setSpeed(b / clipBpm)}
           />
           <span className="text-(--ink-muted)">bpm</span>
         </div>
+        {/* Timed from the press, not the release, so the beat is where the finger lands. */}
+        <button
+          type="button" className="btn btn-secondary tab-tap tap-press" data-tip="Tap twice or more in time to set the bpm (T)"
+          onMouseDown={e => e.preventDefault()}
+          onPointerDown={e => { if (e.button === 0) pressTap(); }}
+          // Enter on the focused button taps; Space plays, as everywhere in the frame (useSpaceKey).
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.repeat) {
+              e.preventDefault();
+              pressTap();
+            }
+          }}
+        >
+          {flash}
+          Tap
+        </button>
         {player.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
         <div className="seg chat-tab-views" role="group" aria-label="Show">
           {VIEWS.map(v => (
