@@ -38,8 +38,8 @@ import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail } from './TabRail';
-import { CHORDS_ICON, ChordPanel, useChordsMock } from './ChordPanelMock';
+import { TabRail, useOpenPanel } from './TabRail';
+import { ChordPanel } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -66,7 +66,7 @@ import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel, .chord-panel`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -345,21 +345,21 @@ export default function TabPage() {
     openSignature: head.openSignature, dropLine: () => setPlayMark(null),
   });
   const { deletePicked } = picking;
-  /** A picked thing's Edit: a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
-  // MOCK (issue #251): with a Chords panel mocked, a chord name's Edit (and so its double-click) opens the panel at it.
-  const chordsLayout = useChordsMock();
-  const [chordsOpen, setChordsOpen] = useState(false);
-  const [chordsAt, setChordsAt] = useState<string | null>(null);
+  // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
+  const [railPanel, setRailPanel] = useOpenPanel();
+  const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
   const openChordsAt = (index: number) => {
     const place = placeOf(clip, index);
     setCursor(c => ({ ...c, ...place }));
-    setChordsAt(columnAt(clip, { ...cursor, ...place })?.chord ?? null);
-    setChordsOpen(true);
+    setPicked(null);
+    setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
+    setRailPanel('chords');
     editorRef.current?.focus();
   };
+  /** A picked thing's Edit: a chord name's Chords panel, a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
     if (hit.kind === 'mark') return openTuplets();
-    if (hit.kind === 'chord' && chordsLayout !== 'off') return openChordsAt(hit.index);
+    if (hit.kind === 'chord') return openChordsAt(hit.index);
     return picking.editPicked(hit);
   };
 
@@ -952,12 +952,15 @@ export default function TabPage() {
 
       {/* The tools, in panels on a rail to the clip's left (issue #301). */}
       <TabRail
-        palette={drawPalette}
-        chords={chordsLayout === 'off' ? undefined : {
-          layout: chordsLayout, icon: CHORDS_ICON, open: chordsOpen,
-          onOpen: open => { setChordsOpen(open); setChordsAt(null); },
-          panel: <ChordPanel key={chordsAt ?? ''} clip={clip} track={whole.tracks[track]} cursor={cursor} at={chordsAt} onChange={next => commit(next)} />,
-        }}
+        palette={drawPalette} open={railPanel}
+        onOpen={id => { setRailPanel(id); setChordsAt(null); }}
+        chords={(
+          <ChordPanel
+            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
+            onChange={next => commit(next)} onHear={frets => playback.hearShape(frets)}
+            onDone={() => editorRef.current?.focus({ preventScroll: true })}
+          />
+        )}
       >
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}

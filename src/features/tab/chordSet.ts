@@ -100,3 +100,32 @@ export function isChordDef(v: unknown): v is ChordDef {
     && (d.barre === undefined || (Array.isArray(d.barre) && d.barre.every(isWhole)))
     && optBool(d.showDiagram) && optBool(d.showFingering) && optBool(d.showName);
 }
+
+/** Chord definitions the track can change: a part or a track (`Track.chords`). */
+type WithChords = { chords?: ChordDef[] };
+
+/**
+ * The track with the chord `name` given the shape `frets` (high e first), as the Chords panel picks one
+ * (issue #251): the definition symbols point at (the last of that name) changes, keeping whether it
+ * shows its diagram, name and fingering; its first fret and barre described the old shape, so they go.
+ * A name with no definition gets one, at the end.
+ */
+export function withChordShape<T extends WithChords>(track: T, name: string, frets: readonly (number | null)[]): T {
+  const chords = track.chords ?? [];
+  const at = chords.findLastIndex(def => def.name === name);
+  if (at < 0) return { ...track, chords: [...chords, { name, frets: [...frets] }] };
+  const def: ChordDef = { ...chords[at], frets: [...frets] };
+  delete def.firstFret;
+  delete def.barre;
+  return { ...track, chords: chords.map((d, i) => (i === at ? def : d)) };
+}
+
+/**
+ * The track with a new chord in its Chord set (the Chords panel's New chord): a definition of `name`,
+ * with `frets` when there is a shape for it. A name that already has a definition is left as it is.
+ */
+export function withNewChord<T extends WithChords>(track: T, name: string, frets: readonly (number | null)[] | null): T {
+  const chords = track.chords ?? [];
+  if (chords.some(def => def.name === name)) return track;
+  return { ...track, chords: [...chords, frets ? { name, frets: [...frets] } : { name }] };
+}

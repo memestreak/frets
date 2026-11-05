@@ -9,7 +9,7 @@ import { writePart } from '@/features/tab/alphatex';
 import { clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import { clickWave } from '@/lib/click';
 import {
-  midiUntil, noteAlone, columnAtTick, heardAt, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
+  midiUntil, noteAlone, shapeAlone, columnAtTick, heardAt, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, speedRange, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
@@ -113,6 +113,18 @@ describe('playback', () => {
     expect(notes.notes).toEqual([null, null, null, { fret: 5 }, null, null]);
     const played = plain(alone);
     expect(played.endTick).toBe(Q);
+  });
+
+  it('hears a chord\'s shape strummed down, a quarter at 120 bpm (the Chords panel, issue #251)', () => {
+    const clip = clipOf('\\tempo 60 0.6.4 |');
+    expect(shapeAlone(clip, [null, null, null, null, null, null])).toBeNull();
+    const alone = shapeAlone(clip, [0, 1, 0, 2, 3, null])!;
+    expect(alone.bars).toHaveLength(1);
+    expect(alone.bars[0].tempo).toEqual({ bpm: 120 });
+    const [column] = alone.bars[0].columns;
+    expect(column.stroke).toBe('down');
+    expect(column.notes).toEqual([{ fret: 0 }, { fret: 1 }, { fret: 0 }, { fret: 2 }, { fret: 3 }, null]);
+    expect(plain(alone).endTick).toBe(Q);
   });
 
   it('keeps the playhead on the Active voice\'s own notes, gliding steadily, while another Voice\'s notes start (step 9)', () => {

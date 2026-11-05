@@ -6,7 +6,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setChordName } from '@/features/tab/barEdits';
-import { chordDefOf, chordSet } from '@/features/tab/chordSet';
+import { chordDefOf, chordSet, withChordShape, withNewChord, type ChordDef } from '@/features/tab/chordSet';
 import { parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
 import { readChordName } from '@/lib/theory/chordSearch';
 
@@ -151,5 +151,39 @@ describe('names understood', () => {
     const { clip, warnings } = read('\\ts (4 4)\n0.5.4{ch "N.C."} r.4 r.2 |\n');
     expect(warnings).toEqual([]);
     expect(chordSet(clip.tracks[0])).toEqual([{ name: 'N.C.', uses: 1, reading: null }]);
+  });
+});
+
+describe('changing the Chord set from the Chords panel (issue #251)', () => {
+  const G = [3, 0, 0, 0, 2, 3];
+  const G_OTHER = [3, 3, 0, 0, 2, 3];
+
+  it('gives the definition symbols point at (the last of the name) the new shape, keeping its show props', () => {
+    const track = { chords: [
+      { name: 'G', frets: [1, 1, 1, 1, 1, 1] },
+      { name: 'G', frets: G, firstFret: 1, barre: [3], showDiagram: false, showName: true },
+    ] };
+    const next = withChordShape(track, 'G', G_OTHER);
+    expect(next.chords).toEqual([
+      { name: 'G', frets: [1, 1, 1, 1, 1, 1] },
+      { name: 'G', frets: G_OTHER, showDiagram: false, showName: true },
+    ]);
+    // The track it was given is not changed.
+    expect(track.chords[1].frets).toBe(G);
+  });
+
+  it('adds a definition, at the end, for a name with none; names match case and all', () => {
+    expect(withChordShape<{ chords?: ChordDef[] }>({}, 'Am', [0, 1, 2, 2, 0, null]).chords).toEqual([{ name: 'Am', frets: [0, 1, 2, 2, 0, null] }]);
+    expect(withChordShape({ chords: [{ name: 'AM' }] }, 'Am', G).chords).toEqual([{ name: 'AM' }, { name: 'Am', frets: G }]);
+  });
+
+  it('New chord adds a definition with its shape, or with none when there is no shape', () => {
+    expect(withNewChord<{ chords?: ChordDef[] }>({}, 'Dsus2', [0, 3, 2, 0, null, null]).chords).toEqual([{ name: 'Dsus2', frets: [0, 3, 2, 0, null, null] }]);
+    expect(withNewChord({ chords: [{ name: 'G' }] }, 'Riff', null).chords).toEqual([{ name: 'G' }, { name: 'Riff' }]);
+  });
+
+  it('New chord leaves a name that already has a definition as it is', () => {
+    const track = { chords: [{ name: 'G', frets: G }] };
+    expect(withNewChord(track, 'G', G_OTHER)).toBe(track);
   });
 });

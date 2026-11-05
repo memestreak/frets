@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
@@ -55,7 +55,6 @@ afterEach(() => {
 
 describe('a double-click on something with an Edit opens its field (issue #289)', () => {
   const cases: [string, () => { clientX: number; clientY: number }, string][] = [
-    ['a chord name', () => wordAt({ kind: 'chord', index: 0 }), 'Chord name'],
     ['text over a column', () => wordAt({ kind: 'text', index: 1 }), 'Text over the column'],
     ['a section', () => wordAt({ kind: 'section', bar: 0 }), 'Section'],
     ['the capo', () => wordAt({ kind: 'capo', bar: 0 }), 'Capo on fret, 1 to 12'],
@@ -82,12 +81,29 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(screen.getByTestId('repeat-count')).toHaveTextContent('×4');
   });
 
+  it('a chord name opens the Chords panel at that chord (issue #251), not note input', async () => {
+    await open();
+    doubleClick(wordAt({ kind: 'chord', index: 0 }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Chord name' })).toHaveValue('A');
+    // The Notes panel, where the pencil is, has given way to Chords.
+    expect(screen.queryByRole('button', { name: 'Note input' })).toBeNull();
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Panels' })).getByRole('button', { name: 'Notes' }));
+    expect(pencil()).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('works in note input too', async () => {
     await open();
     fireEvent.click(pencil());
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+    doubleClick(wordAt({ kind: 'text', index: 1 }));
+    expect(screen.getByRole('dialog', { name: 'Text over the column' })).toBeInTheDocument();
+    cleanup();
+    await open();
+    fireEvent.click(pencil());
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
-    expect(screen.getByRole('dialog', { name: 'Chord name' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Chord name' })).toHaveValue('A');
   });
 });
 
