@@ -1,0 +1,9 @@
+\title "A Shift+press grows the selection, and inside it trims the nearer end"
+\ts (4 4)
+1.1.4 2.1.4
+  3.1.4{txt "2 and 3 stay lit. Last, Shift+press this 3: it is nearer the start, so 3 to 5 stay lit"}
+  4.1.4{txt "Tab view: press this 4, then Shift+← twice (2 to 4 lit). Then Shift+press the 6"} |
+5.1.4{txt "Then Shift+press this 5: it is nearer the end, so 2 to 5 stay lit"}
+  6.1.4{txt "2 to 6 lit"} 7.1.4 8.1.4 |
+9.1.4 10.1.4 11.1.4 12.1.4 |
+

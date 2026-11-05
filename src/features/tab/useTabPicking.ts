@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import type { Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
-import { columnAt, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
+import { columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
@@ -56,6 +56,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   const markAlone = (at: Cursor, alone: boolean) => {
     if (alone && isChained(clip, at)) setAlone(true);
   };
+
+  /** A Shift+press's selection: the selection (or the cursor's column) grown to take in `from`–`to` (issue #366). */
+  const grown = (from: number, to = from) => growSelection(selection, indexOf(clip, cursor.bar, cursor.column), from, to);
 
   /** Where a word over the tab belongs: its column, or its bar's first. */
   const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
@@ -179,8 +182,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     setColumnOnly(false);
     const hasColumn = clip.bars[hit.bar].columns.length > 0;
     if (extend && hasColumn && columnAt(clip, cursor)) {
-      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      commit(clip, hit, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      commit(clip, hit, grown(indexOf(clip, hit.bar, hit.column)));
       startRegion();
     } else {
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
@@ -225,6 +227,20 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       setColumnOnly(true);
       return;
     }
+    if (extend && clip.bars[at.bar].columns.length > 0 && columnAt(clip, cursor)) {
+      // The selection grows to take in the whole rest pressed: every bar of a multi-bar rest, every rest of a Whole-bar rest.
+      const whole = lastBar !== undefined || isWholeBarRest(clip, at.bar);
+      const from = indexOf(clip, at.bar, whole ? 0 : at.column);
+      const to = lastBar !== undefined ? indexOf(clip, lastBar, Math.max(0, clip.bars[lastBar].columns.length - 1))
+        : whole ? indexOf(clip, at.bar, clip.bars[at.bar].columns.length - 1) : from;
+      const next = grown(from, to);
+      lastDigitRef.current = null;
+      commit(clip, { ...placeOf(clip, next.focus), string: cursor.string }, next);
+      startRegion();
+      setStaffPitch(null);
+      setColumnOnly(false);
+      return;
+    }
     if (extend) {
       onPick(hit, true);
       return;
@@ -248,8 +264,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const note = hit.string === null ? null : noteAt(clip, at);
     const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
     if (extend && clip.bars[hit.bar].columns.length > 0 && columnAt(clip, cursor)) {
-      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      commit(clip, at, { anchor, focus: indexOf(clip, hit.bar, hit.column) });
+      commit(clip, at, grown(indexOf(clip, hit.bar, hit.column)));
       startRegion();
       return;
     }
