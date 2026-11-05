@@ -1,7 +1,7 @@
 # Tab: Ties forward, a Tie chain as one note
 
 Step 5 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choice A7, with P3
+(`docs/tab-editing-principles.md`, choice A7, with P3
 and P8). Jeremy settled the questions below on 2026-11-04 (Q1–Q22 in the
 thread "Plan ties as one note (step 5)", run with /grill-with-docs). A
 Tie chain is read as one Sounding note by the step 1 layer

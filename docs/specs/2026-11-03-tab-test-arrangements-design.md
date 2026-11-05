@@ -52,7 +52,7 @@ arrangements exist for humans validation/experimentation." So:
 
 ## The first four
 
-Chosen to stay true under the editing principles of 2026-11-02 (A1–A14):
+Chosen to stay true under the editing principles of 2026-11-02 (A1–A14, `docs/tab-editing-principles.md`):
 each is a rule Frets already follows that those choices keep.
 
 | File | Shows |

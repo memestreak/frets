@@ -1,8 +1,8 @@
 # Tab: Beat groups and beam overrides
 
 Step 7 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choices A5 and A6,
-with P6 and P9; §13 row 12). Jeremy settled the questions below on
+(`docs/tab-editing-principles.md`, choices A5 and A6,
+with P6 and P9). Jeremy settled the questions below on
 2026-11-04 (Q1–Q13 in the thread "Plan step 7: beat groups and beams",
 run with /grill-with-docs; the round is on the page
 https://claude.ai/artifact/D7vhxkR3KsGneSmqs3dbMS). Notes and Gaps are

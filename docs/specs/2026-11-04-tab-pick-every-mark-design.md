@@ -1,8 +1,8 @@
 # Tab: every Mark can be picked
 
 Step 8 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choice A15, with P11
-and P14; §8's "Picking a mark" row; §13 row 13). Jeremy settled the
+(`docs/tab-editing-principles.md`, choice A15, with P11
+and P14; §8's "Picking a mark"). Jeremy settled the
 questions below on 2026-11-04 (Q1–Q19 in the thread "Plan step 8: every
 mark can be picked", run with /grill-with-docs; the rounds are on the
 page https://claude.ai/artifact/426tQEVpocHRY13S2KsBAn). It takes in

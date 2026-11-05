@@ -1,7 +1,7 @@
 # Tab: every Voice drawn, exported and edited
 
 Step 9 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choice A2, with P13
+(`docs/tab-editing-principles.md`, choice A2, with P13
 and §11; the last step). Jeremy settled the questions below on
 2026-11-04 (Q1–Q22 in the thread "Build Tab editor step 9: voices", run
 with /grill-with-docs; the rounds, with what Dorico, MuseScore and Guitar

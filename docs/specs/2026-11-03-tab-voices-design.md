@@ -1,7 +1,7 @@
 # Tab: Voices in the arrangement and in alphaTex
 
 Step 2 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choice A2). Jeremy
+(`docs/tab-editing-principles.md`, choice A2). Jeremy
 settled the questions below on 2026-11-03 (Q1–Q13 in the thread "Add
 voices to the arrangement model", run with /grill-with-docs). Why the
 editor works on one Voice at a time:

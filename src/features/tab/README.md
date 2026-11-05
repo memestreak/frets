@@ -16,10 +16,16 @@ and in its spec.
 - Durations are ticks, whole = 3548160, so a double-dotted thirty-second
   and a sixty-fourth in any tuplet of up to twelve notes are whole numbers.
   Grace notes take no time.
-- Bars stay full, as MuseScore keeps them: Delete leaves rests, and a
-  length change on a picked column writes over what follows or leaves
-  rests after it (`2026-10-31-tab-bars-stay-full-design.md`,
-  `2026-11-01-tab-rest-lengths-design.md`).
+- Editing follows the Tab editing principles, P1–P14
+  (`docs/tab-editing-principles.md`): Dorico first, then MuseScore, then
+  Guitar Pro 8 (`docs/adr/2026-11-05-tab-editing-follows-dorico-musescore-gp8.md`).
+  A change to how editing behaves follows them or changes them in the
+  same PR.
+- Bars are always full (P1): every edit goes through one timeline, longer
+  writes over, shorter leaves a Gap, and only Insert, Insert paste and
+  Ctrl/⌘+Delete move later music
+  (`2026-11-04-tab-bars-always-full-design.md`). Rests are Gaps written by
+  the meter (P4, `2026-11-03-tab-rests-are-gaps-design.md`).
 - `layoutClip` (`layout.ts`) is the one source of where things are: the
   drawing, every hit test, the fields over the tab and the exports all work
   on its result.
@@ -374,6 +380,9 @@ or saved. Standard tuning only.
 
 ## Specs
 
+The principles every editing spec since step 1 follows, with Dorico,
+MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
+
 - `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in
   show_tab, set by the model and dragged by the user in the chat
 - `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar
@@ -562,3 +571,6 @@ or saved. Standard tuning only.
   Sounding notes; the Clip stores written Columns
 - `docs/adr/2026-11-03-part-is-one-voice.md`: a Part is one Voice of one
   Track; other Voices ride along read-only
+- `docs/adr/2026-11-05-tab-editing-follows-dorico-musescore-gp8.md`: Tab
+  editing is self-consistent and follows Dorico, then MuseScore, then
+  Guitar Pro 8; guitar use cases only

@@ -1,7 +1,7 @@
 # Tab: Tuplets, grace notes and rests
 
 Step 6 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choices A9, A13 and
+(`docs/tab-editing-principles.md`, choices A9, A13 and
 A14, with P1, P4 and P10). Jeremy settled the questions below on
 2026-11-04 (Q1–Q18 in the thread "Plan tuplets, grace notes and R
 (step 6)", run with /grill-with-docs; the rounds are on the page
