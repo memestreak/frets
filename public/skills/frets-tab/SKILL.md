@@ -33,6 +33,11 @@ disagree, it wins.
   may be short: write `\ac` at the start of the first bar.
 - Frets beams by the beat groups (7/8 as 2+2+3). Give another grouping with `\beaming (8 3 2 2)` after
   its `\ts`, and a single beam break or join with `{beam split}` or `{beam merge}` on the beat before.
+- A chord name over a beat is `{ch "Am7"}`. When the tab shows a chord's
+  shape (a diagram, or a named strum), also write the shape once before the
+  bars, frets high e first and `x` for a string not played:
+  `\chord ("Am7" 0 1 0 2 0 x)`. Each track has its own; its `ch` of that
+  exact name then means that shape. The notes are still written out.
 - Give the user a link that opens the tab, plus the text unless they ask
   for only one:
 

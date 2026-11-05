@@ -110,6 +110,9 @@ and in its spec.
 - `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
   sound for is kept and played by the nearest —
   `2026-10-29-tab-sound-and-fx-in-clip-design.md`.
+- `chordSet.ts` — a track's Chord set: its `\chord` definitions
+  (`Track.chords`, each a name and shape) and the names only typed over
+  columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`.
 - `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
   `2026-10-30-tab-track-effects-design.md`.
 - `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex) and reading
@@ -383,6 +386,8 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
+  set, its `\chord` shapes kept in the clip and its chord names understood
 - `docs/specs/2026-11-05-tab-shift-press-grows-design.md`: a Shift+press
   outside the selection only grows it; inside, it trims the nearer end
 - `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in

@@ -92,3 +92,23 @@ export function findChord(text: string): FoundChord | null {
   }
   return null;
 }
+
+/** A chord name read in full: its root and type, and the bass note after a slash, if any. */
+export interface ChordReading extends FoundChord {
+  /** The note after the slash ("C/G"), spelled as chord roots are. */
+  bass?: ChordRoot;
+}
+
+const BASS = /\/\s*([A-Ga-g])(##|bb|#|b|♯♯|♭♭|♯|♭)?\s*$/u;
+
+/**
+ * What a chord name written over tab means: `findChord`'s root and type,
+ * and the slash chord's bass. "C/G" is C major over G; "N.C." or
+ * "Hendrix chord" are not chord names, so null.
+ */
+export function readChordName(text: string): ChordReading | null {
+  const found = findChord(text);
+  if (!found) return null;
+  const bass = BASS.exec(text.trim());
+  return bass ? { ...found, bass: rootAt(bass[1], bass[2] ?? '') } : found;
+}
