@@ -52,8 +52,8 @@ as `<method> · <tool> #<call>` with its rough token count, e.g.
 tokens)`; the rest is under the fold. The chat's turns use
 the same `<tool> #<call>` names. An opened entry is split into labelled parts: a result's or update's
 text (`content`) and its structured data (`structuredContent`), a tool's
-description and input schema, then anything else. Clear empties the log. The chat column's width is set by
-dragging its right edge (from 280 px up to the room there is), or by ← →
+description and input schema, then anything else. Clear empties the log. The chat column sits at the chat's left, next to the sidebar, and its width is set by
+dragging its right edge (from 280 px up to the room there is), which moves only that edge, or by ← →
 on it, and the sidebar's the same way (from 240 px, leaving the chat at
 least 360 px); the log lays its JSON out again to fit.
 
