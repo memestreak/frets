@@ -102,7 +102,9 @@ describe('the server', () => {
     const result = await client.callTool({ name: TOOL_NAME, arguments: { bpm: 92, beats: 7, groups: '2+2+3' } });
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent).toMatchObject({ rhythm: { bpm: 92, beats: 7, groups: [2, 2, 3] } });
-    expect((result.content as { text: string }[])[0].text).toContain('92 bpm, 7 beats grouped 2+2+3');
+    expect((result.content as { text: string }[])[0].text).toBe(
+      'Metronome ready (stopped): 92 bpm, 7 beats grouped 2+2+3, 1 click a beat. Press Start to hear it.',
+    );
   });
 
   it('says what is wrong with a call it can’t make', async () => {

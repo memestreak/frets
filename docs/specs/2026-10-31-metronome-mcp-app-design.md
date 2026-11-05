@@ -32,7 +32,10 @@ don't add up are refused with a message.
 
 The result is the checked rhythm as `structuredContent`, plus one
 line of text for hosts that can't show apps: "Metronome ready (stopped):
-92 bpm, 7 beats grouped 2+2+3, 1 click a beat."
+92 bpm, 7 beats grouped 2+2+3, 1 click a beat. Press Start to hear it."
+The last sentence tells the model the metronome is waiting on the user:
+neither the model nor the server can start it (Jeremy, 2026-11-05, chose
+this wording over "The user presses Start.").
 
 ## What Claude can and can't do
 

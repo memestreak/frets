@@ -24,7 +24,7 @@ export function registerMetronomeTools(server: McpServer, apps: AppsHtml): void 
     if (!made.ok) return { isError: true, content: [{ type: 'text', text: made.error }] };
     const state: MetronomeState = made.state;
     return {
-      content: [{ type: 'text', text: `Metronome ready (stopped): ${describeRhythm(state.rhythm)}. The user presses Start.` }],
+      content: [{ type: 'text', text: `Metronome ready (stopped): ${describeRhythm(state.rhythm)}. Press Start to hear it.` }],
       structuredContent: { ...state },
     };
   });
