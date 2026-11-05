@@ -161,8 +161,36 @@ themePick.addEventListener('change', () => {
   document.body.dataset.theme = theme;
   for (const b of bridges) void b.sendHostContextChange({ theme });
 });
-const width = () => {
-  $('column').style.maxWidth = `${$<HTMLSelectElement>('width').value}px`;
+/** The chat column's width: drag its right edge (or focus it and press ← →). It stays centred, as in a chat. */
+const wrap = $('column').parentElement!;
+const handle = $('resize');
+let chatWidth = 640;
+const setWidth = (px: number) => {
+  const room = wrap.parentElement!.clientWidth - 64; // the chat's padding and the handle
+  chatWidth = Math.round(Math.max(280, Math.min(px, room)));
+  wrap.style.width = `${chatWidth}px`;
+  handle.querySelector('span')!.textContent = `${chatWidth} px`;
+  handle.setAttribute('aria-valuenow', String(chatWidth));
 };
-$('width').addEventListener('change', width);
-width();
+handle.addEventListener('pointerdown', down => {
+  const [x0, w0] = [down.clientX, chatWidth];
+  handle.setPointerCapture(down.pointerId);
+  wrap.classList.add('dragging');
+  // Centred, so the edge moves half as far as the width changes.
+  const move = (e: PointerEvent) => setWidth(w0 + 2 * (e.clientX - x0));
+  const up = () => {
+    wrap.classList.remove('dragging');
+    handle.removeEventListener('pointermove', move);
+    handle.blur();
+  };
+  handle.addEventListener('pointermove', move);
+  handle.addEventListener('lostpointercapture', up, { once: true });
+});
+handle.addEventListener('keydown', e => {
+  const step = e.shiftKey ? 50 : 10;
+  if (e.key === 'ArrowLeft') setWidth(chatWidth - step);
+  else if (e.key === 'ArrowRight') setWidth(chatWidth + step);
+  else return;
+  e.preventDefault();
+});
+setWidth(chatWidth);
