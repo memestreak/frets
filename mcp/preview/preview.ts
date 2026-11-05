@@ -12,6 +12,7 @@ import metronome from '../dist/metronome.html?raw';
 import tab from '../dist/tab.html?raw';
 import tuner from '../dist/tuner.html?raw';
 import { createFretsServer } from '@/mcp/server';
+import { PRESETS } from './presets';
 import { TOOL_NAME as METRONOME } from '@/features/metronome/mcp/tool';
 import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
 import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
@@ -143,20 +144,6 @@ function pretty(value: unknown, width = 72, indent = ''): string {
   return `${open}\n${lines.join(',\n')}\n${indent}${close}`;
 }
 
-/** What each tool's arguments box starts with. */
-const EXAMPLES: Record<string, string> = {
-  [METRONOME]: '{ "bpm": 92, "beats": 7, "groups": "2+2+3" }',
-  [TAB]: pretty({
-    bpm: 90,
-    bars: [
-      { columns: [8, 8, 8, 8, 8, 8, 4].map((value, i) => ({ duration: { value }, notes: [{ pitch: ['A3', 'C4', 'D4', 'E4', 'G4', 'E4', 'D4'][i] }] })) },
-      { columns: [{ duration: { value: 2 }, notes: [{ string: 3, fret: 2, bend: { quarters: 4 } }], chord: 'Am' }, { duration: { value: 2 }, notes: [{ string: 5, fret: 0 }] }] },
-    ],
-    loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 1 } },
-  }),
-  [TUNER]: '{}',
-};
-
 /** A call's arguments: one line, which opens to the whole call, pretty-printed. */
 const argsView = () => '<details class="args"><summary><span></span></summary><pre></pre></details>';
 function fillArgs(turn: HTMLElement, args: Record<string, unknown>) {
@@ -217,11 +204,25 @@ async function call(name: string, args: Record<string, unknown>) {
 }
 
 const toolPick = $<HTMLSelectElement>('tool');
+const presetPick = $<HTMLSelectElement>('preset');
+/** Fills the arguments box with the chosen preset of the chosen tool. */
+const pickPreset = () => {
+  $<HTMLTextAreaElement>('args').value = pretty(PRESETS[toolPick.value][Number(presetPick.value)].args);
+};
+/** Lists the chosen tool's presets and starts on its first. */
 const pickTool = () => {
-  $<HTMLTextAreaElement>('args').value = EXAMPLES[toolPick.value];
+  presetPick.replaceChildren(...PRESETS[toolPick.value].map((p, i) => new Option(p.name, String(i))));
+  pickPreset();
   $('call').textContent = `Call ${toolPick.value}`;
 };
-toolPick.addEventListener('change', pickTool);
+toolPick.addEventListener('change', () => {
+  pickTool();
+  toolPick.blur();
+});
+presetPick.addEventListener('change', () => {
+  pickPreset();
+  presetPick.blur();
+});
 pickTool();
 $('call').addEventListener('click', () => {
   try {
