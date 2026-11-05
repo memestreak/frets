@@ -47,26 +47,50 @@ for (const [name, label] of [[METRONOME, 'Metronome'], [TAB, 'Line'], [TUNER, 'T
   log(`tools/list: ${name} → ${uri}`);
 }
 
+/** JSON, indented, but with each object or array that fits on one line kept on one line. */
+function pretty(value: unknown, indent = ''): string {
+  const flat = JSON.stringify(value);
+  if (value === null || typeof value !== 'object' || indent.length + flat.length <= 72) return flat;
+  const inner = `${indent}  `;
+  const lines = Array.isArray(value)
+    ? value.map(v => inner + pretty(v, inner))
+    : Object.entries(value).map(([k, v]) => `${inner}${JSON.stringify(k)}: ${pretty(v, inner)}`);
+  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
+  return `${open}\n${lines.join(',\n')}\n${indent}${close}`;
+}
+
 /** What each tool's arguments box starts with. */
 const EXAMPLES: Record<string, string> = {
   [METRONOME]: '{ "bpm": 92, "beats": 7, "groups": "2+2+3" }',
-  [TAB]: JSON.stringify({
+  [TAB]: pretty({
     bpm: 90,
     bars: [
       { columns: [8, 8, 8, 8, 8, 8, 4].map((value, i) => ({ duration: { value }, notes: [{ pitch: ['A3', 'C4', 'D4', 'E4', 'G4', 'E4', 'D4'][i] }] })) },
       { columns: [{ duration: { value: 2 }, notes: [{ string: 3, fret: 2, bend: { quarters: 4 } }], chord: 'Am' }, { duration: { value: 2 }, notes: [{ string: 5, fret: 0 }] }] },
     ],
     loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 1 } },
-  }, null, 1),
+  }),
   [TUNER]: '{}',
 };
+
+/** A call's arguments: one line, which opens to the whole call, pretty-printed. */
+const argsView = () => '<details class="args"><summary><span></span></summary><pre></pre></details>';
+function fillArgs(turn: HTMLElement, args: Record<string, unknown>) {
+  turn.querySelector('.args summary span')!.textContent = JSON.stringify(args);
+  turn.querySelector('.args pre')!.textContent = pretty(args);
+  // Let go of the toggle after a press, as every Frets widget does.
+  const summary = turn.querySelector<HTMLElement>('.args summary')!;
+  summary.addEventListener('click', () => summary.blur());
+}
 
 async function call(name: string, args: Record<string, unknown>) {
   const { html, label } = apps.get(name)!;
   const n = bridges.length + 1;
   const turn = document.createElement('div');
   turn.className = 'turn';
-  turn.innerHTML = `<div class="turn-head">${label} ${n}<span>${JSON.stringify(args)}</span><button type="button">Tear down</button></div>`;
+  turn.innerHTML = `<div class="turn-head"><span class="label"></span>${argsView()}<button type="button">Tear down</button></div>`;
+  turn.querySelector('.label')!.textContent = `${label} ${n}`;
+  fillArgs(turn, args);
   const frame = document.createElement('iframe');
   frame.title = `${label} ${n}`;
   frame.sandbox.add('allow-scripts');

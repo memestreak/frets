@@ -18,8 +18,12 @@
       .chat { padding: 16px; overflow: auto; }
       .column { margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; width: 100%; }
       .turn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
-      .turn-head { display: flex; gap: 8px; align-items: center; font-weight: 600; }
-      .turn-head span { flex: 1; min-width: 0; font-weight: 400; color: #776; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .turn-head { display: flex; gap: 8px; align-items: baseline; font-weight: 600; }
+      .args { flex: 1; min-width: 0; font-weight: 400; color: #776; }
+      .args summary { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .args[open] summary { white-space: normal; }
+      .args[open] summary span { display: none; }
+      .args pre { margin: 4px 0 0; font: 12px/16px ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
       @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .side { border-right: 0; border-bottom: 1px solid #0002; } .chat { padding: 16px 8px; } }
       iframe { width: 100%; border: 1px dashed #0003; height: 200px; }
     </style>

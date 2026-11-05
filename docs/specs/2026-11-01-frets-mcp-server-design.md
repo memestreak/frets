@@ -40,6 +40,8 @@ is `noindex` and linked from nowhere). It is static, like the rest of the
 site, so the `/mcp` Function stays the one Function and its size doesn't
 change. It offers every tool the server lists, starts in the theme
 `?theme=` names (light by default), and stacks its panels on a phone.
+Each call shows its arguments on one line, which opens to the whole call,
+pretty-printed.
 
 
 `src/__tests__/mcp/server.test.ts` checks the server is `frets`, that it
