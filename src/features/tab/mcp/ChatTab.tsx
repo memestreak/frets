@@ -3,19 +3,23 @@
  * Tab page's own drawing (`TabClip`, the playhead, the loop bracket and its handles) and sound
  * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm and Tap, Staff | Tab | Both, and
  * Open in Frets. Nothing is edited or saved; the loop points are the one thing the user moves on the music
- * (`docs/specs/2026-11-05-show-tab-loop-points-design.md`).
+ * (`docs/specs/2026-11-05-show-tab-loop-points-design.md`). The user can select columns, as on the Tab page,
+ * only to loop them (`docs/specs/2026-11-05-show-tab-selection-design.md`).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { PlayIcon } from '@/components/icons';
 import { useTapPulse } from '@/components/TapPulse';
+import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
+import { growSelection, indexOf, selectedRange, type Selection } from '../editing';
 import { DEFAULT_FX } from '../effects';
-import { layoutClip, type Parts } from '../layout';
+import type { Hit } from '../hitTest';
+import { isWholeBarRest, layoutClip, type Parts } from '../layout';
 import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
 import { DEFAULT_SOUND } from '../playback';
 import { shareLink } from '../shareLink';
@@ -40,6 +44,9 @@ const BPM_RANGE: BpmRange = { min: MIN_BPM, max: MAX_BPM };
 
 /** The volume the line plays at: the Tab page's Volume knob is left out, the host's own volume stands. */
 const VOLUME = 0.8;
+
+/** A press on the drawing keeps the selection: the drawing says itself what the press selects or lets go. */
+const KEEPS = `${KEEPS_SELECTION}, .chat-tab-music svg`;
 
 /** What the user changed that the model should hear about: the bpm, and the loop points, if any. */
 export interface Heard {
@@ -82,6 +89,15 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
     setWasAsked(asked);
     setView(asked);
   }
+  /** The selected columns, counted across the line from 0, as on the Tab page; only Loop uses them. */
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // A new line lets the selection go.
+  const [selectedIn, setSelectedIn] = useState(part);
+  if (part !== selectedIn) {
+    setSelectedIn(part);
+    setSelection(null);
+  }
+  const selected = selection ? selectedRange(selection) : null;
   const [ref, width] = useWidth();
   const parts: Parts = view;
   const layout = useMemo(() => (width > 0 ? layoutClip(part, width, parts) : null), [part, width, parts]);
@@ -91,7 +107,6 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   });
   const { view: player, loop, speed } = playback;
   const playing = player.state === 'playing';
-  useSpaceKey(() => playback.toggle(0));
   useLetGoAfterUse();
 
   // A new line comes with its own loop points, or none, in place of the user's.
@@ -102,10 +117,42 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part, askedLoop]);
 
-  // Loop always puts the bracket over the whole line, so both its ends are there to drag in.
+  /**
+   * A press selects the columns it lands on; with Shift it grows the selection to them, or trims it from
+   * the nearer end when inside it, as the Tab page's does (`growSelection`, issue #366).
+   */
+  const select = (from: number, to: number, extend: boolean) =>
+    setSelection(extend && selection ? growSelection(selection, selection.focus, from, to) : { anchor: from, focus: to });
+  const pickColumn = (at: { bar: number; column: number }, extend: boolean) => {
+    const index = indexOf(part, at.bar, at.column);
+    select(index, index, extend);
+  };
+  /** A rest is taken in whole: every rest of a Whole-bar rest, every bar of a multi-bar rest. */
+  const pickRest = ({ bar, column, lastBar }: { bar: number; column: number; lastBar?: number }, extend: boolean) => {
+    const whole = lastBar !== undefined || isWholeBarRest(part, bar);
+    const end = lastBar ?? bar;
+    select(indexOf(part, bar, whole ? 0 : column), whole ? indexOf(part, end, part.bars[end].columns.length - 1) : indexOf(part, bar, column), extend);
+  };
+  const letGo = () => setSelection(null);
+  useDeselect(selection !== null, letGo, { keep: KEEPS });
+
+  /**
+   * Loop, the button or L: with columns selected, the loop points go round them and the selection goes, as
+   * on the Tab page (#365; pressed on the loop's own columns, they go). With none, they go, or the bracket
+   * goes over the whole line, so both its ends are there to drag in.
+   */
   const columns = part.bars.reduce((n, b) => n + b.columns.length, 0);
-  const toggleLoop = () => setLoopPoints(loop ? null : [0, columns - 1]);
+  const sameAsLoop = selected !== null && Array.isArray(loop) && loop[0] === selected[0] && loop[1] === selected[1];
+  const toggleLoop = () => {
+    if (selected) {
+      setLoopPoints(sameAsLoop ? null : selected);
+      setSelection(null);
+    } else setLoopPoints(loop ? null : [0, columns - 1]);
+  };
   useLetterKey('l', toggleLoop);
+  // Play starts at the selection, else at the loop points' start, as on the Tab page.
+  const playFrom = selected ? selected[0] : Array.isArray(loop) ? loop[0] : 0;
+  useSpaceKey(() => playback.toggle(playFrom));
 
   const clipBpm = part.bars[0]?.tempo?.bpm ?? DEFAULT_BPM;
   const bpm = Math.round(clipBpm * speed);
@@ -142,20 +189,27 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
     <section className="card chat-tab" aria-label="Staff and tab">
       <div ref={ref} className="chat-tab-music relative">
         {layout && <Playhead clip={part} layout={layout} width={width} playback={playback} mark={null} layer="under" />}
-        {layout && <TabClip clip={part} layout={layout} width={width} parts={parts} title={`The line, drawn as ${VIEWS.find(v => v.view === view)!.label.toLowerCase()}`} />}
+        {layout && (
+          <TabClip
+            clip={part} layout={layout} width={width} parts={parts} title={`The line, drawn as ${VIEWS.find(v => v.view === view)!.label.toLowerCase()}`}
+            highlight={{ cursor: null, range: selected, boxed: true }}
+            onPick={(hit: Hit, extend) => pickColumn(hit, extend)} onPickStaff={pickColumn} onPickRhythm={pickRest} onMiss={letGo}
+          />
+        )}
         {layout && <Playhead clip={part} layout={layout} width={width} playback={playback} mark={null} layer="over" />}
         {layout && <LoopHandles layout={layout} width={width} playback={playback} />}
       </div>
       <div className="chat-tab-row">
         <button
           type="button" className="btn btn-icon tab-play" aria-label={playLabel} aria-pressed={playing} data-tip={`${playLabel} (Space)`}
-          onClick={() => playback.toggle(0)}
+          onClick={() => playback.toggle(playFrom)}
         >
           {player.state === 'loading' ? <span className="tab-play-spinner" aria-hidden="true" /> : playing ? <StopIcon /> : <PlayIcon />}
         </button>
         <button
           type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Loop" aria-pressed={loop !== null}
-          data-tip={loop ? 'Clear the loop points (L)' : 'Loop the line (L). Drag the ends of the bracket to loop part of it'}
+          data-tip={selected && !sameAsLoop ? 'Loop the selected notes (L)'
+            : loop ? 'Clear the loop points (L)' : 'Loop the line (L). Select notes, or drag the ends of the bracket, to loop part of it'}
           onMouseDown={e => e.preventDefault()} onClick={toggleLoop}
         >
           <LoopIcon />

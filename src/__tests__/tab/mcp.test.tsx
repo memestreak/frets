@@ -3,7 +3,7 @@
  * the JSON both ways, the checks, the server's answers, and the app in a stand-in host.
  */
 import * as alphaTab from '@coderline/alphatab';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { App } from '@modelcontextprotocol/ext-apps';
 import { AppBridge } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { Client } from '@modelcontextprotocol/client';
@@ -15,6 +15,7 @@ import { STANDARD_TUNING, partOf, type Bar, type Column, type Note, type Part } 
 import { APP_INFO, REPORT_DELAY_MS, TabApp } from '@/features/tab/mcp/TabApp';
 import { describeLine, describeLoop, lineFromInput, lineOf, loopOf, noteMidi } from '@/features/tab/mcp/lineJson';
 import { APP_URI, TOOL_NAME } from '@/features/tab/mcp/tool';
+import { layoutClip, stringY } from '@/features/tab/layout';
 import { readLink } from '@/features/tab/shareLink';
 import { choosePlace } from '@/features/tab/staffEntry';
 import { createFretsServer } from '@/mcp/server';
@@ -285,11 +286,16 @@ describe('the server', () => {
 
 vi.mock('@/features/tab/playback', async importOriginal => {
   const real = await importOriginal<typeof import('@/features/tab/playback')>();
-  /** A player that plays nothing (every method does nothing), counting how often it is let go. */
+  /** A player that plays nothing (every method does nothing), counting how often it is let go and where each Play starts. */
   const FakePlayer = {
     destroyed: 0,
+    from: [] as number[],
     async create() {
-      return new Proxy({ destroy: () => { FakePlayer.destroyed += 1; } } as Record<string, unknown>, {
+      const play = (_clip: unknown, from: number) => {
+        FakePlayer.from.push(from);
+        return Promise.resolve();
+      };
+      return new Proxy({ destroy: () => { FakePlayer.destroyed += 1; }, play } as Record<string, unknown>, {
         // Not a promise itself: `then` stays undefined.
         get: (target, key) => (key === 'then' ? undefined : target[key as string] ?? (() => Promise.resolve())),
       });
@@ -484,5 +490,134 @@ describe('the app', () => {
     await act(() => bridge.teardownResource({}));
     expect(screen.queryByRole('button', { name: /Play|Stop/ })).toBeNull();
     await waitFor(() => expect(fake.destroyed).toBe(before + 1));
+  });
+});
+
+/** Three bars of quarters on the high e, frets 1 to 12, so each column's fret names it (counted from 1). */
+const TWELVE = { bpm: 90, bars: [0, 1, 2].map(b => ({ columns: [1, 2, 3, 4].map(k => col(4, [{ string: 1, fret: 4 * b + k }])) })) };
+
+describe('selecting in the app, to loop', () => {
+  /** Where column `index` (from 0, across the line) is drawn on the high e, as jsdom draws it: 800 wide at 0, 0. */
+  function spot(index: number) {
+    for (const system of layoutClip(made(TWELVE).part, 800, 'tab').systems) {
+      for (const b of system.bars) {
+        const placed = b.columns.find(c => c.index === index);
+        if (placed) return { clientX: placed.x, clientY: system.top + stringY(system.rows, 0) };
+      }
+    }
+    throw new Error(`No column ${index}`);
+  }
+  const svg = () => screen.getByRole('img', { name: /drawn as/ });
+  function press(at: { clientX: number; clientY: number }, shiftKey = false) {
+    fireEvent.pointerDown(svg(), { ...at, button: 0, shiftKey });
+    fireEvent.pointerUp(svg(), { ...at, button: 0, shiftKey });
+  }
+  /** The selected frets, in order: each names its column. */
+  const selected = () => [...document.querySelectorAll('[data-testid="tab-system"] text[fill="var(--select)"]')].map(t => Number(t.textContent));
+  const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, k) => from + k);
+  const loop = () => screen.getByRole('button', { name: 'Loop' });
+  const pressL = () => act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' })); });
+
+  async function open() {
+    const mounted = await mountApp();
+    await act(() => mounted.bridge.sendToolInput({ arguments: { ...TWELVE, view: 'tab' } }));
+    await screen.findByRole('img', { name: /drawn as/ });
+    return mounted;
+  }
+
+  it('selects the column pressed; Shift grows the selection to a press outside it, and trims the nearer end inside it', async () => {
+    await open();
+    press(spot(3));
+    expect(selected()).toEqual([4]);
+    press(spot(7), true);
+    expect(selected()).toEqual(range(4, 8));
+    press(spot(1), true);
+    expect(selected()).toEqual(range(2, 8));
+    // Inside, nearer the end: the end comes to the press.
+    press(spot(5), true);
+    expect(selected()).toEqual(range(2, 6));
+    // Nearer the start: the start does.
+    press(spot(2), true);
+    expect(selected()).toEqual(range(3, 6));
+    // A plain press starts over.
+    press(spot(10));
+    expect(selected()).toEqual([11]);
+  });
+
+  it('lets the selection go on Esc, on a press off the notes, and for a new line', async () => {
+    const { bridge } = await open();
+    press(spot(3));
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(selected()).toEqual([]);
+    press(spot(3));
+    // Well below the tab: a press on nothing.
+    press({ clientX: spot(3).clientX, clientY: 2000 });
+    expect(selected()).toEqual([]);
+    press(spot(3));
+    fireEvent.pointerDown(document.body);
+    expect(selected()).toEqual([]);
+    press(spot(3));
+    await act(() => bridge.sendToolInput({ arguments: { ...TWELVE, bpm: 100, view: 'tab' } }));
+    await waitFor(() => expect(screen.getByRole('spinbutton', { name: 'Tempo (bpm)' })).toHaveValue('100'));
+    expect(selected()).toEqual([]);
+  });
+
+  it('the Loop button with notes selected loops them, lets the selection go, and the model hears the points', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { told, context } = await open();
+      press(spot(2));
+      press(spot(5), true);
+      expect(loop()).toHaveAttribute('data-tip', 'Loop the selected notes (L)');
+      fireEvent.click(loop());
+      expect(loop()).toHaveAttribute('aria-pressed', 'true');
+      expect(selected()).toEqual([]);
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told).toEqual(['The user is now playing the line at 90 bpm, looping bar 1, column 3 to bar 2, column 2.']);
+      expect(context.at(-1)).toEqual({ bpm: 90, loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 2 } } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('L does the same; on the loop’s own columns, selected again, it clears them; with nothing selected, as before', async () => {
+    await open();
+    press(spot(4));
+    press(spot(7), true);
+    pressL();
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    expect(selected()).toEqual([]);
+    press(spot(4));
+    press(spot(7), true);
+    expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points (L)');
+    pressL();
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+    expect(selected()).toEqual([]);
+    // Nothing selected: the bracket over the whole line, then off.
+    pressL();
+    expect(loop()).toHaveAttribute('aria-pressed', 'true');
+    pressL();
+    expect(loop()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('Play starts at the selection, else at the loop points’ start, else at the line’s', async () => {
+    const { TabPlayer } = await import('@/features/tab/playback');
+    const fake = TabPlayer as unknown as { from: number[] };
+    await open();
+    /** Presses Play (and Stop, if it plays) and gives the column the player was asked to start from. */
+    const play = async () => {
+      const before = fake.from.length;
+      await act(async () => screen.getByRole('button', { name: /^(Play|Loading the sound…)$/ }).click());
+      await waitFor(() => expect(fake.from.length).toBe(before + 1));
+      const stop = screen.queryByRole('button', { name: 'Stop' });
+      if (stop) await act(async () => stop.click());
+      return fake.from.at(-1);
+    };
+    expect(await play()).toBe(0);
+    press(spot(6));
+    expect(await play()).toBe(6);
+    press(spot(9), true);
+    pressL();
+    expect(await play()).toBe(6);
   });
 });
