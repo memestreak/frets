@@ -39,7 +39,13 @@ and editing the list (rename, delete) are #368.
   Enter adds a definition to the set with the chord's first shape
   (`withNewChord`), or with no strings for a name that isn't a chord.
   Nothing is written over a column; the new chord is unused until
-  inserted. A name already defined is left as it is. Escape, or leaving
+  inserted.
+- **New chord from a fingering** (Jeremy, 2026-11-05: "a way to create a
+  chord by giving it a fingering"). With the cursor on a column of two or
+  more fretted notes, New chord takes those frets as its shape, and the
+  field offers the best name for them (Enter with nothing typed uses it).
+  The panel says which shape it will use. Drawing a shape on a diagram is
+  #368. A name already defined is left as it is. Escape, or leaving
   the field, cancels.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
@@ -74,7 +80,7 @@ Settled while building (my calls, open to change):
   tool panels; the open panel is lifted to the page (`useOpenPanel`) so
   Edit can open it; `parseLayout` reads `chords`.
 - `ChordPanel.tsx`: the panel; `chordOfName`, `namesForColumn`,
-  `insertedColumn`.
+  `fretsOfColumn`, `insertedColumn`.
 - `chordSet.ts`: `withChordShape`, `withNewChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
@@ -104,6 +110,9 @@ Settled while building (my calls, open to change):
 - New chord: "Dsus2" adds `\chord ("Dsus2" 0 3 2 0 x x)`, unused, and no
   column changes; "Riff A" adds `\chord ("Riff A")` with no shapes; a
   name already defined is left as it is; Escape adds nothing.
+- New chord on a C column (0 1 0 2 3 x) offers "C" and, named "My C",
+  defines `\chord ("My C" 0 1 0 2 3 x)`; a column with one note is not a
+  fingering.
 - These notes are: a C column offers "C"; picking it writes `ch "C"`.
 - Insert Name, Notes and Both each write what they say at the cursor.
 - `parseLayout` reads `chords`.

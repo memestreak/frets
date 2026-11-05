@@ -50,6 +50,12 @@ export function namesForColumn(part: Part, column: Column | null): string[] {
   return nameNotes(pitches, Math.min(...pitches)).slice(0, 4).map(n => n.symbol);
 }
 
+/** A column's frets as a definition's (high e first), or null for one with fewer than two fretted notes: not a chord. */
+export function fretsOfColumn(column: Column | null): (number | null)[] | null {
+  const frets = (column?.notes ?? []).map(n => (n && n.fret !== null ? n.fret : null));
+  return frets.filter(f => f !== null).length >= 2 ? frets : null;
+}
+
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
   { id: 'name', label: 'Name' },
@@ -104,6 +110,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onDone 
   const shown = stored && !shapes.some(s => shapeKey(s) === shapeKey(stored)) ? [stored, ...shapes] : shapes;
   const current = stored ? shown.findIndex(s => shapeKey(s) === shapeKey(stored)) : -1;
   const names = useMemo(() => namesForColumn(clip, column), [clip, column]);
+  /** New chord's fingering: the cursor column's notes, when it has any. */
+  const fingering = useMemo(() => fretsOfColumn(column), [column]);
 
   /** The shape a chord is inserted with: its stored one, else its first. */
   const shapeFor = (n: string): (number | null)[] | null => {
@@ -129,10 +137,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onDone 
 
   /** Enter in the name field: a New chord joins the set; otherwise the name goes over the cursor's column. */
   const enter = () => {
-    const text = (typed ?? '').trim();
+    // New chord with notes at the cursor: named by them unless a name is typed.
+    const text = (typed ?? '').trim() || (naming && fingering ? names[0] ?? '' : '');
     setTyped(null);
     if (text && naming) {
-      onChange(withNewChord(clip, text, shapeFor(text)));
+      onChange(withNewChord(clip, text, fingering ?? shapeFor(text)));
       pick(text);
     } else if (text && column) {
       setPicked(text);
@@ -165,7 +174,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onDone 
         <span className="chord-panel-label">{naming ? 'New chord' : 'Chord'}</span>
         <input
           ref={field} className="input" aria-label={naming ? 'New chord name' : 'Chord name'}
-          placeholder={naming ? 'Name it: Am7, G/B…' : 'Am7, G/B…'}
+          placeholder={naming ? (fingering && names[0]) || 'Name it: Am7, G/B…' : 'Am7, G/B…'}
           value={typed ?? name ?? ''} onChange={e => setTyped(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') enter();
@@ -174,6 +183,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onDone 
           onBlur={() => { setTyped(null); setNaming(false); }}
         />
       </label>
+      {naming && (
+        <p className="chord-panel-note">
+          {fingering ? 'Its shape: the notes at the cursor.' : 'Its shape: the first found for its name. Or put the cursor on a column of notes first to use them.'}
+        </p>
+      )}
 
       {name && (
         <section className="chord-panel-section" aria-label="Shapes">

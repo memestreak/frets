@@ -130,6 +130,28 @@ describe('New chord', () => {
     expect(inPanel().getByText('“Riff A” isn’t a chord name, so it has no shapes.')).toBeInTheDocument();
   });
 
+  it('with the cursor on a column of notes, takes its fingering as the shape, named by them unless named', async () => {
+    await open();
+    act(() => editor().focus());
+    keys('ArrowRight');
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(inPanel().getByRole('button', { name: '+ New chord' }));
+    const field = inPanel().getByRole('textbox', { name: 'New chord name' });
+    expect(field).toHaveAttribute('placeholder', 'C');
+    expect(inPanel().getByText('Its shape: the notes at the cursor.')).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: 'My C' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(definitions()).toContain('\\chord ("My C" 0 1 0 2 3 x)');
+  });
+
+  it('a column with one note is not a fingering: the name’s first shape is used', async () => {
+    await open();
+    // The cursor starts on the first column, a single 3 on the high e.
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(inPanel().getByRole('button', { name: '+ New chord' }));
+    expect(inPanel().queryByText('Its shape: the notes at the cursor.')).toBeNull();
+  });
+
   it('Escape leaves the set as it was', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
