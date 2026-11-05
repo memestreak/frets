@@ -388,6 +388,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
 - `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
   set, its `\chord` shapes kept in the clip and its chord names understood
+- `docs/specs/2026-11-05-tab-shift-press-grows-design.md`: a Shift+press
+  outside the selection only grows it; inside, it trims the nearer end
 - `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in
   show_tab, set by the model and dragged by the user in the chat
 - `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar

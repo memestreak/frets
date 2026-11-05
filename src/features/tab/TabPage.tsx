@@ -16,7 +16,7 @@ import { cursorInVoice, moveToVoice, pastesVoices, pasteVoices, perVoice, select
 import type { Hit } from './hitTest';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, columnCount, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnAt, columnCount, growSelection, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -432,14 +432,15 @@ export default function TabPage() {
   const pickColumn = (gap: number, extend: boolean) => {
     if (extend) {
       // From the line, the columns between it and the gap pressed (Jeremy, 2026-10-28: one column, not two);
-      // from a selection or the cursor, that column to the gap.
+      // from a selection or the cursor, grown to the column beside the gap (issue #366): the one before it when the gap is after.
       if (markAt !== null) {
         if (gap !== markAt) setSelection(gap > markAt ? { anchor: markAt, focus: gap - 1 } : { anchor: markAt - 1, focus: gap });
         return;
       }
-      const anchor = selection?.anchor ?? (editing && columnAt(clip, cursor) ? indexOf(clip, cursor.bar, cursor.column) : null);
-      if (anchor !== null) {
-        setSelection({ anchor, focus: gap > anchor ? gap - 1 : gap });
+      const from = selection ?? (editing && columnAt(clip, cursor) ? { anchor: indexOf(clip, cursor.bar, cursor.column), focus: indexOf(clip, cursor.bar, cursor.column) } : null);
+      if (from !== null) {
+        const end = selectedRange(from)[1];
+        setSelection(growSelection(from, from.anchor, gap > end ? gap - 1 : gap));
         startRegion();
         return;
       }
