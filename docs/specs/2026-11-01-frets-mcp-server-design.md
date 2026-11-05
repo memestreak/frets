@@ -41,6 +41,12 @@ site, so the `/mcp` Function stays the one Function and its size doesn't
 change. It offers every tool the server lists, starts in the theme
 `?theme=` names (light by default), shows the commit it was built at, and stacks its
 panels on a phone.
+Under the Tool list, a Preset list offers that tool's ready-made arguments
+(Jeremy, 2026-11-05), in `mcp/preview/presets.ts`: about four a tool, each
+named for what it shows, and picking one fills the arguments box. Picking a
+tool starts on its first preset. show_tab's first has no loop; another
+loops two bars, and one fails the bar check, to show what the model is told.
+show_tuner takes no input, so it has one.
 Each call shows its arguments on one line, which opens to the whole call,
 pretty-printed. "What the model sees" logs everything a host passes on to
 the model (all but `_meta`), each entry folded to one line: every tool from
@@ -63,4 +69,6 @@ lists exactly the tools the Agents page lists, that it serves each app it
 names, that a missing app fails with its name, that `/mcp` imports
 every app in `mcp/apps/`, that the stand-in host imports every app and
 offers every tool, and that `npm run build` builds it after `next build`
-(which empties `out/`).
+(which empties `out/`). `src/__tests__/mcp/previewPresets.test.ts` checks
+that every tool has presets, that show_tab's first has no loop, and that
+the server shows every preset but the one meant to fail, which it refuses.
