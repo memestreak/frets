@@ -55,8 +55,11 @@ Outside `src/`:
   them.
 - `mcp/preview/` (`npm run mcp:preview`) — a stand-in host at
   http://localhost:5174 that runs the real server in the page and mounts
-  the chosen tool's app in frames (the metronome or the line), logging
-  what the model would be told.
+  the chosen tool's app in frames, logging what the model would be told.
+  `npm run build` also builds it into the site at `/mcp-preview/` (after
+  `next build`, which empties `out/`), so every deploy has one. A new
+  tool adds its `<option>` in `index.html` and its app in `preview.ts`;
+  `src/__tests__/mcp/server.test.ts` fails until it does.
 
 ## Adding a page's tools
 
@@ -83,8 +86,10 @@ Outside `src/`:
 
 ## Trying it
 
-- **In a browser, no Claude:** `npm run mcp:preview`, then open
-  http://localhost:5174 (the metronome and the line, so far).
+- **In a browser, no Claude:** open `/mcp-preview/` on any deploy, e.g.
+  `https://<branch>.frets-6e8.pages.dev/mcp-preview/?theme=light` for a PR
+  or https://frets.eminor.net/mcp-preview/. Locally, `npm run mcp:preview`,
+  then http://localhost:5174.
 - **Claude Desktop:** run `npm run mcp:build`. Then in Settings › Developer
   › Edit Config, add the server below to `claude_desktop_config.json`, and
   quit and reopen Claude. Use node's full path (`which node`), since

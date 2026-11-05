@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
-    "build": "npm run mcp:build && next build",
+    "build": "npm run mcp:build && next build && vite build --config mcp/vite.preview.config.mts",
     "mcp:build": "node mcp/build.mjs",
     "mcp:preview": "npm run mcp:build && vite --config mcp/vite.preview.config.mts",
     "lint": "eslint",
