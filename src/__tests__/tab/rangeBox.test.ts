@@ -3,7 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { layoutClip, stepY, stringY } from '@/features/tab/layout';
 import { partOf, type Part } from '@/features/tab/clip';
-import { rangeBoxes } from '@/features/tab/TabClip';
+import { draggedRange, knobY, RANGE_HANDLE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
 import { rhythmAt } from '@/features/tab/hitTest';
 import { staffBar } from '@/features/tab/staffGeometry';
 
@@ -48,6 +48,53 @@ describe('rangeBoxes', () => {
     expect(split[0].x + split[0].width).toBe(first.bars[1].x1);
     expect(split[1].x).toBe(second.bars[0].x0);
     expect(split[1].y).toBeGreaterThan(split[0].y + split[0].height);
+  });
+});
+
+describe('Range handles (docs/specs/2026-11-05-tab-range-handles-design.md)', () => {
+  it('sit on the left edge of the run’s first box and the right edge of its last, on their own lines', () => {
+    const boxes = rangeBoxes(layout.systems, [4, 9]);
+    const [start, end] = rangeHandles(layout, [4, 9]);
+    expect(start).toMatchObject({ end: 'start', system: 0, x: boxes[0].x, top: boxes[0].y });
+    expect(end).toMatchObject({ end: 'end', system: 1, x: boxes[1].x + boxes[1].width });
+    expect(rangeHandles(layout, [40, 50])).toEqual([]);
+  });
+
+  it('a knob is taken round its middle, a grip bar anywhere along its edge, a pin at its top (start) or foot (end)', () => {
+    const handles = rangeHandles(layout, [1, 2]);
+    const [start, end] = handles;
+    const middle = (start.top + start.bottom) / 2;
+    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH, middle, 'knob')).toBe(start);
+    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH + 1, middle, 'knob')).toBeNull();
+    expect(rangeHandleAt(handles, start.x, start.top + 2, 'knob')).toBeNull();
+    expect(rangeHandleAt(handles, start.x, start.top + 2, 'bar')).toBe(start);
+    expect(rangeHandleAt(handles, end.x - 3, end.bottom - 2, 'bar')).toBe(end);
+    expect(knobY(start, 'pin')).toBe(start.top);
+    expect(knobY(end, 'pin')).toBe(end.bottom);
+    expect(rangeHandleAt(handles, start.x, start.top, 'pin')).toBe(start);
+    expect(rangeHandleAt(handles, start.x, middle, 'pin')).toBeNull();
+  });
+
+  it('a dragged end lands on the column whose room is under the pointer, on that line; off a line, its nearest column', () => {
+    const [first, second] = layout.systems;
+    const cols = first.bars[0].columns;
+    const y0 = first.top + stringY(first.rows, 2);
+    expect(rangeEndAt(layout, cols[2].x, y0)).toBe(2);
+    expect(rangeEndAt(layout, (cols[1].x + cols[2].x) / 2 + 1, y0)).toBe(2);
+    expect(rangeEndAt(layout, 0, y0)).toBe(0);
+    expect(rangeEndAt(layout, 10_000, y0)).toBe(7);
+    expect(rangeEndAt(layout, second.bars[0].columns[1].x, second.top + stringY(second.rows, 2))).toBe(9);
+    // Above the drawing, the first line; below it, the last.
+    expect(rangeEndAt(layout, cols[3].x, -50)).toBe(3);
+    expect(rangeEndAt(layout, second.bars[0].columns[0].x, layout.height + 50)).toBe(8);
+  });
+
+  it('the dragged end becomes the focus and the other the anchor; past the other end it stops there', () => {
+    expect(draggedRange([2, 5], 'end', 9)).toEqual({ anchor: 2, focus: 9 });
+    expect(draggedRange([2, 5], 'end', 3)).toEqual({ anchor: 2, focus: 3 });
+    expect(draggedRange([2, 5], 'end', 0)).toEqual({ anchor: 2, focus: 2 });
+    expect(draggedRange([2, 5], 'start', 0)).toEqual({ anchor: 5, focus: 0 });
+    expect(draggedRange([2, 5], 'start', 7)).toEqual({ anchor: 5, focus: 5 });
   });
 });
 

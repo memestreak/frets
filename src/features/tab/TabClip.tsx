@@ -20,6 +20,7 @@ import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
+import { boxSpan, knobY, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle, type RangeHandleLook, RANGE_HANDLE_REACH } from './rangeBox';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -62,7 +63,7 @@ export interface Highlight {
  */
 export const MUTED_VOICE_INK = 'var(--line-strong)';
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, rangeHandleLook = 'knob', onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
   clip: Part;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
@@ -125,6 +126,13 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A picked Span's Handle dragged (step 8): the column it is over, as it moves and when it lets go. */
   onDragSpan?: (drag: SpanDrag) => void;
   /**
+   * A selected run's Range handle dragged (`docs/specs/2026-11-05-tab-range-handles-design.md`): the
+   * column its end is over, as it moves, when it lets go, or called off. Without it no handles are drawn.
+   */
+  onDragRange?: (drag: RangeDrag) => void;
+  /** How the Range handles are drawn, while Jeremy picks a look. */
+  rangeHandleLook?: RangeHandleLook;
+  /**
    * Shift+drag from blank space (issue #238): the first and last column the rectangle took in. A
    * Shift+press there that doesn't move still extends the selection, as before.
    */
@@ -168,6 +176,32 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A Handle being dragged: which, and the column it was last over. */
   const spanPress = useRef<{ handle: Handle; column: number | null } | null>(null);
   const [dragging, setDragging] = useState(false);
+  // A boxed run's Range handles: on the page only, not on a run a picked Mark selects.
+  const handleRange = onDragRange && highlight?.boxed ? highlight.range : null;
+  const handles = useMemo(() => (handleRange ? rangeHandles(layout, handleRange) : []), [handleRange, layout]);
+  /** A Range handle being dragged: which end, and the column it was last over. */
+  const rangePress = useRef<{ handle: RangeHandle; column: number | null } | null>(null);
+  const dragRange = (e: PointerEvent<SVGSVGElement>) => {
+    const press = rangePress.current;
+    if (!press) return false;
+    const { px, py } = toUnits(e);
+    const column = rangeEndAt(layout, px, py);
+    if (column !== null && column !== press.column) {
+      press.column = column;
+      onDragRange!({ end: press.handle.end, column, done: false, cancelled: false });
+    }
+    return true;
+  };
+  const dropRange = (e: PointerEvent<SVGSVGElement> | null, cancelled: boolean) => {
+    const press = rangePress.current;
+    if (!press) return false;
+    rangePress.current = null;
+    setDragging(false);
+    if (e) e.currentTarget.releasePointerCapture?.(e.pointerId);
+    // Let go where it was pressed: the run stays as it was.
+    if (press.column !== null || cancelled) onDragRange!({ end: press.handle.end, column: press.column ?? 0, done: true, cancelled: cancelled || press.column === null });
+    return true;
+  };
   const toUnits = (e: PointerEvent<SVGSVGElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
     const scale = box.width > 0 ? width / box.width : 1;
@@ -199,7 +233,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopPropagation();
-      dropSpan(null, true);
+      if (!dropRange(null, true)) dropSpan(null, true);
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
@@ -240,6 +274,17 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   };
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     if (!onPick) return;
+    // A selected run's Range handle takes the press before anything under it.
+    if (e.button === 0 && handles.length > 0) {
+      const { px, py } = toUnits(e);
+      const handle = rangeHandleAt(handles, px, py, rangeHandleLook);
+      if (handle) {
+        rangePress.current = { handle, column: null };
+        setDragging(true);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        return;
+      }
+    }
     // A picked Span's Handle takes the press before anything under it.
     if (onDragSpan && e.button === 0 && attached.handles.length > 0) {
       const { px, py } = toUnits(e);
@@ -450,10 +495,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
-      onPointerMove={onDragStaff || onDragFret || onDragSpan || shadow !== null || onPickRect ? e => { if (!dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
+      onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
-      onPointerUp={onDragStaff || onDragFret || onDragSpan || onPickRect ? e => { if (!dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
-      onPointerCancel={onDragStaff || onDragFret || onDragSpan || onPickRect ? e => { if (!dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (
@@ -640,6 +685,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       {attached.lines.map((l, k) => (
         <line key={`attach-${k}`} x1={l.x} x2={l.x} y1={l.y0} y2={l.y1} stroke="var(--select)" strokeWidth={1} strokeDasharray="1.5 2.5" strokeLinecap="round" pointerEvents="none" data-testid="attachment-line" />
       ))}
+      {handles.map(h => <RangeGrip key={`range-handle-${h.end}`} handle={h} look={rangeHandleLook} />)}
       {onDragSpan && attached.handles.map(h => (
         <circle key={`handle-${h.end}-${h.system}`} cx={h.x} cy={h.y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} style={{ cursor: 'ew-resize' }} data-testid="span-handle" data-end={h.end} />
       ))}
@@ -1129,41 +1175,29 @@ function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
   return { index: placed.index, string: cursor.string };
 }
 
-/** How far the box round a selected run reaches past the staff's top and the tab's bottom line. */
-const RANGE_PAD = 10;
-
 /**
- * The box round a selected run of columns on each line it reaches (issue #276): from the staff's top (or the
- * tab's top line) to the tab's bottom line (or the staff's bottom; with the tab alone, the foot of its stems), across the run's columns. Where the run
- * takes a bar from its first column it starts at the bar line, and where it takes it to its last it ends
- * at the next, so a whole bar is boxed bar line to bar line; inside a bar it ends halfway between notes.
+ * A selected run's Range handle, drawn over everything, with a wider clear area that shows the
+ * ↔ pointer over all of its reach.
  */
-export function rangeBoxes(systems: System[], [from, to]: [number, number]): { system: number; x: number; y: number; width: number; height: number }[] {
-  const boxes: { system: number; x: number; y: number; width: number; height: number }[] = [];
-  systems.forEach((system, si) => {
-    let left: number | null = null;
-    let right: number | null = null;
-    for (const bar of system.bars) {
-      bar.columns.forEach((placed, k) => {
-        if (placed.index < from || placed.index > to) return;
-        // Inside a bar, halfway to the next note, so the box keeps clear of both.
-        const start = k === 0 ? bar.x0 : (bar.columns[k - 1].x + placed.x) / 2;
-        const end = k === bar.columns.length - 1 ? bar.x1 : (placed.x + bar.columns[k + 1].x) / 2;
-        left = left === null ? start : Math.min(left, start);
-        right = right === null ? end : Math.max(right, end);
-      });
-    }
-    if (left === null || right === null) return;
-    const { top, bottom } = boxSpan(system.rows);
-    boxes.push({ system: si, x: left, y: system.top + top, width: right - left, height: bottom - top });
-  });
-  return boxes;
-}
-
-/** How high a selection box reaches on a line, from its system's top: the staff's top (or the tab's top line) to the tab's bottom line (or the staff's bottom). */
-function boxSpan(rows: System['rows']): { top: number; bottom: number } {
-  const top = (rows.score ? rows.score.top : stringY(rows, 0)) - RANGE_PAD;
-  // With the tab alone its rhythm, rests too, is under the strings: the box takes it in.
-  const bottom = rows.tabStems ? rows.stemBottom + 4 : (rows.tab ? stringY(rows, STRING_COUNT - 1) : rows.score!.bottom) + RANGE_PAD;
-  return { top, bottom };
+function RangeGrip({ handle, look }: { handle: RangeHandle; look: RangeHandleLook }) {
+  const { x, top, bottom, end } = handle;
+  const reach = RANGE_HANDLE_REACH;
+  const grip = { style: { cursor: 'ew-resize' }, 'data-testid': 'range-handle', 'data-end': end } as const;
+  if (look === 'bar') {
+    return (
+      <g>
+        <rect x={x - reach} y={top} width={reach * 2} height={bottom - top} fill="transparent" style={{ cursor: 'ew-resize' }} />
+        <rect x={x - 1.5} y={top} width={3} height={bottom - top} rx={1.5} fill="var(--select)" {...grip} />
+      </g>
+    );
+  }
+  const y = knobY(handle, look);
+  return (
+    <g>
+      <circle cx={x} cy={y} r={reach} fill="transparent" style={{ cursor: 'ew-resize' }} />
+      {look === 'pin'
+        ? <circle cx={x} cy={y} r={4} fill="var(--select)" {...grip} />
+        : <circle cx={x} cy={y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} {...grip} />}
+    </g>
+  );
 }
