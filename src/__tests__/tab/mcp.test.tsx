@@ -433,16 +433,21 @@ describe('the app', () => {
     expect(field).toHaveValue('100');
   });
 
-  it('keeps a tapped bpm within the field’s range', async () => {
+  it('reaches every tempo Frets writes, 20 to 400 bpm, whatever the line’s own, from Tap and the field', async () => {
     const { bridge } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));
     const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
-    // 600 bpm tapped; the field goes up to 1.5 times the line's 90.
-    tapAt([1000, 1100, 1200], pressTap);
-    expect(field).toHaveValue('135');
-    // 30 bpm tapped, slow but within the field's 23 to 135, is kept.
-    tapAt([10000, 12000], pressTap);
-    expect(field).toHaveValue('30');
+    expect(field).toHaveAttribute('aria-valuemin', '20');
+    expect(field).toHaveAttribute('aria-valuemax', '400');
+    // 300 bpm tapped, well past 1.5 times the line's 90, is kept.
+    tapAt([1000, 1200, 1400], pressTap);
+    expect(field).toHaveValue('300');
+    // 600 bpm tapped stops at 400.
+    tapAt([6000, 6100, 6200], pressTap);
+    expect(field).toHaveValue('400');
+    // 21 bpm tapped, under a quarter of 90, is kept.
+    tapAt([12000, 14857], pressTap);
+    expect(field).toHaveValue('21');
   });
 
   it('opens the line on the Tab page through the host', async () => {

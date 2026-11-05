@@ -10,13 +10,13 @@ import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { PlayIcon } from '@/components/icons';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
-import { addTap, tapBpm } from '@/lib/tapTempo';
+import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
-import { DEFAULT_BPM, type Part } from '../clip';
+import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
 import { DEFAULT_FX } from '../effects';
 import { layoutClip, type Parts } from '../layout';
 import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
-import { DEFAULT_SOUND, MAX_SPEED, MIN_SPEED } from '../playback';
+import { DEFAULT_SOUND } from '../playback';
 import { shareLink } from '../shareLink';
 import { TabClip } from '../TabClip';
 import { useWidth } from '../useWidth';
@@ -30,6 +30,12 @@ const VIEWS: readonly { view: View; label: string }[] = [
   { view: 'tab', label: 'Tab' },
   { view: 'both', label: 'Both' },
 ];
+
+/**
+ * The bpm field's and Tap's range: every tempo Frets writes, whatever the line's own (Jeremy, 2026-11-05),
+ * not the Tab page's Speed range of a quarter to 1.5 times it.
+ */
+const BPM_RANGE: BpmRange = { min: MIN_BPM, max: MAX_BPM };
 
 /** The volume the line plays at: the Tab page's Volume knob is left out, the host's own volume stands. */
 const VOLUME = 0.8;
@@ -102,13 +108,12 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
 
   const clipBpm = part.bars[0]?.tempo?.bpm ?? DEFAULT_BPM;
   const bpm = Math.round(clipBpm * speed);
-  const bpmRange = { min: Math.ceil(clipBpm * MIN_SPEED), max: Math.floor(clipBpm * MAX_SPEED) };
 
   // Tap tempo, as in the Tab page's tempo panel: the press times of the run of taps so far.
   const taps = useRef<number[]>([]);
   const tap = () => {
-    taps.current = addTap(taps.current, performance.now(), bpmRange);
-    const tapped = tapBpm(taps.current, bpmRange);
+    taps.current = addTap(taps.current, performance.now(), BPM_RANGE);
+    const tapped = tapBpm(taps.current, BPM_RANGE);
     if (tapped !== null) playback.setSpeed(tapped / clipBpm);
   };
   useLetterKey('t', tap);
@@ -152,7 +157,7 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type the tempo */}
         <div className="tab-speed" role="group" aria-label="Tempo" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
           <NumberField
-            value={bpm} min={bpmRange.min} max={bpmRange.max} step={5} dragStep={1}
+            value={bpm} min={BPM_RANGE.min} max={BPM_RANGE.max} step={5} dragStep={1}
             label="Tempo (bpm)" upLabel="Faster" downLabel="Slower" onChange={b => playback.setSpeed(b / clipBpm)}
           />
           <span className="text-(--ink-muted)">bpm</span>
