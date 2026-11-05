@@ -12,6 +12,10 @@
       .side { padding: 16px; border-right: 1px solid #0002; display: grid; align-content: start; gap: 12px; }
       .side h1 { font-size: 18px; margin: 0; }
       .side p { margin: 0; color: #776; }
+      .side .commit { font-size: 12px; }
+      .commit a { color: inherit; text-decoration: none; }
+      .commit a:hover { color: #1b1410; }
+      body[data-theme='dark'] .commit a:hover { color: #f3ece2; }
       label { display: grid; gap: 4px; font-weight: 600; }
       textarea { font: 12px/16px ui-monospace, monospace; min-height: 160px; }
       .log-box { display: grid; gap: 4px; }
@@ -48,6 +52,7 @@
     <div class="layout">
       <div class="side">
         <h1>Frets MCP Apps preview</h1>
+        <p class="commit">Built at commit <span id="commit"></span></p>
         <p>This page plays the host. It runs the real server in the page, calls a tool, and shows each app in a sandboxed frame, as a chat would.</p>
         <label>Tool
           <select id="tool"><option>show_metronome</option><option>show_tab</option><option>show_tuner</option></select>

@@ -39,7 +39,8 @@ preview has one to open, and so does production (no users yet; the page
 is `noindex` and linked from nowhere). It is static, like the rest of the
 site, so the `/mcp` Function stays the one Function and its size doesn't
 change. It offers every tool the server lists, starts in the theme
-`?theme=` names (light by default), and stacks its panels on a phone.
+`?theme=` names (light by default), shows the commit it was built at, and stacks its
+panels on a phone.
 Each call shows its arguments on one line, which opens to the whole call,
 pretty-printed. "What the model sees" logs everything a host passes on to
 the model (all but `_meta`), each entry folded to one line: every tool from

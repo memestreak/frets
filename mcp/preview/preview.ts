@@ -17,6 +17,17 @@ import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
 import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+/** Set by `mcp/vite.preview.config.mts`: the commit this page was built at. */
+declare const __COMMIT__: string;
+if (__COMMIT__ === 'dev') {
+  $('commit').textContent = 'dev';
+} else {
+  const link = Object.assign(document.createElement('a'), {
+    href: `https://github.com/memestreak/frets/commit/${__COMMIT__}`, target: '_blank', rel: 'noopener noreferrer', textContent: __COMMIT__,
+  });
+  $('commit').append(link);
+}
 /**
  * Adds a line to "What the model sees", newest first. With `detail`, the line opens to it,
  * pretty-printed: everything the model is sent, not just the text.
