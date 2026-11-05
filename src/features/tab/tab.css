@@ -281,6 +281,20 @@
 /* The loop bracket's ends, over the tab: drag them sideways. */
 .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
 .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+/* The bpm field and, after it, its word "bpm", a Tap button (BpmField.tsx, issue #373): at rest it
+   reads as the field's unit, plain muted text; on hover (or focused from the keyboard, or pressed) it
+   is a button and reads "Tap". Both words share one cell, so nothing moves. */
+.tab-bpm { display: flex; align-items: center; gap: 4px; }
+.tab-bpm-tap {
+  display: inline-grid; place-items: center; padding-inline: 8px;
+  box-shadow: none; background: transparent; color: var(--ink-muted);
+  font: 400 14px/20px var(--font-sans);
+}
+.tab-bpm-word { grid-area: 1 / 1; }
+.tab-bpm-hover { visibility: hidden; }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) { box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--ink); }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) .tab-bpm-word { visibility: hidden; }
+.tab-bpm-tap:is(:hover, :focus-visible, :active) .tab-bpm-hover { visibility: visible; }
 /* A knob with its name beside it (the FX dialog's). */
 .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
 /* The volume, at the row's far right. */

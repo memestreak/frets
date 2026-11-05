@@ -8,5 +8,8 @@
    music stays rust. */
 .chat-tab-row { --primary: var(--select); --primary-soft: var(--select-soft); }
 .chat-tab-music { min-width: 0; }
-.chat-tab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.chat-tab-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; --tab-slot: calc(var(--control-height) + 8px); }
+/* The bpm's caption (Speed · 100%) hangs under it, as on the Tab page: every other control sits level
+   with the field, in the middle of its slot. */
+.chat-tab-row > :not(.tab-captioned) { margin-top: 4px; }
 .chat-tab-views { margin-left: auto; }

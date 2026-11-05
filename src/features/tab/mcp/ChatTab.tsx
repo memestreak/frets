@@ -1,20 +1,20 @@
 /**
  * The line as the Tab MCP App shows it (#340, `docs/specs/2026-11-04-show-tab-mcp-app-design.md`): the
  * Tab page's own drawing (`TabClip`, the playhead, the loop bracket and its handles) and sound
- * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm and Tap, Staff | Tab | Both, and
+ * (`usePlayback`), with a row of controls under it: Play, Loop, the bpm (its "bpm" taps; `BpmField`), Staff | Tab | Both, and
  * Open in Frets. Nothing is edited or saved; the loop points are the one thing the user moves on the music
  * (`docs/specs/2026-11-05-show-tab-loop-points-design.md`). The user can select columns, as on the Tab page,
  * only to loop them (`docs/specs/2026-11-05-show-tab-selection-design.md`).
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
+import { useEffect, useMemo, useState } from 'react';
+import { resetOnDoubleClick } from '@/components/NumberField';
 import { PlayIcon } from '@/components/icons';
-import { useTapPulse } from '@/components/TapPulse';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
 import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
-import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
+import type { BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
+import { BpmField, useTapTempo } from '../BpmField';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
 import { barSelection, growSelection, indexOf, selectedRange, type Selection } from '../editing';
 import { DEFAULT_FX } from '../effects';
@@ -163,20 +163,9 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   const clipBpm = part.bars[0]?.tempo?.bpm ?? DEFAULT_BPM;
   const bpm = Math.round(clipBpm * speed);
 
-  // Tap tempo, as in the Tab page's tempo panel: the press times of the run of taps so far.
-  const taps = useRef<number[]>([]);
-  const tap = () => {
-    taps.current = addTap(taps.current, performance.now(), BPM_RANGE);
-    const tapped = tapBpm(taps.current, BPM_RANGE);
-    if (tapped !== null) playback.setSpeed(tapped / clipBpm);
-  };
+  // Tap tempo, as in the Tab page's Speed: the bpm's own button, and T.
+  const tap = useTapTempo(BPM_RANGE, b => playback.setSpeed(b / clipBpm));
   useLetterKey('t', tap);
-  // The button gives and flashes on each press, as the Metronome's Tap does.
-  const { pulse, flash } = useTapPulse();
-  const pressTap = () => {
-    tap();
-    pulse();
-  };
   // The chat sets only points, never 'whole'.
   useEffect(() => onHeard({ bpm, loop: Array.isArray(loop) ? loop : null }), [bpm, loop, onHeard]);
 
@@ -221,31 +210,17 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
         >
           <LoopIcon />
         </button>
-        {/* A double-click on the field or "bpm" puts the line's own tempo back. */}
+        {/* A double-click on the field or the caption puts the line's own tempo back (not on Tap). */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type the tempo */}
-        <div className="tab-speed" role="group" aria-label="Tempo" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
-          <NumberField
-            value={bpm} min={BPM_RANGE.min} max={BPM_RANGE.max} step={5} dragStep={1}
-            label="Tempo (bpm)" upLabel="Faster" downLabel="Slower" onChange={b => playback.setSpeed(b / clipBpm)}
-          />
-          <span className="text-(--ink-muted)">bpm</span>
+        <div className="tab-captioned" role="group" aria-label="Tempo" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
+          <div className="tab-slot">
+            <BpmField
+              bpm={bpm} range={BPM_RANGE} label="Tempo (bpm)" tap={tap} tip="Tap twice or more in time to set the bpm (T)"
+              onChange={b => playback.setSpeed(b / clipBpm)}
+            />
+          </div>
+          <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{Math.round(speed * 100)}%</span></span>
         </div>
-        {/* Timed from the press, not the release, so the beat is where the finger lands. */}
-        <button
-          type="button" className="btn btn-secondary tab-tap tap-press" data-tip="Tap twice or more in time to set the bpm (T)"
-          onMouseDown={e => e.preventDefault()}
-          onPointerDown={e => { if (e.button === 0) pressTap(); }}
-          // Enter on the focused button taps; Space plays, as everywhere in the frame (useSpaceKey).
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.repeat) {
-              e.preventDefault();
-              pressTap();
-            }
-          }}
-        >
-          {flash}
-          Tap
-        </button>
         {player.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
         <div className="seg chat-tab-views" role="group" aria-label="Show">
           {VIEWS.map(v => (

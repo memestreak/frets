@@ -13,6 +13,7 @@ import { columnCount, placeOf } from './editing';
 import type { Layout } from './layout';
 import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
+import { BpmField, useTapTempo } from './BpmField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from '@/components/VolumeKnob';
@@ -104,7 +105,7 @@ export interface Playback {
   loop: Loop | null;
   /** A fraction of the clip's own tempo, within `speeds`. */
   speed: number;
-  /** The speeds the clip may play at, in whole percent (`speedRange`). */
+  /** The speeds the clip may play at, as fractions of its own tempo (`speedRange`). */
   speeds: { min: number; max: number };
   /** Plays from `from` (a column), or stops; `until`, a column, stops playback at its end. */
   toggle: (from: number, until?: number | null) => void;
@@ -154,7 +155,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   const [chosenSpeed, setSpeedState] = useState(1);
   // A tempo edited since the speed was set may leave it out of range: it plays at the nearest speed allowed.
   const speeds = speedRange(clip);
-  const speed = Math.min(speeds.max, Math.max(speeds.min, chosenSpeed * 100)) / 100;
+  const speed = Math.min(speeds.max, Math.max(speeds.min, chosenSpeed));
   const player = useRef<TabPlayer | null>(null);
   // The player reports the column about ten times a second; the page draws again only when it changes.
   const update = (change: Partial<PlayerView>) =>
@@ -283,6 +284,9 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   };
 }
 
+/** A product of floats, rid of the last digits' error. */
+const nearly = (x: number) => Math.round(x * 1e6) / 1e6;
+
 /** The clip's own tempo at a column: the last \\tempo at or before its bar, else alphaTab's 120. */
 function tempoAt(clip: Part, index: number): number {
   const bar = placeOf(clip, Math.min(index, Math.max(0, columnCount(clip) - 1))).bar;
@@ -407,7 +411,11 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
   const playing = view.state === 'playing';
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
+  // The bpm playback runs at where the playhead is: the clip's own tempo there, times the speed.
   const bpm = Math.round(playback.bpm * speed);
+  // Rounded first, so 120 × 20/120 is 20, not the 21 a float a hair over it would round up to.
+  const bpmRange = { min: Math.ceil(nearly(playback.bpm * playback.speeds.min)), max: Math.floor(nearly(playback.bpm * playback.speeds.max)) };
+  const tap = useTapTempo(bpmRange, b => playback.setSpeed(b / playback.bpm));
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes (L)'
@@ -462,16 +470,16 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
           >
             <MetronomeIcon />
           </button>
-          {/* A double-click on the caption or the number resets the speed to 100%. */}
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
+          {/* A double-click on the caption or the number resets the speed to 100% (not on Tap). */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type the clip's tempo */}
           <div className="tab-captioned" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
             <div className="tab-slot">
-              <NumberField
-                value={percent} min={playback.speeds.min} max={playback.speeds.max} step={5} unit="%"
-                label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
+              <BpmField
+                bpm={bpm} range={bpmRange} label="Speed (bpm)" tap={tap} tip="Tap twice or more in time to set the bpm"
+                onChange={b => playback.setSpeed(b / playback.bpm)}
               />
             </div>
-            <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{bpm} bpm</span></span>
+            <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{percent}%</span></span>
           </div>
           {/* A double-click on the caption or the number puts it back to 0. The unit, semitones, is in the tip and the field's name. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}

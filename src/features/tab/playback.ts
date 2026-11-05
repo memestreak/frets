@@ -33,7 +33,7 @@ const SYNTH_MIN_SPEED = 0.125;
 const SYNTH_MAX_SPEED = 8;
 
 /**
- * The speeds the Speed field offers for a clip, in whole percent of its own tempo: as far as every
+ * The speeds a clip may play at, as fractions of its own tempo: as far as every
  * tempo in it stays within the 20 to 400 bpm a tempo may be set to (Jeremy, 2026-11-05; it had been
  * 25% to 150%, so a 120 bpm clip stopped at 180). alphaTab's synthesizer plays no slower than 12.5%
  * and no faster than 800%, so a clip at 400 bpm slows to 52 and one at 20 speeds up to 160.
@@ -43,8 +43,8 @@ export function speedRange(clip: Part): { min: number; max: number } {
   const slowest = Math.min(...tempos);
   const fastest = Math.max(...tempos);
   return {
-    min: Math.ceil(Math.max(SYNTH_MIN_SPEED, MIN_BPM / slowest) * 100),
-    max: Math.floor(Math.min(SYNTH_MAX_SPEED, MAX_BPM / fastest) * 100),
+    min: Math.max(SYNTH_MIN_SPEED, MIN_BPM / slowest),
+    max: Math.min(SYNTH_MAX_SPEED, MAX_BPM / fastest),
   };
 }
 
