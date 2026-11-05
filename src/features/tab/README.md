@@ -265,7 +265,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `ChordPanel.tsx` — the rail's Chords panel: the chord a name's Edit or double-click opens it at, its shapes (the definition's marked; picking one changes it and sounds it), names for the cursor column's notes, the track's Chord set with New chord, and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
+- `ChordPanel.tsx` — the rail's Chords panel: the chord a name's Edit or double-click opens it at, its shapes (the definition's marked; picking one changes it), names for the cursor column's notes, the track's Chord set with New chord, and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.

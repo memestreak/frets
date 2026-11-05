@@ -45,9 +45,6 @@ and editing the list (rename, delete) are #368.
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
   definition gets one with the shape it was inserted with.
-- **Hear it.** Picking a chord or a shape sounds its shape, strummed
-  down, a quarter at 120 bpm, with the track's sound (`shapeAlone`,
-  `Player.hearShape`).
 - Presses on the panel's buttons keep the tab's focus and cursor, as the
   palette's do.
 
@@ -79,8 +76,6 @@ Settled while building (my calls, open to change):
 - `ChordPanel.tsx`: the panel; `chordOfName`, `namesForColumn`,
   `insertedColumn`.
 - `chordSet.ts`: `withChordShape`, `withNewChord`.
-- `playback.ts`: `shapeAlone`, `Player.hearShape`; `PlaybackFooter.tsx`
-  passes `hearShape` to the page.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
 - `tab.css`: the panel's look.
@@ -91,6 +86,9 @@ Settled while building (my calls, open to change):
   (#368).
 - Diagrams over names and in exports (#242).
 - Keys for the panel.
+- Hearing a chord or shape when it is picked: Jeremy, 2026-11-05, "Do
+  not play back the chord on click (yet)". The evaluation's "hear chord
+  yes" waits for a later step.
 
 ## Tests
 
@@ -108,6 +106,4 @@ Settled while building (my calls, open to change):
   name already defined is left as it is; Escape adds nothing.
 - These notes are: a C column offers "C"; picking it writes `ch "C"`.
 - Insert Name, Notes and Both each write what they say at the cursor.
-- `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
-  down.
 - `parseLayout` reads `chords`.

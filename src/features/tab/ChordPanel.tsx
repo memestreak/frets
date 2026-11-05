@@ -4,7 +4,7 @@
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
  * #251): the chord being looked at (its name and its shapes, the stored one marked), names for the
  * cursor column's notes, the track's Chord set with New chord, and Insert. A chord name's Edit, or its
- * double-click, opens it at that chord. Picking a chord or a shape sounds it.
+ * double-click, opens it at that chord.
  */
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
@@ -75,13 +75,11 @@ interface ChordPanelProps {
   /** The chord a name's Edit last opened the panel at (each Edit a new object), or null: the cursor column's. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
-  /** Sounds a shape, high e first. */
-  onHear: (frets: readonly (number | null)[]) => void;
   /** Gives the focus back to the tab, after a name is typed. */
   onDone: () => void;
 }
 
-export function ChordPanel({ clip, track, cursor, editing, at, onChange, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, editing, at, onChange, onDone }: ChordPanelProps) {
   /** The chord picked in the panel, over `at` and the cursor's. */
   const [picked, setPicked] = useState<string | null>(null);
   /** What the name field holds while typed in, or null when it shows the chord. */
@@ -107,7 +105,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onHear,
   const current = stored ? shown.findIndex(s => shapeKey(s) === shapeKey(stored)) : -1;
   const names = useMemo(() => namesForColumn(clip, column), [clip, column]);
 
-  /** The shape a chord sounds and is inserted with: its stored one, else its first. */
+  /** The shape a chord is inserted with: its stored one, else its first. */
   const shapeFor = (n: string): (number | null)[] | null => {
     const d = chordDefOf(clip.chords, n);
     if (d?.frets) return d.frets;
@@ -119,14 +117,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, onHear,
   const pick = (n: string) => {
     setPicked(n);
     setNaming(false);
-    const frets = shapeFor(n);
-    if (frets) onHear(frets);
   };
 
   const pickShape = (shape: Shape) => {
     if (!name) return;
     onChange(withChordShape(clip, name, toFrets(shape)));
-    onHear(toFrets(shape));
   };
   const step = (by: 1 | -1) => {
     if (shown.length > 0) pickShape(shown[(Math.max(0, current) + by + shown.length) % shown.length]);

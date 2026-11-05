@@ -124,8 +124,6 @@ export interface Playback {
   stop: () => void;
   /** Sounds a note alone once the edit that put it there has drawn: "Hear notes as you enter them". */
   hear: (bar: number, column: number, string: number) => void;
-  /** Sounds a chord shape at once (high e first): a chord picked in the Chords panel (issue #251). */
-  hearShape: (frets: readonly (number | null)[]) => void;
   /** Where the music heard now is, read each frame by the playhead; null when nothing plays. */
   heardPosition: () => HeardPosition | null;
 }
@@ -282,9 +280,6 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
     },
     stop: () => player.current?.stop(),
     hear: (bar, column, string) => setHeard({ bar, column, string, n: ++hearing.current }),
-    hearShape: frets => {
-      playerNow().then(p => p.hearShape(clip, frets, sound)).catch(() => undefined);
-    },
     heardPosition: () => player.current?.heardPosition() ?? null,
   };
 }
