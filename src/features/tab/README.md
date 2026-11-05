@@ -376,7 +376,8 @@ or saved. Standard tuning only.
   line on teardown so the sound goes.
 - `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
   playhead and the loop bracket with its handles, then Play, Loop (L), the
-  bpm and Tap (T), Staff | Tab | Both and Open in Frets.
+  bpm and Tap (T), Staff | Tab | Both and Open in Frets; a selection, made
+  as on the Tab page, only for Loop to loop.
 - The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
   guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
   `mcp/dist/tab.html`.
@@ -388,6 +389,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
 - `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
   set, its `\chord` shapes kept in the clip and its chord names understood
+- `docs/specs/2026-11-05-show-tab-selection-design.md`: select notes in
+  the show_tab app, as on the Tab page, and Loop loops them
 - `docs/specs/2026-11-05-tab-shift-press-grows-design.md`: a Shift+press
   outside the selection only grows it; inside, it trims the nearer end
 - `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in
