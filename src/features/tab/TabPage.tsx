@@ -39,6 +39,7 @@ import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail } from './TabRail';
+import { CHORDS_ICON, ChordPanel, useChordsMock } from './ChordPanelMock';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -65,7 +66,7 @@ import { isMac } from '@/lib/shortcuts';
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel, .chord-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -345,7 +346,22 @@ export default function TabPage() {
   });
   const { deletePicked } = picking;
   /** A picked thing's Edit: a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
-  const editPicked = (hit: Picked) => (hit.kind === 'mark' ? openTuplets() : picking.editPicked(hit));
+  // MOCK (issue #251): with a Chords panel mocked, a chord name's Edit (and so its double-click) opens the panel at it.
+  const chordsLayout = useChordsMock();
+  const [chordsOpen, setChordsOpen] = useState(false);
+  const [chordsAt, setChordsAt] = useState<string | null>(null);
+  const openChordsAt = (index: number) => {
+    const place = placeOf(clip, index);
+    setCursor(c => ({ ...c, ...place }));
+    setChordsAt(columnAt(clip, { ...cursor, ...place })?.chord ?? null);
+    setChordsOpen(true);
+    editorRef.current?.focus();
+  };
+  const editPicked = (hit: Picked) => {
+    if (hit.kind === 'mark') return openTuplets();
+    if (hit.kind === 'chord' && chordsLayout !== 'off') return openChordsAt(hit.index);
+    return picking.editPicked(hit);
+  };
 
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
@@ -935,7 +951,14 @@ export default function TabPage() {
       </header>
 
       {/* The tools, in panels on a rail to the clip's left (issue #301). */}
-      <TabRail palette={drawPalette}>
+      <TabRail
+        palette={drawPalette}
+        chords={chordsLayout === 'off' ? undefined : {
+          layout: chordsLayout, icon: CHORDS_ICON, open: chordsOpen,
+          onOpen: open => { setChordsOpen(open); setChordsAt(null); },
+          panel: <ChordPanel key={chordsAt ?? ''} clip={clip} track={whole.tracks[track]} cursor={cursor} at={chordsAt} onChange={next => commit(next)} />,
+        }}
+      >
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">

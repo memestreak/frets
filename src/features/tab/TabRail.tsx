@@ -58,12 +58,47 @@ function useOpenPanel(): [PanelId | null, (id: PanelId | null) => void] {
   return [open, choose];
 }
 
+/**
+ * MOCK (issue #251, `?mock=a|b|c`): the Chords panel, opened from its own rail button or a chord name's
+ * Edit. a: in the tools' place, one panel at a time; b: under the open tool panel; c: right of the clip.
+ */
+export interface RailChords {
+  layout: 'a' | 'b' | 'c';
+  icon: ReactNode;
+  open: boolean;
+  onOpen: (open: boolean) => void;
+  panel: ReactNode;
+}
+
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, children }: { palette: DrawPalette; children: ReactNode }) {
-  const [open, setOpen] = useOpenPanel();
+export function TabRail({ palette, chords, children }: { palette: DrawPalette; chords?: RailChords; children: ReactNode }) {
+  const [openTool, setOpen] = useOpenPanel();
+  // In a, the Chords panel takes the tools' place while it is open.
+  const chordsHere = chords?.open && chords.layout === 'a';
+  const open = chordsHere ? null : openTool;
   const panel = PANELS.find(p => p.id === open);
+  const chordsLeft = chords?.open && chords.layout !== 'c';
+  const chordsAside = chords?.open && (
+    <aside className="tab-rail-panel chord-panel-aside" aria-label="Chords">
+      <div className="tab-rail-panel-head">
+        <h2 className="tab-rail-panel-title">Chords</h2>
+        <button
+          type="button" className="tab-rail-close" aria-label="Close Chords" data-tip="Close"
+          onMouseDown={e => e.preventDefault()} onClick={() => chords.onOpen(false)}
+        >
+          <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path d={chords.layout === 'c' ? 'M6 3.5L10.5 8 6 12.5' : 'M10 3.5L5.5 8l4.5 4.5'} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      {chords.panel}
+    </aside>
+  );
   return (
-    <div className="tab-rail-layout" data-open={panel ? '' : undefined}>
+    <div
+      className="tab-rail-layout" data-open={panel || chordsLeft ? '' : undefined}
+      data-chords={chords?.open ? chords.layout : undefined}
+    >
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
           {PANELS.map(p => (
@@ -72,17 +107,31 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
               data-tip={p.name}
               // Keep the focus, and so the cursor, on the tab.
               onMouseDown={e => e.preventDefault()}
-              onClick={() => setOpen(open === p.id ? null : p.id)}
+              onClick={() => {
+                if (chordsHere) chords.onOpen(false);
+                setOpen(open === p.id ? null : p.id);
+              }}
             >
               <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
                 {p.icon}
               </svg>
             </button>
           ))}
+          {chords && (
+            <button
+              type="button" className="tab-rail-button" aria-label="Chords" aria-pressed={chords.open} data-tip="Chords"
+              onMouseDown={e => e.preventDefault()} onClick={() => chords.onOpen(!chords.open)}
+            >
+              <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                {chords.icon}
+              </svg>
+            </button>
+          )}
         </nav>
       </HoverTips>
-      {panel && (
-        <HoverTips className="tab-rail-column">
+      {(panel || chordsLeft) && (
+        <HoverTips className="tab-rail-column chord-rail-column">
+          {panel && (
           <aside className="tab-rail-panel" aria-label={panel.name}>
             <div className="tab-rail-panel-head">
               <h2 className="tab-rail-panel-title">{panel.name}</h2>
@@ -98,9 +147,12 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
             </div>
             {palette(panel.groups, 'tab-rail-tools', panel.input)}
           </aside>
+          )}
+          {chordsLeft && chordsAside}
         </HoverTips>
       )}
       <div className="tab-rail-clip">{children}</div>
+      {chords?.open && chords.layout === 'c' && <HoverTips className="tab-rail-column">{chordsAside}</HoverTips>}
     </div>
   );
 }
