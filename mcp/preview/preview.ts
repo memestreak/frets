@@ -29,10 +29,10 @@ if (__COMMIT__ === 'dev') {
   $('commit').append(link);
 }
 /**
- * Adds a line to "What the model sees", newest first. With `detail`, the line opens to it,
- * pretty-printed: everything the model is sent, not just the text.
+ * Adds a line to "What the model sees", newest first, named `<method> · <tool> #<call>` (see
+ * `entryTitle`). With `detail`, the line opens to it: everything the model is sent, not just the text.
  */
-const log = (line: string, detail?: unknown) => {
+const log = (line: string, detail?: Record<string, unknown>) => {
   const entry = document.createElement(detail === undefined ? 'div' : 'details');
   entry.className = 'entry';
   if (detail === undefined) {
@@ -42,17 +42,28 @@ const log = (line: string, detail?: unknown) => {
     summary.textContent = line;
     summary.addEventListener('click', () => summary.blur());
     entry.append(summary);
-    for (const { title, body } of sections(detail as Record<string, unknown>)) {
-      const head = document.createElement('div');
-      head.className = 'section';
-      head.textContent = title;
-      const pre = document.createElement('pre');
-      pre.textContent = body;
-      entry.append(head, pre);
-    }
+    detailed.set(entry, detail);
+    fillSections(entry, detail);
   }
   $('log').prepend(entry);
 };
+/** Each opened-able log entry's message, so its parts can be laid out again when the log's width changes. */
+const detailed = new Map<HTMLElement, Record<string, unknown>>();
+/** How many characters of JSON fit on a line of the log, at its current width. */
+const logColumns = () => Math.max(24, Math.floor(($('log').clientWidth - 32) / 7.2));
+function fillSections(entry: HTMLElement, detail: Record<string, unknown>) {
+  entry.querySelectorAll('.section, pre').forEach(el => el.remove());
+  for (const { title, body } of sections(detail, logColumns())) {
+    const head = document.createElement('div');
+    head.className = 'section';
+    head.textContent = title;
+    const pre = document.createElement('pre');
+    pre.textContent = body;
+    entry.append(head, pre);
+  }
+}
+/** A log line: the MCP method, then what it's about, e.g. `tools/call · show_tab #2 (~180 tokens)`. */
+const entryTitle = (method: string, about: string) => `${method} · ${about}`;
 /** What a host passes on to the model: everything but `_meta`, which is for the host and the app. */
 const forModel = (message: Record<string, unknown>) => {
   const seen = { ...message };
@@ -63,8 +74,8 @@ const forModel = (message: Record<string, unknown>) => {
  * A message split into what each part is: a result's or update's text (`content`) and its
  * structured data (`structuredContent`); a tool's description and input schema; then the rest.
  */
-function sections(message: Record<string, unknown>): { title: string; body: string }[] {
-  const json = (value: unknown) => pretty(value, 36); // the log is narrow
+function sections(message: Record<string, unknown>, width: number): { title: string; body: string }[] {
+  const json = (value: unknown) => pretty(value, width);
   const out: { title: string; body: string }[] = [];
   const rest = { ...message };
   if (Array.isArray(rest.content)) {
@@ -108,16 +119,16 @@ const client = await connectClient();
 const tools = (await client.listTools()).tools;
 for (const tool of [...tools].reverse()) {
   const seen = forModel(tool);
-  log(`tools/list: ${tool.name} (${tokens(seen)})`, seen);
+  log(entryTitle('tools/list', `${tool.name} (${tokens(seen)})`), seen);
 }
-log(`tools/list: ${tools.length} tools, ${tokens(tools.map(forModel))} in all`);
+log(entryTitle('tools/list', `${tools.length} tools (${tokens(tools.map(forModel))} in all)`));
 
-/** Each previewed tool's app, by tool name, and what its turns are called. */
-const apps = new Map<string, { html: string; label: string }>();
-for (const [name, label] of [[METRONOME, 'Metronome'], [TAB, 'Line'], [TUNER, 'Tuner']] as const) {
+/** Each previewed tool's app's HTML, by tool name. */
+const apps = new Map<string, string>();
+for (const name of [METRONOME, TAB, TUNER]) {
   const uri = getToolUiResourceUri(tools.find(t => t.name === name)!)!;
   const content = (await client.readResource({ uri })).contents[0];
-  apps.set(name, { html: 'text' in content ? content.text : '', label });
+  apps.set(name, 'text' in content ? content.text : '');
 }
 
 /** JSON, indented, but with each object or array that fits in `width` characters kept on one line. */
@@ -157,15 +168,16 @@ function fillArgs(turn: HTMLElement, args: Record<string, unknown>) {
 }
 
 async function call(name: string, args: Record<string, unknown>) {
-  const { html, label } = apps.get(name)!;
-  const n = bridges.length + 1;
+  const html = apps.get(name)!;
+  // A turn is named by its tool and call number, as the log names its messages.
+  const label = `${name} #${bridges.length + 1}`;
   const turn = document.createElement('div');
   turn.className = 'turn';
   turn.innerHTML = `<div class="turn-head"><span class="label"></span>${argsView()}<button type="button">Tear down</button></div>`;
-  turn.querySelector('.label')!.textContent = `${label} ${n}`;
+  turn.querySelector('.label')!.textContent = label;
   fillArgs(turn, args);
   const frame = document.createElement('iframe');
-  frame.title = `${label} ${n}`;
+  frame.title = label;
   frame.sandbox.add('allow-scripts');
   // The tuner's resource asks for the mic; this host grants it, as Claude does.
   if (name === TUNER) frame.allow = 'microphone';
@@ -181,22 +193,22 @@ async function call(name: string, args: Record<string, unknown>) {
     if (height) frame.style.height = `${Math.ceil(height)}px`;
   };
   bridge.onupdatemodelcontext = async params => {
-    const text = params.content?.map(c => ('text' in c ? c.text : '')).join(' ');
-    log(`${label} ${n} → model context: ${text}`, forModel(params));
+    const seen = forModel(params);
+    log(entryTitle('ui/update-model-context', `${label} (${tokens(seen)})`), seen);
     if (name === METRONOME) latest = (params.structuredContent?.rhythm as Record<string, unknown>) ?? latest;
     return {};
   };
   bridge.oninitialized = async () => {
     await bridge.sendToolInput({ arguments: args });
     const result = await client.callTool({ name, arguments: args });
-    const text = (result.content as { text?: string }[]).map(c => c.text).join(' ');
-    log(`${label} ${n} ← tools/call: ${text}`, forModel(result));
+    const seen = forModel(result);
+    log(entryTitle('tools/call', `${label} (${tokens(seen)})`), seen);
     if (!result.isError && name === METRONOME) latest = (result.structuredContent as { rhythm: Record<string, unknown> }).rhythm;
     await bridge.sendToolResult(result as Parameters<AppBridge['sendToolResult']>[0]);
   };
   turn.querySelector('button')!.addEventListener('click', async () => {
     await bridge.teardownResource({});
-    log(`${label} ${n}: torn down`);
+    log(entryTitle('ui/resource-teardown', label));
     turn.remove();
   });
   frame.addEventListener('load', () => {
@@ -224,6 +236,7 @@ $('again').addEventListener('click', () => {
 });
 $('clear').addEventListener('click', e => {
   $('log').textContent = '';
+  detailed.clear();
   (e.currentTarget as HTMLElement).blur();
 });
 const themePick = $<HTMLSelectElement>('theme');
@@ -234,36 +247,57 @@ themePick.addEventListener('change', () => {
   document.body.dataset.theme = theme;
   for (const b of bridges) void b.sendHostContextChange({ theme });
 });
-/** The chat column's width: drag its right edge (or focus it and press ← →). It stays centred, as in a chat. */
-const wrap = $('column').parentElement!;
-const handle = $('resize');
-let chatWidth = 640;
-const setWidth = (px: number) => {
-  const room = wrap.parentElement!.clientWidth - 64; // the chat's padding and the handle
-  chatWidth = Math.round(Math.max(280, Math.min(px, room)));
-  wrap.style.width = `${chatWidth}px`;
-  handle.querySelector('span')!.textContent = `${chatWidth} px`;
-  handle.setAttribute('aria-valuenow', String(chatWidth));
-};
-handle.addEventListener('pointerdown', down => {
-  const [x0, w0] = [down.clientX, chatWidth];
-  handle.setPointerCapture(down.pointerId);
-  wrap.classList.add('dragging');
-  // Centred, so the edge moves half as far as the width changes.
-  const move = (e: PointerEvent) => setWidth(w0 + 2 * (e.clientX - x0));
-  const up = () => {
-    wrap.classList.remove('dragging');
-    handle.removeEventListener('pointermove', move);
-    handle.blur();
+/**
+ * A drag handle on an edge (role="separator"): drag it, or focus it and press ← → (Shift for bigger
+ * steps). `set` clamps and applies a width and returns what it applied; `scale` is how far the
+ * width moves per pixel dragged (2 for a centred column, whose edge moves half as far).
+ */
+function resizer(handle: HTMLElement, start: number, set: (px: number) => number, scale = 1, done = () => {}) {
+  let width = start;
+  const apply = (px: number) => {
+    width = set(px);
+    handle.querySelector('span')!.textContent = `${width} px`;
+    handle.setAttribute('aria-valuenow', String(width));
   };
-  handle.addEventListener('pointermove', move);
-  handle.addEventListener('lostpointercapture', up, { once: true });
-});
-handle.addEventListener('keydown', e => {
-  const step = e.shiftKey ? 50 : 10;
-  if (e.key === 'ArrowLeft') setWidth(chatWidth - step);
-  else if (e.key === 'ArrowRight') setWidth(chatWidth + step);
-  else return;
-  e.preventDefault();
-});
-setWidth(chatWidth);
+  handle.addEventListener('pointerdown', down => {
+    const [x0, w0] = [down.clientX, width];
+    handle.setPointerCapture(down.pointerId);
+    handle.classList.add('dragging');
+    document.body.classList.add('resizing'); // frames would otherwise swallow the pointer
+    const move = (e: PointerEvent) => apply(w0 + scale * (e.clientX - x0));
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('lostpointercapture', () => {
+      handle.classList.remove('dragging');
+      document.body.classList.remove('resizing');
+      handle.removeEventListener('pointermove', move);
+      handle.blur();
+      done();
+    }, { once: true });
+  });
+  handle.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 50 : 10;
+    if (e.key === 'ArrowLeft') apply(width - step);
+    else if (e.key === 'ArrowRight') apply(width + step);
+    else return;
+    e.preventDefault();
+    done();
+  });
+  apply(start);
+}
+
+/** The chat column's width, which stays centred, as in a chat. */
+const wrap = $('column').parentElement!;
+resizer($('resize'), 640, px => {
+  const room = wrap.parentElement!.clientWidth - 64; // the chat's padding and the handle
+  const w = Math.round(Math.max(280, Math.min(px, room)));
+  wrap.style.width = `${w}px`;
+  return w;
+}, 2);
+
+/** The left sidebar's width; the log lays its messages out again to fit. */
+const layout = document.querySelector<HTMLElement>('.layout')!;
+resizer($('side-resize'), 320, px => {
+  const w = Math.round(Math.max(240, Math.min(px, window.innerWidth - 360)));
+  layout.style.setProperty('--side', `${w}px`);
+  return w;
+}, 1, () => detailed.forEach((detail, entry) => fillSections(entry, detail)));
