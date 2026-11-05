@@ -149,6 +149,10 @@ $('again').addEventListener('click', () => {
   const bpm = typeof latest?.bpm === 'number' ? latest.bpm + 5 : 125;
   void call(METRONOME, latest ? { rhythm: latest, bpm } : { bpm });
 });
+$('clear').addEventListener('click', e => {
+  $('log').textContent = '';
+  (e.currentTarget as HTMLElement).blur();
+});
 const themePick = $<HTMLSelectElement>('theme');
 themePick.value = theme;
 document.body.dataset.theme = theme;
