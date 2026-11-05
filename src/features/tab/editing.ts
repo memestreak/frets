@@ -69,6 +69,26 @@ export function selectedRange(selection: Selection): [number, number] {
   return [Math.min(selection.anchor, selection.focus), Math.max(selection.anchor, selection.focus)];
 }
 
+/**
+ * A Shift+press's selection (issue #366): the selection, or the cursor's column `cursor` when nothing is
+ * selected, grown to take in the columns `from`–`to` pressed. It only ever grows, never moves or shrinks:
+ * a press before it moves its start, one after it its end, as MuseScore's does. The focus is the edge that
+ * moved, so Shift+arrows go on from there. A press inside it trims it from the end nearer the press
+ * (Jeremy, 2026-11-05); halfway, from its focus, the end last grown.
+ */
+export function growSelection(selection: Selection | null, cursor: number, from: number, to = from): Selection {
+  const [start, end] = selection ? selectedRange(selection) : [cursor, cursor];
+  const first = Math.min(start, from, to);
+  const last = Math.max(end, from, to);
+  if (last > end) return { anchor: first, focus: last };
+  if (first < start) return { anchor: last, focus: first };
+  if (!selection) return { anchor: cursor, focus: cursor };
+  const toStart = from - start;
+  const toEnd = end - to;
+  const fromStart = toStart < toEnd || (toStart === toEnd && selection.focus < selection.anchor);
+  return fromStart ? { anchor: end, focus: from } : { anchor: start, focus: to };
+}
+
 /** The cursor moved inside the clip, as after an undo that took columns away. */
 export function clampCursor(clip: Part, cursor: Cursor): Cursor {
   const bar = Math.min(Math.max(cursor.bar, 0), clip.bars.length - 1);
