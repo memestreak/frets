@@ -62,8 +62,8 @@ function fillSections(entry: HTMLElement, detail: Record<string, unknown>) {
     entry.append(head, pre);
   }
 }
-/** A log line: the MCP method, then what it's about, e.g. `tools/call · show_tab #2 — Shown: …`. */
-const entryTitle = (method: string, about: string, text?: string) => `${method} · ${about}${text ? ` — ${text}` : ''}`;
+/** A log line: the MCP method, then what it's about, e.g. `tools/call · show_tab #2 (~180 tokens)`. */
+const entryTitle = (method: string, about: string) => `${method} · ${about}`;
 /** What a host passes on to the model: everything but `_meta`, which is for the host and the app. */
 const forModel = (message: Record<string, unknown>) => {
   const seen = { ...message };
@@ -193,16 +193,16 @@ async function call(name: string, args: Record<string, unknown>) {
     if (height) frame.style.height = `${Math.ceil(height)}px`;
   };
   bridge.onupdatemodelcontext = async params => {
-    const text = params.content?.map(c => ('text' in c ? c.text : '')).join(' ');
-    log(entryTitle('ui/update-model-context', label, text), forModel(params));
+    const seen = forModel(params);
+    log(entryTitle('ui/update-model-context', `${label} (${tokens(seen)})`), seen);
     if (name === METRONOME) latest = (params.structuredContent?.rhythm as Record<string, unknown>) ?? latest;
     return {};
   };
   bridge.oninitialized = async () => {
     await bridge.sendToolInput({ arguments: args });
     const result = await client.callTool({ name, arguments: args });
-    const text = (result.content as { text?: string }[]).map(c => c.text).join(' ');
-    log(entryTitle('tools/call', label, text), forModel(result));
+    const seen = forModel(result);
+    log(entryTitle('tools/call', `${label} (${tokens(seen)})`), seen);
     if (!result.isError && name === METRONOME) latest = (result.structuredContent as { rhythm: Record<string, unknown> }).rhythm;
     await bridge.sendToolResult(result as Parameters<AppBridge['sendToolResult']>[0]);
   };

@@ -47,8 +47,9 @@ the model (all but `_meta`), each entry folded to one line: every tool from
 `tools/list` with its description, schema and a rough token count, each
 call's whole result (text and `structuredContent`), and each app's context
 update. Each entry is named by its MCP method and the call it belongs to,
-as `<method> · <tool> #<call>`, e.g. `tools/call · show_tab #2 — Shown: …`
-or `ui/update-model-context · show_metronome #1 — …`; the chat's turns use
+as `<method> · <tool> #<call>` with its rough token count, e.g.
+`tools/call · show_tab #2 (~180 tokens)`, as `tools/list · show_tab (~1057
+tokens)`; the rest is under the fold. The chat's turns use
 the same `<tool> #<call>` names. An opened entry is split into labelled parts: a result's or update's
 text (`content`) and its structured data (`structuredContent`), a tool's
 description and input schema, then anything else. Clear empties the log. The chat column's width is set by
