@@ -28,13 +28,14 @@ either end directly, and shows which part of the box can be moved.
   nothing.
 - A drag only selects: the music doesn't change and nothing goes on the undo list.
 - A handle takes a press before anything under it, as a Span's Handle does, within 10 units across and
-  up or down (`RANGE_HANDLE_REACH`), with the ↔ pointer over that reach.
+  up or down of its corner (`RANGE_HANDLE_REACH`), with the ↔ pointer over that reach.
 - In note input and normal mode alike, whenever the box is drawn.
 
-How it looks is being picked from three mocks (`?handles=`): **a Knob**, a Span's Handle (a small ring
-half way down the edge), so every handle in Frets looks the same; **b Grip bar**, a 3-unit blue bar down
-the whole edge, taken anywhere along it; **c Pins**, a blue dot at the top of the start edge and the foot
-of the end edge, as phones mark the ends of selected text.
+How it looks (Jeremy, 2026-11-05, after mocks of a knob half way down each edge, a grip bar along it and
+pins at opposite corners): a **knob**, the ring a Span's Handle has, on the box's **bottom corners**: the
+bottom left for the start, the bottom right for the end. A knob is drawn only while the pointer is over it
+(within its reach) or it is being dragged; the rest of the time the box shows no handles. On a touch
+screen, with no hover, the knob is still there to drag, unseen.
 
 How others do it (from their manuals and memory, not checked in the apps): Dorico, MuseScore and Guitar
 Pro 8 draw no handles on a range selection; its ends move with Shift+click and Shift+arrows. The
@@ -64,7 +65,9 @@ applies it with `commit`, keeping the selection it started from for Esc.
 - A press on a handle that doesn't move leaves the run as it was.
 - A drag is not an edit: undo after it leaves the selection.
 - A picked Span's run has no Range handles, only its own Handles.
-- A knob is taken round its middle, not near the top of the edge; a grip bar anywhere along the edge;
-  a pin at the top (start) or foot (end), not in the middle.
+- A knob is on the bottom left corner (start) and bottom right corner (end), taken within its reach, not
+  half way up the edge nor at its top.
+- A knob shows only while the pointer is over it: over the end's, only the end's; over the start's,
+  only the start's; between them or off the drawing, neither; while dragged, it stays shown.
 - Where an end lands: the column whose room holds the pointer; before or after a line's columns, its
   first or last; above the drawing, the first line; below it, the last.

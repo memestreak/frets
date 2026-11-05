@@ -3,7 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { layoutClip, stepY, stringY } from '@/features/tab/layout';
 import { partOf, type Part } from '@/features/tab/clip';
-import { draggedRange, knobY, RANGE_HANDLE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
+import { draggedRange, RANGE_HANDLE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
 import { rhythmAt } from '@/features/tab/hitTest';
 import { staffBar } from '@/features/tab/staffGeometry';
 
@@ -60,19 +60,16 @@ describe('Range handles (docs/specs/2026-11-05-tab-range-handles-design.md)', ()
     expect(rangeHandles(layout, [40, 50])).toEqual([]);
   });
 
-  it('a knob is taken round its middle, a grip bar anywhere along its edge, a pin at its top (start) or foot (end)', () => {
+  it('a knob is on its box’s bottom corner: the start’s bottom left, the end’s bottom right, taken within its reach', () => {
     const handles = rangeHandles(layout, [1, 2]);
     const [start, end] = handles;
-    const middle = (start.top + start.bottom) / 2;
-    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH, middle, 'knob')).toBe(start);
-    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH + 1, middle, 'knob')).toBeNull();
-    expect(rangeHandleAt(handles, start.x, start.top + 2, 'knob')).toBeNull();
-    expect(rangeHandleAt(handles, start.x, start.top + 2, 'bar')).toBe(start);
-    expect(rangeHandleAt(handles, end.x - 3, end.bottom - 2, 'bar')).toBe(end);
-    expect(knobY(start, 'pin')).toBe(start.top);
-    expect(knobY(end, 'pin')).toBe(end.bottom);
-    expect(rangeHandleAt(handles, start.x, start.top, 'pin')).toBe(start);
-    expect(rangeHandleAt(handles, start.x, middle, 'pin')).toBeNull();
+    expect(rangeHandleAt(handles, start.x, start.bottom)).toBe(start);
+    expect(rangeHandleAt(handles, end.x, end.bottom)).toBe(end);
+    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH, start.bottom - RANGE_HANDLE_REACH)).toBe(start);
+    expect(rangeHandleAt(handles, start.x + RANGE_HANDLE_REACH + 1, start.bottom)).toBeNull();
+    // Not half way up the edge, nor at its top.
+    expect(rangeHandleAt(handles, start.x, (start.top + start.bottom) / 2)).toBeNull();
+    expect(rangeHandleAt(handles, end.x, end.top)).toBeNull();
   });
 
   it('a dragged end lands on the column whose room is under the pointer, on that line; off a line, its nearest column', () => {

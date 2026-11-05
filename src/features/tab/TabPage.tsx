@@ -59,8 +59,6 @@ import { useHeadPanels } from './useHeadPanels';
 import { useStableHandlers } from './useStableHandlers';
 import { useTabPicking } from './useTabPicking';
 import { useWidth } from './useWidth';
-import { useMock, type Mock } from '@/components/mocks/useMock';
-import type { RangeHandleLook } from './rangeBox';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
@@ -95,17 +93,6 @@ const ACTIVE_VOICE_ONLY: ReadonlySet<ToolId> = new Set<ToolId>(['tie', 'tuplet',
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
-/** How a selected run's Range handles look, while Jeremy picks one (`?handles=`). */
-const HANDLES_MOCK: Mock = {
-  param: 'handles',
-  label: 'Range handles',
-  options: [
-    { value: 'knob', label: 'a Knob' },
-    { value: 'bar', label: 'b Grip bar' },
-    { value: 'pin', label: 'c Pins' },
-  ],
-};
-
 /**
  * The Tab page: one clip, an arrangement saved with Save or Save As… into My arrangements and opened
  * from Arrangements… (issue #259); New, a built-in arrangement, Import, a drop or a `#tab=` link open
@@ -122,7 +109,6 @@ const HANDLES_MOCK: Mock = {
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
-  const handleLook = useMock(HANDLES_MOCK) as RangeHandleLook;
   const { state, dispatch: dispatchClip } = arrangements;
   // The whole clip, every track: saved, linked, written as alphaTex and edited in the AlphaTex view.
   const whole = state.clip;
@@ -1028,7 +1014,7 @@ export default function TabPage() {
                   <HoverTips>
                     <TabClip
                       clip={drawn} layout={layout} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
-                      {...clipHandlers} columnReach={COLUMN_REACH} rangeHandleLook={handleLook}
+                      {...clipHandlers} columnReach={COLUMN_REACH}
                       highlight={highlight}
                       shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook}
                       picked={editing ? picked : null}

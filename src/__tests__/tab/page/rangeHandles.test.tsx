@@ -8,7 +8,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
 import { layoutClip, stringY, type Layout } from '@/features/tab/layout';
 import { markBoxes } from '@/features/tab/marks';
-import { knobY, rangeHandles, type RangeEnd } from '@/features/tab/rangeBox';
+import { rangeHandles, type RangeEnd } from '@/features/tab/rangeBox';
 import { setUpPage, renderAt, SLOW, undo, litFrets, editor, keys } from './helpers';
 
 setUpPage();
@@ -50,7 +50,7 @@ function selectSecondAndThird() {
 /** Presses `end`'s handle of the run `range`, moves to `to`, and (unless `hold`) lets go there. */
 function drag(layout: Layout, range: [number, number], end: RangeEnd, to: { x: number; y: number } | null, hold = false) {
   const handle = rangeHandles(layout, range).find(h => h.end === end)!;
-  const at = { clientX: handle.x, clientY: knobY(handle, 'knob') };
+  const at = { clientX: handle.x, clientY: handle.bottom };
   fireEvent.pointerDown(drawing(), { ...at, button: 0, pointerId: 1 });
   const target = to ? { clientX: to.x, clientY: to.y } : at;
   if (to) fireEvent.pointerMove(drawing(), { ...target, pointerId: 1 });
@@ -63,6 +63,27 @@ describe('Range handles', () => {
     expect(screen.queryAllByTestId('range-handle')).toHaveLength(0);
     selectSecondAndThird();
     expect(screen.getAllByTestId('range-handle').map(h => h.getAttribute('data-end'))).toEqual(['start', 'end']);
+  });
+
+  it('a knob shows only while the pointer is over it, and while it is dragged', async () => {
+    const layout = await open();
+    selectSecondAndThird();
+    const [start, end] = rangeHandles(layout, [1, 2]);
+    const knobs = () => screen.queryAllByTestId('range-knob').map(k => k.closest('[data-end]')!.getAttribute('data-end'));
+    expect(knobs()).toEqual([]);
+    fireEvent.pointerMove(drawing(), { clientX: end.x, clientY: end.bottom });
+    expect(knobs()).toEqual(['end']);
+    fireEvent.pointerMove(drawing(), { clientX: start.x + 2, clientY: start.bottom - 2 });
+    expect(knobs()).toEqual(['start']);
+    fireEvent.pointerMove(drawing(), { clientX: (start.x + end.x) / 2, clientY: start.bottom });
+    expect(knobs()).toEqual([]);
+    fireEvent.pointerMove(drawing(), { clientX: end.x, clientY: end.bottom });
+    fireEvent.pointerLeave(drawing());
+    expect(knobs()).toEqual([]);
+    // Dragged, it stays shown, wherever the pointer goes.
+    drag(layout, [1, 2], 'end', placed(layout, 6), true);
+    expect(knobs()).toEqual(['end']);
+    fireEvent.pointerUp(drawing(), { clientX: placed(layout, 6).x, clientY: placed(layout, 6).y, pointerId: 1 });
   });
 
   it('dragging the end handle right grows the run to the column under the pointer; the start stays', async () => {

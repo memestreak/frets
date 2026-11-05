@@ -67,7 +67,7 @@ export interface RangeHandle {
   bottom: number;
 }
 
-/** The two Range handles of a selected run: on the left edge of its first box and the right edge of its last. */
+/** The two Range handles of a selected run: on the left edge of its first box and the right edge of its last, their knobs at the bottom. */
 export function rangeHandles(layout: Layout, range: [number, number]): RangeHandle[] {
   const boxes = rangeBoxes(layout.systems, range);
   if (boxes.length === 0) return [];
@@ -79,30 +79,19 @@ export function rangeHandles(layout: Layout, range: [number, number]): RangeHand
   ];
 }
 
-/**
- * How a Range handle is drawn, while Jeremy picks one (`?handles=`): a knob half way down the box's edge
- * (as a Span's Handle), a grip bar along the whole edge, or a pin at its top (start) or foot (end).
- */
-export type RangeHandleLook = 'knob' | 'bar' | 'pin';
-
-/** Where a knob or pin's centre is on its edge. */
-export function knobY(handle: RangeHandle, look: RangeHandleLook): number {
-  if (look === 'pin') return handle.end === 'start' ? handle.top : handle.bottom;
-  return (handle.top + handle.bottom) / 2;
-}
-
-/** How far round a knob or pin, and across from a grip bar's edge, a press takes it. */
+/** How far round a Range handle's knob a press takes it, and the pointer shows it. */
 export const RANGE_HANDLE_REACH = 10;
 
-/** The Range handle under a press, or null; the nearer one where both reach. */
-export function rangeHandleAt(handles: readonly RangeHandle[], x: number, y: number, look: RangeHandleLook = 'knob'): RangeHandle | null {
+/**
+ * The Range handle whose knob is under the pointer, or null; the nearer where both reach. A knob sits on
+ * its box's bottom corner: the bottom left for the start, the bottom right for the end (Jeremy, 2026-11-05).
+ */
+export function rangeHandleAt(handles: readonly RangeHandle[], x: number, y: number): RangeHandle | null {
   let best: { handle: RangeHandle; off: number } | null = null;
   for (const handle of handles) {
     const across = Math.abs(handle.x - x);
-    if (across > RANGE_HANDLE_REACH) continue;
-    // A grip bar is taken anywhere along its edge; a knob or pin only round itself.
-    const down = look === 'bar' ? (y < handle.top ? handle.top - y : y > handle.bottom ? y - handle.bottom : 0) : Math.abs(knobY(handle, look) - y);
-    if (down > RANGE_HANDLE_REACH) continue;
+    const down = Math.abs(handle.bottom - y);
+    if (across > RANGE_HANDLE_REACH || down > RANGE_HANDLE_REACH) continue;
     const off = Math.hypot(across, down);
     if (!best || off < best.off) best = { handle, off };
   }
