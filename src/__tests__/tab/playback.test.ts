@@ -10,7 +10,7 @@ import { clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
 import { clickWave } from '@/lib/click';
 import {
   midiUntil, noteAlone, columnAtTick, heardAt, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
-  SOUND_FAMILIES, tickOf, ticksOf, withCountIn,
+  SOUND_FAMILIES, speedRange, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
 import { type Part, partOf } from '@/features/tab/clip';
@@ -341,6 +341,18 @@ function peakOf(midi: alphaTab.midi.MidiFile, fonts: Uint8Array[]): number {
   for (let chunk = exporter.render(500); chunk; chunk = exporter.render(500)) for (const x of chunk.samples) peak = Math.max(peak, Math.abs(x));
   return peak;
 }
+
+describe('speed range', () => {
+  it('lets every tempo in the clip go from 20 to 400 bpm, in whole percent', () => {
+    expect(speedRange(clipOf('0.6.4 |'))).toEqual({ min: 17, max: 333 });
+    expect(speedRange(clipOf('\\tempo 20 0.6.4 | \\tempo 200 0.6.4 |'))).toEqual({ min: 100, max: 200 });
+  });
+
+  it("stops where alphaTab's synthesizer does: 12.5% to 800%", () => {
+    expect(speedRange(clipOf('\\tempo 400 0.6.4 |'))).toEqual({ min: 13, max: 100 });
+    expect(speedRange(clipOf('\\tempo 20 0.6.4 |'))).toEqual({ min: 100, max: 800 });
+  });
+});
 
 describe('metronome', () => {
   it('clicks each beat, marking each group of three in compound time', () => {

@@ -52,13 +52,20 @@ The controls sit under that line:
   L anywhere on the page does what the button does, as Space plays (Jeremy,
   2026-11-04), but not in a field, a dialog or a menu, and not while the
   controls are hidden; Let ring moved from L to I, Guitar Pro 8's key for it.
-- **Speed.** A number field, 25% to 150% of the clip's own tempo, with
+- **Speed.** A number field, a percentage of the clip's own tempo, with
   stacked up and down buttons (5% a press, as are ↑ ↓ in the field) and
   "92 bpm" beside it: the tempo where the playhead is, times the speed
   (Jeremy's ask, replacing a slider, 2026-10-26). Pressing the number and
   dragging up or down changes it by 1% every 2px; a press that doesn't
   move puts the caret in the field to type. A typed number takes effect on
   Enter or on leaving the field, kept within the range; Esc drops it.
+  The range lets every tempo in the clip go from 20 to 400 bpm, the range
+  a tempo may be set to (Jeremy, 2026-11-05; it had been 25% to 150%, so a
+  120 bpm clip stopped at 180): 17% to 333% at 120 bpm, 100% to 200% for a
+  clip that goes from 20 to 200. alphaTab's synthesizer plays at 12.5% to
+  800% and no further, so a clip at 400 bpm slows to 52 (13%) and one at
+  20 speeds up to 160. A tempo edited since the speed was set plays at the
+  nearest speed the new range allows.
 - **Volume.** A small rotary knob between Speed and Sound (Jeremy picked
   a knob over a slider or a speaker button, 2026-10-26). It sweeps 270°,
   from silent at lower left to full at lower right, with the turned-up
@@ -186,6 +193,10 @@ In Chromium, with the sound's peak measured at the audio node:
   round the whole clip, the end comes round to the start. A change of
   sound on the way into the loop keeps it.
 - Speed 50% halves the tempo shown and the pace.
+- Speed reaches 333% (400 bpm) and 17% (20 bpm) on a 120 bpm clip; a
+  typed 999 stops at 333, a typed 10 at 17. A clip going from 20 to 200
+  bpm offers 100% to 200%; one at 400 offers 13% to 100%; one at 20, 100%
+  to 800%. Speed 300% kept while the tempo is raised to 200 plays at 200%.
 - With no cursor on the tab, Play starts from the beginning.
 - A press above or below the staff puts the line there and Play starts
   from it; while playing it jumps there; a chord name still opens its
