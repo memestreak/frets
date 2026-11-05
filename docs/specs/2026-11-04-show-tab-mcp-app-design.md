@@ -182,7 +182,9 @@ were not found to, so plan as if every chat pays.
   points the model sets and the user drags since
   `2026-11-05-show-tab-loop-points-design.md`), a bpm
   field (drag, arrows or type; a double-click puts the line's own tempo
-  back), a Staff / Tab / Both switch
+  back), Tap next to it (two taps or more in time set the bpm, T too,
+  as in the Tab page's tempo panel and the Metronome; kept within the
+  field's range), a Staff / Tab / Both switch
   that starts at the call's `view` (Q10), and Open in Frets, which opens
   the line on the Tab page in a new tab.
 - Follows the host's theme; teardown stops playback and closes the audio.
@@ -262,5 +264,10 @@ were not found to, so plan as if every chat pays.
   nothing from outside the frame (checked by hand in `mcp/preview/`).
 - The app tells the model a changed bpm and loop once the user stops, and
   nothing the call gave.
+- Two taps 500 ms apart on Tap set 120 bpm, and the model is told; one
+  tap changes nothing.
+- T taps too, but not while the bpm field is being typed in.
+- A tapped bpm past the field's range (1.5 times the line's) is kept at
+  its top.
 - Open in Frets asks the host to open the `#tabz=` link.
 - Teardown takes the line away and lets the player go.

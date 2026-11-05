@@ -390,6 +390,61 @@ describe('the app', () => {
     expect(screen.getByRole('button', { name: 'Loop' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  /** Taps at these times, in milliseconds, by `press` (one tap each). */
+  function tapAt(times: number[], press: () => void) {
+    const now = vi.spyOn(performance, 'now');
+    try {
+      for (const t of times) {
+        now.mockReturnValue(t);
+        act(press);
+      }
+    } finally {
+      now.mockRestore();
+    }
+  }
+  const tapButton = () => screen.getByRole('button', { name: 'Tap' });
+  const pressTap = () => { tapButton().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })); };
+  const pressT = () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 't' })); };
+
+  it('sets the bpm from two taps or more, and tells the model', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const { bridge, told } = await mountApp();
+      await act(() => bridge.sendToolInput({ arguments: LINE }));
+      const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+      tapAt([1000], pressTap);
+      expect(field).toHaveValue('90');
+      tapAt([1500, 2000], pressTap);
+      expect(field).toHaveValue('120');
+      await act(async () => { await vi.advanceTimersByTimeAsync(REPORT_DELAY_MS * 2); });
+      expect(told).toEqual(['The user is now playing the line at 120 bpm, not looping.']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('taps on T too, but not while the bpm is being typed', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+    tapAt([1000, 1600], pressT);
+    expect(field).toHaveValue('100');
+    tapAt([5000, 5500], () => { field.dispatchEvent(new KeyboardEvent('keydown', { key: 't', bubbles: true })); });
+    expect(field).toHaveValue('100');
+  });
+
+  it('keeps a tapped bpm within the field’s range', async () => {
+    const { bridge } = await mountApp();
+    await act(() => bridge.sendToolInput({ arguments: LINE }));
+    const field = await screen.findByRole('spinbutton', { name: 'Tempo (bpm)' });
+    // 600 bpm tapped; the field goes up to 1.5 times the line's 90.
+    tapAt([1000, 1100, 1200], pressTap);
+    expect(field).toHaveValue('135');
+    // 30 bpm tapped, slow but within the field's 23 to 135, is kept.
+    tapAt([10000, 12000], pressTap);
+    expect(field).toHaveValue('30');
+  });
+
   it('opens the line on the Tab page through the host', async () => {
     const { bridge, opened } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));

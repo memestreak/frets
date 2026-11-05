@@ -38,7 +38,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   groups of shortcuts), the keys every page has, how a key is drawn (⌘ on a
   Mac, Ctrl elsewhere) and which `?` press is meant for the page.
   `tapTempo.ts`: tap tempo (a run of presses and the tempo they keep, in a
-  page's bpm range), for the Metronome's Tap and Tab's tempo panel.
+  page's bpm range), for the Metronome's Tap, Tab's tempo panel and `show_tab`'s Tap.
   `click.ts`: the metronome click, a synthesized wood-block tick, for Tab's
   metronome and the Metronome page's wood block.
 - `chords/`: chords on the guitar. `publishedShapes.ts` holds the shapes
