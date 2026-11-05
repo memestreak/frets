@@ -498,11 +498,11 @@ const TWELVE = { bpm: 90, bars: [0, 1, 2].map(b => ({ columns: [1, 2, 3, 4].map(
 
 describe('selecting in the app, to loop', () => {
   /** Where column `index` (from 0, across the line) is drawn on the high e, as jsdom draws it: 800 wide at 0, 0. */
-  function spot(index: number) {
+  function spot(index: number, string = 0) {
     for (const system of layoutClip(made(TWELVE).part, 800, 'tab').systems) {
       for (const b of system.bars) {
         const placed = b.columns.find(c => c.index === index);
-        if (placed) return { clientX: placed.x, clientY: system.top + stringY(system.rows, 0) };
+        if (placed) return { clientX: placed.x, clientY: system.top + stringY(system.rows, string) };
       }
     }
     throw new Error(`No column ${index}`);
@@ -542,6 +542,20 @@ describe('selecting in the app, to loop', () => {
     // A plain press starts over.
     press(spot(10));
     expect(selected()).toEqual([11]);
+  });
+
+  it('selects the whole bar for a press beside the notes, as the Tab page does; with Shift, grows to the column', async () => {
+    await open();
+    // A blank string in bar 2.
+    press(spot(5, 3));
+    expect(selected()).toEqual(range(5, 8));
+    press(spot(1, 3), true);
+    expect(selected()).toEqual(range(2, 8));
+    // A note, then a blank string in another bar.
+    press(spot(9));
+    expect(selected()).toEqual([10]);
+    press(spot(0, 4));
+    expect(selected()).toEqual(range(1, 4));
   });
 
   it('lets the selection go on Esc, on a press off the notes, and for a new line', async () => {

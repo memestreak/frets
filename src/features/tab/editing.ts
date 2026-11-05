@@ -64,6 +64,11 @@ export function columnCount(clip: Part): number {
   return clip.bars.reduce((n, b) => n + b.columns.length, 0);
 }
 
+/** A whole bar selected, as a press beside its notes selects it (issue #238). */
+export function barSelection(clip: Part, bar: number): Selection {
+  return { anchor: indexOf(clip, bar, 0), focus: indexOf(clip, bar, clip.bars[bar].columns.length - 1) };
+}
+
 /** The first and last selected places, in order. */
 export function selectedRange(selection: Selection): [number, number] {
   return [Math.min(selection.anchor, selection.focus), Math.max(selection.anchor, selection.focus)];

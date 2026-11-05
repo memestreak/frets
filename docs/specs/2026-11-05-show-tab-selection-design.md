@@ -12,9 +12,11 @@ selection of PR #365), so nothing new is learned between the two.
 
 ## What
 
-- A press on a note, a blank string, a staff head, a line or space, or a
-  rest selects its column. A rest is taken in whole, as on the Tab page:
-  every rest of a Whole-bar rest, every bar of a multi-bar rest.
+- A press on a note (on the tab or a staff head) or a rest selects its
+  column. A press beside the notes (a blank string, a line or space)
+  selects its whole bar, as on the Tab page (Jeremy, 2026-11-05: "it
+  selects the entire bar as it should"). A rest is taken in whole: every
+  rest of a Whole-bar rest, every bar of a multi-bar rest.
 - A Shift+press grows the selection to take in what was pressed; inside
   it, it trims the end nearer the press (`growSelection`, issue #366).
   With nothing selected, a Shift+press selects as a press does.
@@ -40,7 +42,7 @@ selection of PR #365), so nothing new is learned between the two.
   Tab page's), hands `TabClip` `onPick`, `onPickStaff`, `onPickRhythm` and
   `onMiss`, and its `highlight` with the range boxed and no cursor; Loop
   and L as above. No new module: `growSelection`, `selectedRange`,
-  `indexOf` (`editing.ts`) and `isWholeBarRest` (`layout.ts`) are reused,
+  `indexOf`, `barSelection` (`editing.ts`, moved there from `useTabPicking.ts`) and `isWholeBarRest` (`layout.ts`) are reused,
   so the bundle barely grows.
 
 ## Not done
@@ -54,6 +56,9 @@ selection of PR #365), so nothing new is learned between the two.
 - A press selects its column; Shift+presses after and before it grow the
   selection (4 → 4–8 → 2–8); inside it, the nearer end comes to the press
   (2–8 → 2–6 → 3–6); a plain press starts over.
+- A press on a blank string selects its bar (5–8); a Shift+press on a
+  blank string in another bar grows the selection to that column (2–8),
+  not to the bar.
 - Esc, a press below the tab, a press outside the drawing and a new line
   each let the selection go.
 - The Loop button with columns 3–6 selected loops them, the selection

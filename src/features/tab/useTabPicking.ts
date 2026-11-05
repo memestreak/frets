@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import type { Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
-import { columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
+import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
@@ -21,8 +21,6 @@ import type { EditorState, Picked } from './useEditorState';
 import type { Notice } from './notice';
 
 /** Every column of a bar, selected. */
-const barSelection = (of: Part, bar: number): Selection => ({ anchor: indexOf(of, bar, 0), focus: indexOf(of, bar, of.bars[bar].columns.length - 1) });
-
 /**
  * What a press, a drag or Alt+← → on the drawn tab does: where the cursor goes, what is selected or
  * picked, and the notes a press enters in note input or a drag moves. Each is handed to `TabClip`

@@ -16,7 +16,7 @@ import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
-import { growSelection, indexOf, selectedRange, type Selection } from '../editing';
+import { barSelection, growSelection, indexOf, selectedRange, type Selection } from '../editing';
 import { DEFAULT_FX } from '../effects';
 import type { Hit } from '../hitTest';
 import { isWholeBarRest, layoutClip, type Parts } from '../layout';
@@ -123,9 +123,15 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
    */
   const select = (from: number, to: number, extend: boolean) =>
     setSelection(extend && selection ? growSelection(selection, selection.focus, from, to) : { anchor: from, focus: to });
-  const pickColumn = (at: { bar: number; column: number }, extend: boolean) => {
+  /**
+   * A press on a note selects its column; one beside the notes (a blank string, a line or space) selects
+   * its bar, as on the Tab page. With Shift, either grows the selection to the column pressed.
+   */
+  const pickColumn = (at: { bar: number; column: number }, onNote: boolean, extend: boolean) => {
+    if (part.bars[at.bar].columns.length === 0) return;
     const index = indexOf(part, at.bar, at.column);
-    select(index, index, extend);
+    if (onNote || extend) select(index, index, extend);
+    else setSelection(barSelection(part, at.bar));
   };
   /** A rest is taken in whole: every rest of a Whole-bar rest, every bar of a multi-bar rest. */
   const pickRest = ({ bar, column, lastBar }: { bar: number; column: number; lastBar?: number }, extend: boolean) => {
@@ -193,7 +199,8 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
           <TabClip
             clip={part} layout={layout} width={width} parts={parts} title={`The line, drawn as ${VIEWS.find(v => v.view === view)!.label.toLowerCase()}`}
             highlight={{ cursor: null, range: selected, boxed: true }}
-            onPick={(hit: Hit, extend) => pickColumn(hit, extend)} onPickStaff={pickColumn} onPickRhythm={pickRest} onMiss={letGo}
+            onPick={(hit: Hit, extend) => pickColumn(hit, !!part.bars[hit.bar].columns[hit.column]?.notes[hit.string], extend)}
+            onPickStaff={(hit, extend) => pickColumn(hit, hit.string !== null, extend)} onPickRhythm={pickRest} onMiss={letGo}
           />
         )}
         {layout && <Playhead clip={part} layout={layout} width={width} playback={playback} mark={null} layer="over" />}
