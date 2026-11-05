@@ -254,3 +254,29 @@ what reaches the speakers:
   the notes start, so bar 1 plays when the loop comes round.
 - A 1 s pause between loops: the beat before the start again lasts 1.5 s,
   to within 200 ms.
+
+## Names under the controls (2026-11-05)
+
+Jeremy asked for each control's name under it, so the row is narrower
+(after PR #360 kept it on one line, it scrolled sideways on windows under
+about 1,800px). Speed, Transpose and Volume each have a small caption
+(12px, semibold, muted) centred under the control, and the track's name
+moves from inside the Sound and FX box to under it. Every control sits
+centred in a slot as tall as that box, so the captions share one line.
+Play, Loop, Hear notes and Metronome keep no caption: they have tips. The
+gap between controls goes back to 16px. A double-click on Speed's or
+Transpose's caption still resets it.
+
+Speed's caption carries the bpm ("Speed · 120 bpm"), and Transpose's
+caption is "Transpose", with the unit, semitones, in its tip and the
+field's name (Jeremy picked this from two mocks, 2026-11-05; the other kept
+"120 bpm" and "semitones" beside the fields). The row needs about 760px,
+from 1,126px.
+
+The show_tab MCP app's row has no names to move: its only words beside a
+control are the unit "bpm" and the Tap button.
+
+### Tests
+
+- The Speed and Transpose captions reset their fields on a double-click.
+- The track's name shows under the box, cut to ten characters.
