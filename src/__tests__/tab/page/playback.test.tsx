@@ -157,6 +157,16 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('400');
   });
 
+  it('keeps its width whatever the bpm and percentage: three digits always, the percentage the room of 800%', async () => {
+    // A clip from 20 to 200 bpm: at its start the field reaches only 20 to 40, two digits.
+    renderAt(`#tab=${encodeURIComponent('\\tempo 20 0.6.4 | \\tempo 200 0.6.4 |')}`);
+    const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });
+    await waitFor(() => expect(field).toHaveAttribute('aria-valuemax', '40'));
+    expect(field.style.width).toBe('3ch');
+    // The percentage sits in a box that keeps the widest one's room (its ::before, "800%").
+    expect(screen.getByText(/^Speed ·/).querySelector('.tab-speed-percent')).toHaveTextContent(/^100%$/);
+  });
+
   it("changes only the playback's speed, never the clip's own tempo", () => {
     renderAt();
     const field = screen.getByRole('spinbutton', { name: 'Speed (bpm)' });

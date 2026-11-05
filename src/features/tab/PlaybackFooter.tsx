@@ -13,7 +13,7 @@ import { columnCount, placeOf } from './editing';
 import type { Layout } from './layout';
 import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
-import { BpmField, useTapTempo } from './BpmField';
+import { BpmField, SpeedPercent, useTapTempo } from './BpmField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from '@/components/VolumeKnob';
@@ -410,7 +410,6 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
   const total = columnCount(clip);
-  const percent = Math.round(speed * 100);
   // The bpm playback runs at where the playhead is: the clip's own tempo there, times the speed.
   const bpm = Math.round(playback.bpm * speed);
   // Rounded first, so 120 × 20/120 is 20, not the 21 a float a hair over it would round up to.
@@ -479,7 +478,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
                 onChange={b => playback.setSpeed(b / playback.bpm)}
               />
             </div>
-            <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{percent}%</span></span>
+            <span className="tab-caption" aria-hidden="true">Speed · <SpeedPercent speed={speed} /></span>
           </div>
           {/* A double-click on the caption or the number puts it back to 0. The unit, semitones, is in the tip and the field's name. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}

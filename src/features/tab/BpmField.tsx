@@ -10,6 +10,7 @@ import { useRef } from 'react';
 import { NumberField } from '@/components/NumberField';
 import { useTapPulse } from '@/components/TapPulse';
 import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
+import { MAX_BPM } from './clip';
 
 /** A run of taps' state, kept by whoever also taps from a key (show_tab's T). */
 export function useTapTempo(range: BpmRange, onTempo: (bpm: number) => void) {
@@ -19,6 +20,18 @@ export function useTapTempo(range: BpmRange, onTempo: (bpm: number) => void) {
     const tapped = tapBpm(taps.current, range);
     if (tapped !== null) onTempo(tapped);
   };
+}
+
+/**
+ * A percentage for a caption under a `BpmField`, always as wide as the widest the synthesizer plays
+ * ("800%"), so the caption keeps its width from 83% to 100% (Jeremy, 2026-11-05).
+ */
+export function SpeedPercent({ speed }: { speed: number }) {
+  return (
+    <span className="tab-caption-value tab-speed-percent">
+      <span>{Math.round(speed * 100)}%</span>
+    </span>
+  );
 }
 
 export function BpmField({ bpm, range, label, tap, tip, onChange }: {
@@ -42,7 +55,7 @@ export function BpmField({ bpm, range, label, tap, tip, onChange }: {
   return (
     <div className="tab-bpm">
       <NumberField
-        value={bpm} min={range.min} max={range.max} step={5} dragStep={1}
+        value={bpm} min={range.min} max={range.max} step={5} dragStep={1} chars={String(MAX_BPM).length}
         label={label} upLabel="Faster" downLabel="Slower" onChange={onChange}
       />
       {/* Timed from the press, not the release, so the beat is where the finger lands. */}

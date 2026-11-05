@@ -14,7 +14,7 @@ import { useLetGoAfterUse } from '@/hooks/useLetGoAfterUse';
 import { useSpaceKey } from '@/hooks/useSpaceKey';
 import type { BpmRange } from '@/lib/tapTempo';
 import { writePart } from '../alphatex';
-import { BpmField, useTapTempo } from '../BpmField';
+import { BpmField, SpeedPercent, useTapTempo } from '../BpmField';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part } from '../clip';
 import { barSelection, growSelection, indexOf, selectedRange, type Selection } from '../editing';
 import { DEFAULT_FX } from '../effects';
@@ -219,7 +219,7 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
               onChange={b => playback.setSpeed(b / clipBpm)}
             />
           </div>
-          <span className="tab-caption" aria-hidden="true">Speed · <span className="tab-caption-value">{Math.round(speed * 100)}%</span></span>
+          <span className="tab-caption" aria-hidden="true">Speed · <SpeedPercent speed={speed} /></span>
         </div>
         {player.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
         <div className="seg chat-tab-views" role="group" aria-label="Show">

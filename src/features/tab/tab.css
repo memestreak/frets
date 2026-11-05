@@ -268,6 +268,11 @@
 }
 /* The bpm in a caption: its digits don't jiggle as the speed changes. */
 .tab-caption-value { font-variant-numeric: tabular-nums; }
+/* Speed's percentage keeps the room of the widest, 800%, so the caption never changes width: the
+   number sits at the left of that room. */
+.tab-speed-percent { display: inline-grid; justify-items: start; }
+.tab-speed-percent::before { content: "800%"; visibility: hidden; }
+.tab-speed-percent::before, .tab-speed-percent > * { grid-area: 1 / 1; }
 /* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
 .tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
 .tab-play:hover { filter: brightness(1.1); }

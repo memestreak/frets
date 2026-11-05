@@ -15,6 +15,10 @@ the same change made to the MCP apps version of this playback toolbar."
   tempo; it never changes the clip's own tempo (the tempo panel still
   does). The caption under it reads "Speed · 83%", centred under the
   number alone, not the number and Tap together (Jeremy, 2026-11-05).
+  Nothing moves as the numbers change (Jeremy, 2026-11-05): the field is
+  always three digits wide (`NumberField`'s `chars`), even where the
+  range at the playhead needs two, and the percentage keeps the room of
+  the widest, "800%", its number at the left of it.
 - **Its "bpm" is a Tap button.** At rest it reads "bpm" in muted text, as
   a unit does; on hover (and when focused from the keyboard, or pressed)
   it is outlined as a button and reads "Tap". Both words take the same
@@ -62,6 +66,10 @@ there. (My reading; Jeremy to confirm.)
 - A press on Tap takes no focus; a double-click on it doesn't reset.
 - A double-click on the caption, its percentage or the number resets to
   120; on the step buttons it doesn't.
+- A clip from 20 to 200 bpm: at its start the field reaches 20 to 40 and
+  is still 3ch wide; the percentage is in its 800%-wide box. In a
+  browser, 120, 60, 99, 100, 20 and 400 bpm leave the group, the caption
+  and the controls after it exactly where they were (both pages).
 - show_tab: one Tap, the field's "bpm"; "Speed · 100%" under the field,
   "133%" after taps at 120 bpm on a line at 90; a double-click on the
   caption puts 90 back.
