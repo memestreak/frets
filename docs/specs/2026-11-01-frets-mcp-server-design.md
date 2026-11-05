@@ -39,7 +39,18 @@ preview has one to open, and so does production (no users yet; the page
 is `noindex` and linked from nowhere). It is static, like the rest of the
 site, so the `/mcp` Function stays the one Function and its size doesn't
 change. It offers every tool the server lists, starts in the theme
-`?theme=` names (light by default), and stacks its panels on a phone.
+`?theme=` names (light by default), shows the commit it was built at, and stacks its
+panels on a phone.
+Each call shows its arguments on one line, which opens to the whole call,
+pretty-printed. "What the model sees" logs everything a host passes on to
+the model (all but `_meta`), each entry folded to one line: every tool from
+`tools/list` with its description, schema and a rough token count, each
+call's whole result (text and `structuredContent`), and each app's context
+update. An opened entry is split into labelled parts: a result's or update's
+text (`content`) and its structured data (`structuredContent`), a tool's
+description and input schema, then anything else. Clear empties the log. The chat column's width is set by
+dragging its right edge (from 280 px up to the room there is), or by ← →
+on it.
 
 
 `src/__tests__/mcp/server.test.ts` checks the server is `frets`, that it
