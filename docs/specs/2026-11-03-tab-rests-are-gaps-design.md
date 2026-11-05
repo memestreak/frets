@@ -1,7 +1,7 @@
 # Tab: Rests are Gaps, written by the meter
 
 Step 3 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choice A3, refined
+(`docs/tab-editing-principles.md`, choice A3, refined
 here). Jeremy settled the questions below on 2026-11-03 (Q1–Q13 in the
 thread "Plan rests as gaps (step 3)", run with /grill-with-docs). The
 rests are spelled by the tables in

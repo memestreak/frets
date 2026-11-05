@@ -1,7 +1,7 @@
 # Tab: Sounding notes, read from Columns and written back by the meter
 
 Step 1 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choices A1, A2, A4,
+(`docs/tab-editing-principles.md`, choices A1, A2, A4,
 A5). The plan's evaluation is in
 https://claude.ai/artifact/5F2ZZv4B71wtNwXY3Y5hEA. Jeremy settled the
 questions below on 2026-11-03 (Q1–Q16 in the thread "Build the

@@ -1,7 +1,7 @@
 # Tab: Lengths, and bars always full
 
 Step 4 of the build order in the Tab editing principles
-(https://claude.ai/artifact/T5JHs64SqQcS6iqLhYfqs7, choices A8, A10,
+(`docs/tab-editing-principles.md`, choices A8, A10,
 A11 and A12, refined here). Jeremy settled the questions below on
 2026-11-04 (Q1–Q26 in the thread "Make bars always full (step 4)", run
 with /grill-with-docs). Rests are Gaps written by the meter
