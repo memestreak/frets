@@ -37,13 +37,16 @@ The controls sit under that line:
   before they are ready shows a spinner until they are.
 - **Loop.** It sets the loop points (Jeremy, 2026-10-26, replacing a
   progress line and a Loop that jumped to the loop's start). Pressed with
-  notes selected, the loop points go round them, and a bracket under their
-  stems marks them; pressed again on the same notes, they go. Pressed with
+  notes selected, the loop points go round them, a bracket under their
+  stems marks them, and the selection goes (below, 2026-11-05); pressed
+  with the same notes selected again, they go. Pressed with
   nothing selected, they go round the whole clip, or go when there are
   some. The button stays lit while there are loop points. When playback
   reaches the end point it goes on from the start point. Play from before
   the loop plays up to it and then loops; Play from after it plays on to
-  the end. There is no progress line: Play starts from the cursor.
+  the end. There is no progress line: Play starts from the cursor, or
+  from the loop's start when there are loop points round some notes
+  (2026-11-05).
   Either end of the bracket drags along the tab, forwards or backwards,
   one note at a time (Jeremy, 2026-10-27); an end stops at the other, so
   the loop is never less than one note, and the tab keeps no focus or
@@ -291,3 +294,37 @@ control are the unit "bpm" and the Tap button.
 
 - The Speed and Transpose captions reset their fields on a double-click.
 - The track's name shows under the box, cut to ten characters.
+
+## Loop lets the selection go (2026-11-05)
+
+Jeremy, 2026-11-05: "If I have a selection and I press the loop button or
+the keyboard shortcut for loop (l), after we set the loop boundaries and
+turn on looping, we deselect the time selection."
+
+- Loop (the button or L, on the tab or off it) with notes selected sets the
+  loop points round them, turns looping on, and then lets the selection go.
+  The tab lets the keys go too, as when the playhead moves
+  (`2026-10-27-tab-playback-options-design.md`), so nothing stays lit: a
+  cursor left on the loop would light its note as if still selected. L and
+  Space work page-wide, so the next key still loops or plays.
+- With nothing selected, Loop is as before: the whole clip, or the loop
+  points go; the cursor and the focus stay.
+- With the selection gone, Play would start from the cursor, often the
+  selection's last column. So with loop points round some notes, Play
+  starts at the loop's start, as MuseScore plays from its loop's in point.
+  The playback line and a selection still come first; a whole-clip loop
+  leaves Play at the cursor.
+- Pressed with the same notes selected again (reselected after the loop),
+  the loop points go and the selection stays.
+
+### Tests
+
+`src/__tests__/tab/page/loopSelection.test.tsx`:
+
+- The Loop button with notes selected: Loop is on, no note is lit, the tab
+  has no focus, and Play starts at the loop's first column.
+- L with notes selected, on the tab and off it: the same.
+- The Loop button and L with nothing selected: the whole clip loops, the
+  tab keeps the focus, and Play starts at the cursor.
+- The same notes selected again: Loop clears the loop points and they stay
+  selected.

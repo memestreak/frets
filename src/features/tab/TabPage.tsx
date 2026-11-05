@@ -402,12 +402,28 @@ export default function TabPage() {
   const selectedColumns = selection ? selectedRange(selection) : null;
   const markAt = playMark && playMark.clip === whole && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
     ? playMark.index : null;
-  // Else Play starts at the selection, else the cursor; with no cursor on the tab, from the beginning.
-  // A line past the clip's end plays its last column.
-  const playFrom = markAt !== null ? Math.min(markAt, count - 1) : (selectedColumns ? selectedColumns[0] : editing ? indexOf(clip, cursor.bar, cursor.column) : 0);
+  // Else Play starts at the selection, else the loop points' start (Loop lets the selection go once it
+  // takes it), else the cursor; with no cursor on the tab, from the beginning. A line past the clip's
+  // end plays its last column.
+  const loopStart = Array.isArray(playback.loop) ? playback.loop[0] : null;
+  const playFrom = markAt !== null ? Math.min(markAt, count - 1)
+    : selectedColumns ? selectedColumns[0]
+    : loopStart !== null ? loopStart
+    : editing ? indexOf(clip, cursor.bar, cursor.column) : 0;
   // "Stop playback at region end" (Jeremy, 2026-10-28): with a region selected, Play stops after its
   // last column, unless it starts past it. A loop still goes round instead.
   const playUntil = playbackSettings.stopAtRegionEnd && selectedColumns && playFrom <= selectedColumns[1] ? selectedColumns[1] : null;
+  /**
+   * Loop, the button or L: the loop points go round the selection, which then goes (Jeremy, 2026-11-05),
+   * else round the whole clip; or they go. The tab lets the keys go too, as when the playhead moves, so
+   * nothing stays lit; Space then plays from the loop's start.
+   */
+  const toggleLoop = () => {
+    const next = playback.toggleLoop(selectedColumns);
+    if (!Array.isArray(next)) return;
+    setSelection(null);
+    if (editing) editorRef.current?.blur();
+  };
   /**
    * A press above or below the staff: the playback line goes there (while playing, playback jumps
    * there), and any selection goes. With Shift, the columns from the line (else the selection's
@@ -485,7 +501,7 @@ export default function TabPage() {
     // the Space key plays; Let ring, which had L, is on I, Guitar Pro 8's key for it.
     if (e.key === 'l' && plain && showPlayback && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
       e.preventDefault();
-      if (!e.repeat) playback.toggleLoop(selectedColumns);
+      if (!e.repeat) toggleLoop();
       return;
     }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
@@ -1033,7 +1049,7 @@ export default function TabPage() {
         <PinnedPlayback shown={showPlayback}>
         <HoverTips>
           <PlaybackFooter
-            clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns}
+            clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns} onLoop={toggleLoop}
             shown={showPlayback} onShow={showPlaybackControls}
             track={{ name: whole.tracks[track].name, index: track }}
             sound={sound} soundNote={substituteNote(clip.instrument?.program)}

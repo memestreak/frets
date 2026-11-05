@@ -291,7 +291,7 @@ describe('TabPage playback', () => {
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'false');
-    // A selection: its notes; the same selection again clears them, another moves them.
+    // A selection: its notes, and the selection goes (loopSelection.test.tsx); pressed again, cleared.
     fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
     fireEvent.click(loop());
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
@@ -323,7 +323,7 @@ describe('TabPage playback', () => {
     expect(loop()).toHaveAttribute('aria-pressed', 'true');
     expect(loop()).toHaveAttribute('data-tip', 'Clear the loop points (L)');
     expect(JSON.stringify(pageClip())).toBe(before);
-    // The same notes again: cleared. A held key toggles once.
+    // Again, with the selection gone: cleared. A held key toggles once.
     fireEvent.keyDown(editor, { key: 'l' });
     fireEvent.keyDown(editor, { key: 'l', repeat: true });
     expect(loop()).toHaveAttribute('aria-pressed', 'false');
