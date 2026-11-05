@@ -20,6 +20,16 @@ import { MAX_COUNT_IN_BARS, MAX_SPEED, MIN_SPEED, SOUND_FAMILIES, TabPlayer, typ
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+
+/**
+ * Mock (Jeremy picks, then it goes): with each control's name under it, whether its unit (the bpm,
+ * "semitones") stays beside the field (a) or joins the caption (b), the narrower row.
+ */
+const UNITS_MOCK: Mock = {
+  param: 'mock', label: 'Units',
+  options: [{ value: 'a', label: 'Units beside' }, { value: 'b', label: 'Units below' }],
+};
 
 /**
  * Tab › Playback, saved: whether the controls show (shown at first, Jeremy 2026-10-28), the volume,
@@ -397,6 +407,8 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
   const playing = view.state === 'playing';
   const total = columnCount(clip);
   const percent = Math.round(speed * 100);
+  const bpm = Math.round(playback.bpm * speed);
+  const unitsBeside = useMock(UNITS_MOCK) === 'a';
   const sameAsLoop = Array.isArray(loop) && selection !== null && loop[0] === selection[0] && loop[1] === selection[1];
   const loopTip = selection && !sameAsLoop
     ? 'Loop the selected notes (L)'
@@ -451,47 +463,57 @@ export function PlaybackFooter({ clip, playback, from, until, selection, shown, 
           >
             <MetronomeIcon />
           </button>
-          {/* A double-click on the label, the number or the bpm resets the speed to 100%. */}
+          {/* A double-click on the caption, the number or the bpm resets the speed to 100%. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 100 */}
-          <div className="tab-speed" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
-            <span className="text-(--ink-muted)">Speed</span>
-            <NumberField
-              value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
-              label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
-            />
-            <span className="tab-speed-value">{Math.round(playback.bpm * speed)} bpm</span>
+          <div className="tab-labelled" role="group" aria-label="Speed" onDoubleClick={e => resetOnDoubleClick(e, () => playback.setSpeed(1))}>
+            <div className="tab-captioned">
+              <div className="tab-slot">
+                <NumberField
+                  value={percent} min={MIN_SPEED * 100} max={MAX_SPEED * 100} step={5} unit="%"
+                  label="Speed (percent)" upLabel="Faster" downLabel="Slower" onChange={p => playback.setSpeed(p / 100)}
+                />
+              </div>
+              <span className="tab-caption" aria-hidden="true">
+                {unitsBeside ? 'Speed' : <>Speed · <span className="tab-caption-value">{bpm} bpm</span></>}
+              </span>
+            </div>
+            {unitsBeside && <span className="tab-slot tab-speed-value">{bpm} bpm</span>}
           </div>
-          {/* A double-click on the label, the number or "semitones" puts it back to 0. */}
+          {/* A double-click on the caption, the number or "semitones" puts it back to 0. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 0 */}
-          <div className="tab-speed" role="group" aria-label="Transpose" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
-            <span className="text-(--ink-muted)">Transpose</span>
-            <NumberField
-              value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
-              label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
-            />
-            <span className="text-(--ink-muted)">semitones</span>
+          <div className="tab-labelled" role="group" aria-label="Transpose" onDoubleClick={e => resetOnDoubleClick(e, () => onTranspose(0))}>
+            <div className="tab-captioned" data-tip={unitsBeside ? undefined : 'Transpose, in semitones'}>
+              <div className="tab-slot">
+                <NumberField
+                  value={transpose} min={-MAX_TRANSPOSE} max={MAX_TRANSPOSE} step={1}
+                  label="Transpose (semitones)" upLabel="Transpose up" downLabel="Transpose down" onChange={onTranspose}
+                />
+              </div>
+              <span className="tab-caption" aria-hidden="true">Transpose</span>
+            </div>
+            {unitsBeside && <span className="tab-slot tab-unit">semitones</span>}
           </div>
-          {/* The track's own: its Sound and FX in one thin box, labelled with its name (Jeremy, 2026-10-30). */}
-          <div className="tab-track-box" role="group" aria-label={`Track: ${track.name.trim() || `Track ${track.index + 1}`}`}>
-          <label className="tab-sound">
-            <span className="tab-track-name" data-tip={label === fullName ? undefined : fullName}>{label}</span>
-            {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
-            <select className="input" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
-              {SOUND_FAMILIES.map(([family, sounds]) => (
-                <optgroup key={family} label={family}>
-                  {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
-          <FxButton fx={effects} onFx={onEffects} />
+          {/* The track's own: its Sound and FX in one thin box, captioned with its name (Jeremy, 2026-10-30). */}
+          <div className="tab-captioned" role="group" aria-label={`Track: ${fullName}`}>
+            <div className="tab-slot tab-track-box">
+              {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
+              <select className="input tab-sound" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
+                {SOUND_FAMILIES.map(([family, sounds]) => (
+                  <optgroup key={family} label={family}>
+                    {sounds.map(([program, name]) => <option key={program} value={program}>{name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
+              <FxButton fx={effects} onFx={onEffects} />
+            </div>
+            <span className="tab-caption" aria-hidden="true" data-tip={label === fullName ? undefined : fullName}>{label}</span>
           </div>
-          {view.state === 'error' && <span className="text-sm text-(--danger)">The sound didn&apos;t load.</span>}
+          {view.state === 'error' && <span className="tab-slot text-sm text-(--danger)">The sound didn&apos;t load.</span>}
           {/* At the row's far right (Jeremy, 2026-10-28). */}
-          <div className="tab-volume tab-volume-end">
-            <span className="text-(--ink-muted)" id="tab-volume-label">Volume</span>
-            <VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" />
+          <div className="tab-captioned tab-volume-end">
+            <div className="tab-slot"><VolumeKnob value={volume} onChange={onVolume} labelledBy="tab-volume-label" /></div>
+            <span className="tab-caption" id="tab-volume-label">Volume</span>
           </div>
         </div>
       )}

@@ -248,14 +248,29 @@
 .tab-playback-toggle[aria-pressed='true'] { padding-left: 0; }
 .tab-playback-toggle:focus { outline: none; }
 .tab-playback-toggle:focus-visible { box-shadow: 0 0 0 2px var(--lit-glow); }
-/* Always one row (Jeremy, 2026-11-05): it fits the widest card with 12px between controls, and short
-   of room it scrolls sideways (as on a phone) rather than wrapping. */
+/* Always one row (Jeremy, 2026-11-05), short of room scrolling sideways (as on a phone) rather than
+   wrapping. Each control's name sits under it (Jeremy, 2026-11-05), so the row is narrower. Every
+   control sits centred in a slot as tall as the track's box, so the captions share one line. */
 .tab-playback {
-  display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; margin-top: 12px;
+  --tab-slot: calc(var(--control-height) + 8px);
+  display: flex; flex-wrap: nowrap; align-items: flex-start; gap: 16px; margin-top: 12px;
   overflow-x: auto; scrollbar-width: none;
 }
-/* Nothing shrinks; the row scrolls instead. (The class selectors outrank the controls' own flex rules below.) */
-.tab-playback > *, .tab-playback > .tab-speed, .tab-playback > .tab-track-box { flex: none; }
+/* Nothing shrinks; the row scrolls instead. */
+.tab-playback > * { flex: none; }
+.tab-slot { display: flex; align-items: center; height: var(--tab-slot); }
+.tab-playback > .btn { margin-block: 4px; }
+/* A control over its name, centred under it. */
+.tab-captioned { display: flex; flex-direction: column; align-items: center; }
+.tab-caption {
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font: 600 12px/16px var(--font-sans); color: var(--ink-muted);
+}
+/* The bpm in a caption: its digits don't jiggle as the speed changes. */
+.tab-caption-value { font-variant-numeric: tabular-nums; }
+/* A captioned field and the unit beside it (Speed's bpm, Transpose's semitones). */
+.tab-labelled { display: flex; align-items: flex-start; gap: 8px; }
+.tab-unit { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
 /* Play: the design's muted green (Jeremy, 2026-10-27); while playing, Stop: red with a black square. */
 .tab-play { border-radius: 999px; background: var(--secondary); color: var(--on-secondary); }
 .tab-play:hover { filter: brightness(1.1); }
@@ -270,27 +285,19 @@
 .tab-loop-handle { pointer-events: auto; cursor: ew-resize; touch-action: none; }
 .tab-speed { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
 /* Wide enough for "300 bpm", so nothing moves as the speed does. */
-.tab-speed-value { width: 60px; flex: none; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-/* The volume: a small knob, captioned like Speed. */
+.tab-speed-value { width: 60px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+/* A knob with its name beside it (the FX dialog's). */
 .tab-volume { display: flex; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
+/* The volume, at the row's far right. */
 .tab-volume-end { margin-left: auto; }
-/* The sound, last in the row: a dropdown of every pitched General MIDI sound, by family. */
-/* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30); its name, cut to
-   ten characters, sits right-aligned in a fixed width (room for ten of most letters) so the box doesn't
-   move between tracks. */
+/* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30), with its name,
+   cut to ten characters, under the box. */
 .tab-track-box {
-  display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 6px;
-  padding: 3px 3px 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-md);
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-md);
 }
-/* As wide as its longest sound, a little narrower than the bare list was, so the boxed row still
-   fits with Volume beside it. */
-.tab-track-box .tab-sound select { width: auto; }
-.tab-track-name {
-  width: 80px; flex: none; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted);
-}
-.tab-track-box .tab-sound { gap: 6px; }
-.tab-sound { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 8px; font: 400 14px/20px var(--font-sans); }
-.tab-sound select { width: 200px; min-width: 0; flex: 0 1 auto; }
+/* The sound: a dropdown of every pitched General MIDI sound, by family, as wide as its longest. */
+.tab-sound { width: auto; min-width: 0; font: 400 14px/20px var(--font-sans); }
 /* A clip's instrument Frets has no sound for: a small red ⚠ after the list, its tip naming both. */
 .tab-sound-note { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); margin-left: -6px; }
 /* The FX button (Jeremy, 2026-10-28): one outlined control, FX opening the dialog and, at its
