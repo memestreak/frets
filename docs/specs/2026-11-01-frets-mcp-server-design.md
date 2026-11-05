@@ -46,11 +46,15 @@ pretty-printed. "What the model sees" logs everything a host passes on to
 the model (all but `_meta`), each entry folded to one line: every tool from
 `tools/list` with its description, schema and a rough token count, each
 call's whole result (text and `structuredContent`), and each app's context
-update. An opened entry is split into labelled parts: a result's or update's
+update. Each entry is named by its MCP method and the call it belongs to,
+as `<method> · <tool> #<call>`, e.g. `tools/call · show_tab #2 — Shown: …`
+or `ui/update-model-context · show_metronome #1 — …`; the chat's turns use
+the same `<tool> #<call>` names. An opened entry is split into labelled parts: a result's or update's
 text (`content`) and its structured data (`structuredContent`), a tool's
 description and input schema, then anything else. Clear empties the log. The chat column's width is set by
 dragging its right edge (from 280 px up to the room there is), or by ← →
-on it.
+on it, and the sidebar's the same way (from 240 px, leaving the chat at
+least 360 px); the log lays its JSON out again to fit.
 
 
 `src/__tests__/mcp/server.test.ts` checks the server is `frets`, that it
