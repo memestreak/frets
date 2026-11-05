@@ -66,13 +66,13 @@ folder's `README.md`; update that instead:
 ```bash
 npm run dev      # Dev server at localhost:3000
 npm run dev:https  # Same over https (self-signed), for the mic from another device
-npm run build    # The MCP Apps (mcp:build), then the static export to out/
+npm run build    # The MCP Apps (mcp:build), the static export to out/, then the stand-in host to out/mcp-preview/
 npm run lint     # ESLint (jsx-a11y at error severity)
 npm test         # Vitest
 npm run typecheck  # tsc --noEmit (covers tests and config files too)
 npm run icons    # Re-render every icon and favicon.ico after changing the mark's SVGs
 npm run mcp:build  # Every MCP App (mcp/apps/*) and the stdio server, to mcp/dist/
-npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174
+npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174 (and /mcp-preview/ on every deploy)
 ```
 
 `.github/workflows/ci.yml` runs all four checks for every pull request and

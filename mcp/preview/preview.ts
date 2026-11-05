@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 /**
- * `npm run mcp:preview`: a stand-in host for Frets' MCP Apps (the metronome, #269; the line, #340),
+ * `npm run mcp:preview`: a stand-in host for Frets' MCP Apps (the metronome, #269; the line, #340; the tuner, #283),
  * so they can be tried in a browser with no Claude. Frets' real server runs in the page over an in-memory transport; each call
  * mounts the app's HTML in a sandboxed frame through the SDK's own `AppBridge`, as a chat would.
+ * `npm run build` also puts it on the site at `/mcp-preview/`; `?theme=dark` starts it dark.
  */
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
@@ -13,6 +14,7 @@ import tuner from '../dist/tuner.html?raw';
 import { createFretsServer } from '@/mcp/server';
 import { TOOL_NAME as METRONOME } from '@/features/metronome/mcp/tool';
 import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
+import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const log = (line: string) => {
@@ -21,7 +23,7 @@ const log = (line: string) => {
 };
 
 const HOST = { name: 'Frets preview host', version: '1.0.0' };
-let theme: McpUiTheme = 'light';
+let theme: McpUiTheme = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
 const bridges: AppBridge[] = [];
 /** The rhythm the newest metronome last reported, for "call again". */
 let latest: Record<string, unknown> | null = null;
@@ -38,7 +40,7 @@ const tools = (await client.listTools()).tools;
 
 /** Each previewed tool's app, by tool name, and what its turns are called. */
 const apps = new Map<string, { html: string; label: string }>();
-for (const [name, label] of [[METRONOME, 'Metronome'], [TAB, 'Line']] as const) {
+for (const [name, label] of [[METRONOME, 'Metronome'], [TAB, 'Line'], [TUNER, 'Tuner']] as const) {
   const uri = getToolUiResourceUri(tools.find(t => t.name === name)!)!;
   const content = (await client.readResource({ uri })).contents[0];
   apps.set(name, { html: 'text' in content ? content.text : '', label });
@@ -56,6 +58,7 @@ const EXAMPLES: Record<string, string> = {
     ],
     loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 1 } },
   }, null, 1),
+  [TUNER]: '{}',
 };
 
 async function call(name: string, args: Record<string, unknown>) {
@@ -67,6 +70,8 @@ async function call(name: string, args: Record<string, unknown>) {
   const frame = document.createElement('iframe');
   frame.title = `${label} ${n}`;
   frame.sandbox.add('allow-scripts');
+  // The tuner's resource asks for the mic; this host grants it, as Claude does.
+  if (name === TUNER) frame.allow = 'microphone';
   frame.srcdoc = html;
   turn.append(frame);
   $('column').append(turn);
@@ -120,8 +125,11 @@ $('again').addEventListener('click', () => {
   const bpm = typeof latest?.bpm === 'number' ? latest.bpm + 5 : 125;
   void call(METRONOME, latest ? { rhythm: latest, bpm } : { bpm });
 });
-$<HTMLSelectElement>('theme').addEventListener('change', e => {
-  theme = (e.target as HTMLSelectElement).value as McpUiTheme;
+const themePick = $<HTMLSelectElement>('theme');
+themePick.value = theme;
+document.body.dataset.theme = theme;
+themePick.addEventListener('change', () => {
+  theme = themePick.value as McpUiTheme;
   document.body.dataset.theme = theme;
   for (const b of bridges) void b.sendHostContextChange({ theme });
 });

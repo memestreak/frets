@@ -49,4 +49,17 @@ describe('the Frets MCP server', () => {
     const fn = readFileSync(join(REPO, 'functions/mcp.ts'), 'utf8');
     for (const app of APPS) expect(fn, app).toContain(`import ${app} from '../mcp/dist/${app}.html';`);
   });
+
+  it('gets every app and offers every tool in the stand-in host, /mcp-preview', async () => {
+    const host = readFileSync(join(REPO, 'mcp/preview/preview.ts'), 'utf8');
+    for (const app of APPS) expect(host, app).toContain(`import ${app} from '../dist/${app}.html?raw';`);
+    const page = readFileSync(join(REPO, 'mcp/preview/index.html'), 'utf8');
+    const { tools } = await (await connect(stubApps)).listTools();
+    for (const t of tools) expect(page, t.name).toContain(`<option>${t.name}</option>`);
+  });
+
+  it('builds the stand-in host into the site, after the export that empties out/', () => {
+    const { scripts } = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8'));
+    expect(scripts.build).toMatch(/next build && vite build --config mcp\/vite\.preview\.config\.mts$/);
+  });
 });

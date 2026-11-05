@@ -43,13 +43,13 @@ Cloudflare Pages (`DEPLOYMENT.md`), with one Pages Function for `/mcp`.
 npm install
 npm run dev        # Dev server at localhost:3000
 npm run dev:https  # Same over https (self-signed), for the mic from another device
-npm run build      # The MCP Apps, then the static export to out/
+npm run build      # The MCP Apps, then the static export to out/, then /mcp-preview/
 npm run lint       # ESLint
 npm test           # Vitest
 npm run typecheck  # tsc --noEmit
 npm run icons      # Re-render the icons after changing the mark's SVGs
 npm run mcp:build  # The MCP Apps and the stdio server, to mcp/dist/
-npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174
+npm run mcp:preview  # A stand-in MCP host for the apps, at localhost:5174 (and /mcp-preview/ on every deploy)
 ```
 
 CI (`.github/workflows/ci.yml`) runs lint, tests, the build and the type

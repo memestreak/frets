@@ -30,9 +30,21 @@ The server moved here as soon as Jeremy asked for it to be general, rather
 than waiting for a second tool, so the next page's tools follow a path
 that already exists (`src/mcp/README.md`, "Adding a page's tools").
 
-## Tests
+## Trying a tool with no connector
+
+Jeremy, 2026-11-05: trying an MCP PR shouldn't mean adding a connector in
+claude.ai. So the stand-in host (`mcp/preview/`, `npm run mcp:preview`)
+is also built into the site at `/mcp-preview/`, on every deploy: each PR
+preview has one to open, and so does production (no users yet; the page
+is `noindex` and linked from nowhere). It is static, like the rest of the
+site, so the `/mcp` Function stays the one Function and its size doesn't
+change. It offers every tool the server lists, starts in the theme
+`?theme=` names (light by default), and stacks its panels on a phone.
+
 
 `src/__tests__/mcp/server.test.ts` checks the server is `frets`, that it
 lists exactly the tools the Agents page lists, that it serves each app it
-names, that a missing app fails with its name, and that `/mcp` imports
-every app in `mcp/apps/`.
+names, that a missing app fails with its name, that `/mcp` imports
+every app in `mcp/apps/`, that the stand-in host imports every app and
+offers every tool, and that `npm run build` builds it after `next build`
+(which empties `out/`).
