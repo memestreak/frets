@@ -249,10 +249,10 @@ themePick.addEventListener('change', () => {
 });
 /**
  * A drag handle on an edge (role="separator"): drag it, or focus it and press ← → (Shift for bigger
- * steps). `set` clamps and applies a width and returns what it applied; `scale` is how far the
- * width moves per pixel dragged (2 for a centred column, whose edge moves half as far).
+ * steps). The handle sits on its box's right edge and the left edge stays put, so the width moves
+ * as far as the pointer does. `set` clamps and applies a width and returns what it applied.
  */
-function resizer(handle: HTMLElement, start: number, set: (px: number) => number, scale = 1, done = () => {}) {
+function resizer(handle: HTMLElement, start: number, set: (px: number) => number, done = () => {}) {
   let width = start;
   const apply = (px: number) => {
     width = set(px);
@@ -264,7 +264,7 @@ function resizer(handle: HTMLElement, start: number, set: (px: number) => number
     handle.setPointerCapture(down.pointerId);
     handle.classList.add('dragging');
     document.body.classList.add('resizing'); // frames would otherwise swallow the pointer
-    const move = (e: PointerEvent) => apply(w0 + scale * (e.clientX - x0));
+    const move = (e: PointerEvent) => apply(w0 + e.clientX - x0);
     handle.addEventListener('pointermove', move);
     handle.addEventListener('lostpointercapture', () => {
       handle.classList.remove('dragging');
@@ -285,14 +285,14 @@ function resizer(handle: HTMLElement, start: number, set: (px: number) => number
   apply(start);
 }
 
-/** The chat column's width, which stays centred, as in a chat. */
+/** The chat column's width; the column sits at the chat's left, next to the sidebar. */
 const wrap = $('column').parentElement!;
 resizer($('resize'), 640, px => {
   const room = wrap.parentElement!.clientWidth - 64; // the chat's padding and the handle
   const w = Math.round(Math.max(280, Math.min(px, room)));
   wrap.style.width = `${w}px`;
   return w;
-}, 2);
+});
 
 /** The left sidebar's width; the log lays its messages out again to fit. */
 const layout = document.querySelector<HTMLElement>('.layout')!;
@@ -300,4 +300,4 @@ resizer($('side-resize'), 320, px => {
   const w = Math.round(Math.max(240, Math.min(px, window.innerWidth - 360)));
   layout.style.setProperty('--side', `${w}px`);
   return w;
-}, 1, () => detailed.forEach((detail, entry) => fillSections(entry, detail)));
+}, () => detailed.forEach((detail, entry) => fillSections(entry, detail)));
