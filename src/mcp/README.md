@@ -104,6 +104,8 @@ Outside `src/`:
 
 ## Specs
 
+- `docs/specs/2026-11-05-show-tab-loop-points-design.md`: show_tab's loop
+  points, set by the model and dragged by the user
 - `docs/specs/2026-11-04-show-tab-mcp-app-design.md`: a line of guitar music
   in a chat as staff over tab, show_tab (and later show_phrase)
 - `docs/specs/2026-11-01-tuner-mcp-app-design.md`: the Tuner runs in a chat as

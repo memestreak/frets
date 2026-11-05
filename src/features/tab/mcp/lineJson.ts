@@ -10,9 +10,14 @@ import {
   type Bar, type Column, type Duration, type Note, type Part, type TimeSignature,
 } from '../clip';
 import { choosePlace } from '../staffEntry';
-import { inputSchema, type ColumnInput, type LineInput, type NoteInput, type View } from './tool';
+import { inputSchema, type ColumnInput, type LineInput, type LoopEnd, type LoopInput, type NoteInput, type View } from './tool';
 
-export type LineResult = { ok: true; part: Part; line: LineInput; view: View } | { ok: false; error: string };
+/** Loop points as the clip counts them: the first and last column looped, across the whole line from 0. */
+export type LoopPoints = [number, number];
+
+export type LineResult =
+  | { ok: true; part: Part; line: LineInput; view: View; loop: LoopPoints | null }
+  | { ok: false; error: string };
 
 /** "Bar 2, column 3" for a place in the line, counted from 1 as the model counts them. */
 const placeName = (bar: number, column: number) => `Bar ${bar + 1}, column ${column + 1}`;
@@ -151,7 +156,81 @@ export function lineFromInput(raw: unknown): LineResult {
     const off = unevenBy(part, b);
     if (off) return { ok: false, error: `Bar ${b + 1} is ${off.words} ${off.over ? 'over' : 'short of'} ${time.beats}/${time.value}.` };
   }
-  return { ok: true, part, line: lineOf(part), view: line.view ?? 'both' };
+  let loop: LoopPoints | null = null;
+  if (line.loop) {
+    const points = loopPoints(part, line.loop);
+    if (typeof points === 'string') return { ok: false, error: points };
+    loop = points;
+  }
+  return { ok: true, part, line: lineOf(part), view: line.view ?? 'both', loop };
+}
+
+/** Each bar's first column, counted across the whole line from 0. */
+function barStarts(part: Part): number[] {
+  const starts: number[] = [];
+  let n = 0;
+  for (const bar of part.bars) {
+    starts.push(n);
+    n += bar.columns.length;
+  }
+  return starts;
+}
+
+/**
+ * The loop points a call asks for, as the clip counts them, or why they can't be: an end in a bar or
+ * column the line hasn't got, or a start after the end.
+ */
+export function loopPoints(part: Part, loop: LoopInput): LoopPoints | string {
+  const starts = barStarts(part);
+  const at = (which: 'start' | 'end'): number | string => {
+    const end = loop[which];
+    const label = `Loop ${which}`;
+    const b = end ? end.bar - 1 : which === 'start' ? 0 : part.bars.length - 1;
+    const bar = part.bars[b];
+    if (!bar) return `${label}: there is no bar ${b + 1}; the line has ${part.bars.length}.`;
+    const count = bar.columns.length;
+    if (count === 0) return `${label}: bar ${b + 1} has no columns.`;
+    const c = end?.column !== undefined ? end.column - 1 : which === 'start' ? 0 : count - 1;
+    if (c >= count) return `${label}: bar ${b + 1} has ${count} column${count === 1 ? '' : 's'}.`;
+    return starts[b] + c;
+  };
+  const start = at('start');
+  if (typeof start === 'string') return start;
+  const end = at('end');
+  if (typeof end === 'string') return end;
+  if (start > end) return 'Loop: the start comes after the end.';
+  return [start, end];
+}
+
+/** A column counted across the line, as its bar and column in it, both from 0. */
+function placeOf(part: Part, index: number): { bar: number; column: number } {
+  const starts = barStarts(part);
+  let b = 0;
+  while (b + 1 < part.bars.length && starts[b + 1] <= index) b++;
+  return { bar: b, column: index - starts[b] };
+}
+
+/**
+ * Loop points as the model reads them, in `show_tab`'s own shape: each end's bar, and its column only
+ * when it isn't where the bar starts (for the start) or ends (for the end).
+ */
+export function loopOf(part: Part, [first, last]: LoopPoints): { start: LoopEnd; end: LoopEnd } {
+  const start = placeOf(part, first);
+  const end = placeOf(part, last);
+  return {
+    start: start.column === 0 ? { bar: start.bar + 1 } : { bar: start.bar + 1, column: start.column + 1 },
+    end: end.column === part.bars[end.bar].columns.length - 1 ? { bar: end.bar + 1 } : { bar: end.bar + 1, column: end.column + 1 },
+  };
+}
+
+/** Loop points in words: "the whole line", "bar 2", "bars 2 to 3", "bar 2 to bar 3, column 4". */
+export function describeLoop(part: Part, points: LoopPoints): string {
+  const { start, end } = loopOf(part, points);
+  const whole = start.bar === 1 && start.column === undefined && end.bar === part.bars.length && end.column === undefined;
+  if (whole) return 'the whole line';
+  const words = (e: LoopEnd) => (e.column === undefined ? `bar ${e.bar}` : `bar ${e.bar}, column ${e.column}`);
+  if (start.column === undefined && end.column === undefined) return start.bar === end.bar ? `bar ${start.bar}` : `bars ${start.bar} to ${end.bar}`;
+  return `${words(start)} to ${words(end)}`;
 }
 
 /** A note as the model reads it: on its string and fret, with the fields `show_tab` takes. */

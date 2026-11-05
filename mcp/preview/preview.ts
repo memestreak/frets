@@ -54,6 +54,7 @@ const EXAMPLES: Record<string, string> = {
       { columns: [8, 8, 8, 8, 8, 8, 4].map((value, i) => ({ duration: { value }, notes: [{ pitch: ['A3', 'C4', 'D4', 'E4', 'G4', 'E4', 'D4'][i] }] })) },
       { columns: [{ duration: { value: 2 }, notes: [{ string: 3, fret: 2, bend: { quarters: 4 } }], chord: 'Am' }, { duration: { value: 2 }, notes: [{ string: 5, fret: 0 }] }] },
     ],
+    loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 1 } },
   }, null, 1),
 };
 
