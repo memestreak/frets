@@ -17,10 +17,33 @@ import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
 import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const log = (line: string) => {
-  const el = $('log');
-  el.textContent = `${line}\n\n${el.textContent}`;
+/**
+ * Adds a line to "What the model sees", newest first. With `detail`, the line opens to it,
+ * pretty-printed: everything the model is sent, not just the text.
+ */
+const log = (line: string, detail?: unknown) => {
+  const entry = document.createElement(detail === undefined ? 'div' : 'details');
+  entry.className = 'entry';
+  if (detail === undefined) {
+    entry.textContent = line;
+  } else {
+    const summary = document.createElement('summary');
+    summary.textContent = line;
+    summary.addEventListener('click', () => summary.blur());
+    const pre = document.createElement('pre');
+    pre.textContent = pretty(detail, 36); // the log is narrow
+    entry.append(summary, pre);
+  }
+  $('log').prepend(entry);
 };
+/** What a host passes on to the model: everything but `_meta`, which is for the host and the app. */
+const forModel = (message: Record<string, unknown>) => {
+  const seen = { ...message };
+  delete seen._meta;
+  return seen;
+};
+/** A rough token count (about 4 characters a token), for a sense of what a tool costs. */
+const tokens = (value: unknown) => `~${Math.round(JSON.stringify(value).length / 4)} tokens`;
 
 const HOST = { name: 'Frets preview host', version: '1.0.0' };
 let theme: McpUiTheme = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
@@ -37,6 +60,11 @@ async function connectClient() {
 }
 const client = await connectClient();
 const tools = (await client.listTools()).tools;
+for (const tool of [...tools].reverse()) {
+  const seen = forModel(tool);
+  log(`tools/list: ${tool.name} (${tokens(seen)})`, seen);
+}
+log(`tools/list: ${tools.length} tools, ${tokens(tools.map(forModel))} in all`);
 
 /** Each previewed tool's app, by tool name, and what its turns are called. */
 const apps = new Map<string, { html: string; label: string }>();
@@ -44,17 +72,16 @@ for (const [name, label] of [[METRONOME, 'Metronome'], [TAB, 'Line'], [TUNER, 'T
   const uri = getToolUiResourceUri(tools.find(t => t.name === name)!)!;
   const content = (await client.readResource({ uri })).contents[0];
   apps.set(name, { html: 'text' in content ? content.text : '', label });
-  log(`tools/list: ${name} → ${uri}`);
 }
 
-/** JSON, indented, but with each object or array that fits on one line kept on one line. */
-function pretty(value: unknown, indent = ''): string {
+/** JSON, indented, but with each object or array that fits in `width` characters kept on one line. */
+function pretty(value: unknown, width = 72, indent = ''): string {
   const flat = JSON.stringify(value);
-  if (value === null || typeof value !== 'object' || indent.length + flat.length <= 72) return flat;
+  if (value === null || typeof value !== 'object' || indent.length + flat.length <= width) return flat;
   const inner = `${indent}  `;
   const lines = Array.isArray(value)
-    ? value.map(v => inner + pretty(v, inner))
-    : Object.entries(value).map(([k, v]) => `${inner}${JSON.stringify(k)}: ${pretty(v, inner)}`);
+    ? value.map(v => inner + pretty(v, width, inner))
+    : Object.entries(value).filter(([, v]) => v !== undefined).map(([k, v]) => `${inner}${JSON.stringify(k)}: ${pretty(v, width, inner)}`);
   const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
   return `${open}\n${lines.join(',\n')}\n${indent}${close}`;
 }
@@ -109,7 +136,7 @@ async function call(name: string, args: Record<string, unknown>) {
   };
   bridge.onupdatemodelcontext = async params => {
     const text = params.content?.map(c => ('text' in c ? c.text : '')).join(' ');
-    log(`${label} ${n} → model context: ${text}`);
+    log(`${label} ${n} → model context: ${text}`, forModel(params));
     if (name === METRONOME) latest = (params.structuredContent?.rhythm as Record<string, unknown>) ?? latest;
     return {};
   };
@@ -117,7 +144,7 @@ async function call(name: string, args: Record<string, unknown>) {
     await bridge.sendToolInput({ arguments: args });
     const result = await client.callTool({ name, arguments: args });
     const text = (result.content as { text?: string }[]).map(c => c.text).join(' ');
-    log(`${label} ${n} ← tools/call: ${text}`);
+    log(`${label} ${n} ← tools/call: ${text}`, forModel(result));
     if (!result.isError && name === METRONOME) latest = (result.structuredContent as { rhythm: Record<string, unknown> }).rhythm;
     await bridge.sendToolResult(result as Parameters<AppBridge['sendToolResult']>[0]);
   };

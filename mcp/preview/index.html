@@ -16,7 +16,10 @@
       textarea { font: 12px/16px ui-monospace, monospace; min-height: 160px; }
       .log-box { display: grid; gap: 4px; }
       .log-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
-      .log { font: 12px/16px ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 45vh; overflow: auto; background: #0001; padding: 8px; }
+      .log .entry { margin-bottom: 12px; }
+      .log summary { cursor: pointer; }
+      .log pre { margin: 4px 0 0; font: inherit; white-space: pre-wrap; }
+      .log { font: 12px/16px ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 70vh; overflow: auto; background: #0001; padding: 8px; }
       .chat { padding: 16px; overflow: auto; }
       .column { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; width: 100%; }
       .turn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
