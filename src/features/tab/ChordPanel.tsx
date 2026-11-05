@@ -6,7 +6,7 @@
  * cursor column's notes, the track's Chord set with New chord, and Insert. A chord name's Edit, or its
  * double-click, opens it at that chord. With its Hear toggle on, picking a chord or a shape sounds it.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
@@ -73,6 +73,66 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };
 }
 
+/** The panel's sections that fold: the track's chords, the shapes and the column's names. */
+type FoldId = 'chords' | 'shape' | 'notes';
+const FOLD_IDS: readonly FoldId[] = ['chords', 'shape', 'notes'];
+/** Which of the Chords panel's sections are folded, kept across visits like the open panel (not a preference). */
+export const CHORD_PANEL_KEY = 'frets.tab.chordPanel';
+
+/** The sections `frets.tab.chordPanel` keeps folded; none for anything unreadable. */
+export function parseChordPanel(text: string | null): FoldId[] {
+  try {
+    const saved: unknown = JSON.parse(text ?? 'null');
+    if (saved && typeof saved === 'object' && 'folded' in saved && Array.isArray(saved.folded)) {
+      return FOLD_IDS.filter(id => (saved.folded as unknown[]).includes(id));
+    }
+  } catch {
+    // Unreadable: all open.
+  }
+  return [];
+}
+
+/** The folded sections and a toggle for one, kept in `frets.tab.chordPanel`. */
+function useFolded(): [readonly FoldId[], (id: FoldId) => void] {
+  const [folded, setFolded] = useState<readonly FoldId[]>([]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- what is kept exists only in the browser.
+  useEffect(() => setFolded(parseChordPanel(localStorage.getItem(CHORD_PANEL_KEY))), []);
+  const fold = (id: FoldId) => {
+    const next = folded.includes(id) ? folded.filter(f => f !== id) : [...folded, id];
+    setFolded(next);
+    try {
+      localStorage.setItem(CHORD_PANEL_KEY, JSON.stringify({ folded: next }));
+    } catch {
+      // Not kept: it still folds now.
+    }
+  };
+  return [folded, fold];
+}
+
+/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right. */
+function Fold({ id, title, label = title, folded, onFold, extra, children }: {
+  id: FoldId; title: string; label?: string; folded: readonly FoldId[]; onFold: (id: FoldId) => void; extra?: ReactNode; children: ReactNode;
+}) {
+  const open = !folded.includes(id);
+  return (
+    <section className="chord-panel-section" aria-label={label}>
+      <div className="chord-panel-row">
+        <h3 className="chord-panel-label">
+          <button
+            type="button" className="chord-panel-fold" aria-expanded={open}
+            onMouseDown={e => e.preventDefault()} onClick={() => onFold(id)}
+          >
+            <span className="chord-panel-chevron" aria-hidden="true">{open ? '▾' : '▸'}</span>
+            {title}
+          </button>
+        </h3>
+        {extra}
+      </div>
+      {open && children}
+    </section>
+  );
+}
+
 interface ChordPanelProps {
   /** The part being edited: its tuning, capo, cursor column and `\chord` definitions. */
   clip: Part;
@@ -105,6 +165,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
   /** The list's right-click menu: where it opened, and on which chord. */
   const [menu, setMenu] = useState<{ x: number; y: number; entry: ChordEntry } | null>(null);
   const trigger = useMenuTrigger();
+  const [folded, fold] = useFolded();
   // Edit at another chord starts afresh there.
   // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
   useEffect(() => { setPicked(null); setNaming(false); setTyped(null); }, [at]);
@@ -191,6 +252,36 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
 
   return (
     <div className="chord-panel">
+      <Fold
+        id="chords" title="This track’s chords" folded={folded} onFold={fold}
+        extra={<button type="button" className="chord-panel-new" onMouseDown={keep} onClick={startNew}>+ New chord</button>}
+      >
+        {set.length === 0 && <p className="chord-panel-note">None yet.</p>}
+        <ul className="chord-panel-list">
+          {set.map(entry => {
+            const c = chordOfName(entry.name);
+            const s = entry.def?.frets ? toShape(entry.def.frets) : null;
+            return (
+              <li key={entry.name}>
+                <button
+                  type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
+                  onMouseDown={keep} onClick={() => pick(entry.name)}
+                  {...trigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), entry }))}
+                >
+                  <span className="chord-panel-thumb" aria-hidden="true">
+                    {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
+                  </span>
+                  <span className="chord-panel-name">{entry.name}</span>
+                  {entry.uses === 0
+                    ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
+                    : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Fold>
+
       <div className="chord-panel-field">
         <div className="chord-panel-row">
           <span className="chord-panel-label" aria-hidden="true">{naming ? 'New chord' : 'Chord'}</span>
@@ -219,17 +310,16 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
       )}
 
       {name && (
-        <section className="chord-panel-section" aria-label="Shapes">
-          <div className="chord-panel-row">
-            <h3 className="chord-panel-label">Shape</h3>
-            {shown.length > 1 && (
-              <span className="chord-panel-stepper">
-                <button type="button" className="chord-panel-step" aria-label="Previous shape" onMouseDown={keep} onClick={() => step(-1)}>‹</button>
-                {current >= 0 && <span>{current + 1} of {shown.length}</span>}
-                <button type="button" className="chord-panel-step" aria-label="Next shape" onMouseDown={keep} onClick={() => step(1)}>›</button>
-              </span>
-            )}
-          </div>
+        <Fold
+          id="shape" title="Shape" label="Shapes" folded={folded} onFold={fold}
+          extra={shown.length > 1 && (
+            <span className="chord-panel-stepper">
+              <button type="button" className="chord-panel-step" aria-label="Previous shape" onMouseDown={keep} onClick={() => step(-1)}>‹</button>
+              {current >= 0 && <span>{current + 1} of {shown.length}</span>}
+              <button type="button" className="chord-panel-step" aria-label="Next shape" onMouseDown={keep} onClick={() => step(1)}>›</button>
+            </span>
+          )}
+        >
           {!chord && !stored && <p className="chord-panel-note">“{name}” isn’t a chord name, so it has no shapes.</p>}
           {chord && (
             <div className="chord-panel-shapes">
@@ -243,12 +333,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
               ))}
             </div>
           )}
-        </section>
+        </Fold>
       )}
 
       {names.length > 0 && (
-        <section className="chord-panel-section" aria-label="These notes are">
-          <h3 className="chord-panel-label">These notes are</h3>
+        <Fold id="notes" title="These notes are" folded={folded} onFold={fold}>
           <div className="chord-panel-chips">
             {names.map(n => (
               <button
@@ -259,39 +348,9 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
               </button>
             ))}
           </div>
-        </section>
+        </Fold>
       )}
 
-      <section className="chord-panel-section" aria-label="This track’s chords">
-        <div className="chord-panel-row">
-          <h3 className="chord-panel-label">This track’s chords</h3>
-          <button type="button" className="chord-panel-new" onMouseDown={keep} onClick={startNew}>+ New chord</button>
-        </div>
-        {set.length === 0 && <p className="chord-panel-note">None yet.</p>}
-        <ul className="chord-panel-list">
-          {set.map(entry => {
-            const c = chordOfName(entry.name);
-            const s = entry.def?.frets ? toShape(entry.def.frets) : null;
-            return (
-              <li key={entry.name}>
-                <button
-                  type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
-                  onMouseDown={keep} onClick={() => pick(entry.name)}
-                  {...trigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), entry }))}
-                >
-                  <span className="chord-panel-thumb" aria-hidden="true">
-                    {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
-                  </span>
-                  <span className="chord-panel-name">{entry.name}</span>
-                  {entry.uses === 0
-                    ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
-                    : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
       {menu && (
         <ShapeMenu
           x={menu.x} y={menu.y} label={menu.entry.name}

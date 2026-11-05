@@ -18,6 +18,15 @@ and editing the list (rename, delete) are #368.
   at that chord, in place of the old chord name field. The cursor goes to
   the name's column. The rail's Chords button opens it at the cursor
   column's chord.
+- **Order and folding** (Jeremy, 2026-11-05: "This track's chords should
+  be at the top … That section and other sections should be independently
+  collapsible"). Top to bottom: This track's chords, the Chord field,
+  Shape, These notes are, Insert. Each of the three sections folds from
+  its heading (a chevron and its name, `aria-expanded`), on its own; what
+  sits at a heading's right (+ New chord, the shape stepper) stays.
+  Which are folded is kept across visits in `frets.tab.chordPanel`
+  `{ folded }`, like the open panel, not a preference. The field and
+  Insert don't fold: they are the panel's controls.
 - **Chord.** The name field shows the chord being looked at: the one
   picked in the panel, else the one Edit opened, else the cursor
   column's. Typing a name and Enter writes it over the cursor column, as
@@ -97,7 +106,7 @@ Settled while building (my calls, open to change):
   `hearShape`, and `hearChords` in the Playback settings; `tabSettings.tsx`
   lists it.
 - `ShapeMenu.tsx`: `disabled` and `hint` on a menu item.
-- `ChordPanel.tsx`: the panel; `chordOfName`, `namesForColumn`,
+- `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`; `chordOfName`, `namesForColumn`,
   `fretsOfColumn`, `insertedColumn`.
 - `chordSet.ts`: `withChordShape`, `withNewChord`, `withoutChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
@@ -134,6 +143,9 @@ Settled while building (my calls, open to change):
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.
+- The list is first, above the field; each section folds on its own,
+  New chord still shown; the folded ones are kept, and `parseChordPanel`
+  drops ids it doesn't know.
 - Hear is off at first; its toggle turns it on and saves `hearChords`.
 - Delete on an unused chord takes its definition out and leaves nothing
   picked; on a used one it is `aria-disabled`, with its hint, and does

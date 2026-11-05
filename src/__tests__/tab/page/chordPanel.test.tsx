@@ -9,6 +9,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
+import { CHORD_PANEL_KEY, parseChordPanel } from '@/features/tab/ChordPanel';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTexText } from './helpers';
 
 setUpPage();
@@ -228,5 +229,44 @@ describe('Hear', () => {
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(JSON.parse(localStorage.getItem('frets.tab.playback')!)).toMatchObject({ hearChords: true });
+  });
+});
+
+describe('the panel’s sections', () => {
+  const sections = () => [...panel().querySelectorAll('section')].map(s => s.getAttribute('aria-label'));
+
+  it('puts this track’s chords first, then the chord, its shapes and the column’s names', async () => {
+    await open();
+    act(() => editor().focus());
+    keys('ArrowRight');
+    fireEvent.click(railButton('Chords'));
+    // The column has no name yet; one picked shows its shapes.
+    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^C/ }));
+    expect(sections()).toEqual(['This track’s chords', 'Shapes', 'These notes are']);
+    const order = [...panel().querySelectorAll('section, input')].map(e => e.getAttribute('aria-label'));
+    expect(order.indexOf('This track’s chords')).toBeLessThan(order.indexOf('Chord name'));
+  });
+
+  it('each folds from its heading on its own, kept across visits', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    const heading = (name: string) => inPanel().getByRole('button', { name });
+    fireEvent.click(heading('This track’s chords'));
+    expect(heading('This track’s chords')).toHaveAttribute('aria-expanded', 'false');
+    expect(inPanel().queryByRole('button', { name: /^G1/ })).toBeNull();
+    // The other sections stay open, and New chord stays to hand.
+    expect(heading('Shape')).toHaveAttribute('aria-expanded', 'true');
+    expect(inPanel().getByRole('button', { name: '+ New chord' })).toBeInTheDocument();
+    fireEvent.click(heading('Shape'));
+    expect(inPanel().queryByRole('button', { name: /^Shape 3-2/ })).toBeNull();
+    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords', 'shape'] });
+    fireEvent.click(heading('This track’s chords'));
+    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['shape'] });
+  });
+
+  it('reads what was kept, each id checked', () => {
+    expect(parseChordPanel(JSON.stringify({ folded: ['notes', 'nope', 3] }))).toEqual(['notes']);
+    expect(parseChordPanel('not json')).toEqual([]);
+    expect(parseChordPanel(null)).toEqual([]);
   });
 });
