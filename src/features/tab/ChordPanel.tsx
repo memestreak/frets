@@ -92,7 +92,7 @@ function useFolded(): [readonly FoldId[], (id: FoldId) => void] {
   return [folded, fold];
 }
 
-/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right. */
+/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right while it is open. */
 function Fold({ id, title, label = title, folded, onFold, extra, children }: {
   id: FoldId; title: string; label?: string; folded: readonly FoldId[]; onFold: (id: FoldId) => void; extra?: ReactNode; children: ReactNode;
 }) {
@@ -112,7 +112,7 @@ function Fold({ id, title, label = title, folded, onFold, extra, children }: {
             {title}
           </button>
         </h3>
-        {extra}
+        {open && extra}
       </div>
       {open && children}
     </section>

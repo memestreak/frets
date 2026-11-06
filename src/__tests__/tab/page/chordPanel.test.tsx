@@ -187,13 +187,17 @@ describe('the panel’s sections', () => {
     await open();
     fireEvent.click(railButton('Chords'));
     const heading = (name: string) => inPanel().getByRole('button', { name });
+    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^G/ }));
+    expect(inPanel().getByRole('button', { name: 'Next shape' })).toBeInTheDocument();
     fireEvent.click(heading('This track’s chords'));
     expect(heading('This track’s chords')).toHaveAttribute('aria-expanded', 'false');
     expect(inPanel().queryByRole('button', { name: /^G1/ })).toBeNull();
     // The other sections stay open.
     expect(heading('Shape')).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(heading('Shape'));
-    expect(inPanel().queryByRole('button', { name: /^Shape 3-2/ })).toBeNull();
+    expect(inPanel().queryByRole('button', { name: /^Shape 3-2-0-0-0-3/ })).toBeNull();
+    // Its stepper ("1 of 9") goes with it.
+    expect(inPanel().queryByRole('button', { name: 'Next shape' })).toBeNull();
     expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords', 'shape'] });
     fireEvent.click(heading('This track’s chords'));
     expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['shape'] });

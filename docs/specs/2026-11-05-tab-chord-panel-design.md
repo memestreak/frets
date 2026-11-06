@@ -24,7 +24,7 @@ and editing the list (rename, delete) are #368.
   Shape, Insert. Each of the two sections folds from
   its heading (a 16px chevron, pointing down while open, and its name,
   `aria-expanded`), on its own; the shape stepper at Shape's right
-  stays.
+  ("1 of 9") shows only while Shape is open (Jeremy, 2026-11-06).
   Which are folded is kept across visits in `frets.tab.chordPanel`
   `{ folded }`, like the open panel, not a preference. The field and
   Insert don't fold: they are the panel's controls.
