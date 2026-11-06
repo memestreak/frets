@@ -136,6 +136,12 @@ and in its spec.
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
   which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`.
+- `sectionText.ts` — a section over its bar: its size, `sectionBoxes`, and
+  `placeSections`, which wraps a long one and moves it up if it still
+  runs into the next —
+  `2026-11-06-tab-section-overlap-design.md`.
+- `stackWords.ts` — words along a line that wrap and move up clear of each
+  other, without moving the music: the Text's and the section's rule.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
   gap, a stem via `rhythmAt`) and where the cursor is drawn.
 - `runs.ts` — where marks over runs of columns are drawn (vibrato, let
@@ -399,6 +405,8 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-06-tab-section-overlap-design.md`: a long section
+  name wraps, and moves up a row if it still runs into the next (issue #389)
 - `docs/specs/2026-11-05-tab-range-handles-design.md`: a selection box's
   left or right edge drags that end, the other staying
 - `docs/specs/2026-11-05-tab-speed-bpm-design.md`: Speed as one bpm
