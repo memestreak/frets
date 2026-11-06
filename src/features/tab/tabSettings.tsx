@@ -138,6 +138,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
             min: -MAX_TRANSPOSE, max: MAX_TRANSPOSE, step: 1, after: 'semitones', upLabel: 'Transpose up', downLabel: 'Transpose down',
           }),
           checkField('hearNotes', 'Hear notes as you enter them'),
+          checkField('hearChords', 'Hear chords picked in the Chords panel'),
           checkField('stopAtPlayhead', 'Stop leaves the cursor where it stopped'),
           checkField('stopAtRegionEnd', 'Stop playback at region end'),
           checkField('loopPause', 'Pause between loops'),

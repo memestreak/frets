@@ -4,7 +4,7 @@
  * The Tab page's tools in a rail of panels on the left, as Dorico has them
  * (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301). Each rail button opens its panel beside the
  * clip, and pressing it again closes it. The rail and panel grow into the page's left margin, so the clip
- * keeps its right edge. Which panel is open is kept across visits (`frets.tab.layout`), but it is
+ * keeps its right edge. Its last panel, Chords, is the track's chords (`ChordPanel`, issue #251). Which panel is open is kept across visits (`frets.tab.layout`), but it is
  * not a preference, so Settings doesn't list it.
  */
 import { useEffect, useState, type ReactNode } from 'react';
@@ -14,10 +14,10 @@ import { ICONS } from './TabPalette';
 /** Draws the palette with only `groups`; `className` sets its look; the note input pencil first when `input`. */
 export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
 
-export type PanelId = 'notes' | 'articulations' | 'bars';
+export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords';
 
-/** The rail's panels, in order, and the palette groups each holds. */
-export const PANELS: readonly { id: PanelId; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
+/** The rail's tool panels, in order, and the palette groups each holds; Chords comes after them. */
+export const PANELS: readonly { id: Exclude<PanelId, 'chords'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
   { id: 'notes', name: 'Notes', icon: ICONS.quarter, groups: ['Duration', 'Rhythm'], input: true },
   { id: 'articulations', name: 'Articulations', icon: ICONS.accent, groups: ['Joins', 'Bends', 'Techniques', 'Accents'] },
   { id: 'bars', name: 'Bars', icon: ICONS.repeatStart, groups: ['Bars', 'Text'] },
@@ -34,7 +34,7 @@ export function parseLayout(text: string | null): PanelId | null {
     if (saved && typeof saved === 'object' && 'panel' in saved) {
       const { panel } = saved;
       if (panel === null) return null;
-      if (PANELS.some(p => p.id === panel)) return panel as PanelId;
+      if (panel === 'chords' || PANELS.some(p => p.id === panel)) return panel as PanelId;
     }
   } catch {
     // Unreadable: as on a first visit.
@@ -42,8 +42,23 @@ export function parseLayout(text: string | null): PanelId | null {
   return FIRST_PANEL;
 }
 
-/** The open panel, kept across visits; read after the first render, since the server has no storage. */
-function useOpenPanel(): [PanelId | null, (id: PanelId | null) => void] {
+/** The Chords panel's rail icon: a chord diagram's grid with one dot. */
+const CHORDS_ICON = (
+  <>
+    <rect x="5" y="4" width="14" height="16" rx="1" />
+    <path d="M5 9h14M5 14h14M9.7 4v16M14.3 4v16" />
+    <circle cx="12" cy="11.5" r="1.6" fill="currentColor" stroke="none" />
+  </>
+);
+
+/** Every panel the rail opens, in order: the tools', then Chords. */
+const RAIL: readonly { id: PanelId; name: string; icon: ReactNode }[] = [...PANELS, { id: 'chords', name: 'Chords', icon: CHORDS_ICON }];
+
+/**
+ * The open panel, kept across visits; read after the first render, since the server has no storage.
+ * The page holds it, since a chord name's Edit opens Chords.
+ */
+export function useOpenPanel(): [PanelId | null, (id: PanelId | null) => void] {
   const [open, setOpen] = useState<PanelId | null>(FIRST_PANEL);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the kept panel exists only in the browser.
   useEffect(() => setOpen(parseLayout(localStorage.getItem(LAYOUT_KEY))), []);
@@ -58,15 +73,27 @@ function useOpenPanel(): [PanelId | null, (id: PanelId | null) => void] {
   return [open, choose];
 }
 
+interface TabRailProps {
+  palette: DrawPalette;
+  /** The open panel (`useOpenPanel`), or null. */
+  open: PanelId | null;
+  onOpen: (id: PanelId | null) => void;
+  /** The Chords panel's contents. */
+  chords: ReactNode;
+  /** What the Chords panel's head shows right of its title (its Hear toggle). */
+  chordsHead?: ReactNode;
+  children: ReactNode;
+}
+
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, children }: { palette: DrawPalette; children: ReactNode }) {
-  const [open, setOpen] = useOpenPanel();
-  const panel = PANELS.find(p => p.id === open);
+export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, children }: TabRailProps) {
+  const panel = RAIL.find(p => p.id === open);
+  const tools = PANELS.find(p => p.id === open);
   return (
     <div className="tab-rail-layout" data-open={panel ? '' : undefined}>
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
-          {PANELS.map(p => (
+          {RAIL.map(p => (
             <button
               key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={open === p.id}
               data-tip={p.name}
@@ -85,7 +112,10 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
         <HoverTips className="tab-rail-column">
           <aside className="tab-rail-panel" aria-label={panel.name}>
             <div className="tab-rail-panel-head">
-              <h2 className="tab-rail-panel-title">{panel.name}</h2>
+              <span className="tab-rail-panel-name">
+                <h2 className="tab-rail-panel-title">{panel.name}</h2>
+                {panel.id === 'chords' && chordsHead}
+              </span>
               <button
                 type="button" className="tab-rail-close" aria-label={`Close ${panel.name}`} data-tip="Close"
                 onMouseDown={e => e.preventDefault()} onClick={() => setOpen(null)}
@@ -96,7 +126,7 @@ export function TabRail({ palette, children }: { palette: DrawPalette; children:
                 </svg>
               </button>
             </div>
-            {palette(panel.groups, 'tab-rail-tools', panel.input)}
+            {tools ? palette(tools.groups, 'tab-rail-tools', tools.input) : chords}
           </aside>
         </HoverTips>
       )}

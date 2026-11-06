@@ -74,7 +74,7 @@ describe('parseLayout', () => {
     expect(parseLayout(JSON.stringify({ panel: null }))).toBeNull();
     expect(parseLayout(null)).toBe('notes');
     expect(parseLayout('not json')).toBe('notes');
-    expect(parseLayout(JSON.stringify({ panel: 'chords' }))).toBe('notes');
+    expect(parseLayout(JSON.stringify({ panel: 'chords' }))).toBe('chords');
     expect(parseLayout(JSON.stringify(['bars']))).toBe('notes');
   });
 });

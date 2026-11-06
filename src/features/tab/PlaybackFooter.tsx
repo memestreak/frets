@@ -36,13 +36,15 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   transpose: number;
   /** Each note entered sounds its column (Jeremy, 2026-10-27), from the toggle beside Loop. */
   hearNotes: boolean;
+  /** A chord or shape picked in the Chords panel sounds (Jeremy, 2026-11-05), from the panel's toggle. */
+  hearChords: boolean;
 }
 
 /** How far playback may be transposed, in semitones either way: an octave. */
 export const MAX_TRANSPOSE = 12;
 
 export const DEFAULT_PLAYBACK: PlaybackSettings = {
-  shown: true, volume: 1, transpose: 0, hearNotes: false,
+  shown: true, volume: 1, transpose: 0, hearNotes: false, hearChords: false,
   stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1,
 };
 
@@ -60,6 +62,7 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     volume: isLevel(fields.volume) ? fields.volume : d.volume,
     transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : d.transpose,
     hearNotes: fields.hearNotes === true,
+    hearChords: fields.hearChords === true,
     stopAtPlayhead: fields.stopAtPlayhead === true,
     stopAtRegionEnd: fields.stopAtRegionEnd === true,
     loopPause: fields.loopPause === true,
@@ -124,6 +127,8 @@ export interface Playback {
   stop: () => void;
   /** Sounds a note alone once the edit that put it there has drawn: "Hear notes as you enter them". */
   hear: (bar: number, column: number, string: number) => void;
+  /** Sounds a chord shape at once (high e first): a chord picked in the Chords panel (issue #251). */
+  hearShape: (frets: readonly (number | null)[]) => void;
   /** Where the music heard now is, read each frame by the playhead; null when nothing plays. */
   heardPosition: () => HeardPosition | null;
 }
@@ -280,6 +285,9 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
     },
     stop: () => player.current?.stop(),
     hear: (bar, column, string) => setHeard({ bar, column, string, n: ++hearing.current }),
+    hearShape: frets => {
+      playerNow().then(p => p.hearShape(clip, frets, sound)).catch(() => undefined);
+    },
     heardPosition: () => player.current?.heardPosition() ?? null,
   };
 }
@@ -306,7 +314,7 @@ export function StopIcon() {
 
 /** An ear: each note entered is heard. */
 /** A music note sounding: a quarter note with three sound waves to its right, like a speaker's. */
-function NoteSoundIcon() {
+export function NoteSoundIcon() {
   return (
     <svg width={20} height={20} viewBox="1 2.5 20 20" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <ellipse cx={4.6} cy={17.6} rx={2.6} ry={2} transform="rotate(-20 4.6 17.6)" fill="currentColor" stroke="none" />

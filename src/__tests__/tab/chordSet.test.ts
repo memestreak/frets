@@ -6,7 +6,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setChordName } from '@/features/tab/barEdits';
-import { chordDefOf, chordSet } from '@/features/tab/chordSet';
+import { chordDefOf, chordSet, withChordShape, type ChordDef } from '@/features/tab/chordSet';
 import { parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
 import { readChordName } from '@/lib/theory/chordSearch';
 
@@ -152,4 +152,30 @@ describe('names understood', () => {
     expect(warnings).toEqual([]);
     expect(chordSet(clip.tracks[0])).toEqual([{ name: 'N.C.', uses: 1, reading: null }]);
   });
+});
+
+describe('changing the Chord set from the Chords panel (issue #251)', () => {
+  const G = [3, 0, 0, 0, 2, 3];
+  const G_OTHER = [3, 3, 0, 0, 2, 3];
+
+  it('gives the definition symbols point at (the last of the name) the new shape, keeping its show props', () => {
+    const track = { chords: [
+      { name: 'G', frets: [1, 1, 1, 1, 1, 1] },
+      { name: 'G', frets: G, firstFret: 1, barre: [3], showDiagram: false, showName: true },
+    ] };
+    const next = withChordShape(track, 'G', G_OTHER);
+    expect(next.chords).toEqual([
+      { name: 'G', frets: [1, 1, 1, 1, 1, 1] },
+      { name: 'G', frets: G_OTHER, showDiagram: false, showName: true },
+    ]);
+    // The track it was given is not changed.
+    expect(track.chords[1].frets).toBe(G);
+  });
+
+  it('adds a definition, at the end, for a name with none; names match case and all', () => {
+    expect(withChordShape<{ chords?: ChordDef[] }>({}, 'Am', [0, 1, 2, 2, 0, null]).chords).toEqual([{ name: 'Am', frets: [0, 1, 2, 2, 0, null] }]);
+    expect(withChordShape({ chords: [{ name: 'AM' }] }, 'Am', G).chords).toEqual([{ name: 'AM' }, { name: 'Am', frets: G }]);
+  });
+
+
 });

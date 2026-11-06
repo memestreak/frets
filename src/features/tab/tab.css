@@ -538,6 +538,7 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
   border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
 .tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tab-rail-panel-name { display: flex; align-items: center; gap: 6px; }
 .tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
 .tab-rail-close {
   display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-sm);
@@ -564,3 +565,69 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 /* The Tuplet panel `;` opens at the cursor (step 6): the choice ↑ ↓ are on is outlined, as a keyboard's place. */
 .tab-tuplet-panel { outline: none; }
 .tab-panel-active { box-shadow: inset 0 0 0 1.5px var(--select); }
+
+/* The rail's Chords panel (ChordPanel.tsx, issue #251). */
+.chord-panel { display: grid; gap: 16px; min-width: 0; }
+.chord-panel-label { margin: 0; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-section { display: grid; gap: 6px; }
+/* A section's heading folds it: the whole heading is the button, its chevron first. */
+.chord-panel-fold {
+  display: inline-flex; align-items: center; gap: 4px; margin: -2px -4px; padding: 2px 4px;
+  font: inherit; color: inherit; background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+}
+.chord-panel-fold:hover { color: var(--ink); background: var(--surface-sunken); }
+.chord-panel-fold:focus-visible { outline: none; }
+.chord-panel-chevron { flex: none; }
+.chord-panel-chevron[data-open] { transform: rotate(90deg); }
+/* A chord in the list, with a trash can at its right while no column uses it. */
+/* A chord in the list, then its Edit and, while no column uses it, its trash can: every row keeps their room, so the names line up. */
+.chord-panel-item { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 2px; }
+.chord-panel-icon {
+  display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+}
+.chord-panel-icon:hover { color: var(--ink); background: var(--surface-sunken); }
+.chord-panel-delete:hover { color: var(--danger); }
+.chord-panel-icon:focus-visible { outline: none; }
+/* + under the list, at its left, as the list's last row. */
+.chord-panel-add { justify-self: start; margin-left: 2px; }
+/* The Chord dialog: a name (looking up), the shapes four to a row, and its buttons. */
+.chord-dialog { width: min(480px, 100%); }
+.chord-dialog-body { display: grid; gap: 12px; }
+.chord-dialog-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.chord-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chord-panel-stepper { display: inline-flex; align-items: center; gap: 2px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-step {
+  width: 24px; height: 24px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink);
+  font: 400 18px/1 var(--font-sans); cursor: pointer;
+}
+.chord-panel-step:hover { background: var(--surface-sunken); }
+.chord-panel-note { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-shape, .chord-panel-entry {
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
+}
+.chord-panel-shape { padding: 2px; }
+.chord-panel-shape svg, .chord-panel-thumb svg { display: block; width: 100%; height: auto; }
+.chord-panel-shape:hover, .chord-panel-entry:hover { background: var(--surface-sunken); }
+.chord-panel-shape[aria-pressed='true'], .chord-panel-entry[aria-pressed='true'] {
+  background: var(--select-soft); border-color: var(--select);
+}
+.chord-panel-shape:focus-visible, .chord-panel-entry:focus-visible, .chord-panel-step:focus-visible { outline: none; }
+.chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.chord-panel-entry {
+  display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; width: 100%;
+  padding: 2px 8px 2px 2px; text-align: left;
+}
+.chord-panel-thumb { display: block; width: 44px; min-height: 30px; }
+.chord-panel-name { font: 600 14px/20px var(--font-sans); }
+.chord-panel-uses, .chord-panel-unused { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-insert { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* The Hear toggle in the panel's head, by its title: a small speaker, lit while on. */
+.chord-panel-hear {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
+}
+.chord-panel-hear:hover { color: var(--ink); background: var(--surface-sunken); }
+.chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
+.chord-panel-hear:focus-visible { outline: none; }
+.chord-panel-hear svg { width: 18px; height: 18px; }

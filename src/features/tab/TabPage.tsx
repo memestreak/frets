@@ -38,7 +38,8 @@ import { SizeField } from './ViewOptions';
 import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail } from './TabRail';
+import { TabRail, useOpenPanel } from './TabRail';
+import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -344,8 +345,23 @@ export default function TabPage() {
     openSignature: head.openSignature, dropLine: () => setPlayMark(null),
   });
   const { deletePicked } = picking;
-  /** A picked thing's Edit: a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
-  const editPicked = (hit: Picked) => (hit.kind === 'mark' ? openTuplets() : picking.editPicked(hit));
+  // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
+  const [railPanel, setRailPanel] = useOpenPanel();
+  const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
+  const openChordsAt = (index: number) => {
+    const place = placeOf(clip, index);
+    setCursor(c => ({ ...c, ...place }));
+    setPicked(null);
+    setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
+    setRailPanel('chords');
+    editorRef.current?.focus();
+  };
+  /** A picked thing's Edit: a chord name's Chords panel, a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
+  const editPicked = (hit: Picked) => {
+    if (hit.kind === 'mark') return openTuplets();
+    if (hit.kind === 'chord') return openChordsAt(hit.index);
+    return picking.editPicked(hit);
+  };
 
   /**
    * A text view has no playback, so leaving the Tab view stops it. The editor goes away with the
@@ -935,7 +951,20 @@ export default function TabPage() {
       </header>
 
       {/* The tools, in panels on a rail to the clip's left (issue #301). */}
-      <TabRail palette={drawPalette}>
+      <TabRail
+        palette={drawPalette} open={railPanel}
+        onOpen={id => { setRailPanel(id); setChordsAt(null); }}
+        chords={(
+          <ChordPanel
+            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
+            onChange={next => commit(next)}
+            hear={playbackSettings.hearChords}
+            onHear={frets => playback.hearShape(frets)}
+            onDone={() => editorRef.current?.focus({ preventScroll: true })}
+          />
+        )}
+        chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
+      >
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
         <div className="tab-card-bar">

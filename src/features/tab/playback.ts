@@ -635,6 +635,20 @@ export function noteAlone(clip: Part, bar: number, column: number, string: numbe
   };
 }
 
+/**
+ * A clip of one strummed chord, to hear a chord shape when it is picked (issue #251): `frets` high e
+ * first, null for a string not played, with the clip's tuning and capo. Null for a shape with no notes.
+ */
+export function shapeAlone(clip: Part, frets: readonly (number | null)[]): Part | null {
+  if (frets.every(f => f === null)) return null;
+  const notes = Array.from({ length: STRING_COUNT }, (_, s) => (frets[s] == null ? null : { fret: frets[s]! }));
+  return {
+    ...clip,
+    time: { beats: 1, value: 4 },
+    bars: [{ columns: [{ duration: { value: 4, dots: 0 }, notes, stroke: 'down' }], tempo: { bpm: HEARD_BPM } }],
+  };
+}
+
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
 export function columnOfBeat(clip: Part, beat: Beat): number | null {
   const bar = beat.voice.bar.index;
@@ -1242,9 +1256,19 @@ export class TabPlayer {
    * the next Play loads the clip again.
    */
   async hear(clip: Part, bar: number, column: number, string: number, sound: Sound) {
-    if (!this.ended) return;
     const alone = noteAlone(clip, bar, column, string);
-    if (!alone) return;
+    if (alone) await this.hearAlone(alone, sound);
+  }
+
+  /** Sounds a chord shape (`shapeAlone`) as `hear` sounds a note: when a chord is picked in the Chords panel. */
+  async hearShape(clip: Part, frets: readonly (number | null)[], sound: Sound) {
+    const alone = shapeAlone(clip, frets);
+    if (alone) await this.hearAlone(alone, sound);
+  }
+
+  /** Sounds a clip of one column on its own, then lets it ring; not while the clip plays. */
+  private async hearAlone(alone: Part, sound: Sound) {
+    if (!this.ended) return;
     // A sound's own soundfont shows Loading on Play while it loads; heard, it goes back to Play.
     if (await this.loadFont(sound)) this.onView({ state: 'idle' });
     if (!this.ended) return;
