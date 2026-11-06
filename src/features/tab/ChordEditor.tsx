@@ -4,7 +4,8 @@
  * The chord editor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord's name, its
  * root and type, and its shape, in the Chords panel itself, where its + was. The + opens it empty (Add
  * chord); a chord's pencil, or a double-click on it in the list or on its name in the tab, opens it on
- * that chord (Save chord). Add, Save, Cancel and Esc close it.
+ * that chord (Save chord, or Save as new chord to keep it and add the changed copy under a new name). Add,
+ * Save, Cancel and Esc close it.
  *
  * The chord is looked up by root and type, or by name behind the magnifier, as on the Chords page. The
  * name follows the chord until something is typed in it, so it can differ from the chord's symbol
@@ -35,7 +36,7 @@ interface ChordEditorProps {
   column: Column | null;
   /** The names in the track's Chord set, which a chord can't take again. */
   taken: readonly string[];
-  /** Add chord: the new chord's name and shape (high e first), null for none. */
+  /** Add chord, or Save as new chord: the new chord's name and shape (high e first), null for none. */
   onAdd: (name: string, frets: (number | null)[] | null) => void;
   /** Save chord: the chord opened, now called `name`, with this shape (high e first), null for none. */
   onSave: (from: string, name: string, frets: (number | null)[] | null) => void;
@@ -136,6 +137,9 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
   const keyOf = (s: Shape | null) => (s ? shapeKey(s) : '');
   const changed = opened !== null && (draft.name !== opened.name || keyOf(draft.shape) !== keyOf(opened.shape));
   const canOk = draft.name !== '' && !isTaken && (opened === null || changed);
+  // An opened chord can be kept as it was and saved again, changed, under a name of its own.
+  const canAddNew = opened !== null && draft.name !== '' && draft.name !== opened.name && !taken.includes(draft.name);
+  const needsNewName = opened !== null && changed && draft.name === opened.name;
   const ok = () => {
     if (!canOk) return;
     if (opened) onSave(opened.name, draft.name, frets);
@@ -199,7 +203,13 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
       {(drawing || atCursor) && <NoteNames draft={draft} label={atCursor ? 'The notes at the cursor are' : 'These notes are'} />}
       <div className="chord-editor-buttons">
         {isTaken && <p className="chord-panel-note">“{draft.name}” is already in this track’s chords.</p>}
+        {needsNewName && <p className="chord-panel-note">Give it a new name to save it as a new chord.</p>}
         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+        {opened && (
+          <button type="button" className="btn btn-secondary" disabled={!canAddNew} onClick={() => onAdd(draft.name, frets)}>
+            Save as new chord
+          </button>
+        )}
         <button type="button" className="btn btn-primary" disabled={!canOk} onClick={ok}>{opened ? 'Save chord' : 'Add chord'}</button>
       </div>
     </div>

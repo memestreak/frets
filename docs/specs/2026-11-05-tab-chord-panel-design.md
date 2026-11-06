@@ -66,6 +66,19 @@ part of #368.
     (`withChordShape`, keeping its show props). A name already in the set
     can't be taken ("“G” is already in this track’s chords"); Enter in
     Name does the same as the button. Either closes the editor.
+  - **Save as new chord** (Edit; Jeremy, 2026-11-06: "make minor changes
+    and save it as a new chord") adds the name and shape as a new chord,
+    as Add chord does, and leaves the chord opened and the columns naming
+    it as they were. It needs a name not in the set: with the name
+    unchanged and the shape changed it is grey, with "Give it a new name
+    to save it as a new chord." A change that makes another chord (a new
+    root or type, or a shape whose notes are another chord) names it, the
+    Name following the chord, so it can be saved as a new chord at once
+    (Jeremy, 2026-11-06); a name typed in Name is never rewritten.
+    Picked over a Duplicate button in the list
+    (two steps, and a stray copy on Cancel) and over Save choosing by the
+    name (hides the choice, loses renaming). Guitar Pro 8's chord dialog
+    likewise adds an edited diagram to the song's list.
   - **Cancel** or **Esc** close it, changing nothing.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
@@ -116,7 +129,8 @@ Settled while building (my calls, open to change):
 - The `C` key still opens the chord name field, the way to change a
   column's name; keys for the panel wait for the open question on keys
   (Q2 of the mock round).
-- The editor is staged: nothing changes until Add chord or Save chord.
+- The editor is staged: nothing changes until Add chord, Save chord or
+  Save as new chord.
 - Save chord's button reads "Save chord", and Add and Save close the
   editor; no ✕ besides Cancel (one way to do a thing).
 
@@ -167,6 +181,13 @@ Settled while building (my calls, open to change):
 - Name "G barre" with Save renames the definition and the column's
   `{ch}`; the list has "G barre", used once. A name in the set ("C")
   can't be saved.
+- Save as new chord on C: grey, with "Give it a new name…", after only
+  the shape changed; with Name "C high" and another shape it adds
+  "C high" with that shape, picked, unused; C keeps its shape and the
+  column naming C is unchanged. On C, Type minor names it Cm, and Save
+  as new chord adds Cm with no name typed.
+- Esc closes the editor after + → a root → a shape press, the focus let
+  go to the page; Esc in the look-up field closes only the search.
 - A chord with a custom name ("My C" with the C shape) opens on Root C,
   Type major, Name "My C".
 - + opens Add: no Add until there is a name; Root D, Type sus2 picks

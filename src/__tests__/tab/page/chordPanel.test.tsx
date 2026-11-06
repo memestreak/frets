@@ -155,6 +155,57 @@ describe('the chord editor: Edit', () => {
     expect(written()).toContain('{ch "G barre"}');
     expect(list().getByRole('button', { name: /^G barre/ })).toHaveTextContent('G barre1');
   });
+
+  it('Save as new chord adds a changed copy under a new name, picked; the chord opened and its column stay as they were', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
+    const edit = editorOf('Edit G');
+    const saveNew = edit.getByRole('button', { name: 'Save as new chord' });
+    expect(saveNew).toBeDisabled();
+    expect(edit.queryByText('Give it a new name to save it as a new chord.')).toBeNull();
+    const other = edit.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
+    fireEvent.click(other);
+    // Only the shape changed: Save chord would change G; a new chord needs a new name.
+    expect(saveNew).toBeDisabled();
+    expect(edit.getByText('Give it a new name to save it as a new chord.')).toBeInTheDocument();
+    const field = edit.getByRole('textbox', { name: 'Name' });
+    fireEvent.change(field, { target: { value: 'C' } });
+    expect(saveNew).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'G high' } });
+    fireEvent.click(saveNew);
+    expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
+    const key = other.getAttribute('aria-label')!.replace('Shape ', '');
+    expect(definitions()).toEqual([
+      '\\chord ("G" 3 0 0 0 2 3) {showname true}',
+      '\\chord ("C" 0 1 0 2 3 x)',
+      `\\chord ("G high" ${key.split('-').reverse().join(' ')})`,
+    ]);
+    expect(written()).toContain('{ch "G"}');
+    expect(written()).not.toContain('{ch "G high"}');
+    expect(list().getByRole('button', { name: /^G high/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(list().getByRole('button', { name: /^G high/ })).getByRole('img', { name: 'Not used' })).toBeInTheDocument();
+  });
+
+  it('a change that makes another chord names it, so it can be saved as a new chord straight away', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Edit C' }));
+    const edit = editorOf('Edit C');
+    fireEvent.change(edit.getByRole('combobox', { name: 'Type' }), { target: { value: 'm' } });
+    expect(edit.getByRole('textbox', { name: 'Name' })).toHaveAttribute('placeholder', 'Cm');
+    expect(edit.queryByText('Give it a new name to save it as a new chord.')).toBeNull();
+    fireEvent.click(edit.getByRole('button', { name: 'Save as new chord' }));
+    expect(definitions()[1]).toBe('\\chord ("C" 0 1 0 2 3 x)');
+    expect(definitions()[2]).toMatch(/^\\chord \("Cm" /);
+  });
+
+  it('Save as new chord is offered only on a chord opened, not on +', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
+    expect(editorOf('Add a chord').queryByRole('button', { name: 'Save as new chord' })).toBeNull();
+  });
 });
 
 describe('the chord editor: Add', () => {

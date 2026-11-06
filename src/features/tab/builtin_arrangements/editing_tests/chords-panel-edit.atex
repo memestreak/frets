@@ -12,4 +12,6 @@
   r.4 r.2 |
 r.1{txt "5. Press +, the D tile, sus2 in Type, then Add chord: Dsus2 joins the list, not used, and the tab doesn't change"} |
 r.1{txt "6. Press +, then Draw your own. Press string 1 at fret 3, then press it again: the dot goes, the string open. Type My G in Name and press Add chord: My G joins the list"} |
+r.1{txt "7. Double-click C in the list and press another shape: Save as new chord is grey and asks for a new name. Type C high in Name and press Save as new chord: C high joins the list, picked and not used; C and bar 2 are as they were"} |
+r.1{txt "8. Press +, the A tile, then a shape. Press the Escape key: the editor closes"} |
 
