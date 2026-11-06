@@ -15,7 +15,8 @@ import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { isSpan } from './spans';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { STAFF_LINES } from './notation';
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { setValue } from './noteEdits';
@@ -289,6 +290,13 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     return;
   }
   lastDigit.current = null;
+  if (key === 'ArrowUp' && !columnOnly && cursor.string === 0 && editor.staffShown) {
+    // ↑ past the tab's top line (the high E) goes on to the staff's lowest line, the staff taking the keys,
+    // so the keys alone reach the staff from the tab (Jeremy, 2026-11-06, issue #396).
+    handled();
+    editor.toPitch(clip, cursor, pitchAtStep(clip, cursor.bar, STAFF_LINES[0]), null);
+    return;
+  }
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     handled();
     // With no string picked, ↑ ↓ pick back the string the cursor was last on.

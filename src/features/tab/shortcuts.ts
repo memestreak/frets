@@ -28,7 +28,7 @@ const MOVING: ShortcutGroup = {
   title: 'Moving on the tab',
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Last or next column' },
-    { keys: ['Up', 'Down'], does: 'String above or below' },
+    { keys: ['Up', 'Down'], does: 'String above or below; in note input, up from the top string to the staff' },
     { keys: ['Mod+Left', 'Mod+Right'], does: 'Last or next bar' },
     { keys: ['Mod+Home', 'Mod+End'], does: 'Start or end of the clip' },
     { keys: ['Shift+Left', 'Shift+Right'], does: 'Select columns' },

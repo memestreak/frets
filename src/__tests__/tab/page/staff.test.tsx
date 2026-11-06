@@ -205,6 +205,22 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
     });
 
+    it('in note input ↑ past the tab’s top string goes on to the staff’s lowest line, the staff taking the keys (issue #396)', async () => {
+      await open();
+      fireEvent.keyDown(editor(), { key: 'n' });
+      // Down to the low E first, then up the six strings: the sixth ↑ leaves the high E for the staff.
+      for (let i = 0; i < 6; i++) fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+      for (let i = 0; i < 5; i++) fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      // The first column's 7 on the A string is written on the bottom line (E): the caret's line there.
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      expect(screen.queryByTestId('input-cursor')).toBeNull();
+      // The staff has the keys now: ↑ steps up a line or space, off the note, so the ghost shows.
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
+    });
+
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {
       await open();
       press(headAt(2));
