@@ -7,6 +7,7 @@ import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSig
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
+import { BAR_TEXT_INSET, placeSections, SECTION_LINE } from './sectionText';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -155,6 +156,8 @@ export function rowsFor(
   freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
   /** How many text rows the line's wrapped and stacked texts take (`placeBeatTexts`): the text row grows down by the rest. */
   textLines = 1,
+  /** How many rows the line's stacked sections take (`placeSections`): the section row grows down by the rest. */
+  sectionLines = 1,
 ): Rows {
   const tab = parts !== 'staff';
   // Every Voice's columns: another Voice's chord names, texts and marks take their rows too (step 9).
@@ -170,8 +173,9 @@ export function rowsFor(
     text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
     wah: columns.some(c => c.wah),
-    // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
-    // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
+    // Strokes, let ring, P.M. and P.H. sit between the staff and the tab, as printed guitar music has
+    // them; under the staff alone, strokes go over it, as Gould, Dorico and MuseScore have them
+    // (Jeremy, 2026-11-06), and the rest under it. Vibrato and accents go on the staff.
     // A fermata goes on the staff when there is one, over the tab only without it.
     fermatas: parts === 'tab' && columns.some(c => c.fermata),
     hairpins: columns.some(c => c.hairpin),
@@ -203,13 +207,15 @@ export function rowsFor(
   const words = {
     capo: row(used.capo),
     tempo: row(used.tempo),
-    section: row(used.section, true),
+    section: tall(row(used.section, true), (Math.max(1, sectionLines) - 1) * SECTION_LINE),
     endings: row(used.endings),
     chords: row(used.chords),
     text: tall(row(used.text), (Math.max(1, textLines) - 1) * BEAT_TEXT_LINE),
     // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
     wah: row(used.wah),
   };
+  // The staff alone: strokes over it, under every word (Jeremy, 2026-11-06).
+  const strokesOver = row(!tab && used.strokes);
   // The staff: room over its top line and under its bottom one for what reaches past them.
   let score: ScoreRows | null = null;
   if (parts !== 'tab') {
@@ -222,7 +228,7 @@ export function rowsFor(
   const marks = {
     fermatas: row(used.fermatas),
     hairpins: row(used.hairpins),
-    strokes: row(used.strokes),
+    strokes: tab ? row(used.strokes) : strokesOver,
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
     whammy: row(used.whammy),
@@ -362,6 +368,10 @@ export interface PlacedBar {
   restRun: RestRun | null;
   /** A full bar with no note: drawn as one Whole-bar rest, centred, whatever its Columns (`isWholeBarRest`). */
   wholeRest: boolean;
+  /** Its section's name, wrapped (`placeSections`); empty without one. */
+  sectionLines: string[];
+  /** Its section's first line, in section rows down from the line's section row: above 0 when moved up clear of another. */
+  sectionTop: number;
   /** The other Voices present in the bar, placed on its time line; none in a bar of one Voice (step 9, Q1). */
   voices?: PlacedVoice[];
   /**
@@ -490,6 +500,8 @@ export interface System {
   first: boolean;
   /** How many text rows its free texts take, wrapped and stacked (`placeBeatTexts`). */
   textRows: number;
+  /** How many rows its sections take, stacked clear of each other (`placeSections`). */
+  sectionRows: number;
 }
 
 /** A line before its rows are worked out, once the bars on it are known. */
@@ -813,7 +825,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
-      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, sectionRows: 1,
     });
     complete.push(true);
     current = [];
@@ -890,7 +902,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     x = x0 + w;
     const time = timeAt(clip, index);
     const restRun = inRun ? { count: run!.count, first: !!count, last: index === run!.end, span: run!.span } : null;
-    const placedBar: PlacedBar = { bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), time, groups: beatGroupsAt(clip, index), columns, restRun, wholeRest: !inRun && !multi?.hidden && isWholeBarRest(clip, index) };
+    const placedBar: PlacedBar = { bar, index, x0, x1: x, timeX, keyX, beat: beatTicks(time), time, groups: beatGroupsAt(clip, index), columns, restRun, wholeRest: !inRun && !multi?.hidden && isWholeBarRest(clip, index), sectionLines: [], sectionTop: 0 };
     if (voices && voices.length > 0) placedBar.voices = voices;
     if (multi?.hidden) placedBar.hidden = true;
     current.push(placedBar);
@@ -937,13 +949,24 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       c.textTop = texts.placed[k].top;
     });
     system.textRows = texts.rows;
+    // A section wraps to the room before the next, and moves up clear of one it still touches (issue #389).
+    const sectioned = system.bars.filter(b => b.bar.section);
+    const sections = placeSections(
+      sectioned.map(b => ({ x0: b.x0 + BAR_TEXT_INSET, section: b.bar.section! })),
+      Math.max(width, system.bars[system.bars.length - 1].x1),
+    );
+    sectioned.forEach((b, k) => {
+      b.sectionLines = sections.placed[k].lines;
+      b.sectionTop = sections.placed[k].top;
+    });
+    system.sectionRows = sections.rows;
   }
   // Each line gets the rows its own bars use, and the lines stack one under another.
   const stack = (reaches: StaffReach[]): Layout => {
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows);
+      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.sectionRows);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;

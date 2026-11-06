@@ -29,6 +29,7 @@ import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
 import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
+import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
 import { pitchAtStep } from './staffEntry';
 import { markBox, markTool } from './marks';
@@ -53,7 +54,7 @@ import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, 
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
-import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
+import { LoopHandles, PlaybackFooter, Playhead, rollsOf, usePlayback, type PlaybackSettings } from './PlaybackFooter';
 import { useArrangementFile } from './useArrangementFile';
 import { useEditorState, type Picked } from './useEditorState';
 import { useHeadPanels } from './useHeadPanels';
@@ -138,14 +139,28 @@ export default function TabPage() {
   // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
   const prefs = useTabPrefs();
   const { exportStyle, setExportStyle, notation, setNotation } = prefs;
+  /**
+   * A link's `?show=` (`docs/specs/2026-11-06-tab-show-link-design.md`): the parts for this visit
+   * only, never saved. It holds while the saved choice is the one it was opened over; pressing the
+   * switch, or Settings saving another Show, ends it.
+   */
+  const [linkShow, setLinkShow] = useState(() => {
+    const show = readShowParam(window.location.search);
+    return show && { show, over: notation.show };
+  });
+  useEffect(dropShowParam, []);
   /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
-  const parts = notation.show;
-  const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
+  const parts = linkShow && linkShow.over === notation.show ? linkShow.show : notation.show;
+  const setParts = (show: Parts) => {
+    setLinkShow(null);
+    setNotation(n => ({ ...n, show }));
+  };
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
-    const sections = sectionsOf(next, parts);
+    // The saved Show, not a link's: View options never save what a link asked for.
+    const sections = sectionsOf(next, notation.show);
     setNotation(sections.notation);
     prefs.setColours(sections.colours);
     prefs.setAscii(sections.ascii);
@@ -323,6 +338,7 @@ export default function TabPage() {
     countInBars: metronome.countInBars,
     clickVolume: metronome.clickVolume,
     effects: clip.fx ?? DEFAULT_FX,
+    rolls: rollsOf(playbackSettings),
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
@@ -481,10 +497,18 @@ export default function TabPage() {
   };
   /** Note input on or off; going in, the keys come to the tab. */
   const enterInput = (on: boolean) => {
+    // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
+    // MuseScore's note input begin there (Jeremy, 2026-11-06).
+    const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     setInputMode(on);
-    setCursorAt(cursor, 0);
+    setCursorAt(at, 0);
     if (on) {
-      setInputLength(startLength(clip, cursor));
+      if (selection) {
+        setCursor(at);
+        setSelection(null);
+      }
+      setPicked(null);
+      setInputLength(startLength(clip, at));
       // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
       // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
       setColumnOnly(true);

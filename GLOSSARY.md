@@ -155,6 +155,13 @@ A short stretch of music with a shape of its own, such as a riff, a
 fill or a solo line. Say phrase, riff or line.
 _Avoid_: lick
 
+**Pick stroke**:
+A Mark telling which way the pick moves: a downstroke (⊓) or an upstroke
+(V), written `sd` / `su` in alphaTex. Over a staff drawn alone, else
+between the staff and the tab. Other notation programs play it as a plain
+chord; a Roll for it is issue #385.
+_Avoid_: strum (for the mark), bow mark, sd/su (in the UI)
+
 **Pickup bar**:
 A first bar shorter than its time signature on purpose, written `\ac`
 in alphaTex. No other bar is short.
@@ -164,6 +171,20 @@ _Avoid_: anacrusis, upbeat bar
 The column of buttons at the Clip's left, each opening one panel of
 Tool groups: Notes, Articulations, Bars. The code's older name for the
 tools is the palette (`TabPalette.tsx`).
+
+**Roll**:
+How a chord sounds when its strings start one after another instead of
+together: low to high for a downstroke or Strum down, high to low for an
+upstroke or Strum up. Its length is the roll's amount, a fraction of
+the beat. A Strum rolls
+quickly, a Rolled chord over its whole beat.
+_Avoid_: brush, spread
+
+**Rolled chord**:
+A chord played one string after another across its beat, written
+`ad` (arpeggio down) / `au` (arpeggio up) in alphaTex and drawn as a
+wavy arpeggio sign with an arrowhead. Kept but not yet drawn (issue #384).
+_Avoid_: arpeggio (for the chord), broken chord
 
 **Sounding note**:
 A note as it sounds: its Voice, string, fret, start and length, with a
@@ -176,6 +197,19 @@ A Mark drawn as one line or wave over neighbouring columns that have it:
 let ring, P.M., vibrato, an octave line, a hairpin. Picked whole, with a
 Handle at each end.
 _Avoid_: run (for the Mark)
+
+**Staff view**:
+The clip with Staff picked in its Staff | Tab | Both switch: the
+notation staff alone, with no tab under it.
+_Avoid_: staff only, staff alone
+
+**Strum**:
+A chord strummed down or up, written `bd` (strum down) / `bu` (strum up)
+in alphaTex and drawn by Guitar Pro and alphaTab as an arrow beside the
+chord on the tab: a strum down points up the tab, from the low string to
+the high one. It plays as a quick Roll. Kept but not yet drawn (issue
+#384). Not a Pick stroke, which only says which way the pick moves.
+_Avoid_: brush, stroke (for the strum)
 
 **System**:
 One line of music across the drawing. A System holds every staff

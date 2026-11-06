@@ -12,7 +12,9 @@ input.
 - **N**, or the pencil button first in the palette (its own group, "Input"), turns note input on and
   off. The pencil stays lit while note input is on, on the tab or off it: it says the mode, not a note.
   N works anywhere on the page but in a text field, a dialog or a menu (Jeremy, 2026-10-30); going in
-  brings the keys to the tab.
+  brings the keys to the tab. Going in lets any selection, or a picked mark or word, go, and the cursor
+  starts at the selection's first column, as Dorico's caret and MuseScore's note input do (Jeremy,
+  2026-11-06).
 - **Esc** in note input goes back to normal mode, keeping the tab and what the cursor was on. Esc in
   normal mode leaves the tab, as before.
   Esc leaves note input wherever the keys are on the page (Jeremy, 2026-11-03, issue #334): off the
@@ -54,7 +56,13 @@ is Bend, as on the tab.
 The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
 `2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings or, on the staff,
 lines and spaces; Alt+↑ ↓ move notes; Enter on the staff adds or takes away a note; → past a short bar
-adds a rest to type on. The tab's cursor is outlined, as before; the staff's is the faint outlined head.
+adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
+line across the staff just left of where the next note goes, with that next note drawn there as a faint
+ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint
+outlined head, which read as a whole note already entered. One ghost note shows at a time (Jeremy,
+2026-11-06): while the pointer's is on the staff the caret's goes, and in the caret's own bar the caret
+goes too, since the mouse is placing the note. On a note the line stays off it, and over a note at the
+caret's pitch nothing is drawn.
 
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input, a double-click on the staff or the
   tab goes into note input, as N does, picking nothing; in note input it does nothing more.

@@ -93,25 +93,45 @@ function ledgerSteps(step: number): number[] {
 }
 
 /**
- * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
- * its ledger lines and, when the key doesn't give it, its sharp, flat or natural. In normal mode (issue
- * #238) it marks the selected note instead, `selected`: the head filled in the selection colour, as
- * MuseScore colours a selected note.
+ * The staff's own cursor (issue #136). In note input it is Dorico's caret, an upright line across the staff
+ * where the next note goes, with the next note itself drawn there faintly (`ShadowNote`, at the Input length)
+ * on the pitch Enter would put in, with its sharp, flat or natural when the key doesn't give it. That is the
+ * one ghost note: while the pointer's own is on the staff, `ghost` is false and only the line shows (Jeremy,
+ * 2026-11-06). The cursor is never a notehead of its own, which read as a whole note already entered (issue
+ * #382). On a note, `caret` false, the line stays off it. In normal mode (issue #238) it marks the selected
+ * note instead, `selected`: the head filled in the selection colour, as MuseScore colours a selected note.
  */
-export function StaffCursor({ x, step, sign, score, selected = false }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean }) {
+export function StaffCursor({ x, step, sign, score, selected = false, caret = true, ghost = true, value = 4 }: {
+  x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean; caret?: boolean; ghost?: boolean; value?: number;
+}) {
   const y = stepY(score, step);
   const left = x - HEAD_WIDTH / 2;
   const signGlyph: GlyphName | null = sign === null ? null : sign > 0 ? 'accidentalSharp' : sign < 0 ? 'accidentalFlat' : 'accidentalNatural';
+  const sharpOrFlat = signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--select)" />;
+  if (selected) {
+    return (
+      <g data-testid="staff-selected" pointerEvents="none">
+        {ledgerSteps(step).map(ls => (
+          <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--select)" strokeWidth={1} />
+        ))}
+        <path d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`} fill="var(--select)" />
+        {sharpOrFlat}
+      </g>
+    );
+  }
+  // The caret runs a space past the staff's outer lines, just left of where the head goes, as Dorico's.
+  const top = stepY(score, STAFF_LINES[STAFF_LINES.length - 1] + 2);
+  const bottom = stepY(score, STAFF_LINES[0] - 2);
+  const caretX = left - 3;
   return (
-    <g data-testid={selected ? 'staff-selected' : 'staff-cursor'} pointerEvents="none">
-      {ledgerSteps(step).map(ls => (
-        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--select)" strokeWidth={1} />
-      ))}
-      <path
-        d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`}
-        fill="var(--select)" fillOpacity={selected ? 1 : 0.3} stroke={selected ? 'none' : 'var(--select)'} strokeWidth={1.5 / SPACE}
-      />
-      {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--select)" />}
+    <g data-testid="staff-cursor" pointerEvents="none">
+      {caret && <line data-testid="staff-caret" x1={caretX} x2={caretX} y1={top} y2={bottom} stroke="var(--select)" strokeWidth={2} />}
+      {ghost && (
+        <>
+          <ShadowNote x={x} step={step} value={value} score={score} testId="staff-ghost" />
+          {sharpOrFlat && <g opacity={0.45}>{sharpOrFlat}</g>}
+        </>
+      )}
     </g>
   );
 }
@@ -120,7 +140,7 @@ export function StaffCursor({ x, step, sign, score, selected = false }: { x: num
  * The shadow note under the pointer in note input (issue #238, as MuseScore shows one): a faint note of
  * the length a press would enter, its head on the line or space pointed at, its stem up and flag.
  */
-export function ShadowNote({ x, step, value, score }: { x: number; step: number; value: number; score: ScoreRows }) {
+export function ShadowNote({ x, step, value, score, testId = 'shadow-note' }: { x: number; step: number; value: number; score: ScoreRows; testId?: string }) {
   const y = stepY(score, step);
   const left = x - HEAD_WIDTH / 2;
   const head = HEADS[Math.min(2, Math.log2(value))];
@@ -128,7 +148,7 @@ export function ShadowNote({ x, step, value, score }: { x: number; step: number;
   const stemTop = stepY(score, step + STEM_STEPS);
   const flag = FLAGS[value]?.[0];
   return (
-    <g data-testid="shadow-note" data-value={value} pointerEvents="none" opacity={0.45} fill="var(--select)" stroke="var(--select)">
+    <g data-testid={testId} data-value={value} pointerEvents="none" opacity={0.45} fill="var(--select)" stroke="var(--select)">
       {ledgerSteps(step).map(ls => (
         <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} strokeWidth={1} />
       ))}

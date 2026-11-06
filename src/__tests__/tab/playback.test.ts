@@ -82,10 +82,11 @@ describe('playback sounds', () => {
   it('reads the saved Playback section, each field checked', () => {
     const options = {
       transpose: 0, hearNotes: false, hearChords: false, stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1,
+      strokes: true, strokesRoll: 3, strums: true, strumsRoll: 5, rolledChords: true, rolledChordsRoll: 20,
     };
     expect(parsePlaybackSettings(null)).toEqual({ shown: true, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: true, volume: 0.4, hearNotes: true, hearChords: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5, transpose: -5 }))
-      .toEqual({ shown: true, volume: 0.4, transpose: -5, hearNotes: true, hearChords: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5 });
+      .toEqual({ ...options, shown: true, volume: 0.4, transpose: -5, hearNotes: true, hearChords: true, stopAtPlayhead: true, stopAtRegionEnd: true, loopPause: true, loopPauseSeconds: 2.5 });
     expect(parsePlaybackSettings({ shown: 'yes', volume: 2, hearNotes: 'yes', hearChords: 'yes', stopAtPlayhead: 1, stopAtRegionEnd: 'on', loopPause: 'on', loopPauseSeconds: 60, transpose: 1.5 }))
       .toEqual({ shown: true, volume: 1, ...options });
     expect(parsePlaybackSettings({ shown: false }).shown).toBe(false);

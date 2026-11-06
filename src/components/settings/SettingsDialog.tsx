@@ -300,23 +300,43 @@ function SectionPane({ group, section, value, onStage }: {
     <section className="settings-pane" aria-labelledby={`${id}-heading`}>
       <h4 id={`${id}-heading`} className="settings-pane-heading">{group.name} › {section.name}</h4>
       <div className="settings-rows">
-        {section.fields.map(f => {
-          const labelId = `${id}-${f.key}`;
-          const disabled = f.enabled ? !f.enabled(value) : false;
-          return (
-            <div key={f.key} className="settings-row" data-disabled={disabled || undefined}>
-              <ResetLabel id={labelId} onReset={() => onStage({ ...value, [f.key]: section.defaults[f.key] })}>
-                {f.label}
-              </ResetLabel>
-              <div className="settings-control">
-                {f.control({ value, set: onStage, labelId, disabled })}
+        {boxesOf(section.fields).map(run => {
+          const rows = run.fields.map(f => {
+            const labelId = `${id}-${f.key}`;
+            const disabled = f.enabled ? !f.enabled(value) : false;
+            return (
+              <div key={f.key} className="settings-row" data-disabled={disabled || undefined}>
+                <ResetLabel id={labelId} onReset={() => onStage({ ...value, [f.key]: section.defaults[f.key] })}>
+                  {f.label}
+                </ResetLabel>
+                <div className="settings-control">
+                  {f.control({ value, set: onStage, labelId, disabled })}
+                </div>
               </div>
+            );
+          });
+          return run.box === undefined ? rows : (
+            // A div, not a fieldset: a fieldset can't take the pane's columns (subgrid).
+            <div key={`box-${run.fields[0].key}`} role="group" aria-labelledby={`${id}-box-${run.fields[0].key}`} className="settings-box">
+              <span id={`${id}-box-${run.fields[0].key}`} className="settings-box-name">{run.box}</span>
+              {rows}
             </div>
           );
         })}
       </div>
     </section>
   );
+}
+
+/** A section's fields in runs: neighbouring fields with the same `box` together, the rest one by one. */
+function boxesOf(fields: AnySection['fields']): { box?: string; fields: AnySection['fields'] }[] {
+  const runs: { box?: string; fields: AnySection['fields'] }[] = [];
+  for (const f of fields) {
+    const last = runs[runs.length - 1];
+    if (f.box !== undefined && last?.box === f.box) last.fields.push(f);
+    else runs.push({ box: f.box, fields: [f] });
+  }
+  return runs;
 }
 
 /**

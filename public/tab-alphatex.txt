@@ -238,7 +238,10 @@ then "." and its duration:
     tp 8       tremolo picking, as fast as eighths: one slash across the
     tp 16      stem; two slashes tp 16, three tp 32. The beat's own
     tp 32      duration is how long it is picked: 12.1.2{tp 16}.
-    sd  su     pick or strum stroke down / up
+    sd  su     pick or strum stroke down / up: between the staff and the
+               tab, over the staff when it is drawn alone. A chord with one
+               plays as a slight strum, low string first for sd (the
+               player's Settings set how much, or turn it off)
     wahc waho  the wah pedal closed (+) or open (o) from this beat, drawn
                over the music: 10.2.8{wahc} 8.1.16{waho}. Playback ignores it.
     cre  dec   getting louder / softer from this beat: neighbouring beats
@@ -428,6 +431,14 @@ as is. Keep the link under about 8,000 characters. The part after "#" is
 never sent to a server. Opening it shows the tab as a new arrangement, not
 saved until the person presses Save (it asks first if they have unsaved
 changes). If the text can't be read, Frets says why, with the line and column.
+
+The page shows tab alone unless the person picked Staff or Both before. To
+open it with the notation staff, add ?show= before the "#": staff (the staff
+alone), tab or both (the staff over the tab). It holds for that visit only;
+the person's own choice is not changed. Add it when the staff matters, as
+for music written from sheet music:
+
+    https://frets.eminor.net/tab?show=both#tab=<the whole text, percent-encoded>
 
 When you can run code, make a shorter link: compress the text and put it
 after #tabz= instead. Take the text as UTF-8, deflate it raw (no zlib
@@ -634,5 +645,5 @@ the same way, so a note on Frets' staff lands where it is on the page.
   in voice 1, and a bass held under it, stems down, in voice 2 (see
   "Voices"), as the book prints them. Two voices never sound one string
   at once. Say what you did.
-- When done, tell the user to open Notation, then Staff or Both, and
+- When done, give the link with ?show=both (see 8.), and tell the user to
   compare the staff with the printed page.

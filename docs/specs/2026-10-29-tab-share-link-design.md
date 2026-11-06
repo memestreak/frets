@@ -28,6 +28,9 @@ alphaTex format landed, but nothing in the app made one.
   against 30 KB percent-encoded.
 - `#tab=<percent-encoded text>` is still read, alphaTex or ASCII: agents and
   people write those by hand (`public/tab-alphatex.txt`).
+- Copy link leaves out what the page shows. A link made elsewhere (a preview,
+  an agent, `show_tab`) may add `?show=staff|tab|both` before the hash, for
+  that visit only (`docs/specs/2026-11-06-tab-show-link-design.md`).
 
 ## Opening one
 

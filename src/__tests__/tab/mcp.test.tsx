@@ -257,7 +257,7 @@ describe('the server', () => {
     const result = await (await connectedClient()).callTool({ name: TOOL_NAME, arguments: args });
     expect(result.isError).toBeFalsy();
     const text = (result.content as { text: string }[])[0].text;
-    expect(text).toMatch(/^Shown: 2 bars in 4\/4 at 90 bpm, as tab only\. Open in Frets: https:\/\/frets\.eminor\.net\/tab#tabz=/);
+    expect(text).toMatch(/^Shown: 2 bars in 4\/4 at 90 bpm, as tab only\. Open in Frets: https:\/\/frets\.eminor\.net\/tab\?show=tab#tabz=/);
     const link = text.slice(text.indexOf('https://'));
     const opened = await readLink(new URL(link).hash);
     if (typeof opened !== 'string') throw new Error('the link holds no tab');
@@ -491,7 +491,14 @@ describe('the app', () => {
     await waitFor(() => expect(open).toBeEnabled());
     await act(async () => open.click());
     await waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]).toMatch(/^https:\/\/frets\.eminor\.net\/tab#tabz=/);
+    // In the view the app shows: both, as the call left it out.
+    expect(opened[0]).toMatch(/^https:\/\/frets\.eminor\.net\/tab\?show=both#tabz=/);
+    // Switched to the staff, the link opens the staff view.
+    act(() => screen.getByRole('button', { name: 'Staff' }).click());
+    await waitFor(async () => {
+      await act(async () => open.click());
+      expect(opened.at(-1)).toMatch(/^https:\/\/frets\.eminor\.net\/tab\?show=staff#tabz=/);
+    });
   });
 
   it('lets the player go when the host takes it away', async () => {

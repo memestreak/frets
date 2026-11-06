@@ -7,8 +7,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
 
 - The views are **Notation | ASCII Tab | AlphaTex**. In Notation a second
   switch, **Staff | Tab | Both**, at the clip's top left, chooses the parts. The choice is the
-  viewer's, saved in `frets.tab.parts` (Tab by default), and is not part of the
-  clip.
+  viewer's, saved in `frets.tab.notation` (`show`, Tab by default), and is not part of the
+  clip. A link's `?show=staff|tab|both` picks it for one visit without saving
+  it (`docs/specs/2026-11-06-tab-show-link-design.md`).
 - The staff is a plain treble clef. Guitar is written an octave above how it
   sounds; as in most guitar books, the clef has no 8 under it to say so
   (Jeremy dropped it, 2026-10-27).
@@ -75,8 +76,11 @@ finish #122 with them, 2026-10-27):
   note from below or above, and out of it, are short lines.
 - **Heads:** a natural harmonic is a diamond, a dead note an ×, a ghost note's
   head is in brackets.
-- **Between the staff and the tab** (under the staff alone): pick strokes,
-  P.M. and let ring runs, P.H.
+- **Between the staff and the tab** (under the staff alone): P.M. and let
+  ring runs, P.H.
+- **Pick strokes** (⊓ down, V up): between the staff and the tab; over the
+  staff alone, under the chord names and over whatever else reaches above
+  the staff, as Gould, Dorico and MuseScore place them (Jeremy, 2026-11-06).
 - **On the tab only, under a staff:** bends, taps and the tab's own H and P,
   slides and ties. With the staff alone, bends (arrow and amount) and taps (T)
   go on the staff.
