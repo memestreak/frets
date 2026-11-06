@@ -848,7 +848,7 @@ export default function TabPage() {
   );
   const clipHandlers = useStableHandlers({
     onPick: picking.onPick, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
-    onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onPickRect: picking.onPickRect,
+    onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,

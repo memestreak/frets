@@ -156,6 +156,9 @@ and in its spec.
   picks; `hasEdit` (issue #276).
 - `elements.ts` — every pickable thing in reading order, for Alt+← →
   (MuseScore's next element, issue #238).
+- `rangeBox.ts` — the box round a selected run, and its Range handles:
+  where they are and where a dragged end lands —
+  `2026-11-05-tab-range-handles-design.md`.
 - `rectangle.ts` — Shift+drag from blank space: the rectangle and the run
   of columns it takes in (issue #238).
 - `whammy.ts` — where the whammy bar's lines and labels go, `whammyJoins` —
@@ -389,6 +392,8 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-05-tab-range-handles-design.md`: a selection box's
+  left or right edge drags that end, the other staying
 - `docs/specs/2026-11-05-tab-speed-bpm-design.md`: Speed as one bpm
   field, its percentage in the caption and its "bpm" a Tap button, on
   the Tab page and in show_tab (issue #373).

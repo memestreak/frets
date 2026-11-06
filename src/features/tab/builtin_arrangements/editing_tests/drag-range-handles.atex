@@ -1,0 +1,7 @@
+\title "A selection's edges drag either end, the other end staying"
+\ts (4 4)
+1.1.4{txt "Last, drag the box's left edge onto this 1: 1 to 7 lit"}
+  2.1.4{txt "Tab view: press this 2, then Shift+→ (2 and 3 lit). Drag the box's right edge onto the 7"}
+  3.1.4 4.1.4 |
+5.1.4 6.1.4 7.1.4{txt "2 to 7 lit"} 8.1.4 | 9.1.4 10.1.4 11.1.4 12.1.4 |
+
