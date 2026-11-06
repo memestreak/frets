@@ -18,6 +18,7 @@ import { pitchAt } from './normalMode';
 import { writtenStrings } from './notation';
 import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
 import type { FieldKind } from './WordField';
+import type { HoverPlace } from './TabClip';
 import type { EditorState, Picked } from './useEditorState';
 import type { Notice } from './notice';
 
@@ -43,7 +44,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
   /**
@@ -288,6 +289,37 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /**
+   * In note input, the pointer over the staff or the tab moves the caret where a press would put a note,
+   * entering nothing (Jeremy, 2026-11-06, issue #396): on the tab its string, on the staff the line, space or
+   * head pointed at, inside a rest at the grid line. The arrow keys then move it on from there, and Enter or
+   * a fret puts the note in. A selection lets go, as on any move of the caret.
+   */
+  const onHover = (place: HoverPlace) => {
+    lastDigitRef.current = null;
+    setSelection(null);
+    setPicked(null);
+    setAlone(false);
+    if (place.hit) {
+      const { at = 0, ...hit } = place.hit;
+      setCursor(hit);
+      setCursorAt(hit, at);
+      setStaffPitch(null);
+      setColumnOnly(false);
+      return;
+    }
+    const hit = place.staff;
+    const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
+    const note = hit.string === null ? null : noteAt(clip, at);
+    const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
+    const string = stringAtPitch(clip, at, pitch);
+    const next = { ...at, string: string ?? at.string };
+    setCursor(next);
+    setCursorAt(next, hit.at ?? 0);
+    setStaffPitch(pitch);
+    setColumnOnly(string === null);
+  };
+
+  /**
    * A drag of a note head on the staff (issue #174): the clip it started from, the selection it carries
    * (when the head pressed is in one), and the last move that worked, shown while the drag goes on.
    */
@@ -438,7 +470,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
+    onPick, onPickRhythm, onPickStaff, onHover, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
     stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }

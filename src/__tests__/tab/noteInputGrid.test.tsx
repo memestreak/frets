@@ -138,44 +138,42 @@ describe('note input’s grid (issue #293)', () => {
     }
   });
 
-  it('draws the grid over the bar under the pointer in note input, else the cursor’s bar (issue #396)', async () => {
-    const two = '\\title "Grid"\n\\ts (4 4)\n5.1.4 r.2{d} | r.1 |';
-    window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(two)}`);
-    render(<TabPage />);
-    await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
-    act(() => editor().focus());
-    const read = readAlphaTexWith(alphaTab, two);
-    if (!read.ok) throw new Error(read.errors.join('\n'));
-    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
-    keys('n');
-    /** Where the drawn grid starts: its ruler's line runs from the bar's left edge. */
-    const gridStart = () => Number(screen.getByTestId('grid-lines').querySelector('line')!.getAttribute('x1'));
-    expect(gridStart()).toBe(bars[0].x0);
-    const svg = screen.getByRole('img', { name: /drawn as/ });
-    const rest = bars[1].columns[0];
-    fireEvent.pointerMove(svg, { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop });
-    expect(gridStart()).toBe(bars[1].x0);
-    // The pointer off the clip: back over the cursor's bar.
-    fireEvent.pointerLeave(svg);
-    expect(gridStart()).toBe(bars[0].x0);
-  });
-
-  it('keeps the grid and nothing of the caret under the pointer while it is over the clip, keys or not (issue #396)', async () => {
+  it('in note input the pointer moves the caret, the grid with it, and leaves it where the pointer left (issue #396)', async () => {
     const { svg, bars, over, gridStart } = await openTwoBars();
-    /** The caret on the tab: its box on a string, or its line on a column with no string. */
-    const caret = () => screen.queryByTestId('input-cursor') ?? screen.queryByTestId('tab-caret');
     keys('n');
-    expect(caret()).not.toBeNull();
+    expect(gridStart()).toBe(bars[0].x0);
     fireEvent.pointerMove(svg, over(1));
     expect(gridStart()).toBe(bars[1].x0);
-    expect(caret()).toBeNull();
-    keys('ArrowRight');
-    expect(gridStart()).toBe(bars[1].x0);
-    expect(caret()).toBeNull();
-    // Off the clip: the caret, and the grid over its bar.
     fireEvent.pointerLeave(svg);
-    expect(gridStart()).toBe(bars[0].x0);
-    expect(caret()).not.toBeNull();
+    expect(gridStart()).toBe(bars[1].x0);
+  });
+
+  it('shows only the ghost while the pointer is over the clip, and the arrow keys move it there (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    keys('n');
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    fireEvent.pointerMove(svg, over(1));
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
+    expect(screen.queryByTestId('input-cursor')).toBeNull();
+    // ← and ↓ move the ghost, the pointer still where it was.
+    const ghost = () => [screen.getByTestId('shadow-fret').getAttribute('x'), screen.getByTestId('shadow-fret').getAttribute('y')];
+    const before = ghost();
+    keys('ArrowLeft', 'ArrowDown');
+    const moved = ghost();
+    expect(moved[0]).not.toBe(before[0]);
+    expect(moved[1]).not.toBe(before[1]);
+    expect(gridStart()).toBe(bars[1].x0);
+    // Off the clip: the caret's box where the keys left it.
+    fireEvent.pointerLeave(svg);
+    expect(screen.getByTestId('input-cursor')).toHaveAttribute('x', moved[0]);
+  });
+
+  it('starts note input with the caret under the pointer when it is over a bar (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    fireEvent.pointerMove(svg, over(1));
+    keys('n');
+    expect(gridStart()).toBe(bars[1].x0);
   });
 
   it('draws the caret’s line on the tab on a column with no string picked, so the caret never goes missing (issue #396)', async () => {
@@ -186,29 +184,21 @@ describe('note input’s grid (issue #293)', () => {
     fireEvent.pointerLeave(svg);
     keys('n');
     expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    // Over the tab the caret goes onto the string pointed at: a ghost box, no line.
     fireEvent.pointerMove(svg, over(1));
     expect(screen.queryByTestId('tab-caret')).toBeNull();
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
   });
 
-  it('starts note input with the grid under the pointer when it is over a bar, else at the cursor (issue #396)', async () => {
-    const { svg, bars, over, gridStart } = await openTwoBars();
-    fireEvent.pointerMove(svg, over(1));
-    keys('n');
-    expect(gridStart()).toBe(bars[1].x0);
-    keys('Escape');
-    fireEvent.pointerLeave(svg);
-    keys('n');
-    expect(gridStart()).toBe(bars[0].x0);
-  });
-
-  it('starts the grid again at the cursor when the view changes under a still pointer (issue #396)', async () => {
+  it('keeps the caret, and the grid with it, where it was when the view changes (issue #396)', async () => {
     const { svg, over, gridStart } = await openTwoBars();
     keys('n');
     fireEvent.pointerMove(svg, over(1));
     const before = gridStart();
     fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
-    // The bars moved: the grid is over the cursor's bar, the first, which starts left of the second.
-    expect(gridStart()).toBeLessThan(before);
+    // Still over the second bar, drawn somewhere else now; its caret's box shows until the pointer moves.
+    expect(gridStart()).not.toBe(before);
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

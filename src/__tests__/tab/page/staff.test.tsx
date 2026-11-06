@@ -108,19 +108,22 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
-    it('shows a shadow note under the pointer only in note input, and a press there enters it', async () => {
+    it('in note input the pointer moves the caret, its ghost note under the pointer, and a press there enters it (issue #396)', async () => {
       await open();
       // Over the first column, a few lines above its heads.
       const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
       fireEvent.pointerMove(svg(), over);
-      expect(screen.queryByTestId('shadow-note')).toBeNull();
+      expect(screen.queryByTestId('staff-ghost')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'n' });
       fireEvent.pointerMove(svg(), over);
-      expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
+      expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
+      // While the pointer is over the staff, no caret's line.
+      expect(screen.queryByTestId('staff-caret')).toBeNull();
       press(over);
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
+      // Off the staff the caret stays where the pointer left it, on the note entered: its line shows.
       fireEvent.pointerLeave(svg());
-      expect(screen.queryByTestId('shadow-note')).toBeNull();
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
     });
 
     it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
@@ -137,8 +140,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'ArrowRight' });
       fireEvent.keyDown(editor(), { key: '3' });
       expect(shown()).toBe('(7.5 5.6).4 3.4.4 r.2 |');
-      fireEvent.pointerMove(svg(), { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 });
-      expect(screen.getByTestId('shadow-note')).toHaveAttribute('data-value', '16');
+      expect(screen.getByTestId('staff-ghost')).toHaveAttribute('data-value', '16');
       fireEvent.keyDown(editor(), { key: 'Enter' });
       expect(shown()).toMatch(/^\(7\.5 5\.6\)\.4 3\.4\.4 3\.4\.16 /);
     });
@@ -383,7 +385,7 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
 
-  it('shows one ghost note at a time, and no caret while the pointer is over the staff (issue #396)', async () => {
+  it('moves the caret with the pointer, its line hidden while over the staff, and leaves it where the pointer left (issue #396)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -393,21 +395,22 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     for (let i = 0; i < 8; i++) fireEvent.keyDown(editor(), { key: 'ArrowRight' });
     fireEvent.keyDown(editor(), { key: 'n' });
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
-    // Over the first head, on the staff.
-    const path = screen.getAllByTestId('staff-head')[0].querySelector('path')!;
-    const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(path.getAttribute('transform')!)!;
-    fireEvent.pointerMove(svg, { clientX: Number(x) + 4, clientY: Number(y) });
-    expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
-    // In another bar than the cursor's: nothing of the cursor's either, while the pointer is over the staff (issue #396).
-    expect(screen.queryByTestId('staff-cursor')).toBeNull();
-    // In the cursor's own bar (the whole rest's): nothing of the cursor's.
+    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    // Over the second bar's whole rest: the ghost there, and no caret's line.
     const restPath = screen.getAllByTestId('staff-rest').at(-1)!.querySelector('path')!;
     const [, rx, ry] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
     fireEvent.pointerMove(svg, { clientX: Number(rx) + 4, clientY: Number(ry) });
-    expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
-    expect(screen.queryByTestId('staff-cursor')).toBeNull();
-    fireEvent.pointerLeave(svg);
-    expect(screen.queryByTestId('shadow-note')).toBeNull();
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-caret')).toBeNull();
+    // ↑ moves the ghost up a step, the pointer still there.
+    const ghostY = () => screen.getByTestId('staff-ghost').getAttribute('transform') ?? screen.getByTestId('staff-ghost').innerHTML;
+    const before = ghostY();
+    fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+    expect(ghostY()).not.toBe(before);
+    expect(screen.queryByTestId('staff-caret')).toBeNull();
+    // Off the staff: the caret's line and ghost where it was left.
+    fireEvent.pointerLeave(svg);
+    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    expect(ghostY()).not.toBe(before);
   });
 });
