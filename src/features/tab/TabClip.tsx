@@ -399,15 +399,38 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** Where the shadow note is drawn: on the staff at a step, or on a string of the tab; in the drawing's units. */
   const [hover, setHover] = useState<{ system: number; x: number; step: number | null; string: number | null } | null>(null);
   /**
-   * In note input, the bar under the pointer: the Grid is drawn over it, not the cursor's, while the pointer
-   * is on the clip (issue #396). Over a word or a mark it stays on the last bar, so the Grid doesn't jump.
+   * The Grid goes where you last acted (issue #396): over the bar under the pointer once the pointer moves
+   * in note input, back over the cursor's bar once a key or a press moves the cursor. Note input starts it
+   * under the pointer when the pointer is over a bar. Over a word or a mark the pointer's bar stays the
+   * last one, so the Grid doesn't jump.
    */
-  const [pointerBar, setPointerBar] = useState<number | null>(null);
+  const [overBar, setOverBar] = useState<number | null>(null);
+  const [gridAtPointer, setGridAtPointer] = useState(false);
+  const inputOn = shadow !== null;
+  const cursorKey = highlight?.cursor ? `${highlight.cursor.bar}:${highlight.cursor.column}:${highlight.at ?? 0}:${highlight.staffPitch ?? ''}` : '';
+  const [seen, setSeen] = useState({ cursorKey, inputOn });
+  if (seen.cursorKey !== cursorKey || seen.inputOn !== inputOn) {
+    setSeen({ cursorKey, inputOn });
+    setGridAtPointer(inputOn && !seen.inputOn ? overBar !== null : false);
+  }
+  // Another view, width or size moves the bars under a still pointer: its ghost note and the Grid start
+  // again from the cursor until the pointer moves (issue #396).
+  const drawnAs = `${layout.parts}:${width}:${zoom}`;
+  const [seenDrawn, setSeenDrawn] = useState(drawnAs);
+  if (seenDrawn !== drawnAs) {
+    setSeenDrawn(drawnAs);
+    setOverBar(null);
+    setGridAtPointer(false);
+    setHover(null);
+  }
+  const gridBar = gridAtPointer && overBar !== null ? overBar : highlight?.cursor?.bar;
   const showShadow = (e: PointerEvent<SVGSVGElement>) => {
-    if (shadow === null || headPress.current) return;
+    if (headPress.current) return;
     const { text, mark, staff, hit } = target(e);
     const on = text || mark ? null : staff ?? hit;
-    if (on) setPointerBar(on.bar);
+    if (on) setOverBar(on.bar);
+    if (shadow === null) return;
+    if (on) setGridAtPointer(true);
     const spot = on ? cursorSpot(layout, on.bar, on.column, on.at) : null;
     if (!on || !spot) {
       setHover(null);
@@ -502,7 +525,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
       onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
-      onPointerLeave={shadow !== null ? () => { setHover(null); setPointerBar(null); } : undefined}
+      onPointerLeave={() => { setHover(null); setOverBar(null); }}
       onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
       onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
@@ -636,7 +659,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             </g>
           ))}
           {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
-            const placed = system.bars.find(b => b.index === (pointerBar ?? highlight.cursor!.bar));
+            const placed = system.bars.find(b => b.index === gridBar);
             if (!placed) return null;
             const lines = gridLines(placed, gridStep);
             const top = rows.score ? rows.score.top : rows.staffTop;

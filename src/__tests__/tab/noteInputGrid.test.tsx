@@ -29,6 +29,25 @@ async function open() {
   await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
   act(() => editor().focus());
 }
+const TWO_BARS = '\\title "Grid"\n\\ts (4 4)\n5.1.4 r.2{d} | r.1 |';
+/** Two bars, the second empty, with where they are drawn, a pointer spot in each and where the drawn grid starts. */
+async function openTwoBars() {
+  window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(TWO_BARS)}`);
+  render(<TabPage />);
+  await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+  act(() => editor().focus());
+  const read = readAlphaTexWith(alphaTab, TWO_BARS);
+  if (!read.ok) throw new Error(read.errors.join('\n'));
+  const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+  const svg = screen.getByRole('img', { name: /drawn as/ });
+  const over = (bar: number) => {
+    const rest = bars[bar].columns[bars[bar].columns.length - 1];
+    return { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop };
+  };
+  /** Where the drawn grid starts: its ruler's line runs from the bar's left edge. */
+  const gridStart = () => Number(screen.getByTestId('grid-lines').querySelector('line')!.getAttribute('x1'));
+  return { svg, bars, over, gridStart };
+}
 const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
 const keys = (...list: (string | { key: string; code?: string; altKey?: boolean; shiftKey?: boolean })[]) => {
   for (const k of list) fireEvent.keyDown(editor(), typeof k === 'string' ? { key: k } : k);
@@ -139,6 +158,39 @@ describe('note input’s grid (issue #293)', () => {
     // The pointer off the clip: back over the cursor's bar.
     fireEvent.pointerLeave(svg);
     expect(gridStart()).toBe(bars[0].x0);
+  });
+
+  it('puts the grid where you last acted: a key moving the cursor brings it back from the pointer’s bar (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    expect(gridStart()).toBe(bars[1].x0);
+    keys('ArrowRight');
+    expect(gridStart()).toBe(bars[0].x0);
+    // The pointer moving again takes it back.
+    fireEvent.pointerMove(svg, over(1));
+    expect(gridStart()).toBe(bars[1].x0);
+  });
+
+  it('starts note input with the grid under the pointer when it is over a bar, else at the cursor (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    fireEvent.pointerMove(svg, over(1));
+    keys('n');
+    expect(gridStart()).toBe(bars[1].x0);
+    keys('Escape');
+    fireEvent.pointerLeave(svg);
+    keys('n');
+    expect(gridStart()).toBe(bars[0].x0);
+  });
+
+  it('starts the grid again at the cursor when the view changes under a still pointer (issue #396)', async () => {
+    const { svg, over, gridStart } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    const before = gridStart();
+    fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
+    // The bars moved: the grid is over the cursor's bar, the first, which starts left of the second.
+    expect(gridStart()).toBeLessThan(before);
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

@@ -29,11 +29,13 @@ first.
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
-7. **The grid is drawn over the bar under the pointer** in note input, else over the cursor's bar
-   (Jeremy, 2026-11-06, issue #396; it was the cursor's bar only), its beats a little stronger. Over a
-   word or a mark it stays on the last bar the pointer was over, so it doesn't jump. Pressing Staff,
-   Tab or Both leaves the focus on the editor, as the palette's buttons do, so the cursor and the grid
-   stay (issue #396). How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
+7. **The grid is drawn where you last acted** in note input (Jeremy, 2026-11-06, issue #396; it was
+   the cursor's bar only): over the bar under the pointer once the pointer moves, back over the
+   cursor's bar once a key or a press moves the cursor. Note input starts it under the pointer when
+   the pointer is over a bar, else at the cursor. Over a word or a mark it stays on the last bar the
+   pointer was over, so it doesn't jump; another view, width or size starts it again at the cursor.
+   Its beats are a little stronger. Pressing Staff, Tab or Both leaves the focus on the editor, as
+   the palette's buttons do, so the cursor and the grid stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
    **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
    bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
    dropped.)
