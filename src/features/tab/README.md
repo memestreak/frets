@@ -406,6 +406,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`: Delete and cut
+  leave rests that keep the column's text, chord name and other marks of
+  its time; only Ctrl/⌘+Delete takes them (issue #393)
 - `docs/specs/2026-11-06-tab-section-overlap-design.md`: a long section
   name wraps, and moves up a row if it still runs into the next (issue #389)
 - `docs/specs/2026-11-06-tab-show-link-design.md`: a link's
