@@ -265,7 +265,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `ChordPanel.tsx` — the rail's Chords panel, its sections each folding (kept in `frets.tab.chordPanel`): the track's Chord set first; the chord a name's Edit or double-click opens it at, its shapes (the definition's marked; picking one changes it, and sounds it while the Hear toggle in the panel's head is on), names for the cursor column's notes, the track's Chord set, with a trash can by each unused chord, and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
+- `ChordPanel.tsx` — the rail's Chords panel, its sections each folding (kept in `frets.tab.chordPanel`): the track's Chord set first, with a trash can by each unused chord; the chord picked there or opened by a name's Edit or double-click (not the cursor's), its shapes (the definition's marked; picking one changes it, and sounds it while the Hear toggle in the panel's head is on), and Insert name, notes or both at the cursor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
@@ -396,7 +396,7 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   the Tab page and in show_tab (issue #373).
 - `docs/specs/2026-11-05-tab-chord-panel-design.md`: the rail's Chords
   panel, opened at a chord by its name's Edit or double-click: shapes,
-  deleting an unused chord, names for the column's notes and Insert (issue #251)
+  deleting an unused chord, and Insert (issue #251)
 - `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
   set, its `\chord` shapes kept in the clip and its chord names understood
 - `docs/specs/2026-11-05-show-tab-selection-design.md`: select notes in

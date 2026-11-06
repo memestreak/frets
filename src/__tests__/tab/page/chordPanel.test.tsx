@@ -1,7 +1,7 @@
 /**
  * The Tab rail's Chords panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord
  * name's Edit opens it at that chord, a shape picked changes the `\chord` definition, an unused chord is
- * deleted, the cursor column's notes are named, and Insert writes a name, notes or both at the cursor.
+ * deleted, moving the cursor changes nothing, and Insert writes a name, notes or both at the cursor.
  */
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -104,14 +104,20 @@ describe('changing a chord’s shape', () => {
 });
 
 describe('the cursor column', () => {
-  it('names its notes; a name picked goes over the column', async () => {
+  it('moving the cursor changes nothing in the panel (Jeremy, 2026-11-06)', async () => {
     await open();
     act(() => editor().focus());
-    keys('ArrowRight');
     fireEvent.click(railButton('Chords'));
-    const chips = within(inPanel().getByRole('region', { name: 'These notes are' }));
-    fireEvent.click(chips.getByRole('button', { name: 'C' }));
-    expect(written()).toContain('{ch "C"}');
+    // Nothing picked yet: the cursor's G is not shown.
+    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('');
+    expect(inPanel().getByText('Pick a chord to see its shapes.')).toBeInTheDocument();
+    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^C/ }));
+    const before = panel().innerHTML;
+    keys('ArrowRight');
+    expect(panel().innerHTML).toBe(before);
+    keys('ArrowRight');
+    expect(panel().innerHTML).toBe(before);
+    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('C');
   });
 
   it.each([
@@ -142,7 +148,7 @@ describe('deleting a chord', () => {
     fireEvent.click(list().getByRole('button', { name: 'Delete C' }));
     expect(definitions()).toEqual(['\\chord ("G" 3 0 0 0 2 3) {showname true}']);
     expect(list().queryByRole('button', { name: /^C/ })).toBeNull();
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('G');
+    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('');
   });
 
   it('a chord a column uses has none', async () => {
@@ -169,14 +175,10 @@ describe('Hear', () => {
 describe('the panel’s sections', () => {
   const sections = () => [...panel().querySelectorAll('section')].map(s => s.getAttribute('aria-label'));
 
-  it('puts this track’s chords first, then the chord, its shapes and the column’s names', async () => {
+  it('puts this track’s chords first, then the chord and its shapes', async () => {
     await open();
-    act(() => editor().focus());
-    keys('ArrowRight');
     fireEvent.click(railButton('Chords'));
-    // The column has no name yet; one picked shows its shapes.
-    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^C/ }));
-    expect(sections()).toEqual(['This track’s chords', 'Shapes', 'These notes are']);
+    expect(sections()).toEqual(['This track’s chords', 'Shapes']);
     const order = [...panel().querySelectorAll('section, input')].map(e => e.getAttribute('aria-label'));
     expect(order.indexOf('This track’s chords')).toBeLessThan(order.indexOf('Chord name'));
   });
@@ -198,7 +200,7 @@ describe('the panel’s sections', () => {
   });
 
   it('reads what was kept, each id checked', () => {
-    expect(parseChordPanel(JSON.stringify({ folded: ['notes', 'nope', 3] }))).toEqual(['notes']);
+    expect(parseChordPanel(JSON.stringify({ folded: ['shape', 'notes', 3] }))).toEqual(['shape']);
     expect(parseChordPanel('not json')).toEqual([]);
     expect(parseChordPanel(null)).toEqual([]);
   });

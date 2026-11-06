@@ -16,12 +16,12 @@ and editing the list (rename, delete) are #368.
 - **Opening it at a chord.** A chord name's Edit (its right-click menu,
   or Enter while it is picked) and its double-click open the Chords panel
   at that chord, in place of the old chord name field. The cursor goes to
-  the name's column. The rail's Chords button opens it at the cursor
-  column's chord.
+  the name's column. The rail's Chords button opens it with no chord
+  picked.
 - **Order and folding** (Jeremy, 2026-11-05: "This track's chords should
   be at the top … That section and other sections should be independently
   collapsible"). Top to bottom: This track's chords, the Chord field,
-  Shape, These notes are, Insert. Each of the three sections folds from
+  Shape, Insert. Each of the two sections folds from
   its heading (a 16px chevron, pointing down while open, and its name,
   `aria-expanded`), on its own; the shape stepper at Shape's right
   stays.
@@ -29,8 +29,10 @@ and editing the list (rename, delete) are #368.
   `{ folded }`, like the open panel, not a preference. The field and
   Insert don't fold: they are the panel's controls.
 - **Chord.** The name field shows the chord being looked at: the one
-  picked in the panel, else the one Edit opened, else the cursor
-  column's. Typing a name and Enter writes it over the cursor column, as
+  picked in the panel, else the one Edit opened, else none ("Pick a chord
+  to see its shapes"). Moving the cursor changes nothing in the panel
+  (Jeremy, 2026-11-06: clicking between bars changing what it showed was
+  unexpected). Typing a name and Enter writes it over the cursor column, as
   the old field did, and the keys go back to the tab.
 - **Shape.** The chord's shapes on the track's tuning (the Chords page's
   shapes: open first, then moveable), up to nine diagrams, plain ink dots
@@ -40,8 +42,6 @@ and editing the list (rename, delete) are #368.
   `showdiagram`, `showname` and `showfingering`; its `firstfret` and
   `barre` described the old shape, so they go. A name with no definition
   gets one.
-- **These notes are.** The best four names `nameNotes` gives the cursor
-  column's notes (two or more). Picking one writes it over the column.
 - **This track's chords.** The Chord set: a small diagram, the name, and
   how many columns use it, or ○ "Not used" (Q7). Picking one looks at it.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
@@ -94,7 +94,7 @@ Settled while building (my calls, open to change):
   lists it.
 - `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
-  `chordsHead`); `chordOfName`, `namesForColumn`, `insertedColumn`.
+  `chordsHead`); `chordOfName`, `insertedColumn`.
 - `chordSet.ts`: `withChordShape`, `withoutChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
@@ -106,7 +106,8 @@ Settled while building (my calls, open to change):
   (#368).
 - Diagrams over names and in exports (#242).
 - Keys for the panel.
-- New chord, from a name or the cursor column's fingering: the next PR
+- Naming the cursor column's notes ("These notes are"), with New chord
+  from a name or the column's fingering: the next PR
   (Jeremy, 2026-11-06).
 - Deleting a chord a column uses (with its names).
 
@@ -121,7 +122,8 @@ Settled while building (my calls, open to change):
 - `withChordShape`: the last definition of the name changes; show props
   kept, `firstfret` and `barre` dropped; a name with none gets one at the
   end; "AM" is not "Am".
-- These notes are: a C column offers "C"; picking it writes `ch "C"`.
+- With a chord picked, moving the cursor leaves the panel exactly as it
+  was; with none, the field is empty and Shape says to pick one.
 - Insert Name, Notes and Both each write what they say at the cursor.
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed

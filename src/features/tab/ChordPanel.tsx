@@ -2,14 +2,13 @@
 
 /**
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
- * #251): the chord being looked at (its name and its shapes, the stored one marked), names for the
- * cursor column's notes, the track's Chord set with New chord, and Insert. A chord name's Edit, or its
- * double-click, opens it at that chord. With its Hear toggle on, picking a chord or a shape sounds it.
+ * #251): the track's Chord set, the chord picked in it (its name and its shapes, the stored one
+ * marked) and Insert. A chord name's Edit, or its double-click, opens it at that chord; moving the
+ * cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
 import { findShapes, shapeKey, type Shape } from '@/lib/chords/shapes';
-import { nameNotes } from '@/lib/theory/chordNames';
 import { chordOf, withBass, type ChordInfo } from '@/lib/theory/chords';
 import { readChordName } from '@/lib/theory/chordSearch';
 import { pitchClassOf } from '@/lib/theory/notes';
@@ -43,14 +42,6 @@ function shapesOf(chord: ChordInfo, tuning: readonly number[]): Shape[] {
   return [...found.open, ...found.moveable];
 }
 
-/** The names `nameNotes` finds for a column's notes, the best four; none for fewer than two notes. */
-export function namesForColumn(part: Part, column: Column | null): string[] {
-  const open = writtenStrings(part.tuning);
-  const pitches = (column?.notes ?? []).flatMap((n, s) => (n && n.fret !== null ? [open[s] + (part.capo ?? 0) + n.fret] : []));
-  if (pitches.length < 2) return [];
-  return nameNotes(pitches, Math.min(...pitches)).slice(0, 4).map(n => n.symbol);
-}
-
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
   { id: 'name', label: 'Name' },
@@ -65,9 +56,9 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };
 }
 
-/** The panel's sections that fold: the track's chords, the shapes and the column's names. */
-type FoldId = 'chords' | 'shape' | 'notes';
-const FOLD_IDS: readonly FoldId[] = ['chords', 'shape', 'notes'];
+/** The panel's sections that fold: the track's chords and the shapes. */
+type FoldId = 'chords' | 'shape';
+const FOLD_IDS: readonly FoldId[] = ['chords', 'shape'];
 /** Which of the Chords panel's sections are folded, kept across visits like the open panel (not a preference). */
 export const CHORD_PANEL_KEY = 'frets.tab.chordPanel';
 
@@ -180,7 +171,9 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
   useEffect(() => { setPicked(null); setTyped(null); }, [at]);
 
   const column = columnAt(clip, cursor);
-  const name = picked ?? at?.name ?? column?.chord ?? null;
+  // The panel shows the chord picked in it or opened by a name's Edit, not the cursor's: moving the cursor
+  // changes nothing here (Jeremy, 2026-11-06).
+  const name = picked ?? at?.name ?? null;
   const tuning = useMemo(() => lowFirst(clip), [clip]);
   const set = useMemo(() => chordSet({ ...track, chords: clip.chords }), [track, clip.chords]);
   const chord = useMemo(() => (name ? chordOfName(name) : null), [name]);
@@ -190,7 +183,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
   // A stored shape the Chords page doesn't have shows first.
   const shown = stored && !shapes.some(s => shapeKey(s) === shapeKey(stored)) ? [stored, ...shapes] : shapes;
   const current = stored ? shown.findIndex(s => shapeKey(s) === shapeKey(stored)) : -1;
-  const names = useMemo(() => namesForColumn(clip, column), [clip, column]);
 
   /** The shape a chord is inserted with: its stored one, else its first. */
   const shapeFor = (n: string): (number | null)[] | null => {
@@ -297,8 +289,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
         />
       </div>
 
-      {name && (
-        <Fold
+      <Fold
           id="shape" title="Shape" label="Shapes" folded={folded} onFold={fold}
           extra={shown.length > 1 && (
             <span className="chord-panel-stepper">
@@ -308,7 +299,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
             </span>
           )}
         >
-          {!chord && !stored && <p className="chord-panel-note">“{name}” isn’t a chord name, so it has no shapes.</p>}
+          {!name && <p className="chord-panel-note">Pick a chord to see its shapes.</p>}
+          {name && !chord && !stored && <p className="chord-panel-note">“{name}” isn’t a chord name, so it has no shapes.</p>}
           {chord && (
             <div className="chord-panel-shapes">
               {shown.slice(0, 9).map((s, i) => (
@@ -322,22 +314,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
             </div>
           )}
         </Fold>
-      )}
-
-      {names.length > 0 && (
-        <Fold id="notes" title="These notes are" folded={folded} onFold={fold}>
-          <div className="chord-panel-chips">
-            {names.map(n => (
-              <button
-                key={n} type="button" className="chord-panel-chip" aria-pressed={n === name}
-                onMouseDown={keep} onClick={() => { pick(n); onChange(withColumn(clip, cursor, c => ({ ...c, chord: n }))); }}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </Fold>
-      )}
 
 
       {name && (
