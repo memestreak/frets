@@ -1,7 +1,7 @@
 /**
  * The Tab rail's Chords panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord
- * name's Edit opens it at that chord, a shape picked changes the `\chord` definition, an unused chord is
- * deleted, + adds a chord (its shape from the name or the cursor column's notes), moving the cursor
+ * name's Edit opens its chord view in the panel, which renames it or gives it another shape; an unused
+ * chord is deleted; + adds a chord (looked up, the cursor column's, or drawn); moving the cursor
  * changes nothing, and Insert writes a name, notes or both at the cursor (in note input, at the Input length).
  */
 import { act, fireEvent, screen, within } from '@testing-library/react';
@@ -54,7 +54,7 @@ function pressWord(layout: Layout, hit: WordHit, button = 0) {
 }
 
 const list = () => within(inPanel().getByRole('region', { name: 'This track’s chords' }));
-const dialog = (name: string | RegExp) => within(screen.getByRole('dialog', { name }));
+const view = (name: string) => within(inPanel().getByRole('group', { name }));
 
 describe('the Chords panel', () => {
   it('lists the track’s chords: each used one with its count, an unused one with ○; no name field or shapes', async () => {
@@ -70,69 +70,114 @@ describe('the Chords panel', () => {
   });
 });
 
-describe('the Chord dialog', () => {
-  it('a chord name’s Edit opens the Chords panel and that chord’s dialog, its stored shape marked', async () => {
+describe('the chord view: Edit', () => {
+  it('a chord name’s Edit opens the Chords panel and that chord’s view, its stored shape picked', async () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 }, 2);
     fireEvent.click(within(screen.getByRole('menu', { name: 'Selected' })).getByRole('menuitem', { name: 'Edit' }));
     expect(railButton('Chords')).toHaveAttribute('aria-pressed', 'true');
     // Shapes are low string first, as the Chords page names them.
-    expect(dialog('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
+    expect(view('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
     expect(list().getByRole('button', { name: /^G/ })).toHaveAttribute('aria-pressed', 'true');
+    // In the panel, not a modal.
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('Enter on a picked chord name opens it too', async () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 });
     keys('Enter');
-    expect(screen.getByRole('dialog', { name: 'Edit G' })).toBeInTheDocument();
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
   });
 
-  it('a list entry’s Edit opens its dialog; another shape and OK gives the definition that shape, keeping its show props', async () => {
+  it('picking a chord in the list doesn’t open it; its Edit and a double-click do', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: /^G/ }));
+    expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
+    expect(list().getByRole('button', { name: 'Add a chord' })).toBeInTheDocument();
+    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+    // The + is hidden while the view is open.
+    expect(list().queryByRole('button', { name: 'Add a chord' })).toBeNull();
+    fireEvent.click(view('Edit G').getByRole('button', { name: 'Cancel' }));
+    fireEvent.doubleClick(list().getByRole('button', { name: /^C/ }));
+    expect(inPanel().getByRole('group', { name: 'Edit C' })).toBeInTheDocument();
+  });
+
+  it('opens on the chord’s root and type, its name following it; another shape and Save keeps its show props', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
-    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'Next shape' }));
-    // Nothing changes until OK.
-    expect(definitions()[0]).toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
-    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
-    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'Next shape' }));
-    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'OK' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    const edit = view('Edit G');
+    expect(edit.getByRole('radio', { name: 'G' })).toHaveAttribute('aria-checked', 'true');
+    expect(edit.getByRole('combobox', { name: 'Type' })).toHaveValue('M');
+    expect(edit.getByRole('textbox', { name: 'Name' })).toHaveValue('');
+    expect(edit.getByRole('textbox', { name: 'Name' })).toHaveAttribute('placeholder', 'G');
+    expect(edit.getByRole('button', { name: 'Save chord' })).toBeDisabled();
+    const other = edit.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
+    fireEvent.click(other);
+    fireEvent.click(edit.getByRole('button', { name: 'Save chord' }));
+    expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
     const [g, c] = definitions();
     expect(g).toMatch(/^\\chord \("G"( \S+){6}\) \{showname true\}$/);
     expect(g).not.toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
     expect(c).toBe('\\chord ("C" 0 1 0 2 3 x)');
   });
 
-  it('Cancel leaves the chord as it was', async () => {
+  it('Cancel and Esc close it, changing nothing', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Edit C' }));
-    const other = dialog('Edit C').getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
+    const other = view('Edit C').getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
     fireEvent.click(other);
     expect(other).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(dialog('Edit C').getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(view('Edit C').getByRole('button', { name: 'Cancel' }));
+    expect(inPanel().queryByRole('group', { name: 'Edit C' })).toBeNull();
+    fireEvent.click(list().getByRole('button', { name: 'Edit C' }));
+    fireEvent.change(view('Edit C').getByRole('textbox', { name: 'Name' }), { target: { value: 'Cee' } });
+    fireEvent.keyDown(view('Edit C').getByRole('textbox', { name: 'Name' }), { key: 'Escape' });
+    expect(inPanel().queryByRole('group', { name: 'Edit C' })).toBeNull();
     expect(definitions()[1]).toBe('\\chord ("C" 0 1 0 2 3 x)');
+  });
+
+  it('a new name renames the chord and the columns naming it; a name in the set can’t be taken', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
+    const field = view('Edit G').getByRole('textbox', { name: 'Name' });
+    fireEvent.change(field, { target: { value: 'C' } });
+    expect(view('Edit G').getByText('“C” is already in this track’s chords.')).toBeInTheDocument();
+    expect(view('Edit G').getByRole('button', { name: 'Save chord' })).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'G barre' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(definitions()[0]).toBe('\\chord ("G barre" 3 0 0 0 2 3) {showname true}');
+    expect(written()).toContain('{ch "G barre"}');
+    expect(list().getByRole('button', { name: /^G barre/ })).toHaveTextContent('G barre1');
   });
 });
 
-describe('adding a chord', () => {
-  it('+ looks a name up and adds it with the shape picked, unused and picked, the columns as they were', async () => {
+describe('the chord view: Add', () => {
+  /** Opens + on the panel. */
+  async function openAdd() {
     await open();
     fireEvent.click(railButton('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    const add = dialog('Add a chord');
-    // The cursor's first column is one note: nothing to name, no fingering.
-    expect(add.getByText('Type a chord name to see its shapes.')).toBeInTheDocument();
+    return view('Add a chord');
+  }
+
+  it('looks a chord up by root and type and adds it with the shape picked, unused and picked, the columns as they were', async () => {
+    const add = await openAdd();
+    // The cursor's first column is one note: nothing to name, no fingering, no name yet.
     expect(add.queryByRole('group', { name: 'The notes at the cursor are' })).toBeNull();
-    expect(add.queryByRole('button', { name: /^Add / })).toBeNull();
-    fireEvent.change(add.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'Dsus2' } });
+    expect(add.getByRole('button', { name: 'Add chord' })).toBeDisabled();
+    fireEvent.click(add.getByRole('radio', { name: 'D' }));
+    fireEvent.change(add.getByRole('combobox', { name: 'Type' }), { target: { value: 'sus2' } });
     // The first shape is picked until another is.
     expect(add.getByRole('button', { name: 'Shape x-x-0-2-3-0' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(add.getByRole('button', { name: 'Add Dsus2' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(add.getByRole('textbox', { name: 'Name' })).toHaveAttribute('placeholder', 'Dsus2');
+    fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
+    expect(inPanel().queryByRole('group', { name: 'Add a chord' })).toBeNull();
     expect(definitions()).toContain('\\chord ("Dsus2" 0 3 2 0 x x)');
     expect(written()).not.toContain('{ch "Dsus2"}');
     expect(within(list().getByRole('button', { name: /^Dsus2/ })).getByRole('img', { name: 'Not used' })).toBeInTheDocument();
@@ -140,85 +185,82 @@ describe('adding a chord', () => {
     expect(inPanel().getByRole('button', { name: 'Insert Dsus2' })).toBeInTheDocument();
   });
 
-  it('adds the shape picked, not the first; Enter adds too', async () => {
-    await open();
-    fireEvent.click(railButton('Chords'));
-    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    const field = dialog('Add a chord').getByRole('textbox', { name: 'Chord name' });
-    fireEvent.change(field, { target: { value: 'Em' } });
-    const [first, second] = dialog('Add a chord').getAllByRole('button', { name: /^Shape / });
+  it('adds the shape picked, not the first, under its own name; Enter in Name adds too', async () => {
+    const add = await openAdd();
+    fireEvent.click(add.getByRole('button', { name: 'Find a chord by name' }));
+    const search = add.getByRole('textbox', { name: 'Chord name to look up' });
+    fireEvent.change(search, { target: { value: 'Hendrix' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+    expect(add.getByText(/No chord “Hendrix”/)).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: 'Em' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+    expect(add.getByRole('radio', { name: 'E' })).toHaveAttribute('aria-checked', 'true');
+    expect(add.getByRole('combobox', { name: 'Type' })).toHaveValue('m');
+    const [first, second] = add.getAllByRole('button', { name: /^Shape / });
     fireEvent.click(second);
     expect(first).toHaveAttribute('aria-pressed', 'false');
     const key = second.getAttribute('aria-label')!.replace('Shape ', '');
+    const field = add.getByRole('textbox', { name: 'Name' });
+    fireEvent.change(field, { target: { value: 'E minor/7' } });
     fireEvent.keyDown(field, { key: 'Enter' });
-    expect(screen.queryByRole('dialog')).toBeNull();
-    const frets = key.split('-').reverse().join(' ');
-    expect(definitions()).toContain(`\\chord ("Em" ${frets})`);
+    expect(definitions()).toContain(`\\chord ("E minor/7" ${key.split('-').reverse().join(' ')})`);
   });
 
-  it('a name that isn’t a chord is added with no shape', async () => {
-    await open();
-    fireEvent.click(railButton('Chords'));
-    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    const add = dialog('Add a chord');
-    fireEvent.change(add.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'N.C.' } });
-    expect(add.getByText('“N.C.” isn’t a chord name, so it has no shapes.')).toBeInTheDocument();
-    fireEvent.change(add.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'Riff A' } });
-    fireEvent.click(add.getByRole('button', { name: 'Add Riff A' }));
+  it('a name with no shape is added with none; a name in the set isn’t added again', async () => {
+    const add = await openAdd();
+    const field = add.getByRole('textbox', { name: 'Name' });
+    fireEvent.change(field, { target: { value: 'G' } });
+    expect(add.getByText('“G” is already in this track’s chords.')).toBeInTheDocument();
+    expect(add.getByRole('button', { name: 'Add chord' })).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'Riff A' } });
+    fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
     expect(definitions()).toContain('\\chord ("Riff A")');
   });
 
-  it('a name already in the set isn’t added again', async () => {
-    await open();
-    fireEvent.click(railButton('Chords'));
-    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    const add = dialog('Add a chord');
-    fireEvent.change(add.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'G' } });
-    expect(add.getByText('“G” is already in this track’s chords.')).toBeInTheDocument();
-    expect(add.queryByRole('button', { name: 'Add G' })).toBeNull();
-    fireEvent.keyDown(add.getByRole('textbox', { name: 'Chord name' }), { key: 'Enter' });
-    expect(definitions()).toHaveLength(2);
-  });
-
-  it('with the cursor on a column of notes: names them, and offers their fingering first, picked', async () => {
+  it('with the cursor on a column of notes: offers their fingering first, picked, and names them', async () => {
     await open();
     act(() => editor().focus());
     keys('ArrowRight');
     fireEvent.click(railButton('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    const add = dialog('Add a chord');
-    const field = add.getByRole('textbox', { name: 'Chord name' });
+    const add = view('Add a chord');
+    const field = add.getByRole('textbox', { name: 'Name' });
     expect(field).toHaveAttribute('placeholder', 'C');
-    // Its fingering shows even before a name is typed.
     expect(add.getByRole('button', { name: 'Shape x-3-2-0-1-0, at the cursor' })).toHaveAttribute('aria-pressed', 'true');
-    // A name of its notes fills the field.
     fireEvent.click(within(add.getByRole('group', { name: 'The notes at the cursor are' })).getByRole('button', { name: 'C' }));
     expect(field).toHaveValue('C');
-    // A name its notes aren't still shows the fingering, drawn as what its notes are, but...
-    fireEvent.change(field, { target: { value: 'Dsus2' } });
-    expect(add.getByRole('button', { name: 'Shape x-3-2-0-1-0, at the cursor' }).querySelector('svg')).not.toBeNull();
-    // ...not picked: Dsus2's own first shape is.
-    expect(add.getByRole('button', { name: 'Shape x-3-2-0-1-0, at the cursor' })).toHaveAttribute('aria-pressed', 'false');
-    expect(add.getByRole('button', { name: 'Shape x-x-0-2-3-0' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.change(field, { target: { value: 'My C' } });
-    expect(add.getByRole('button', { name: 'Shape x-3-2-0-1-0, at the cursor' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(add.getByRole('button', { name: 'Add My C' }));
+    fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
     expect(definitions()).toContain('\\chord ("My C" 0 1 0 2 3 x)');
-    // Its diagram in the list, though "My C" isn't a chord name.
+    // Its diagram in the list, though "My C" isn't a chord name; and it opens on C major, its name its own.
     expect(list().getByRole('button', { name: /^My C/ }).querySelector('svg')).not.toBeNull();
+    fireEvent.click(list().getByRole('button', { name: 'Edit My C' }));
+    expect(view('Edit My C').getByRole('radio', { name: 'C' })).toHaveAttribute('aria-checked', 'true');
+    expect(view('Edit My C').getByRole('combobox', { name: 'Type' })).toHaveValue('M');
+    expect(view('Edit My C').getByRole('textbox', { name: 'Name' })).toHaveValue('My C');
   });
 
-  it('Cancel and ✕ leave the set as it was', async () => {
-    await open();
-    fireEvent.click(railButton('Chords'));
-    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    fireEvent.change(dialog('Add a chord').getByRole('textbox', { name: 'Chord name' }), { target: { value: 'Em' } });
-    fireEvent.click(dialog('Add a chord').getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
-    fireEvent.change(dialog('Add a chord').getByRole('textbox', { name: 'Chord name' }), { target: { value: 'Em' } });
-    fireEvent.click(dialog('Add a chord').getByRole('button', { name: 'Close add a chord' }));
-    expect(definitions()).toHaveLength(2);
+  it('draws your own: a press puts a finger on a string, again lifts it; beside the nut, open turns muted', async () => {
+    const add = await openAdd();
+    fireEvent.click(add.getByRole('button', { name: 'Draw your own' }));
+    const editor = within(add.getByRole('group', { name: 'Draw a fingering' }));
+    fireEvent.click(editor.getByRole('button', { name: 'String 1, fret 3' }));
+    expect(editor.getByRole('button', { name: 'String 1, fret 3' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(editor.getByRole('button', { name: 'String 6, fret 3' }));
+    fireEvent.click(editor.getByRole('button', { name: 'String 5, fret 2' }));
+    for (const s of [2, 3, 4]) fireEvent.click(editor.getByRole('button', { name: `String ${s}: muted` }));
+    // The drawn notes are named: x-x-x-x-x-3 and so on make G.
+    expect(within(add.getByRole('group', { name: 'These notes are' })).getByRole('button', { name: 'G' })).toBeInTheDocument();
+    fireEvent.click(editor.getByRole('button', { name: 'String 2: open' }));
+    expect(editor.getByRole('button', { name: 'String 2: muted' })).toBeInTheDocument();
+    fireEvent.click(editor.getByRole('button', { name: 'String 2: muted' }));
+    // "Higher frets" moves the frets shown, not the shape.
+    fireEvent.click(add.getByRole('button', { name: 'Higher frets' }));
+    expect(add.getByText('Fret 2')).toBeInTheDocument();
+    expect(editor.getByRole('button', { name: 'String 1, fret 3' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.change(add.getByRole('textbox', { name: 'Name' }), { target: { value: 'G mine' } });
+    fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
+    expect(definitions()).toContain('\\chord ("G mine" 3 0 0 0 2 3)');
   });
 });
 

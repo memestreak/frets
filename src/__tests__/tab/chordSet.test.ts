@@ -6,7 +6,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setChordName } from '@/features/tab/barEdits';
-import { chordDefOf, chordSet, withChordShape, withNewChord, type ChordDef } from '@/features/tab/chordSet';
+import { chordDefOf, chordSet, withChordShape, withNewChord, withRenamedChord, type ChordDef } from '@/features/tab/chordSet';
 import { parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
 import { readChordName } from '@/lib/theory/chordSearch';
 
@@ -185,5 +185,19 @@ describe('changing the Chord set from the Chords panel (issue #251)', () => {
   it('Add leaves a name that already has a definition as it is', () => {
     const track = { chords: [{ name: 'G', frets: G }] };
     expect(withNewChord(track, 'G', G_OTHER)).toBe(track);
+  });
+
+  it('Save chord renames the definitions and every column naming it, in this Voice and the others', () => {
+    const part = partOf(read([
+      '\\chord ("G" 3 0 0 0 2 3) {showname true}',
+      '\\voiceMode barWise \\ts (4 4) \\voice 3.6.2{ch "G"} 0.6.2{ch "C"} \\voice 3.6.2{ch "G"} r.2 |',
+    ].join('\n')).clip);
+    const next = withRenamedChord(part, 'G', 'G barre');
+    expect(next.chords).toEqual([{ name: 'G barre', frets: G, showName: true }]);
+    expect(next.bars[0].columns.map(c => c.chord)).toEqual(['G barre', 'C']);
+    expect(next.bars[0].otherVoices?.[0].columns.map(c => c.chord)).toEqual(['G barre', undefined]);
+    // A name already taken, by a definition or a column, renames nothing.
+    expect(withRenamedChord(part, 'G', 'C')).toBe(part);
+    expect(withRenamedChord(next, 'G barre', 'G barre')).toBe(next);
   });
 });

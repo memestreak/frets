@@ -113,7 +113,7 @@ and in its spec.
 - `chordSet.ts` — a track's Chord set: its `\chord` definitions
   (`Track.chords`, each a name and shape) and the names only typed over
   columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`;
-  `withChordShape`, `withNewChord` and `withoutChord`, the Chords panel's changes to it.
+  `withChordShape`, `withNewChord`, `withRenamedChord` and `withoutChord`, the Chords panel's changes to it.
 - `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
   `2026-10-30-tab-track-effects-design.md`.
 - `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex), reading
@@ -275,8 +275,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set (folding, kept in `frets.tab.chordPanel`), each chord with Edit and, unused, a trash can; + to look a chord up; Insert name, notes or both at the cursor for the chord picked; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
-- `ChordDialog.tsx` — the Chord dialog: Edit (a chord's shapes, its own marked; OK gives it the one picked), opened from the list or a chord name's Edit or double-click, and Add (a name's shapes, or a name for the cursor column's notes with their fingering first; adds the chord with the shape picked).
+- `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set (folding, kept in `frets.tab.chordPanel`), each chord with Edit and, unused, a trash can; + to add a chord; Insert name, notes or both at the cursor for the chord picked; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251).
+- `ChordView.tsx` — the chord view, in the Chords panel where its + was: a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own; Add chord from +, Save chord (rename and shape) from a chord's Edit or double-click, in the list or on its name in the tab.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
@@ -418,7 +418,7 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   the Tab page and in show_tab (issue #373).
 - `docs/specs/2026-11-05-tab-chord-panel-design.md`: the rail's Chords
   panel, opened at a chord by its name's Edit or double-click: shapes,
-  its Chord dialog (Edit a shape, Add a chord), deleting an unused chord, and
+  its chord view (add a chord, or change one's name and shape, in the panel), deleting an unused chord, and
   Insert (issue #251)
 - `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
   set, its `\chord` shapes kept in the clip and its chord names understood

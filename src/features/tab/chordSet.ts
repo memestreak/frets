@@ -5,7 +5,7 @@
  * shape, for as long as a column carries it. Pure.
  */
 import { readChordName, type ChordReading } from '@/lib/theory/chordSearch';
-import type { Column, Track, TrackBar } from './clip';
+import type { Column, Part, Track, TrackBar } from './clip';
 
 /**
  * One alphaTex `\chord` definition, as written: a name and a shape. Every property alphaTab 1.8.4
@@ -121,7 +121,7 @@ export function withChordShape<T extends WithChords>(track: T, name: string, fre
 }
 
 /**
- * The track with a new chord in its Chord set (the Chord dialog's Add): a definition of `name`, with
+ * The track with a new chord in its Chord set (the chord view's Add chord): a definition of `name`, with
  * `frets` when there is a shape for it. A name that already has a definition is left as it is.
  */
 export function withNewChord<T extends WithChords>(track: T, name: string, frets: readonly (number | null)[] | null): T {
@@ -134,4 +134,25 @@ export function withNewChord<T extends WithChords>(track: T, name: string, frets
 export function withoutChord<T extends WithChords>(track: T, name: string): T {
   if (!track.chords?.some(def => def.name === name)) return track;
   return { ...track, chords: track.chords.filter(def => def.name !== name) };
+}
+
+/**
+ * The part with the chord `from` called `to` (the chord view's Save chord): its definitions, and every
+ * column that names it, in this Voice and the others the part carries. Nothing changes for `to` already
+ * taken, which the view doesn't offer.
+ */
+export function withRenamedChord(part: Part, from: string, to: string): Part {
+  const voices = part.bars.flatMap(bar => [bar.columns, ...(bar.otherVoices ?? []).map(v => v.columns)]);
+  const taken = part.chords?.some(def => def.name === to) || voices.some(columns => columns.some(c => c.chord === to));
+  if (from === to || taken) return part;
+  const rename = (columns: Column[]) => columns.map(c => (c.chord === from ? { ...c, chord: to } : c));
+  return {
+    ...part,
+    chords: part.chords?.map(def => (def.name === from ? { ...def, name: to } : def)),
+    bars: part.bars.map(bar => ({
+      ...bar,
+      columns: rename(bar.columns),
+      ...(bar.otherVoices && { otherVoices: bar.otherVoices.map(v => ({ ...v, columns: rename(v.columns) })) }),
+    })),
+  };
 }

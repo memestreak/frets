@@ -81,11 +81,11 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(screen.getByTestId('repeat-count')).toHaveTextContent('×4');
   });
 
-  it('a chord name opens the Chords panel and that chord’s Chord dialog (issue #251), not note input', async () => {
+  it('a chord name opens the Chords panel and that chord’s view (issue #251), not note input', async () => {
     await open();
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
     expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();
-    expect(screen.getByRole('dialog', { name: 'Edit A' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Edit A' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     // The Notes panel, where the pencil is, has given way to Chords.
     expect(screen.queryByRole('button', { name: 'Note input' })).toBeNull();
@@ -103,7 +103,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     await open();
     fireEvent.click(pencil());
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
-    expect(screen.getByRole('dialog', { name: 'Edit A' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Edit A' })).toBeInTheDocument();
   });
 });
 

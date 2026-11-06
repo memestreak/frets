@@ -2,28 +2,19 @@
 
 /**
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
- * #251): the track's Chord set, each chord with Edit (its Chord dialog, to pick another shape) and,
- * unused, a trash can; + to add one (the Chord dialog, which looks it up); and Insert for the chord picked. A chord name's Edit, or its
- * double-click, opens that chord's dialog; moving the cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
+ * #251): the track's Chord set, each chord with Edit and, unused, a trash can; + to add one; and Insert
+ * for the chord picked. Edit, a double-click on a chord, + and a chord name's Edit or double-click in the
+ * tab open the chord view (`ChordView`) where the + was. Picking a chord only picks it; moving the cursor
+ * changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
-import { useMock, type Mock } from '@/components/mocks/useMock';
-import { ChordAddMock, withRenamedChord } from './ChordAddMock';
-import { ChordDialog, type ChordDialogMode } from './ChordDialog';
-import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, type ChordEntry } from './chordSet';
+import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import type { Column, Duration, Part, Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
+import { ChordView } from './ChordView';
 import { NoteSoundIcon } from './PlaybackFooter';
-
-/** MOCK: the chord view: the modal dialog (now), or in the panel (a, picked; round 2). */
-const ADD_MOCK: Mock = {
-  param: 'add', label: 'Chord view', options: [
-    { value: 'off', label: 'Dialog (now)' },
-    { value: 'a', label: 'a In the panel' },
-  ],
-};
 
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
@@ -149,7 +140,7 @@ interface ChordPanelProps {
   cursor: Cursor;
   /** Whether the cursor is in the tab: off it, Insert does nothing, as the palette does. */
   editing: boolean;
-  /** The chord a name's Edit last asked for (each Edit a new object): its Chord dialog opens, to edit it. */
+  /** The chord a name's Edit last asked for (each Edit a new object): its chord view opens. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
   /** Note input's length while note input is on, else null: Insert then writes a new column of it and moves on. */
@@ -160,44 +151,30 @@ interface ChordPanelProps {
   hear: boolean;
   /** Sounds a shape, high e first. */
   onHear: (frets: readonly (number | null)[]) => void;
-  /** Gives the focus back to the tab, when the Chord dialog closes. */
+  /** Gives the focus back to the tab, when the chord view closes. */
   onDone: () => void;
 }
 
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<ChordDialogMode | null>(null);
-  const addMock = useMock(ADD_MOCK);
-  /** MOCK: the + replaced by the chord view in the panel. */
-  const [adding, setAdding] = useState(false);
-  /** MOCK: the chord the view is open on, from its pencil or a double-click; picking alone doesn't open it. */
-  const [viewChord, setViewChord] = useState<string | null>(null);
-  const inPanel = addMock !== 'off';
+  /** What the chord view is open for: a new chord (+), a chord of the set, or nothing (closed). */
+  const [view, setView] = useState<{ kind: 'add' } | { kind: 'edit'; name: string } | null>(null);
   const openOn = (n: string) => {
     setPicked(n);
-    setAdding(false);
-    setViewChord(n);
+    setView({ kind: 'edit', name: n });
   };
   const closeView = () => {
-    setAdding(false);
-    setViewChord(null);
+    setView(null);
     onDone();
   };
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
-  // A name's Edit picks that chord and opens its Chord dialog.
+  // A name's Edit picks that chord and opens its chord view.
   useEffect(() => {
     if (!at?.name) return;
-    /* eslint-disable react-hooks/set-state-in-effect -- a new `at` is an outside event. */
-    // MOCK: in the panel, it opens the chord's view.
-    if (inPanel) openOn(at.name);
-    else {
-      setPicked(at.name);
-      setDialog({ kind: 'edit', name: at.name });
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new `at` opens it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
+    openOn(at.name);
   }, [at]);
 
   const column = columnAt(clip, cursor);
@@ -205,7 +182,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   const set = useMemo(() => chordSet({ ...track, chords: clip.chords }), [track, clip.chords]);
   const name = picked && set.some(e => e.name === picked) ? picked : null;
 
-  /** MOCK: a chord's own shape (low string first), from its definition; null for none. */
+  /** A chord's own shape (low string first), from its definition; null for none. */
   const shapeOfDef = (n: string) => {
     const frets = chordDefOf(clip.chords, n)?.frets;
     return frets ? toShape(frets) : null;
@@ -237,15 +214,10 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
     if (picked === entry.name) setPicked(null);
   };
 
-  const closeDialog = () => {
-    setDialog(null);
-    onDone();
-  };
-
   // Presses on the panel's buttons keep the tab's focus, and so its cursor, as the palette's do.
   const keep = (e: MouseEvent) => e.preventDefault();
-  /** MOCK: the chord the view is open on, while it's still in the set. */
-  const viewOn = viewChord && set.some(e => e.name === viewChord) ? viewChord : null;
+  /** The chord the view is open on, while it is still in the set. */
+  const viewOn = view?.kind === 'edit' && set.some(e => e.name === view.name) ? view.name : null;
 
   return (
     <div className="chord-panel">
@@ -260,7 +232,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
                 <button
                   type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
                   onMouseDown={keep} onClick={() => pick(entry.name)}
-                  onDoubleClick={() => { if (inPanel) openOn(entry.name); }}
+                  onDoubleClick={() => openOn(entry.name)}
                 >
                   <span className="chord-panel-thumb" aria-hidden="true">
                     {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
@@ -272,7 +244,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
                 </button>
                 <button
                   type="button" className="chord-panel-icon" aria-label={`Edit ${entry.name}`} data-tip="Edit"
-                  onMouseDown={keep} onClick={() => (inPanel ? openOn(entry.name) : (setPicked(entry.name), setDialog({ kind: 'edit', name: entry.name })))}
+                  onMouseDown={keep} onClick={() => openOn(entry.name)}
                 >
                   <PencilIcon />
                 </button>
@@ -289,10 +261,10 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
             );
           })}
         </ul>
-        {inPanel && (adding || viewOn) ? (
-          <ChordAddMock
-            key={adding ? '+' : `chord:${viewOn}`}
-            opened={adding || !viewOn ? null : { name: viewOn, shape: shapeOfDef(viewOn) }}
+        {view?.kind === 'add' || viewOn ? (
+          <ChordView
+            key={viewOn === null ? 'add' : `edit:${viewOn}`}
+            opened={viewOn ? { name: viewOn, shape: shapeOfDef(viewOn) } : null}
             clip={clip} column={column} taken={set.map(e => e.name)}
             onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); closeView(); }}
             onSave={(from, to, frets) => {
@@ -302,12 +274,12 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
               closeView();
             }}
             onHear={shape => { if (hear) onHear(toFrets(shape)); }}
-            onCancel={closeView}
+            onClose={closeView}
           />
         ) : (
           <button
             type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
-            onMouseDown={keep} onClick={() => (inPanel ? (setViewChord(null), setAdding(true)) : setDialog({ kind: 'add' }))}
+            onMouseDown={keep} onClick={() => setView({ kind: 'add' })}
           >
             <PlusIcon />
           </button>
@@ -326,13 +298,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
           <button type="button" className="btn btn-primary" onMouseDown={keep} onClick={insert}>Insert {name}</button>
         </div>
       )}
-
-      <ChordDialog
-        mode={dialog} clip={clip} column={column} taken={set.map(e => e.name)} onClose={closeDialog}
-        onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); }}
-        onShape={(n, shape) => onChange(withChordShape(clip, n, toFrets(shape)))}
-        onHear={shape => { if (hear) onHear(toFrets(shape)); }}
-      />
     </div>
   );
 }
