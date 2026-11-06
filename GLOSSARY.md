@@ -198,6 +198,11 @@ let ring, P.M., vibrato, an octave line, a hairpin. Picked whole, with a
 Handle at each end.
 _Avoid_: run (for the Mark)
 
+**Staff view**:
+The clip with Staff picked in its Staff | Tab | Both switch: the
+notation staff alone, with no tab under it.
+_Avoid_: staff only, staff alone
+
 **Strum**:
 A chord strummed down or up, written `bd` (strum down) / `bu` (strum up)
 in alphaTex and drawn by Guitar Pro and alphaTab as an arrow beside the
