@@ -43,6 +43,7 @@ const INPUT: ShortcutGroup = {
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Next grid line in a rest, else the next note' },
     { keys: ['Shift+Space'], does: 'On by the next note’s length' },
+    { keys: ['Mod+Up', 'Mod+Down'], does: 'Up to the staff, or back down to the tab' },
     { keys: ['Alt+G'], does: 'Fixed grid or the note’s length' },
     { keys: ['Alt+[', 'Alt+]'], does: 'Finer or coarser fixed grid' },
     { keys: ['0–9'], does: 'Fret (two digits quickly for 10 and up)' },

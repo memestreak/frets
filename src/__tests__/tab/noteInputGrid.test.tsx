@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
@@ -28,6 +28,25 @@ async function open() {
   render(<TabPage />);
   await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
   act(() => editor().focus());
+}
+const TWO_BARS = '\\title "Grid"\n\\ts (4 4)\n5.1.4 r.2{d} | r.1 |';
+/** Two bars, the second empty, with where they are drawn, a pointer spot in each and where the drawn grid starts. */
+async function openTwoBars() {
+  window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(TWO_BARS)}`);
+  render(<TabPage />);
+  await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+  act(() => editor().focus());
+  const read = readAlphaTexWith(alphaTab, TWO_BARS);
+  if (!read.ok) throw new Error(read.errors.join('\n'));
+  const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+  const svg = screen.getByRole('img', { name: /drawn as/ });
+  const over = (bar: number) => {
+    const rest = bars[bar].columns[bars[bar].columns.length - 1];
+    return { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop };
+  };
+  /** Where the drawn grid starts: its ruler's line runs from the bar's left edge. */
+  const gridStart = () => Number(screen.getByTestId('grid-lines').querySelector('line')!.getAttribute('x1'));
+  return { svg, bars, over, gridStart };
 }
 const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
 const keys = (...list: (string | { key: string; code?: string; altKey?: boolean; shiftKey?: boolean })[]) => {
@@ -91,7 +110,7 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
-  it('draws the grid over the cursor’s bar in note input only: a ruler by default, lines when Settings says so', async () => {
+  it('draws the grid in note input only: a ruler by default, lines when Settings says so', async () => {
     await open();
     expect(screen.queryByTestId('grid-lines')).toBeNull();
     keys('n');
@@ -103,6 +122,83 @@ describe('note input’s grid (issue #293)', () => {
     await open();
     keys('n');
     expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-look', 'lines');
+  });
+
+  it('keeps the grid when Staff, Tab or Both is pressed: the press leaves the focus on the editor (issue #396)', async () => {
+    await open();
+    keys('n');
+    const show = screen.getByRole('group', { name: 'Show' });
+    for (const name of ['Staff', 'Both', 'Tab']) {
+      const button = within(show).getByRole('button', { name });
+      // A press that doesn't take the focus: the editor isn't blurred, so note input's cursor and grid stay.
+      expect(fireEvent.mouseDown(button)).toBe(false);
+      fireEvent.click(button);
+      expect(button).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('grid-lines')).toBeInTheDocument();
+    }
+  });
+
+  it('in note input the pointer moves the caret, the grid with it, and leaves it where the pointer left (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    keys('n');
+    expect(gridStart()).toBe(bars[0].x0);
+    fireEvent.pointerMove(svg, over(1));
+    expect(gridStart()).toBe(bars[1].x0);
+    fireEvent.pointerLeave(svg);
+    expect(gridStart()).toBe(bars[1].x0);
+  });
+
+  it('shows only the ghost while the pointer is over the clip, and the arrow keys move it there (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    keys('n');
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    fireEvent.pointerMove(svg, over(1));
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
+    expect(screen.queryByTestId('input-cursor')).toBeNull();
+    // ← and ↓ move the ghost, the pointer still where it was.
+    const ghost = () => [screen.getByTestId('shadow-fret').getAttribute('x'), screen.getByTestId('shadow-fret').getAttribute('y')];
+    const before = ghost();
+    keys('ArrowLeft', 'ArrowDown');
+    const moved = ghost();
+    expect(moved[0]).not.toBe(before[0]);
+    expect(moved[1]).not.toBe(before[1]);
+    expect(gridStart()).toBe(bars[1].x0);
+    // Off the clip: the caret's box where the keys left it.
+    fireEvent.pointerLeave(svg);
+    expect(screen.getByTestId('input-cursor')).toHaveAttribute('x', moved[0]);
+  });
+
+  it('starts note input with the caret under the pointer when it is over a bar (issue #396)', async () => {
+    const { svg, bars, over, gridStart } = await openTwoBars();
+    fireEvent.pointerMove(svg, over(1));
+    keys('n');
+    expect(gridStart()).toBe(bars[1].x0);
+  });
+
+  it('draws the caret’s line on the tab on a column with no string picked, so the caret never goes missing (issue #396)', async () => {
+    const { svg, over } = await openTwoBars();
+    // A press above the first bar's rest picks its column, no string.
+    fireEvent.pointerDown(svg, { ...over(0), clientY: 1, button: 0 });
+    fireEvent.pointerUp(svg, { ...over(0), clientY: 1, button: 0 });
+    fireEvent.pointerLeave(svg);
+    keys('n');
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    // Over the tab the caret goes onto the string pointed at: a ghost box, no line.
+    fireEvent.pointerMove(svg, over(1));
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+  });
+
+  it('keeps the caret, and the grid with it, where it was when the view changes (issue #396)', async () => {
+    const { svg, over, gridStart } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    const before = gridStart();
+    fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
+    // Still over the second bar, drawn somewhere else now; its caret's box shows until the pointer moves.
+    expect(gridStart()).not.toBe(before);
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

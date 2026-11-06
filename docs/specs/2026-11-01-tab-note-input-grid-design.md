@@ -29,8 +29,20 @@ first.
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
-7. **The grid is drawn over the cursor's bar** in note input, as Dorico shows it, its beats a little
-   stronger. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
+7. **The pointer moves the caret** in note input (Jeremy, 2026-11-06, issue #396; a departure from
+   Dorico and MuseScore, whose pointer only shows a shadow note, chosen for consistency). Over the
+   staff or the tab the caret goes where a press would put a note, entering nothing: on the tab the
+   string pointed at, on the staff the line, space or head, inside a rest at the grid line. While the
+   pointer is over them the caret's own mark is hidden and only its ghost shows (a ghost note on the
+   staff, a dim box on the tab); the arrow keys move that ghost, the pointer still there, and Enter or
+   a fret puts the note in; the next pointer move takes the caret back under it. Hovering the staff
+   gives it the arrow keys (pitch by line and space), hovering the tab gives them to the strings. Off
+   the staff and the tab the caret stays where it was left and always shows: on the staff its line
+   (also over a note at its own pitch) and ghost, on the tab its box on a string, or an upright line
+   like the staff's on a column with no string picked. N starts the caret under the pointer when it is
+   over a bar. The grid is always over the caret's bar, its beats a little stronger. Pressing Staff,
+   Tab or Both leaves the focus on the editor, as the palette's buttons do, so the caret and the grid
+   stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
    **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
    bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
    dropped.)

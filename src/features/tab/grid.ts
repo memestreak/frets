@@ -25,7 +25,7 @@ export function isGridValue(value: unknown): value is GridValue {
   return (GRID_VALUES as readonly unknown[]).includes(value);
 }
 
-/** How the grid is drawn over the cursor's bar in note input (Jeremy, 2026-11-03): a ruler over the staff by default. */
+/** How the grid is drawn in note input, over the bar under the pointer, else the cursor's (Jeremy, 2026-11-03; issue #396): a ruler over the staff by default. */
 export const GRID_LOOKS = ['ruler', 'lines'] as const;
 export type GridLook = (typeof GRID_LOOKS)[number];
 export const DEFAULT_GRID_LOOK: GridLook = 'ruler';

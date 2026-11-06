@@ -228,6 +228,10 @@ When is the length chosen, where can a note start, and how does the cursor move?
   still picks the whole bar.
 - The drawn Grid marks only where a note can go: each note's start and the grid lines inside
   rests, never inside a note's length, which the same Voice can't take.
+- The pointer moves the caret: over the staff or the tab it goes where a press would put a note,
+  only its ghost showing, and the arrow keys move it on from there; off them it stays put and its
+  mark shows. The Grid is always over the caret's bar (issue #396). Departs from Dorico and MuseScore,
+  whose pointer only shows a shadow note, for one place the pointer, keys and Grid all agree on.
 - Later: entering inside a note shortens it to that point, as Dorico does with Insert mode off
   (issue #332).
 - A note longer than the room before the next note writes over it, split and tied by the meter.
