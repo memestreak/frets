@@ -2,7 +2,7 @@
  * The Tab rail's Chords panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord
  * name's Edit opens it at that chord, a shape picked changes the `\chord` definition, an unused chord is
  * deleted, + adds a chord (its shape from the name or the cursor column's notes), moving the cursor
- * changes nothing, and Insert writes a name, notes or both at the cursor.
+ * changes nothing, and Insert writes a name, notes or both at the cursor (in note input, at the Input length).
  */
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -253,6 +253,39 @@ describe('the cursor column', () => {
     expect(written()).toMatch(expected);
     // The third column had no notes; Name leaves it a rest.
     expect(written().includes('r.4{ch "C"}')).toBe(!notes);
+  });
+});
+
+describe('Insert in note input', () => {
+  /** The cursor on the third column (a quarter rest), in note input with an eighth as its length. */
+  async function inputAtRest() {
+    await open();
+    act(() => editor().focus());
+    keys('ArrowRight', 'ArrowRight', 'n', { key: '$', shiftKey: true, code: 'Digit4' });
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: /^C/ }));
+  }
+
+  it('writes the chord at the Input length and moves on, as a note typed does: twice is two eighths', async () => {
+    await inputAtRest();
+    fireEvent.click(inPanel().getByRole('button', { name: 'Insert C' }));
+    fireEvent.click(inPanel().getByRole('button', { name: 'Insert C' }));
+    // The written text wraps long lines; the bar is read as one.
+    expect(written().replace(/\s+/g, ' ')).toContain('(0.1 1.2 0.3 2.4 3.5).8{ch "C"} (0.1 1.2 0.3 2.4 3.5).8{ch "C"} r.4 |');
+  });
+
+  it('Notes writes the notes alone at the Input length', async () => {
+    await inputAtRest();
+    fireEvent.click(within(inPanel().getByRole('group', { name: 'Insert' })).getByRole('button', { name: 'Notes' }));
+    fireEvent.click(inPanel().getByRole('button', { name: 'Insert C' }));
+    expect(written()).toContain('(0.1 1.2 0.3 2.4 3.5).8 r.8 r.4 |');
+  });
+
+  it('Name puts the name over the cursor’s column, its length kept, the cursor where it was', async () => {
+    await inputAtRest();
+    fireEvent.click(within(inPanel().getByRole('group', { name: 'Insert' })).getByRole('button', { name: 'Name' }));
+    fireEvent.click(inPanel().getByRole('button', { name: 'Insert C' }));
+    expect(written()).toContain('r.4{ch "C"} r.4 |');
   });
 });
 
