@@ -497,10 +497,18 @@ export default function TabPage() {
   };
   /** Note input on or off; going in, the keys come to the tab. */
   const enterInput = (on: boolean) => {
+    // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
+    // MuseScore's note input begin there (Jeremy, 2026-11-06).
+    const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     setInputMode(on);
-    setCursorAt(cursor, 0);
+    setCursorAt(at, 0);
     if (on) {
-      setInputLength(startLength(clip, cursor));
+      if (selection) {
+        setCursor(at);
+        setSelection(null);
+      }
+      setPicked(null);
+      setInputLength(startLength(clip, at));
       // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
       // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
       setColumnOnly(true);

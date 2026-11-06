@@ -1,6 +1,7 @@
 import type { Part } from './clip';
 import type { Layout } from './layout';
 import type { FieldKind } from './WordField';
+import { SECTION_LINE } from './sectionText';
 
 /*
  * Where the fields and panels that a press, a key or a picked word's menu opens go over the drawn tab.
@@ -28,7 +29,9 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     if (!placed) continue;
     const { rows, top } = layout.systems[s];
     const row = { chord: rows.chords, text: rows.text, section: rows.section, capo: rows.capo, ending: rows.endings, repeat: rows.endings }[kind];
-    const y = top + (row ?? rows.staffTop - 20) - FIELD_HEIGHT;
+    // A section moved up clear of another opens its field over where it is drawn (issue #389).
+    const raised = kind === 'section' ? placed.sectionTop * SECTION_LINE : 0;
+    const y = top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
     // The capo is written at the start of the first line, over the time signature.
     // A repeat's count is written over the bar's end.
     const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0

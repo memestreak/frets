@@ -4,7 +4,8 @@ import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY,
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
@@ -649,12 +650,22 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           })()}
           {cursorOnStaff && !selectedNote && (() => {
             const place = staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!);
-            // In note input on a note (one just entered, say), the caret's line stays off it: only the pitch's
-            // dash shows, to add a note to the chord, and over a note already at that pitch nothing at all
-            // (Jeremy, 2026-11-06). On a rest or a Gap the whole caret shows.
+            // In note input on a note (one just entered, say), the caret's line stays off it: only the next
+            // note's ghost shows, to add to the chord, and over a note already at that pitch nothing at all
+            // (Jeremy, 2026-11-06). On a rest or a Gap the line shows too. One ghost note at a time: while the
+            // pointer's is on the staff, the cursor's goes, and in the cursor's bar the line goes too.
             const heads = highlight!.input ? staffColumnHeads(system, highlight!.cursor!) : [];
             if (heads.some(h => h.step === place.step)) return null;
-            return <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0} {...place} />;
+            const pointerGhost = shadow !== null && hover !== null && hover.step !== null;
+            // With the pointer's ghost in the cursor's own bar, the mouse is placing the note: no caret there either.
+            const hoverBar = pointerGhost && hover!.system === si ? system.bars.find(b => hover!.x >= b.x0 && hover!.x <= b.x1) : undefined;
+            if (hoverBar && hoverBar.index === highlight!.cursor!.bar) return null;
+            return (
+              <StaffCursor
+                x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0}
+                ghost={!pointerGhost} value={shadow ?? 4} {...place}
+              />
+            );
           })()}
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
@@ -1005,7 +1016,9 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
     const { section } = bar.bar;
     const tempo = tempoOver(bar);
     if (section && rows.section !== null) {
-      const y = rows.section;
+      // Its first line, moved up clear of a section it would run into (issue #389).
+      const { y0: y } = sectionBox(bar, rows.section);
+      const lines = bar.sectionLines.length > 0 ? bar.sectionLines : [section.text];
       const look = lookOf({ kind: 'section', bar: bar.index });
       const { marker, text } = sectionBoxes(section);
       parts.push(
@@ -1016,7 +1029,11 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
               <text x={x0 + marker.width / 2} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700} textAnchor="middle">{section.marker}</text>
             </>
           )}
-          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>{section.text}</text>
+          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>
+            {lines.map((line, k) => (
+              <tspan key={k} x={x0 + text.x} dy={k === 0 ? 0 : SECTION_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
+            ))}
+          </text>
         </g>,
       );
     }

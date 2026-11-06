@@ -350,9 +350,9 @@ describe('note input’s staff cursor (issue #382)', () => {
     fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
     const cursor = screen.getByTestId('staff-cursor');
     expect(within(cursor).getByTestId('staff-caret')).toBeInTheDocument();
-    expect(within(cursor).getByTestId('staff-caret-pitch')).toBeInTheDocument();
-    // No head: the middle line's B needs no sign, so nothing in the cursor is a glyph.
-    expect(cursor.querySelector('path')).toBeNull();
+    // Its only head is the next note's faint ghost, at the Input length: a quarter now, not the rest's whole.
+    expect(within(cursor).getByTestId('staff-ghost')).toHaveAttribute('data-value', '4');
+    expect(within(cursor).getAllByTestId('staff-ghost')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Quarter note' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toMatch(/\| r\.1 \|/);
@@ -360,7 +360,7 @@ describe('note input’s staff cursor (issue #382)', () => {
 });
 
 describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
-  it('draws no caret over a note just entered, and only the pitch’s dash at another pitch', async () => {
+  it('draws nothing over a note just entered, and only the next note’s ghost at another pitch', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -373,7 +373,36 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(9));
     expect(screen.queryByTestId('staff-cursor')).toBeNull();
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
-    expect(screen.getByTestId('staff-caret-pitch')).toBeInTheDocument();
+    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-caret')).toBeNull();
+  });
+
+  it('shows one ghost note at a time: the pointer’s over the staff, else the cursor’s', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    act(() => editor().focus());
+    for (let i = 0; i < 8; i++) fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+    fireEvent.keyDown(editor(), { key: 'n' });
+    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
+    // Over the first head, on the staff.
+    const path = screen.getAllByTestId('staff-head')[0].querySelector('path')!;
+    const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(path.getAttribute('transform')!)!;
+    fireEvent.pointerMove(svg, { clientX: Number(x) + 4, clientY: Number(y) });
+    expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
+    // In another bar than the cursor's: the caret stays, without its ghost.
+    expect(screen.queryByTestId('staff-ghost')).toBeNull();
+    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    // In the cursor's own bar (the whole rest's): nothing of the cursor's.
+    const restPath = screen.getAllByTestId('staff-rest').at(-1)!.querySelector('path')!;
+    const [, rx, ry] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
+    fireEvent.pointerMove(svg, { clientX: Number(rx) + 4, clientY: Number(ry) });
+    expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    fireEvent.pointerLeave(svg);
+    expect(screen.queryByTestId('shadow-note')).toBeNull();
+    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
   });
 });
