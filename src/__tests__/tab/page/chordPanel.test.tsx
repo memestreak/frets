@@ -185,6 +185,22 @@ describe('the chord editor: Add', () => {
     expect(inPanel().getByRole('button', { name: 'Insert Dsus2' })).toBeInTheDocument();
   });
 
+  it('Esc closes it after a shape is pressed, the focus let go to the page; Esc in the search closes the search only', async () => {
+    const add = await openAdd();
+    fireEvent.click(add.getByRole('radio', { name: 'A' }));
+    fireEvent.click(add.getAllByRole('button', { name: /^Shape / })[0]);
+    // A pressed button lets go of the focus (useLetGoAfterUse), so Esc comes from the page.
+    act(() => (document.activeElement as HTMLElement | null)?.blur());
+    fireEvent.click(add.getByRole('button', { name: 'Find a chord by name' }));
+    fireEvent.keyDown(add.getByRole('textbox', { name: 'Chord name to look up' }), { key: 'Escape' });
+    expect(add.queryByRole('textbox', { name: 'Chord name to look up' })).toBeNull();
+    expect(inPanel().getByRole('group', { name: 'Add a chord' })).toBeInTheDocument();
+    act(() => (document.activeElement as HTMLElement | null)?.blur());
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(inPanel().queryByRole('group', { name: 'Add a chord' })).toBeNull();
+    expect(definitions()).not.toContain('\\chord ("A"');
+  });
+
   it('adds the shape picked, not the first, under its own name; Enter in Name adds too', async () => {
     const add = await openAdd();
     fireEvent.click(add.getByRole('button', { name: 'Find a chord by name' }));

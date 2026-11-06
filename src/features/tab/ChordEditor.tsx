@@ -145,23 +145,32 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
     setDrawing(true);
     if (!draft.shape) draft.draw(NO_SHAPE);
   };
-  const onKeyDown = (e: KeyboardEvent) => {
-    // Esc closes it, and goes no further (not to note input, nor the selection).
-    if (e.key === 'Escape') {
+  // Esc closes it wherever the focus is: a button pressed in it lets go of the focus after use
+  // (`useLetGoAfterUse`), so the key may come from the page. It goes no further (not to note input,
+  // nor the selection), and leaves a dialog or menu open over the page to take its own Esc.
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const onEscape = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const target = e.target as Element | null;
+      if (target?.closest?.('[role="dialog"], [role="menu"], dialog[open]')) return;
+      // The name to look up takes its own Esc, closing the search only.
+      if (target?.closest?.('[data-own-escape]')) return;
       e.preventDefault();
-      e.stopPropagation();
-      onClose();
-    }
-  };
+      e.stopImmediatePropagation();
+      close.current();
+    };
+    window.addEventListener('keydown', onEscape, { capture: true });
+    return () => window.removeEventListener('keydown', onEscape, { capture: true });
+  }, []);
   /** The shape's notes are named while it is the cursor's or drawn: the other tiles are the chord's. */
   const atCursor = draft.atCursor !== null && draft.shape !== null && shapeKey(draft.shape) === shapeKey(draft.atCursor);
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Esc from any of its controls closes it.
-    <div
-      ref={editor} tabIndex={-1} className="chord-editor" role="group"
-      aria-label={opened ? `Edit ${opened.name}` : 'Add a chord'} onKeyDown={onKeyDown}
-    >
+    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Edit ${opened.name}` : 'Add a chord'}>
       <label className="chord-editor-field">
         <span className="field-label">Name</span>
         <input
@@ -232,7 +241,7 @@ function Lookup({ draft }: { draft: Draft }) {
         <div className="chord-editor-type">
           {searching ? (
             <input
-              ref={field} className="input" aria-label="Chord name to look up" placeholder="Am7, F#m7b5…"
+              ref={field} className="input" aria-label="Chord name to look up" data-own-escape placeholder="Am7, F#m7b5…"
               autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false}
               value={query} onChange={e => { setQuery(e.target.value); setMissed(false); }} onKeyDown={onKeyDown}
             />
