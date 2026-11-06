@@ -1,7 +1,7 @@
 \title "Every Mark can be picked, and shows the notes it belongs to"
 \ts (4 4)
 \section ("A" "Verse")
-  0.3.4{ch "Am" txt "Both view: press this Am, then the accent and the fermata. Each turns blue, tints its notes, and a dotted line runs to them"}
+  0.3.4{ch "Am" txt "Both view: press this Am: it turns blue and a dotted line runs down to the staff at its time, no notes tinted. Then the accent and the fermata: each turns blue, tints its notes, and a dotted line runs to them"}
   2.3{ac}.4 3.3.4{fermata medium} 2.3.4 |
 \ts (3 4) 5.2{b (0 4)}.4 5.2.4 -.2.4 |
 \ts (4 4)

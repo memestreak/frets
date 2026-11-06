@@ -22,8 +22,11 @@ them, and a diagram under every chord name, or none.
   right over the music (Jeremy, 2026-11-06). The rows under (wah, the
   staff) move down to make room, only on a line that draws one.
 - **Picked with its name.** A press on a diagram picks its chord name: both
-  drawn in the selection's blue, with the name's dashed Attachment line to
-  its notes from under the diagram. A double-click opens the chord editor
+  drawn in the selection's blue. A chord belongs to its time, not to the
+  notes there (Jeremy, 2026-11-06, as Dorico has it): no notes are
+  tinted, and its dashed Attachment line runs from under the diagram (or
+  the name) to the top staff's top line at its time, over notes or a
+  rest alike. Its only link to notes is the Chords panel's Insert. A double-click opens the chord editor
   in the Chords panel, as a double-click on the name or in the list does;
   so do Edit and Enter.
 - **Which chords.** A chord whose `\chord` definition has a shape. A name
@@ -72,6 +75,9 @@ them, and a diagram under every chord name, or none.
 - Every shaped name draws its diagram, a chord used twice on a line twice.
 - A press on a diagram picks its chord name; the name's box takes in the
   diagram, and its Attachment line starts under it.
+- A picked chord tints no notes and no rest; its line ends on the top
+  staff's top line (the staff in Both, the top string in Tab) at its
+  column's x, over notes or a rest.
 - Free text is over the chord names.
 - The diagrams' row is there only when they are on; the tab moves down.
 - The drawing draws a diagram under each shaped name and none when off.

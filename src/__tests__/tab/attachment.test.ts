@@ -121,11 +121,18 @@ describe('a picked word on a rest (issue #393)', () => {
     expect(picked.tint).toEqual([]);
   });
 
-  it('a chord name on a rest does the same', () => {
-    const layout = laidOut('3.6.4 r.4{ch "Am"} 5.6.2 |', 'both');
-    const picked = attachment(layout, { kind: 'chord', index: 1 });
-    expect(picked.lines).toHaveLength(1);
-    expect(picked.rests).toHaveLength(1);
+  it('a chord name belongs to its time, not its notes or rest (Jeremy, 2026-11-06): its line ends on the top staff\'s top line, nothing tinted', () => {
+    for (const text of ['3.6.4 r.4{ch "Am"} 5.6.2 |', '3.6.4 (0.1 1.2 2.3).4{ch "Am"} 5.6.2 |']) {
+      for (const parts of ['both', 'tab'] as const) {
+        const layout = laidOut(text, parts);
+        const { rows, top } = layout.systems[0];
+        const column = layout.systems[0].bars[0].columns[1];
+        const picked = attachment(layout, { kind: 'chord', index: 1 });
+        expect(picked.lines).toEqual([expect.objectContaining({ x: column.x, y1: top + (rows.score ? rows.score.top : rows.staffTop) })]);
+        expect(picked.tint).toEqual([]);
+        expect(picked.rests).toEqual([]);
+      }
+    }
   });
 
   it('over a Whole-bar rest: the line goes to the staff\'s top line at the word\'s beat; the whole rest is tinted', () => {
