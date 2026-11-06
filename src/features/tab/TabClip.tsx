@@ -649,12 +649,22 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           })()}
           {cursorOnStaff && !selectedNote && (() => {
             const place = staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!);
-            // In note input on a note (one just entered, say), the caret's line stays off it: only the pitch's
-            // dash shows, to add a note to the chord, and over a note already at that pitch nothing at all
-            // (Jeremy, 2026-11-06). On a rest or a Gap the whole caret shows.
+            // In note input on a note (one just entered, say), the caret's line stays off it: only the next
+            // note's ghost shows, to add to the chord, and over a note already at that pitch nothing at all
+            // (Jeremy, 2026-11-06). On a rest or a Gap the line shows too. One ghost note at a time: while the
+            // pointer's is on the staff, the cursor's goes, and in the cursor's bar the line goes too.
             const heads = highlight!.input ? staffColumnHeads(system, highlight!.cursor!) : [];
             if (heads.some(h => h.step === place.step)) return null;
-            return <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0} {...place} />;
+            const pointerGhost = shadow !== null && hover !== null && hover.step !== null;
+            // With the pointer's ghost in the cursor's own bar, the mouse is placing the note: no caret there either.
+            const hoverBar = pointerGhost && hover!.system === si ? system.bars.find(b => hover!.x >= b.x0 && hover!.x <= b.x1) : undefined;
+            if (hoverBar && hoverBar.index === highlight!.cursor!.bar) return null;
+            return (
+              <StaffCursor
+                x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0}
+                ghost={!pointerGhost} value={shadow ?? 4} {...place}
+              />
+            );
           })()}
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />

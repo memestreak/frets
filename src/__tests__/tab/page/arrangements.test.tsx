@@ -33,7 +33,10 @@ describe('TabPage arrangements', () => {
     fireEvent.drop(to, { dataTransfer: carried });
     fireEvent.dragEnd(from, { dataTransfer: carried });
   };
+  /** A 9 typed past the end, a column more: Esc first lets the paste's selection go, keeping the cursor at its end. */
   const typeNine = () => {
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: 'Escape' });
     act(() => editor().focus());
     fireEvent.keyDown(editor(), { key: 'n' });
     fireEvent.keyDown(editor(), { key: 'ArrowDown' });

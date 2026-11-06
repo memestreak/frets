@@ -118,6 +118,20 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
   });
 
+  it('going into note input lets the selection go, the cursor at its first column (Jeremy, 2026-11-06)', async () => {
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n3.6.4 5.6.4 7.6.4 8.6.4 |')}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    act(() => editor().focus());
+    // The last two columns selected, the cursor on the last.
+    keys('ArrowRight', 'ArrowRight', { key: 'ArrowRight', shiftKey: true });
+    expect(screen.getByTestId('range-box')).toBeInTheDocument();
+    keys('n');
+    expect(screen.queryByTestId('range-box')).toBeNull();
+    // The cursor went back to the selection's start: a fret typed (on the top string) joins the third note.
+    keys('ArrowDown', '9');
+    expect(alphaTex()).toMatch(/^3\.6\.4 5\.6\.4 \(9\.1 7\.6\)\.4 8\.6\.4 /);
+  });
+
   it('going into note input picks no string, on a note or off one (Jeremy, 2026-10-30, 2026-10-31)', () => {
     renderAt();
     act(() => editor().focus());
