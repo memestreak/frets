@@ -8,7 +8,8 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeBars } from '@/features/tab/alphatex';
 import { partOf, type Part } from '@/features/tab/clip';
 import { clearNote, deleteColumns, type Cursor } from '@/features/tab/editing';
-import { clearToRests } from '@/features/tab/noteEdits';
+import { clearToRests, setValue } from '@/features/tab/noteEdits';
+import { writeOver } from '@/features/tab/timeline';
 import { deleteAtLine } from '@/features/tab/editorKeys';
 import { rewrite } from '@/features/tab/rewrite';
 
@@ -87,5 +88,36 @@ describe('Delete keeps the marks of the time it leaves as rests (issue #393)', (
     expect(writeBars(after)[0]).toContain('r.1');
     expect(JSON.stringify(after)).toContain('Verse');
     expect(JSON.stringify(after)).toContain('Slowly');
+  });
+});
+
+describe('a mark whose column is written over moves to the note now sounding at its time (issue #393)', () => {
+  const lengthened = (clip: Part, value: 1 | 2) => edited(clip, c => setValue(c, { cursor: at(0, 0, 0), selection: null }, value));
+
+  it('a longer note over a marked rest takes its text and chord name', () => {
+    expect(bars(lengthened(clipOf('\\ts (4 4)\n1.1.4 r.4{txt "slowly" ch "Am"} 3.1.2 |'), 2))).toBe('1.1.2{ch "Am" txt "slowly"} 3.1.2 |');
+  });
+
+  it('a text already on the note is joined; a chord name already there stays', () => {
+    const clip = clipOf('\\ts (4 4)\n1.1.4{txt "a" ch "C"} r.4{txt "b" ch "Am"} 3.1.2 |');
+    expect(bars(lengthened(clip, 2))).toBe('1.1.2{ch "C" txt "a / b"} 3.1.2 |');
+  });
+
+  it('a note written over marked notes takes theirs too, across the bar', () => {
+    const clip = clipOf('\\ts (4 4)\n1.1.4 2.1.4{txt "b"} 3.1.4 4.1.4{txt "d"} |');
+    expect(bars(lengthened(clip, 1))).toBe('1.1.1{txt "b / d"} |');
+  });
+
+  it('a paste over a marked column gives its marks to the pasted note sounding there', () => {
+    const clip = clipOf('\\ts (4 4)\n1.1.4 r.4{txt "slowly" fermata (medium 0)} 3.1.2 |');
+    const pasted = clipOf('\\ts (4 4)\n9.1.2{txt "p"} r.2 |').bars[0].columns.slice(0, 1);
+    const after = edited(clip, c => writeOver(c, 0, pasted)!);
+    expect(after.bars[0].columns[0].text).toBe('p / slowly');
+    expect(after.bars[0].columns[0].fermata).toBeDefined();
+  });
+
+  it('changing a note\'s length again does not copy its own text twice', () => {
+    const clip = clipOf('\\ts (4 4)\n1.1.2{txt "a"} 3.1.2 |');
+    expect(bars(lengthened(clip, 1))).toBe('1.1.1{txt "a"} |');
   });
 });

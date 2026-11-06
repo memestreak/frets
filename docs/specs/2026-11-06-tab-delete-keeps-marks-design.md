@@ -1,4 +1,4 @@
-# Tab: Delete keeps the marks of the time it leaves
+# Tab: a column's marks follow its time
 
 Issue #393. Jeremy, 2026-11-06, on the Chords panel: "Does it logically
 make sense that the text would be deleted if the note or rest were
@@ -28,6 +28,15 @@ yes to fixing it as a bug.
 - Only taking the time away removes them: Ctrl/⌘+Delete, Ctrl/⌘+Delete
   on an empty bar, or Ctrl/⌘+Delete off the tab.
 - A tempo and a section are marks of the bar, and stay with it as before.
+- When something is written over a column (a longer note, a paste, a note
+  typed in note input over its time), its text, chord name, fermata and wah
+  move to the column now sounding at its start, usually the note that
+  covers it (Jeremy, 2026-11-06, option 1 of: that note, the bar's start,
+  the next column). A text joins one already there, `"a / b"`; a chord
+  name, fermata or wah already there stays and the moved one goes. The
+  same text twice is not joined (a note lengthened keeps its own once).
+  Marks that last the whole column (tremolo, hairpin, octave line) and
+  kept alphaTex stay with their own column, as before.
 
 ## How
 
@@ -37,6 +46,9 @@ yes to fixing it as a bug.
   with `restOf`; `clearToRests` builds a bar emptied whole with
   `barOfRests`, cutting it where a marked rest starts. The rewrite by the
   meter (`writeVoice`) already keeps a Column's marks where they start.
+- `timeline.ts`: `overStream`, which every write-over goes through, moves
+  the covered columns' marks onto the placed column at each one's start
+  (`keepCoveredMarks`).
 - Test arrangement `editing_tests/delete-keeps-text.atex`.
 
 ## Tests
@@ -54,3 +66,9 @@ yes to fixing it as a bug.
 - A tempo and a section stay with a bar emptied whole.
 - On the page: Delete on the note keeps them and Ctrl+Delete then takes
   them; cut on a selection keeps them.
+- A half note over a rest with a text and chord name takes both; over a
+  rest when the note has its own: text `"a / b"`, its own chord name kept.
+- A whole note over two marked notes joins both texts.
+- A paste over a marked rest: the pasted note's text joined with it, and
+  the fermata moved.
+- Lengthening a note with a text keeps that text once.

@@ -167,6 +167,53 @@ function tiedInto(items: Item[], index: number): Set<number> {
 /* — the three edits, on a stream — */
 
 /**
+ * Marks of a Column's time that follow it when something is written over it (issue #393): the
+ * Column now sounding at that time takes them. Marks that last the whole Column, and kept alphaTex,
+ * stay with the Column they were written for.
+ */
+const MOVED = ['chord', 'text', 'fermata', 'wah'] as const;
+
+/** Joins a moved text to the one already there, unless it is the same text. */
+const TEXT_JOIN = ' / ';
+
+/**
+ * `placed` (the items written from `at`) with the time marks of `covered` (the items they replace,
+ * the first starting at `coveredAt`) moved onto the placed Column sounding at each one's start: a
+ * text joins the one there, a chord name, fermata or wah already there stays.
+ */
+function keepCoveredMarks(covered: Item[], coveredAt: number, placed: Item[], at: number): Item[] {
+  const moving: { t: number; column: Column }[] = [];
+  let t = coveredAt;
+  for (const item of covered) {
+    for (const column of item.columns) if (MOVED.some(key => column[key] !== undefined)) moving.push({ t, column });
+    t += item.length;
+  }
+  if (moving.length === 0) return placed;
+  const out = placed.map(item => ({ ...item, columns: [...item.columns] }));
+  const starts = startsOf(out).map(start => start + at);
+  for (const { t: when, column } of moving) {
+    const k = out.findIndex((item, i) => item.length > 0 && starts[i] <= when && starts[i] + item.length > when);
+    if (k < 0) continue;
+    const c = out[k].kind === 'tuplet' ? out[k].columns.findIndex(x => !x.grace) : 0;
+    out[k].columns[c] = withMarksOf(out[k].columns[c], column);
+  }
+  return out;
+}
+
+/** `target` with `from`'s time marks added: a text joined, the rest only where `target` has none. */
+function withMarksOf(target: Column, from: Column): Column {
+  const next: Column = { ...target };
+  for (const key of MOVED) {
+    const value = from[key];
+    if (value === undefined) continue;
+    if (key === 'text' && next.text !== undefined) {
+      if (next.text !== value) next.text = `${next.text}${TEXT_JOIN}${value}`;
+    } else if (next[key] === undefined) Object.assign(next, { [key]: value });
+  }
+  return next;
+}
+
+/**
  * `incoming` over the stream from `at`, clearing up to `clearTo` (at least the incoming's end): the
  * time it covers loses everything in it, chords and tuplets whole; the uncovered part of a covered note
  * is a Gap. Graces at `at` stay before the new notes.
@@ -185,7 +232,7 @@ function overStream(items: Item[], at: number, incoming: Item[], clearTo: number
   const from = indexAt(out, at, true);
   const to = indexAt(out, end, false);
   const gap = end - at - lengthOf(incoming);
-  const placed = [...incoming, ...(gap > 0 ? [rest(gap)] : [])];
+  const placed = keepCoveredMarks(out.slice(from, to), startsOf(out)[from] ?? at, [...incoming, ...(gap > 0 ? [rest(gap)] : [])], at);
   const next = [...out.slice(0, from), ...placed, ...out.slice(to)];
   return dropTiedOn(next, from + placed.length, tiedInto(out, to));
 }

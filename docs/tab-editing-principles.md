@@ -495,7 +495,8 @@ Comparison:
   same length; a range becomes "the correct rests according to the meter" (m). Guitar Pro: Delete
   removes notes; Delete beat removes time (m). Frets: rests written by the meter, as MuseScore's
   range delete; a bar emptied is one Whole-bar rest. The rests keep the column's text, chord name
-  and other marks of its time; only Ctrl/⌘+Delete takes them (issue #393).
+  and other marks of its time, and a note written over that time takes them; only Ctrl/⌘+Delete
+  removes them (issue #393).
 - **Take time away.** Dorico: Insert mode + Delete (m). MuseScore: Ctrl/⌘+Delete, "Remove selected
   range" (m). Guitar Pro: Delete beat / bar (m). Frets: Ctrl/⌘+Delete.
 - **Cut.** Dorico, MuseScore: leaves rests (u). Guitar Pro: single track copies; multitrack cut

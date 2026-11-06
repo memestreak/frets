@@ -1,4 +1,4 @@
-\title "Delete keeps a column's text and chord name"
+\title "A column's text and chord name follow its time"
 \ts (4 4)
 0.6.4
   3.6.4{ch "Am" txt "1. Both view: on the tab, press this 3, then the Delete key. It turns into a quarter rest, and this text and Am stay over it"}
@@ -9,6 +9,9 @@
 3.6.4
   5.6.4{txt "3. Press this 5, then Shift+Right arrow key and Ctrl/⌘+X (cut). Both notes go, and this text stays over the first rest"}
   7.6.4 5.6.4 |
+0.6.4
+  r.4{ch "Em" txt "4. Press the 0 before this rest, then the = key (longer). The 0 becomes a half note, and this text and Em move onto it"}
+  5.6.2 |
 0.6.2
-  5.6.2{txt "4. Press this 5, then the Delete key, then Ctrl/⌘+Delete. That takes the time away, and this text goes with it"} |
+  5.6.2{txt "5. Press this 5, then the Delete key, then Ctrl/⌘+Delete. That takes the time away, and this text goes with it"} |
 
