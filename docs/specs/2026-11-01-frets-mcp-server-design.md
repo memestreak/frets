@@ -58,7 +58,12 @@ as `<method> · <tool> #<call>` with its rough token count, e.g.
 tokens)`; the rest is under the fold. The chat's turns use
 the same `<tool> #<call>` names. An opened entry is split into labelled parts: a result's or update's
 text (`content`) and its structured data (`structuredContent`), a tool's
-description and input schema, then anything else. Clear empties the log. The chat column sits at the chat's left, next to the sidebar, and its width is set by
+description and input schema, then anything else, and last, under "Host only
+(_meta), not sent to the model", the `_meta` the host keeps to itself: a
+tool's is where its app's `ui://` address is (Jeremy, 2026-11-06). Each
+app's `resources/read` is logged too, as `resources/read · ui://tab/app.html
+(4.1 MB, host only)`, with its address, type and size but not its HTML.
+Clear empties the log. The chat column sits at the chat's left, next to the sidebar, and its width is set by
 dragging its right edge (from 280 px up to the room there is), which moves only that edge, or by ← →
 on it, and the sidebar's the same way (from 240 px, leaving the chat at
 least 360 px); the log lays its JSON out again to fit.
