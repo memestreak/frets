@@ -1,0 +1,19 @@
+\title "Long section names"
+\ts (4 4)
+\section "1. Long names on short bars no longer overprint" \tempo 90
+  (0.1 0.2 1.3 2.4 2.5 0.6).4{txt "Check: no section name runs into another"}
+  (0.1 0.2 1.3 2.4 2.5 0.6).4 (0.1 0.2 1.3 2.4 2.5 0.6).4
+  (0.1 0.2 1.3 2.4 2.5 0.6).4 |
+\section "2. The next section's name"
+  (0.1 0.2 1.3 2.4 2.5 0.6).4{txt "Its name clears bar 1's"}
+  (0.1 0.2 1.3 2.4 2.5 0.6).4 (0.1 0.2 1.3 2.4 2.5 0.6).4
+  (0.1 0.2 1.3 2.4 2.5 0.6).4 |
+\section ("A" "3. A boxed rehearsal mark")
+  (0.1 0.2 1.3 2.4 2.5 0.6).2{txt "Box and name move together"}
+  (0.1 0.2 1.3 2.4 2.5 0.6).2 |
+\section "4. Short"
+  (0.1 0.2 1.3 2.4 2.5 0.6).2{txt "Raised: bar 3's name runs over it"}
+  (0.1 0.2 1.3 2.4 2.5 0.6).2 |
+\section "5. Click a raised name, then double-click it"
+  (0.1 0.2 1.3 2.4 2.5 0.6).1{txt "It turns blue; its field opens over it"} |
+

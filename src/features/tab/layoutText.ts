@@ -4,7 +4,8 @@
  */
 
 import { barLineAt, barLineBox, isBarLine, type BarLineHit } from './barLines';
-import { type Section, type Tempo } from './clip';
+import { type Tempo } from './clip';
+import { BAR_TEXT_INSET, boldTextWidth, SECTION_BOX_HEIGHT, SECTION_LINE, sectionBoxes, sectionTextWidth } from './sectionText';
 import { tempoNoteWidth } from './TempoNote';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
 import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth } from './layout';
@@ -16,29 +17,16 @@ function beatTextBox(placed: PlacedColumn, textRow: number): { x0: number; x1: n
   return { x0, x1: x0 + Math.max(0, ...placed.textLines.map(beatTextWidth)), y0, y1: y0 + (placed.textLines.length - 1) * BEAT_TEXT_LINE };
 }
 
-export const SECTION_SIZE = 14;
-/** A section's rehearsal mark box: its height (a square for one letter). */
-export const SECTION_BOX_HEIGHT = 19;
 /**
- * About how wide a run of bold Figtree is at a size, with narrow, wide and capital letters apart: a
- * guess, for placing what follows a word and for presses on it.
+ * A section's box, where `placeSections` put it: from its bar's text start to its widest line's end, and
+ * its first and last lines' middles, down from the system's top.
  */
-export function boldTextWidth(text: string, size: number): number {
-  let em = 0;
-  for (const c of text) {
-    em += /[il.,:;'!|]/.test(c) ? 0.28 : /[fjrt ]/.test(c) ? 0.36 : /[mwMW]/.test(c) ? 0.86 : /[A-Z]/.test(c) ? 0.68 : 0.57;
-  }
-  return em * size;
-}
-
-/**
- * A section as guitar books print it (Jeremy, 2026-10-28): its rehearsal mark (if any) in an outlined
- * box, then its name in bold with no box. Each part's place and width from the bar's start.
- */
-export function sectionBoxes(section: Section): { marker: { x: number; width: number } | null; text: { x: number; width: number } } {
-  const marker = section.marker ? { x: 0, width: Math.max(SECTION_BOX_HEIGHT, section.marker.length * 9 + 6) } : null;
-  const x = marker ? marker.width + 5 : 0;
-  return { marker, text: { x, width: boldTextWidth(section.text, SECTION_SIZE) } };
+export function sectionBox(bar: PlacedBar, sectionRow: number): { x0: number; x1: number; y0: number; y1: number } {
+  const x0 = barTextX(bar);
+  const { text } = sectionBoxes(bar.bar.section!);
+  const lines = bar.sectionLines.length > 0 ? bar.sectionLines : [bar.bar.section!.text];
+  const y0 = sectionRow + bar.sectionTop * SECTION_LINE;
+  return { x0, x1: x0 + text.x + Math.max(...lines.map(sectionTextWidth)), y0, y1: y0 + (lines.length - 1) * SECTION_LINE };
 }
 
 export const TEMPO_SIZE = 11;
@@ -64,7 +52,7 @@ export function tempoOver(bar: { index: number; bar: { tempo?: Tempo } }): Tempo
 
 /** Where the words over a bar start: just after its opening line. */
 export function barTextX(bar: PlacedBar): number {
-  return bar.x0 + 4;
+  return bar.x0 + BAR_TEXT_INSET;
 }
 
 /**
@@ -142,9 +130,9 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     if (hit.kind === 'time' || hit.kind === 'key') return signatureBox(system, bar, hit.kind);
     const x0 = barTextX(bar);
     if (hit.kind === 'section') {
-      if (!bar.bar.section) return null;
-      const { text } = sectionBoxes(bar.bar.section);
-      return box(s, rows.section, x0, x0 + text.x + text.width, SECTION_BOX_HEIGHT + 6);
+      if (!bar.bar.section || rows.section === null) return null;
+      const section = sectionBox(bar, rows.section);
+      return box(s, (section.y0 + section.y1) / 2, section.x0, section.x1, SECTION_BOX_HEIGHT + 6 + section.y1 - section.y0);
     }
     const tempo = tempoOver(bar);
     return tempo ? box(s, rows.tempo, x0, x0 + tempoParts(tempo).width) : null;
@@ -204,9 +192,9 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   }
   for (const bar of system.bars) {
     const x0 = barTextX(bar);
-    if (near(rows.section) && bar.bar.section) {
-      const { text } = sectionBoxes(bar.bar.section);
-      if (x >= x0 - 2 && x <= x0 + text.x + text.width + 2) return { kind: 'section', bar: bar.index };
+    if (rows.section !== null && bar.bar.section) {
+      const section = sectionBox(bar, rows.section);
+      if (localY >= section.y0 - 10 && localY <= section.y1 + 10 && x >= section.x0 - 2 && x <= section.x1 + 2) return { kind: 'section', bar: bar.index };
     }
     const tempo = tempoOver(bar);
     if (near(rows.tempo) && tempo && x >= x0 - 2 && x <= x0 + tempoParts(tempo).width + 2) {

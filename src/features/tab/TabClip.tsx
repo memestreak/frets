@@ -4,7 +4,8 @@ import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY,
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, SECTION_BOX_HEIGHT, SECTION_SIZE, sectionBoxes, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
+import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
 import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
@@ -1015,7 +1016,9 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
     const { section } = bar.bar;
     const tempo = tempoOver(bar);
     if (section && rows.section !== null) {
-      const y = rows.section;
+      // Its first line, moved up clear of a section it would run into (issue #389).
+      const { y0: y } = sectionBox(bar, rows.section);
+      const lines = bar.sectionLines.length > 0 ? bar.sectionLines : [section.text];
       const look = lookOf({ kind: 'section', bar: bar.index });
       const { marker, text } = sectionBoxes(section);
       parts.push(
@@ -1026,7 +1029,11 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
               <text x={x0 + marker.width / 2} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700} textAnchor="middle">{section.marker}</text>
             </>
           )}
-          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>{section.text}</text>
+          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>
+            {lines.map((line, k) => (
+              <tspan key={k} x={x0 + text.x} dy={k === 0 ? 0 : SECTION_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
+            ))}
+          </text>
         </g>,
       );
     }

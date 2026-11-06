@@ -25,6 +25,8 @@ import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, type EditorKeys } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+import { setSectionFit, type SectionFit } from './sectionText';
 import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
 import { textBox, type TextHit } from './layoutText';
@@ -63,6 +65,18 @@ import { useWidth } from './useWidth';
 import { TAB_SHORTCUTS } from './shortcuts';
 import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
+
+/** MOCK (issue #389): how a section name too long for its bar makes room. */
+const SECTION_MOCK: Mock = {
+  param: 'mock',
+  label: 'Long section names',
+  options: [
+    { value: 'a', label: 'A: move up a row' },
+    { value: 'b', label: 'B: wrap, then move up' },
+    { value: 'c', label: 'C: widen the bar' },
+  ],
+};
+const SECTION_FITS: Record<string, SectionFit> = { a: 'stack', b: 'wrap', c: 'widen' };
 
 const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
@@ -175,7 +189,11 @@ export default function TabPage() {
    * handles, the fields and panels over it and the keys (issue #302). Playback steps and edits that
    * leave the clip as it was don't lay it out again.
    */
-  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts), [drawn, clipWidth, parts]);
+  // MOCK (issue #389): how a section too long for its bar makes room, until Jeremy picks.
+  const sectionMock = SECTION_FITS[useMock(SECTION_MOCK)];
+  setSectionFit(sectionMock);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutClip reads the mock's choice
+  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts), [drawn, clipWidth, parts, sectionMock]);
   const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
