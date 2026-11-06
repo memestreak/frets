@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
@@ -91,7 +91,7 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
-  it('draws the grid over the cursor’s bar in note input only: a ruler by default, lines when Settings says so', async () => {
+  it('draws the grid in note input only: a ruler by default, lines when Settings says so', async () => {
     await open();
     expect(screen.queryByTestId('grid-lines')).toBeNull();
     keys('n');
@@ -103,6 +103,42 @@ describe('note input’s grid (issue #293)', () => {
     await open();
     keys('n');
     expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-look', 'lines');
+  });
+
+  it('keeps the grid when Staff, Tab or Both is pressed: the press leaves the focus on the editor (issue #396)', async () => {
+    await open();
+    keys('n');
+    const show = screen.getByRole('group', { name: 'Show' });
+    for (const name of ['Staff', 'Both', 'Tab']) {
+      const button = within(show).getByRole('button', { name });
+      // A press that doesn't take the focus: the editor isn't blurred, so note input's cursor and grid stay.
+      expect(fireEvent.mouseDown(button)).toBe(false);
+      fireEvent.click(button);
+      expect(button).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('grid-lines')).toBeInTheDocument();
+    }
+  });
+
+  it('draws the grid over the bar under the pointer in note input, else the cursor’s bar (issue #396)', async () => {
+    const two = '\\title "Grid"\n\\ts (4 4)\n5.1.4 r.2{d} | r.1 |';
+    window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(two)}`);
+    render(<TabPage />);
+    await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+    act(() => editor().focus());
+    const read = readAlphaTexWith(alphaTab, two);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+    keys('n');
+    /** Where the drawn grid starts: its ruler's line runs from the bar's left edge. */
+    const gridStart = () => Number(screen.getByTestId('grid-lines').querySelector('line')!.getAttribute('x1'));
+    expect(gridStart()).toBe(bars[0].x0);
+    const svg = screen.getByRole('img', { name: /drawn as/ });
+    const rest = bars[1].columns[0];
+    fireEvent.pointerMove(svg, { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop });
+    expect(gridStart()).toBe(bars[1].x0);
+    // The pointer off the clip: back over the cursor's bar.
+    fireEvent.pointerLeave(svg);
+    expect(gridStart()).toBe(bars[0].x0);
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

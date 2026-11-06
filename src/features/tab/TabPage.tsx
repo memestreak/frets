@@ -998,7 +998,8 @@ export default function TabPage() {
             {view === 'tab' && (
               <div className="seg tab-parts" role="group" aria-label="Show">
                 {PARTS.map(p => (
-                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
+                  // A press keeps the focus where it is, as the palette's do: the editor stays in use, its cursor and Grid with it (issue #396).
+                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onMouseDown={e => e.preventDefault()} onClick={() => setParts(p)}>
                     {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
                   </button>
                 ))}
