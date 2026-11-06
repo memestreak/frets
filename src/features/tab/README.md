@@ -110,6 +110,9 @@ and in its spec.
 - `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
   sound for is kept and played by the nearest —
   `2026-10-29-tab-sound-and-fx-in-clip-design.md`.
+- `chordSet.ts` — a track's Chord set: its `\chord` definitions
+  (`Track.chords`, each a name and shape) and the names only typed over
+  columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`.
 - `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
   `2026-10-30-tab-track-effects-design.md`.
 - `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex) and reading
@@ -345,6 +348,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `PlaybackFooter.tsx` — the footer under the tab: Play, Loop, Hear notes,
   Metronome, Speed, Transpose, Volume, Sound, FX; the playhead in
   `--playhead`; `trackLabel` — `2026-10-27-tab-hear-notes-design.md`.
+- `BpmField.tsx` — Speed's bpm field, its "bpm" a Tap button reading
+  "Tap" on hover; show_tab's too — `2026-11-05-tab-speed-bpm-design.md`.
 - `PinnedPlayback.tsx` — keeps the footer at the window's bottom while the
   card runs past it — `2026-10-28-tab-pinned-playback-design.md`.
 - `PlaybackOptions.tsx` — Play's right-click menu —
@@ -376,7 +381,8 @@ or saved. Standard tuning only.
   line on teardown so the sound goes.
 - `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
   playhead and the loop bracket with its handles, then Play, Loop (L), the
-  bpm and Tap (T), Staff | Tab | Both and Open in Frets.
+  bpm (its "bpm" taps, T too; `BpmField`), Staff | Tab | Both and Open in
+  Frets; a selection, made as on the Tab page, only for Loop to loop.
 - The app's entry is `mcp/apps/tab/` (`main.tsx` builds the steel-string
   guitar's soundfont in, `setBuiltInFonts` in `playback.ts`), built to
   `mcp/dist/tab.html`.
@@ -386,8 +392,15 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
-- `docs/specs/2026-11-05-tab-range-handles-design.md`: a handle on each
-  end of a selection drags that end, the other staying
+- `docs/specs/2026-11-05-tab-range-handles-design.md`: a selection box's
+  left or right edge drags that end, the other staying
+- `docs/specs/2026-11-05-tab-speed-bpm-design.md`: Speed as one bpm
+  field, its percentage in the caption and its "bpm" a Tap button, on
+  the Tab page and in show_tab (issue #373).
+- `docs/specs/2026-11-05-tab-chord-set-design.md`: each track's Chord
+  set, its `\chord` shapes kept in the clip and its chord names understood
+- `docs/specs/2026-11-05-show-tab-selection-design.md`: select notes in
+  the show_tab app, as on the Tab page, and Loop loops them
 - `docs/specs/2026-11-05-tab-shift-press-grows-design.md`: a Shift+press
   outside the selection only grows it; inside, it trims the nearer end
 - `docs/specs/2026-11-05-show-tab-loop-points-design.md`: loop points in

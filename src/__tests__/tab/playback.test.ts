@@ -343,14 +343,14 @@ function peakOf(midi: alphaTab.midi.MidiFile, fonts: Uint8Array[]): number {
 }
 
 describe('speed range', () => {
-  it('lets every tempo in the clip go from 20 to 400 bpm, in whole percent', () => {
-    expect(speedRange(clipOf('0.6.4 |'))).toEqual({ min: 17, max: 333 });
-    expect(speedRange(clipOf('\\tempo 20 0.6.4 | \\tempo 200 0.6.4 |'))).toEqual({ min: 100, max: 200 });
+  it('lets every tempo in the clip go from 20 to 400 bpm, as fractions of its own', () => {
+    expect(speedRange(clipOf('0.6.4 |'))).toEqual({ min: 20 / 120, max: 400 / 120 });
+    expect(speedRange(clipOf('\\tempo 20 0.6.4 | \\tempo 200 0.6.4 |'))).toEqual({ min: 1, max: 2 });
   });
 
   it("stops where alphaTab's synthesizer does: 12.5% to 800%", () => {
-    expect(speedRange(clipOf('\\tempo 400 0.6.4 |'))).toEqual({ min: 13, max: 100 });
-    expect(speedRange(clipOf('\\tempo 20 0.6.4 |'))).toEqual({ min: 100, max: 800 });
+    expect(speedRange(clipOf('\\tempo 400 0.6.4 |'))).toEqual({ min: 0.125, max: 1 });
+    expect(speedRange(clipOf('\\tempo 20 0.6.4 |'))).toEqual({ min: 1, max: 8 });
   });
 });
 

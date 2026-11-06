@@ -4,6 +4,7 @@
  * to the lowest (index 5), the order tab is written in.
  */
 import { C_MAJOR, isKey, keyTonic, sameKey, type Key } from '@/lib/theory/keys';
+import { isChordDef, type ChordDef } from './chordSet';
 import { parseEffects, type FxSettings } from './effects';
 
 /** A note value: 1 whole, 2 half, 4 quarter, 8 eighth, 16 sixteenth, 32 thirty-second, 64 sixty-fourth. */
@@ -123,7 +124,10 @@ export interface Column {
   /** Six slots, high e first. */
   notes: (Note | null)[];
   stroke?: 'down' | 'up';
-  /** A chord name written over the column, as typed ("Am7", "C/G"). */
+  /**
+   * A chord name written over the column, as typed ("Am7", "C/G"): its symbol, which points at the
+   * entry of that name in its track's Chord set (`chordSet.ts`).
+   */
   chord?: string;
   /** Free text written over the column, from it rightward ("let ring", "slowly"; alphaTex txt). */
   text?: string;
@@ -381,6 +385,11 @@ export interface Track {
    * all off. The metronome's clicks never go through them.
    */
   fx?: FxSettings;
+  /**
+   * The shapes of its Chord set: its alphaTex `\chord` definitions, in the order written, kept whether
+   * or not a column names them (`chordSet.ts`).
+   */
+  chords?: ChordDef[];
   /** As many as the clip's `masterBars`. */
   bars: TrackBar[];
 }
@@ -408,6 +417,8 @@ export interface Part {
   instrument?: { program: number; tag?: string };
   /** The track's FX. */
   fx?: FxSettings;
+  /** The track's `\chord` definitions. */
+  chords?: ChordDef[];
   /**
    * The clip's other tracks, only read: the layout gives each bar the room the widest track's needs, so
    * every track breaks its lines at the same bars and keeps its length when another is picked (issue #243).
@@ -1015,7 +1026,7 @@ const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', '
 /** The clip's own fields a part carries as they are. */
 const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests'] as const;
 /** The track's own fields a part carries and an edit may change. */
-const TRACK_FIELDS = ['capo', 'instrument', 'fx'] as const;
+const TRACK_FIELDS = ['capo', 'instrument', 'fx', 'chords'] as const;
 
 /** `to` with `from`'s value for each key that has one, and none for each that hasn't. */
 function copied<T extends object>(to: T, from: object, keys: readonly string[]): T {
@@ -1354,6 +1365,7 @@ function isTrack(v: unknown, bars: number): v is Track {
   return isObj(v) && typeof v.name === 'string' && optString(v.tag) && optStrings(v.header)
     && Array.isArray(v.tuning) && v.tuning.length === STRING_COUNT && v.tuning.every(n => typeof n === 'string')
     && (v.capo === undefined || isCapo(v.capo)) && isInstrument(v.instrument)
+    && (v.chords === undefined || (Array.isArray(v.chords) && v.chords.every(isChordDef)))
     && Array.isArray(v.bars) && v.bars.length === bars && v.bars.every(isTrackBar);
 }
 

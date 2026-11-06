@@ -16,6 +16,7 @@ import {
 import { readFxLine } from './fxLine';
 import { STANDARD_TUNING_TEX } from './instrument';
 import type { FxSettings } from './effects';
+import type { ChordDef } from './chordSet';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -78,7 +79,7 @@ interface PropertyNode extends Located { property: { text: string }; arguments?:
 /** A property's arguments: numbers, words, or a bracketed list of them. */
 interface ArgumentsNode { arguments?: (ArgumentsNode & { value?: unknown; text?: string })[] }
 interface PropertiesNode { properties: PropertyNode[] }
-interface MetaNode extends Located { tag: { tag: { text: string } } }
+interface MetaNode extends Located { tag: { tag: { text: string } }; arguments?: ArgumentsNode; properties?: PropertiesNode }
 interface NoteNode { noteString?: { value: number }; noteEffects?: PropertiesNode }
 interface BeatNode { notes?: { notes: NoteNode[] }; beatEffects?: PropertiesNode; beatMultiplierValue?: { value: number } }
 interface BarNode { metaData: MetaNode[]; beats: BeatNode[]; pipe?: unknown }
@@ -393,6 +394,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     const trackHeader: string[] = [];
     let tag: string | undefined;
     let instrumentTag: string | undefined;
+    const chords: ChordDef[] = [];
     const bars = score.masterBars.map((_, b): TrackBar => {
       const atBar = staff.bars[b];
       const bar: TrackBar = { voices: [] };
@@ -409,6 +411,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
         }
         if (b === 0 && name === 'track') {
           tag = written(text, meta);
+          continue;
+        }
+        if (name === 'chord') {
+          chords.push(chordDefOfNode(meta, warn));
           continue;
         }
         if (b === 0 && CREDIT_TAGS.has(name)) {
@@ -438,6 +444,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     };
     if (tag !== undefined) track.tag = tag;
     if (trackHeader.length > 0) track.header = trackHeader;
+    if (chords.length > 0) track.chords = chords;
     // The instrument, from its tag or a `\track` line that names one.
     if (instrumentTag || (tag && /\binstrument\b/i.test(tag))) {
       track.instrument = { program: atTrack.playbackInfo.program };
@@ -536,8 +543,9 @@ function columnsOf(
     if (beat.crescendo === at.model.CrescendoType.Crescendo) column.hairpin = 'crescendo';
     if (beat.crescendo === at.model.CrescendoType.Decrescendo) column.hairpin = 'decrescendo';
     if (beat.fermata) column.fermata = FERMATA_OF[beat.fermata.type as number];
-    const chord = beat.chordId ? staff.getChord(beat.chordId) : null;
-    if (chord?.name) column.chord = chord.name;
+    // The name as the beat writes it: alphaTab links "AM7" and "Am7" as one chord, ignoring case.
+    const chord = chordNameOf(node) ?? (beat.chordId ? staff.getChord(beat.chordId)?.name : undefined);
+    if (chord) column.chord = chord;
     if (beat.text) column.text = beat.text;
     for (const note of beat.notes) {
       const s = STRING_COUNT - note.string;
@@ -568,6 +576,47 @@ function columnsOf(
     else kept.delete('beam');
   });
   return columns;
+}
+
+/** The chord name a beat's `ch` writes, as written. */
+function chordNameOf(node: BeatNode | undefined): string | undefined {
+  const ch = node?.beatEffects?.properties.find(p => p.property.text.toLowerCase() === 'ch');
+  return ch?.arguments?.arguments?.[0]?.text || undefined;
+}
+
+/** alphaTab's reading of a yes-or-no property: none given is yes; false, or 0, is no. */
+function yesOrNo(values: { value?: unknown; text?: string }[]): boolean {
+  const v = values[0];
+  if (!v) return true;
+  return typeof v.value === 'number' ? v.value !== 0 : v.text !== 'false';
+}
+
+/**
+ * A `\chord` definition from the tree, every property as written (`chordSet.ts`): its strings high
+ * e first, x (or a negative fret) not played, padded to six; strings past six are named and dropped.
+ */
+function chordDefOfNode(meta: MetaNode, warn: (w: string) => void): ChordDef {
+  const [name, ...strings] = meta.arguments?.arguments ?? [];
+  const def: ChordDef = { name: name?.text ?? '' };
+  if (strings.length > 0) {
+    if (strings.length > STRING_COUNT) warn(`\\chord "${def.name}" gives ${strings.length} strings; read the first ${STRING_COUNT}.`);
+    def.frets = Array.from({ length: STRING_COUNT }, (_, i) => {
+      const v = strings[i]?.value;
+      return typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null;
+    });
+  }
+  for (const p of meta.properties?.properties ?? []) {
+    const values = p.arguments?.arguments ?? [];
+    const numbers = values.flatMap(v => (typeof v.value === 'number' && Number.isInteger(v.value) && v.value >= 0 ? [v.value] : []));
+    switch (p.property.text.toLowerCase()) {
+      case 'firstfret': if (numbers.length > 0) def.firstFret = numbers[0]; break;
+      case 'barre': def.barre = numbers; break;
+      case 'showdiagram': def.showDiagram = yesOrNo(values); break;
+      case 'showfingering': def.showFingering = yesOrNo(values); break;
+      case 'showname': def.showName = yesOrNo(values); break;
+    }
+  }
+  return def;
 }
 
 /** A kept `beam` effect that is a Beam override on the next beat. */

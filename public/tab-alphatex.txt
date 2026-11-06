@@ -46,6 +46,10 @@ edits and plays one at a time, picked from a list over the clip.
     \tuning (<six notes, HIGH to low, with octaves>)
                                       optional; standard (E4 B3 G3 D3 A2 E2)
     \capo <fret>                      optional; 1 to 12
+    \chord ("<name>" <six frets, HIGH to low>)
+                                      optional, one a chord; the shape a
+                                      chord name stands for (see "Chord
+                                      shapes" below)
     \multiBarRest                     optional; bars of rest in a row
                                       are drawn as one, with their count
                                       (always, with several tracks)
@@ -69,7 +73,7 @@ in standard tuning, as guitar books print it; otherwise as it sounds.
 
 Tracks. A part for another guitar ("Gtr II") is a track of its own: write
 \track "<name>" before each part's lines and bars, the first included,
-then that part's effects line (see 8.), \instrument, \tuning and \capo,
+then that part's effects line (see 8.), \instrument, \tuning, \capo and \chord,
 then its bars. Lines for
 the whole clip (\title, \artist, \words, \music, \multiBarRest, the
 layout tags) come before the first \track; \ts follows the first track's
@@ -90,6 +94,24 @@ not: write "r.1 |" for each bar a part sits out.
     \track "Gtr II"
     \tuning (E4 B3 G3 D3 A2 D2)
     (0.4 0.5 0.6).1 | (0.4 0.5 0.6).1 |
+
+Chord shapes. A chord name over the tab may stand for a shape: write
+\chord ("<name>" <frets>) for it with the track's \tuning and \capo,
+one line a chord, before the bars. The frets go string by string, high e
+first as in the tab, x for a string not played, counted from the capo on
+the strings as tuned. Every ch "<name>" of that name in the track then
+means that shape; the notes under it are written out as usual (the shape
+doesn't add them). Each track has its own chords. A \chord no beat names
+is kept. Of two with the same name, ch means the last. Optional, after
+the brackets: {firstfret <n>} the diagram's first fret, barre <fret> (or
+barre (<fret> <fret>)), and showdiagram, showname, showfingering true or
+false. Frets keeps them all and writes them back; it doesn't draw the
+diagrams yet. A chord name with no \chord needs none.
+
+    \ts (4 4)
+    \chord ("C" 0 1 0 2 3 x)
+    \chord ("F" 1 1 2 3 3 1) {barre 1}
+    (0.1 1.2 0.3 2.4 3.5).2{ch "C" sd} (1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F" sd} |
 
 Voices. Notes that sound against each other with different lengths in
 one track (a bass held under a moving melody) go in voices: write
@@ -240,7 +262,8 @@ then "." and its duration:
                ignore it.
     ch "Am7"   a chord name over the beat, as written: 0.1.2{ch "C/G"}.
                Put it on the beat it is written over; a chord name may
-               be anything ("N.C.", "Am7(b5)").
+               be anything ("N.C.", "Am7(b5)"). A \chord of the same
+               name, case and all, gives it its shape.
     txt "..."  free text over the beat, drawn in italics from that beat
                rightward: 0.1.1{txt "let ring, slowing"}. A long text
                wraps at its spaces onto more lines, before the next

@@ -55,7 +55,9 @@ The controls sit under that line:
   L anywhere on the page does what the button does, as Space plays (Jeremy,
   2026-11-04), but not in a field, a dialog or a menu, and not while the
   controls are hidden; Let ring moved from L to I, Guitar Pro 8's key for it.
-- **Speed.** A number field, a percentage of the clip's own tempo, with
+- **Speed.** Since issue #373 (`2026-11-05-tab-speed-bpm-design.md`),
+  one bpm field with the percentage in its caption and its "bpm" a Tap
+  button; what follows was the percentage field. A number field, a percentage of the clip's own tempo, with
   stacked up and down buttons (5% a press, as are ↑ ↓ in the field) and
   "92 bpm" beside it: the tempo where the playhead is, times the speed
   (Jeremy's ask, replacing a slider, 2026-10-26). Pressing the number and
@@ -281,14 +283,16 @@ Play, Loop, Hear notes and Metronome keep no caption: they have tips. The
 gap between controls goes back to 16px. A double-click on Speed's or
 Transpose's caption still resets it.
 
-Speed's caption carries the bpm ("Speed · 120 bpm"), and Transpose's
+Speed's caption carries the bpm ("Speed · 120 bpm"; since #373 the
+percentage, "Speed · 100%"), and Transpose's
 caption is "Transpose", with the unit, semitones, in its tip and the
 field's name (Jeremy picked this from two mocks, 2026-11-05; the other kept
 "120 bpm" and "semitones" beside the fields). The row needs about 760px,
 from 1,126px.
 
 The show_tab MCP app's row has no names to move: its only words beside a
-control are the unit "bpm" and the Tap button.
+control are the unit "bpm" and the Tap button (since #373 one: "bpm" taps,
+and "Speed · 100%" sits under the field).
 
 ### Tests
 

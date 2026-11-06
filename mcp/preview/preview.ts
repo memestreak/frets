@@ -12,6 +12,7 @@ import metronome from '../dist/metronome.html?raw';
 import tab from '../dist/tab.html?raw';
 import tuner from '../dist/tuner.html?raw';
 import { createFretsServer } from '@/mcp/server';
+import { PRESETS } from './presets';
 import { TOOL_NAME as METRONOME } from '@/features/metronome/mcp/tool';
 import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
 import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
@@ -30,7 +31,8 @@ if (__COMMIT__ === 'dev') {
 }
 /**
  * Adds a line to "What the model sees", newest first, named `<method> · <tool> #<call>` (see
- * `entryTitle`). With `detail`, the line opens to it: everything the model is sent, not just the text.
+ * `entryTitle`). With `detail`, the line opens to it: everything the model is sent, not just the text,
+ * then what the host keeps to itself (`_meta`).
  */
 const log = (line: string, detail?: Record<string, unknown>) => {
   const entry = document.createElement(detail === undefined ? 'div' : 'details');
@@ -72,12 +74,13 @@ const forModel = (message: Record<string, unknown>) => {
 };
 /**
  * A message split into what each part is: a result's or update's text (`content`) and its
- * structured data (`structuredContent`); a tool's description and input schema; then the rest.
+ * structured data (`structuredContent`); a tool's description and input schema; then the rest; and
+ * last, `_meta`, which the host keeps from the model (a tool's app's `ui://` address is in it).
  */
 function sections(message: Record<string, unknown>, width: number): { title: string; body: string }[] {
   const json = (value: unknown) => pretty(value, width);
   const out: { title: string; body: string }[] = [];
-  const rest = { ...message };
+  const { _meta: meta, ...rest } = message;
   if (Array.isArray(rest.content)) {
     const parts = rest.content as { type: string; text?: string }[];
     out.push({ title: 'Text (content)', body: parts.map(c => (c.type === 'text' ? c.text : json(c))).join('\n\n') });
@@ -97,8 +100,11 @@ function sections(message: Record<string, unknown>, width: number): { title: str
   }
   const others = Object.entries(rest).filter(([, v]) => v !== undefined);
   if (others.length) out.push({ title: out.length ? 'Also' : 'Message', body: json(Object.fromEntries(others)) });
+  if (meta !== undefined) out.push({ title: 'Host only (_meta), not sent to the model', body: json(meta) });
   return out;
 }
+/** An app's size, as its HTML's UTF-8 bytes, e.g. `4.0 MB`. */
+const megabytes = (html: string) => `${(new TextEncoder().encode(html).length / 1e6).toFixed(1)} MB`;
 /** A rough token count (about 4 characters a token), for a sense of what a tool costs. */
 const tokens = (value: unknown) => `~${Math.round(JSON.stringify(value).length / 4)} tokens`;
 
@@ -118,8 +124,7 @@ async function connectClient() {
 const client = await connectClient();
 const tools = (await client.listTools()).tools;
 for (const tool of [...tools].reverse()) {
-  const seen = forModel(tool);
-  log(entryTitle('tools/list', `${tool.name} (${tokens(seen)})`), seen);
+  log(entryTitle('tools/list', `${tool.name} (${tokens(forModel(tool))})`), tool);
 }
 log(entryTitle('tools/list', `${tools.length} tools (${tokens(tools.map(forModel))} in all)`));
 
@@ -128,7 +133,12 @@ const apps = new Map<string, string>();
 for (const name of [METRONOME, TAB, TUNER]) {
   const uri = getToolUiResourceUri(tools.find(t => t.name === name)!)!;
   const content = (await client.readResource({ uri })).contents[0];
-  apps.set(name, 'text' in content ? content.text : '');
+  const html = 'text' in content ? content.text : '';
+  apps.set(name, html);
+  // The host reads the app itself; the model never sees it. The log shows all but the HTML.
+  log(entryTitle('resources/read', `${uri} (${megabytes(html)}, host only)`), {
+    uri: content.uri, mimeType: content.mimeType, size: megabytes(html), _meta: content._meta,
+  });
 }
 
 /** JSON, indented, but with each object or array that fits in `width` characters kept on one line. */
@@ -142,20 +152,6 @@ function pretty(value: unknown, width = 72, indent = ''): string {
   const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
   return `${open}\n${lines.join(',\n')}\n${indent}${close}`;
 }
-
-/** What each tool's arguments box starts with. */
-const EXAMPLES: Record<string, string> = {
-  [METRONOME]: '{ "bpm": 92, "beats": 7, "groups": "2+2+3" }',
-  [TAB]: pretty({
-    bpm: 90,
-    bars: [
-      { columns: [8, 8, 8, 8, 8, 8, 4].map((value, i) => ({ duration: { value }, notes: [{ pitch: ['A3', 'C4', 'D4', 'E4', 'G4', 'E4', 'D4'][i] }] })) },
-      { columns: [{ duration: { value: 2 }, notes: [{ string: 3, fret: 2, bend: { quarters: 4 } }], chord: 'Am' }, { duration: { value: 2 }, notes: [{ string: 5, fret: 0 }] }] },
-    ],
-    loop: { start: { bar: 1, column: 3 }, end: { bar: 2, column: 1 } },
-  }),
-  [TUNER]: '{}',
-};
 
 /** A call's arguments: one line, which opens to the whole call, pretty-printed. */
 const argsView = () => '<details class="args"><summary><span></span></summary><pre></pre></details>';
@@ -193,16 +189,14 @@ async function call(name: string, args: Record<string, unknown>) {
     if (height) frame.style.height = `${Math.ceil(height)}px`;
   };
   bridge.onupdatemodelcontext = async params => {
-    const seen = forModel(params);
-    log(entryTitle('ui/update-model-context', `${label} (${tokens(seen)})`), seen);
+    log(entryTitle('ui/update-model-context', `${label} (${tokens(forModel(params))})`), params);
     if (name === METRONOME) latest = (params.structuredContent?.rhythm as Record<string, unknown>) ?? latest;
     return {};
   };
   bridge.oninitialized = async () => {
     await bridge.sendToolInput({ arguments: args });
     const result = await client.callTool({ name, arguments: args });
-    const seen = forModel(result);
-    log(entryTitle('tools/call', `${label} (${tokens(seen)})`), seen);
+    log(entryTitle('tools/call', `${label} (${tokens(forModel(result))})`), result);
     if (!result.isError && name === METRONOME) latest = (result.structuredContent as { rhythm: Record<string, unknown> }).rhythm;
     await bridge.sendToolResult(result as Parameters<AppBridge['sendToolResult']>[0]);
   };
@@ -217,11 +211,25 @@ async function call(name: string, args: Record<string, unknown>) {
 }
 
 const toolPick = $<HTMLSelectElement>('tool');
+const presetPick = $<HTMLSelectElement>('preset');
+/** Fills the arguments box with the chosen preset of the chosen tool. */
+const pickPreset = () => {
+  $<HTMLTextAreaElement>('args').value = pretty(PRESETS[toolPick.value][Number(presetPick.value)].args);
+};
+/** Lists the chosen tool's presets and starts on its first. */
 const pickTool = () => {
-  $<HTMLTextAreaElement>('args').value = EXAMPLES[toolPick.value];
+  presetPick.replaceChildren(...PRESETS[toolPick.value].map((p, i) => new Option(p.name, String(i))));
+  pickPreset();
   $('call').textContent = `Call ${toolPick.value}`;
 };
-toolPick.addEventListener('change', pickTool);
+toolPick.addEventListener('change', () => {
+  pickTool();
+  toolPick.blur();
+});
+presetPick.addEventListener('change', () => {
+  pickPreset();
+  presetPick.blur();
+});
 pickTool();
 $('call').addEventListener('click', () => {
   try {
@@ -249,10 +257,10 @@ themePick.addEventListener('change', () => {
 });
 /**
  * A drag handle on an edge (role="separator"): drag it, or focus it and press ← → (Shift for bigger
- * steps). `set` clamps and applies a width and returns what it applied; `scale` is how far the
- * width moves per pixel dragged (2 for a centred column, whose edge moves half as far).
+ * steps). The handle sits on its box's right edge and the left edge stays put, so the width moves
+ * as far as the pointer does. `set` clamps and applies a width and returns what it applied.
  */
-function resizer(handle: HTMLElement, start: number, set: (px: number) => number, scale = 1, done = () => {}) {
+function resizer(handle: HTMLElement, start: number, set: (px: number) => number, done = () => {}) {
   let width = start;
   const apply = (px: number) => {
     width = set(px);
@@ -264,7 +272,7 @@ function resizer(handle: HTMLElement, start: number, set: (px: number) => number
     handle.setPointerCapture(down.pointerId);
     handle.classList.add('dragging');
     document.body.classList.add('resizing'); // frames would otherwise swallow the pointer
-    const move = (e: PointerEvent) => apply(w0 + scale * (e.clientX - x0));
+    const move = (e: PointerEvent) => apply(w0 + e.clientX - x0);
     handle.addEventListener('pointermove', move);
     handle.addEventListener('lostpointercapture', () => {
       handle.classList.remove('dragging');
@@ -285,14 +293,14 @@ function resizer(handle: HTMLElement, start: number, set: (px: number) => number
   apply(start);
 }
 
-/** The chat column's width, which stays centred, as in a chat. */
+/** The chat column's width; the column sits at the chat's left, next to the sidebar. */
 const wrap = $('column').parentElement!;
 resizer($('resize'), 640, px => {
   const room = wrap.parentElement!.clientWidth - 64; // the chat's padding and the handle
   const w = Math.round(Math.max(280, Math.min(px, room)));
   wrap.style.width = `${w}px`;
   return w;
-}, 2);
+});
 
 /** The left sidebar's width; the log lays its messages out again to fit. */
 const layout = document.querySelector<HTMLElement>('.layout')!;
@@ -300,4 +308,4 @@ resizer($('side-resize'), 320, px => {
   const w = Math.round(Math.max(240, Math.min(px, window.innerWidth - 360)));
   layout.style.setProperty('--side', `${w}px`);
   return w;
-}, 1, () => detailed.forEach((detail, entry) => fillSections(entry, detail)));
+}, () => detailed.forEach((detail, entry) => fillSections(entry, detail)));

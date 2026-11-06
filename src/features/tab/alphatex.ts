@@ -12,6 +12,7 @@ import {
   asClip, barTicks, defaultGroupCounts, ownVoice, fewestRests, isRest, isStandardTuningNames, keyTex, STRING_COUNT, type Bend, type Clip, type Column,
   type MasterBar, type Note, type Part, type TimeSignature, type Track, type TrackBar,
 } from './clip';
+import { chordDefTex } from './chordSet';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
@@ -198,7 +199,7 @@ export function writePart(part: Part): string {
   return writeAlphaTex(asClip(part));
 }
 
-/** A track's tuning, when it isn't standard or its sound wouldn't take guitar strings, and its capo. */
+/** A track's tuning, when it isn't standard or its sound wouldn't take guitar strings, its capo and its `\chord` definitions. */
 function trackLines(track: Track): string[] {
   const lines: string[] = [];
   if (!isStandardTuningNames(track.tuning) || (track.instrument && !keepsGuitarTuning(track.instrument.program))) {
@@ -206,6 +207,7 @@ function trackLines(track: Track): string[] {
     lines.push(`\\tuning (${notes.join(' ')})`);
   }
   if (track.capo) lines.push(`\\capo ${track.capo}`);
+  for (const def of track.chords ?? []) lines.push(chordDefTex(def, quoted));
   return lines;
 }
 
