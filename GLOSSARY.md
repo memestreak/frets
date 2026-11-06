@@ -175,7 +175,8 @@ tools is the palette (`TabPalette.tsx`).
 **Roll**:
 How a chord sounds when its strings start one after another instead of
 together: low to high for a downstroke or Strum down, high to low for an
-upstroke or Strum up. Its length is the roll's amount. A Strum rolls
+upstroke or Strum up. Its length is the roll's amount, a fraction of
+the beat. A Strum rolls
 quickly, a Rolled chord over its whole beat.
 _Avoid_: brush, spread
 
