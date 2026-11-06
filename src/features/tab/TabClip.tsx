@@ -647,9 +647,15 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               </g>
             );
           })()}
-          {cursorOnStaff && !selectedNote && (
-            <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} {...staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!)} />
-          )}
+          {cursorOnStaff && !selectedNote && (() => {
+            const place = staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!);
+            // In note input on a note (one just entered, say), the caret's line stays off it: only the pitch's
+            // dash shows, to add a note to the chord, and over a note already at that pitch nothing at all
+            // (Jeremy, 2026-11-06). On a rest or a Gap the whole caret shows.
+            const heads = highlight!.input ? staffColumnHeads(system, highlight!.cursor!) : [];
+            if (heads.some(h => h.step === place.step)) return null;
+            return <StaffCursor x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0} {...place} />;
+          })()}
           {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
             <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} />
           )}
@@ -1164,6 +1170,12 @@ const BRACKET_SCALE = BRACKET_THICKNESS * 2;
  * In normal mode, the note the staff's cursor is on, when one is drawn there: lit in place rather than
  * covered by a cursor head, whose sign would sit apart from the note's own (issue #276).
  */
+/** The heads drawn in the cursor's column on the staff; none on a rest or off the system. */
+function staffColumnHeads(system: System, cursor: { bar: number; column: number }): readonly { step: number }[] {
+  const bar = system.bars.find(b => b.index === cursor.bar);
+  return bar?.columns[cursor.column]?.heads ?? [];
+}
+
 function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
   const { cursor, input, columnOnly } = highlight;
   if (!cursor || input || columnOnly) return null;

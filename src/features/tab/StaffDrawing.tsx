@@ -96,10 +96,10 @@ function ledgerSteps(step: number): number[] {
  * The staff's own cursor (issue #136). In note input it is a caret, as Dorico's and MuseScore's are: a line
  * across the staff where the next note goes, with a short dash at the pitch Enter would put there, its
  * ledger lines and, when the key doesn't give it, its sharp, flat or natural. It is never a notehead, which
- * read as a whole note already entered (issue #382). In normal mode (issue #238) it marks the selected note
+ * read as a whole note already entered (issue #382). On a note, `caret` false, only the dash shows. In normal mode (issue #238) it marks the selected note
  * instead, `selected`: the head filled in the selection colour, as MuseScore colours a selected note.
  */
-export function StaffCursor({ x, step, sign, score, selected = false }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean }) {
+export function StaffCursor({ x, step, sign, score, selected = false, caret = true }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean; caret?: boolean }) {
   const y = stepY(score, step);
   const left = x - HEAD_WIDTH / 2;
   const signGlyph: GlyphName | null = sign === null ? null : sign > 0 ? 'accidentalSharp' : sign < 0 ? 'accidentalFlat' : 'accidentalNatural';
@@ -124,7 +124,7 @@ export function StaffCursor({ x, step, sign, score, selected = false }: { x: num
     <g data-testid="staff-cursor" pointerEvents="none" stroke="var(--select)">
       {ledgers}
       {/* Just left of where the head goes, as Dorico's, so a note under the cursor still shows. */}
-      <line data-testid="staff-caret" x1={caretX} x2={caretX} y1={top} y2={bottom} strokeWidth={2} />
+      {caret && <line data-testid="staff-caret" x1={caretX} x2={caretX} y1={top} y2={bottom} strokeWidth={2} />}
       <line data-testid="staff-caret-pitch" x1={caretX} x2={left + HEAD_WIDTH} y1={y} y2={y} strokeWidth={2.5} strokeLinecap="round" />
       {sharpOrFlat && <g stroke="none">{sharpOrFlat}</g>}
     </g>

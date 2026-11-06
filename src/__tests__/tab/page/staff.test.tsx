@@ -212,8 +212,11 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'n' });
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
-      // A press on the staff gives it the keys again, and only it lights.
+      // A press on the staff gives it the keys again, and only it lights: nothing over the note pressed
+      // (Jeremy, 2026-11-06), then the pitch's dash once ↑ moves off it.
       press(headAt(2));
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'Escape' });
@@ -353,5 +356,24 @@ describe('note input’s staff cursor (issue #382)', () => {
     expect(screen.getByRole('button', { name: 'Quarter note' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect(alphaTexText()).toMatch(/\| r\.1 \|/);
+  });
+});
+
+describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
+  it('draws no caret over a note just entered, and only the pitch’s dash at another pitch', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor().focus());
+    for (let i = 0; i < 8; i++) fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+    fireEvent.keyDown(editor(), { key: 'n' });
+    fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
+    fireEvent.keyDown(editor(), { key: 'Enter' });
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(9));
+    expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+    expect(screen.getByTestId('staff-caret-pitch')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
 });
