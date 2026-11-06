@@ -238,7 +238,8 @@ then "." and its duration:
     tp 8       tremolo picking, as fast as eighths: one slash across the
     tp 16      stem; two slashes tp 16, three tp 32. The beat's own
     tp 32      duration is how long it is picked: 12.1.2{tp 16}.
-    sd  su     pick or strum stroke down / up
+    sd  su     pick or strum stroke down / up: between the staff and the
+               tab, over the staff when it is drawn alone
     wahc waho  the wah pedal closed (+) or open (o) from this beat, drawn
                over the music: 10.2.8{wahc} 8.1.16{waho}. Playback ignores it.
     cre  dec   getting louder / softer from this beat: neighbouring beats
