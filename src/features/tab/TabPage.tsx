@@ -683,7 +683,7 @@ export default function TabPage() {
   const editorKeys = (): EditorKeys => ({
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
-    commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
+    commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());

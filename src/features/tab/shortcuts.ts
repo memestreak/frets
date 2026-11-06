@@ -28,7 +28,7 @@ const MOVING: ShortcutGroup = {
   title: 'Moving on the tab',
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Last or next column' },
-    { keys: ['Up', 'Down'], does: 'String above or below; in note input, up from the top string to the staff' },
+    { keys: ['Up', 'Down'], does: 'String above or below' },
     { keys: ['Mod+Left', 'Mod+Right'], does: 'Last or next bar' },
     { keys: ['Mod+Home', 'Mod+End'], does: 'Start or end of the clip' },
     { keys: ['Shift+Left', 'Shift+Right'], does: 'Select columns' },
@@ -43,6 +43,7 @@ const INPUT: ShortcutGroup = {
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Next grid line in a rest, else the next note' },
     { keys: ['Shift+Space'], does: 'On by the next note’s length' },
+    { keys: ['Mod+Up', 'Mod+Down'], does: 'Up to the staff, or back down to the tab' },
     { keys: ['Alt+G'], does: 'Fixed grid or the note’s length' },
     { keys: ['Alt+[', 'Alt+]'], does: 'Finer or coarser fixed grid' },
     { keys: ['0–9'], does: 'Fret (two digits quickly for 10 and up)' },

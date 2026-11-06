@@ -96,6 +96,8 @@ export interface EditorKeys {
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
   toPitch: (next: Part, at: Cursor, pitch: number, selection: Selection | null) => void;
   setColumnOnly: (columnOnly: boolean) => void;
+  /** Gives the keys to the staff at a pitch, or with null back to the tab. */
+  setStaffPitch: (pitch: number | null) => void;
   /** A selection starts: the string and the staff's cursor let go. */
   startRegion: () => void;
   setPicked: (picked: null) => void;
@@ -236,6 +238,10 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       if (value) editor.setInputLength(lengthOf(value));
       return;
     }
+    if (staffOrTabKeyDown(e, editor)) {
+      handled();
+      return;
+    }
     if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
       handled();
       return;
@@ -290,13 +296,6 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     return;
   }
   lastDigit.current = null;
-  if (key === 'ArrowUp' && !columnOnly && cursor.string === 0 && editor.staffShown) {
-    // ↑ past the tab's top line (the high E) goes on to the staff's lowest line, the staff taking the keys,
-    // so the keys alone reach the staff from the tab (Jeremy, 2026-11-06, issue #396).
-    handled();
-    editor.toPitch(clip, cursor, pitchAtStep(clip, cursor.bar, STAFF_LINES[0]), null);
-    return;
-  }
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     handled();
     // With no string picked, ↑ ↓ pick back the string the cursor was last on.
@@ -718,6 +717,26 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
  * space, with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the cursor goes with it. True when
  * the key was one of them.
  */
+function staffOrTabKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  // In note input with the staff and the tab both drawn, ⌘/Ctrl+↑ takes the caret up to the staff and
+  // ⌘/Ctrl+↓ back down to the tab, so the keys alone go between them (Jeremy, 2026-11-06, issue #396).
+  if ((e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || !editor.staffShown) return false;
+  const { clip, cursor, staffPitch } = editor;
+  if (e.key === 'ArrowUp') {
+    if (staffPitch !== null) return true;
+    // Onto the staff at the cursor's note, else on the staff's lowest line.
+    const pitch = editor.columnOnly ? null : pitchAt(clip, cursor);
+    editor.toPitch(clip, cursor, pitch ?? pitchAtStep(clip, cursor.bar, STAFF_LINES[0]), null);
+    return true;
+  }
+  if (staffPitch === null) return true;
+  // Down onto the tab, on the string of the note the staff's caret was on, else the string it was last on.
+  editor.commit(clip, cursor, null);
+  editor.setStaffPitch(null);
+  editor.setColumnOnly(false);
+  return true;
+}
+
 function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
   const { clip, cursor, toPitch } = editor;
   const { key } = e;
