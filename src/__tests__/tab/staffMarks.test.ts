@@ -74,6 +74,47 @@ describe('the tab\'s rows with the staff shown', () => {
   });
 });
 
+describe('pick strokes', () => {
+  // Jeremy, 2026-11-06: over the staff alone, as Gould, Dorico and MuseScore have them.
+  const clip = clipOf('3.3.4{sd ch "C"} 3.3{pm lr}.4{su} 3.3{ph}.4 3.3.4{sd} |');
+
+  it('go over the staff alone, under the chord names, with P.M., let ring and P.H. still under it', () => {
+    const layout = layoutClip(clip, WIDTH, 'staff');
+    const { rows } = layout.systems[0];
+    expect(rows.strokes).toBeLessThan(rows.score!.top - 4);
+    expect(rows.strokes).toBeGreaterThan(rows.chords!);
+    for (const under of [rows.palmMute, rows.letRing, rows.harmonics]) expect(under).toBeGreaterThan(rows.score!.bottom);
+    // A press on the drawn stroke picks it.
+    const first = layout.systems[0].bars[0].columns[0];
+    expect(markAt(layout, first.x, rows.strokes!)).toMatchObject({ mark: 'stroke', index: 0 });
+  });
+
+  it('go over the staff alone without chord names, clear of a high note\'s stem', () => {
+    const { rows } = layoutClip(clipOf('17.1.4{sd} 17.1.4{su} r.2 |'), WIDTH, 'staff').systems[0];
+    expect(rows.chords).toBeNull();
+    expect(rows.strokes).not.toBeNull();
+    // E6 with an upward stem reaches over the top line: the staff moves down under the strokes.
+    const plain = layoutClip(clipOf('3.3.4{sd} r.4 r.2 |'), WIDTH, 'staff').systems[0].rows;
+    expect(rows.score!.top - rows.strokes!).toBeGreaterThan(plain.score!.top - plain.strokes!);
+  });
+
+  it('stay between the staff and the tab in Both, and over the tab alone', () => {
+    const both = layoutClip(clip, WIDTH, 'both').systems[0].rows;
+    expect(both.strokes).toBeGreaterThan(both.score!.bottom);
+    expect(both.strokes).toBeLessThan(both.palmMute!);
+    expect(both.strokes).toBeLessThan(both.staffTop);
+    const tab = layoutClip(clip, WIDTH, 'tab').systems[0].rows;
+    expect(tab.strokes).toBeGreaterThan(tab.chords!);
+    expect(tab.strokes).toBeLessThan(tab.staffTop);
+  });
+
+  it('take no row over the staff alone when no column has one', () => {
+    const { rows } = layoutClip(clipOf('3.3{pm}.4 r.4 r.2 |'), WIDTH, 'staff').systems[0];
+    expect(rows.strokes).toBeNull();
+    expect(rows.score!.top).toBe(layoutClip(clipOf('3.3.4 r.4 r.2 |'), WIDTH, 'staff').systems[0].rows.score!.top);
+  });
+});
+
 describe('picking a mark on the staff', () => {
   it('finds it, outlines it there, and leaves a press on a head to the note', () => {
     const clip = clipOf('5.3{h}.4 7.3.4 r.2 |');

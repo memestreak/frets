@@ -170,8 +170,9 @@ export function rowsFor(
     text: columns.some(c => c.text),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
     wah: columns.some(c => c.wah),
-    // Under the staff, or alone: strokes, let ring, P.M. and P.H. sit between the staff and the tab
-    // (under the staff alone), as printed guitar music has them. Vibrato and accents go on the staff.
+    // Strokes, let ring, P.M. and P.H. sit between the staff and the tab, as printed guitar music has
+    // them; under the staff alone, strokes go over it, as Gould, Dorico and MuseScore have them
+    // (Jeremy, 2026-11-06), and the rest under it. Vibrato and accents go on the staff.
     // A fermata goes on the staff when there is one, over the tab only without it.
     fermatas: parts === 'tab' && columns.some(c => c.fermata),
     hairpins: columns.some(c => c.hairpin),
@@ -210,6 +211,8 @@ export function rowsFor(
     // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
     wah: row(used.wah),
   };
+  // The staff alone: strokes over it, under every word (Jeremy, 2026-11-06).
+  const strokesOver = row(!tab && used.strokes);
   // The staff: room over its top line and under its bottom one for what reaches past them.
   let score: ScoreRows | null = null;
   if (parts !== 'tab') {
@@ -222,7 +225,7 @@ export function rowsFor(
   const marks = {
     fermatas: row(used.fermatas),
     hairpins: row(used.hairpins),
-    strokes: row(used.strokes),
+    strokes: tab ? row(used.strokes) : strokesOver,
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
     whammy: row(used.whammy),
