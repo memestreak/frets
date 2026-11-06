@@ -53,7 +53,7 @@ import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, 
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
-import { LoopHandles, PlaybackFooter, Playhead, usePlayback, type PlaybackSettings } from './PlaybackFooter';
+import { LoopHandles, PlaybackFooter, Playhead, rollsOf, usePlayback, type PlaybackSettings } from './PlaybackFooter';
 import { useArrangementFile } from './useArrangementFile';
 import { useEditorState, type Picked } from './useEditorState';
 import { useHeadPanels } from './useHeadPanels';
@@ -323,6 +323,7 @@ export default function TabPage() {
     countInBars: metronome.countInBars,
     clickVolume: metronome.clickVolume,
     effects: clip.fx ?? DEFAULT_FX,
+    rolls: rollsOf(playbackSettings),
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).

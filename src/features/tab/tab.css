@@ -485,7 +485,7 @@
   font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
   font-variant-ligatures: none;
 }
-.settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+.settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); white-space: nowrap; }
 
 /* The Tab page's title: a press opens the Title and credits panel. */
 .tab-title-text {

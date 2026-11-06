@@ -337,6 +337,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `2026-10-28-tab-sound-preload-design.md`.
 - `audioOutput.ts` — the Web Audio output the synthesizer plays through;
   `ringOn`, `chokeAll`.
+- `rolls.ts` — how much a Downstroke or Upstroke chord, a Strum and a Rolled
+  chord roll in playback, from Tab › Playback (issue #385) —
+  `2026-11-06-tab-chord-rolls-design.md`.
 - `seamlessLoop.ts` — loops the synthesizer with no gap at the loop's end
   (issue #346) — `2026-10-26-tab-playback-design.md`.
 - `dryChannels.ts` — keeps the clicks' channels out of the effects.

@@ -16,6 +16,7 @@ import { WebAudioOutput } from './audioOutput';
 import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
 import { keepDry } from './dryChannels';
 import { loopSeamlessly } from './seamlessLoop';
+import { DEFAULT_ROLLS, rollChords, sameRolls, type Rolls } from './rolls';
 import type { EffectSettings } from './effects';
 import { decodeOnMainThread, lastFont, useDecoded } from './soundDecode';
 import { SoundDecoder } from './soundDecoder';
@@ -201,9 +202,11 @@ function pickAtTremoloValue(score: Score) {
  * The clip as alphaTab's score and MIDI in a sound, with the lookup from a tick to the beat sounding
  * then. With `clicks`, the metronome's clicks are in the MIDI too, on their own channel, muted while
  * the metronome is off; so they keep time with the notes whatever the speed, the loop or the time
- * signature.
+ * signature. `rolls` is how much each kind of chord mark rolls its chord (`rolls.ts`).
  */
-export function perform(at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, { clicks = true }: { clicks?: boolean } = {}): Performance {
+export function perform(
+  at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, { clicks = true, rolls = DEFAULT_ROLLS }: { clicks?: boolean; rolls?: Rolls } = {},
+): Performance {
   const settings = new at.Settings();
   // alphaTab's wide vibrato is faster as well as wider (a period of 240 ticks to the slight one's
   // 360); a wide vibrato is only wider (Jeremy, 2026-10-29: "it should just be wider").
@@ -223,6 +226,7 @@ export function perform(at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, 
     }
   }
   pickAtTremoloValue(score);
+  rollChords(at, score, clip, rolls);
   const midi = new at.midi.MidiFile();
   const generator = new at.midi.MidiFileGenerator(score, settings, new at.midi.AlphaSynthMidiFileHandler(midi, true));
   vibratoOnBends(at, generator, settings);
@@ -803,6 +807,8 @@ export class TabPlayer {
   private clip: Part | null = null;
   private sound: Sound = DEFAULT_SOUND;
   private volume = 1;
+  /** How much each kind of chord mark rolls its chord (Tab › Playback). */
+  private rolls: Rolls = DEFAULT_ROLLS;
   /** The sounds' own soundfonts loaded so far, by URL. */
   private readonly fonts = new Set<string>();
   /** The sounds' own soundfonts loading, by URL: whoever wants one meanwhile waits for the same load. */
@@ -934,7 +940,7 @@ export class TabPlayer {
       this.clip = clip;
       this.sound = sound;
       this.setVolume(this.volume);
-      this.performance = perform(this.at, clip, sound);
+      this.performance = perform(this.at, clip, sound, { rolls: this.rolls });
       this.loaded = null;
     }
     this.setSpeed(speed);
@@ -1043,6 +1049,20 @@ export class TabPlayer {
     sequencer.loadMidi(this.midiFor(this.performance, this.loaded.end));
     this.loaded = { end: this.loaded.end, counted: null };
     rangeWithoutSeek(this.synth, range);
+  }
+
+  /** How much each kind of chord mark rolls its chord; a clip playing goes on from where it is with the new rolls. */
+  setRolls(rolls: Rolls) {
+    if (sameRolls(rolls, this.rolls)) return;
+    this.rolls = rolls;
+    if (!this.clip || !this.performance) return;
+    const playing = !this.ended && this.resting === null;
+    const tick = this.synth.tickPosition;
+    this.performance = perform(this.at, this.clip, this.sound, { rolls });
+    this.load(this.performance, null);
+    this.moveTo(tick);
+    this.setLoop(this.loop);
+    if (playing) this.synth.play();
   }
 
   /** The rest between loops, in seconds; 0 loops straight round. */
@@ -1241,7 +1261,7 @@ export class TabPlayer {
       if (loaded) this.onView({ state: 'idle' });
       return;
     }
-    this.performance = perform(this.at, this.clip, sound);
+    this.performance = perform(this.at, this.clip, sound, { rolls: this.rolls });
     this.load(this.performance, null);
     this.moveTo(tick);
     this.setLoop(this.loop);
@@ -1282,7 +1302,7 @@ export class TabPlayer {
     this.performance = null;
     this.counted = null;
     this.setVolume(this.volume);
-    this.load(perform(this.at, alone, sound, { clicks: false }), null);
+    this.load(perform(this.at, alone, sound, { clicks: false, rolls: this.rolls }), null);
     // Not the clip's MIDI: the next Play loads that.
     this.loaded = null;
     this.synth.playbackSpeed = 1;
