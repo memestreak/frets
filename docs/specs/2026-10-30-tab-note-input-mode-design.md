@@ -12,7 +12,9 @@ input.
 - **N**, or the pencil button first in the palette (its own group, "Input"), turns note input on and
   off. The pencil stays lit while note input is on, on the tab or off it: it says the mode, not a note.
   N works anywhere on the page but in a text field, a dialog or a menu (Jeremy, 2026-10-30); going in
-  brings the keys to the tab.
+  brings the keys to the tab. Going in lets any selection, or a picked mark or word, go, and the cursor
+  starts at the selection's first column, as Dorico's caret and MuseScore's note input do (Jeremy,
+  2026-11-06).
 - **Esc** in note input goes back to normal mode, keeping the tab and what the cursor was on. Esc in
   normal mode leaves the tab, as before.
   Esc leaves note input wherever the keys are on the page (Jeremy, 2026-11-03, issue #334): off the
