@@ -590,13 +590,9 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-icon:focus-visible { outline: none; }
 /* + under the list, at its left, as the list's last row. */
 .chord-panel-add { justify-self: start; margin-left: 2px; }
-/* The Chord dialog: a name (looking up), the shapes four to a row, and its buttons. */
-.chord-dialog { width: min(480px, 100%); }
-.chord-dialog-body { display: grid; gap: 12px; }
-.chord-dialog-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 /* What the cursor column's notes are, as names to take; and the caption under its fingering. */
-.chord-dialog-names { display: grid; gap: 4px; }
-.chord-dialog-caption { display: block; font: 400 11px/14px var(--font-sans); color: var(--ink-muted); text-align: center; }
+.chord-editor-names { display: grid; gap: 4px; }
+.chord-editor-caption { display: block; font: 400 11px/14px var(--font-sans); color: var(--ink-muted); text-align: center; }
 .chord-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .chord-panel-stepper { display: inline-flex; align-items: center; gap: 2px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
 .chord-panel-step {
@@ -635,3 +631,30 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
 .chord-panel-hear:focus-visible { outline: none; }
 .chord-panel-hear svg { width: 18px; height: 18px; }
+
+/* The chord editor (ChordEditor.tsx), in the panel where its + was. */
+.chord-editor { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.chord-editor:focus, .chord-editor:focus-visible { outline: none; }
+.chord-editor-field { display: grid; gap: 2px; }
+.chord-editor-hint { font-size: 11px; line-height: 14px; }
+.chord-editor-lookup { display: grid; gap: 8px; }
+/* The root picker, narrowed to the panel: each sharp still over its flat. */
+.chord-editor-lookup .key-picker { width: 100%; }
+.chord-editor-lookup .key-tile { height: 44px; font-size: 13px; }
+.chord-editor-lookup .key-tile-half { height: auto; font-size: 9px; }
+.chord-editor-type { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.chord-editor-type > .input { flex: 1; min-width: 0; }
+.chord-editor-miss { margin-top: 4px; }
+.chord-editor-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.chord-editor-draw { display: grid; place-items: center; align-content: center; gap: 2px; min-height: 56px; color: var(--ink-muted); }
+.chord-editor-draw:hover { color: var(--ink); }
+.chord-editor-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.chord-editor-buttons > .chord-panel-note { flex-basis: 100%; }
+.chord-editor-link { justify-self: start; padding: 0; border: 0; background: none; font: 500 13px/18px var(--font-sans); color: var(--primary); cursor: pointer; }
+.chord-editor-link:hover { text-decoration: underline; }
+.chord-editor-link:focus-visible { outline: none; }
+.chord-editor-editor { display: grid; gap: 2px; justify-items: center; }
+.chord-editor-editor-svg { width: 100%; height: auto; }
+.chord-editor-editor-svg :is(line, circle, text, rect:not(.chord-editor-hit)) { pointer-events: none; }
+.chord-editor-hit { fill: transparent; cursor: pointer; }
+.chord-editor-hit:hover { fill: var(--select-soft); }

@@ -1,5 +1,5 @@
 /**
- * What the Chords panel and its Chord dialog share (`docs/specs/2026-11-05-tab-chord-panel-design.md`):
+ * What the Chords panel and its chord editor share (`docs/specs/2026-11-05-tab-chord-panel-design.md`):
  * a chord name read into a chord, its shapes on a track's tuning, the two ways round a shape is
  * written, the names and fingering of a column's notes, and the chord a diagram is drawn with. Pure.
  */

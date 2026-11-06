@@ -23,6 +23,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | --- | --- | --- |
 | `beam-overrides.atex` | Break the beam before this note and Join the beam to the note before, and pressing the lit one again for Automatic | `docs/specs/2026-11-04-tab-beat-groups-beams-design.md` |
 | `beat-groups.atex` | Beat groups typed in the time signature panel re-beam a run of 7/8 | `docs/specs/2026-11-04-tab-beat-groups-beams-design.md` |
+| `chords-panel-edit.atex` | Adding and changing chords in the Chords panel: a pick only picks; Edit or a double-click opens it; Save renames every use; Save as new chord adds a changed copy; Esc closes it; + looks a chord up, offers the cursor's fingering, and draws your own | `docs/specs/2026-11-05-tab-chord-panel-design.md`, #251, #368 |
 | `drag-range-handles.atex` | A selection box's left or right edge drags its start or end to another note, the other end staying | `docs/specs/2026-11-05-tab-range-handles-design.md` |
 | `delete-whole-bar.atex` | Delete on a bar selected whole leaves one whole rest | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |
