@@ -18,8 +18,6 @@ export interface StackRules {
   width: (text: string) => number;
   /** The room kept between one word's end and the next word's start. */
   gap: number;
-  /** Whether a word wider than its room breaks at its spaces onto more lines; if not, it keeps one line. */
-  wrap: boolean;
   /** The least and the most room a word wraps to, however close or far the next word is. */
   minRoom: number;
   maxRoom: number;
@@ -64,7 +62,6 @@ export function wrapWords(text: string, room: number, width: (text: string) => n
 export function stackWords(words: WordToStack[], end: number, rules: StackRules): { placed: StackedWord[]; rows: number } {
   const wrapped = (k: number, nextStart: number) => {
     const { x0, lead, text } = words[k];
-    if (!rules.wrap) return [text];
     const room = Math.min(rules.maxRoom, Math.max(rules.minRoom, nextStart - rules.gap - x0 - lead));
     return wrapWords(text, room, rules.width);
   };

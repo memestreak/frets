@@ -1,7 +1,8 @@
 /**
  * A section over the bar it starts at: how it is measured, and how a line's sections make room for each
- * other (issue #389, `docs/specs/2026-11-06-tab-section-overlap-design.md`). Pure; `layoutClip` places
- * each line's sections once, and the drawing, the hit tests and the fields use what it placed.
+ * other: a long name wraps, and moves up if it still touches (issue #389,
+ * `docs/specs/2026-11-06-tab-section-overlap-design.md`). Pure; `layoutClip` places each line's sections
+ * once, and the drawing, the hit tests and the fields use what it placed.
  */
 import { type Section } from './clip';
 import { stackWords, type StackedWord } from './stackWords';
@@ -43,37 +44,18 @@ export function sectionBoxes(section: Section): { marker: { x: number; width: nu
   return { marker, text: { x, width: sectionTextWidth(section.text) } };
 }
 
-/**
- * MOCK (issue #389), removed once Jeremy picks: how a section too long for its bar makes room.
- * `stack` moves it up a level, `wrap` wraps it first and then moves it up, `widen` widens its bar.
- */
-export type SectionFit = 'stack' | 'wrap' | 'widen';
-let fit: SectionFit = 'stack';
-export function setSectionFit(value: SectionFit) {
-  fit = value;
-}
-export function sectionFit(): SectionFit {
-  return fit;
-}
-
-/** How far right of its bar's opening line a section reaches, with the room kept before the next. */
-export function sectionReach(section: Section): number {
-  const { text } = sectionBoxes(section);
-  return BAR_TEXT_INSET + text.x + text.width + SECTION_GAP;
-}
-
 /** The least room a wrapped section's name wraps to, so a name over a short bar isn't a word a line. */
 const SECTION_MIN_ROOM = 100;
 
 /**
- * The sections of one line, left to right, each from `x0` (its bar's text start): a name that runs into
- * the next section moves up a level, as Dorico and MuseScore move colliding text away from the staff,
- * and with `wrap` first wraps to the room before the next section (`stackWords`).
+ * The sections of one line, left to right, each from `x0` (its bar's text start), as the Text is placed
+ * (`stackWords`): a name wraps to the room before the next section (Jeremy, 2026-11-06), and one that
+ * still runs into it moves up a level, as Dorico and MuseScore move colliding text away from the staff.
  */
 export function placeSections(sections: { x0: number; section: Section }[], end: number): { placed: StackedWord[]; rows: number } {
   return stackWords(
     sections.map(({ x0, section }) => ({ x0, lead: sectionBoxes(section).text.x, text: section.text })),
     end,
-    { width: sectionTextWidth, gap: SECTION_GAP, wrap: fit === 'wrap', minRoom: SECTION_MIN_ROOM, maxRoom: Infinity },
+    { width: sectionTextWidth, gap: SECTION_GAP, minRoom: SECTION_MIN_ROOM, maxRoom: Infinity },
   );
 }

@@ -13,6 +13,10 @@
   (0.1 0.2 1.3 2.4 2.5 0.6).2 |
 \section "4. Short" (0.1 0.2 1.3 2.4 2.5 0.6).2{txt "Clears bar 3's name"}
   (0.1 0.2 1.3 2.4 2.5 0.6).2 |
-\section "5. Click a raised name, then double-click it"
+\section "5. Click a wrapped name, then double-click it"
   (0.1 0.2 1.3 2.4 2.5 0.6).1{txt "It turns blue, and its field opens over it"} |
+\ts (1 4) \section "6. Supercalifragilisticexpialidocious"
+  (0.1 0.2 1.3 2.4 2.5 0.6).4{txt "One word too wide to wrap"} |
+\section "7. Next"
+  (0.1 0.2 1.3 2.4 2.5 0.6).4{txt "Moves up when bar 6's name runs over it"} |
 

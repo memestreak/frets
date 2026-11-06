@@ -44,6 +44,6 @@ export type PlacedBeatText = StackedWord;
  */
 export function placeBeatTexts(texts: { x0: number; text: string }[], end: number): { placed: PlacedBeatText[]; rows: number } {
   return stackWords(texts.map(t => ({ ...t, lead: 0 })), end, {
-    width: beatTextWidth, gap: BEAT_TEXT_GAP, wrap: true, minRoom: BEAT_TEXT_MIN_ROOM, maxRoom: BEAT_TEXT_MAX_ROOM,
+    width: beatTextWidth, gap: BEAT_TEXT_GAP, minRoom: BEAT_TEXT_MIN_ROOM, maxRoom: BEAT_TEXT_MAX_ROOM,
   });
 }

@@ -7,7 +7,7 @@ import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSig
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
-import { BAR_TEXT_INSET, placeSections, SECTION_LINE, sectionFit, sectionReach } from './sectionText';
+import { BAR_TEXT_INSET, placeSections, SECTION_LINE } from './sectionText';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -847,12 +847,9 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     const own = inRun ? run!.share : bar.columns.length === 0 ? EMPTY_BAR : bar.columns.reduce((sum, _, k) => sum + ownRoom(k), 0);
     // As wide as the widest track's bar, its columns spread to fill it, so every track has the same lines.
     const company = inRun ? { inner: 0, least: 0 } : alongsideRoom(clip, index, staff);
-    const closing = BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
-    // MOCK (issue #389) `widen`: a bar is at least as wide as its section's name.
-    const wordsInner = sectionFit() === 'widen' && bar.section && !inRun
-      ? sectionReach(bar.section) - barLead(bar, timeChange, keyChange, freeStart) - closing : 0;
-    const inner = Math.max(own, company.inner, wordsInner);
+    const inner = Math.max(own, company.inner);
     const spread = bar.columns.length > 0 ? inner / own : 1;
+    const closing = BAR_PAD_END + (bar.repeatEnd ? REPEAT_PAD : 0);
     const widthWith = (keyRoom: number) => (inRun && !count ? 0 : barLead(bar, timeChange, keyRoom, freeStart)) + inner + (inRun && index < run!.end ? 0 : closing);
     let w = widthWith(keyChange);
     // A multi-bar rest goes on one line, whole: its first bar asks for the room of them all.
@@ -861,8 +858,8 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     const restOn = inRun && !count;
     const lineFull = modelled && wanted <= 0 && !restOn;
     const leastInner = inRun || bar.columns.length === 0 ? inner
-      : multi ? Math.max(company.least, multi.least, wordsInner)
-      : Math.max(company.least, wordsInner, bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0));
+      : multi ? Math.max(company.least, multi.least)
+      : Math.max(company.least, bar.columns.reduce((sum, c, k) => sum + leastWidth(c, heads[index][k], staff), 0));
     const overflows = modelled ? xLeast + (asks - inner + leastInner) > width : x + asks > width;
     if (current.length > 0 && (lineFull || overflows)) {
       finish();
@@ -952,7 +949,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       c.textTop = texts.placed[k].top;
     });
     system.textRows = texts.rows;
-    // A section that runs into the next moves up clear of it (issue #389).
+    // A section wraps to the room before the next, and moves up clear of one it still touches (issue #389).
     const sectioned = system.bars.filter(b => b.bar.section);
     const sections = placeSections(
       sectioned.map(b => ({ x0: b.x0 + BAR_TEXT_INSET, section: b.bar.section! })),
