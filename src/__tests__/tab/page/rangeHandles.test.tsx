@@ -50,7 +50,7 @@ function selectSecondAndThird() {
 /** Presses `end`'s handle of the run `range`, moves to `to`, and (unless `hold`) lets go there. */
 function drag(layout: Layout, range: [number, number], end: RangeEnd, to: { x: number; y: number } | null, hold = false) {
   const handle = rangeHandles(layout, range).find(h => h.end === end)!;
-  const at = { clientX: handle.x, clientY: handle.bottom };
+  const at = { clientX: handle.x, clientY: (handle.top + handle.bottom) / 2 };
   fireEvent.pointerDown(drawing(), { ...at, button: 0, pointerId: 1 });
   const target = to ? { clientX: to.x, clientY: to.y } : at;
   if (to) fireEvent.pointerMove(drawing(), { ...target, pointerId: 1 });
@@ -65,27 +65,26 @@ describe('Range handles', () => {
     expect(screen.getAllByTestId('range-handle').map(h => h.getAttribute('data-end'))).toEqual(['start', 'end']);
   });
 
-  it('both knobs show while the pointer is anywhere over the selection box, and while one is dragged', async () => {
+  it('no knob is drawn: each end edge of the box shows the ↔ pointer from top to bottom', async () => {
     const layout = await open();
     selectSecondAndThird();
     const [start, end] = rangeHandles(layout, [1, 2]);
-    const knobs = () => screen.queryAllByTestId('range-knob').map(k => k.closest('[data-end]')!.getAttribute('data-end'));
-    expect(knobs()).toEqual([]);
-    // Inside the box, away from both corners.
-    fireEvent.pointerMove(drawing(), { clientX: (start.x + end.x) / 2, clientY: start.top + 4 });
-    expect(knobs()).toEqual(['start', 'end']);
-    // Over a note outside it.
-    fireEvent.pointerMove(drawing(), { clientX: placed(layout, 5).x, clientY: placed(layout, 5).y });
-    expect(knobs()).toEqual([]);
-    // Just outside a corner, within the knob's reach.
-    fireEvent.pointerMove(drawing(), { clientX: end.x + 6, clientY: end.bottom + 6 });
-    expect(knobs()).toEqual(['start', 'end']);
-    fireEvent.pointerLeave(drawing());
-    expect(knobs()).toEqual([]);
-    // Dragged, they stay shown, wherever the pointer goes.
-    drag(layout, [1, 2], 'end', placed(layout, 10), true);
-    expect(knobs()).toEqual(['start', 'end']);
-    fireEvent.pointerUp(drawing(), { clientX: placed(layout, 10).x, clientY: placed(layout, 10).y, pointerId: 1 });
+    const edges = screen.getAllByTestId('range-handle');
+    expect(edges.map(e => e.getAttribute('fill'))).toEqual(['transparent', 'transparent']);
+    expect(edges.map(e => (e as unknown as SVGElement).style.cursor)).toEqual(['ew-resize', 'ew-resize']);
+    expect(Number(edges[0].getAttribute('y'))).toBeLessThanOrEqual(start.top);
+    expect(Number(edges[1].getAttribute('y')) + Number(edges[1].getAttribute('height'))).toBeGreaterThanOrEqual(end.bottom);
+    expect(screen.queryAllByTestId('range-knob')).toHaveLength(0);
+  });
+
+  it('a press near the top of an edge drags it too', async () => {
+    const layout = await open();
+    selectSecondAndThird();
+    const end = rangeHandles(layout, [1, 2])[1];
+    fireEvent.pointerDown(drawing(), { clientX: end.x + 3, clientY: end.top + 2, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(drawing(), { clientX: placed(layout, 4).x, clientY: placed(layout, 4).y, pointerId: 1 });
+    fireEvent.pointerUp(drawing(), { clientX: placed(layout, 4).x, clientY: placed(layout, 4).y, pointerId: 1 });
+    expect(lit()).toEqual(['2', '3', '5', '7']);
   });
 
   it('dragging the end handle right grows the run to the column under the pointer; the start stays', async () => {

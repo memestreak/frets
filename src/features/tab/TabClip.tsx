@@ -20,7 +20,7 @@ import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
-import { boxSpan, overRange, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle, RANGE_HANDLE_REACH } from './rangeBox';
+import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -177,17 +177,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   // A boxed run's Range handles: on the page only, not on a run a picked Mark selects.
   const handleRange = onDragRange && highlight?.boxed ? highlight.range : null;
   const handles = useMemo(() => (handleRange ? rangeHandles(layout, handleRange) : []), [handleRange, layout]);
-  /** Whether the pointer is over the selected run: its knobs show only then, or while one is dragged. */
-  const [hovered, setHovered] = useState(false);
   /** A Range handle being dragged: which end, and the column it was last over. */
   const rangePress = useRef<{ handle: RangeHandle; column: number | null } | null>(null);
-  const hoverRange = (e: PointerEvent<SVGSVGElement>) => {
-    // While one is dragged it stays shown.
-    if (rangePress.current || (!handleRange && !hovered)) return;
-    const { px, py } = toUnits(e);
-    const over = handleRange !== null && overRange(layout, handleRange, px, py);
-    if (over !== hovered) setHovered(over);
-  };
   const dragRange = (e: PointerEvent<SVGSVGElement>) => {
     const press = rangePress.current;
     if (!press) return false;
@@ -287,7 +278,6 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       const handle = rangeHandleAt(handles, px, py);
       if (handle) {
         rangePress.current = { handle, column: null };
-        setHovered(true);
         setDragging(true);
         e.currentTarget.setPointerCapture?.(e.pointerId);
         return;
@@ -503,8 +493,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
-      onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { hoverRange(e); if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
-      onPointerLeave={shadow !== null || onDragRange ? () => { if (shadow !== null) setHover(null); if (!rangePress.current) setHovered(false); } : undefined}
+      onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
+      onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
       onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
       onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
@@ -693,7 +683,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       {attached.lines.map((l, k) => (
         <line key={`attach-${k}`} x1={l.x} x2={l.x} y1={l.y0} y2={l.y1} stroke="var(--select)" strokeWidth={1} strokeDasharray="1.5 2.5" strokeLinecap="round" pointerEvents="none" data-testid="attachment-line" />
       ))}
-      {handles.map(h => <RangeGrip key={`range-handle-${h.end}`} handle={h} shown={hovered} />)}
+      {handles.map(h => <RangeEdge key={`range-handle-${h.end}`} handle={h} />)}
       {onDragSpan && attached.handles.map(h => (
         <circle key={`handle-${h.end}-${h.system}`} cx={h.x} cy={h.y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} style={{ cursor: 'ew-resize' }} data-testid="span-handle" data-end={h.end} />
       ))}
@@ -1184,15 +1174,15 @@ function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
 }
 
 /**
- * A selected run's Range handle: a knob on its box's bottom corner, drawn only while the pointer is over
- * the run or a knob is dragged (Jeremy, 2026-11-05), over a clear area that shows the ↔ pointer over all its reach.
+ * A selected run's Range handle: the box's end edge, drawn as nothing more than the box's own line, over a
+ * clear strip that turns the pointer to ↔ over all its reach (Jeremy, 2026-11-06).
  */
-function RangeGrip({ handle, shown }: { handle: RangeHandle; shown: boolean }) {
-  const { x, bottom: y, end } = handle;
+function RangeEdge({ handle }: { handle: RangeHandle }) {
+  const { x, top, bottom, end } = handle;
   return (
-    <g data-testid="range-handle" data-end={end} data-shown={shown || undefined}>
-      <circle cx={x} cy={y} r={RANGE_HANDLE_REACH} fill="transparent" style={{ cursor: 'ew-resize' }} />
-      {shown && <circle cx={x} cy={y} r={3.5} fill="var(--surface-raised)" stroke="var(--select)" strokeWidth={1.5} pointerEvents="none" data-testid="range-knob" />}
-    </g>
+    <rect
+      x={x - RANGE_EDGE_REACH} y={top - RANGE_EDGE_REACH} width={RANGE_EDGE_REACH * 2} height={bottom - top + RANGE_EDGE_REACH * 2}
+      fill="transparent" style={{ cursor: 'ew-resize' }} data-testid="range-handle" data-end={end}
+    />
   );
 }

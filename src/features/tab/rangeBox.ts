@@ -67,7 +67,7 @@ export interface RangeHandle {
   bottom: number;
 }
 
-/** The two Range handles of a selected run: on the left edge of its first box and the right edge of its last, their knobs at the bottom. */
+/** The two Range handles of a selected run: the left edge of its first box and the right edge of its last. */
 export function rangeHandles(layout: Layout, range: [number, number]): RangeHandle[] {
   const boxes = rangeBoxes(layout.systems, range);
   if (boxes.length === 0) return [];
@@ -79,33 +79,22 @@ export function rangeHandles(layout: Layout, range: [number, number]): RangeHand
   ];
 }
 
-/** How far round a Range handle's knob a press takes it, and the pointer shows it. */
-export const RANGE_HANDLE_REACH = 10;
+/** How far across from a box's end edge, and past its top and bottom, a press takes the edge. */
+export const RANGE_EDGE_REACH = 8;
 
 /**
- * The Range handle whose knob is under the pointer, or null; the nearer where both reach. A knob sits on
- * its box's bottom corner: the bottom left for the start, the bottom right for the end (Jeremy, 2026-11-05).
+ * The Range handle whose edge is under the pointer, or null; the nearer where both reach. A Range handle
+ * is the box's left edge (the start) or right edge (the end), from top to bottom, drawn as nothing but
+ * the box's own line: the pointer turns to ↔ over it (Jeremy, 2026-11-06).
  */
 export function rangeHandleAt(handles: readonly RangeHandle[], x: number, y: number): RangeHandle | null {
   let best: { handle: RangeHandle; off: number } | null = null;
   for (const handle of handles) {
     const across = Math.abs(handle.x - x);
-    const down = Math.abs(handle.bottom - y);
-    if (across > RANGE_HANDLE_REACH || down > RANGE_HANDLE_REACH) continue;
-    const off = Math.hypot(across, down);
-    if (!best || off < best.off) best = { handle, off };
+    if (across > RANGE_EDGE_REACH || y < handle.top - RANGE_EDGE_REACH || y > handle.bottom + RANGE_EDGE_REACH) continue;
+    if (!best || across < best.off) best = { handle, off: across };
   }
   return best?.handle ?? null;
-}
-
-/**
- * Whether the pointer is over a selected run: inside one of its boxes, or within a knob's reach of one.
- * Both knobs show while it is (Jeremy, 2026-11-05).
- */
-export function overRange(layout: Layout, range: [number, number], x: number, y: number): boolean {
-  return rangeBoxes(layout.systems, range).some(box =>
-    x >= box.x - RANGE_HANDLE_REACH && x <= box.x + box.width + RANGE_HANDLE_REACH
-    && y >= box.y - RANGE_HANDLE_REACH && y <= box.y + box.height + RANGE_HANDLE_REACH);
 }
 
 /**
