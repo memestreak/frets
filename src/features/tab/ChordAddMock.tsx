@@ -2,8 +2,8 @@
 
 /**
  * MOCK (round 2, layout a picked 2026-11-06): the chord view in the Chords panel itself, not a modal.
- * The + opens it empty (Add chord); picking a chord of the track's set opens it on that chord (Save
- * chord). It looks a chord up by root and type (or by name, behind the magnifier), lets the name differ
+ * The + opens it empty (Add chord); a chord's pencil, or a double-click on it, opens it on that chord
+ * (Save chord). Add and Save close it, as do Cancel and Esc. It looks a chord up by root and type (or by name, behind the magnifier), lets the name differ
  * from the chord's symbol ("A barre/5"), and draws your own fingering. Cancel or Esc closes it.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -108,12 +108,14 @@ type Draft = ReturnType<typeof useDraft>;
 
 export function ChordAddMock({ opened, clip, column, taken, onAdd, onSave, onHear, onCancel }: ChordAddProps) {
   const draft = useDraft(clip, column, opened, onHear);
-  // Opening on the +, the view takes the keys (so Esc cancels): its first field.
   const form = useRef<HTMLDivElement>(null);
+  // Opening takes the keys, so Esc closes it: the + view its first field, a chord's view itself.
   useEffect(() => {
     const el = form.current;
-    if (!opened) (el?.querySelector<HTMLElement>('input') ?? el)?.focus();
-  }, [opened]);
+    (opened ? el : el?.querySelector<HTMLElement>('input') ?? el)?.focus();
+    // Once, as it opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const frets = draft.shape ? toFrets(draft.shape) : null;
   const isTaken = draft.name !== opened?.name && taken.includes(draft.name);
   const changed = opened !== null && (draft.name !== opened.name || (draft.shape ? shapeKey(draft.shape) : '') !== (opened.shape ? shapeKey(opened.shape) : ''));

@@ -171,18 +171,34 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   const addMock = useMock(ADD_MOCK);
   /** MOCK: the + replaced by the chord view in the panel. */
   const [adding, setAdding] = useState(false);
+  /** MOCK: the chord the view is open on, from its pencil or a double-click; picking alone doesn't open it. */
+  const [viewChord, setViewChord] = useState<string | null>(null);
   const inPanel = addMock !== 'off';
+  const openOn = (n: string) => {
+    setPicked(n);
+    setAdding(false);
+    setViewChord(n);
+  };
+  const closeView = () => {
+    setAdding(false);
+    setViewChord(null);
+    onDone();
+  };
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
   // A name's Edit picks that chord and opens its Chord dialog.
   useEffect(() => {
     if (!at?.name) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
-    setPicked(at.name);
-    // MOCK: in the panel, picking it opens its view.
-    if (inPanel) setAdding(false);
-    else setDialog({ kind: 'edit', name: at.name });
-  }, [at, inPanel]);
+    /* eslint-disable react-hooks/set-state-in-effect -- a new `at` is an outside event. */
+    // MOCK: in the panel, it opens the chord's view.
+    if (inPanel) openOn(at.name);
+    else {
+      setPicked(at.name);
+      setDialog({ kind: 'edit', name: at.name });
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new `at` opens it.
+  }, [at]);
 
   const column = columnAt(clip, cursor);
   const tuning = useMemo(() => lowFirst(clip), [clip]);
@@ -228,6 +244,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
 
   // Presses on the panel's buttons keep the tab's focus, and so its cursor, as the palette's do.
   const keep = (e: MouseEvent) => e.preventDefault();
+  /** MOCK: the chord the view is open on, while it's still in the set. */
+  const viewOn = viewChord && set.some(e => e.name === viewChord) ? viewChord : null;
 
   return (
     <div className="chord-panel">
@@ -241,7 +259,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
               <li key={entry.name} className="chord-panel-item">
                 <button
                   type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
-                  onMouseDown={keep} onClick={() => { setAdding(false); pick(entry.name); }}
+                  onMouseDown={keep} onClick={() => pick(entry.name)}
+                  onDoubleClick={() => { if (inPanel) openOn(entry.name); }}
                 >
                   <span className="chord-panel-thumb" aria-hidden="true">
                     {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
@@ -251,15 +270,12 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
                     ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
                     : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
                 </button>
-                {/* MOCK: in the panel, picking the chord opens it, so there's no pencil. */}
-                {inPanel ? <span aria-hidden="true" /> : (
-                  <button
-                    type="button" className="chord-panel-icon" aria-label={`Edit ${entry.name}`} data-tip="Edit"
-                    onMouseDown={keep} onClick={() => { setPicked(entry.name); setDialog({ kind: 'edit', name: entry.name }); }}
-                  >
-                    <PencilIcon />
-                  </button>
-                )}
+                <button
+                  type="button" className="chord-panel-icon" aria-label={`Edit ${entry.name}`} data-tip="Edit"
+                  onMouseDown={keep} onClick={() => (inPanel ? openOn(entry.name) : (setPicked(entry.name), setDialog({ kind: 'edit', name: entry.name })))}
+                >
+                  <PencilIcon />
+                </button>
                 {/* Only an unused chord can go, so no column loses its name (Jeremy, 2026-11-06). */}
                 {entry.uses === 0 ? (
                   <button
@@ -273,24 +289,25 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
             );
           })}
         </ul>
-        {inPanel && (adding || name) ? (
+        {inPanel && (adding || viewOn) ? (
           <ChordAddMock
-            key={adding ? '+' : `chord:${name}`}
-            opened={adding || !name ? null : { name, shape: shapeOfDef(name) }}
+            key={adding ? '+' : `chord:${viewOn}`}
+            opened={adding || !viewOn ? null : { name: viewOn, shape: shapeOfDef(viewOn) }}
             clip={clip} column={column} taken={set.map(e => e.name)}
-            onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); setAdding(false); }}
+            onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); closeView(); }}
             onSave={(from, to, frets) => {
               const renamed = withRenamedChord(clip, from, to);
               onChange(frets ? withChordShape(renamed, to, frets) : renamed);
               setPicked(to);
+              closeView();
             }}
             onHear={shape => { if (hear) onHear(toFrets(shape)); }}
-            onCancel={() => { setAdding(false); setPicked(null); onDone(); }}
+            onCancel={closeView}
           />
         ) : (
           <button
             type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
-            onMouseDown={keep} onClick={() => (inPanel ? (setPicked(null), setAdding(true)) : setDialog({ kind: 'add' }))}
+            onMouseDown={keep} onClick={() => (inPanel ? (setViewChord(null), setAdding(true)) : setDialog({ kind: 'add' }))}
           >
             <PlusIcon />
           </button>
