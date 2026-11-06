@@ -113,7 +113,7 @@ describe('view options', () => {
     expect(parseColours(null)).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });
     expect(parseColours({ scheme: 'custom', text: '#7A1F1F', background: '#f4ecd8' })).toEqual({ scheme: 'custom', text: '#7a1f1f', background: '#f4ecd8' });
     expect(parseColours({ scheme: 'pink', text: 'red', background: '#fff' })).toEqual({ scheme: 'theme', text: '#000000', background: '#ffffff' });
-    expect([parseAscii(null), parseAscii({ rhythm: false }), parseAscii({ rhythm: 'no' })]).toEqual([{ rhythm: true }, { rhythm: false }, { rhythm: true }]);
+    expect([parseAscii(null), parseAscii({ rhythm: false, chords: false }), parseAscii({ rhythm: 'no', chords: 1 })]).toEqual([{ rhythm: true, chords: true }, { rhythm: false, chords: false }, { rhythm: true, chords: true }]);
     expect([parseAlphaTex(null), parseAlphaTex({ lineNumbers: false }), parseAlphaTex({ lineNumbers: 0 })])
       .toEqual([{ lineNumbers: true }, { lineNumbers: false }, { lineNumbers: true }]);
   });

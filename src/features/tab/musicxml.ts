@@ -10,6 +10,7 @@ import {
   beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
   type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
+import { diagramOf, gridFrets, type ShapedChord } from './chordDiagrams';
 import { beamGroups } from './beams';
 import { headerValue, creditsOf, CREDIT_TAGS } from './credits';
 import { instrumentName } from './instrument';
@@ -128,9 +129,10 @@ function rootAlter(sign: string): number {
 
 /**
  * A chord name as a `harmony`: its root, its kind (the suffix as written kept as the kind's text, so it
- * reads as typed) and a bass after a slash. Null when the name doesn't start with a note, so it goes as words.
+ * reads as typed), a bass after a slash and, for a chord with a shape, its diagram as a `frame` (issue
+ * #242). Null when the name doesn't start with a note, so it goes as words.
  */
-export function harmonyOf(name: string): XmlNode | null {
+export function harmonyOf(name: string, diagram: ShapedChord | null = null): XmlNode | null {
   const trimmed = name.trim();
   const root = ROOT.exec(trimmed);
   if (!root) return null;
@@ -146,6 +148,22 @@ export function harmonyOf(name: string): XmlNode | null {
     el('root', {}, text('root-step', root[1]), rootAlter(root[2]) !== 0 && text('root-alter', rootAlter(root[2]))),
     text('kind', KINDS[rest] ?? 'other', { text: rest }),
     bass && el('bass', {}, text('bass-step', bass[1]), rootAlter(bass[2]) !== 0 && text('bass-alter', rootAlter(bass[2]))),
+    diagram && frameOf(diagram),
+  );
+}
+
+/**
+ * A chord's diagram as MusicXML's `frame`: six strings, its frets from its first fret, and a `frame-note`
+ * for each string played (string 1 the high e; an open string at fret 0). A string not played has none.
+ */
+function frameOf(diagram: ShapedChord): XmlNode {
+  return el('frame', {},
+    text('frame-strings', STRING_COUNT),
+    text('frame-frets', gridFrets(diagram)),
+    diagram.start > 1 && text('first-fret', diagram.start),
+    ...diagram.shape.flatMap((fret, low) => (fret === null ? [] : [
+      el('frame-note', {}, text('string', STRING_COUNT - low), text('fret', fret)),
+    ])).reverse(),
   );
 }
 
@@ -539,7 +557,7 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
         if (when === 'after' && (at === columns.length - 1 || mark.at(columns[at + 1]) !== value)) out.push(mark.stop(value));
       }
       if (when === 'before') {
-        if (column.chord) out.push(harmonyOf(column.chord) ?? direction('above', words(column.chord)));
+        if (column.chord) out.push(harmonyOf(column.chord, diagramOf(voice.part, column.chord)) ?? direction('above', words(column.chord)));
         if (column.text) out.push(direction('above', words(column.text)));
         if (column.notes.some(n => n?.harmonic === 'pinch')) out.push(direction('above', words('P.H.')));
       }

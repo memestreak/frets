@@ -41,11 +41,22 @@ them, and a diagram under every chord name, or none.
   nothing either way.
 - **Exports.** The PNG and SVG image draws the chart under its head and
   the diagrams over the names, as the page does, in the export's colours.
+  MusicXML writes each shaped chord's `harmony` with its diagram as a
+  `frame` (six strings, its frets, `first-fret` past fret 1, a
+  `frame-note` per string played, string 1 the high e), whatever the View
+  options: it is data, and the reading program decides what to show.
+  Guitar Pro already carried each track's `\chord` shapes as its diagrams
+  (alphaTab's exporter), now tested.
+- **ASCII chord chart.** ASCII Tab's View option Chord chart (on by
+  default, `frets.tab.ascii` `chords`, and in Settings › Tab › ASCII Tab)
+  writes the chart after the head, one chord a line, its name and then its
+  frets low E first, x for a string not played ("C  x32010"); a fret of 10
+  or more joins them with dashes ("x-x-12-14-15-14"). The reader skips
+  these lines. Copy and Export's ASCII follow it.
 
 ## Not yet
 
-- The per-track chart (Q2's option), MusicXML `<harmony>` with `<frame>`,
-  Guitar Pro diagrams, and the ASCII chord chart: after the pick.
+- The per-track chart (Q2's option): the chart shows every track's chords.
 - A column does not widen for its diagram, so two chords an eighth apart
   can touch (open question 1, with #153).
 
@@ -64,3 +75,10 @@ them, and a diagram under every chord name, or none.
 - Free text is over the chord names.
 - The diagrams' row is there only when they are on; the tab moves down.
 - The drawing draws a diagram under each shaped name and none when off.
+- MusicXML: A at 5 5 6 7 7 5 has frame-strings 6, frame-frets 4,
+  first-fret 5 and notes 1:5 … 6:5; C has no first-fret and no note on
+  string 6; E (no shape) has no frame. Every built-in stays valid
+  MusicXML 4.0.
+- Guitar Pro read back keeps A 5 5 6 7 7 5 and Gtr II's D.
+- ASCII: "A  577655", dashes past fret 9, off by default in `writeAscii`,
+  and a file with the chart reads back with its bars.

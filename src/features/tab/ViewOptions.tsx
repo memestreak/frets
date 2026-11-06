@@ -72,7 +72,12 @@ export function ViewOptions({ x, y, view, values, onChange, onClose }: {
           <Toggle label="Chord diagrams" on={values.chordDiagrams} onChange={chordDiagrams => onChange({ ...values, chordDiagrams })} />
         </>
       )}
-      {view === 'ascii' && <Toggle label="Rhythm" on={values.asciiRhythm} onChange={asciiRhythm => onChange({ ...values, asciiRhythm })} />}
+      {view === 'ascii' && (
+        <>
+          <Toggle label="Rhythm" on={values.asciiRhythm} onChange={asciiRhythm => onChange({ ...values, asciiRhythm })} />
+          <Toggle label="Chord chart" on={values.asciiChords} onChange={asciiChords => onChange({ ...values, asciiChords })} />
+        </>
+      )}
       {view === 'alphatex' && <Toggle label="Line numbers" on={values.lineNumbers} onChange={lineNumbers => onChange({ ...values, lineNumbers })} />}
     </div>
   );

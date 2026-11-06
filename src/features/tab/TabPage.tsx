@@ -208,7 +208,7 @@ export default function TabPage() {
   const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
   const alphaTexText = draft && draft.clip === whole ? draft.text : writeAlphaTex(whole);
   // What the text views show and copy.
-  const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
+  const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm, chords: shown.asciiChords }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });

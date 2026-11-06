@@ -11,6 +11,7 @@ import { attachment } from '@/features/tab/attachment';
 import { partOf, type Part } from '@/features/tab/clip';
 import { layoutClip } from '@/features/tab/layout';
 import { TabClip } from '@/features/tab/TabClip';
+import { asciiChordChart, readAscii, writeAscii } from '@/features/tab/ascii';
 
 function part(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
@@ -99,5 +100,18 @@ describe('diagrams over the names', () => {
   it('free text goes over the chord names', () => {
     const rows = layoutClip(part('\\ts (4 4)\nr.1{ch "C" txt "Intro"} |\n'), 2000).systems[0].rows;
     expect(rows.text!).toBeLessThan(rows.chords!);
+  });
+});
+
+describe('the ASCII chord chart', () => {
+  it('lists each chord once with its frets low E first, dashes once a fret is 10 or more, and the reader skips it', () => {
+    const p = part(TWO_TRACKS);
+    expect(asciiChordChart(chartChords(p))).toBe('A  577655\nC  x32010\nG  320003');
+    expect(asciiChordChart([{ name: 'D', shape: [null, null, 12, 14, 15, 14], start: 12 }])).toBe('D  x-x-12-14-15-14');
+    const text = writeAscii(p, { chords: true });
+    expect(text).toContain('\n\nA  577655\n');
+    expect(writeAscii(p)).not.toContain('577655');
+    const read = readAscii(text);
+    expect(read.ok && read.clip.masterBars.length).toBe(2);
   });
 });
