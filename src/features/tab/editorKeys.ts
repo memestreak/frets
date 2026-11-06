@@ -4,7 +4,7 @@
  * reads the editor as it is and changes it through the callbacks it is given.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import { barTicks, isRest, ticks, timeAt, type Duration, type Part } from './clip';
+import { barTicks, isRest, ticks, timeAt, type Column, type Duration, type Part } from './clip';
 import { placeAtTime, SPLITS_TUPLET, timeOf, writeSpan } from './timeline';
 import { durationOf } from './sounding';
 import { addGrace, enterGrace, groupAt, isProblem, lengthInTuplet, removeGrace, startTuplet, tupletSpanTicks, typeInTuplet } from './tuplets';
@@ -464,6 +464,22 @@ function cursorAfter(editor: EditorKeys, next: Part, t: number, step: number) {
   const moved = advance(next, from, Math.max(0, t - timeOf(next, place.bar, place.column)), step);
   editor.commit(moved.clip, moved.cursor, null);
   editor.setCursorAt(moved.cursor, moved.at);
+}
+
+/**
+ * The Chords panel's Insert in note input (issue #251): its column at the Input length, written at the cursor
+ * over what is there as a fret typed on a rest is, and the cursor moved on by it, as entering a note does.
+ * `part` is the clip with any definition Insert adds.
+ */
+export function writeAtInput(editor: EditorKeys, part: Part, column: Column) {
+  const t = cursorTime(part, editor.cursor) + editor.cursorAt;
+  const length = ticks(editor.inputLength);
+  const written = writeSpan(part, t, { ...column, duration: { ...editor.inputLength } }, length);
+  if (!written) {
+    editor.onNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
+    return;
+  }
+  cursorAfter(editor, written, t, length);
 }
 
 /**

@@ -17,7 +17,7 @@ and editing the list (rename, delete) are #368.
   box and shape chooser from the palette"). This track's chords: the
   Chord set, each chord with a small diagram, its name, how many columns
   use it or ○ "Not used" (Q7), an Edit (pencil) button and, while no
-  column uses it, a trash can. Under the list, a + button: Look up a
+  column uses it, a trash can. Under the list, a + button: Add a
   chord. Picking a chord picks it for Insert (and sounds it, with Hear
   on). Moving the cursor changes nothing in the panel (Jeremy,
   2026-11-06). The list folds from its heading (a 16px chevron, down while
@@ -36,13 +36,31 @@ and editing the list (rename, delete) are #368.
     `showname` and `showfingering` (its `firstfret` and `barre` described
     the old shape, so they go; a name with no definition gets one);
     Cancel, Esc or ✕ change nothing.
-  - **Look up a chord**, from +: a name field and the shapes of the name
-    typed, to see and hear; Close. Creating a chord from it is the next
-    PR.
+  - **Add a chord**, from + (Jeremy, 2026-11-06: "a modal chord lookup
+    (and creation …) dialog"): a name field and the shapes of the name
+    typed, to see and hear. With two or more fretted notes at the cursor,
+    "The notes at the cursor are" offers up to four names for them, each
+    filling the field (the first is its placeholder), and their fingering
+    is the first shape, captioned "At the cursor", shown before a name is
+    typed. The first shape is picked until another is, but the fingering
+    only while the name typed is none, isn't a chord, or is a chord of its
+    notes: under "Dsus2" it stays, unpicked, after Dsus2's first shape. "Add G" (or Enter)
+    puts the name in the set with the shape picked (`withNewChord`), or
+    with none for a name that isn't a chord ("Riff A"), picks it for
+    Insert, and leaves the columns as they were. A name already in the set
+    can't be added again ("“G” is already in this track’s chords"; no Add).
+    Cancel, Esc or ✕ add nothing. This is the way to create a chord from a
+    fingering (asked 2026-11-05) until drawing one (#368).
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
-  definition gets one with the shape it was inserted with.
+  definition gets one with the shape it was inserted with. In note input
+  (Jeremy, 2026-11-06: the notes should "conform to whatever the note
+  length was chosen by the digit key"), Notes and Both go in as a note
+  typed does: a new column of the Input length at the cursor, over what is
+  there, and the cursor moves on by it, so pressing Insert again writes the
+  next chord. Name still names the cursor column, its length kept. In
+  normal mode Insert writes over the picked column, keeping its length.
 - **Hear** (Jeremy, 2026-11-05: "a small toggle in the chord panel that
   enables playback when a chord is clicked on"; 2026-11-06: "at the top to
   the right of the Chords label"). A small speaker toggle in the panel's
@@ -91,10 +109,15 @@ Settled while building (my calls, open to change):
 - `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
   `chordsHead`), `insertedColumn`.
-- `ChordDialog.tsx`: the Chord dialog, Edit and Look up, on `Modal`.
+- `ChordDialog.tsx`: the Chord dialog, Edit and Add, on `Modal`.
 - `chordShapes.ts`: `chordOfName`, `shapesOf`, `shapeFor`, `toFrets`,
-  `toShape`, `PLAIN_LOOK`, shared by the two.
-- `chordSet.ts`: `withChordShape`, `withoutChord`.
+  `toShape`, `PLAIN_LOOK`, shared by the two; `namesForColumn` and
+  `fretsOfColumn`, for Add.
+- `chordSet.ts`: `withChordShape`, `withNewChord`, `withoutChord`.
+- Diagrams (list and dialog) are drawn with the chord the name means
+  when the shape's notes are its tones, else with one its notes are
+  (`chordToDraw`), so "My C" with the C shape has its diagram; none for
+  no chord at all.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
 - `tab.css`: the panel's look.
@@ -105,9 +128,6 @@ Settled while building (my calls, open to change):
   (#368).
 - Diagrams over names and in exports (#242).
 - Keys for the panel.
-- Naming the cursor column's notes ("These notes are"), with New chord
-  from a name or the column's fingering: the next PR
-  (Jeremy, 2026-11-06).
 - Deleting a chord a column uses (with its names).
 
 ## Tests
@@ -119,14 +139,30 @@ Settled while building (my calls, open to change):
 - A list chord's Edit opens its dialog; Next shape then OK changes the
   definition, keeping `showname`, the others untouched; without OK
   nothing changes; Cancel after picking a shape changes nothing.
-- + opens Look up: "Type a chord name" first; "Dsus2" shows x-x-0-2-3-0;
-  "N.C." isn't a chord; Close leaves the set as it was.
+- + opens Add: "Type a chord name" first, no names, no Add; "Dsus2" shows
+  x-x-0-2-3-0, picked; Add Dsus2 defines `0 3 2 0 x x`, unused and
+  picked for Insert, no column changed. Another shape picked is the one
+  added; Enter adds. "N.C." isn't a chord; "Riff A" is added with no
+  shape. "G", already in the set, has no Add and Enter adds nothing.
+  With the cursor on the C column: placeholder "C", its fingering
+  x-3-2-0-1-0 "at the cursor" picked before a name is typed; the name C
+  fills the field; under "Dsus2" it is drawn but not picked; "My C" is
+  added as `0 1 0 2 3 x` and has a diagram in the list. Cancel and ✕ add
+  nothing.
+- `withNewChord`: a definition at the end, with frets or with none; a
+  name already defined is left as it is.
+- `namesForFrets` counts from the capo (the C shape is C at capo 2);
+  `fretsOfColumn` needs two fretted notes; `chordToDraw` falls back to
+  what the notes are, and gives none for one note.
 - `withChordShape`: the last definition of the name changes; show props
   kept, `firstfret` and `barre` dropped; a name with none gets one at the
   end; "AM" is not "Am".
 - With a chord picked, moving the cursor leaves the panel exactly as it
   was.
 - Insert Name, Notes and Both each write what they say at the cursor.
+- In note input with an eighth chosen, Insert Both on a quarter rest twice
+  writes two eighth C columns, named, then `r.4`; Notes writes the notes
+  alone at an eighth; Name names the rest, a quarter still.
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.

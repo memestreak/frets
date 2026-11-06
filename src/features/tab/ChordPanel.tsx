@@ -3,16 +3,16 @@
 /**
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
  * #251): the track's Chord set, each chord with Edit (its Chord dialog, to pick another shape) and,
- * unused, a trash can; + to look a chord up; and Insert for the chord picked. A chord name's Edit, or its
+ * unused, a trash can; + to add one (the Chord dialog, which looks it up); and Insert for the chord picked. A chord name's Edit, or its
  * double-click, opens that chord's dialog; moving the cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { ChordDialog, type ChordDialogMode } from './ChordDialog';
-import { chordDefOf, chordSet, withChordShape, withoutChord, type ChordEntry } from './chordSet';
-import { chordOfName, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
-import type { Column, Part, Track } from './clip';
-import { columnAt, withColumn, type Cursor } from './editing';
+import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, type ChordEntry } from './chordSet';
+import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
+import type { Column, Duration, Part, Track } from './clip';
+import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { NoteSoundIcon } from './PlaybackFooter';
 
 type InsertWhat = 'name' | 'notes' | 'both';
@@ -142,6 +142,10 @@ interface ChordPanelProps {
   /** The chord a name's Edit last asked for (each Edit a new object): its Chord dialog opens, to edit it. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
+  /** Note input's length while note input is on, else null: Insert then writes a new column of it and moves on. */
+  inputLength: Duration | null;
+  /** Insert in note input: `part` (the clip with any definition added) with `column` written at the cursor, the cursor moved on. */
+  onInsertAtInput: (part: Part, column: Column) => void;
   /** Whether a chord or shape picked sounds: `HearChordsToggle`, in the panel's head (a Playback preference). */
   hear: boolean;
   /** Sounds a shape, high e first. */
@@ -150,7 +154,7 @@ interface ChordPanelProps {
   onDone: () => void;
 }
 
-export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [dialog, setDialog] = useState<ChordDialogMode | null>(null);
@@ -178,10 +182,14 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
   const insert = () => {
     if (!editing || !name || !column) return;
     const frets = shapeFor(clip, name);
-    let next = withColumn(clip, cursor, c => insertedColumn(c, what, name, frets));
     // A name inserted with no definition yet gets the shape it was inserted with.
-    if (!chordDefOf(clip.chords, name)?.frets && frets && what !== 'notes') next = withChordShape(next, name, frets);
-    onChange(next);
+    const defined = !chordDefOf(clip.chords, name)?.frets && frets && what !== 'notes' ? withChordShape(clip, name, frets) : clip;
+    // In note input, notes go in as a note typed does: a new column of the Input length at the cursor, and on.
+    if (inputLength && what !== 'name' && frets) {
+      onInsertAtInput(defined, insertedColumn(emptyColumn(inputLength), what, name, frets));
+      return;
+    }
+    onChange(withColumn(defined, cursor, c => insertedColumn(c, what, name, frets)));
   };
 
   /** The trash can by an unused chord: no column loses its name. */
@@ -205,8 +213,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
         {set.length === 0 && <p className="chord-panel-note">None yet.</p>}
         <ul className="chord-panel-list">
           {set.map(entry => {
-            const c = chordOfName(entry.name);
             const s = entry.def?.frets ? toShape(entry.def.frets) : null;
+            const c = s && chordToDraw(clip, entry.name, s);
             return (
               <li key={entry.name} className="chord-panel-item">
                 <button
@@ -241,8 +249,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
           })}
         </ul>
         <button
-          type="button" className="chord-panel-icon chord-panel-add" aria-label="Look up a chord" data-tip="Look up a chord"
-          onMouseDown={keep} onClick={() => setDialog({ kind: 'lookUp' })}
+          type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
+          onMouseDown={keep} onClick={() => setDialog({ kind: 'add' })}
         >
           <PlusIcon />
         </button>
@@ -262,7 +270,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
       )}
 
       <ChordDialog
-        mode={dialog} clip={clip} onClose={closeDialog}
+        mode={dialog} clip={clip} column={column} taken={set.map(e => e.name)} onClose={closeDialog}
+        onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); }}
         onShape={(n, shape) => onChange(withChordShape(clip, n, toFrets(shape)))}
         onHear={shape => { if (hear) onHear(toFrets(shape)); }}
       />

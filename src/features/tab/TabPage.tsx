@@ -23,7 +23,7 @@ import { applyTuplet, isProblem } from './tuplets';
 import { TupletPanel } from './TupletPanel';
 import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, type EditorKeys } from './editorKeys';
+import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, writeAtInput, type EditorKeys } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
@@ -982,6 +982,8 @@ export default function TabPage() {
           <ChordPanel
             key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
             onChange={next => commit(next)}
+            inputLength={inputMode ? inputLength : null}
+            onInsertAtInput={(part, column) => writeAtInput(editorKeys(), part, column)}
             hear={playbackSettings.hearChords}
             onHear={frets => playback.hearShape(frets)}
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
