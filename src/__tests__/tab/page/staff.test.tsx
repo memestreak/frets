@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { setUpPage, renderAt, alphaTexText, SLOW, undo } from './helpers';
 import { tool } from '../tool';
 
@@ -332,5 +332,26 @@ describe('dragging notes on the staff (issue #174)', () => {
     undo();
     drag(0, -9, { ctrlKey: true });
     expect(shown()).toMatch(/\(8\.6 10\.5\)|\(10\.5 8\.6\)/);
+  });
+});
+
+describe('note input’s staff cursor (issue #382)', () => {
+  it('is a caret, never a notehead: N then 5 on a whole rest enters nothing and makes the length a quarter', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
+    renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
+    await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
+    const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
+    act(() => editor().focus());
+    for (let i = 0; i < 8; i++) fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+    fireEvent.keyDown(editor(), { key: 'n' });
+    fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
+    const cursor = screen.getByTestId('staff-cursor');
+    expect(within(cursor).getByTestId('staff-caret')).toBeInTheDocument();
+    expect(within(cursor).getByTestId('staff-caret-pitch')).toBeInTheDocument();
+    // No head: the middle line's B needs no sign, so nothing in the cursor is a glyph.
+    expect(cursor.querySelector('path')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Quarter note' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toMatch(/\| r\.1 \|/);
   });
 });

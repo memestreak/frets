@@ -93,25 +93,40 @@ function ledgerSteps(step: number): number[] {
 }
 
 /**
- * The staff's own cursor (issue #136): an outlined head at the pitch Enter would put on the column, with
- * its ledger lines and, when the key doesn't give it, its sharp, flat or natural. In normal mode (issue
- * #238) it marks the selected note instead, `selected`: the head filled in the selection colour, as
- * MuseScore colours a selected note.
+ * The staff's own cursor (issue #136). In note input it is a caret, as Dorico's and MuseScore's are: a line
+ * across the staff where the next note goes, with a short dash at the pitch Enter would put there, its
+ * ledger lines and, when the key doesn't give it, its sharp, flat or natural. It is never a notehead, which
+ * read as a whole note already entered (issue #382). In normal mode (issue #238) it marks the selected note
+ * instead, `selected`: the head filled in the selection colour, as MuseScore colours a selected note.
  */
 export function StaffCursor({ x, step, sign, score, selected = false }: { x: number; step: number; sign: -1 | 0 | 1 | null; score: ScoreRows; selected?: boolean }) {
   const y = stepY(score, step);
   const left = x - HEAD_WIDTH / 2;
   const signGlyph: GlyphName | null = sign === null ? null : sign > 0 ? 'accidentalSharp' : sign < 0 ? 'accidentalFlat' : 'accidentalNatural';
+  const ledgers = ledgerSteps(step).map(ls => (
+    <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--select)" strokeWidth={1} />
+  ));
+  const sharpOrFlat = signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--select)" />;
+  if (selected) {
+    return (
+      <g data-testid="staff-selected" pointerEvents="none">
+        {ledgers}
+        <path d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`} fill="var(--select)" />
+        {sharpOrFlat}
+      </g>
+    );
+  }
+  // The caret runs a space past the staff's outer lines, and on to the pitch when that is further out.
+  const top = stepY(score, Math.max(STAFF_LINES[STAFF_LINES.length - 1] + 2, step));
+  const bottom = stepY(score, Math.min(STAFF_LINES[0] - 2, step));
+  const caretX = left - 3;
   return (
-    <g data-testid={selected ? 'staff-selected' : 'staff-cursor'} pointerEvents="none">
-      {ledgerSteps(step).map(ls => (
-        <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} stroke="var(--select)" strokeWidth={1} />
-      ))}
-      <path
-        d={GLYPHS.noteheadBlack.d} transform={`translate(${left} ${y}) scale(${SPACE})`}
-        fill="var(--select)" fillOpacity={selected ? 1 : 0.3} stroke={selected ? 'none' : 'var(--select)'} strokeWidth={1.5 / SPACE}
-      />
-      {signGlyph && <path d={GLYPHS[signGlyph].d} transform={`translate(${left - ACCIDENTAL_ROOM} ${y}) scale(${SPACE})`} fill="var(--select)" />}
+    <g data-testid="staff-cursor" pointerEvents="none" stroke="var(--select)">
+      {ledgers}
+      {/* Just left of where the head goes, as Dorico's, so a note under the cursor still shows. */}
+      <line data-testid="staff-caret" x1={caretX} x2={caretX} y1={top} y2={bottom} strokeWidth={2} />
+      <line data-testid="staff-caret-pitch" x1={caretX} x2={left + HEAD_WIDTH} y1={y} y2={y} strokeWidth={2.5} strokeLinecap="round" />
+      {sharpOrFlat && <g stroke="none">{sharpOrFlat}</g>}
     </g>
   );
 }
