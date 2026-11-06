@@ -38,6 +38,17 @@ yes to fixing it as a bug.
   Marks that last the whole column (tremolo, hairpin, octave line) and
   kept alphaTex stay with their own column, as before.
 
+- A picked text or chord name on a rest draws its Attachment line to the
+  rest (Jeremy, 2026-11-06), as one on a note goes to its number
+  (`docs/specs/2026-11-04-tab-pick-every-mark-design.md`):
+  - with the staff drawn and the word over it, to just above the rest on
+    the staff, centred on it, the rest tinted as a picked Mark's note
+    head is;
+  - in a bar drawn as one Whole-bar rest, to the staff's top line at the
+    word's own beat, the whole rest tinted;
+  - in the tab alone, to the top string at the column's place; nothing is
+    tinted (the rest the tab's rhythm draws under the strings is not).
+
 ## How
 
 - `editing.ts`: `restOf(column)`, the rest a Column becomes, and
@@ -49,6 +60,9 @@ yes to fixing it as a bug.
 - `timeline.ts`: `overStream`, which every write-over goes through, moves
   the covered columns' marks onto the placed column at each one's start
   (`keepCoveredMarks`).
+- `staffGeometry.ts`: `staffRest`, where a rest is drawn on the staff and
+  its box (with `RESTS` and `restShift`, moved from `StaffDrawing.tsx`,
+  which draws from it); `attachment.ts` draws the line and the tint from it.
 - Test arrangement `editing_tests/delete-keeps-text.atex`.
 
 ## Tests
@@ -72,3 +86,10 @@ yes to fixing it as a bug.
 - A paste over a marked rest: the pasted note's text joined with it, and
   the fermata moved.
 - Lengthening a note with a text keeps that text once.
+- A picked text on a quarter rest with the staff drawn: one line, ending
+  above the rest and centred on it; one tinted rest; no note tinted. A
+  chord name the same.
+- Over a Whole-bar rest: the line at the word's column to the staff's top
+  line; the tinted rest in the middle of the bar.
+- In the tab alone: the line to the top string at the column; no tint.
+- A text on a note tints no rest.

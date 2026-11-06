@@ -4,7 +4,8 @@
  * line to them; and a picked Span's Handles. Pure; works on a `layoutClip` layout, in the drawing's units.
  */
 import type { Note } from './clip';
-import { lineAt, SPACE, stepY, stringY, type Layout, type PlacedColumn, type System } from './layout';
+import { lineAt, SPACE, stepY, stringY, type Layout, type PlacedBar, type PlacedColumn, type System } from './layout';
+import { staffRest } from './staffGeometry';
 import { textBox, type WordHit } from './layoutText';
 import { markBoxes, sameMark, type Box, type MarkHit } from './marks';
 import { isSpan } from './spans';
@@ -31,13 +32,27 @@ export interface Handle {
   y: number;
 }
 
+/** A rest on the staff, tinted as a note is: its line of tab, and its box in that line's units. */
+export interface TintedRest {
+  system: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface Attachment {
   tint: TintedNote[];
   lines: AttachmentLine[];
   handles: Handle[];
+  /** The rest a picked word over a rest is on (issue #393). */
+  rests: TintedRest[];
 }
 
-const NONE: Attachment = { tint: [], lines: [], handles: [] };
+const NONE: Attachment = { tint: [], lines: [], handles: [], rests: [] };
+
+/** How far a line stops short of a rest, and a tinted rest's margin round it. */
+const REST_EDGE = 2;
 
 /** Marks drawn touching their note already: no line (Q10). */
 const TOUCHING = new Set(['bend', 'slideOut', 'tap', 'slide', 'tie', 'legato']);
@@ -51,11 +66,18 @@ const HANDLE_GAP = 2;
 const NUMBER_EDGE = 7;
 const HEAD_EDGE = SPACE / 2 + 1;
 
+/** A placed column, with its line of tab and its bar. */
+interface Placed {
+  placed: PlacedColumn;
+  system: number;
+  bar: PlacedBar;
+}
+
 /** Every placed column of the layout by its place in the clip, with its line of tab. */
-function placedColumns(layout: Layout): Map<number, { placed: PlacedColumn; system: number }> {
-  const out = new Map<number, { placed: PlacedColumn; system: number }>();
+function placedColumns(layout: Layout): Map<number, Placed> {
+  const out = new Map<number, Placed>();
   layout.systems.forEach((system, si) => {
-    for (const bar of system.bars) for (const placed of bar.columns) out.set(placed.index, { placed, system: si });
+    for (const bar of system.bars) for (const placed of bar.columns) out.set(placed.index, { placed, system: si, bar });
   });
   return out;
 }
@@ -121,6 +143,35 @@ function lineTo(layout: Layout, box: Box, at: { placed: PlacedColumn; system: nu
   return { x: placed.x, y0: top + from, y1: top + target };
 }
 
+/**
+ * The line from a word's box to the rest its column is (issue #393), and the rest to tint: with the staff
+ * drawn and the word over it, the rest on the staff, or in a Whole-bar rest's bar the staff's top line
+ * at the word's beat, the whole rest tinted; in the tab alone, which draws no rest, the top string at
+ * the column's place.
+ */
+function restLine(layout: Layout, box: Box, at: Placed): { line: AttachmentLine | null; rests: TintedRest[] } {
+  const { rows, top } = layout.systems[at.system];
+  const middle = box.y + box.height / 2 - top;
+  const score = rows.score;
+  let x = at.placed.x;
+  let target: number;
+  const rests: TintedRest[] = [];
+  if (score !== null && (!rows.tab || middle < score.top)) {
+    const rest = staffRest(at.bar, at.placed, score);
+    rests.push({ system: at.system, x: rest.x - REST_EDGE, y: rest.top - REST_EDGE, width: rest.width + 2 * REST_EDGE, height: rest.bottom - rest.top + 2 * REST_EDGE });
+    if (at.bar.wholeRest) target = middle < score.top ? score.top : score.bottom;
+    else {
+      x = rest.x + rest.width / 2;
+      target = middle < rest.top ? rest.top - REST_EDGE : rest.bottom + REST_EDGE;
+    }
+  } else if (rows.tab) {
+    target = middle < stringY(rows, 0) ? stringY(rows, 0) : stringY(rows, 5);
+  } else return { line: null, rests };
+  const from = target < middle ? box.y - top : box.y + box.height - top;
+  if ((target < middle && from <= target) || (target > middle && from >= target)) return { line: null, rests };
+  return { line: { x, y0: top + from, y1: top + target }, rests };
+}
+
 /** What to draw for a picked Mark or word: its notes' tint, its Attachment lines and, for a Span, its Handles. */
 export function attachment(layout: Layout, picked: MarkHit | WordHit | null, capo: number | null = null): Attachment {
   if (!picked) return NONE;
@@ -129,14 +180,18 @@ export function attachment(layout: Layout, picked: MarkHit | WordHit | null, cap
   if (picked.kind === 'chord' || picked.kind === 'text') {
     const box = textBox(layout, picked, capo);
     const at = columns.get(picked.index);
+    if (box && at && noteStrings(at.placed).length === 0 && !at.placed.column.grace) {
+      const { line, rests } = restLine(layout, box, at);
+      return { tint, lines: line ? [line] : [], handles: [], rests };
+    }
     const line = box && at ? lineTo(layout, box, at, false) : null;
-    return { tint, lines: line ? [line] : [], handles: [] };
+    return { tint, lines: line ? [line] : [], handles: [], rests: [] };
   }
-  if (picked.kind !== 'mark') return { tint, lines: [], handles: [] };
+  if (picked.kind !== 'mark') return { tint, lines: [], handles: [], rests: [] };
   // Where it was pressed, when it is drawn on both the staff and the tab; else wherever it is drawn.
   const drawn = markBoxes(layout).filter(m => sameMark(m.hit, picked));
   const pieces = drawn.some(m => m.hit.on === picked.on) ? drawn.filter(m => m.hit.on === picked.on) : drawn;
-  if (pieces.length === 0) return { tint, lines: [], handles: [] };
+  if (pieces.length === 0) return { tint, lines: [], handles: [], rests: [] };
   const staff = picked.on === 'staff';
   const lines: AttachmentLine[] = [];
   const handles: Handle[] = [];
@@ -160,7 +215,7 @@ export function attachment(layout: Layout, picked: MarkHit | WordHit | null, cap
       }
     }
   }
-  return { tint, lines, handles };
+  return { tint, lines, handles, rests: [] };
 }
 
 /** How far round a Handle's centre a press takes it, across and up or down. */
