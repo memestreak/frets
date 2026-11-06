@@ -5,16 +5,41 @@
  * (more for longer clips).
  * The text carries everything the clip plays with: each track's `\instrument` and `// frets:fx` line.
  * `#tab=<percent-encoded text>` is still read, for links typed by hand or by an agent.
+ * A link can also say what the page shows for that visit, `/tab?show=staff|tab|both#…`
+ * (`docs/specs/2026-11-06-tab-show-link-design.md`).
  */
+
+import { PARTS, type Parts } from './layout';
 
 /** A link holding the plain text, percent-encoded. */
 export const PLAIN_HASH = '#tab=';
 /** A link holding the text compressed. */
 export const COMPRESSED_HASH = '#tabz=';
 
-/** The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net). */
-export async function shareLink(origin: string, text: string): Promise<string> {
-  return `${origin}/tab${COMPRESSED_HASH}${await compress(text)}`;
+/** The link parameter that picks the staff view, the tab or both for one visit, e.g. `/tab?show=both#tabz=…`. */
+export const SHOW_PARAM = 'show';
+
+/**
+ * The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net); with
+ * `show`, drawn as the staff, the tab or both for that visit.
+ */
+export async function shareLink(origin: string, text: string, show?: Parts): Promise<string> {
+  const query = show ? `?${SHOW_PARAM}=${show}` : '';
+  return `${origin}/tab${query}${COMPRESSED_HASH}${await compress(text)}`;
+}
+
+/** What a link's `?show=` asks the page to show (a URL's search part); null when it is missing or names none. */
+export function readShowParam(search: string): Parts | null {
+  const show = new URLSearchParams(search).get(SHOW_PARAM);
+  return PARTS.find(p => p === show) ?? null;
+}
+
+/** Takes `?show=` out of the address once read, keeping the rest, so a reload shows the saved choice. */
+export function dropShowParam(): void {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(SHOW_PARAM)) return;
+  url.searchParams.delete(SHOW_PARAM);
+  window.history.replaceState(window.history.state, '', url.href);
 }
 
 /** Whether `hash` is a link to a tab, plain or compressed. */

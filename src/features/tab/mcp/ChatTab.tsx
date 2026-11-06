@@ -169,15 +169,15 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   // The chat sets only points, never 'whole'.
   useEffect(() => onHeard({ bpm, loop: Array.isArray(loop) ? loop : null }), [bpm, loop, onHeard]);
 
-  // The link Open in Frets opens: the line as the Tab page's own `#tabz=`.
+  // The link Open in Frets opens: the line as the Tab page's own `#tabz=`, shown as the switch shows it.
   const [link, setLink] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    void shareLink(SITE, writePart(part)).then(url => live && setLink(url));
+    void shareLink(SITE, writePart(part), view).then(url => live && setLink(url));
     return () => {
       live = false;
     };
-  }, [part]);
+  }, [part, view]);
 
   const playLabel = player.state === 'loading' ? 'Loading the sound…' : playing ? 'Stop' : 'Play';
   return (

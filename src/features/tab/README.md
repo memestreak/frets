@@ -116,8 +116,9 @@ and in its spec.
   `withChordShape` and `withoutChord`, the Chords panel's changes to it.
 - `fxLine.ts` — a track's FX as a `// frets:fx` comment line —
   `2026-10-30-tab-track-effects-design.md`.
-- `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex) and reading
-  `#tab=` — `2026-10-29-tab-share-link-design.md`.
+- `shareLink.ts` — Copy link's `#tabz=` (deflated alphaTex), reading
+  `#tab=`, and a link's `?show=` — `2026-10-29-tab-share-link-design.md`,
+  `2026-11-06-tab-show-link-design.md`.
 
 ## Layout and hit testing (pure)
 
@@ -407,6 +408,9 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
 - `docs/specs/2026-11-06-tab-section-overlap-design.md`: a long section
   name wraps, and moves up a row if it still runs into the next (issue #389)
+- `docs/specs/2026-11-06-tab-show-link-design.md`: a link's
+  `?show=staff|tab|both` picks what the Notation view shows for that visit,
+  unsaved
 - `docs/specs/2026-11-05-tab-range-handles-design.md`: a selection box's
   left or right edge drags that end, the other staying
 - `docs/specs/2026-11-05-tab-speed-bpm-design.md`: Speed as one bpm

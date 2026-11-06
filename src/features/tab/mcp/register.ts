@@ -36,7 +36,7 @@ export function registerTabTools(server: McpServer, apps: AppsHtml): void {
   }, async input => {
     const made = lineFromInput(input);
     if (!made.ok) return { isError: true, content: [{ type: 'text', text: made.error }] };
-    const link = await shareLink(SITE, writePart(made.part));
+    const link = await shareLink(SITE, writePart(made.part), made.view);
     const state: TabState = { line: made.line, view: made.view };
     if (made.loop) state.loop = loopOf(made.part, made.loop);
     const looping = made.loop ? `, loop points on ${describeLoop(made.part, made.loop)}` : '';

@@ -7,8 +7,9 @@ answers are Jeremy's, 2026-10-27, one question at a time.
 
 - The views are **Notation | ASCII Tab | AlphaTex**. In Notation a second
   switch, **Staff | Tab | Both**, at the clip's top left, chooses the parts. The choice is the
-  viewer's, saved in `frets.tab.parts` (Tab by default), and is not part of the
-  clip.
+  viewer's, saved in `frets.tab.notation` (`show`, Tab by default), and is not part of the
+  clip. A link's `?show=staff|tab|both` picks it for one visit without saving
+  it (`docs/specs/2026-11-06-tab-show-link-design.md`).
 - The staff is a plain treble clef. Guitar is written an octave above how it
   sounds; as in most guitar books, the clef has no 8 under it to say so
   (Jeremy dropped it, 2026-10-27).

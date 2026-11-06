@@ -46,3 +46,8 @@ disagree, it wins.
   Percent-encode as JavaScript's `encodeURIComponent` does. Keep the link
   under about 8,000 characters; for longer tab give the text and tell the
   user to paste it into Import on the Tab page.
+- The page shows tab alone unless the user picked otherwise. To open it
+  with the notation staff, put `?show=both` (staff over tab) or
+  `?show=staff` (the staff alone) before the `#`, for that visit only:
+  `https://frets.eminor.net/tab?show=both#tab=…`. Use it when the staff
+  matters, as for music written from sheet music.
