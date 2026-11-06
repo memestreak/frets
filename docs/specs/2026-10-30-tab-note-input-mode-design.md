@@ -56,10 +56,13 @@ is Bend, as on the tab.
 The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
 `2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings or, on the staff,
 lines and spaces; Alt+↑ ↓ move notes; Enter on the staff adds or takes away a note; → past a short bar
-adds a rest to type on. The tab's cursor is outlined, as before. The staff's is a caret, as in Dorico and
-MuseScore: a line across the staff just left of where the next note goes, with a short dash at its pitch
-and its ledger lines and sign (issue #382). It was a faint outlined head, which read as a whole note
-already entered.
+adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
+line across the staff just left of where the next note goes, with that next note drawn there as a faint
+ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint
+outlined head, which read as a whole note already entered. One ghost note shows at a time (Jeremy,
+2026-11-06): while the pointer's is on the staff the caret's goes, and in the caret's own bar the caret
+goes too, since the mouse is placing the note. On a note the line stays off it, and over a note at the
+caret's pitch nothing is drawn.
 
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input, a double-click on the staff or the
   tab goes into note input, as N does, picking nothing; in note input it does nothing more.
