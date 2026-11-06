@@ -16,7 +16,7 @@ import { NumberField } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
 import {
-  DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_TRANSPOSE, METRONOME_KEY, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
+  DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_ROLL, MAX_TRANSPOSE, METRONOME_KEY, MIN_ROLL, ROLL_STEP, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
   type MetronomeSettings, type PlaybackSettings,
 } from './PlaybackFooter';
 import { LOOP_PAUSE_STEP, MAX_LOOP_PAUSE, MIN_LOOP_PAUSE } from './PlaybackOptions';
@@ -83,6 +83,14 @@ function numberField<V, K extends keyof V & string>(key: K, label: string, field
   };
 }
 
+/** How long a chord's roll takes, as a percentage of the chord's length (issue #385). */
+function rollField(key: 'strokesRoll' | 'strumsRoll' | 'rolledChordsRoll', label: string, enabled: (value: PlaybackSettings) => boolean) {
+  return numberField<PlaybackSettings, typeof key>(key, label, {
+    min: MIN_ROLL, max: MAX_ROLL, step: ROLL_STEP, decimals: 1, unit: '%',
+    upLabel: 'Longer', downLabel: 'Shorter', enabled,
+  });
+}
+
 /** A volume, 0 to 1, as the footer's knob. */
 function knobField<V, K extends keyof V & string>(key: K, label: string): SettingsField<V> {
   return {
@@ -139,6 +147,12 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           }),
           checkField('hearNotes', 'Hear notes as you enter them'),
           checkField('hearChords', 'Hear chords picked in the Chords panel'),
+          { ...checkField<PlaybackSettings, 'strokes'>('strokes', 'Strum the chord'), box: 'Downstroke and Upstroke' },
+          { ...rollField('strokesRoll', 'Length', v => v.strokes), box: 'Downstroke and Upstroke' },
+          { ...checkField<PlaybackSettings, 'strums'>('strums', 'Strum the chord'), box: 'Strum down and up' },
+          { ...rollField('strumsRoll', 'Length', v => v.strums), box: 'Strum down and up' },
+          { ...checkField<PlaybackSettings, 'rolledChords'>('rolledChords', 'Roll the chord'), box: 'Rolled chord' },
+          { ...rollField('rolledChordsRoll', 'Length', v => v.rolledChords), box: 'Rolled chord' },
           checkField('stopAtPlayhead', 'Stop leaves the cursor where it stopped'),
           checkField('stopAtRegionEnd', 'Stop playback at region end'),
           checkField('loopPause', 'Pause between loops'),

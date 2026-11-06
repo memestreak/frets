@@ -17,6 +17,7 @@ import { BpmField, SpeedPercent, useTapTempo } from './BpmField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
 import { ClickOptions } from './ClickOptions';
 import { VolumeKnob } from '@/components/VolumeKnob';
+import { DEFAULT_ROLLS, type Rolls } from './rolls';
 import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
@@ -38,6 +39,30 @@ export interface PlaybackSettings extends PlaybackOptionValues {
   hearNotes: boolean;
   /** A chord or shape picked in the Chords panel sounds (Jeremy, 2026-11-05), from the panel's toggle. */
   hearChords: boolean;
+  /**
+   * Whether chords marked Downstroke or Upstroke, Strum down or up, and Rolled chords roll in playback,
+   * and how long each roll takes, as a percentage of the chord's length (issue #385; `rolls.ts`).
+   */
+  strokes: boolean;
+  strokesRoll: number;
+  strums: boolean;
+  strumsRoll: number;
+  rolledChords: boolean;
+  rolledChordsRoll: number;
+}
+
+/** The shortest and longest roll, as a percentage of the chord's length, and the step between. */
+export const MIN_ROLL = 0.5;
+export const MAX_ROLL = 100;
+export const ROLL_STEP = 0.5;
+
+/** The rolls playback plays from the settings: off is 0, at once. */
+export function rollsOf(settings: PlaybackSettings): Rolls {
+  return {
+    strokes: settings.strokes ? settings.strokesRoll / 100 : 0,
+    strums: settings.strums ? settings.strumsRoll / 100 : 0,
+    rolledChords: settings.rolledChords ? settings.rolledChordsRoll / 100 : 0,
+  };
 }
 
 /** How far playback may be transposed, in semitones either way: an octave. */
@@ -45,6 +70,9 @@ export const MAX_TRANSPOSE = 12;
 
 export const DEFAULT_PLAYBACK: PlaybackSettings = {
   shown: true, volume: 1, transpose: 0, hearNotes: false, hearChords: false,
+  strokes: true, strokesRoll: DEFAULT_ROLLS.strokes * 100,
+  strums: true, strumsRoll: DEFAULT_ROLLS.strums * 100,
+  rolledChords: true, rolledChordsRoll: DEFAULT_ROLLS.rolledChords * 100,
   stopAtPlayhead: false, stopAtRegionEnd: false, loopPause: false, loopPauseSeconds: 1,
 };
 
@@ -52,6 +80,9 @@ export const DEFAULT_PLAYBACK: PlaybackSettings = {
 const fieldsOf = (saved: unknown) => (typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>) : {});
 /** A share of full, 0 to 1. */
 const isLevel = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1;
+/** A roll's length, a percentage of the chord's, on a step. */
+const isRoll = (v: unknown): v is number =>
+  typeof v === 'number' && v >= MIN_ROLL && v <= MAX_ROLL && Number.isInteger(v / ROLL_STEP);
 
 /** The saved settings, each field checked; anything missing or wrong takes its default. */
 export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
@@ -63,6 +94,12 @@ export function parsePlaybackSettings(saved: unknown): PlaybackSettings {
     transpose: Number.isInteger(fields.transpose) && Math.abs(fields.transpose as number) <= MAX_TRANSPOSE ? fields.transpose as number : d.transpose,
     hearNotes: fields.hearNotes === true,
     hearChords: fields.hearChords === true,
+    strokes: fields.strokes !== false,
+    strokesRoll: isRoll(fields.strokesRoll) ? fields.strokesRoll : d.strokesRoll,
+    strums: fields.strums !== false,
+    strumsRoll: isRoll(fields.strumsRoll) ? fields.strumsRoll : d.strumsRoll,
+    rolledChords: fields.rolledChords !== false,
+    rolledChordsRoll: isRoll(fields.rolledChordsRoll) ? fields.rolledChordsRoll : d.rolledChordsRoll,
     stopAtPlayhead: fields.stopAtPlayhead === true,
     stopAtRegionEnd: fields.stopAtRegionEnd === true,
     loopPause: fields.loopPause === true,
@@ -140,7 +177,7 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, onStopAt }: {
+export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, rolls = DEFAULT_ROLLS, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
@@ -152,6 +189,8 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   clickVolume: number;
   /** Distortion and reverb as set, heard at once. */
   effects: FxSettings;
+  /** How much each kind of chord mark rolls its chord, heard at once; alphaTab-like defaults when left out. */
+  rolls?: Rolls;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -195,6 +234,11 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setClickVolume(clickVolume);
   }, [clickVolume]);
+  // By value: the same rolls as a new object each render change nothing.
+  const { strokes, strums, rolledChords } = rolls;
+  useEffect(() => {
+    player.current?.setRolls({ strokes, strums, rolledChords });
+  }, [strokes, strums, rolledChords]);
   // What the FX switches leave heard.
   const heardFx = useMemo(() => heardEffects(effects), [effects]);
   useEffect(() => {
@@ -212,6 +256,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
       p.setMetronome(metronome);
       p.setCountIn(countIn, countInBars);
       p.setClickVolume(clickVolume);
+      p.setRolls(rolls);
       p.setEffects(heardFx);
       return p;
     });
