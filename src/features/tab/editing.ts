@@ -228,6 +228,27 @@ export function emptyColumn(duration: Duration): Column {
   return { duration, notes: Array<Note | null>(STRING_COUNT).fill(null) };
 }
 
+/**
+ * Marks of a Column's time rather than its notes: a rest left where Delete or cut took the notes keeps
+ * them, as Dorico and MuseScore do (issue #393). Only taking the time away (Ctrl/⌘+Delete) removes them.
+ * A pick stroke, tremolo, whammy bar and Beam override belong to the notes and go with them.
+ */
+const TIME_MARKS = ['chord', 'text', 'fermata', 'wah', 'hairpin', 'ottava', 'extra'] as const;
+
+/** The rest a Column becomes when its notes are deleted: its length and its time's marks. */
+export function restOf(column: Column): Column {
+  const rest: Column = emptyColumn(column.duration);
+  for (const key of TIME_MARKS) {
+    if (column[key] !== undefined) Object.assign(rest, { [key]: column[key] });
+  }
+  return rest;
+}
+
+/** Whether a Column carries any mark of its time (`restOf` keeps them). */
+export function hasTimeMarks(column: Column): boolean {
+  return TIME_MARKS.some(key => column[key] !== undefined);
+}
+
 export function replaceBar(clip: Part, index: number, bar: Bar): Part {
   return { ...clip, bars: clip.bars.map((b, i) => (i === index ? bar : b)) };
 }
@@ -358,10 +379,11 @@ export function setDead(clip: Part, cursor: Cursor): Part {
 export function clearNote(clip: Part, cursor: Cursor): Part {
   if (!columnAt(clip, cursor)) return clip;
   const places = chainPlaces(clip, cursor);
-  const cleared = places.reduce((next, place) => withColumn(next, { ...place, string: cursor.string }, column => ({
-    ...column,
-    notes: column.notes.map((note, s) => (s === cursor.string ? null : note)),
-  })), clip);
+  const cleared = places.reduce((next, place) => withColumn(next, { ...place, string: cursor.string }, column => {
+    const notes = column.notes.map((note, s) => (s === cursor.string ? null : note));
+    // A Column left with no note is a rest: it keeps its time's marks, not its notes' (issue #393).
+    return notes.some(Boolean) || column.grace ? { ...column, notes } : restOf(column);
+  }), clip);
   return normalize(cleared);
 }
 

@@ -586,6 +586,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             if (head) out.push(<ellipse key={`tint-head-${t.index}-${t.string}`} cx={placed.x} cy={stepY(rows.score!, head.step)} rx={8} ry={6} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-head" />);
             return out;
           })))}
+          {/* A picked word's rest, tinted under its glyph as a note's head is (issue #393). */}
+          {attached.rests.filter(r => r.system === si).map((r, k) => (
+            <rect key={`tint-rest-${k}`} x={r.x} y={r.y} width={r.width} height={r.height} rx={3} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-rest" />
+          ))}
           {/* Under the numbers, as the cursor's box is, so the Tied note's number shows through. */}
           {rows.tab && highlight?.tied && (highlight.range || highlight.staffPitch == null) && system.bars.flatMap(bar => bar.columns.flatMap(placed =>
             highlight.tied!.filter(t => t.index === placed.index).map(t => {

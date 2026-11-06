@@ -4,10 +4,58 @@
  * `staffMarks.ts` places the technique marks by it, so the two agree.
  */
 import { isRest } from './clip';
-import { HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, wholeRestX, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { GLYPHS, type GlyphName } from './smufl';
 import { beamGroups } from './beams';
 import { type DrawnAt } from './runs';
 import type { Head } from './notation';
+
+/** The rest drawn for each note value. */
+export const RESTS: Record<number, GlyphName> = {
+  1: 'restWhole', 2: 'restHalf', 4: 'restQuarter', 8: 'rest8th', 16: 'rest16th', 32: 'rest32nd', 64: 'rest64th',
+};
+
+/** How far each rest reaches above and below the step it hangs from, in staff spaces (from its glyph). */
+const REST_REACH: Record<number, [number, number]> = {
+  1: [0.04, 0.54], 2: [0.57, 0.01], 4: [1.49, 1.5], 8: [0.7, 1.0], 16: [0.72, 2.0], 32: [1.7, 2.0], 64: [1.72, 3.01],
+};
+
+/**
+ * How far a rest moves, in steps, in a bar of two or more Voices (step 9, Q2): an up-stem Voice's up, a
+ * down-stem Voice's down, clear of the other's notes; none in a bar of one Voice.
+ */
+export function restShift(placed: PlacedColumn | undefined): number {
+  return placed?.voiceUp === undefined ? 0 : placed.voiceUp ? VOICE_REST_SHIFT : -VOICE_REST_SHIFT;
+}
+const VOICE_REST_SHIFT = 4;
+
+/** Where a rest is drawn on the staff: its glyph, left edge and the y it hangs from, and its box. */
+export interface StaffRest {
+  glyph: GlyphName;
+  step: number;
+  x: number;
+  y: number;
+  top: number;
+  bottom: number;
+  width: number;
+}
+
+/**
+ * The rest a rest Column draws on the staff, in the system's units: in a Whole-bar rest's bar, that one
+ * whole rest centred in the bar, whichever of its Columns; else its own rest at its note's place.
+ */
+export function staffRest(bar: PlacedBar, placed: PlacedColumn, score: ScoreRows): StaffRest {
+  const whole = bar.wholeRest;
+  const value = whole ? 1 : placed.column.duration.value;
+  const glyph = RESTS[value];
+  const shift = restShift(whole ? bar.columns[0] : placed);
+  const step = (value === 1 ? 6 : 4) + shift;
+  const width = GLYPHS[glyph].width * SPACE;
+  const centre = whole ? wholeRestX(bar) : placed.x + (placed.headShift ?? 0);
+  const y = stepY(score, step);
+  const [above, below] = REST_REACH[value];
+  return { glyph, step, x: centre - width / 2, y, top: y - above * SPACE, bottom: y + below * SPACE, width };
+}
 
 /** A grace note's heads and stem, against a full one's. */
 export const GRACE_SCALE = 0.65;

@@ -102,3 +102,54 @@ describe('the related notes’ tint (step 8)', () => {
     expect(attachment(layout, { kind: 'section', bar: 0 }).tint).toEqual([]);
   });
 });
+
+describe('a picked word on a rest (issue #393)', () => {
+  it('on the staff: the line ends just over the rest, centred on it, and the rest is tinted', () => {
+    const layout = laidOut('3.6.4 r.4{txt "slowly"} 5.6.2 |', 'both');
+    const { rows, top } = layout.systems[0];
+    const picked = attachment(layout, { kind: 'text', index: 1 });
+    expect(picked.lines).toHaveLength(1);
+    expect(picked.rests).toHaveLength(1);
+    const [line] = picked.lines;
+    const [rest] = picked.rests;
+    // A quarter rest hangs from the middle line, about one and a half spaces each way.
+    expect(line.y1 - top).toBeLessThan(stepY(rows.score!, 4) - 9);
+    expect(line.y0).toBeLessThan(line.y1);
+    expect(line.x).toBeCloseTo(rest.x + rest.width / 2);
+    expect(rest.y).toBeLessThanOrEqual(line.y1 - top);
+    // No note is tinted: the rest has none.
+    expect(picked.tint).toEqual([]);
+  });
+
+  it('a chord name on a rest does the same', () => {
+    const layout = laidOut('3.6.4 r.4{ch "Am"} 5.6.2 |', 'both');
+    const picked = attachment(layout, { kind: 'chord', index: 1 });
+    expect(picked.lines).toHaveLength(1);
+    expect(picked.rests).toHaveLength(1);
+  });
+
+  it('over a Whole-bar rest: the line goes to the staff\'s top line at the word\'s beat; the whole rest is tinted', () => {
+    const layout = laidOut('r.4 r.4{txt "slowly"} r.2 |', 'both');
+    const { rows, top } = layout.systems[0];
+    const column = layout.systems[0].bars[0].columns[1];
+    const picked = attachment(layout, { kind: 'text', index: 1 });
+    expect(picked.lines).toEqual([expect.objectContaining({ x: column.x, y1: top + rows.score!.top })]);
+    expect(picked.rests).toHaveLength(1);
+    // The tint is round the whole rest in the middle of the bar, not at the word's beat.
+    expect(picked.rests[0].x).toBeGreaterThan(column.x);
+  });
+
+  it('in the tab alone: the line ends at the top string at the column\'s place, and nothing is tinted', () => {
+    const layout = laidOut('3.6.4 r.4{txt "slowly"} 5.6.2 |');
+    const { rows, top } = layout.systems[0];
+    const column = layout.systems[0].bars[0].columns[1];
+    const picked = attachment(layout, { kind: 'text', index: 1 });
+    expect(picked.lines).toEqual([expect.objectContaining({ x: column.x, y1: top + stringY(rows, 0) })]);
+    expect(picked.rests).toEqual([]);
+  });
+
+  it('a word on a note still goes to its number, with no rest tinted', () => {
+    const layout = laidOut('3.6.4 5.6.4{txt "slowly"} 5.6.2 |', 'both');
+    expect(attachment(layout, { kind: 'text', index: 1 }).rests).toEqual([]);
+  });
+});
