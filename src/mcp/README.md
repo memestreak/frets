@@ -58,8 +58,10 @@ Outside `src/`:
   the chosen tool's app in frames, logging what the model would be told.
   `npm run build` also builds it into the site at `/mcp-preview/` (after
   `next build`, which empties `out/`), so every deploy has one. A new
-  tool adds its `<option>` in `index.html` and its app in `preview.ts`;
-  `src/__tests__/mcp/server.test.ts` fails until it does.
+  tool adds its `<option>` in `index.html`, its app in `preview.ts` and
+  its presets (ready-made arguments) in `presets.ts`;
+  `src/__tests__/mcp/server.test.ts` and `previewPresets.test.ts` fail
+  until it does.
 
 ## Adding a page's tools
 
