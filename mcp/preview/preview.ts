@@ -31,7 +31,8 @@ if (__COMMIT__ === 'dev') {
 }
 /**
  * Adds a line to "What the model sees", newest first, named `<method> · <tool> #<call>` (see
- * `entryTitle`). With `detail`, the line opens to it: everything the model is sent, not just the text.
+ * `entryTitle`). With `detail`, the line opens to it: everything the model is sent, not just the text,
+ * then what the host keeps to itself (`_meta`).
  */
 const log = (line: string, detail?: Record<string, unknown>) => {
   const entry = document.createElement(detail === undefined ? 'div' : 'details');
@@ -73,12 +74,13 @@ const forModel = (message: Record<string, unknown>) => {
 };
 /**
  * A message split into what each part is: a result's or update's text (`content`) and its
- * structured data (`structuredContent`); a tool's description and input schema; then the rest.
+ * structured data (`structuredContent`); a tool's description and input schema; then the rest; and
+ * last, `_meta`, which the host keeps from the model (a tool's app's `ui://` address is in it).
  */
 function sections(message: Record<string, unknown>, width: number): { title: string; body: string }[] {
   const json = (value: unknown) => pretty(value, width);
   const out: { title: string; body: string }[] = [];
-  const rest = { ...message };
+  const { _meta: meta, ...rest } = message;
   if (Array.isArray(rest.content)) {
     const parts = rest.content as { type: string; text?: string }[];
     out.push({ title: 'Text (content)', body: parts.map(c => (c.type === 'text' ? c.text : json(c))).join('\n\n') });
@@ -98,8 +100,11 @@ function sections(message: Record<string, unknown>, width: number): { title: str
   }
   const others = Object.entries(rest).filter(([, v]) => v !== undefined);
   if (others.length) out.push({ title: out.length ? 'Also' : 'Message', body: json(Object.fromEntries(others)) });
+  if (meta !== undefined) out.push({ title: 'Host only (_meta), not sent to the model', body: json(meta) });
   return out;
 }
+/** An app's size, as its HTML's UTF-8 bytes, e.g. `4.0 MB`. */
+const megabytes = (html: string) => `${(new TextEncoder().encode(html).length / 1e6).toFixed(1)} MB`;
 /** A rough token count (about 4 characters a token), for a sense of what a tool costs. */
 const tokens = (value: unknown) => `~${Math.round(JSON.stringify(value).length / 4)} tokens`;
 
@@ -119,8 +124,7 @@ async function connectClient() {
 const client = await connectClient();
 const tools = (await client.listTools()).tools;
 for (const tool of [...tools].reverse()) {
-  const seen = forModel(tool);
-  log(entryTitle('tools/list', `${tool.name} (${tokens(seen)})`), seen);
+  log(entryTitle('tools/list', `${tool.name} (${tokens(forModel(tool))})`), tool);
 }
 log(entryTitle('tools/list', `${tools.length} tools (${tokens(tools.map(forModel))} in all)`));
 
@@ -129,7 +133,12 @@ const apps = new Map<string, string>();
 for (const name of [METRONOME, TAB, TUNER]) {
   const uri = getToolUiResourceUri(tools.find(t => t.name === name)!)!;
   const content = (await client.readResource({ uri })).contents[0];
-  apps.set(name, 'text' in content ? content.text : '');
+  const html = 'text' in content ? content.text : '';
+  apps.set(name, html);
+  // The host reads the app itself; the model never sees it. The log shows all but the HTML.
+  log(entryTitle('resources/read', `${uri} (${megabytes(html)}, host only)`), {
+    uri: content.uri, mimeType: content.mimeType, size: megabytes(html), _meta: content._meta,
+  });
 }
 
 /** JSON, indented, but with each object or array that fits in `width` characters kept on one line. */
@@ -180,16 +189,14 @@ async function call(name: string, args: Record<string, unknown>) {
     if (height) frame.style.height = `${Math.ceil(height)}px`;
   };
   bridge.onupdatemodelcontext = async params => {
-    const seen = forModel(params);
-    log(entryTitle('ui/update-model-context', `${label} (${tokens(seen)})`), seen);
+    log(entryTitle('ui/update-model-context', `${label} (${tokens(forModel(params))})`), params);
     if (name === METRONOME) latest = (params.structuredContent?.rhythm as Record<string, unknown>) ?? latest;
     return {};
   };
   bridge.oninitialized = async () => {
     await bridge.sendToolInput({ arguments: args });
     const result = await client.callTool({ name, arguments: args });
-    const seen = forModel(result);
-    log(entryTitle('tools/call', `${label} (${tokens(seen)})`), seen);
+    log(entryTitle('tools/call', `${label} (${tokens(forModel(result))})`), result);
     if (!result.isError && name === METRONOME) latest = (result.structuredContent as { rhythm: Record<string, unknown> }).rhythm;
     await bridge.sendToolResult(result as Parameters<AppBridge['sendToolResult']>[0]);
   };
