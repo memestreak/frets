@@ -1,31 +1,38 @@
 'use client';
 
 /**
- * MOCK (Jeremy's pick pending): adding a chord in the Chords panel itself, in place of the +, rather
- * than in a modal. Three layouts behind `?add=`: a One form, b Fingering first, c Steps. Each looks a
- * chord up by root and type (or by name, behind the magnifier), lets the name differ from the chord's
- * symbol ("A barre/5"), and has a way to draw your own fingering. Cancel or Esc puts the + back.
+ * MOCK (round 2, layout a picked 2026-11-06): the chord view in the Chords panel itself, not a modal.
+ * The + opens it empty (Add chord); picking a chord of the track's set opens it on that chord (Save
+ * chord). It looks a chord up by root and type (or by name, behind the magnifier), lets the name differ
+ * from the chord's symbol ("A barre/5"), and draws your own fingering. Cancel or Esc closes it.
  */
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { SearchIcon } from '@/components/icons';
 import { KeyPicker } from '@/components/KeyPicker';
 import { diagramStartFret, shapeKey, type Shape } from '@/lib/chords/shapes';
 import { chordOf, chordRootOf, CHORD_GROUPS, CHORD_TYPES, type ChordInfo, type ChordRoot } from '@/lib/theory/chords';
-import { findChord } from '@/lib/theory/chordSearch';
+import { findChord, readChordName } from '@/lib/theory/chordSearch';
 import type { Column, Part } from './clip';
 import { chordToDraw, fits, fretsOfColumn, lowFirst, namesForFrets, PLAIN_LOOK, shapesOf, toFrets, toShape } from './chordShapes';
 
-export type AddLayout = 'a' | 'b' | 'c';
+/** The chord of the set the view opened on: its name, and its shape (low string first), if it has one. */
+export interface ChordOpened {
+  name: string;
+  shape: Shape | null;
+}
 
 interface ChordAddProps {
-  layout: AddLayout;
+  /** The chord picked in the list; none for the +. */
+  opened: ChordOpened | null;
   clip: Part;
   /** The cursor's column: its fingering, if it has one, is offered first. */
   column: Column | null;
   /** Names already in the track's chords. */
   taken: readonly string[];
   onAdd: (name: string, frets: (number | null)[] | null) => void;
+  /** Save chord, for the chord opened: its (maybe new) name and shape. */
+  onSave: (from: string, name: string, frets: (number | null)[] | null) => void;
   onHear: (shape: Shape) => void;
   onCancel: () => void;
 }
@@ -34,25 +41,35 @@ interface ChordAddProps {
 const MAX_SHAPES = 9;
 
 /** The draft chord every layout edits: the chord looked up, the shape picked or drawn, and the name. */
-function useDraft(clip: Part, column: Column | null, onHear: (shape: Shape) => void) {
+function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null, onHear: (shape: Shape) => void) {
   const tuning = useMemo(() => lowFirst(clip), [clip]);
+  // The cursor's fingering is offered only for a new chord.
   const atCursor = useMemo(() => {
-    const frets = fretsOfColumn(column);
+    const frets = opened ? null : fretsOfColumn(column);
     return frets ? toShape(frets) : null;
-  }, [column]);
-  const [root, setRoot] = useState<ChordRoot | ''>('');
-  const [typeId, setTypeId] = useState('');
+  }, [column, opened]);
+  // An opened chord's root and type: its name's, else what its shape's notes are ("A barre/5" is A major).
+  const reading = opened
+    ? readChordName(opened.name) ?? (opened.shape ? readChordName(namesForFrets(clip, toFrets(opened.shape))[0] ?? '') : null)
+    : null;
+  const [root, setRoot] = useState<ChordRoot | ''>(reading?.root ?? '');
+  const [typeId, setTypeId] = useState(reading?.type ?? '');
   const chord = useMemo<ChordInfo | null>(() => (root && typeId ? chordOf(root, typeId) : null), [root, typeId]);
   const shapes = useMemo(() => {
     const found = chord ? shapesOf(chord, tuning) : [];
-    return atCursor && !found.some(s => shapeKey(s) === shapeKey(atCursor)) ? [atCursor, ...found] : found;
-  }, [chord, tuning, atCursor]);
+    const own = opened?.shape ?? atCursor;
+    return own && !found.some(s => shapeKey(s) === shapeKey(own)) ? [own, ...found] : found;
+  }, [chord, tuning, atCursor, opened]);
   /** The shape picked or drawn; null until one is. */
-  const [shape, setShape] = useState<Shape | null>(atCursor);
+  const [shape, setShape] = useState<Shape | null>(opened ? opened.shape : atCursor);
   /** Whether `shape` was drawn here (or changed by a tap) rather than picked. */
   const [drawn, setDrawn] = useState(false);
-  /** The name typed; null while it follows the chord (it never rewrites what was typed). */
-  const [typedName, setTypedName] = useState<string | null>(null);
+  /** The name typed; null while it follows the chord (it never rewrites what was typed). An opened chord's name is its own unless it is the symbol. */
+  const [typedName, setTypedName] = useState<string | null>(() => {
+    if (!opened) return null;
+    const symbol = reading ? chordOf(reading.root, reading.type).symbol : null;
+    return opened.name === symbol ? null : opened.name;
+  });
 
   const noteNames = useMemo(() => (shape ? namesForFrets(clip, toFrets(shape)) : []), [clip, shape]);
   /** The name offered: the chord's symbol, unless the shape's notes aren't that chord; then what they are. */
@@ -89,18 +106,21 @@ function useDraft(clip: Part, column: Column | null, onHear: (shape: Shape) => v
 }
 type Draft = ReturnType<typeof useDraft>;
 
-export function ChordAddMock({ layout, clip, column, taken, onAdd, onHear, onCancel }: ChordAddProps) {
-  const draft = useDraft(clip, column, onHear);
-  // Opening takes the keys (so Esc cancels): the first field, else the form itself.
+export function ChordAddMock({ opened, clip, column, taken, onAdd, onSave, onHear, onCancel }: ChordAddProps) {
+  const draft = useDraft(clip, column, opened, onHear);
+  // Opening on the +, the view takes the keys (so Esc cancels): its first field.
   const form = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = form.current;
-    (el?.querySelector<HTMLElement>('input') ?? el)?.focus();
-  }, []);
-  const isTaken = taken.includes(draft.name);
-  const add = () => {
+    if (!opened) (el?.querySelector<HTMLElement>('input') ?? el)?.focus();
+  }, [opened]);
+  const frets = draft.shape ? toFrets(draft.shape) : null;
+  const isTaken = draft.name !== opened?.name && taken.includes(draft.name);
+  const changed = opened !== null && (draft.name !== opened.name || (draft.shape ? shapeKey(draft.shape) : '') !== (opened.shape ? shapeKey(opened.shape) : ''));
+  const ok = () => {
     if (!draft.name || isTaken) return;
-    onAdd(draft.name, draft.shape ? toFrets(draft.shape) : null);
+    if (!opened) onAdd(draft.name, frets);
+    else if (changed) onSave(opened.name, draft.name, frets);
   };
   const onKeyDown = (e: KeyboardEvent) => {
     // Esc cancels, and goes no further (not to note input).
@@ -110,23 +130,17 @@ export function ChordAddMock({ layout, clip, column, taken, onAdd, onHear, onCan
       onCancel();
     }
   };
-  const buttons = (
-    <div className="chord-add-buttons">
-      {isTaken && <p className="chord-panel-note">“{draft.name}” is already in this track’s chords.</p>}
-      <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-      <button type="button" className="btn btn-primary" disabled={!draft.name || isTaken} onClick={add}>
-        {draft.name ? `Add ${draft.name}` : 'Add'}
-      </button>
-    </div>
-  );
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Esc from any of its controls cancels.
-    <div ref={form} tabIndex={-1} className="chord-add" role="group" aria-label="New chord" onKeyDown={onKeyDown}>
-      <h4 className="chord-add-title">New chord</h4>
-      {layout === 'a' && <OneForm draft={draft} clip={clip} onAdd={add} />}
-      {layout === 'b' && <FingeringFirst draft={draft} onAdd={add} />}
-      {layout === 'c' && <Steps draft={draft} clip={clip} onAdd={add} onCancel={onCancel} buttons={buttons} />}
-      {layout !== 'c' && buttons}
+    <div ref={form} tabIndex={-1} className="chord-add" role="group" aria-label={opened ? opened.name : 'New chord'} onKeyDown={onKeyDown}>
+      <OneForm draft={draft} clip={clip} onAdd={ok} />
+      <div className="chord-add-buttons">
+        {isTaken && <p className="chord-panel-note">“{draft.name}” is already in this track’s chords.</p>}
+        <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+        {opened
+          ? <button type="button" className="btn btn-primary" disabled={!changed || !draft.name || isTaken} onClick={ok}>Save chord</button>
+          : <button type="button" className="btn btn-primary" disabled={!draft.name || isTaken} onClick={ok}>Add chord</button>}
+      </div>
     </div>
   );
 }
@@ -282,89 +296,6 @@ function OneForm({ draft, clip, onAdd }: { draft: Draft; clip: Part; onAdd: () =
   );
 }
 
-/* --- b: Fingering first ------------------------------------------------------------------------ */
-
-/** As on the Chords page: the frets are the truth. A pick puts its first shape on one big diagram; ‹ › step shapes; a tap changes it. */
-function FingeringFirst({ draft, onAdd }: { draft: Draft; onAdd: () => void }) {
-  const { shapes, shape } = draft;
-  const at = shape && !draft.drawn ? shapes.findIndex(s => shapeKey(s) === shapeKey(shape)) : -1;
-  const step = (by: 1 | -1) => {
-    if (shapes.length > 0) draft.pick(shapes[(Math.max(0, at) + by + shapes.length) % shapes.length]);
-  };
-  return (
-    <>
-      <Lookup draft={draft} />
-      <div className="chord-panel-row">
-        <span className="chord-panel-label">{draft.drawn ? 'Your own shape' : 'Shape'}</span>
-        {shapes.length > 1 && (
-          <span className="chord-panel-stepper">
-            <button type="button" className="chord-panel-step" aria-label="Previous shape" onClick={() => step(-1)}>‹</button>
-            <span>{at >= 0 ? `${at + 1} of ${shapes.length}` : `– of ${shapes.length}`}</span>
-            <button type="button" className="chord-panel-step" aria-label="Next shape" onClick={() => step(1)}>›</button>
-          </span>
-        )}
-      </div>
-      <ShapeEditor shape={shape ?? EMPTY} onChange={draft.draw} />
-      <p className="chord-panel-note">Tap a string to put a finger there; tap it again to lift it. Left of the nut: open or muted.</p>
-      {draft.drawn && <NoteNames draft={draft} />}
-      <NameField draft={draft} onAdd={onAdd} />
-    </>
-  );
-}
-
-/* --- c: Steps ---------------------------------------------------------------------------------- */
-
-const STEPS = ['Chord', 'Shape', 'Name'] as const;
-
-function Steps({ draft, clip, onAdd, onCancel, buttons }: { draft: Draft; clip: Part; onAdd: () => void; onCancel: () => void; buttons: ReactNode }) {
-  const [step, setStep] = useState(0);
-  const [drawing, setDrawing] = useState(false);
-  return (
-    <>
-      <ol className="chord-add-steps">
-        {STEPS.map((s, i) => (
-          <li key={s}>
-            <button type="button" aria-current={i === step ? 'step' : undefined} onClick={() => setStep(i)}>{i + 1} {s}</button>
-          </li>
-        ))}
-      </ol>
-      {step === 0 && (
-        <>
-          <Lookup draft={draft} />
-          <button type="button" className="chord-add-link" onClick={() => { setDrawing(true); if (!draft.shape) draft.draw(EMPTY); setStep(1); }}>
-            No chord type? Draw a fingering instead
-          </button>
-        </>
-      )}
-      {step === 1 && (drawing ? (
-        <>
-          <button type="button" className="chord-add-link" onClick={() => setDrawing(false)}>Back to shapes</button>
-          <ShapeEditor shape={draft.shape} onChange={draft.draw} />
-          <NoteNames draft={draft} />
-        </>
-      ) : (
-        <ShapeTiles draft={draft} clip={clip} onDraw={() => { setDrawing(true); if (!draft.shape) draft.draw(EMPTY); }} />
-      ))}
-      {step === 2 && (
-        <>
-          {draft.shape && (() => {
-            const chord = chordToDraw(clip, draft.name, draft.shape);
-            return chord ? <div className="chord-add-preview"><ChordDiagram chord={chord} shape={draft.shape} look={PLAIN_LOOK} tuning={draft.tuning} /></div> : null;
-          })()}
-          <NameField draft={draft} onAdd={onAdd} />
-        </>
-      )}
-      {step < 2 ? (
-        <div className="chord-add-buttons">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          {step > 0 && <button type="button" className="btn btn-secondary" onClick={() => setStep(step - 1)}>Back</button>}
-          <button type="button" className="btn btn-primary" onClick={() => setStep(step + 1)}>Next</button>
-        </div>
-      ) : buttons}
-    </>
-  );
-}
-
 /* --- Drawing your own -------------------------------------------------------------------------- */
 
 const EMPTY: Shape = [null, null, null, null, null, null];
@@ -444,4 +375,17 @@ function ShapeEditor({ shape, onChange }: { shape: Shape | null; onChange: (s: S
       </span>
     </div>
   );
+}
+
+/**
+ * MOCK: the part with chord `from` called `to`: its definitions and every column of this Voice that
+ * names it. (The real change also renames it in the track's other Voices.)
+ */
+export function withRenamedChord(part: Part, from: string, to: string): Part {
+  if (from === to) return part;
+  return {
+    ...part,
+    chords: part.chords?.map(def => (def.name === from ? { ...def, name: to } : def)),
+    bars: part.bars.map(bar => ({ ...bar, columns: bar.columns.map(c => (c.chord === from ? { ...c, chord: to } : c)) })),
+  };
 }
