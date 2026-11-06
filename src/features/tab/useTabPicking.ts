@@ -8,6 +8,7 @@ import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import { splitRestAt } from './grid';
 import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
+import { draggedRange, type RangeDrag } from './rangeBox';
 import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
 import { isWholeBarRest, type Layout } from './layout';
 import { textBox, type TextHit, type WordHit } from './layoutText';
@@ -402,6 +403,26 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     repickSpan(shown, hit, next);
   };
 
+  /** The selection a Range handle drag started from, which Esc puts back. */
+  const rangeFrom = useRef<Selection | null>(null);
+  /**
+   * A selected run's Range handle dragged (`docs/specs/2026-11-05-tab-range-handles-design.md`): the end
+   * dragged follows the pointer, column by column, and the other end stays; letting go leaves the run
+   * selected with the dragged end as its focus, so Shift+arrows go on from there. Esc puts it back.
+   */
+  const onDragRange = (drag: RangeDrag) => {
+    if (!rangeFrom.current) {
+      if (!selection) return;
+      rangeFrom.current = selection;
+    }
+    const from = rangeFrom.current;
+    const next = drag.cancelled ? from : draggedRange(selectedRange(from), drag.end, drag.column);
+    if (drag.done) rangeFrom.current = null;
+    lastDigitRef.current = null;
+    commit(clip, { ...cursor, ...placeOf(clip, next.focus) }, next);
+    startRegion();
+  };
+
   /** Alt+Shift+→ / ← on a picked Span: its end a column later or earlier, across lines of tab (Q9). */
   const moveSpanEnd = (step: 1 | -1) => {
     if (picked?.kind !== 'mark' || !isSpan(picked.mark)) return;
@@ -417,7 +438,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan,
+    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
     stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }
