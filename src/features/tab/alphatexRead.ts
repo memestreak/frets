@@ -67,8 +67,8 @@ const KEPT_NAMES: Record<string, string> = {
   sh: 'semi harmonic', fh: 'feedback harmonic', tr: 'trill', gr: 'grace note',
   tp: 'tremolo picking', tb: 'whammy bar',
   psu: 'pick slide up', psd: 'pick slide down',
-  rasg: 'rasgueado', bu: 'brush up', bd: 'brush down',
-  au: 'arpeggio up', ad: 'arpeggio down', dy: 'dynamics', lf: 'left-hand fingering',
+  rasg: 'rasgueado', bu: 'strum up', bd: 'strum down',
+  au: 'rolled chord up', ad: 'rolled chord down', dy: 'dynamics', lf: 'left-hand fingering',
   rf: 'right-hand fingering', ten: 'tenuto', tu: 'tuplet',
 };
 
