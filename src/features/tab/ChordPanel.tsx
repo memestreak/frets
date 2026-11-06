@@ -6,16 +6,14 @@
  * cursor column's notes, the track's Chord set with New chord, and Insert. A chord name's Edit, or its
  * double-click, opens it at that chord. With its Hear toggle on, picking a chord or a shape sounds it.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
-import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
-import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { findShapes, shapeKey, type Shape } from '@/lib/chords/shapes';
 import { nameNotes } from '@/lib/theory/chordNames';
 import { chordOf, withBass, type ChordInfo } from '@/lib/theory/chords';
 import { readChordName } from '@/lib/theory/chordSearch';
 import { pitchClassOf } from '@/lib/theory/notes';
-import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, type ChordEntry } from './chordSet';
+import { chordDefOf, chordSet, withChordShape, withoutChord, type ChordEntry } from './chordSet';
 import type { Column, Part, Track } from './clip';
 import { columnAt, withColumn, type Cursor } from './editing';
 import { writtenStrings } from './notation';
@@ -51,12 +49,6 @@ export function namesForColumn(part: Part, column: Column | null): string[] {
   const pitches = (column?.notes ?? []).flatMap((n, s) => (n && n.fret !== null ? [open[s] + (part.capo ?? 0) + n.fret] : []));
   if (pitches.length < 2) return [];
   return nameNotes(pitches, Math.min(...pitches)).slice(0, 4).map(n => n.symbol);
-}
-
-/** A column's frets as a definition's (high e first), or null for one with fewer than two fretted notes: not a chord. */
-export function fretsOfColumn(column: Column | null): (number | null)[] | null {
-  const frets = (column?.notes ?? []).map(n => (n && n.fret !== null ? n.fret : null));
-  return frets.filter(f => f !== null).length >= 2 ? frets : null;
 }
 
 type InsertWhat = 'name' | 'notes' | 'both';
@@ -122,7 +114,10 @@ function Fold({ id, title, label = title, folded, onFold, extra, children }: {
             type="button" className="chord-panel-fold" aria-expanded={open}
             onMouseDown={e => e.preventDefault()} onClick={() => onFold(id)}
           >
-            <span className="chord-panel-chevron" aria-hidden="true">{open ? '▾' : '▸'}</span>
+            {/* A chevron: down while open, right while folded. */}
+            <svg className="chord-panel-chevron" width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.8} data-open={open || undefined}>
+              <path d="M6 3.5L10.5 8 6 12.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             {title}
           </button>
         </h3>
@@ -130,6 +125,27 @@ function Fold({ id, title, label = title, folded, onFold, extra, children }: {
       </div>
       {open && children}
     </section>
+  );
+}
+
+/** The Chords panel's Hear toggle, in its head by the title: picking a chord or a shape sounds it while on. */
+export function HearChordsToggle({ hear, onHearChange }: { hear: boolean; onHearChange: (hear: boolean) => void }) {
+  return (
+    <button
+      type="button" className="chord-panel-hear" aria-label="Hear chords as you pick them" aria-pressed={hear}
+      data-tip="Hear chords as you pick them" onMouseDown={e => e.preventDefault()} onClick={() => onHearChange(!hear)}
+    >
+      <NoteSoundIcon />
+    </button>
+  );
+}
+
+/** A small trash can. */
+function TrashIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.6 6.5v5M9.4 6.5v5" />
+    </svg>
   );
 }
 
@@ -144,34 +160,27 @@ interface ChordPanelProps {
   /** The chord a name's Edit last opened the panel at (each Edit a new object), or null: the cursor column's. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
-  /** Whether a chord or shape picked sounds, from the panel's toggle (a Playback preference). */
+  /** Whether a chord or shape picked sounds: `HearChordsToggle`, in the panel's head (a Playback preference). */
   hear: boolean;
-  onHearChange: (hear: boolean) => void;
   /** Sounds a shape, high e first. */
   onHear: (frets: readonly (number | null)[]) => void;
   /** Gives the focus back to the tab, after a name is typed. */
   onDone: () => void;
 }
 
-export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, onHearChange, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the panel, over `at` and the cursor's. */
   const [picked, setPicked] = useState<string | null>(null);
   /** What the name field holds while typed in, or null when it shows the chord. */
   const [typed, setTyped] = useState<string | null>(null);
-  /** New chord: the field names a chord for the set, not the column. */
-  const [naming, setNaming] = useState(false);
   const [what, setWhat] = useState<InsertWhat>('both');
-  const field = useRef<HTMLInputElement>(null);
-  /** The list's right-click menu: where it opened, and on which chord. */
-  const [menu, setMenu] = useState<{ x: number; y: number; entry: ChordEntry } | null>(null);
-  const trigger = useMenuTrigger();
   const [folded, fold] = useFolded();
   // Edit at another chord starts afresh there.
   // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
-  useEffect(() => { setPicked(null); setNaming(false); setTyped(null); }, [at]);
+  useEffect(() => { setPicked(null); setTyped(null); }, [at]);
 
   const column = columnAt(clip, cursor);
-  const name = naming ? null : picked ?? at?.name ?? column?.chord ?? null;
+  const name = picked ?? at?.name ?? column?.chord ?? null;
   const tuning = useMemo(() => lowFirst(clip), [clip]);
   const set = useMemo(() => chordSet({ ...track, chords: clip.chords }), [track, clip.chords]);
   const chord = useMemo(() => (name ? chordOfName(name) : null), [name]);
@@ -182,8 +191,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
   const shown = stored && !shapes.some(s => shapeKey(s) === shapeKey(stored)) ? [stored, ...shapes] : shapes;
   const current = stored ? shown.findIndex(s => shapeKey(s) === shapeKey(stored)) : -1;
   const names = useMemo(() => namesForColumn(clip, column), [clip, column]);
-  /** New chord's fingering: the cursor column's notes, when it has any. */
-  const fingering = useMemo(() => fretsOfColumn(column), [column]);
 
   /** The shape a chord is inserted with: its stored one, else its first. */
   const shapeFor = (n: string): (number | null)[] | null => {
@@ -196,7 +203,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
 
   const pick = (n: string) => {
     setPicked(n);
-    setNaming(false);
     const frets = shapeFor(n);
     if (hear && frets) onHear(frets);
   };
@@ -210,25 +216,15 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
     if (shown.length > 0) pickShape(shown[(Math.max(0, current) + by + shown.length) % shown.length]);
   };
 
-  /** Enter in the name field: a New chord joins the set; otherwise the name goes over the cursor's column. */
+  /** Enter in the name field: the name goes over the cursor's column. */
   const enter = () => {
-    // New chord with notes at the cursor: named by them unless a name is typed.
-    const text = (typed ?? '').trim() || (naming && fingering ? names[0] ?? '' : '');
+    const text = (typed ?? '').trim();
     setTyped(null);
-    if (text && naming) {
-      onChange(withNewChord(clip, text, fingering ?? shapeFor(text)));
-      pick(text);
-    } else if (text && column) {
+    if (text && column) {
       setPicked(text);
       onChange(withColumn(clip, cursor, c => ({ ...c, chord: text })));
     }
     onDone();
-  };
-
-  const startNew = () => {
-    setNaming(true);
-    setTyped('');
-    field.current?.focus();
   };
 
   const insert = () => {
@@ -240,7 +236,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
     onChange(next);
   };
 
-  /** Delete from the list's menu: only an unused chord, so no column loses its name. */
+  /** The trash can by an unused chord: no column loses its name. */
   const remove = (entry: ChordEntry) => {
     if (entry.uses > 0) return;
     onChange(withoutChord(clip, entry.name));
@@ -252,21 +248,17 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
 
   return (
     <div className="chord-panel">
-      <Fold
-        id="chords" title="This track’s chords" folded={folded} onFold={fold}
-        extra={<button type="button" className="chord-panel-new" onMouseDown={keep} onClick={startNew}>+ New chord</button>}
-      >
+      <Fold id="chords" title="This track’s chords" folded={folded} onFold={fold}>
         {set.length === 0 && <p className="chord-panel-note">None yet.</p>}
         <ul className="chord-panel-list">
           {set.map(entry => {
             const c = chordOfName(entry.name);
             const s = entry.def?.frets ? toShape(entry.def.frets) : null;
             return (
-              <li key={entry.name}>
+              <li key={entry.name} className="chord-panel-item">
                 <button
                   type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
                   onMouseDown={keep} onClick={() => pick(entry.name)}
-                  {...trigger.props((el, x, y) => setMenu({ ...menuSpot(el, x, y), entry }))}
                 >
                   <span className="chord-panel-thumb" aria-hidden="true">
                     {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
@@ -276,6 +268,15 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
                     ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
                     : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
                 </button>
+                {/* Only an unused chord can go, so no column loses its name (Jeremy, 2026-11-06). */}
+                {entry.uses === 0 && (
+                  <button
+                    type="button" className="chord-panel-delete" aria-label={`Delete ${entry.name}`} data-tip="Delete"
+                    onMouseDown={keep} onClick={() => remove(entry)}
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
               </li>
             );
           })}
@@ -283,31 +284,18 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
       </Fold>
 
       <div className="chord-panel-field">
-        <div className="chord-panel-row">
-          <span className="chord-panel-label" aria-hidden="true">{naming ? 'New chord' : 'Chord'}</span>
-          <button
-            type="button" className="chord-panel-hear" aria-label="Hear chords as you pick them" aria-pressed={hear}
-            data-tip="Hear chords as you pick them" onMouseDown={keep} onClick={() => onHearChange(!hear)}
-          >
-            <NoteSoundIcon />
-          </button>
-        </div>
+        <span className="chord-panel-label" aria-hidden="true">Chord</span>
         <input
-          ref={field} className="input" aria-label={naming ? 'New chord name' : 'Chord name'}
-          placeholder={naming ? (fingering && names[0]) || 'Name it: Am7, G/B…' : 'Am7, G/B…'}
+          className="input" aria-label="Chord name"
+          placeholder="Am7, G/B…"
           value={typed ?? name ?? ''} onChange={e => setTyped(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') enter();
-            if (e.key === 'Escape') { setTyped(null); setNaming(false); }
+            if (e.key === 'Escape') setTyped(null);
           }}
-          onBlur={() => { setTyped(null); setNaming(false); }}
+          onBlur={() => setTyped(null)}
         />
       </div>
-      {naming && (
-        <p className="chord-panel-note">
-          {fingering ? 'Its shape: the notes at the cursor.' : 'Its shape: the first found for its name. Or put the cursor on a column of notes first to use them.'}
-        </p>
-      )}
 
       {name && (
         <Fold
@@ -351,16 +339,6 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
         </Fold>
       )}
 
-      {menu && (
-        <ShapeMenu
-          x={menu.x} y={menu.y} label={menu.entry.name}
-          onClose={() => setMenu(null)}
-          items={[{
-            label: 'Delete', onSelect: () => remove(menu.entry), disabled: menu.entry.uses > 0,
-            hint: menu.entry.uses > 0 ? 'Used in this track: clear its name from those columns first' : undefined,
-          }]}
-        />
-      )}
 
       {name && (
         <div className="chord-panel-insert">

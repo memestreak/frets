@@ -22,8 +22,9 @@ and editing the list (rename, delete) are #368.
   be at the top … That section and other sections should be independently
   collapsible"). Top to bottom: This track's chords, the Chord field,
   Shape, These notes are, Insert. Each of the three sections folds from
-  its heading (a chevron and its name, `aria-expanded`), on its own; what
-  sits at a heading's right (+ New chord, the shape stepper) stays.
+  its heading (a 16px chevron, pointing down while open, and its name,
+  `aria-expanded`), on its own; the shape stepper at Shape's right
+  stays.
   Which are folded is kept across visits in `frets.tab.chordPanel`
   `{ folded }`, like the open panel, not a preference. The field and
   Insert don't fold: they are the panel's controls.
@@ -43,37 +44,23 @@ and editing the list (rename, delete) are #368.
   column's notes (two or more). Picking one writes it over the column.
 - **This track's chords.** The Chord set: a small diagram, the name, and
   how many columns use it, or ○ "Not used" (Q7). Picking one looks at it.
-- **New chord** (Jeremy, 2026-11-05: "we'll need a way to define a new
-  chord"). "+ New chord" turns the field into "New chord"; a name and
-  Enter adds a definition to the set with the chord's first shape
-  (`withNewChord`), or with no strings for a name that isn't a chord.
-  Nothing is written over a column; the new chord is unused until
-  inserted.
-- **New chord from a fingering** (Jeremy, 2026-11-05: "a way to create a
-  chord by giving it a fingering"). With the cursor on a column of two or
-  more fretted notes, New chord takes those frets as its shape, and the
-  field offers the best name for them (Enter with nothing typed uses it).
-  The panel says which shape it will use. Drawing a shape on a diagram is
-  #368. A name already defined is left as it is. Escape, or leaving
-  the field, cancels.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
   definition gets one with the shape it was inserted with.
 - **Hear** (Jeremy, 2026-11-05: "a small toggle in the chord panel that
-  enables playback when a chord is clicked on"). A small speaker toggle by
-  the name, off at first. While on, picking a chord or a shape sounds its
+  enables playback when a chord is clicked on"; 2026-11-06: "at the top to
+  the right of the Chords label"). A small speaker toggle in the panel's
+  head, right of its title, off at first. While on, picking a chord or a shape sounds its
   shape, strummed down, a quarter at 120 bpm, with the track's sound
   (`shapeAlone`, `Player.hearShape`). It is a Playback preference
   (`hearChords` in `frets.tab.playback`), listed in Settings as "Hear
   chords picked in the Chords panel".
-- **Delete** (Jeremy, 2026-11-05: "A right-click menu should support
-  delete. For now, we can disable that option if the chord is used"). A
-  right-click (or long press, Shift+F10) on a chord in the list opens a
-  menu with Delete, which takes every definition of that name out of the
-  set (`withoutChord`). For a chord a column uses, Delete is shown
-  disabled, its tooltip saying to clear its name from those columns
-  first. Menu items can now be disabled (`MenuItem.disabled`, `hint`).
+- **Delete** (Jeremy, 2026-11-06: "a little trash can rather than a
+  context action … only show the trash can if the chord isn't used"). A
+  chord no column uses has a small trash can at its right in the list,
+  which takes every definition of that name out of the set
+  (`withoutChord`); one in use has none. Nothing stays picked after.
 - Presses on the panel's buttons keep the tab's focus and cursor, as the
   palette's do.
 
@@ -105,10 +92,10 @@ Settled while building (my calls, open to change):
 - `playback.ts`: `shapeAlone`, `Player.hearShape`; `PlaybackFooter.tsx`:
   `hearShape`, and `hearChords` in the Playback settings; `tabSettings.tsx`
   lists it.
-- `ShapeMenu.tsx`: `disabled` and `hint` on a menu item.
-- `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`; `chordOfName`, `namesForColumn`,
-  `fretsOfColumn`, `insertedColumn`.
-- `chordSet.ts`: `withChordShape`, `withNewChord`, `withoutChord`.
+- `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
+  `HearChordsToggle` (which `TabRail` shows in the panel's head through
+  `chordsHead`); `chordOfName`, `namesForColumn`, `insertedColumn`.
+- `chordSet.ts`: `withChordShape`, `withoutChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
 - `tab.css`: the panel's look.
@@ -119,6 +106,8 @@ Settled while building (my calls, open to change):
   (#368).
 - Diagrams over names and in exports (#242).
 - Keys for the panel.
+- New chord, from a name or the cursor column's fingering: the next PR
+  (Jeremy, 2026-11-06).
 - Deleting a chord a column uses (with its names).
 
 ## Tests
@@ -132,21 +121,15 @@ Settled while building (my calls, open to change):
 - `withChordShape`: the last definition of the name changes; show props
   kept, `firstfret` and `barre` dropped; a name with none gets one at the
   end; "AM" is not "Am".
-- New chord: "Dsus2" adds `\chord ("Dsus2" 0 3 2 0 x x)`, unused, and no
-  column changes; "Riff A" adds `\chord ("Riff A")` with no shapes; a
-  name already defined is left as it is; Escape adds nothing.
-- New chord on a C column (0 1 0 2 3 x) offers "C" and, named "My C",
-  defines `\chord ("My C" 0 1 0 2 3 x)`; a column with one note is not a
-  fingering.
 - These notes are: a C column offers "C"; picking it writes `ch "C"`.
 - Insert Name, Notes and Both each write what they say at the cursor.
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.
-- The list is first, above the field; each section folds on its own,
-  New chord still shown; the folded ones are kept, and `parseChordPanel`
+- The list is first, above the field; each section folds on its own;
+  the folded ones are kept, and `parseChordPanel`
   drops ids it doesn't know.
-- Hear is off at first; its toggle turns it on and saves `hearChords`.
-- Delete on an unused chord takes its definition out and leaves nothing
-  picked; on a used one it is `aria-disabled`, with its hint, and does
-  nothing.
+- Hear is off at first, in the panel's head; its toggle turns it on and
+  saves `hearChords`.
+- An unused chord's trash can takes its definition out and leaves nothing
+  picked; a used chord has no trash can.

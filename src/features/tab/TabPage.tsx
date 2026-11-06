@@ -39,7 +39,7 @@ import { TabClip } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
-import { ChordPanel } from './ChordPanel';
+import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
@@ -958,11 +958,12 @@ export default function TabPage() {
           <ChordPanel
             key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
             onChange={next => commit(next)}
-            hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))}
+            hear={playbackSettings.hearChords}
             onHear={frets => playback.hearShape(frets)}
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
           />
         )}
+        chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
       >
       <section className="card tab-card" aria-label="Clip">
         {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}

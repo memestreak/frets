@@ -120,15 +120,6 @@ export function withChordShape<T extends WithChords>(track: T, name: string, fre
   return { ...track, chords: chords.map((d, i) => (i === at ? def : d)) };
 }
 
-/**
- * The track with a new chord in its Chord set (the Chords panel's New chord): a definition of `name`,
- * with `frets` when there is a shape for it. A name that already has a definition is left as it is.
- */
-export function withNewChord<T extends WithChords>(track: T, name: string, frets: readonly (number | null)[] | null): T {
-  const chords = track.chords ?? [];
-  if (chords.some(def => def.name === name)) return track;
-  return { ...track, chords: [...chords, frets ? { name, frets: [...frets] } : { name }] };
-}
 
 /** The track with every definition of `name` taken out of its Chord set (the Chords panel's Delete, for an unused chord). */
 export function withoutChord<T extends WithChords>(track: T, name: string): T {

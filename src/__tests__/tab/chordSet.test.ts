@@ -6,7 +6,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setChordName } from '@/features/tab/barEdits';
-import { chordDefOf, chordSet, withChordShape, withNewChord, type ChordDef } from '@/features/tab/chordSet';
+import { chordDefOf, chordSet, withChordShape, type ChordDef } from '@/features/tab/chordSet';
 import { parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
 import { readChordName } from '@/lib/theory/chordSearch';
 
@@ -177,13 +177,5 @@ describe('changing the Chord set from the Chords panel (issue #251)', () => {
     expect(withChordShape({ chords: [{ name: 'AM' }] }, 'Am', G).chords).toEqual([{ name: 'AM' }, { name: 'Am', frets: G }]);
   });
 
-  it('New chord adds a definition with its shape, or with none when there is no shape', () => {
-    expect(withNewChord<{ chords?: ChordDef[] }>({}, 'Dsus2', [0, 3, 2, 0, null, null]).chords).toEqual([{ name: 'Dsus2', frets: [0, 3, 2, 0, null, null] }]);
-    expect(withNewChord({ chords: [{ name: 'G' }] }, 'Riff', null).chords).toEqual([{ name: 'G' }, { name: 'Riff' }]);
-  });
 
-  it('New chord leaves a name that already has a definition as it is', () => {
-    const track = { chords: [{ name: 'G', frets: G }] };
-    expect(withNewChord(track, 'G', G_OTHER)).toBe(track);
-  });
 });

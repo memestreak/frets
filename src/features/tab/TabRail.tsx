@@ -80,11 +80,13 @@ interface TabRailProps {
   onOpen: (id: PanelId | null) => void;
   /** The Chords panel's contents. */
   chords: ReactNode;
+  /** What the Chords panel's head shows right of its title (its Hear toggle). */
+  chordsHead?: ReactNode;
   children: ReactNode;
 }
 
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, open, onOpen: setOpen, chords, children }: TabRailProps) {
+export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, children }: TabRailProps) {
   const panel = RAIL.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
   return (
@@ -110,7 +112,10 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, children }: Ta
         <HoverTips className="tab-rail-column">
           <aside className="tab-rail-panel" aria-label={panel.name}>
             <div className="tab-rail-panel-head">
-              <h2 className="tab-rail-panel-title">{panel.name}</h2>
+              <span className="tab-rail-panel-name">
+                <h2 className="tab-rail-panel-title">{panel.name}</h2>
+                {panel.id === 'chords' && chordsHead}
+              </span>
               <button
                 type="button" className="tab-rail-close" aria-label={`Close ${panel.name}`} data-tip="Close"
                 onMouseDown={e => e.preventDefault()} onClick={() => setOpen(null)}
