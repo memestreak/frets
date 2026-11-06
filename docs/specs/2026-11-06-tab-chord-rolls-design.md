@@ -25,16 +25,23 @@ off.
 
 ## Settings
 
-Tab › Playback (`frets.tab.playback`), each kind a checkbox and a length:
+Tab › Playback (`frets.tab.playback`). Each kind is a box, drawn and named
+(Jeremy, 2026-11-06: "put each toggle+value box in its own box … such that
+it's clear that each of the 3 pairs belong together"), holding its checkbox and
+its length:
 
-| Row | Field | Default |
-| --- | --- | --- |
-| Strum chords marked Downstroke or Upstroke | `strokes` | on |
-| Downstroke/Upstroke length | `strokesRoll` | 3% of the chord |
-| Strum chords marked Strum down or up | `strums` | on |
-| Strum length | `strumsRoll` | 5% of the chord |
-| Roll chords marked Rolled chord | `rolledChords` | on |
-| Rolled chord length | `rolledChordsRoll` | 20% of the chord |
+| Box | Row | Field | Default |
+| --- | --- | --- | --- |
+| Downstroke and Upstroke | Strum the chord | `strokes` | on |
+| | Length | `strokesRoll` | 3% |
+| Strum down and up | Strum the chord | `strums` | on |
+| | Length | `strumsRoll` | 5% |
+| Rolled chord | Roll the chord | `rolledChords` | on |
+| | Length | `rolledChordsRoll` | 20% |
+
+A Settings field names its box with `box`; neighbouring fields with the same
+name are drawn in one box, its name on its top line like a fieldset's legend,
+their rows keeping the pane's columns.
 
 A length is how long the whole roll takes, first note to last, as a
 percentage of the chord's own written length (0.5–100%, steps of 0.5). So a
@@ -75,5 +82,8 @@ clip playing going on from where it is.
   own kind; a Strum on a stroked chord sets the roll.
 - A written `bd` / `ad` length wins over the setting, on or off.
 - A chord in another Voice of the bar rolls too.
+- Settings: each kind's checkbox and Length are in a group named for the
+  kind; unticking one greys only its own Length, and OK saves it
+  (`src/__tests__/tab/settings.test.tsx`).
 - `rollsOf` and the parser: defaults, off as 0, and bad lengths (0, negative,
   over 100, off the 0.5 step, not a number) rejected.

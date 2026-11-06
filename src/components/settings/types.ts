@@ -23,6 +23,11 @@ export interface SettingsField<V> {
   label: string;
   /** Usable only while this holds (Count-in bars needs Count in); always shown, so the pane never moves. */
   enabled?: (value: V) => boolean;
+  /**
+   * The name of a box drawn round this field and the fields next to it with the same name, so a
+   * toggle and the values it turns on read as one (Jeremy, 2026-11-06).
+   */
+  box?: string;
   control: (props: FieldProps<V>) => ReactNode;
 }
 

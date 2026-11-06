@@ -95,6 +95,24 @@ describe('Settings', () => {
     expect(saved('frets.tab.notation')).toMatchObject({ show: 'both' });
   });
 
+  it('boxes each chord roll\'s toggle with its length, named, the length greyed while its toggle is off (issue #385)', () => {
+    render(<TabPage />);
+    openSettings();
+    const box = (name: string) => inDialog().getByRole('group', { name });
+    for (const [name, toggle] of [['Downstroke and Upstroke', 'Strum the chord'], ['Strum down and up', 'Strum the chord'], ['Rolled chord', 'Roll the chord']]) {
+      const inBox = within(box(name));
+      expect(inBox.getByRole('checkbox', { name: toggle })).toHaveAttribute('aria-checked', 'true');
+      expect(inBox.getByRole('spinbutton', { name: 'Length' })).toBeEnabled();
+    }
+    const strokes = within(box('Downstroke and Upstroke'));
+    fireEvent.click(strokes.getByRole('checkbox', { name: 'Strum the chord' }));
+    expect(strokes.getByRole('spinbutton', { name: 'Length' })).toBeDisabled();
+    // Only its own box's length greys.
+    expect(within(box('Strum down and up')).getByRole('spinbutton', { name: 'Length' })).toBeEnabled();
+    fireEvent.click(button('OK'));
+    expect(saved(PLAYBACK_KEY)).toMatchObject({ strokes: false, strums: true, rolledChords: true });
+  });
+
   it('keeps the metronome in its own section and key', () => {
     render(<TabPage />);
     openSettings();

@@ -81,7 +81,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   the selected section's rows; staged values, OK / Cancel / Apply, Enter = OK,
   a double-click or long-press on a label resetting its field), `types.ts`
   (a group is a list of sections, each one saved key; a field is one of its
-  values), `fields.tsx` (the check box and segmented fields every page uses)
+  values; neighbouring fields with the same `box` name are drawn in one named
+  box), `fields.tsx` (the check box and segmented fields every page uses)
   and `general.tsx` (General › Appearance › Theme, shared with `ThemeSwitch`).
   Each page builds its own group on its state (Tab: `tabSettings.tsx`) and
   shows a gear after its page actions; `usePreferenceSaveProblem`

@@ -86,7 +86,7 @@ function numberField<V, K extends keyof V & string>(key: K, label: string, field
 /** How long a chord's roll takes, as a percentage of the chord's length (issue #385). */
 function rollField(key: 'strokesRoll' | 'strumsRoll' | 'rolledChordsRoll', label: string, enabled: (value: PlaybackSettings) => boolean) {
   return numberField<PlaybackSettings, typeof key>(key, label, {
-    min: MIN_ROLL, max: MAX_ROLL, step: ROLL_STEP, decimals: 1, unit: '%', after: 'of the chord',
+    min: MIN_ROLL, max: MAX_ROLL, step: ROLL_STEP, decimals: 1, unit: '%',
     upLabel: 'Longer', downLabel: 'Shorter', enabled,
   });
 }
@@ -147,12 +147,12 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           }),
           checkField('hearNotes', 'Hear notes as you enter them'),
           checkField('hearChords', 'Hear chords picked in the Chords panel'),
-          checkField('strokes', 'Strum chords marked Downstroke or Upstroke'),
-          rollField('strokesRoll', 'Downstroke/Upstroke length', v => v.strokes),
-          checkField('strums', 'Strum chords marked Strum down or up'),
-          rollField('strumsRoll', 'Strum length', v => v.strums),
-          checkField('rolledChords', 'Roll chords marked Rolled chord'),
-          rollField('rolledChordsRoll', 'Rolled chord length', v => v.rolledChords),
+          { ...checkField<PlaybackSettings, 'strokes'>('strokes', 'Strum the chord'), box: 'Downstroke and Upstroke' },
+          { ...rollField('strokesRoll', 'Length', v => v.strokes), box: 'Downstroke and Upstroke' },
+          { ...checkField<PlaybackSettings, 'strums'>('strums', 'Strum the chord'), box: 'Strum down and up' },
+          { ...rollField('strumsRoll', 'Length', v => v.strums), box: 'Strum down and up' },
+          { ...checkField<PlaybackSettings, 'rolledChords'>('rolledChords', 'Roll the chord'), box: 'Rolled chord' },
+          { ...rollField('rolledChordsRoll', 'Length', v => v.rolledChords), box: 'Rolled chord' },
           checkField('stopAtPlayhead', 'Stop leaves the cursor where it stopped'),
           checkField('stopAtRegionEnd', 'Stop playback at region end'),
           checkField('loopPause', 'Pause between loops'),

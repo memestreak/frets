@@ -293,6 +293,16 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
 .settings-pane-heading { margin: 0 0 14px; font: 600 15px/22px var(--font-sans); color: var(--ink); }
 .settings-rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 16px; align-items: center; }
 .settings-row { display: contents; }
+/* Fields that belong together (a toggle and what it turns on), framed and named; their rows keep the pane's columns. */
+.settings-box {
+  grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: 12px 16px; align-items: center;
+  position: relative; margin-top: 6px; padding: 16px 12px 12px; border: 1px solid var(--line); border-radius: 8px; min-width: 0;
+}
+/* The box's name sits on its top line, as a fieldset's legend does. */
+.settings-box-name {
+  position: absolute; top: -10px; left: 8px; padding: 0 4px; background: var(--surface-raised);
+  font: 600 13px/18px var(--font-sans); color: var(--ink-muted);
+}
 /* Double-click (or long-press) to reset: no text gets selected, and no phone menu opens. */
 .settings-label {
   font: 500 14px/20px var(--font-sans); color: var(--ink); cursor: default;
@@ -324,6 +334,7 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
   .settings-rows { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
   /* Label left, control right; a control too wide for the row goes under its label. */
   .settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+  .settings-box { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 }
 
 /* The keyboard shortcuts overlay (`?`, issue #180). */
