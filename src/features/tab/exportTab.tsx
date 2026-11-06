@@ -10,6 +10,8 @@ import { creditsOf, HEAD, shownTuning, tuningBlock, type TuningBlock } from './c
 import { layoutClip, type Parts } from './layout';
 import { tempoParts } from './layoutText';
 import { TabClip } from './TabClip';
+import { CHART_GAP, chartDrawing } from './ChordChart';
+import { chartChords, layoutChart } from './chordDiagrams';
 import { TempoNote } from './TempoNote';
 import { type TabLook } from './tabLook';
 import { DEFAULT_VIEW, laidOut, paletteOf, shownColours, type TabView } from './viewOptions';
@@ -149,8 +151,21 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 /** The image's size in pixels. */
 export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
-  const tab = layoutClip(laidOut(clip, view), (style.width - 2 * PAD) / zoom, parts);
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) };
+  const inner = (style.width - 2 * PAD) / zoom;
+  const tab = layoutClip(laidOut(clip, view), inner, parts, diagramsOf(view)?.turn ?? null);
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
+}
+
+/** The diagrams under the chord names, as the page draws them (issue #242); none when off. */
+const diagramsOf = (view: TabView) => (view.chordDiagrams ? view.diagramStyle : null);
+
+/** The Chord chart's chords, as the page shows it under the head (issue #242); none when off. */
+const chartOf = (clip: Part, view: TabView) => (view.chordChart ? chartChords(clip) : []);
+
+/** The room the Chord chart takes under the head, in pixels: none without one. */
+function chartRoom(clip: Part, inner: number, view: TabView, zoom: number): number {
+  const chords = chartOf(clip, view);
+  return chords.length > 0 ? Math.ceil((layoutChart(chords, inner, view.diagramStyle.turn).height + CHART_GAP) * zoom) : 0;
 }
 
 /**
@@ -165,6 +180,11 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const head = headOf(clip, style, title, view);
   const inner = (width - 2 * PAD) / zoom;
   const look = exportLook(view);
+  const top = headTop(head, zoom);
+  const chords = chartOf(clip, view);
+  const chart = chords.length > 0 ? chartDrawing(chords, inner, view.diagramStyle.turn, look) : null;
+  // Under a head the chart starts where the tab would; with none, at the top.
+  const chartTop = Math.max(0, top);
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
@@ -174,9 +194,10 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
       <g transform={`translate(${PAD} ${PAD}) scale(${zoom})`}>
         <HeadDrawing head={head} width={inner} ink={look.ink} />
       </g>
+      {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
       <TabClip
         clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
-        x={PAD} y={PAD + headTop(head, zoom)}
+        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} diagrams={diagramsOf(view)}
       />
     </svg>
   );

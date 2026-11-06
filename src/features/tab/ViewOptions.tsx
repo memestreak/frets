@@ -68,6 +68,8 @@ export function ViewOptions({ x, y, view, values, onChange, onClose }: {
           <Toggle label="Clip's line breaks" on={values.lineBreaks} onChange={lineBreaks => onChange({ ...values, lineBreaks })} />
           <Toggle label="Arrangement header" on={values.header} onChange={header => onChange({ ...values, header })} />
           <Toggle label="Tuning details" on={values.tuningDetails} onChange={tuningDetails => onChange({ ...values, tuningDetails })} />
+          <Toggle label="Chord chart" on={values.chordChart} onChange={chordChart => onChange({ ...values, chordChart })} />
+          <Toggle label="Chord diagrams" on={values.chordDiagrams} onChange={chordDiagrams => onChange({ ...values, chordDiagrams })} />
         </>
       )}
       {view === 'ascii' && <Toggle label="Rhythm" on={values.asciiRhythm} onChange={asciiRhythm => onChange({ ...values, asciiRhythm })} />}

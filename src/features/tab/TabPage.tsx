@@ -50,6 +50,19 @@ import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
+import { ChordChart } from './ChordChart';
+import { chartChords, type DiagramRepeat, type DiagramTurn } from './chordDiagrams';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+
+/** Mocks while the diagrams' look is picked (issue #242): which way round, and which names get one. */
+const DIAGRAM_TURN_MOCK: Mock = {
+  param: 'diagram', label: 'Diagrams',
+  options: [{ value: 'upright', label: 'a Upright (books)' }, { value: 'lying', label: 'b Lying (Chords page)' }],
+};
+const DIAGRAM_REPEAT_MOCK: Mock = {
+  param: 'repeat', label: 'Over names',
+  options: [{ value: 'every', label: 'a Every name' }, { value: 'line', label: 'b First on each line' }],
+};
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
@@ -157,7 +170,13 @@ export default function TabPage() {
   };
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
-  const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
+  // How chord diagrams are drawn is still being picked (issue #242): the mocks choose it.
+  const diagramTurn = useMock(DIAGRAM_TURN_MOCK) as DiagramTurn;
+  const diagramRepeat = useMock(DIAGRAM_REPEAT_MOCK) as DiagramRepeat;
+  const shown: TabView = { ...viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex), diagramStyle: { turn: diagramTurn, repeat: diagramRepeat } };
+  const diagrams = shown.chordDiagrams ? shown.diagramStyle : null;
+  const diagramsTurn = notation.chordDiagrams ? diagramTurn : null;
+  const chartOn = notation.chordChart;
   const setShown = (next: TabView) => {
     // The saved Show, not a link's: View options never save what a link asked for.
     const sections = sectionsOf(next, notation.show);
@@ -190,7 +209,9 @@ export default function TabPage() {
    * handles, the fields and panels over it and the keys (issue #302). Playback steps and edits that
    * leave the clip as it was don't lay it out again.
    */
-  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts), [drawn, clipWidth, parts]);
+  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts, diagramsTurn), [drawn, clipWidth, parts, diagramsTurn]);
+  // The Chord chart under the score head (issue #242): every track's chords with a shape, once.
+  const chart = useMemo(() => (chartOn ? chartChords(drawn) : []), [drawn, chartOn]);
   const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
@@ -1045,6 +1066,7 @@ export default function TabPage() {
                 onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
               />
               </HoverTips>
+              <ChordChart chords={chart} width={clipWidth} turn={shown.diagramStyle.turn} />
             </>
             : <>
               {/* The page keeps its heading for screen readers. */}
@@ -1073,7 +1095,7 @@ export default function TabPage() {
                       highlight={highlight}
                       shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook}
                       picked={editing ? picked : null}
-                      errors={errors} mutedVoices={editing} voiceSelections={shownVoiceSelections}
+                      errors={errors} mutedVoices={editing} voiceSelections={shownVoiceSelections} diagrams={diagrams}
                     />
                   </HoverTips>
                 </div>

@@ -262,6 +262,10 @@ and in its spec.
   `2026-10-28-tab-circled-tap-design.md`.
 - `TempoNote.tsx` — the quarter note of "♩ = 92", drawn the same
   everywhere.
+- `chordDiagrams.ts` — which chords draw a diagram (a `\chord` with a shape), the Chord chart's chords and
+  layout, and the diagrams under the names (`drawnOnLine`) — `2026-11-06-tab-chord-diagrams-design.md`.
+- `ChordGrid.tsx` — one chord diagram in plain ink, upright or lying, for the page and the image.
+- `ChordChart.tsx` — the Chord chart under the score head, on the page and in the image.
 - `ScoreHead.tsx` — the score's head: title, artist and credits, tuning;
   `HeadPick`, `FoldedTitle` — `2026-10-28-tab-score-head-design.md`,
   `2026-11-01-tab-arrangement-header-design.md`,

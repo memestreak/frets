@@ -203,7 +203,7 @@ describe('TabPage', () => {
       ...(within(panel).queryByRole('button', { name: 'None' }) ? ['Bar numbers'] : []),
     ];
     // Notation: bar numbers, the clip's line breaks, the header and the tuning's details.
-    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Tuning details', 'Bar numbers']);
+    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Tuning details', 'Chord chart', 'Chord diagrams', 'Bar numbers']);
     close();
 
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
