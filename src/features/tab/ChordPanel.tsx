@@ -2,45 +2,18 @@
 
 /**
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
- * #251): the track's Chord set, the chord picked in it (its name and its shapes, the stored one
- * marked) and Insert. A chord name's Edit, or its double-click, opens it at that chord; moving the
- * cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
+ * #251): the track's Chord set, each chord with Edit (its Chord dialog, to pick another shape) and,
+ * unused, a trash can; + to look a chord up; and Insert for the chord picked. A chord name's Edit, or its
+ * double-click, opens that chord's dialog; moving the cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChordDiagram, PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
-import { findShapes, shapeKey, type Shape } from '@/lib/chords/shapes';
-import { chordOf, withBass, type ChordInfo } from '@/lib/theory/chords';
-import { readChordName } from '@/lib/theory/chordSearch';
-import { pitchClassOf } from '@/lib/theory/notes';
+import { ChordDiagram } from '@/components/chords/ChordDiagram';
+import { ChordDialog, type ChordDialogMode } from './ChordDialog';
 import { chordDefOf, chordSet, withChordShape, withoutChord, type ChordEntry } from './chordSet';
+import { chordOfName, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import type { Column, Part, Track } from './clip';
 import { columnAt, withColumn, type Cursor } from './editing';
-import { writtenStrings } from './notation';
 import { NoteSoundIcon } from './PlaybackFooter';
-
-/** Plain ink dots, as printed chord charts: no degree colours (Jeremy, 2026-11-01). */
-const PLAIN_LOOK: DiagramLook = { ...PAGE_LOOK, tone: () => ({ fill: 'var(--ink)', fg: 'var(--surface-raised)' }) };
-
-/** The chord a name means, over its bass for a slash chord; null for a name that isn't a chord ("N.C."). */
-export function chordOfName(name: string): ChordInfo | null {
-  const reading = readChordName(name);
-  if (!reading) return null;
-  const chord = chordOf(reading.root, reading.type);
-  return reading.bass ? withBass(chord, pitchClassOf(reading.bass)) : chord;
-}
-
-/** A shape (low string first, as the Chords page has them) as a definition's frets (high e first), and back. */
-const toFrets = (shape: Shape): (number | null)[] => [...shape].reverse();
-const toShape = (frets: readonly (number | null)[]): Shape => [...frets].reverse();
-
-/** The track's tuning low string first, as MIDI, which the shape search takes. */
-const lowFirst = (part: Part): number[] => [...writtenStrings(part.tuning)].reverse();
-
-/** A chord's shapes on the track's tuning: the open ones, then the best few moveable ones (published first). */
-function shapesOf(chord: ChordInfo, tuning: readonly number[]): Shape[] {
-  const found = findShapes(chord, tuning);
-  return [...found.open, ...found.moveable];
-}
 
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
@@ -56,9 +29,9 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };
 }
 
-/** The panel's sections that fold: the track's chords and the shapes. */
-type FoldId = 'chords' | 'shape';
-const FOLD_IDS: readonly FoldId[] = ['chords', 'shape'];
+/** The panel's sections that fold: the track's chords (more may come). */
+type FoldId = 'chords';
+const FOLD_IDS: readonly FoldId[] = ['chords'];
 /** Which of the Chords panel's sections are folded, kept across visits like the open panel (not a preference). */
 export const CHORD_PANEL_KEY = 'frets.tab.chordPanel';
 
@@ -131,6 +104,24 @@ export function HearChordsToggle({ hear, onHearChange }: { hear: boolean; onHear
   );
 }
 
+/** A small pencil. */
+function PencilIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.5 2.5l3 3L6 13H3v-3l7.5-7.5zM9 4l3 3" />
+    </svg>
+  );
+}
+
+/** A small plus. */
+function PlusIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  );
+}
+
 /** A small trash can. */
 function TrashIcon() {
   return (
@@ -148,83 +139,48 @@ interface ChordPanelProps {
   cursor: Cursor;
   /** Whether the cursor is in the tab: off it, Insert does nothing, as the palette does. */
   editing: boolean;
-  /** The chord a name's Edit last opened the panel at (each Edit a new object), or null: the cursor column's. */
+  /** The chord a name's Edit last asked for (each Edit a new object): its Chord dialog opens, to edit it. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
   /** Whether a chord or shape picked sounds: `HearChordsToggle`, in the panel's head (a Playback preference). */
   hear: boolean;
   /** Sounds a shape, high e first. */
   onHear: (frets: readonly (number | null)[]) => void;
-  /** Gives the focus back to the tab, after a name is typed. */
+  /** Gives the focus back to the tab, when the Chord dialog closes. */
   onDone: () => void;
 }
 
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, onHear, onDone }: ChordPanelProps) {
-  /** The chord picked in the panel, over `at` and the cursor's. */
+  /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
-  /** What the name field holds while typed in, or null when it shows the chord. */
-  const [typed, setTyped] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<ChordDialogMode | null>(null);
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
-  // Edit at another chord starts afresh there.
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
-  useEffect(() => { setPicked(null); setTyped(null); }, [at]);
+  // A name's Edit picks that chord and opens its Chord dialog.
+  useEffect(() => {
+    if (!at?.name) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
+    setPicked(at.name);
+    setDialog({ kind: 'edit', name: at.name });
+  }, [at]);
 
   const column = columnAt(clip, cursor);
-  // The panel shows the chord picked in it or opened by a name's Edit, not the cursor's: moving the cursor
-  // changes nothing here (Jeremy, 2026-11-06).
-  const name = picked ?? at?.name ?? null;
   const tuning = useMemo(() => lowFirst(clip), [clip]);
   const set = useMemo(() => chordSet({ ...track, chords: clip.chords }), [track, clip.chords]);
-  const chord = useMemo(() => (name ? chordOfName(name) : null), [name]);
-  const shapes = useMemo(() => (chord ? shapesOf(chord, tuning) : []), [chord, tuning]);
-  const def = name ? chordDefOf(clip.chords, name) : undefined;
-  const stored = def?.frets ? toShape(def.frets) : null;
-  // A stored shape the Chords page doesn't have shows first.
-  const shown = stored && !shapes.some(s => shapeKey(s) === shapeKey(stored)) ? [stored, ...shapes] : shapes;
-  const current = stored ? shown.findIndex(s => shapeKey(s) === shapeKey(stored)) : -1;
-
-  /** The shape a chord is inserted with: its stored one, else its first. */
-  const shapeFor = (n: string): (number | null)[] | null => {
-    const d = chordDefOf(clip.chords, n);
-    if (d?.frets) return d.frets;
-    const c = chordOfName(n);
-    const first = c ? shapesOf(c, tuning)[0] : undefined;
-    return first ? toFrets(first) : null;
-  };
+  const name = picked && set.some(e => e.name === picked) ? picked : null;
 
   const pick = (n: string) => {
     setPicked(n);
-    const frets = shapeFor(n);
+    const frets = shapeFor(clip, n);
     if (hear && frets) onHear(frets);
-  };
-
-  const pickShape = (shape: Shape) => {
-    if (!name) return;
-    onChange(withChordShape(clip, name, toFrets(shape)));
-    if (hear) onHear(toFrets(shape));
-  };
-  const step = (by: 1 | -1) => {
-    if (shown.length > 0) pickShape(shown[(Math.max(0, current) + by + shown.length) % shown.length]);
-  };
-
-  /** Enter in the name field: the name goes over the cursor's column. */
-  const enter = () => {
-    const text = (typed ?? '').trim();
-    setTyped(null);
-    if (text && column) {
-      setPicked(text);
-      onChange(withColumn(clip, cursor, c => ({ ...c, chord: text })));
-    }
-    onDone();
   };
 
   const insert = () => {
     if (!editing || !name || !column) return;
-    const frets = shapeFor(name);
+    const frets = shapeFor(clip, name);
     let next = withColumn(clip, cursor, c => insertedColumn(c, what, name, frets));
     // A name inserted with no definition yet gets the shape it was inserted with.
-    if (!def?.frets && frets && what !== 'notes') next = withChordShape(next, name, frets);
+    if (!chordDefOf(clip.chords, name)?.frets && frets && what !== 'notes') next = withChordShape(next, name, frets);
     onChange(next);
   };
 
@@ -233,6 +189,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
     if (entry.uses > 0) return;
     onChange(withoutChord(clip, entry.name));
     if (picked === entry.name) setPicked(null);
+  };
+
+  const closeDialog = () => {
+    setDialog(null);
+    onDone();
   };
 
   // Presses on the panel's buttons keep the tab's focus, and so its cursor, as the palette's do.
@@ -260,61 +221,32 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
                     ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
                     : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
                 </button>
+                <button
+                  type="button" className="chord-panel-icon" aria-label={`Edit ${entry.name}`} data-tip="Edit"
+                  onMouseDown={keep} onClick={() => { setPicked(entry.name); setDialog({ kind: 'edit', name: entry.name }); }}
+                >
+                  <PencilIcon />
+                </button>
                 {/* Only an unused chord can go, so no column loses its name (Jeremy, 2026-11-06). */}
-                {entry.uses === 0 && (
+                {entry.uses === 0 ? (
                   <button
-                    type="button" className="chord-panel-delete" aria-label={`Delete ${entry.name}`} data-tip="Delete"
+                    type="button" className="chord-panel-icon chord-panel-delete" aria-label={`Delete ${entry.name}`} data-tip="Delete"
                     onMouseDown={keep} onClick={() => remove(entry)}
                   >
                     <TrashIcon />
                   </button>
-                )}
+                ) : <span aria-hidden="true" />}
               </li>
             );
           })}
         </ul>
-      </Fold>
-
-      <div className="chord-panel-field">
-        <span className="chord-panel-label" aria-hidden="true">Chord</span>
-        <input
-          className="input" aria-label="Chord name"
-          placeholder="Am7, G/B…"
-          value={typed ?? name ?? ''} onChange={e => setTyped(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') enter();
-            if (e.key === 'Escape') setTyped(null);
-          }}
-          onBlur={() => setTyped(null)}
-        />
-      </div>
-
-      <Fold
-          id="shape" title="Shape" label="Shapes" folded={folded} onFold={fold}
-          extra={shown.length > 1 && (
-            <span className="chord-panel-stepper">
-              <button type="button" className="chord-panel-step" aria-label="Previous shape" onMouseDown={keep} onClick={() => step(-1)}>‹</button>
-              {current >= 0 && <span>{current + 1} of {shown.length}</span>}
-              <button type="button" className="chord-panel-step" aria-label="Next shape" onMouseDown={keep} onClick={() => step(1)}>›</button>
-            </span>
-          )}
+        <button
+          type="button" className="chord-panel-icon chord-panel-add" aria-label="Look up a chord" data-tip="Look up a chord"
+          onMouseDown={keep} onClick={() => setDialog({ kind: 'lookUp' })}
         >
-          {!name && <p className="chord-panel-note">Pick a chord to see its shapes.</p>}
-          {name && !chord && !stored && <p className="chord-panel-note">“{name}” isn’t a chord name, so it has no shapes.</p>}
-          {chord && (
-            <div className="chord-panel-shapes">
-              {shown.slice(0, 9).map((s, i) => (
-                <button
-                  key={shapeKey(s)} type="button" className="chord-panel-shape" aria-pressed={i === current}
-                  aria-label={`Shape ${shapeKey(s)}`} onMouseDown={keep} onClick={() => pickShape(s)}
-                >
-                  <ChordDiagram chord={chord} shape={s} look={PLAIN_LOOK} tuning={tuning} />
-                </button>
-              ))}
-            </div>
-          )}
-        </Fold>
-
+          <PlusIcon />
+        </button>
+      </Fold>
 
       {name && (
         <div className="chord-panel-insert">
@@ -328,6 +260,12 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, hear, o
           <button type="button" className="btn btn-primary" onMouseDown={keep} onClick={insert}>Insert {name}</button>
         </div>
       )}
+
+      <ChordDialog
+        mode={dialog} clip={clip} onClose={closeDialog}
+        onShape={(n, shape) => onChange(withChordShape(clip, n, toFrets(shape)))}
+        onHear={shape => { if (hear) onHear(toFrets(shape)); }}
+      />
     </div>
   );
 }

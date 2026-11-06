@@ -568,7 +568,6 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 
 /* The rail's Chords panel (ChordPanel.tsx, issue #251). */
 .chord-panel { display: grid; gap: 16px; min-width: 0; }
-.chord-panel-field { display: grid; gap: 4px; }
 .chord-panel-label { margin: 0; font: 600 12px/16px var(--font-sans); color: var(--ink-muted); }
 .chord-panel-section { display: grid; gap: 6px; }
 /* A section's heading folds it: the whole heading is the button, its chevron first. */
@@ -581,14 +580,21 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-chevron { flex: none; }
 .chord-panel-chevron[data-open] { transform: rotate(90deg); }
 /* A chord in the list, with a trash can at its right while no column uses it. */
-/* Every row keeps the trash can's room, so the names and counts line up. */
-.chord-panel-item { display: grid; grid-template-columns: minmax(0, 1fr) 28px; align-items: center; gap: 4px; }
-.chord-panel-delete {
+/* A chord in the list, then its Edit and, while no column uses it, its trash can: every row keeps their room, so the names line up. */
+.chord-panel-item { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 2px; }
+.chord-panel-icon {
   display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0;
   color: var(--ink-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
 }
-.chord-panel-delete:hover { color: var(--danger); background: var(--surface-sunken); }
-.chord-panel-delete:focus-visible { outline: none; }
+.chord-panel-icon:hover { color: var(--ink); background: var(--surface-sunken); }
+.chord-panel-delete:hover { color: var(--danger); }
+.chord-panel-icon:focus-visible { outline: none; }
+/* + under the list, at its left, as the list's last row. */
+.chord-panel-add { justify-self: start; margin-left: 2px; }
+/* The Chord dialog: a name (looking up), the shapes four to a row, and its buttons. */
+.chord-dialog { width: min(480px, 100%); }
+.chord-dialog-body { display: grid; gap: 12px; }
+.chord-dialog-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .chord-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .chord-panel-stepper { display: inline-flex; align-items: center; gap: 2px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
 .chord-panel-step {
@@ -597,7 +603,6 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 }
 .chord-panel-step:hover { background: var(--surface-sunken); }
 .chord-panel-note { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
 .chord-panel-shape, .chord-panel-entry {
   border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
 }

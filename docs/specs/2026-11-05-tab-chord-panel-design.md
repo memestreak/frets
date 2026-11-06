@@ -13,37 +13,32 @@ and editing the list (rename, delete) are #368.
   `frets.tab.layout` like the others. Jeremy picked this layout (mock a)
   over a panel of its own on the left (b) and a popover (c) on
   2026-11-05.
-- **Opening it at a chord.** A chord name's Edit (its right-click menu,
-  or Enter while it is picked) and its double-click open the Chords panel
-  at that chord, in place of the old chord name field. The cursor goes to
-  the name's column. The rail's Chords button opens it with no chord
-  picked.
-- **Order and folding** (Jeremy, 2026-11-05: "This track's chords should
-  be at the top … That section and other sections should be independently
-  collapsible"). Top to bottom: This track's chords, the Chord field,
-  Shape, Insert. Each of the two sections folds from
-  its heading (a 16px chevron, pointing down while open, and its name,
-  `aria-expanded`), on its own; the shape stepper at Shape's right
-  ("1 of 9") shows only while Shape is open (Jeremy, 2026-11-06).
-  Which are folded is kept across visits in `frets.tab.chordPanel`
-  `{ folded }`, like the open panel, not a preference. The field and
-  Insert don't fold: they are the panel's controls.
-- **Chord.** The name field shows the chord being looked at: the one
-  picked in the panel, else the one Edit opened, else none ("Pick a chord
-  to see its shapes"). Moving the cursor changes nothing in the panel
-  (Jeremy, 2026-11-06: clicking between bars changing what it showed was
-  unexpected). Typing a name and Enter writes it over the cursor column, as
-  the old field did, and the keys go back to the tab.
-- **Shape.** The chord's shapes on the track's tuning (the Chords page's
-  shapes: open first, then moveable), up to nine diagrams, plain ink dots
-  (no degree colours, Q9). The definition's shape is marked; one the
-  Chords page hasn't got shows first. Picking a shape, or ‹ › ("2 of 7"),
-  gives the chord's definition that shape (`withChordShape`), keeping its
-  `showdiagram`, `showname` and `showfingering`; its `firstfret` and
-  `barre` described the old shape, so they go. A name with no definition
-  gets one.
-- **This track's chords.** The Chord set: a small diagram, the name, and
-  how many columns use it, or ○ "Not used" (Q7). Picking one looks at it.
+- **The panel is the list** (Jeremy, 2026-11-06: "remove the chord text
+  box and shape chooser from the palette"). This track's chords: the
+  Chord set, each chord with a small diagram, its name, how many columns
+  use it or ○ "Not used" (Q7), an Edit (pencil) button and, while no
+  column uses it, a trash can. Under the list, a + button: Look up a
+  chord. Picking a chord picks it for Insert (and sounds it, with Hear
+  on). Moving the cursor changes nothing in the panel (Jeremy,
+  2026-11-06). The list folds from its heading (a 16px chevron, down while
+  open), kept across visits in `frets.tab.chordPanel` `{ folded }`, like
+  the open panel, not a preference.
+- **The Chord dialog** (`ChordDialog.tsx`, a modal): two ways in.
+  - **Edit**, from a chord's pencil, or a chord name's Edit (its
+    right-click menu, or Enter while picked) or double-click on the tab,
+    which also opens the Chords panel with that chord picked and moves the
+    cursor to the name's column. Titled "Edit G". The chord's shapes on
+    the track's tuning (the Chords page's: open first, then moveable), up
+    to twelve, four to a row, plain ink dots (no degree colours, Q9); its
+    definition's shape marked, one the Chords page hasn't got first.
+    Picking a shape or ‹ › ("2 of 7") chooses it; OK gives the chord's
+    definition that shape (`withChordShape`), keeping its `showdiagram`,
+    `showname` and `showfingering` (its `firstfret` and `barre` described
+    the old shape, so they go; a name with no definition gets one);
+    Cancel, Esc or ✕ change nothing.
+  - **Look up a chord**, from +: a name field and the shapes of the name
+    typed, to see and hear; Close. Creating a chord from it is the next
+    PR.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
@@ -57,10 +52,9 @@ and editing the list (rename, delete) are #368.
   (`hearChords` in `frets.tab.playback`), listed in Settings as "Hear
   chords picked in the Chords panel".
 - **Delete** (Jeremy, 2026-11-06: "a little trash can rather than a
-  context action … only show the trash can if the chord isn't used"). A
-  chord no column uses has a small trash can at its right in the list,
-  which takes every definition of that name out of the set
-  (`withoutChord`); one in use has none. Nothing stays picked after.
+  context action … only show the trash can if the chord isn't used"): the
+  trash can takes every definition of that name out of the set
+  (`withoutChord`). Nothing stays picked after.
 - Presses on the panel's buttons keep the tab's focus and cursor, as the
   palette's do.
 
@@ -74,15 +68,17 @@ and the mocks:
 - Q7: unused chords stay in the list, marked ○.
 - Q9: no degree colours.
 - Jeremy (relayed 2026-11-05): a chord name's Edit or double-click opens
-  the panel at that chord, its shapes shown and the current one marked;
-  all name and shape editing is in the panel.
+  the chord, its shapes shown and the current one marked. Since
+  2026-11-06 that is the Chord dialog, over the Chords panel.
 
 Settled while building (my calls, open to change):
 
 - Insert works only with the cursor in the tab, as the palette's tools.
 - Insert Notes leaves the column's name as it was.
-- The `C` key still opens the chord name field; keys for the panel wait
-  for the open question on keys (Q2 of the mock round).
+- The `C` key still opens the chord name field, the way to change a
+  column's name; keys for the panel wait for the open question on keys
+  (Q2 of the mock round).
+- Edit's shape is staged: nothing changes until OK, as in Settings.
 
 ## How
 
@@ -94,7 +90,10 @@ Settled while building (my calls, open to change):
   lists it.
 - `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
-  `chordsHead`); `chordOfName`, `insertedColumn`.
+  `chordsHead`), `insertedColumn`.
+- `ChordDialog.tsx`: the Chord dialog, Edit and Look up, on `Modal`.
+- `chordShapes.ts`: `chordOfName`, `shapesOf`, `shapeFor`, `toFrets`,
+  `toShape`, `PLAIN_LOOK`, shared by the two.
 - `chordSet.ts`: `withChordShape`, `withoutChord`.
 - `TabPage.tsx`: a chord name's Edit and double-click call
   `openChordsAt`.
@@ -113,24 +112,25 @@ Settled while building (my calls, open to change):
 
 ## Tests
 
-- A chord name's Edit, its Enter and its double-click open Chords at that
-  chord, the stored shape marked; not note input.
-- The list shows each chord's uses, ○ for an unused one.
-- Next shape changes the definition, keeping `showname`; the other
-  definitions are untouched.
-- Picking a shape marks it.
+- The panel has the list, + and Insert: no name field, no shapes; each
+  chord has Edit; its uses, or ○ for an unused one.
+- A chord name's Edit, its Enter and its double-click open the Chords
+  panel and that chord's dialog, the stored shape marked; not note input.
+- A list chord's Edit opens its dialog; Next shape then OK changes the
+  definition, keeping `showname`, the others untouched; without OK
+  nothing changes; Cancel after picking a shape changes nothing.
+- + opens Look up: "Type a chord name" first; "Dsus2" shows x-x-0-2-3-0;
+  "N.C." isn't a chord; Close leaves the set as it was.
 - `withChordShape`: the last definition of the name changes; show props
   kept, `firstfret` and `barre` dropped; a name with none gets one at the
   end; "AM" is not "Am".
 - With a chord picked, moving the cursor leaves the panel exactly as it
-  was; with none, the field is empty and Shape says to pick one.
+  was.
 - Insert Name, Notes and Both each write what they say at the cursor.
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.
-- The list is first, above the field; each section folds on its own;
-  the folded ones are kept, and `parseChordPanel`
-  drops ids it doesn't know.
+- The list folds, kept; `parseChordPanel` drops ids it doesn't know.
 - Hear is off at first, in the panel's head; its toggle turns it on and
   saves `hearChords`.
 - An unused chord's trash can takes its definition out and leaves nothing

@@ -52,54 +52,82 @@ function pressWord(layout: Layout, hit: WordHit, button = 0) {
   if (button === 2) fireEvent.contextMenu(editor(), at);
 }
 
-describe('opening the Chords panel', () => {
-  it('a chord name’s Edit opens it at that chord, its stored shape marked', async () => {
+const list = () => within(inPanel().getByRole('region', { name: 'This track’s chords' }));
+const dialog = (name: string | RegExp) => within(screen.getByRole('dialog', { name }));
+
+describe('the Chords panel', () => {
+  it('lists the track’s chords: each used one with its count, an unused one with ○; no name field or shapes', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    expect(list().getByRole('button', { name: /^G/ })).toHaveTextContent('G1');
+    expect(within(list().getByRole('button', { name: /^C/ })).getByRole('img', { name: 'Not used' })).toBeInTheDocument();
+    expect(inPanel().queryByRole('textbox')).toBeNull();
+    expect(inPanel().queryByRole('button', { name: /^Shape / })).toBeNull();
+    // Each chord has Edit; + under the list looks one up.
+    expect(list().getByRole('button', { name: 'Edit G' })).toBeInTheDocument();
+    expect(list().getByRole('button', { name: 'Look up a chord' })).toBeInTheDocument();
+  });
+});
+
+describe('the Chord dialog', () => {
+  it('a chord name’s Edit opens the Chords panel and that chord’s dialog, its stored shape marked', async () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 }, 2);
     fireEvent.click(within(screen.getByRole('menu', { name: 'Selected' })).getByRole('menuitem', { name: 'Edit' }));
     expect(railButton('Chords')).toHaveAttribute('aria-pressed', 'true');
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('G');
-    const shapes = within(inPanel().getByRole('region', { name: 'Shapes' }));
     // Shapes are low string first, as the Chords page names them.
-    expect(shapes.getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
+    expect(dialog('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
+    expect(list().getByRole('button', { name: /^G/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('Enter on a picked chord name opens it too', async () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 });
     keys('Enter');
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('G');
+    expect(screen.getByRole('dialog', { name: 'Edit G' })).toBeInTheDocument();
   });
 
-  it('lists the track’s chords: each used one with its count, an unused one with ○', async () => {
+  it('a list entry’s Edit opens its dialog; another shape and OK gives the definition that shape, keeping its show props', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
-    const list = within(inPanel().getByRole('region', { name: 'This track’s chords' }));
-    expect(list.getByRole('button', { name: /^G/ })).toHaveTextContent('G1');
-    expect(within(list.getByRole('button', { name: /^C/ })).getByRole('img', { name: 'Not used' })).toBeInTheDocument();
-  });
-});
-
-describe('changing a chord’s shape', () => {
-  it('Next shape gives the definition the next shape, keeping its show props and dropping nothing else', async () => {
-    const layout = await open();
-    pressWord(layout, { kind: 'chord', index: 0 });
-    keys('Enter');
-    fireEvent.click(inPanel().getByRole('button', { name: 'Next shape' }));
+    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
+    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'Next shape' }));
+    // Nothing changes until OK.
+    expect(definitions()[0]).toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
+    fireEvent.click(list().getByRole('button', { name: 'Edit G' }));
+    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'Next shape' }));
+    fireEvent.click(dialog('Edit G').getByRole('button', { name: 'OK' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
     const [g, c] = definitions();
     expect(g).toMatch(/^\\chord \("G"( \S+){6}\) \{showname true\}$/);
     expect(g).not.toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
     expect(c).toBe('\\chord ("C" 0 1 0 2 3 x)');
   });
 
-  it('a shape picked from the list is the one marked', async () => {
+  it('Cancel leaves the chord as it was', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
-    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^C/ }));
-    const shapes = within(inPanel().getByRole('region', { name: 'Shapes' }));
-    const other = shapes.getAllByRole('button').find(b => b.getAttribute('aria-pressed') === 'false')!;
+    fireEvent.click(list().getByRole('button', { name: 'Edit C' }));
+    const other = dialog('Edit C').getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
     fireEvent.click(other);
     expect(other).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(dialog('Edit C').getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(definitions()[1]).toBe('\\chord ("C" 0 1 0 2 3 x)');
+  });
+
+  it('+ looks a chord up: its shapes for the name typed, and the set unchanged', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Look up a chord' }));
+    const look = dialog('Look up a chord');
+    expect(look.getByText('Type a chord name to see its shapes.')).toBeInTheDocument();
+    fireEvent.change(look.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'Dsus2' } });
+    expect(look.getByRole('button', { name: 'Shape x-x-0-2-3-0' })).toBeInTheDocument();
+    fireEvent.change(look.getByRole('textbox', { name: 'Chord name' }), { target: { value: 'N.C.' } });
+    expect(look.getByText('“N.C.” isn’t a chord name, so it has no shapes.')).toBeInTheDocument();
+    fireEvent.click(look.getByRole('button', { name: 'Close' }));
+    expect(definitions()).toHaveLength(2);
   });
 });
 
@@ -108,16 +136,15 @@ describe('the cursor column', () => {
     await open();
     act(() => editor().focus());
     fireEvent.click(railButton('Chords'));
-    // Nothing picked yet: the cursor's G is not shown.
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('');
-    expect(inPanel().getByText('Pick a chord to see its shapes.')).toBeInTheDocument();
-    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^C/ }));
+    // Nothing picked yet: the cursor's G is not picked.
+    expect(list().getByRole('button', { name: /^G/ })).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(list().getByRole('button', { name: /^C/ }));
     const before = panel().innerHTML;
     keys('ArrowRight');
     expect(panel().innerHTML).toBe(before);
     keys('ArrowRight');
     expect(panel().innerHTML).toBe(before);
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('C');
+    expect(inPanel().getByRole('button', { name: 'Insert C' })).toBeInTheDocument();
   });
 
   it.each([
@@ -148,7 +175,7 @@ describe('deleting a chord', () => {
     fireEvent.click(list().getByRole('button', { name: 'Delete C' }));
     expect(definitions()).toEqual(['\\chord ("G" 3 0 0 0 2 3) {showname true}']);
     expect(list().queryByRole('button', { name: /^C/ })).toBeNull();
-    expect(inPanel().getByRole('textbox', { name: 'Chord name' })).toHaveValue('');
+    expect(list().getByRole('button', { name: /^G/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('a chord a column uses has none', async () => {
@@ -172,39 +199,21 @@ describe('Hear', () => {
   });
 });
 
-describe('the panel’s sections', () => {
-  const sections = () => [...panel().querySelectorAll('section')].map(s => s.getAttribute('aria-label'));
-
-  it('puts this track’s chords first, then the chord and its shapes', async () => {
+describe('folding the list', () => {
+  it('folds from its heading, kept across visits', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
-    expect(sections()).toEqual(['This track’s chords', 'Shapes']);
-    const order = [...panel().querySelectorAll('section, input')].map(e => e.getAttribute('aria-label'));
-    expect(order.indexOf('This track’s chords')).toBeLessThan(order.indexOf('Chord name'));
-  });
-
-  it('each folds from its heading on its own, kept across visits', async () => {
-    await open();
-    fireEvent.click(railButton('Chords'));
-    const heading = (name: string) => inPanel().getByRole('button', { name });
-    fireEvent.click(within(inPanel().getByRole('region', { name: 'This track’s chords' })).getByRole('button', { name: /^G/ }));
-    expect(inPanel().getByRole('button', { name: 'Next shape' })).toBeInTheDocument();
-    fireEvent.click(heading('This track’s chords'));
-    expect(heading('This track’s chords')).toHaveAttribute('aria-expanded', 'false');
+    const heading = () => inPanel().getByRole('button', { name: 'This track’s chords' });
+    fireEvent.click(heading());
+    expect(heading()).toHaveAttribute('aria-expanded', 'false');
     expect(inPanel().queryByRole('button', { name: /^G1/ })).toBeNull();
-    // The other sections stay open.
-    expect(heading('Shape')).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(heading('Shape'));
-    expect(inPanel().queryByRole('button', { name: /^Shape 3-2-0-0-0-3/ })).toBeNull();
-    // Its stepper ("1 of 9") goes with it.
-    expect(inPanel().queryByRole('button', { name: 'Next shape' })).toBeNull();
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords', 'shape'] });
-    fireEvent.click(heading('This track’s chords'));
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['shape'] });
+    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords'] });
+    fireEvent.click(heading());
+    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: [] });
   });
 
   it('reads what was kept, each id checked', () => {
-    expect(parseChordPanel(JSON.stringify({ folded: ['shape', 'notes', 3] }))).toEqual(['shape']);
+    expect(parseChordPanel(JSON.stringify({ folded: ['chords', 'shape', 3] }))).toEqual(['chords']);
     expect(parseChordPanel('not json')).toEqual([]);
     expect(parseChordPanel(null)).toEqual([]);
   });
