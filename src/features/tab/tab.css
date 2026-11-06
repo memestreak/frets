@@ -579,7 +579,6 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-fold:focus-visible { outline: none; }
 .chord-panel-chevron { flex: none; }
 .chord-panel-chevron[data-open] { transform: rotate(90deg); }
-/* A chord in the list, with a trash can at its right while no column uses it. */
 /* A chord in the list, then its Edit and, while no column uses it, its trash can: every row keeps their room, so the names line up. */
 .chord-panel-item { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 2px; }
 .chord-panel-icon {
@@ -595,6 +594,9 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-dialog { width: min(480px, 100%); }
 .chord-dialog-body { display: grid; gap: 12px; }
 .chord-dialog-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+/* What the cursor column's notes are, as names to take; and the caption under its fingering. */
+.chord-dialog-names { display: grid; gap: 4px; }
+.chord-dialog-caption { display: block; font: 400 11px/14px var(--font-sans); color: var(--ink-muted); text-align: center; }
 .chord-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .chord-panel-stepper { display: inline-flex; align-items: center; gap: 2px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
 .chord-panel-step {
@@ -603,16 +605,18 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 }
 .chord-panel-step:hover { background: var(--surface-sunken); }
 .chord-panel-note { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-shape, .chord-panel-entry {
+.chord-panel-shape, .chord-panel-entry, .chord-panel-chip {
   border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
 }
 .chord-panel-shape { padding: 2px; }
 .chord-panel-shape svg, .chord-panel-thumb svg { display: block; width: 100%; height: auto; }
-.chord-panel-shape:hover, .chord-panel-entry:hover { background: var(--surface-sunken); }
-.chord-panel-shape[aria-pressed='true'], .chord-panel-entry[aria-pressed='true'] {
+.chord-panel-shape:hover, .chord-panel-entry:hover, .chord-panel-chip:hover { background: var(--surface-sunken); }
+.chord-panel-shape[aria-pressed='true'], .chord-panel-entry[aria-pressed='true'], .chord-panel-chip[aria-pressed='true'] {
   background: var(--select-soft); border-color: var(--select);
 }
-.chord-panel-shape:focus-visible, .chord-panel-entry:focus-visible, .chord-panel-step:focus-visible { outline: none; }
+.chord-panel-shape:focus-visible, .chord-panel-entry:focus-visible, .chord-panel-chip:focus-visible, .chord-panel-step:focus-visible { outline: none; }
+.chord-panel-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chord-panel-chip { padding: 2px 8px; border-color: var(--line-strong); font: 500 14px/20px var(--font-sans); }
 .chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .chord-panel-entry {
   display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; width: 100%;
