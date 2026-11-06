@@ -210,12 +210,16 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('selected-note')).toBeNull();
       // Going into note input picks nothing on either part (Jeremy, 2026-10-31).
       fireEvent.keyDown(editor(), { key: 'n' });
+      // Nothing picked: only the caret's line on the tab, on the column with no string (issue #396).
+      expect(screen.queryByTestId('staff-selected')).toBeNull();
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
-      // A press on the staff gives it the keys again, and only it lights: nothing over the note pressed
-      // (Jeremy, 2026-11-06), then the pitch's dash once ↑ moves off it.
+      // A press on the staff gives it the keys again, and only it lights: the caret's line by the note
+      // pressed (issue #396), then the pitch's ghost once ↑ moves off it.
       press(headAt(2));
-      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      expect(screen.queryByTestId('staff-ghost')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
@@ -360,7 +364,7 @@ describe('note input’s staff cursor (issue #382)', () => {
 });
 
 describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
-  it('draws nothing over a note just entered, and only the next note’s ghost at another pitch', async () => {
+  it('draws only the caret’s line over a note just entered, and only the next note’s ghost at another pitch', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -371,13 +375,15 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
     fireEvent.keyDown(editor(), { key: 'Enter' });
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(9));
-    expect(screen.queryByTestId('staff-cursor')).toBeNull();
+    // Over the note just entered, at its own pitch, only the caret's line (issue #396).
+    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-ghost')).toBeNull();
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
 
-  it('shows one ghost note at a time: the pointer’s over the staff, else the cursor’s', async () => {
+  it('shows one ghost note at a time, and no caret while the pointer is over the staff (issue #396)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -392,9 +398,8 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(path.getAttribute('transform')!)!;
     fireEvent.pointerMove(svg, { clientX: Number(x) + 4, clientY: Number(y) });
     expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
-    // In another bar than the cursor's: the caret stays, without its ghost.
-    expect(screen.queryByTestId('staff-ghost')).toBeNull();
-    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    // In another bar than the cursor's: nothing of the cursor's either, while the pointer is over the staff (issue #396).
+    expect(screen.queryByTestId('staff-cursor')).toBeNull();
     // In the cursor's own bar (the whole rest's): nothing of the cursor's.
     const restPath = screen.getAllByTestId('staff-rest').at(-1)!.querySelector('path')!;
     const [, rx, ry] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;

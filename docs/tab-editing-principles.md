@@ -228,8 +228,8 @@ When is the length chosen, where can a note start, and how does the cursor move?
   still picks the whole bar.
 - The drawn Grid marks only where a note can go: each note's start and the grid lines inside
   rests, never inside a note's length, which the same Voice can't take.
-- The Grid is drawn where you last acted: over the bar under the pointer once it moves, over the
-  cursor's bar once a key or a press moves the cursor (issue #396).
+- While the pointer is over the staff or the tab, the Grid is over its bar and the caret is hidden;
+  off them, the Grid is over the caret's bar and the caret always shows (issue #396).
 - Later: entering inside a note shortens it to that point, as Dorico does with Insert mode off
   (issue #332).
 - A note longer than the room before the next note writes over it, split and tied by the meter.

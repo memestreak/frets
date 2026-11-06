@@ -119,6 +119,9 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(screen.getByTestId('shadow-fret').tagName).toBe('rect');
     fireEvent.pointerDown(svg, { ...over, button: 0 });
     fireEvent.pointerUp(svg, { ...over, button: 0 });
+    // The caret's box is hidden while the pointer is over the tab (issue #396); off it, there it is.
+    expect(screen.queryByTestId('input-cursor')).toBeNull();
+    fireEvent.pointerLeave(svg);
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     expect(alphaTex()).toContain('(3.2 0.5).2');
     keys('7');
