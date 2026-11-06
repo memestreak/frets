@@ -5,19 +5,19 @@
  * exported image draws the same group under its head.
  */
 import { ChordGrid } from './ChordGrid';
-import { layoutChart, type DiagramTurn, type ShapedChord } from './chordDiagrams';
+import { layoutChart, type ShapedChord } from './chordDiagrams';
 import { PAGE_LOOK, type TabLook } from './tabLook';
 
 /** Room under the chart, before the music. */
 export const CHART_GAP = 14;
 
 /** The chart as an SVG group `width` wide, from its top-left; with its height (none for no chords). */
-export function chartDrawing(chords: readonly ShapedChord[], width: number, turn: DiagramTurn, look: TabLook, x = 0, y = 0) {
-  const { places, height } = layoutChart(chords, width, turn);
+export function chartDrawing(chords: readonly ShapedChord[], width: number, look: TabLook, x = 0, y = 0) {
+  const { places, height } = layoutChart(chords, width);
   const drawing = (
     <g data-testid="chord-chart" transform={`translate(${x} ${y})`}>
       {chords.map((chord, i) => (
-        <ChordGrid key={`${chord.name}-${i}`} chord={chord} turn={turn} x={places[i].x} y={places[i].y} named look={look} />
+        <ChordGrid key={`${chord.name}-${i}`} chord={chord} x={places[i].x} y={places[i].y} named look={look} />
       ))}
     </g>
   );
@@ -25,9 +25,9 @@ export function chartDrawing(chords: readonly ShapedChord[], width: number, turn
 }
 
 /** The chart on the page, as wide as the drawing under it. */
-export function ChordChart({ chords, width, turn }: { chords: readonly ShapedChord[]; width: number; turn: DiagramTurn }) {
+export function ChordChart({ chords, width }: { chords: readonly ShapedChord[]; width: number }) {
   if (chords.length === 0 || width <= 0) return null;
-  const { drawing, height } = chartDrawing(chords, width, turn, PAGE_LOOK);
+  const { drawing, height } = chartDrawing(chords, width, PAGE_LOOK);
   return (
     <svg
       className="tab-chord-chart" width={width} height={height + CHART_GAP} viewBox={`0 0 ${width} ${height + CHART_GAP}`}

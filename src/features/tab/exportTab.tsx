@@ -152,12 +152,9 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const inner = (style.width - 2 * PAD) / zoom;
-  const tab = layoutClip(laidOut(clip, view), inner, parts, diagramsOf(view)?.turn ?? null);
+  const tab = layoutClip(laidOut(clip, view), inner, parts, view.chordDiagrams);
   return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
 }
-
-/** The diagrams under the chord names, as the page draws them (issue #242); none when off. */
-const diagramsOf = (view: TabView) => (view.chordDiagrams ? view.diagramStyle : null);
 
 /** The Chord chart's chords, as the page shows it under the head (issue #242); none when off. */
 const chartOf = (clip: Part, view: TabView) => (view.chordChart ? chartChords(clip) : []);
@@ -165,7 +162,7 @@ const chartOf = (clip: Part, view: TabView) => (view.chordChart ? chartChords(cl
 /** The room the Chord chart takes under the head, in pixels: none without one. */
 function chartRoom(clip: Part, inner: number, view: TabView, zoom: number): number {
   const chords = chartOf(clip, view);
-  return chords.length > 0 ? Math.ceil((layoutChart(chords, inner, view.diagramStyle.turn).height + CHART_GAP) * zoom) : 0;
+  return chords.length > 0 ? Math.ceil((layoutChart(chords, inner).height + CHART_GAP) * zoom) : 0;
 }
 
 /**
@@ -182,7 +179,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const look = exportLook(view);
   const top = headTop(head, zoom);
   const chords = chartOf(clip, view);
-  const chart = chords.length > 0 ? chartDrawing(chords, inner, view.diagramStyle.turn, look) : null;
+  const chart = chords.length > 0 ? chartDrawing(chords, inner, look) : null;
   // Under a head the chart starts where the tab would; with none, at the top.
   const chartTop = Math.max(0, top);
   return (
@@ -197,7 +194,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
       {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
       <TabClip
         clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
-        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} diagrams={diagramsOf(view)}
+        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} chordDiagrams={view.chordDiagrams}
       />
     </svg>
   );

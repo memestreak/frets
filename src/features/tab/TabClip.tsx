@@ -23,7 +23,7 @@ import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
 import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
 import { ChordGrid } from './ChordGrid';
-import { diagramOf, drawnOnLine, gridSize, OVER_NAME_SCALE, type DiagramStyle } from './chordDiagrams';
+import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -66,10 +66,10 @@ export interface Highlight {
  */
 export const MUTED_VOICE_INK = 'var(--line-strong)';
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, diagrams = null, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
-  /** Chord diagrams under the chord names (issue #242), drawn in this style; none when they are off. */
-  diagrams?: DiagramStyle | null;
+  /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
+  chordDiagrams?: boolean;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
    * part's own (the Active voice) are drawn in `MUTED_VOICE_INK`.
@@ -171,8 +171,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
   onPickRhythm?: (at: { bar: number; column: number; lastBar?: number }, extend: boolean) => void;
 }) {
-  const turn = diagrams?.turn ?? null;
-  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, turn), [given, clip, width, parts, turn]);
+  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, chordDiagrams), [given, clip, width, parts, chordDiagrams]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
@@ -612,7 +611,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             system={drawn.systems[si]} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
             selected={highlight?.range ?? null} lit={lights.tab} word={pickedWord}
-            masked={voiceViews.map(v => v.layout.systems[si])} diagrams={diagrams}
+            masked={voiceViews.map(v => v.layout.systems[si])}
           />
           {rows.score && onStaff && (
             <StaffDrawing
@@ -627,7 +626,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               <SystemDrawing
                 system={v.layout.systems[si]} rows={rows} index={si} clip={v.clip} look={voiceLook} slides={v.slides}
                 previous={v.previous} joins={v.joins} legato={v.arcs.filter(a => a.system === si)} whammy={v.whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}-v${v.voice}`}
-                selected={voiceSelections?.get(v.voice) ?? null} lit={noLights} word={null} notesOnly diagrams={diagrams}
+                selected={voiceSelections?.get(v.voice) ?? null} lit={noLights} word={null} notesOnly
               />
               {rows.score && v.onStaff && (
                 <StaffDrawing
@@ -744,9 +743,8 @@ function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text:
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, masked = [], notesOnly = false, diagrams = null }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, masked = [], notesOnly = false }: {
   system: System;
-  diagrams?: DiagramStyle | null;
   /** The same line in the other Voices' layouts: the string lines stop short of their numbers too. */
   masked?: System[];
   /** Another Voice's notes and the marks on them, over the part's own drawing: no strings, bar lines or words over bars (step 9). */
@@ -774,7 +772,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
-  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} columnsOnly={notesOnly} diagrams={diagrams} />;
+  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} columnsOnly={notesOnly} />;
   const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
@@ -992,10 +990,10 @@ function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: 
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false, diagrams = null }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean; diagrams?: DiagramStyle | null }) {
+function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean }) {
   const parts: ReactNode[] = [];
   // Another Voice's drawing carries only the words on its own columns: chord names and texts (step 9, Q13).
-  if (columnsOnly) return <>{columnWords(system, rows, word, plain, clip, diagrams)}</>;
+  if (columnsOnly) return <>{columnWords(system, rows, word, plain)}</>;
   /** The look of a word: the selection's blue when it is the picked one (issue #276). */
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Endings: one bracket over each run of bars with the same ending.
@@ -1070,30 +1068,26 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
       );
     }
   }
-  parts.push(...columnWords(system, rows, word, plain, clip, diagrams));
+  parts.push(...columnWords(system, rows, word, plain));
   return <>{parts}</>;
 }
 
 /** The words on a line's columns: chord names and free text. */
-function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook, clip: Part, diagrams: DiagramStyle | null): ReactNode[] {
+function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
-  // Under each chord name its diagram (issue #242): every one, or the first of each chord on the line.
-  if (diagrams && rows.diagrams !== null) {
-    const named = system.bars.flatMap(bar => bar.columns.filter(placed => placed.column.chord));
-    const drawn = drawnOnLine(clip, named.map(placed => placed.column.chord), diagrams.repeat);
-    named.forEach((placed, k) => {
-      const chord = drawn[k] && diagramOf(clip, placed.column.chord!);
-      if (!chord) return;
-      const { width } = gridSize(chord, diagrams.turn);
+  // Under each chord name its diagram (issue #242), picked with it.
+  if (rows.diagrams !== null) {
+    for (const placed of system.bars.flatMap(bar => bar.columns)) {
+      if (!placed.diagram) continue;
       const look = lookOf({ kind: 'chord', index: placed.index });
       parts.push(
         <ChordGrid
-          key={`grid-${placed.index}`} chord={chord} turn={diagrams.turn} look={look}
-          x={placed.x - (width * OVER_NAME_SCALE) / 2} y={rows.diagrams!} scale={OVER_NAME_SCALE}
+          key={`grid-${placed.index}`} chord={placed.diagram} look={look}
+          x={placed.x - (gridSize(placed.diagram).width * OVER_NAME_SCALE) / 2} y={rows.diagrams} scale={OVER_NAME_SCALE}
         />,
       );
-    });
+    }
   }
   for (const bar of system.bars) {
     if (rows.chords !== null) {

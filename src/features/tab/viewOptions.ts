@@ -9,7 +9,6 @@
  * `TabView` for the drawing, the text views and the exports.
  */
 
-import { DEFAULT_DIAGRAM_STYLE, type DiagramStyle } from './chordDiagrams';
 import type { Part } from './clip';
 import { PARTS, type Parts } from './layout';
 
@@ -69,8 +68,6 @@ export interface TabView {
   chordChart: boolean;
   /** Notation: a small diagram under each chord name over the music (issue #242). */
   chordDiagrams: boolean;
-  /** How the diagrams are drawn; not saved (the mocks pick it while it is being decided). */
-  diagramStyle: DiagramStyle;
   /** ASCII Tab: the rhythm line over the strings (w h q e s…). */
   asciiRhythm: boolean;
   /** AlphaTex: each line's number in the margin. */
@@ -82,7 +79,7 @@ export interface TabView {
 
 /** Bar numbers on every bar, as Guitar Pro prints them, at full size; the rhythm line and line numbers shown; the theme's colours. */
 export const DEFAULT_VIEW: TabView = {
-  barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, chordChart: true, chordDiagrams: true, diagramStyle: DEFAULT_DIAGRAM_STYLE, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
+  barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, chordChart: true, chordDiagrams: true, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
 };
 
 /** A size as offered: a whole step from 50% to 200%. */
@@ -163,7 +160,7 @@ export const parseAlphaTex = (raw: unknown): AlphaTexPrefs => ({ lineNumbers: bo
 export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: AsciiPrefs, alphatex: AlphaTexPrefs): TabView {
   return {
     barNumbers: notation.barNumbers, size: notation.size, lineBreaks: notation.lineBreaks, header: notation.header, tuningDetails: notation.tuningDetails,
-    chordChart: notation.chordChart, chordDiagrams: notation.chordDiagrams, diagramStyle: DEFAULT_DIAGRAM_STYLE,
+    chordChart: notation.chordChart, chordDiagrams: notation.chordDiagrams,
     asciiRhythm: ascii.rhythm, lineNumbers: alphatex.lineNumbers,
     colours: colours.scheme, custom: { text: colours.text, background: colours.background },
   };

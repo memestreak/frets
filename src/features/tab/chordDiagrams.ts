@@ -1,23 +1,13 @@
 /**
  * Chord diagrams in the drawn clip (issue #242, `docs/specs/2026-11-06-tab-chord-diagrams-design.md`):
- * the Chord chart under the score head, every chord of the clip once, and a small diagram under each
- * chord name over the music, as fake books and guitar books print them. Plain ink, no degree colours.
+ * the Chord chart under the score head, every chord of the clip once, and a small diagram under every
+ * chord name over the music, as fake books and guitar books print them: upright, nut on top, plain ink,
+ * no degree colours (Jeremy, 2026-11-06).
  * Only a chord whose definition has a shape gets one; a name with none stays a name. Pure.
  */
 import { diagramStartFret, type Shape } from '@/lib/chords/shapes';
 import { chordDefOf, type ChordDef } from './chordSet';
 import type { Column, Part } from './clip';
-
-/** Which way a diagram is drawn: strings upright with the nut on top, as books print them, or lying down, as the Chords page has them. */
-export type DiagramTurn = 'upright' | 'lying';
-/** Which chord names over the music get a diagram: every one, or the first of each chord on a line. */
-export type DiagramRepeat = 'every' | 'line';
-
-export interface DiagramStyle {
-  turn: DiagramTurn;
-  repeat: DiagramRepeat;
-}
-export const DEFAULT_DIAGRAM_STYLE: DiagramStyle = { turn: 'upright', repeat: 'every' };
 
 /** A chord as a diagram draws it: its name and its shape, low string first. */
 export interface ShapedChord {
@@ -81,9 +71,9 @@ export const GRID_STRING = 9;
 export const GRID_FRET = 11;
 /** The fewest frets a diagram draws. */
 export const GRID_FRETS = 4;
-/** Room over the nut (upright) or left of it (lying) for × and ○. */
+/** Room over the nut for × and ○. */
 export const GRID_MARKS = 9;
-/** Room right of an upright diagram, or under a lying one, for its first fret ("5fr"). */
+/** Room right of a diagram for its first fret ("5fr"). */
 export const GRID_LABEL = 20;
 /** The chord name over a chart diagram. */
 export const GRID_NAME = 16;
@@ -95,35 +85,14 @@ export function gridFrets(chord: ShapedChord): number {
   return Math.max(GRID_FRETS, ...chord.shape.map(f => (f ? f - chord.start + 1 : 0)));
 }
 
-/** A diagram's board and its marks, without a name, at scale 1: its width and height. */
-export function gridSize(chord: ShapedChord, turn: DiagramTurn): { width: number; height: number } {
-  const across = 5 * GRID_STRING;
-  const along = gridFrets(chord) * GRID_FRET;
-  return turn === 'upright'
-    ? { width: across, height: GRID_MARKS + along }
-    : { width: GRID_MARKS + along, height: across + GRID_LABEL };
+/** A diagram's board and its marks, without its name or first fret, at scale 1: its width and height. */
+export function gridSize(chord: ShapedChord): { width: number; height: number } {
+  return { width: 5 * GRID_STRING, height: GRID_MARKS + gridFrets(chord) * GRID_FRET };
 }
 
-/** The tallest a diagram over a chord name can be, at its scale: the room its row takes. */
-export function overNameHeight(turn: DiagramTurn): number {
-  const four = { name: '', shape: [0, 0, 0, 0, 0, 0], start: 1 };
-  return Math.ceil(gridSize(four, turn).height * OVER_NAME_SCALE);
-}
-
-/**
- * Which of a line's chord-named columns draw a diagram under their name: each with one, or (`line`) only
- * the first of each chord on the line. `names` are the line's chord names in order, null for a column
- * without one; the result is true where a diagram is drawn.
- */
-export function drawnOnLine(part: Pick<Part, 'chords'>, names: readonly (string | undefined)[], repeat: DiagramRepeat): boolean[] {
-  const seen = new Set<string>();
-  return names.map(name => {
-    if (!name || !diagramOf(part, name)) return false;
-    if (repeat === 'every') return true;
-    if (seen.has(name)) return false;
-    seen.add(name);
-    return true;
-  });
+/** The room a four-fret diagram over a chord name takes down the line, at its scale: its row's height. */
+export function overNameHeight(): number {
+  return Math.ceil((GRID_MARKS + GRID_FRETS * GRID_FRET) * OVER_NAME_SCALE);
 }
 
 /**
@@ -131,13 +100,13 @@ export function drawnOnLine(part: Pick<Part, 'chords'>, names: readonly (string 
  * wrapping onto another row when the next doesn't fit, each row centred, as books print the chart.
  * Positions are each diagram's top-left, the name's band included; `height` is the chart's.
  */
-export function layoutChart(chords: readonly ShapedChord[], width: number, turn: DiagramTurn): { places: { x: number; y: number }[]; height: number } {
+export function layoutChart(chords: readonly ShapedChord[], width: number): { places: { x: number; y: number }[]; height: number } {
   const GAP = 18;
   const ROW_GAP = 10;
   // Each diagram's cell: its board and the first fret's room, under its name.
   const cells = chords.map(c => {
-    const { width: w, height: h } = gridSize(c, turn);
-    return { width: w + (turn === 'upright' ? GRID_LABEL : 0), height: GRID_NAME + h };
+    const { width: w, height: h } = gridSize(c);
+    return { width: w + GRID_LABEL, height: GRID_NAME + h };
   });
   const rows: number[][] = [];
   let used = 0;
