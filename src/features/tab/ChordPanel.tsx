@@ -8,12 +8,24 @@
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+import { ChordAddMock, type AddLayout } from './ChordAddMock';
 import { ChordDialog, type ChordDialogMode } from './ChordDialog';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import type { Column, Duration, Part, Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { NoteSoundIcon } from './PlaybackFooter';
+
+/** MOCK: where + adds a chord: the modal dialog (now), or in the panel in one of three layouts. */
+const ADD_MOCK: Mock = {
+  param: 'add', label: 'Add a chord', options: [
+    { value: 'off', label: 'Dialog (now)' },
+    { value: 'a', label: 'a One form' },
+    { value: 'b', label: 'b Fingering first' },
+    { value: 'c', label: 'c Steps' },
+  ],
+};
 
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
@@ -158,6 +170,9 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [dialog, setDialog] = useState<ChordDialogMode | null>(null);
+  const addMock = useMock(ADD_MOCK);
+  /** MOCK: the + replaced by the form in the panel. */
+  const [adding, setAdding] = useState(false);
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
   // A name's Edit picks that chord and opens its Chord dialog.
@@ -248,12 +263,21 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
             );
           })}
         </ul>
-        <button
-          type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
-          onMouseDown={keep} onClick={() => setDialog({ kind: 'add' })}
-        >
-          <PlusIcon />
-        </button>
+        {adding && addMock !== 'off' ? (
+          <ChordAddMock
+            layout={addMock as AddLayout} clip={clip} column={column} taken={set.map(e => e.name)}
+            onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); setAdding(false); onDone(); }}
+            onHear={shape => { if (hear) onHear(toFrets(shape)); }}
+            onCancel={() => { setAdding(false); onDone(); }}
+          />
+        ) : (
+          <button
+            type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
+            onMouseDown={keep} onClick={() => (addMock === 'off' ? setDialog({ kind: 'add' }) : setAdding(true))}
+          >
+            <PlusIcon />
+          </button>
+        )}
       </Fold>
 
       {name && (

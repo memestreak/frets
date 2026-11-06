@@ -635,3 +635,34 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
 .chord-panel-hear:focus-visible { outline: none; }
 .chord-panel-hear svg { width: 18px; height: 18px; }
+
+/* MOCK: adding a chord in the panel (ChordAddMock.tsx). */
+.chord-add { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.chord-add-title { margin: 0; font: 600 13px/18px var(--font-sans); color: var(--ink); }
+.chord-add-lookup { display: grid; gap: 8px; }
+.chord-add-lookup .key-picker { width: 100%; }
+.chord-add-lookup .key-tile { height: 44px; font-size: 13px; }
+.chord-add-lookup .key-tile-half { height: auto; font-size: 9px; }
+.chord-add-type { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.chord-add-type > .input { flex: 1; min-width: 0; }
+.chord-add-miss { margin-top: 4px; }
+.chord-add-field { display: grid; gap: 2px; }
+.chord-add-hint { font-size: 11px; line-height: 14px; }
+.chord-add-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.chord-add-draw { display: grid; place-items: center; align-content: center; gap: 2px; min-height: 56px; color: var(--ink-muted); }
+.chord-add-draw:hover { color: var(--ink); }
+.chord-add-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.chord-add-buttons > .chord-panel-note { flex-basis: 100%; }
+.chord-add-link { justify-self: start; padding: 0; border: 0; background: none; font: 500 13px/18px var(--font-sans); color: var(--primary); cursor: pointer; }
+.chord-add-link:hover { text-decoration: underline; }
+.chord-add-editor { display: grid; gap: 2px; justify-items: center; }
+.chord-add-editor-svg { width: 100%; height: auto; }
+.chord-add-hit { cursor: pointer; }
+.chord-add-hit:hover { fill: var(--select-soft); }
+.chord-add-preview { width: 60%; justify-self: center; }
+.chord-add-preview svg { display: block; width: 100%; height: auto; }
+.chord-add-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.chord-add-steps button { padding: 2px 8px; border: 1px solid transparent; border-radius: 999px; background: none; font: 500 12px/16px var(--font-sans); color: var(--ink-muted); cursor: pointer; }
+.chord-add-steps button[aria-current='step'] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
+.chord-add:focus-visible, .chord-add:focus { outline: none; }
+.chord-add-editor-svg :is(line, circle, text, rect:not(.chord-add-hit)) { pointer-events: none; }
