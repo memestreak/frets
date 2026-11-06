@@ -1,0 +1,15 @@
+\title "Chords are added and changed in the Chords panel"
+\ts (4 4)
+\chord ("G" 3 0 0 0 2 3)
+\chord ("C" 0 1 0 2 3 x)
+3.6.4{ch "G" txt "1. Tab view: open the Chords panel (the last button in the rail on the left). Press G in its list: it is only picked, nothing opens"}
+  r.4 r.2 |
+(0.1 1.2 0.3 2.4 3.5).4{ch "C" txt "2. Double-click this C: its chord editor opens in the panel, the C tile and major lit, its shape picked. Press the Escape key: it closes, nothing changed"}
+  r.4 r.2 |
+3.6.4{ch "G" txt "3. Press the pencil by G in the list, type G barre in Name, press Save chord: this name and the one in bar 1 now read G barre"}
+  r.4 r.2 |
+(3.1 0.2 0.3 0.4 2.5 3.6).4{txt "4. Press this column, then + under the list: its fingering is the first shape, at the cursor, and Name offers G. Press Cancel"}
+  r.4 r.2 |
+r.1{txt "5. Press +, the D tile, sus2 in Type, then Add chord: Dsus2 joins the list, not used, and the tab doesn't change"} |
+r.1{txt "6. Press +, then Draw your own. Press string 1 at fret 3, then press it again: the dot goes, the string open. Type My G in Name and press Add chord: My G joins the list"} |
+

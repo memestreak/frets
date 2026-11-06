@@ -121,7 +121,7 @@ export function withChordShape<T extends WithChords>(track: T, name: string, fre
 }
 
 /**
- * The track with a new chord in its Chord set (the chord view's Add chord): a definition of `name`, with
+ * The track with a new chord in its Chord set (the chord editor's Add chord): a definition of `name`, with
  * `frets` when there is a shape for it. A name that already has a definition is left as it is.
  */
 export function withNewChord<T extends WithChords>(track: T, name: string, frets: readonly (number | null)[] | null): T {
@@ -137,7 +137,7 @@ export function withoutChord<T extends WithChords>(track: T, name: string): T {
 }
 
 /**
- * The part with the chord `from` called `to` (the chord view's Save chord): its definitions, and every
+ * The part with the chord `from` called `to` (the chord editor's Save chord): its definitions, and every
  * column that names it, in this Voice and the others the part carries. Nothing changes for `to` already
  * taken, which the view doesn't offer.
  */

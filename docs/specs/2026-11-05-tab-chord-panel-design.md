@@ -3,7 +3,7 @@
 Issue [#251](https://github.com/memestreak/frets/issues/251), step 2 of
 the chords-in-Tab build order (planning doc
 https://claude.ai/artifact/R4ffGZLV63TiViD2Hj3mr5). Builds on the Chord
-set (`2026-11-05-tab-chord-set-design.md`, #367). The chord view
+set (`2026-11-05-tab-chord-set-design.md`, #367). The chord editor
 (2026-11-06, PR #395) also draws your own shape and renames a chord,
 part of #368.
 
@@ -20,12 +20,12 @@ part of #368.
   use it or ○ "Not used" (Q7), an Edit (pencil) button and, while no
   column uses it, a trash can. Under the list, a + button: Add a
   chord. Picking a chord picks it for Insert (and sounds it, with Hear
-  on), and nothing more: its view opens only from Edit or a
+  on), and nothing more: its editor opens only from Edit or a
   double-click (Jeremy, 2026-11-06). Moving the cursor changes nothing in the panel (Jeremy,
   2026-11-06). The list folds from its heading (a 16px chevron, down while
   open), kept across visits in `frets.tab.chordPanel` `{ folded }`, like
   the open panel, not a preference.
-- **The chord view** (`ChordView.tsx`), in the panel where the + was,
+- **The chord editor** (`ChordEditor.tsx`), in the panel where the + was,
   not a modal (Jeremy, 2026-11-06, mock a of PR #395: "most chords will
   be from a known set, having that set laid out makes it easier to find
   the form you're thinking of"). While it is open the + is hidden;
@@ -43,7 +43,7 @@ part of #368.
     name to look up, Enter finds it, "No chord “…”" otherwise, Esc goes
     back), then **Shape**: the chord's shapes on the track's tuning (open
     first, then moveable), up to nine, three to a row, plain ink dots
-    (Q9), the view's own shape first (the chord's, or a new chord's
+    (Q9), the editor's own shape first (the chord's, or a new chord's
     cursor fingering, captioned "At the cursor"); the last tile is **Draw
     your own**. A new root or type picks its first shape (and sounds it).
   - **Name** follows the chord, shown as its placeholder, until something
@@ -65,7 +65,7 @@ part of #368.
     naming it in every Voice (`withRenamedChord`), and gives it the shape
     (`withChordShape`, keeping its show props). A name already in the set
     can't be taken ("“G” is already in this track’s chords"); Enter in
-    Name does the same as the button. Either closes the view.
+    Name does the same as the button. Either closes the editor.
   - **Cancel** or **Esc** close it, changing nothing.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
@@ -103,8 +103,8 @@ and the mocks:
 - Q9: no degree colours.
 - Jeremy (relayed 2026-11-05): a chord name's Edit or double-click opens
   the chord, its shapes shown and the current one marked. Since
-  2026-11-06 that is the chord view, in the Chords panel.
-- Jeremy, 2026-11-06 (PR #395's mocks): the view in the panel, laid out
+  2026-11-06 that is the chord editor, in the Chords panel.
+- Jeremy, 2026-11-06 (PR #395's mocks): the editor in the panel, laid out
   as one form (a), over fingering-first (b) and steps (c); no "New
   chord" title; "Add chord", not "Add G"; picking a chord doesn't open
   it, Edit or a double-click does; Cancel and Esc close it.
@@ -116,9 +116,9 @@ Settled while building (my calls, open to change):
 - The `C` key still opens the chord name field, the way to change a
   column's name; keys for the panel wait for the open question on keys
   (Q2 of the mock round).
-- The view is staged: nothing changes until Add chord or Save chord.
+- The editor is staged: nothing changes until Add chord or Save chord.
 - Save chord's button reads "Save chord", and Add and Save close the
-  view; no ✕ besides Cancel (one way to do a thing).
+  editor; no ✕ besides Cancel (one way to do a thing).
 
 ## How
 
@@ -131,13 +131,13 @@ Settled while building (my calls, open to change):
 - `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
   `chordsHead`), `insertedColumn`.
-- `ChordView.tsx`: the chord view; `ShapeEditor`, drawing your own.
+- `ChordEditor.tsx`: the chord editor; `ShapeEditor`, drawing your own.
 - `chordShapes.ts`: `chordOfName`, `shapesOf`, `shapeFor`, `toFrets`,
   `toShape`, `PLAIN_LOOK`, shared by the two; `namesForColumn` and
   `fretsOfColumn`, for Add.
 - `chordSet.ts`: `withChordShape`, `withNewChord`, `withRenamedChord`,
   `withoutChord`.
-- Diagrams (list and view) are drawn with the chord the name means
+- Diagrams (list and editor) are drawn with the chord the name means
   when the shape's notes are its tones, else with one its notes are
   (`chordToDraw`), so "My C" with the C shape has its diagram; none for
   no chord at all.
@@ -157,10 +157,10 @@ Settled while building (my calls, open to change):
 - The panel has the list, + and Insert: no name field, no shapes; each
   chord has Edit; its uses, or ○ for an unused one.
 - A chord name's Edit, its Enter and its double-click open the Chords
-  panel and that chord's view, the stored shape picked; not note input.
-- Picking a chord in the list doesn't open its view; its Edit and a
+  panel and that chord's editor, the stored shape picked; not note input.
+- Picking a chord in the list doesn't open its editor; its Edit and a
   double-click do.
-- The view on G: Root G, Type major, Name empty (G follows), "Save
+- The editor on G: Root G, Type major, Name empty (G follows), "Save
   chord" grey. Next shape picked: Save gives G that shape, keeping
   `showname`, C untouched. Cancel after picking, and Esc, change nothing
   and close it.
@@ -171,7 +171,7 @@ Settled while building (my calls, open to change):
   Type major, Name "My C".
 - + opens Add: no Add until there is a name; Root D, Type sus2 picks
   x-x-0-2-3-0; Add chord defines `0 3 2 0 x x` as "Dsus2", unused and
-  picked for Insert, no column changed; the view closes. Another shape
+  picked for Insert, no column changed; the editor closes. Another shape
   picked is the one added; Enter in Name adds. The magnifier: "Em"
   Enter gives Root E, Type minor; "Hendrix" says "No chord". "Riff A"
   typed with no shape is added with none. "G" can't be added again.

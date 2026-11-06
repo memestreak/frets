@@ -81,7 +81,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(screen.getByTestId('repeat-count')).toHaveTextContent('×4');
   });
 
-  it('a chord name opens the Chords panel and that chord’s view (issue #251), not note input', async () => {
+  it('a chord name opens the Chords panel and that chord’s editor (issue #251), not note input', async () => {
     await open();
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
     expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();

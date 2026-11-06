@@ -1,5 +1,5 @@
 /**
- * What the Chords panel and its chord view share (`docs/specs/2026-11-05-tab-chord-panel-design.md`):
+ * What the Chords panel and its chord editor share (`docs/specs/2026-11-05-tab-chord-panel-design.md`):
  * the names and fingering of a column's notes, and the chord a shape's diagram is drawn with.
  */
 import { emptyPart, type Column } from '@/features/tab/clip';

@@ -4,7 +4,7 @@
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
  * #251): the track's Chord set, each chord with Edit and, unused, a trash can; + to add one; and Insert
  * for the chord picked. Edit, a double-click on a chord, + and a chord name's Edit or double-click in the
- * tab open the chord view (`ChordView`) where the + was. Picking a chord only picks it; moving the cursor
+ * tab open the chord editor (`ChordEditor`) where the + was. Picking a chord only picks it; moving the cursor
  * changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
@@ -13,7 +13,7 @@ import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withR
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import type { Column, Duration, Part, Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
-import { ChordView } from './ChordView';
+import { ChordEditor } from './ChordEditor';
 import { NoteSoundIcon } from './PlaybackFooter';
 
 type InsertWhat = 'name' | 'notes' | 'both';
@@ -140,7 +140,7 @@ interface ChordPanelProps {
   cursor: Cursor;
   /** Whether the cursor is in the tab: off it, Insert does nothing, as the palette does. */
   editing: boolean;
-  /** The chord a name's Edit last asked for (each Edit a new object): its chord view opens. */
+  /** The chord a name's Edit last asked for (each Edit a new object): its chord editor opens. */
   at: { name: string | null } | null;
   onChange: (next: Part) => void;
   /** Note input's length while note input is on, else null: Insert then writes a new column of it and moves on. */
@@ -151,26 +151,26 @@ interface ChordPanelProps {
   hear: boolean;
   /** Sounds a shape, high e first. */
   onHear: (frets: readonly (number | null)[]) => void;
-  /** Gives the focus back to the tab, when the chord view closes. */
+  /** Gives the focus back to the tab, when the chord editor closes. */
   onDone: () => void;
 }
 
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
-  /** What the chord view is open for: a new chord (+), a chord of the set, or nothing (closed). */
-  const [view, setView] = useState<{ kind: 'add' } | { kind: 'edit'; name: string } | null>(null);
+  /** What the chord editor is open for: a new chord (+), a chord of the set, or nothing (closed). */
+  const [editorFor, setEditorFor] = useState<{ kind: 'add' } | { kind: 'edit'; name: string } | null>(null);
   const openOn = (n: string) => {
     setPicked(n);
-    setView({ kind: 'edit', name: n });
+    setEditorFor({ kind: 'edit', name: n });
   };
-  const closeView = () => {
-    setView(null);
+  const closeEditor = () => {
+    setEditorFor(null);
     onDone();
   };
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
-  // A name's Edit picks that chord and opens its chord view.
+  // A name's Edit picks that chord and opens its chord editor.
   useEffect(() => {
     if (!at?.name) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `at` is an outside event.
@@ -216,8 +216,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
 
   // Presses on the panel's buttons keep the tab's focus, and so its cursor, as the palette's do.
   const keep = (e: MouseEvent) => e.preventDefault();
-  /** The chord the view is open on, while it is still in the set. */
-  const viewOn = view?.kind === 'edit' && set.some(e => e.name === view.name) ? view.name : null;
+  /** The chord the editor is open on, while it is still in the set. */
+  const editorOn = editorFor?.kind === 'edit' && set.some(e => e.name === editorFor.name) ? editorFor.name : null;
 
   return (
     <div className="chord-panel">
@@ -261,25 +261,25 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
             );
           })}
         </ul>
-        {view?.kind === 'add' || viewOn ? (
-          <ChordView
-            key={viewOn === null ? 'add' : `edit:${viewOn}`}
-            opened={viewOn ? { name: viewOn, shape: shapeOfDef(viewOn) } : null}
+        {editorFor?.kind === 'add' || editorOn ? (
+          <ChordEditor
+            key={editorOn === null ? 'add' : `edit:${editorOn}`}
+            opened={editorOn ? { name: editorOn, shape: shapeOfDef(editorOn) } : null}
             clip={clip} column={column} taken={set.map(e => e.name)}
-            onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); closeView(); }}
+            onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); closeEditor(); }}
             onSave={(from, to, frets) => {
               const renamed = withRenamedChord(clip, from, to);
               onChange(frets ? withChordShape(renamed, to, frets) : renamed);
               setPicked(to);
-              closeView();
+              closeEditor();
             }}
             onHear={shape => { if (hear) onHear(toFrets(shape)); }}
-            onClose={closeView}
+            onClose={closeEditor}
           />
         ) : (
           <button
             type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
-            onMouseDown={keep} onClick={() => setView({ kind: 'add' })}
+            onMouseDown={keep} onClick={() => setEditorFor({ kind: 'add' })}
           >
             <PlusIcon />
           </button>
