@@ -29,6 +29,7 @@ import type { Lines } from './jumps';
 import { gridTicks, stepGrid, type GridValue } from './grid';
 import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
+import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
 import { pitchAtStep } from './staffEntry';
 import { markBox, markTool } from './marks';
@@ -138,14 +139,28 @@ export default function TabPage() {
   // The viewer's preferences, a Settings section each (issue #195); the page's controls and Settings change the same ones.
   const prefs = useTabPrefs();
   const { exportStyle, setExportStyle, notation, setNotation } = prefs;
+  /**
+   * A link's `?show=` (`docs/specs/2026-11-06-tab-show-link-design.md`): the parts for this visit
+   * only, never saved. It holds while the saved choice is the one it was opened over; pressing the
+   * switch, or Settings saving another Show, ends it.
+   */
+  const [linkShow, setLinkShow] = useState(() => {
+    const show = readShowParam(window.location.search);
+    return show && { show, over: notation.show };
+  });
+  useEffect(dropShowParam, []);
   /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
-  const parts = notation.show;
-  const setParts = (show: Parts) => setNotation(n => ({ ...n, show }));
+  const parts = linkShow && linkShow.over === notation.show ? linkShow.show : notation.show;
+  const setParts = (show: Parts) => {
+    setLinkShow(null);
+    setNotation(n => ({ ...n, show }));
+  };
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
   const setShown = (next: TabView) => {
-    const sections = sectionsOf(next, parts);
+    // The saved Show, not a link's: View options never save what a link asked for.
+    const sections = sectionsOf(next, notation.show);
     setNotation(sections.notation);
     prefs.setColours(sections.colours);
     prefs.setAscii(sections.ascii);

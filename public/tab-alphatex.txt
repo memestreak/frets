@@ -432,6 +432,14 @@ never sent to a server. Opening it shows the tab as a new arrangement, not
 saved until the person presses Save (it asks first if they have unsaved
 changes). If the text can't be read, Frets says why, with the line and column.
 
+The page shows tab alone unless the person picked Staff or Both before. To
+open it with the notation staff, add ?show= before the "#": staff (the staff
+alone), tab or both (the staff over the tab). It holds for that visit only;
+the person's own choice is not changed. Add it when the staff matters, as
+for music written from sheet music:
+
+    https://frets.eminor.net/tab?show=both#tab=<the whole text, percent-encoded>
+
 When you can run code, make a shorter link: compress the text and put it
 after #tabz= instead. Take the text as UTF-8, deflate it raw (no zlib
 header or checksum), and write the bytes as base64url ("-" and "_" for "+"
@@ -637,5 +645,5 @@ the same way, so a note on Frets' staff lands where it is on the page.
   in voice 1, and a bass held under it, stems down, in voice 2 (see
   "Voices"), as the book prints them. Two voices never sound one string
   at once. Say what you did.
-- When done, tell the user to open Notation, then Staff or Both, and
+- When done, give the link with ?show=both (see 8.), and tell the user to
   compare the staff with the printed page.
