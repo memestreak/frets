@@ -173,7 +173,7 @@ export function cursorPlace(clip: Part, cursor: Cursor): string {
 }
 
 /** What the chord editor is open for: a new chord (+), a chord of the set, a copy of one, or nothing (closed). */
-type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean } | { kind: 'copy'; name: string; newName: string };
+type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean; change?: boolean } | { kind: 'copy'; name: string; newName: string };
 
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   const shapesEditor = useMock(EDIT_MOCK) === 'shapes';
@@ -254,6 +254,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   const keep = (e: MouseEvent) => e.preventDefault();
   /** The chord the editor is open on (or copies), while it is still in the set. */
   const editorOn = editorFor && editorFor.kind !== 'add' && set.some(e => e.name === editorFor.name) ? editorFor.name : null;
+  /** Change chord: the chord's full dialog, the one + opens, over its shapes view. */
+  const changing = editorFor?.kind === 'edit' && Boolean(editorFor.change);
   const editorOpen = editorFor?.kind === 'add' || editorOn !== null;
 
   /** A chord's right-click menu (or long press, or Shift+F10). */
@@ -352,15 +354,16 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
       {editorOpen && (
         <section className="chord-panel-section" aria-label="Chord editor">
           <h3 className="chord-panel-label">
-            {editorFor?.kind === 'edit' ? (shapesEditor ? 'Edit chord' : `Edit ${editorOn}`) : editorFor?.kind === 'copy' ? `New chord from ${editorOn}` : 'New chord'}
+            {editorFor?.kind === 'edit' ? (changing ? 'Change chord' : shapesEditor ? 'Edit chord' : `Edit ${editorOn}`) : editorFor?.kind === 'copy' ? `New chord from ${editorOn}` : 'New chord'}
           </h3>
-          {shapesEditor && editorFor?.kind === 'edit' && editorOn ? (
+          {shapesEditor && editorFor?.kind === 'edit' && !editorFor.change && editorOn ? (
             <ChordShapesEditor
               key={`shapes:${editorOn}`} name={editorOn} shape={shapeOfDef(editorOn)} clip={clip} taken={taken}
               renaming={editorFor.rename}
               onShape={frets => onChange(withChordShape(clip, editorOn, frets))}
               onRename={to => { onChange(withRenamedChord(clip, editorOn, to)); setPicked(to); setEditorFor({ kind: 'edit', name: to }); }}
               onHear={shape => { if (hear) onHear(toFrets(shape)); }}
+              onChangeChord={() => setEditorFor({ kind: 'edit', name: editorOn, change: true })}
               onClose={closeEditor}
             />
           ) : (
@@ -374,10 +377,12 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
                 const renamed = withRenamedChord(clip, from, to);
                 onChange(frets ? withChordShape(renamed, to, frets) : renamed);
                 setPicked(to);
-                closeEditor();
+                // Change chord's Save goes back to the chord's shapes; the old editor closes.
+                if (changing) setEditorFor({ kind: 'edit', name: to });
+                else closeEditor();
               }}
               onHear={shape => { if (hear) onHear(toFrets(shape)); }}
-              onClose={closeEditor}
+              onClose={changing && editorOn ? () => setEditorFor({ kind: 'edit', name: editorOn }) : closeEditor}
             />
           )}
         </section>

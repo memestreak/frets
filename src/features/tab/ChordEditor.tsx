@@ -406,7 +406,7 @@ export function ShapeEditor({ shape, onChange }: { shape: Shape; onChange: (s: S
  * or drawn is its shape at once (undo takes it back); "Another chord's shapes" looks one up and Back
  * returns to its own. Done or Esc closes. It never makes a new chord: +, Copy to new chord do.
  */
-export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape, onRename, onHear, onClose }: {
+export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape, onRename, onHear, onChangeChord, onClose }: {
   name: string;
   shape: Shape | null;
   clip: Part;
@@ -416,15 +416,13 @@ export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape,
   onShape: (frets: (number | null)[]) => void;
   onRename: (to: string) => void;
   onHear: (shape: Shape) => void;
+  /** Change chord: the full chord dialog (name, root, type, shapes, draw your own), with Cancel. */
+  onChangeChord: () => void;
   onClose: () => void;
 }) {
   const tuning = useMemo(() => lowFirst(clip), [clip]);
-  const [initial] = useState(() => readingOf(clip, { name, shape }));
-  /** What the tiles show: the chord's own reading, or one looked up. */
-  const [root, setRoot] = useState<ChordRoot | ''>(initial?.root ?? '');
-  const [typeId, setTypeId] = useState(initial?.type ?? '');
-  const [looking, setLooking] = useState(false);
-  const [drawing, setDrawing] = useState(false);
+  /** The tiles show the chord's own shapes, by its name (or, for a name that isn't a chord, its notes). */
+  const [reading] = useState(() => readingOf(clip, { name, shape }));
   const [editingName, setEditingName] = useState(renaming ?? false);
   const [typed, setTyped] = useState(name);
   const nameField = useRef<HTMLInputElement>(null);
@@ -432,7 +430,7 @@ export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape,
   useEffect(() => {
     if (editingName) nameField.current?.select();
   }, [editingName]);
-  const chord = root && typeId ? chordOf(root, typeId) : null;
+  const chord = useMemo(() => (reading ? chordOf(reading.root, reading.type) : null), [reading]);
   const shapes = useMemo(() => {
     const found = chord ? shapesOf(chord, tuning) : [];
     return shape && !found.some(s => shapeKey(s) === shapeKey(shape)) ? [shape, ...found] : found;
@@ -440,15 +438,6 @@ export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape,
   const use = (s: Shape) => {
     onShape(toFrets(s));
     onHear(s);
-  };
-  const lookUp = (r: ChordRoot, t: string) => {
-    setRoot(r);
-    setTypeId(t);
-  };
-  const back = () => {
-    setLooking(false);
-    setRoot(initial?.root ?? '');
-    setTypeId(initial?.type ?? '');
   };
   const rename = () => {
     const to = typed.trim();
@@ -501,46 +490,23 @@ export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape,
           {name}
         </button>
       )}
-      {looking ? (
-        <>
-          <div className="chord-panel-row">
-            <span className="chord-panel-label">Another chord’s shapes</span>
-            <button type="button" className="chord-editor-link" onClick={back}>Back to {name}</button>
-          </div>
-          <Lookup draft={{ root, typeId, pickRoot: r => lookUp(r, typeId || 'M'), pickType: t => lookUp(root || 'C', t), lookUp }} />
-        </>
-      ) : drawing ? (
-        <div className="chord-panel-row">
-          <span className="chord-panel-label">Your own shape</span>
-          <button type="button" className="chord-editor-link" onClick={() => setDrawing(false)}>Back to shapes</button>
-        </div>
-      ) : (
-        <div className="chord-panel-row">
-          <span className="chord-panel-label">{chord ? `${chord.symbol} shapes` : 'Shape'}</span>
-          <button type="button" className="chord-editor-link" onClick={() => setLooking(true)}>Another chord’s shapes</button>
-        </div>
-      )}
-      {drawing ? <ShapeEditor shape={shape ?? NO_SHAPE} onChange={s => onShape(toFrets(s))} /> : (
-        <div className="chord-editor-shapes" role="group" aria-label="Shapes">
-          {shapes.slice(0, MAX_SHAPES).map(s => {
-            const c = chordToDraw(clip, name, s);
-            return (
-              <button
-                key={shapeKey(s)} type="button" className="chord-panel-shape" aria-label={`Shape ${shapeKey(s)}`}
-                aria-pressed={shape !== null && shapeKey(s) === shapeKey(shape)} onClick={() => use(s)}
-              >
-                {c ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : <span className="chord-editor-caption">{shapeKey(s)}</span>}
-              </button>
-            );
-          })}
-          <button type="button" className="chord-panel-shape chord-editor-draw" onClick={() => setDrawing(true)}>
-            <svg width={22} height={22} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.5 2.5l3 3L6 13H3v-3l7.5-7.5zM9 4l3 3" />
-            </svg>
-            <span className="chord-editor-caption">Draw your own</span>
-          </button>
-        </div>
-      )}
+      <div className="chord-panel-row">
+        <span className="chord-panel-label">Shapes</span>
+        <button type="button" className="chord-editor-link" onClick={onChangeChord}>Change chord</button>
+      </div>
+      <div className="chord-editor-shapes" role="group" aria-label="Shapes">
+        {shapes.slice(0, MAX_SHAPES).map(s => {
+          const c = chordToDraw(clip, name, s);
+          return (
+            <button
+              key={shapeKey(s)} type="button" className="chord-panel-shape" aria-label={`Shape ${shapeKey(s)}`}
+              aria-pressed={shape !== null && shapeKey(s) === shapeKey(shape)} onClick={() => use(s)}
+            >
+              {c ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : <span className="chord-editor-caption">{shapeKey(s)}</span>}
+            </button>
+          );
+        })}
+      </div>
       <p className="chord-panel-note chord-editor-hint">A shape you pick is {name}’s shape at once; Ctrl/⌘+Z takes it back.</p>
       <div className="chord-editor-buttons">
         <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>
