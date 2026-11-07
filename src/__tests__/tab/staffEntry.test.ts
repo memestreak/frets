@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { choosePlace, enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, noteToString, pitchAtStep, pitchOfLetter, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
-import { type Part, partOf } from '@/features/tab/clip';
+import { type Duration, type Part, partOf } from '@/features/tab/clip';
 
 function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
@@ -49,7 +49,7 @@ describe('A–G in note input (issue #396)', () => {
 
   it('enters the note at the caret and moves the caret on by its length; Enter on a note there takes it away', () => {
     const clip = clipOf('r.1 |');
-    const quarter = { value: 4 } as const;
+    const quarter: Duration = { value: 4, dots: 0 };
     const added = enterOnStaff(clip, { bar: 0, column: 0, string: 0 }, 0, 52, quarter, false);
     expect(frets(added.clip, 0).filter(f => f !== null)).toHaveLength(1);
     // On past it, a quarter into the bar.
