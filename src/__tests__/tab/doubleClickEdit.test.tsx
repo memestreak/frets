@@ -86,7 +86,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
     expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Edit A' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     // The Notes panel, where the pencil is, has given way to Chords.
     expect(screen.queryByRole('button', { name: 'Note input mode' })).toBeNull();
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Panels' })).getByRole('button', { name: 'Notes' }));

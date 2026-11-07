@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * The chord editor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord's name, its
- * root and type, and its shape, in the Chords panel itself, where its + was. The + opens it empty (Add
- * chord); a chord's pencil, or a double-click on it in the list or on its name in the tab, opens it on
- * that chord (Save chord, or Save as new chord to keep it and add the changed copy under a new name). Add,
- * Save, Cancel and Esc close it.
+ * The chord dialog (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400): a chord's
+ * name, its root and type, and its shape, in the Chords panel under the Chord set. The + opens it empty
+ * (Add chord), Copy to new chord on a copy, and Edit chord's Change chord on that chord (Save chord, or
+ * Save as new chord to keep it and add the changed copy under a new name): one dialog for defining a chord
+ * and for changing one. Add and Save close it; Cancel and Esc close it unchanged.
  *
  * The chord is looked up by root and type, or by name behind the magnifier, as on the Chords page. The
  * name follows the chord until something is typed in it, so it can differ from the chord's symbol
@@ -28,8 +28,10 @@ export interface ChordOpened {
 }
 
 interface ChordEditorProps {
-  /** The chord being edited; null for a new one (the +). */
+  /** The chord being edited; null for a new one (the +, or Copy to new chord). */
   opened: ChordOpened | null;
+  /** A new chord's start: the chord Copy to new chord copies, its shape and a free name. */
+  from?: { chord: ChordOpened; name: string } | null;
   /** The part: its tuning and capo. */
   clip: Part;
   /** The cursor's column: a new chord offers its fingering first, and names its notes. */
@@ -56,20 +58,22 @@ function readingOf(part: Part, opened: ChordOpened) {
 }
 
 /** What the editor edits: the chord looked up, the shape picked or drawn, and the name. */
-function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null, onHear: (shape: Shape) => void) {
+function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null, from: { chord: ChordOpened; name: string } | null, onHear: (shape: Shape) => void) {
   const tuning = useMemo(() => lowFirst(clip), [clip]);
+  /** The chord it starts from: the one opened, or the one copied. */
+  const start = opened ?? from?.chord ?? null;
   /** A new chord's offer: the cursor column's fingering. */
   const atCursor = useMemo(() => {
-    const frets = opened ? null : fretsOfColumn(column);
+    const frets = start ? null : fretsOfColumn(column);
     return frets ? toShape(frets) : null;
-  }, [column, opened]);
+  }, [column, start]);
   // An opened chord starts on its root and type ("A barre/5" on A major, from its notes).
-  const [initial] = useState(() => (opened ? readingOf(clip, opened) : null));
+  const [initial] = useState(() => (start ? readingOf(clip, start) : null));
   const [root, setRoot] = useState<ChordRoot | ''>(initial?.root ?? '');
   const [typeId, setTypeId] = useState(initial?.type ?? '');
   const chord = useMemo<ChordInfo | null>(() => (root && typeId ? chordOf(root, typeId) : null), [root, typeId]);
   /** The editor's own shape (the chord's, or the cursor's) shows first, before the chord's. */
-  const own = opened ? opened.shape : atCursor;
+  const own = start ? start.shape : atCursor;
   const shapes = useMemo(() => {
     const found = chord ? shapesOf(chord, tuning) : [];
     return own && !found.some(s => shapeKey(s) === shapeKey(own)) ? [own, ...found] : found;
@@ -79,6 +83,7 @@ function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null,
   const [drawn, setDrawn] = useState(false);
   /** The name typed; null while it follows the chord. It never rewrites what was typed. */
   const [typedName, setTypedName] = useState<string | null>(() => {
+    if (from) return from.name;
     if (!opened) return null;
     const symbol = initial ? chordOf(initial.root, initial.type).symbol : null;
     return opened.name === symbol ? null : opened.name;
@@ -120,14 +125,14 @@ function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null,
 }
 type Draft = ReturnType<typeof useDraft>;
 
-export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear, onClose }: ChordEditorProps) {
-  const draft = useDraft(clip, column, opened, onHear);
+export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, onSave, onHear, onClose }: ChordEditorProps) {
+  const draft = useDraft(clip, column, opened, from, onHear);
   const [drawing, setDrawing] = useState(false);
   // Opening takes the keys, so Esc closes it: a new chord's Name field, or the editor itself.
   const editor = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = editor.current;
-    (opened ? el : el?.querySelector<HTMLElement>('input') ?? el)?.focus();
+    (opened ? el : el?.querySelector<HTMLElement>('input') ?? el)?.focus({ preventScroll: true });
     // Once, as it opens: the editor is keyed by what it opened on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -136,13 +141,15 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
   const isTaken = draft.name !== opened?.name && taken.includes(draft.name);
   const keyOf = (s: Shape | null) => (s ? shapeKey(s) : '');
   const changed = opened !== null && (draft.name !== opened.name || keyOf(draft.shape) !== keyOf(opened.shape));
-  const canOk = draft.name !== '' && !isTaken && (opened === null || changed);
+  // Save chord is never grey for want of a change: unchanged, it just closes (Jeremy, 2026-11-07).
+  const canOk = draft.name !== '' && !isTaken;
   // An opened chord can be kept as it was and saved again, changed, under a name of its own.
   const canAddNew = opened !== null && draft.name !== '' && draft.name !== opened.name && !taken.includes(draft.name);
   const needsNewName = opened !== null && changed && draft.name === opened.name;
   const ok = () => {
     if (!canOk) return;
-    if (opened) onSave(opened.name, draft.name, frets);
+    if (opened && !changed) onClose();
+    else if (opened) onSave(opened.name, draft.name, frets);
     else onAdd(draft.name, frets);
   };
   const startDrawing = () => {
@@ -174,7 +181,7 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
   const atCursor = draft.atCursor !== null && draft.shape !== null && shapeKey(draft.shape) === shapeKey(draft.atCursor);
 
   return (
-    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Edit ${opened.name}` : 'Add a chord'}>
+    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Change ${opened.name}` : from ? `Copy ${from.chord.name} to a new chord` : 'Add a chord'}>
       <label className="chord-editor-field">
         <span className="field-label">Name</span>
         <input
@@ -187,7 +194,9 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
             }
           }}
         />
-        <span className="chord-panel-note chord-editor-hint">Leave it empty to use the chord’s name.</span>
+        <span className="chord-panel-note chord-editor-hint">
+          {opened ? `Leave it empty and the name follows the chord (${draft.suggested || opened.name}).` : 'Leave it empty to use the chord’s name.'}
+        </span>
       </label>
       <Lookup draft={draft} />
       <div className="chord-panel-row">
@@ -202,7 +211,7 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
       )}
       {(drawing || atCursor) && <NoteNames draft={draft} label={atCursor ? 'The notes at the cursor are' : 'These notes are'} />}
       <div className="chord-editor-buttons">
-        {isTaken && <p className="chord-panel-note">“{draft.name}” is already in this track’s chords.</p>}
+        {isTaken && <p className="chord-panel-note">“{draft.name}” is already in the Chord set.</p>}
         {needsNewName && <p className="chord-panel-note">Give it a new name to save it as a new chord.</p>}
         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
         {opened && (
@@ -217,7 +226,7 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
 }
 
 /** Root tiles and the Type menu, the magnifier swapping the menu for a name to look up, as on the Chords page. */
-function Lookup({ draft }: { draft: Draft }) {
+function Lookup({ draft }: { draft: Pick<Draft, 'root' | 'typeId' | 'pickRoot' | 'pickType' | 'lookUp'> }) {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const [missed, setMissed] = useState(false);
@@ -391,6 +400,121 @@ export function ShapeEditor({ shape, onChange }: { shape: Shape; onChange: (s: S
         <span>Fret {start}</span>
         <button type="button" className="chord-panel-step" aria-label="Higher frets" disabled={start >= HIGHEST_START} onClick={() => setStart(start + 1)}>›</button>
       </span>
+    </div>
+  );
+}
+
+/**
+ * Edit chord (issue #400): editing a chord the track has is choosing its shape. Its name is a heading,
+ * renamed by a double-click or F2 (Enter renames, Esc leaves it) or the menu's Rename; a shape picked is
+ * its shape at once (undo takes it back). Change chord opens the chord dialog on it, the one + opens.
+ * Done or Esc closes. It never makes a new chord: +, Copy to new chord and Save as new chord do.
+ */
+export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape, onRename, onHear, onChangeChord, onClose }: {
+  name: string;
+  shape: Shape | null;
+  clip: Part;
+  taken: readonly string[];
+  /** Opened by the menu's Rename: the name field is open. */
+  renaming?: boolean;
+  onShape: (frets: (number | null)[]) => void;
+  onRename: (to: string) => void;
+  onHear: (shape: Shape) => void;
+  /** Change chord: the full chord dialog (name, root, type, shapes, draw your own), with Cancel. */
+  onChangeChord: () => void;
+  onClose: () => void;
+}) {
+  const tuning = useMemo(() => lowFirst(clip), [clip]);
+  /** The tiles show the chord's own shapes, by its name (or, for a name that isn't a chord, its notes). */
+  const [reading] = useState(() => readingOf(clip, { name, shape }));
+  const [editingName, setEditingName] = useState(renaming ?? false);
+  const [typed, setTyped] = useState(name);
+  const nameField = useRef<HTMLInputElement>(null);
+  // The name field takes the keys as it opens, its text selected to type over.
+  useEffect(() => {
+    if (editingName) nameField.current?.select();
+  }, [editingName]);
+  const chord = useMemo(() => (reading ? chordOf(reading.root, reading.type) : null), [reading]);
+  const shapes = useMemo(() => {
+    const found = chord ? shapesOf(chord, tuning) : [];
+    return shape && !found.some(s => shapeKey(s) === shapeKey(shape)) ? [shape, ...found] : found;
+  }, [chord, tuning, shape]);
+  const use = (s: Shape) => {
+    onShape(toFrets(s));
+    onHear(s);
+  };
+  const rename = () => {
+    const to = typed.trim();
+    if (to && to !== name && !taken.includes(to)) onRename(to);
+    setEditingName(false);
+  };
+  const editor = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    (editor.current?.querySelector<HTMLElement>('input') ?? editor.current)?.focus({ preventScroll: true });
+  }, []);
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const onEscape = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const target = e.target as Element | null;
+      if (target?.closest?.('[role="dialog"], [role="menu"], dialog[open], [data-own-escape]')) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      close.current();
+    };
+    window.addEventListener('keydown', onEscape, { capture: true });
+    return () => window.removeEventListener('keydown', onEscape, { capture: true });
+  }, []);
+  const nameTaken = typed.trim() !== name && taken.includes(typed.trim());
+
+  return (
+    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={`Edit ${name}`}>
+      {editingName ? (
+        <label className="chord-editor-field">
+          <span className="field-label">Rename</span>
+          <input
+            ref={nameField} className="input" aria-label="Name" value={typed} data-own-escape onChange={e => setTyped(e.target.value)}
+            onBlur={rename}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); rename(); }
+              if (e.key === 'Escape') { e.preventDefault(); setTyped(name); setEditingName(false); }
+            }}
+          />
+          {nameTaken && <span className="chord-panel-note chord-editor-hint">“{typed.trim()}” is already in the Chord set.</span>}
+        </label>
+      ) : (
+        <button
+          type="button" className="chord-editor-title" title="Double-click to rename" aria-label={`${name}: double-click or F2 to rename`}
+          onDoubleClick={() => { setTyped(name); setEditingName(true); }}
+          onKeyDown={e => { if (e.key === 'F2') { e.preventDefault(); setTyped(name); setEditingName(true); } }}
+        >
+          {name}
+        </button>
+      )}
+      <div className="chord-panel-row">
+        <span className="chord-panel-label">Shapes</span>
+        <button type="button" className="chord-editor-link" onClick={onChangeChord}>Change chord</button>
+      </div>
+      <div className="chord-editor-shapes" role="group" aria-label="Shapes">
+        {shapes.slice(0, MAX_SHAPES).map(s => {
+          const c = chordToDraw(clip, name, s);
+          return (
+            <button
+              key={shapeKey(s)} type="button" className="chord-panel-shape" aria-label={`Shape ${shapeKey(s)}`}
+              aria-pressed={shape !== null && shapeKey(s) === shapeKey(shape)} onClick={() => use(s)}
+            >
+              {c ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : <span className="chord-editor-caption">{shapeKey(s)}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="chord-panel-note chord-editor-hint">A shape you pick is {name}’s shape at once; Ctrl/⌘+Z takes it back.</p>
+      <div className="chord-editor-buttons">
+        <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>
+      </div>
     </div>
   );
 }
