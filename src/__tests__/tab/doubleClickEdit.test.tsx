@@ -40,7 +40,7 @@ async function open() {
   await screen.findByRole('heading', { name: 'Words' }, { timeout: 5000 });
 }
 const drawing = () => screen.getByRole('img', { name: /drawn as tab/ });
-const pencil = () => screen.getByRole('button', { name: 'Note input' });
+const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
 /** A double-click as a browser sends it: two presses, then the dblclick. */
 function doubleClick(at: { clientX: number; clientY: number }) {
   fireEvent.pointerDown(drawing(), { ...at, button: 0 });
@@ -88,7 +88,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(screen.getByRole('group', { name: 'Edit A' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     // The Notes panel, where the pencil is, has given way to Chords.
-    expect(screen.queryByRole('button', { name: 'Note input' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Note input mode' })).toBeNull();
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Panels' })).getByRole('button', { name: 'Notes' }));
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });

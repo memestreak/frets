@@ -36,7 +36,7 @@ Frets already has. It lands in two PRs: the keys first, then picking several thi
 
 ## PR 2: the rectangle and stepping through marks
 
-Jeremy moved step 3, normal mode and note input, ahead of this
+Jeremy moved step 3, normal mode and note input mode, ahead of this
 (`2026-10-30-tab-note-input-mode-design.md`), and on 2026-10-30 moved Ctrl/⌘+click list selection and
 right-click → Select similar to their own issue (#260).
 

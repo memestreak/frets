@@ -4,7 +4,7 @@ import { setUpPage, renderAt, SLOW, editor, keys, alphaTex, undo } from './helpe
 setUpPage();
 
 describe('TabPage normal mode and note input (issue #238)', () => {
-  const pencil = () => screen.getByRole('button', { name: 'Note input' });
+  const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
 
   it('starts in normal mode; N and the pencil go in and out of note input, Esc out', () => {
     renderAt();
@@ -158,13 +158,13 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     // The palette's pencil does the same as N.
     keys('ArrowDown', 'Escape');
-    fireEvent.click(screen.getByRole('button', { name: 'Note input' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Note input mode' }));
     expect(screen.queryByTestId('input-cursor')).toBeNull();
   });
 
   it('N anywhere on the page goes into note input, but not in a text field', () => {
     renderAt();
-    const pencil = () => screen.getByRole('button', { name: 'Note input' });
+    const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
     fireEvent.keyDown(document.body, { key: 'n' });
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     expect(editor()).toHaveFocus();

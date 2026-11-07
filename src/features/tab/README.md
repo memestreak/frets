@@ -51,7 +51,7 @@ and in its spec.
   loop handles and `fieldSpots.ts`, and wires the hooks below together —
   `2026-10-25-tab-editing-design.md`. Its tests are in
   `src/__tests__/tab/page/`, one file per area, sharing `helpers.tsx`.
-- `useEditorState.ts` — the cursor, selection, picked thing, note input and
+- `useEditorState.ts` — the cursor, selection, picked thing, note input mode and
   `commit` (and `commitVoices` for an edit of several Voices), which refuse
   an edit that sounds one string in two Voices.
 - `useTabPicking.ts` — presses, drags and Alt+← → on the tab.
@@ -77,7 +77,7 @@ and in its spec.
   (Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing,
   Export), held as page state so Settings and the page's own controls
   change the same values — `2026-10-29-settings-design.md`.
-- `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): note input's
+- `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): note input mode's
   grid — `2026-11-01-tab-note-input-grid-design.md`.
 
 ## The clip and its formats
@@ -222,11 +222,11 @@ and in its spec.
   ±1, the next note in a chord, dragging a fret to another string —
   `2026-10-30-tab-note-input-mode-design.md`,
   `2026-10-31-tab-drag-fret-string-design.md`.
-- `inputLength.ts` — note input's length, set before a note goes in.
-- `grid.ts` — note input's grid, as Dorico's rhythmic grid: ← → stop at
+- `inputLength.ts` — note input mode's length, set before a note goes in.
+- `grid.ts` — note input mode's grid, as Dorico's rhythmic grid: ← → stop at
   each grid line inside a rest and once on a note, a note entered there
   splits the rest, a press snaps to the nearest stop, Shift+Space moves on
-  by note input's length — `2026-11-01-tab-note-input-grid-design.md`.
+  by note input mode's length — `2026-11-01-tab-note-input-grid-design.md`.
 - `jumps.ts` — Ctrl/⌘+← → a bar, Home / End, with Shift growing the
   selection — `2026-10-30-tab-musescore-selection-design.md`.
 - `staffEntry.ts` — the staff's own cursor, the string and fret chosen for
@@ -278,7 +278,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 ## Palette, panels and fields
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
-- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, eight to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
@@ -452,7 +452,7 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   more; Break before and Join to previous per note
 - `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`: tuplets take
   a note's time or squeeze a selection, grace notes are added before;
-  Tuplet entry and Grace entry in note input; `,` is Rest; Dorico's keys
+  Tuplet entry and Grace entry in note input mode; `,` is Rest; Dorico's keys
 - `docs/specs/2026-11-04-tab-ties-forward-design.md`: T ties forward;
   a Tie chain is picked, deleted, lengthened and re-fretted as one note;
   Alt+press picks one Tied note for its own marks
@@ -472,8 +472,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   column wraps onto more lines
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
-- `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input's grid,
-  following note input's length or fixed, and ← → / Shift+Space by it
+- `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input mode's grid,
+  following note input mode's length or fixed, and ← → / Shift+Space by it
 - `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
   per view, and Size over the clip
 - `docs/specs/2026-11-01-tab-tuning-collapse-design.md`: the tuning is picked

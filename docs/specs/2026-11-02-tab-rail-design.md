@@ -17,7 +17,7 @@ question at a time; a higher-fidelity mock then offered two looks and he picked 
   back outside the rail later, but none for now (Q7).
 - **Three panels** (Q2), each with its groups captioned inside, Dorico's few large panels rather than
   one per group:
-  - **Notes**: note input (the pencil), Duration, Rhythm.
+  - **Notes**: note input mode (the pencil), Duration, Rhythm.
   - **Articulations**: Joins, Bends, Techniques, Accents.
   - **Bars**: Bars, Text.
   - The chord library (#300) adds a fourth, **Chords**, after them.

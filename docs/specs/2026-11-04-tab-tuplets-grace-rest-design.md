@@ -12,7 +12,7 @@ written by the meter (`docs/specs/2026-11-03-tab-rests-are-gaps-design.md`).
 
 A tuplet and a grace note no longer change a bar's time. In normal mode a
 tuplet takes the picked note's time, or squeezes the selected notes, and
-a grace note is added before the picked note. In note input, Tuplet entry
+a grace note is added before the picked note. In note input mode, Tuplet entry
 and Grace entry are toggles, lit while on, as in Dorico. The keys are
 Dorico's: `;` for tuplets, `/` for grace notes, `,` for rests (Q14, b).
 Nothing stored changes: a tuplet is still a mark on each of its Columns
@@ -66,12 +66,12 @@ tuplet with no notes left goes, and its time is a Gap written by the
 meter. Frets and marks work as on any note. (This replaces step 4's "the
 length keys do nothing on a note inside a tuplet".)
 
-## Tuplet entry in note input (Q6, Q7)
+## Tuplet entry in note input mode (Q6, Q7)
 
-- **On and off.** In note input, picking a tuplet from the Tuplet panel
+- **On and off.** In note input mode, picking a tuplet from the Tuplet panel
   (`;`, or the Rail's Tuplet button) turns Tuplet entry on, and the Tuplet
   button stays lit, showing which tuplet, until the same tuplet or None is
-  picked, or note input is left.
+  picked, or note input mode is left.
 - **Typing.** A fret typed in a Gap starts a tuplet at the cursor whose
   notes are the Input length: an eighth with a triplet makes a triplet of
   eighths over a quarter. The cursor then moves through the tuplet one
@@ -101,8 +101,8 @@ thirty-seconds. They are written so after every edit. The length keys and
 Duration buttons do nothing on a grace note, and Duration lights nothing
 for one.
 
-**Grace entry (Q11).** In note input, `/` turns Grace entry on, and the
-Grace button stays lit until `/` again or note input is left. Each fret
+**Grace entry (Q11).** In note input mode, `/` turns Grace entry on, and the
+Grace button stays lit until `/` again or note input mode is left. Each fret
 typed adds a grace note before the time at the cursor, after any already
 there; the cursor stays at that time, so with Grace entry off the next
 fret typed is the main note. Two-digit frets join as usual. With Tuplet
@@ -110,7 +110,7 @@ entry on too, Grace entry wins for the typed note.
 
 ## Rests (Q12, Q13, Q18)
 
-- **`,` in note input** writes a Gap of the Input length at the cursor,
+- **`,` in note input mode** writes a Gap of the Input length at the cursor,
   over any notes there (MuseScore's 0, Dorico's rest entry), and moves the
   cursor on by the Input length. With Tuplet entry on it moves on by one
   tuplet note, so a tuplet can start with a rest; the tuplet is made when
@@ -128,9 +128,9 @@ Dorico's, without its popovers (those are FR #342):
 | Key | Does | Was |
 | --- | --- | --- |
 | `;` | Opens the Tuplet panel at the cursor: 3, 5, 6, 7, 9–12 or ↑ ↓ and Enter pick, Esc closes | Alt+3, 5, 6, 7 (gone) |
-| `/` | Grace before the picked note; Grace entry in note input | Shift+G (gone) |
+| `/` | Grace before the picked note; Grace entry in note input mode | Shift+G (gone) |
 | Alt+`/` | The slide from the note before, stepping through its kinds (read by the key's place, as Alt+T) | `/` |
-| `,` | Rest: a Gap of the Input length in note input, Delete in normal mode | R |
+| `,` | Rest: a Gap of the Input length in note input mode, Delete in normal mode | R |
 | R | Nothing (Dorico's repeat is an FR) | Rest |
 
 `\` stays slide out. When FR #342 is built, a typed popover takes the
@@ -161,9 +161,9 @@ Grace entry and Delete on a picked tuplet number.
 - `timeline.ts`: the length keys inside a tuplet (Q5).
 - `grid.ts`: inside a tuplet's Gaps the stops are its notes' places (Q7).
 - `useEditorState.ts`: Tuplet entry and Grace entry, set off when note
-  input is left; `editorKeys.ts`: typing with them on, `,` in note input.
+  input is left; `editorKeys.ts`: typing with them on, `,` in note input mode.
 - `tools.ts`: keys and tips as the table; the Rest tool never lights;
-  Tuplet and Grace light for the entry modes in note input.
+  Tuplet and Grace light for the entry modes in note input mode.
 - `TabPalette.tsx`, `TabRail.tsx`: `;` opens the Tuplet panel at the
   cursor, kept to the keyboard (digits, ↑ ↓, Enter, Esc).
 - `shortcuts.ts`: the keys above.
@@ -191,9 +191,9 @@ Grace entry and Delete on a picked tuplet number.
 - Inside a triplet of eighths, the quarter key on its first note makes a
   triplet quarter over the second; on its third note nothing changes;
   Delete on its only note leaves no tuplet, a plain Gap by the meter.
-- Note input, Input length an eighth, triplet picked: the Tuplet button
+- Note input mode, Input length an eighth, triplet picked: the Tuplet button
   lights; three frets typed with → between make one triplet over a
-  quarter, a fourth starts a new one; picking None or leaving note input
+  quarter, a fourth starts a new one; picking None or leaving note input mode
   turns it off. A sixteenth Input length inside an eighth triplet types a
   triplet sixteenth.
 - In a triplet's Gap, → stops at each triplet eighth, Tuplet entry off.
@@ -203,10 +203,10 @@ Grace entry and Delete on a picked tuplet number.
   thirty-seconds; one alone is a slashed eighth.
 - The length keys on a grace note leave the Clip unchanged and Duration
   lights nothing; Delete and `,` on it remove it and leave no Gap.
-- Grace entry: `/` in note input lights Grace; frets 5 then 7 typed at a
+- Grace entry: `/` in note input mode lights Grace; frets 5 then 7 typed at a
   quarter's time make two grace notes before it, cursor at that time;
   `/` again, fret 9 is the main note.
-- `,` in note input, Input length a quarter, on a half on beat 1: a
+- `,` in note input mode, Input length a quarter, on a half on beat 1: a
   quarter Gap over its first half, the cursor on beat 2; with Tuplet entry
   on, `,` then a fret makes a triplet starting with a rest. With Grace
   entry on, `,` does nothing.
@@ -233,7 +233,7 @@ Grace entry and Delete on a picked tuplet number.
   without changing alphaTex (Q15).
 - **Tuplet entry on a note** that is in no tuplet starts a tuplet there,
   over it, as on a Gap.
-- **A fret typed on a tuplet note** in note input sets its fret, and its
+- **A fret typed on a tuplet note** in note input mode sets its fret, and its
   length to the Input length in the tuplet's ratio when that fits (Q5's
   rule for the length keys).
 - **`,` with Tuplet entry on** writes the tuplet's whole time as a Gap at

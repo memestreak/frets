@@ -28,7 +28,7 @@ changes.
   numbers inside a bar) still picks the chain.
 - **Hear notes**: pressing a chain plays it once, at its whole length.
 - **← →** in normal mode skip a Column that holds only tied-on notes, as
-  note input already does (step 4): the chain is one stop. A Column
+  note input mode already does (step 4): the chain is one stop. A Column
   where something starts, a note on another string or a Column thing, is
   still a stop. **Alt+← →** stops on a chain once, as a note; a Tied
   note's own marks stay stops of their own.
@@ -39,7 +39,7 @@ changes.
   whichever Tied note is picked (step 4 did this only from its first
   Column).
 - **A fret typed** on any note of a chain in normal mode changes the
-  whole chain's fret; it no longer unties the note. In note input, step
+  whole chain's fret; it no longer unties the note. In note input mode, step
   4's rule for a lone note applies to the chain as a whole.
 - **A selection of several Columns** acts on the Sounding notes that
   start inside it, whole: a chain that starts inside and runs past the
@@ -82,7 +82,7 @@ A tool lights when the chain has the mark where it belongs.
 
 As Dorico's (Jeremy, 2026-11-04, after the questions; A7 said T stays
 Tap): **T** ties forward, **Alt+T** is Tap, and **=** and **−** make the
-picked notes, or note input's next note, longer and shorter, beside W
+picked notes, or note input mode's next note, longer and shorter, beside W
 and Q (MuseScore's). `+` still does what `=` does, since it is Shift+= on
 many keyboards. The Tie tool's tip is "Tie to the next note (T)", the Tap
 tool's "Tap (Alt+T)", and the Duration tips and the `?` overlay say `= −`.
@@ -109,7 +109,7 @@ bend, palm mute, a chord name over it).
 note to the next note on its string only where that note already has the
 same fret, as MuseScore ties a range; it never changes a fret.
 
-**Note input.** T adds a note of the input length tied on after the
+**Note input mode.** T adds a note of the input length tied on after the
 chain at the cursor, every string of its chord, writing over what follows
 and split and tied by the meter (step 4). The cursor stays on the chain,
 so T again makes it longer. It plays nothing (the note is held). On a
@@ -149,9 +149,9 @@ The Tie tool's tip becomes "Tie to the next note".
   chain's whole time and every Tied note; `setFret` stops untying; marks
   go by the split rules above unless one Tied note is picked alone.
 - `toggleTie` becomes `tieForward` (normal mode, both cases above) and a
-  note input `tieOn` through `writeOver`; the tie arc's Delete and T
+  note input mode `tieOn` through `writeOver`; the tie arc's Delete and T
   untie (`marks.ts`, already pickable).
-- `tools.ts`: the Tie tool's label, its light, T in note input.
+- `tools.ts`: the Tie tool's label, its light, T in note input mode.
 - `shortcuts.ts`: Alt+press, "One Tied note of a chain"; `= −` for longer and shorter. `tools.ts`, `editorKeys.ts`: T ties, Alt+T taps, `=` is longer.
 - `editing_tests/`: add `tie-forward.atex` (T in normal mode and note
   input) and `tie-chain-is-one-note.atex` (press a tied (5): the whole
@@ -196,7 +196,7 @@ The Tie tool's tip becomes "Tie to the next note".
   the Clip is unchanged; past a grace note, the tie goes to the note after.
 - T with three Columns selected ties only where the next note has the
   same fret, and no fret changes.
-- T in note input, input length a quarter, on a half on beat 1 of
+- T in note input mode, input length a quarter, on a half on beat 1 of
   `h q q`: `h. q` (the meter writes `h~q` as one dotted half), cursor
   still on beat 1; T again ties over beat 4 too, a whole note; on a
   rest, the Clip is unchanged; nothing is played.
@@ -205,7 +205,7 @@ The Tie tool's tip becomes "Tie to the next note".
   Tie tool lights only on a picked tie arc.
 - The Tie tool's tip is "Tie to the next note (T)", Tap's "Tap
   (Alt+T)"; Alt+T taps a note; `=` makes a picked note longer and, in
-  note input, the next note; the `?` overlay lists Alt+press and `= −`.
+  note input mode, the next note; the `?` overlay lists Alt+press and `= −`.
 - alphaTex, MusicXML, Guitar Pro and ASCII tab of a chain made with T
   are the same as of one typed with `-`.
 
@@ -214,7 +214,7 @@ The Tie tool's tip becomes "Tie to the next note".
 - **The meter spells the chain after every edit.** T ties the Clip's
   notes, and the bars it changed are written again by the meter (step
   3), so a chain that fits one value becomes one note: T on beat 1 of
-  `q q h` gives `h h`, and in note input `h` then T gives `h.`, then
+  `q q h` gives `h h`, and in note input mode `h` then T gives `h.`, then
   `w`. Ties only show where the meter needs them.
 - **T stops at a grace note on the same string.** A tie after a grace
   note ties from the grace note in alphaTex, so T can't reach over one
@@ -236,6 +236,6 @@ The Tie tool's tip becomes "Tie to the next note".
 - **A press doesn't sound in normal mode**, as before, so Q22's "plays
   it once" is about Hear notes: an edit heard on a chain sounds once, at
   the cursor, which is on its first note. T sounds nothing.
-- **A fret typed on a chain in note input** enters a note of the input
+- **A fret typed on a chain in note input mode** enters a note of the input
   length at its start, over the whole chain: step 4's rule for a lone
   note.
