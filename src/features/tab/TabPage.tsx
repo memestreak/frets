@@ -893,8 +893,6 @@ export default function TabPage() {
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
     onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
-    // In note input the pointer moves the caret (issue #396).
-    onHover: inputMode ? picking.onHover : undefined,
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
     // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
     // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.

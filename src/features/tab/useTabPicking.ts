@@ -1,12 +1,12 @@
 import { useRef } from 'react';
-import type { Part } from './clip';
+import { ticks, type Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
 import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
-import { splitRestAt } from './grid';
+import { advance, splitRestAt } from './grid';
 import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
 import { draggedRange, type RangeDrag } from './rangeBox';
 import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
@@ -18,7 +18,6 @@ import { pitchAt } from './normalMode';
 import { writtenStrings } from './notation';
 import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
 import type { FieldKind } from './WordField';
-import type { HoverPlace } from './TabClip';
 import type { EditorState, Picked } from './useEditorState';
 import type { Notice } from './notice';
 
@@ -276,8 +275,14 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // the grid line pressed (issue #293).
       const here = splitRestAt(clip, at, hit.at ?? 0);
       const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
-      toPitch(edit.clip, here.cursor, pitch);
-      if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
+      if (edit.string !== null) {
+        // The caret follows the note in, on past it by its length, as Dorico's does (Jeremy, 2026-11-07, issue #396),
+        // its ghost at the same pitch.
+        hearNote({ ...here.cursor, string: edit.string });
+        const moved = advance(edit.clip, here.cursor, 0, ticks(inputLength));
+        toPitch(moved.clip, moved.cursor, pitch);
+        setCursorAt(moved.cursor, moved.at);
+      } else toPitch(edit.clip, here.cursor, pitch);
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
       toPitch(clip, at, pitch);
@@ -286,37 +291,6 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       commit(clip, at, clip.bars[hit.bar].columns.length > 0 ? barSelection(clip, hit.bar) : null);
       startRegion();
     }
-  };
-
-  /**
-   * In note input, the pointer over the staff or the tab moves the caret where a press would put a note,
-   * entering nothing (Jeremy, 2026-11-06, issue #396): on the tab its string, on the staff the line, space or
-   * head pointed at, inside a rest at the grid line. The arrow keys then move it on from there, and Enter or
-   * a fret puts the note in. A selection lets go, as on any move of the caret.
-   */
-  const onHover = (place: HoverPlace) => {
-    lastDigitRef.current = null;
-    setSelection(null);
-    setPicked(null);
-    setAlone(false);
-    if (place.hit) {
-      const { at = 0, ...hit } = place.hit;
-      setCursor(hit);
-      setCursorAt(hit, at);
-      setStaffPitch(null);
-      setColumnOnly(false);
-      return;
-    }
-    const hit = place.staff;
-    const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
-    const note = hit.string === null ? null : noteAt(clip, at);
-    const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
-    const string = stringAtPitch(clip, at, pitch);
-    const next = { ...at, string: string ?? at.string };
-    setCursor(next);
-    setCursorAt(next, hit.at ?? 0);
-    setStaffPitch(pitch);
-    setColumnOnly(string === null);
   };
 
   /**
@@ -470,7 +444,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onHover, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
+    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
     stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }

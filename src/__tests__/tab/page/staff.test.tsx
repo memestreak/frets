@@ -108,22 +108,23 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
-    it('in note input the pointer moves the caret, its ghost note under the pointer, and a press there enters it (issue #396)', async () => {
+    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret following on past it (issue #396)', async () => {
       await open();
       // Over the first column, a few lines above its heads.
       const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
       fireEvent.pointerMove(svg(), over);
-      expect(screen.queryByTestId('staff-ghost')).toBeNull();
+      expect(screen.queryByTestId('shadow-note')).toBeNull();
       fireEvent.keyDown(editor(), { key: 'n' });
       fireEvent.pointerMove(svg(), over);
-      expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
-      // While the pointer is over the staff, no caret's line.
-      expect(screen.queryByTestId('staff-caret')).toBeNull();
+      expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
       press(over);
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
-      // Off the staff the caret stays where the pointer left it, on the note entered: its line shows.
       fireEvent.pointerLeave(svg());
-      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      expect(screen.queryByTestId('shadow-note')).toBeNull();
+      // The caret went on past the note by its length, as Dorico's does: Enter puts the same pitch in the
+      // next column (on the note just entered it would take it away again).
+      fireEvent.keyDown(editor(), { key: 'Enter' });
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(5);
     });
 
     it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
@@ -237,11 +238,11 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
       expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
-      // A press on the staff gives it the keys again, and only it lights: the caret's line by the note
-      // pressed (issue #396), then the pitch's ghost once ↑ moves off it.
+      // A press on the staff gives it the keys again, and only it lights: the caret's line and ghost on the
+      // note pressed, as the caret always shows (issue #396), then the pitch's ghost once ↑ moves off it.
       press(headAt(2));
       expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
-      expect(screen.queryByTestId('staff-ghost')).toBeNull();
+      expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
@@ -386,7 +387,7 @@ describe('note input’s staff cursor (issue #382)', () => {
 });
 
 describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
-  it('draws only the caret’s line over a note just entered, and only the next note’s ghost at another pitch', async () => {
+  it('draws the caret’s line and ghost over a note just entered, and only the next note’s ghost at another pitch', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -397,15 +398,15 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
     fireEvent.keyDown(editor(), { key: 'Enter' });
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(9));
-    // Over the note just entered, at its own pitch, only the caret's line (issue #396).
+    // Over the note just entered, at its own pitch, the caret's line and its ghost: the caret always shows (issue #396).
     expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
-    expect(screen.queryByTestId('staff-ghost')).toBeNull();
+    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
 
-  it('moves the caret with the pointer, its line hidden while over the staff, and leaves it where the pointer left (issue #396)', async () => {
+  it('never moves the caret with the mouse: the caret and the mouse’s shadow note both show (issue #396)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -416,21 +417,24 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     fireEvent.keyDown(editor(), { key: 'n' });
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
-    // Over the second bar's whole rest: the ghost there, and no caret's line.
+    // Over the second bar's whole rest: the mouse's shadow note there, the caret's line and ghost where they were.
+    const ghostY = () => screen.getByTestId('staff-ghost').innerHTML;
+    const before = ghostY();
     const restPath = screen.getAllByTestId('staff-rest').at(-1)!.querySelector('path')!;
     const [, rx, ry] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
     fireEvent.pointerMove(svg, { clientX: Number(rx) + 4, clientY: Number(ry) });
-    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
-    expect(screen.queryByTestId('staff-caret')).toBeNull();
-    // ↑ moves the ghost up a step, the pointer still there.
-    const ghostY = () => screen.getByTestId('staff-ghost').getAttribute('transform') ?? screen.getByTestId('staff-ghost').innerHTML;
-    const before = ghostY();
+    expect(screen.getByTestId('shadow-note')).toBeInTheDocument();
+    expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    expect(ghostY()).toBe(before);
+    // The mouse's shadow is fainter than the caret's ghost.
+    expect(Number(screen.getByTestId('shadow-note').getAttribute('opacity'))).toBeLessThan(Number(screen.getByTestId('staff-ghost').getAttribute('opacity')));
+    // ↑ moves the caret's ghost, not the mouse's.
+    const shadowAt = screen.getByTestId('shadow-note').innerHTML;
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
     expect(ghostY()).not.toBe(before);
-    expect(screen.queryByTestId('staff-caret')).toBeNull();
-    // Off the staff: the caret's line and ghost where it was left.
+    expect(screen.getByTestId('shadow-note').innerHTML).toBe(shadowAt);
     fireEvent.pointerLeave(svg);
+    expect(screen.queryByTestId('shadow-note')).toBeNull();
     expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
-    expect(ghostY()).not.toBe(before);
   });
 });

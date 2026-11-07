@@ -140,7 +140,7 @@ export function StaffCursor({ x, step, sign, score, selected = false, caret = tr
  * The shadow note under the pointer in note input (issue #238, as MuseScore shows one): a faint note of
  * the length a press would enter, its head on the line or space pointed at, its stem up and flag.
  */
-export function ShadowNote({ x, step, value, score, testId = 'shadow-note' }: { x: number; step: number; value: number; score: ScoreRows; testId?: string }) {
+export function ShadowNote({ x, step, value, score, testId = 'shadow-note', opacity = 0.45 }: { x: number; step: number; value: number; score: ScoreRows; testId?: string; opacity?: number }) {
   const y = stepY(score, step);
   const left = x - HEAD_WIDTH / 2;
   const head = HEADS[Math.min(2, Math.log2(value))];
@@ -148,7 +148,7 @@ export function ShadowNote({ x, step, value, score, testId = 'shadow-note' }: { 
   const stemTop = stepY(score, step + STEM_STEPS);
   const flag = FLAGS[value]?.[0];
   return (
-    <g data-testid={testId} data-value={value} pointerEvents="none" opacity={0.45} fill="var(--select)" stroke="var(--select)">
+    <g data-testid={testId} data-value={value} pointerEvents="none" opacity={opacity} fill="var(--select)" stroke="var(--select)">
       {ledgerSteps(step).map(ls => (
         <line key={ls} x1={left - 3} x2={left + HEAD_WIDTH + 3} y1={stepY(score, ls)} y2={stepY(score, ls)} strokeWidth={1} />
       ))}

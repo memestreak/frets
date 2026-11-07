@@ -44,9 +44,9 @@ async function openTwoBars() {
     const rest = bars[bar].columns[bars[bar].columns.length - 1];
     return { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop };
   };
-  /** Where the drawn grid starts: its ruler's line runs from the bar's left edge. */
-  const gridStart = () => Number(screen.getByTestId('grid-lines').querySelector('line')!.getAttribute('x1'));
-  return { svg, bars, over, gridStart };
+  /** The bars the Grid is drawn over. */
+  const gridBars = () => screen.queryAllByTestId('grid-lines').map(g => Number(g.getAttribute('data-bar'))).sort();
+  return { svg, bars, over, gridBars };
 }
 const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
 const keys = (...list: (string | { key: string; code?: string; altKey?: boolean; shiftKey?: boolean })[]) => {
@@ -138,45 +138,50 @@ describe('note input’s grid (issue #293)', () => {
     }
   });
 
-  it('in note input the pointer moves the caret, the grid with it, and leaves it where the pointer left (issue #396)', async () => {
-    const { svg, bars, over, gridStart } = await openTwoBars();
+  it('never moves the caret with the mouse: the Grid shows over the caret’s bar and the bar under the mouse (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
     keys('n');
-    expect(gridStart()).toBe(bars[0].x0);
+    expect(gridBars()).toEqual([0]);
     fireEvent.pointerMove(svg, over(1));
-    expect(gridStart()).toBe(bars[1].x0);
-    fireEvent.pointerLeave(svg);
-    expect(gridStart()).toBe(bars[1].x0);
-  });
-
-  it('shows only the ghost while the pointer is over the clip, and the arrow keys move it there (issue #396)', async () => {
-    const { svg, bars, over, gridStart } = await openTwoBars();
-    keys('n');
+    // As Dorico draws it: the Grid over the hovered bar too, the caret's line where it was, the mouse's faint box.
+    expect(gridBars()).toEqual([0, 1]);
     expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
-    fireEvent.pointerMove(svg, over(1));
     expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
-    expect(screen.queryByTestId('tab-caret')).toBeNull();
-    expect(screen.queryByTestId('input-cursor')).toBeNull();
-    // ← and ↓ move the ghost, the pointer still where it was.
-    const ghost = () => [screen.getByTestId('shadow-fret').getAttribute('x'), screen.getByTestId('shadow-fret').getAttribute('y')];
-    const before = ghost();
-    keys('ArrowLeft', 'ArrowDown');
-    const moved = ghost();
-    expect(moved[0]).not.toBe(before[0]);
-    expect(moved[1]).not.toBe(before[1]);
-    expect(gridStart()).toBe(bars[1].x0);
-    // Off the clip: the caret's box where the keys left it.
     fireEvent.pointerLeave(svg);
-    expect(screen.getByTestId('input-cursor')).toHaveAttribute('x', moved[0]);
+    expect(gridBars()).toEqual([0]);
+    expect(screen.queryByTestId('shadow-fret')).toBeNull();
   });
 
-  it('starts note input with the caret under the pointer when it is over a bar (issue #396)', async () => {
-    const { svg, bars, over, gridStart } = await openTwoBars();
+  it('moves the caret by the keys, not the mouse’s box, while the mouse rests on the clip (issue #396)', async () => {
+    const { svg, bars, over } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    const box = () => [screen.getByTestId('shadow-fret').getAttribute('x'), screen.getByTestId('shadow-fret').getAttribute('y')];
+    const before = box();
+    keys('ArrowDown');
+    // A string picked: the caret's box, in the first bar, and the mouse's box where it was.
+    expect(Number(screen.getByTestId('input-cursor').getAttribute('x'))).toBeLessThan(bars[0].x1);
+    expect(box()).toEqual(before);
+  });
+
+  it('starts note input at the caret, never where the mouse was before (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
+    // A press on the first bar, then the mouse over the second and off the clip.
+    fireEvent.pointerDown(svg, { ...over(0), button: 0 });
+    fireEvent.pointerUp(svg, { ...over(0), button: 0 });
+    fireEvent.pointerMove(svg, over(1));
+    fireEvent.pointerLeave(svg);
+    keys('n');
+    expect(gridBars()).toEqual([0]);
+    // Nor while it rests over the second bar: nothing of the mouse is kept outside note input.
+    keys('n');
     fireEvent.pointerMove(svg, over(1));
     keys('n');
-    expect(gridStart()).toBe(bars[1].x0);
+    expect(gridBars()).toEqual([0]);
+    expect(screen.queryByTestId('shadow-fret')).toBeNull();
   });
 
-  it('draws the caret’s line on the tab on a column with no string picked, so the caret never goes missing (issue #396)', async () => {
+  it('draws the caret’s line on the tab on a column with no string picked, wherever the mouse is (issue #396)', async () => {
     const { svg, over } = await openTwoBars();
     // A press above the first bar's rest picks its column, no string.
     fireEvent.pointerDown(svg, { ...over(0), clientY: 1, button: 0 });
@@ -184,21 +189,19 @@ describe('note input’s grid (issue #293)', () => {
     fireEvent.pointerLeave(svg);
     keys('n');
     expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
-    // Over the tab the caret goes onto the string pointed at: a ghost box, no line.
     fireEvent.pointerMove(svg, over(1));
-    expect(screen.queryByTestId('tab-caret')).toBeNull();
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
     expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
   });
 
-  it('keeps the caret, and the grid with it, where it was when the view changes (issue #396)', async () => {
-    const { svg, over, gridStart } = await openTwoBars();
+  it('keeps the caret, and its Grid, where it was when the view changes (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
     keys('n');
     fireEvent.pointerMove(svg, over(1));
-    const before = gridStart();
     fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
-    // Still over the second bar, drawn somewhere else now; its caret's box shows until the pointer moves.
-    expect(gridStart()).not.toBe(before);
-    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    // The bars moved under the still mouse: its Grid and box wait for it to move again.
+    expect(gridBars()).toEqual([0]);
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

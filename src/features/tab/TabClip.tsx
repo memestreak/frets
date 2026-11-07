@@ -7,7 +7,7 @@ import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
 import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
 import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { BAR_DASHES, FermataSign, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
+import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
 import { GLYPHS } from './smufl';
@@ -23,9 +23,6 @@ import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
 import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
-
-/** Where the pointer is over the staff (a line, a space or a head) or the tab (a string), snapped to the grid. */
-export type HoverPlace = { staff: StaffHit; hit?: undefined } | { hit: Hit; staff?: undefined };
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -67,7 +64,10 @@ export interface Highlight {
  */
 export const MUTED_VOICE_INK = 'var(--line-strong)';
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, onHover, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
+/** How strongly the mouse's shadow note and box are drawn in note input: fainter than the caret's ghost (0.45). */
+const MOUSE_SHADOW = 0.25;
+
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
   clip: Part;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
@@ -150,16 +150,14 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
    */
   shadow?: number | null;
-  /** In note input, the pointer over the staff or the tab: the caret goes where a press would put a note (issue #396). */
-  onHover?: (place: HoverPlace) => void;
   /**
    * Note input's grid in ticks (issue #293): a press beside the notes, and the shadow note, snap to the
    * nearest note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
    */
   gridStep?: number | null;
   /**
-   * How the grid is drawn in note input, as Dorico shows it (Settings › Tab › Editing), over the bar under the
-   * pointer, else the cursor's (issue #396):
+   * How the grid is drawn in note input, as Dorico shows it (Settings › Tab › Editing), over the cursor's bar
+   * and the bar under the pointer, as Dorico draws it (Jeremy, 2026-11-07, issue #396):
    * a ruler over the top staff, or faint lines across the staves.
    */
   gridLook?: GridLook | null;
@@ -402,47 +400,28 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
   const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; alt: boolean; last: StaffDrag | null } | null>(null);
   /**
-   * In note input the pointer moves the caret (Jeremy, 2026-11-06, issue #396): over the staff or the tab,
-   * the caret goes where a press would put a note, entering nothing (`onHover`), and the arrow keys move it
-   * on from there. While the pointer is over them the caret's own mark is hidden: only its ghost note shows
-   * (on the tab, a dim box). `overBar` is the bar under the pointer, kept in normal mode too, so N starts the
-   * caret under the pointer. Over a word or a mark it stays the last one.
+   * Where the mouse's shadow note is drawn in note input: on the staff at a step, or on a string of the tab;
+   * in the drawing's units, with the bar under it for the Grid. The mouse never moves the caret, as in Dorico
+   * (Jeremy, 2026-11-07, issue #396), and nothing of it is kept outside note input.
    */
-  const [overBar, setOverBar] = useState<number | null>(null);
-  const pointerOn = shadow !== null && overBar !== null;
-  /** Where the pointer last was over the staff or the tab, and the last place handed to `onHover`. */
-  const lastOver = useRef<HoverPlace | null>(null);
-  const lastSent = useRef('');
-  const hoverTo = (place: HoverPlace) => {
-    const key = JSON.stringify(place);
-    if (key === lastSent.current) return;
-    lastSent.current = key;
-    onHover?.(place);
-  };
-  // Another view, width or size moves the bars under a still pointer: the caret stays put and shows until
-  // the pointer moves again (issue #396).
-  const drawnAs = `${layout.parts}:${width}:${zoom}`;
+  const [hover, setHover] = useState<{ system: number; bar: number; x: number; step: number | null; string: number | null } | null>(null);
+  // Another view, width or size moves the bars under a still pointer: the shadow waits for it to move again.
+  const drawnAs = `${layout.parts}:${width}:${zoom}:${shadow !== null}`;
   const [seenDrawn, setSeenDrawn] = useState(drawnAs);
   if (seenDrawn !== drawnAs) {
     setSeenDrawn(drawnAs);
-    setOverBar(null);
+    setHover(null);
   }
-  // Note input starting with the pointer over a bar: the caret goes under it, as if it had just moved there.
-  const inputOn = shadow !== null;
-  useEffect(() => {
-    lastSent.current = '';
-    if (inputOn && lastOver.current) hoverTo(lastOver.current);
-    // Only on note input starting or ending.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputOn]);
   const showShadow = (e: PointerEvent<SVGSVGElement>) => {
-    if (headPress.current) return;
+    if (shadow === null || headPress.current) return;
     const { text, mark, staff, hit } = target(e);
-    const place: HoverPlace | null = text || mark ? null : staff ? { staff } : hit ? { hit } : null;
-    if (!place) return;
-    setOverBar(place.staff?.bar ?? place.hit!.bar);
-    lastOver.current = place;
-    if (shadow !== null) hoverTo(place);
+    const on = text || mark ? null : staff ?? hit;
+    const spot = on ? cursorSpot(layout, on.bar, on.column, on.at) : null;
+    if (!on || !spot) {
+      setHover(null);
+      return;
+    }
+    setHover({ system: spot.system, bar: on.bar, x: spot.x, step: staff ? staff.step : null, string: staff ? null : hit!.string });
   };
   const dragHead = (e: PointerEvent<SVGSVGElement>) => {
     showShadow(e);
@@ -531,7 +510,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
       onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
-      onPointerLeave={() => { setOverBar(null); lastOver.current = null; lastSent.current = ''; }}
+      onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
       onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
       onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
@@ -553,20 +532,18 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           {/* No band behind the cursor's column: only Shift's selection draws one (Jeremy, 2026-10-28). */}
           {/* While a run of columns is selected, only its band shows: no box follows the cursor (Jeremy, 2026-10-28). */}
           {/* Only the part pressed lights: while the staff has the keys, its own cursor shows the note (Jeremy, 2026-10-30). */}
-          {/* In note input, while the pointer is over the staff or the tab, only a dim copy: the ghost a press there makes a 0 (issue #396). */}
           {!highlight.range && !highlight.columnOnly && highlight.staffPitch == null && rows.tab && (
             <rect
               x={spot.x - 12} y={stringY(rows, highlight.cursor.string) - 9} width={24} height={18} rx={4}
               fill={highlight.input ? 'none' : 'var(--select-soft)'} stroke="var(--select)" strokeWidth={1.5}
-              strokeOpacity={highlight.input && pointerOn ? 0.4 : 1}
-              data-testid={highlight.input ? (pointerOn ? 'shadow-fret' : 'input-cursor') : 'selected-note'}
+              data-testid={highlight.input ? 'input-cursor' : 'selected-note'}
             />
           )}
           {/*
             In note input on a column with no string picked, the caret's upright line, as on the staff (Dorico's),
-            so the caret never goes missing; hidden while the pointer is over the staff or the tab (issue #396).
+            so the caret never goes missing, wherever the mouse is (issue #396).
           */}
-          {!highlight.range && highlight.columnOnly && highlight.input && highlight.staffPitch == null && rows.tab && !pointerOn && (
+          {!highlight.range && highlight.columnOnly && highlight.input && highlight.staffPitch == null && rows.tab && (
             <line
               x1={spot.x - 12} x2={spot.x - 12} y1={stringY(rows, 0) - 9} y2={stringY(rows, STRING_COUNT - 1) + 9}
               stroke="var(--select)" strokeWidth={2} data-testid="tab-caret"
@@ -677,42 +654,53 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             </g>
           ))}
           {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
-            const placed = system.bars.find(b => b.index === highlight.cursor!.bar);
-            if (!placed) return null;
-            const lines = gridLines(placed, gridStep);
+            // The Grid over the caret's bar and, as Dorico draws it, over the bar under the mouse too, on the staff and the tab.
+            const bars = new Set([highlight.cursor!.bar, ...(hover?.system === si ? [hover.bar] : [])]);
             const top = rows.score ? rows.score.top : rows.staffTop;
             const bottom = rows.staffBottom;
-            return (
-              <g pointerEvents="none" data-testid="grid-lines" data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
-                {gridLook === 'ruler' && (
-                  <>
-                    <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
-                    {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
-                  </>
-                )}
-                {gridLook === 'lines' && lines.map((l, k) => (
-                  <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
-                ))}
-              </g>
-            );
+            return system.bars.filter(b => bars.has(b.index)).map(placed => {
+              const lines = gridLines(placed, gridStep);
+              return (
+                <g key={placed.index} pointerEvents="none" data-testid="grid-lines" data-bar={placed.index} data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                  {gridLook === 'ruler' && (
+                    <>
+                      <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
+                      {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
+                    </>
+                  )}
+                  {gridLook === 'lines' && lines.map((l, k) => (
+                    <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
+                  ))}
+                </g>
+              );
+            });
           })()}
           {cursorOnStaff && !selectedNote && (() => {
             const place = staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!);
-            // On a note (one just entered, say), the caret's line stays off it: only the next note's ghost
-            // shows, to add to the chord (Jeremy, 2026-11-06). Over a note at the caret's own pitch, only the
-            // line, so the caret never goes missing (issue #396). On a rest or a Gap, both. While the pointer is
-            // over the staff or the tab, never the line: only the ghost, over a note too (Jeremy, 2026-11-06, issue #396).
+            // The caret always shows in note input, as Dorico's, wherever the mouse is (Jeremy, 2026-11-07, issue
+            // #396): its ghost, the next note to add, and its line, but on a note at another pitch (one just
+            // entered, say) only the ghost, to add to the chord (Jeremy, 2026-11-06). Over a note at its own pitch,
+            // both, the ghost see-through over the head.
             const heads = highlight!.input ? staffColumnHeads(system, highlight!.cursor!) : [];
             const onOwnNote = heads.some(h => h.step === place.step);
-            const hovered = highlight!.input && pointerOn;
-            const line = (heads.length === 0 || onOwnNote) && !hovered;
             return (
               <StaffCursor
-                x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={line}
-                ghost={!onOwnNote || hovered} value={shadow ?? 4} {...place}
+                x={spot!.x} score={rows.score!} selected={!highlight!.input} caret={heads.length === 0 || onOwnNote}
+                value={shadow ?? 4} {...place}
               />
             );
           })()}
+          {/* The mouse's shadow note: fainter than the caret's ghost, so the two are told apart (issue #396). */}
+          {shadow !== null && hover?.system === si && hover.step !== null && rows.score && (
+            <ShadowNote x={hover.x} step={hover.step} value={shadow} score={rows.score} opacity={MOUSE_SHADOW} />
+          )}
+          {/* On the tab, a faint copy of the input cursor's box: a press there places a 0 to type over. */}
+          {shadow !== null && hover?.system === si && hover.string !== null && rows.tab && (
+            <rect
+              x={hover.x - 12} y={stringY(rows, hover.string) - 9} width={24} height={18} rx={4}
+              fill="none" stroke="var(--select)" strokeWidth={1.5} strokeOpacity={MOUSE_SHADOW} pointerEvents="none" data-testid="shadow-fret"
+            />
+          )}
           {rows.score && rows.tab && <StaffJoin x={system.lineStart} top={rows.score.top} bottom={rows.staffBottom} look={look} />}
           {system.bars.map((bar, k) => showsBarNumber(barNumbers, k === 0) && (!bar.restRun || bar.restRun.first) && barNumber(clip, bar.index) > 0 && (
             // Over the top line at the bar's start, small, as Guitar Pro prints it.

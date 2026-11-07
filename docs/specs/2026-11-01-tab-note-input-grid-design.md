@@ -29,20 +29,18 @@ first.
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
-7. **The pointer moves the caret** in note input (Jeremy, 2026-11-06, issue #396; a departure from
-   Dorico and MuseScore, whose pointer only shows a shadow note, chosen for consistency). Over the
-   staff or the tab the caret goes where a press would put a note, entering nothing: on the tab the
-   string pointed at, on the staff the line, space or head, inside a rest at the grid line. While the
-   pointer is over them the caret's own mark is hidden and only its ghost shows (a ghost note on the
-   staff, a dim box on the tab); the arrow keys move that ghost, the pointer still there, and Enter or
-   a fret puts the note in; the next pointer move takes the caret back under it. Hovering the staff
-   gives it the arrow keys (pitch by line and space), hovering the tab gives them to the strings. Off
-   the staff and the tab the caret stays where it was left and always shows: on the staff its line
-   (also over a note at its own pitch) and ghost, on the tab its box on a string, or an upright line
-   like the staff's on a column with no string picked. N starts the caret under the pointer when it is
-   over a bar. The grid is always over the caret's bar, its beats a little stronger. Pressing Staff,
-   Tab or Both leaves the focus on the editor, as the palette's buttons do, so the caret and the grid
-   stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
+7. **The caret follows Dorico's model** (Jeremy, 2026-11-07, issue #396). The mouse never moves
+   the caret: only the keys, a press and N do, and nothing of the mouse is kept outside note input.
+   The caret always shows in note input, wherever the mouse is: on the staff its line and the next
+   note's ghost (over a note at another pitch only the ghost, to add to the chord; over one at its
+   own pitch both, the ghost see-through), on the tab its box on a string, or a short upright line on
+   a column with no string picked. The mouse shows its own shadow note on the staff and a box on the
+   tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch and the caret
+   follows on past the note by its length, its ghost at the same pitch; a press on the tab enters a
+   0 there with the caret on it, for digits to change (Dorico's tab is always in chord input). The
+   Grid is drawn over the caret's bar and, as Dorico draws it, over the bar under the mouse, on the
+   staff and the tab, its beats a little stronger. Pressing Staff, Tab or Both leaves the focus on
+   the editor, as the palette's buttons do, so the caret and the Grid stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
    **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
    bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
    dropped.)
