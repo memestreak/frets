@@ -496,6 +496,8 @@ export default function TabPage() {
     setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
   };
   /** Note input on or off; going in, the keys come to the tab. */
+  /** The rest last picked on the staff, so going into note input from it starts the caret there. */
+  const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
   const enterInput = (on: boolean) => {
     // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
     // MuseScore's note input begin there (Jeremy, 2026-11-06).
@@ -516,6 +518,10 @@ export default function TabPage() {
       const onNote = !selection && !columnOnly && noteAt(clip, cursor) !== null;
       setColumnOnly(!onNote);
       if (!onNote) setStaffPitch(null);
+      // On a rest picked on the staff, the caret starts on the staff, on its middle line, as Dorico's starts on
+      // the staff picked (Jeremy, 2026-11-07, issue #396).
+      const rest = restOnStaff.current;
+      if (!onNote && parts !== 'tab' && rest && rest.bar === at.bar && rest.column === at.column) toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
       editorRef.current?.focus();
     }
   };
@@ -922,12 +928,16 @@ export default function TabPage() {
     [clip, shownSelection, voiceOnly],
   );
   const clipHandlers = useStableHandlers({
-    onPick: picking.onPick, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
+    onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
+    onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
     onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
-    onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
+    onPickRhythm: inputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
+      restOnStaff.current = parts !== 'tab' && !extend ? { bar: rest.bar, column: rest.column } : null;
+      picking.onPickRhythm(rest, extend);
+    },
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
     // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
     // on the staff or the tab goes into it (Jeremy, 2026-10-31) with the caret where it landed (2026-11-07).
