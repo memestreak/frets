@@ -408,6 +408,17 @@ describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-0
     expect(tile('C')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('following never scrolls the page: the editor takes the keys with preventScroll', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    editFromMenu('G');
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    fireEvent.click(tile('C'));
+    expect(focus).toHaveBeenCalled();
+    for (const [options] of focus.mock.calls) expect(options).toEqual({ preventScroll: true });
+    focus.mockRestore();
+  });
+
   it('a tile pressed moves Change chord to it, dropping what wasn’t saved', async () => {
     await open();
     fireEvent.click(railButton('Chords'));

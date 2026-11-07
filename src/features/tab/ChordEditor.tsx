@@ -132,7 +132,7 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
   const editor = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = editor.current;
-    (opened ? el : el?.querySelector<HTMLElement>('input') ?? el)?.focus();
+    (opened ? el : el?.querySelector<HTMLElement>('input') ?? el)?.focus({ preventScroll: true });
     // Once, as it opens: the editor is keyed by what it opened on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -450,7 +450,7 @@ export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape,
   };
   const editor = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    (editor.current?.querySelector<HTMLElement>('input') ?? editor.current)?.focus();
+    (editor.current?.querySelector<HTMLElement>('input') ?? editor.current)?.focus({ preventScroll: true });
   }, []);
   const close = useRef(onClose);
   useEffect(() => {

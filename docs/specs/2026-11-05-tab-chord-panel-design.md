@@ -62,7 +62,8 @@ and the Penpot page "Tab Chords panel (issue 400)".
     to that chord, and Change chord to that chord's Change chord, dropping
     what wasn't saved, as Cancel does. Dorico's and MuseScore's Properties
     panels follow the selection likewise. A new chord's dialog (+, Copy to
-    new chord) stays.
+    new chord) stays. Following never scrolls the page: the editor takes
+    the keys without scrolling to itself (Jeremy, 2026-11-07).
 - **The chord dialog** (`ChordEditor.tsx`): one dialog for defining a
   chord and for changing one (Jeremy, 2026-11-07: a detailed edit "as
   close as possible to the way of defining a new chord"). + opens it
@@ -215,6 +216,7 @@ Settled while building (my calls, open to change):
 
 ## Tests
 
+- Following a picked chord focuses the editor with `preventScroll`.
 - The Chord set is tiles: a used one's title "Used 1 time", an unused one
   tinted with "Not used"; each has a diagram; no Edit or Delete icons, no
   name field, no shapes; + in the heading; no pager for two chords.
