@@ -504,6 +504,7 @@ export default function TabPage() {
     const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     setInputMode(on);
     setCursorAt(at, 0);
+    accidentalRef.current = null;
     if (on) {
       if (selection) {
         setCursor(at);
@@ -529,7 +530,7 @@ export default function TabPage() {
   /**
    * Goes into note input with the caret where a double-click landed, as Dorico's double-click starts
    * note input there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
-   * beside the notes; on the staff, at the note's pitch or the line or space; on a rest, its column.
+   * beside the notes; on the staff, at the note's pitch or the line or space; on a rest on the staff, its middle line.
    */
   /** A sign typed on the staff for the next letter in note input (Jeremy, 2026-11-07, issue #396). */
   const accidentalRef = useRef<TypedAccidental | null>(null);
@@ -550,6 +551,9 @@ export default function TabPage() {
     if (staff) {
       const note = staff.string === null ? null : noteAt(clip, at);
       toPitch(clip, at, note && note.fret !== null ? writtenStrings(clip.tuning)[at.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, at.bar, staff.step));
+    } else if (rest && parts !== 'tab') {
+      // A rest on the staff: the caret on the staff's middle line, as N on a rest picked there (Jeremy, 2026-11-07).
+      toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
     } else {
       setCursor(at);
       setColumnOnly(!hit);

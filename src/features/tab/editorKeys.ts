@@ -122,6 +122,8 @@ export interface EditorKeys {
 export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys) {
   const { clip, cursor, selection, target, columnOnly, picked, lastDigit, commit } = editor;
   const { key } = e;
+  // A sign typed for the next letter lasts only until that letter: any other key lets it go (Jeremy, 2026-11-07).
+  if (!/^([a-g]|-|=|0|Shift|Alt|Control|Meta)$/.test(key)) editor.accidental.current = null;
   const count = columnCount(clip);
   // A modifier on its own does nothing: holding Alt (or Shift) to step leaves a picked mark or word picked.
   if (key === 'Alt' || key === 'Shift' || key === 'Control' || key === 'Meta') return;

@@ -253,11 +253,15 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: '=' });
       fireEvent.keyDown(editor(), { key: 'f' });
       expect(screen.getAllByTestId('staff-head')).toHaveLength(heads + 3);
+      // A sign lasts only until the next letter: one let go by another key leaves the B plain.
+      fireEvent.keyDown(editor(), { key: '-' });
+      fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+      fireEvent.keyDown(editor(), { key: 'b' });
       fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-      expect(alphaTexText()).toContain('(7.5 5.6).4 3.4.4 (5.1 8.2).4 6.1.4 | 7.2.4 r.4 r.2 |');
+      expect(alphaTexText()).toContain('(7.5 5.6).4 3.4.4 (5.1 8.2).4 6.1.4 | 7.2.4 r.4 7.1.4 r.4 |');
     });
 
-    it('N on a rest picked on the staff starts the caret on the staff, not the tab (issue #396)', async () => {
+    it('N on a rest picked on the staff, or a double-click on it, starts the caret on the staff, not the tab (issue #396)', async () => {
       await open();
       const restPath = screen.getByTestId('staff-rest').querySelector('path')!;
       const [, x, y] = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(restPath.getAttribute('transform')!)!;
@@ -267,6 +271,12 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-part', 'staff');
       expect(screen.queryByTestId('tab-caret')).toBeNull();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
+      // A double-click on the rest does the same.
+      fireEvent.keyDown(editor(), { key: 'Escape' });
+      fireEvent.doubleClick(svg(), { clientX: Number(x) + 4, clientY: Number(y) });
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-part', 'staff');
+      expect(screen.queryByTestId('tab-caret')).toBeNull();
     });
 
     it('in note input ↑ off the top string takes the caret up to the staff (issue #396)', async () => {

@@ -60,7 +60,8 @@ string goes up to the staff, as in normal mode. On the staff ↑ goes nowhere an
 tab, as Dorico's ↑ ↓ go between staves (Jeremy, 2026-11-07, issue #396; they moved the ghost a line or space
 before, and Ctrl/⌘+↑ ↓ do the same). On the staff A–G enter that note, as Dorico's do: the letter
 on the line or space nearest the caret's pitch, as the key has it (F♯ in G major); -, = or 0 typed just before
-make it flat, sharp or natural (Jeremy, 2026-11-07, issue #396; # and b moved the ghost a semitone before, and
+make it flat, sharp or natural from the plain letter, for that one letter only (any other key, or leaving note
+input, lets the sign go; a second sign replaces the first) (Jeremy, 2026-11-07, issue #396; # and b moved the ghost a semitone before, and
 - and = there were Shorter and Longer). Every note made on the staff, by a letter, Enter or a press, moves the
 caret on past it by its length, as Dorico's does; a fret typed on the tab leaves the caret where it is, for a
 second digit or a chord. Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
@@ -76,7 +77,7 @@ caret's pitch nothing is drawn.
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input, a double-click on the staff or the
   tab goes into note input with the caret where it landed, as Dorico's does (Jeremy, 2026-11-07, issue #396):
   on a fret, on that note; beside the notes on a string, on that string at that column; on the staff, at the
-  note's pitch or the line or space. In note input it does nothing more.
+  note's pitch or the line or space; on a rest on the staff, on its middle line, as N on a rest picked there. In note input it does nothing more.
 - **Going in on a picked note puts the caret on it** (Jeremy, 2026-11-07, issue #396), as Dorico's caret
   starts on the note selected: its string picked on the tab, or its pitch on the staff, so digits retype it.
 - **Off a note no string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
