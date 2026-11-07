@@ -8,6 +8,7 @@ import { type Tempo } from './clip';
 import { BAR_TEXT_INSET, boldTextWidth, SECTION_BOX_HEIGHT, SECTION_LINE, sectionBoxes, sectionTextWidth } from './sectionText';
 import { tempoNoteWidth } from './TempoNote';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
+import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth } from './layout';
 
 /** A free text's box: its widest line, and its first and last lines' middles, down from the system's top. */
@@ -113,7 +114,13 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
       if (!placed) continue;
       if (hit.kind === 'chord') {
         const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
-        return w > 0 ? box(s, rows.chords, placed.x - w / 2, placed.x + w / 2) : null;
+        if (w <= 0 || rows.chords === null) return null;
+        const grid = diagramBox(placed, rows);
+        if (!grid) return box(s, rows.chords, placed.x - w / 2, placed.x + w / 2);
+        // The name and the diagram under it, as one (issue #242).
+        const top = rows.chords - 9;
+        const half = Math.max(w, grid.x1 - grid.x0) / 2;
+        return { x: placed.x - half - 3, y: system.top + top, width: 2 * half + 6, height: grid.y1 + 3 - top };
       }
       if (!placed.column.text || rows.text === null) return null;
       const text = beatTextBox(placed, rows.text);
@@ -138,6 +145,14 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     return tempo ? box(s, rows.tempo, x0, x0 + tempoParts(tempo).width) : null;
   }
   return null;
+}
+
+/** Where the diagram under a column's chord name is drawn, in its line's units; null when it has none. */
+export function diagramBox(placed: PlacedColumn, rows: System['rows']): { x0: number; x1: number; y0: number; y1: number } | null {
+  if (!placed.diagram || rows.diagrams === null) return null;
+  const { width, height } = gridSize(placed.diagram);
+  const half = (width * OVER_NAME_SCALE) / 2;
+  return { x0: placed.x - half, x1: placed.x + half, y0: rows.diagrams, y1: rows.diagrams + height * OVER_NAME_SCALE };
 }
 
 /** How far from a time signature's centre a press is on it. */
@@ -182,6 +197,11 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
       const w = placed.column.chord ? chordWidth(placed.column.chord) : 0;
       if (w > 0 && Math.abs(x - placed.x) <= w / 2 + 2) return { kind: 'chord', index: placed.index };
     }
+  }
+  // A press on a chord's diagram is a press on its name (issue #242).
+  for (const placed of system.bars.flatMap(b => b.columns)) {
+    const grid = diagramBox(placed, rows);
+    if (grid && x >= grid.x0 - 2 && x <= grid.x1 + 2 && localY >= grid.y0 - 2 && localY <= grid.y1 + 2) return { kind: 'chord', index: placed.index };
   }
   if (rows.text !== null) {
     for (const placed of system.bars.flatMap(b => b.columns)) {

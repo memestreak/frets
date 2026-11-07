@@ -64,8 +64,14 @@ export interface TabView {
   header: boolean;
   /** Notation: the tuning's strings under its name; off, a named tuning shows its name only (issue #296). */
   tuningDetails: boolean;
+  /** Notation: the Chord chart under the score head, every chord with a shape once (issue #242). */
+  chordChart: boolean;
+  /** Notation: a small diagram under each chord name over the music (issue #242). */
+  chordDiagrams: boolean;
   /** ASCII Tab: the rhythm line over the strings (w h q e s…). */
   asciiRhythm: boolean;
+  /** ASCII Tab: the Chord chart under the head, each chord's frets on a line (issue #242). */
+  asciiChords: boolean;
   /** AlphaTex: each line's number in the margin. */
   lineNumbers: boolean;
   colours: Colours;
@@ -75,7 +81,7 @@ export interface TabView {
 
 /** Bar numbers on every bar, as Guitar Pro prints them, at full size; the rhythm line and line numbers shown; the theme's colours. */
 export const DEFAULT_VIEW: TabView = {
-  barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, asciiRhythm: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
+  barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, chordChart: true, chordDiagrams: true, asciiRhythm: true, asciiChords: true, lineNumbers: true, colours: 'theme', custom: SCHEMES.paper,
 };
 
 /** A size as offered: a whole step from 50% to 200%. */
@@ -99,8 +105,14 @@ export interface NotationPrefs {
   header: boolean;
   /** The tuning's strings shown under its name (issue #296). */
   tuningDetails: boolean;
+  /** The Chord chart under the score head (issue #242). */
+  chordChart: boolean;
+  /** A diagram under each chord name (issue #242). */
+  chordDiagrams: boolean;
 }
-export const DEFAULT_NOTATION: NotationPrefs = { show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true };
+export const DEFAULT_NOTATION: NotationPrefs = {
+  show: 'tab', barNumbers: 'every', size: 100, lineBreaks: false, header: true, tuningDetails: true, chordChart: true, chordDiagrams: true,
+};
 
 export function parseNotation(raw: unknown): NotationPrefs {
   const o = fieldsOf(raw);
@@ -112,6 +124,8 @@ export function parseNotation(raw: unknown): NotationPrefs {
     lineBreaks: bool(o.lineBreaks, d.lineBreaks),
     header: bool(o.header, d.header),
     tuningDetails: bool(o.tuningDetails, d.tuningDetails),
+    chordChart: bool(o.chordChart, d.chordChart),
+    chordDiagrams: bool(o.chordDiagrams, d.chordDiagrams),
   };
 }
 
@@ -133,9 +147,14 @@ export function parseColours(raw: unknown): ColourPrefs {
 /** Tab › ASCII Tab: the rhythm line over the strings. */
 export interface AsciiPrefs {
   rhythm: boolean;
+  /** The Chord chart under the head (issue #242). */
+  chords: boolean;
 }
-export const DEFAULT_ASCII: AsciiPrefs = { rhythm: true };
-export const parseAscii = (raw: unknown): AsciiPrefs => ({ rhythm: bool(fieldsOf(raw).rhythm, DEFAULT_ASCII.rhythm) });
+export const DEFAULT_ASCII: AsciiPrefs = { rhythm: true, chords: true };
+export const parseAscii = (raw: unknown): AsciiPrefs => ({
+  rhythm: bool(fieldsOf(raw).rhythm, DEFAULT_ASCII.rhythm),
+  chords: bool(fieldsOf(raw).chords, DEFAULT_ASCII.chords),
+});
 
 /** Tab › AlphaTex: each line's number in the margin. */
 export interface AlphaTexPrefs {
@@ -148,7 +167,8 @@ export const parseAlphaTex = (raw: unknown): AlphaTexPrefs => ({ lineNumbers: bo
 export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: AsciiPrefs, alphatex: AlphaTexPrefs): TabView {
   return {
     barNumbers: notation.barNumbers, size: notation.size, lineBreaks: notation.lineBreaks, header: notation.header, tuningDetails: notation.tuningDetails,
-    asciiRhythm: ascii.rhythm, lineNumbers: alphatex.lineNumbers,
+    chordChart: notation.chordChart, chordDiagrams: notation.chordDiagrams,
+    asciiRhythm: ascii.rhythm, asciiChords: ascii.chords, lineNumbers: alphatex.lineNumbers,
     colours: colours.scheme, custom: { text: colours.text, background: colours.background },
   };
 }
@@ -156,9 +176,9 @@ export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: Asc
 /** A view changed in the View options panel, as its sections again (Staff | Tab | Both kept as it was). */
 export function sectionsOf(view: TabView, show: Parts) {
   return {
-    notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks, header: view.header, tuningDetails: view.tuningDetails } satisfies NotationPrefs,
+    notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks, header: view.header, tuningDetails: view.tuningDetails, chordChart: view.chordChart, chordDiagrams: view.chordDiagrams } satisfies NotationPrefs,
     colours: { scheme: view.colours, text: view.custom.text, background: view.custom.background } satisfies ColourPrefs,
-    ascii: { rhythm: view.asciiRhythm } satisfies AsciiPrefs,
+    ascii: { rhythm: view.asciiRhythm, chords: view.asciiChords } satisfies AsciiPrefs,
     alphatex: { lineNumbers: view.lineNumbers } satisfies AlphaTexPrefs,
   };
 }

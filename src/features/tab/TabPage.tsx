@@ -50,6 +50,9 @@ import { readTab } from './readTab';
 import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
+import { ChordChart } from './ChordChart';
+import { chartChords, type ChartChord } from './chordDiagrams';
+
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
@@ -158,6 +161,9 @@ export default function TabPage() {
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
   const shown: TabView = viewOf(notation, prefs.colours, prefs.ascii, prefs.alphatex);
+  // The View options' Chord diagrams and Chord chart (issue #242).
+  const chordDiagrams = notation.chordDiagrams;
+  const chartOn = notation.chordChart;
   const setShown = (next: TabView) => {
     // The saved Show, not a link's: View options never save what a link asked for.
     const sections = sectionsOf(next, notation.show);
@@ -190,7 +196,9 @@ export default function TabPage() {
    * handles, the fields and panels over it and the keys (issue #302). Playback steps and edits that
    * leave the clip as it was don't lay it out again.
    */
-  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts), [drawn, clipWidth, parts]);
+  const layout = useMemo(() => layoutClip(drawn, clipWidth, parts, chordDiagrams), [drawn, clipWidth, parts, chordDiagrams]);
+  // The Chord chart under the score head (issue #242): every track's chords with a shape, once.
+  const chart = useMemo(() => (chartOn ? chartChords(drawn) : []), [drawn, chartOn]);
   const paperStyle = colours ? paperVars(colours) : undefined;
   /**
    * The AlphaTex view's text as typed, and the clip it was typed against: kept, across changes of
@@ -200,7 +208,7 @@ export default function TabPage() {
   const [draft, setDraft] = useState<{ text: string; clip: Clip } | null>(null);
   const alphaTexText = draft && draft.clip === whole ? draft.text : writeAlphaTex(whole);
   // What the text views show and copy.
-  const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm }) : alphaTexText;
+  const shownText = view === 'ascii' ? writeAscii(clip, { rhythm: shown.asciiRhythm, chords: shown.asciiChords }) : alphaTexText;
 
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });
@@ -371,6 +379,15 @@ export default function TabPage() {
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
     setRailPanel('chords');
     editorRef.current?.focus();
+  };
+  /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
+  const editChartChord = (chord: ChartChord) => {
+    const others = whole.tracks.map((_, i) => i).filter(i => i !== track);
+    const owner = chord.owner === 0 ? track : others[chord.owner - 1];
+    if (owner !== track) chooseTrack(owner);
+    setPicked(null);
+    setChordsAt({ name: chord.name });
+    setRailPanel('chords');
   };
   /** A picked thing's Edit: a chord name's Chords panel, a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
@@ -1045,6 +1062,7 @@ export default function TabPage() {
                 onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
               />
               </HoverTips>
+              <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} />
             </>
             : <>
               {/* The page keeps its heading for screen readers. */}

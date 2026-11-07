@@ -106,7 +106,9 @@ function tintOf(picked: MarkHit | WordHit, columns: Map<number, { placed: Placed
     }
     return out;
   };
-  if (picked.kind === 'chord' || picked.kind === 'text') return whole(picked.index, picked.index);
+  // A chord belongs to its time, not its notes (Jeremy, 2026-11-06): none is tinted.
+  if (picked.kind === 'chord') return [];
+  if (picked.kind === 'text') return whole(picked.index, picked.index);
   if (picked.kind !== 'mark') return [];
   if (picked.string === null) return whole(picked.index, picked.to ?? picked.index);
   const own = { index: picked.index, string: picked.string };
@@ -144,6 +146,18 @@ function lineTo(layout: Layout, box: Box, at: { placed: PlacedColumn; system: nu
 }
 
 /**
+ * A chord name's line: from under its box (and diagram) down to the top line of the top staff at its
+ * column's time, as Dorico draws a chord symbol's attachment line to its rhythmic position; a chord
+ * belongs to its time, not to the notes there (Jeremy, 2026-11-06).
+ */
+function timeLine(layout: Layout, box: Box, at: Placed): AttachmentLine | null {
+  const { rows, top } = layout.systems[at.system];
+  const target = rows.score ? rows.score.top : rows.staffTop;
+  const from = box.y + box.height - top;
+  return from < target ? { x: at.placed.x, y0: top + from, y1: top + target } : null;
+}
+
+/**
  * The line from a word's box to the rest its column is (issue #393), and the rest to tint: with the staff
  * drawn and the word over it, the rest on the staff, or in a Whole-bar rest's bar the staff's top line
  * at the word's beat, the whole rest tinted; in the tab alone, which draws no rest, the top string at
@@ -177,7 +191,13 @@ export function attachment(layout: Layout, picked: MarkHit | WordHit | null, cap
   if (!picked) return NONE;
   const columns = placedColumns(layout);
   const tint = tintOf(picked, columns);
-  if (picked.kind === 'chord' || picked.kind === 'text') {
+  if (picked.kind === 'chord') {
+    const box = textBox(layout, picked, capo);
+    const at = columns.get(picked.index);
+    const line = box && at ? timeLine(layout, box, at) : null;
+    return { tint, lines: line ? [line] : [], handles: [], rests: [] };
+  }
+  if (picked.kind === 'text') {
     const box = textBox(layout, picked, capo);
     const at = columns.get(picked.index);
     if (box && at && noteStrings(at.placed).length === 0 && !at.placed.column.grace) {

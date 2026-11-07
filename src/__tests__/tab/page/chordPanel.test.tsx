@@ -83,6 +83,47 @@ describe('the chord editor: Edit', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('a Chord chart chord: a press picks it, Esc lets it go; a double-click, Enter and its right-click Edit open it (Jeremy, 2026-11-07)', async () => {
+    await open();
+    const chartChord = () => screen.getByRole('button', { name: 'G, edit' });
+    fireEvent.click(chartChord());
+    expect(chartChord()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(chartChord(), { key: 'Escape' });
+    expect(chartChord()).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('group', { name: 'Edit G' })).toBeNull();
+
+    fireEvent.doubleClick(chartChord());
+    expect(railButton('Chords')).toHaveAttribute('aria-pressed', 'true');
+    expect(editorOf('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(inPanel().getByRole('button', { name: 'Cancel' }));
+    expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
+
+    chartChord().focus();
+    fireEvent.keyDown(chartChord(), { key: 'Enter' });
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+    fireEvent.click(inPanel().getByRole('button', { name: 'Cancel' }));
+
+    fireEvent.contextMenu(chartChord(), { clientX: 5, clientY: 5 });
+    expect(chartChord()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(screen.getByRole('menu', { name: 'Chord' })).getByRole('menuitem', { name: 'Edit' }));
+    expect(screen.queryByRole('menu', { name: 'Chord' })).toBeNull();
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+    expect(chartChord()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('a Chord chart chord of another track shows that track and opens there', async () => {
+    const two = [
+      '\\title "Two"',
+      '\\track "Gtr I"', '\\ts (4 4)', '\\chord ("G" 3 0 0 0 2 3)', '3.6.1{ch "G"} |',
+      '\\track "Gtr II"', '\\chord ("D" 2 3 2 0 x x)', '0.4.1{ch "D"} |',
+    ].join('\n');
+    renderAt(`#tab=${encodeURIComponent(two)}`);
+    await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'D, edit' }));
+    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: 'Track' }).value).toBe('1');
+    expect(inPanel().getByRole('group', { name: 'Edit D' })).toBeInTheDocument();
+  });
+
   it('Enter on a picked chord name opens it too', async () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 });

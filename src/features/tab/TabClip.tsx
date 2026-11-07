@@ -22,6 +22,8 @@ import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
 import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
+import { ChordGrid } from './ChordGrid';
+import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -64,8 +66,10 @@ export interface Highlight {
  */
 export const MUTED_VOICE_INK = 'var(--line-strong)';
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
+  /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
+  chordDiagrams?: boolean;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
    * part's own (the Active voice) are drawn in `MUTED_VOICE_INK`.
@@ -167,7 +171,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
   onPickRhythm?: (at: { bar: number; column: number; lastBar?: number }, extend: boolean) => void;
 }) {
-  const layout = useMemo(() => given ?? layoutClip(clip, width, parts), [given, clip, width, parts]);
+  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, chordDiagrams), [given, clip, width, parts, chordDiagrams]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
@@ -1072,6 +1076,19 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
 function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
+  // Under each chord name its diagram (issue #242), picked with it.
+  if (rows.diagrams !== null) {
+    for (const placed of system.bars.flatMap(bar => bar.columns)) {
+      if (!placed.diagram) continue;
+      const look = lookOf({ kind: 'chord', index: placed.index });
+      parts.push(
+        <ChordGrid
+          key={`grid-${placed.index}`} chord={placed.diagram} look={look}
+          x={placed.x - (gridSize(placed.diagram).width * OVER_NAME_SCALE) / 2} y={rows.diagrams} scale={OVER_NAME_SCALE}
+        />,
+      );
+    }
+  }
   for (const bar of system.bars) {
     if (rows.chords !== null) {
       for (const placed of bar.columns) {

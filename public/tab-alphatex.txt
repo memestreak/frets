@@ -105,8 +105,11 @@ doesn't add them). Each track has its own chords. A \chord no beat names
 is kept. Of two with the same name, ch means the last. Optional, after
 the brackets: {firstfret <n>} the diagram's first fret, barre <fret> (or
 barre (<fret> <fret>)), and showdiagram, showname, showfingering true or
-false. Frets keeps them all and writes them back; it doesn't draw the
-diagrams yet. A chord name with no \chord needs none.
+false. Frets keeps them all and writes them back. It draws a chord's
+diagram in the Chord chart under the title (every track's chords, once)
+and under each of its names over the tab, starting at firstfret if given;
+showdiagram false leaves a chord's diagram out. A chord name with no
+\chord needs none, and has no diagram.
 
     \ts (4 4)
     \chord ("C" 0 1 0 2 3 x)

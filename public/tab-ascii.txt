@@ -29,7 +29,9 @@ frets on the one tab, as it reads them: one voice.
 A block is one line of tab across the page ("a system"). Blocks follow one
 another in playing order and join into one clip. Put a blank line between
 blocks (the last example in section 8 has two). Any other line (chord
-names, lyrics, comments) is ignored.
+names, lyrics, comments) is ignored. Frets writes the clip's chord shapes
+after the head as a chord chart, one chord a line ("C    x32010", frets
+low E first), which it skips on reading.
 
 Tuning is recorded and shown with the clip; frets are frets in any tuning.
 Without a Tuning line, string names that differ from standard (a "D" on

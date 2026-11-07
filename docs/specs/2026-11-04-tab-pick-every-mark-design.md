@@ -116,8 +116,10 @@ picked Span the keys do what they do now.
   in ink, so they don't look picked.
 - The notes: one for a bend, slide-out or tap; both for a tie, hammer-on,
   pull-off or slide between two notes; every note of the column for a
-  column Mark; every note of a Span; the column's notes for a chord name
-  or text. Marks that belong to a bar light nothing.
+  column Mark; every note of a Span; the column's notes for text. A
+  chord name tints nothing: it belongs to its time, not its notes, and
+  its line ends on the top staff's top line at its time, as Dorico's
+  does (Jeremy, 2026-11-06; `2026-11-06-tab-chord-diagrams-design.md`). Marks that belong to a bar light nothing.
 - This revises A15, which chose the line over a tint; Jeremy asked for
   both (2026-11-04).
 

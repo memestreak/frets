@@ -186,6 +186,8 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           checkField('lineBreaks', "Clip's line breaks"),
           checkField('header', 'Arrangement header'),
           checkField('tuningDetails', 'Tuning details'),
+          checkField('chordChart', 'Chord chart'),
+          checkField('chordDiagrams', 'Chord diagrams'),
         ],
       }),
       section<ColourPrefs>({
@@ -198,7 +200,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       }),
       section<AsciiPrefs>({
         id: 'ascii', name: 'ASCII Tab', value: prefs.ascii, defaults: DEFAULT_ASCII, save: prefs.setAscii,
-        fields: [checkField('rhythm', 'Rhythm')],
+        fields: [checkField('rhythm', 'Rhythm'), checkField('chords', 'Chord chart')],
       }),
       section<AlphaTexPrefs>({
         id: 'alphatex', name: 'AlphaTex', value: prefs.alphatex, defaults: DEFAULT_ALPHATEX, save: prefs.setAlphaTex,
