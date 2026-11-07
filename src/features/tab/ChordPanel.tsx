@@ -1,16 +1,17 @@
 'use client';
 
 /**
- * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue
- * #251): the track's Chord set, each chord with Edit and, unused, a trash can; + to add one; and Insert
- * for the chord picked. Edit, a double-click on a chord, + and a chord name's Edit or double-click in the
- * tab open the chord editor (`ChordEditor`) where the + was. Picking a chord only picks it; moving the cursor
- * changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
+ * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues
+ * #251 and #400): the track's Chord set as diagram tiles, eight to a page; + to add a chord; and one Insert
+ * under the tiles for the chord picked. A right-click on a tile opens its menu (Insert, Edit, Rename, Copy to
+ * new chord, Delete when unused). Edit, a double-click on a tile, and a chord name's Edit or double-click in
+ * the tab open Edit chord (`ChordShapesEditor`): the chord's shapes, a pick applying at once. Its Change chord,
+ * + and Copy to new chord open the chord dialog (`ChordEditor`). Picking a chord only picks it; moving the
+ * cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
-import { useMock, type Mock } from '@/components/mocks/useMock';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
@@ -140,16 +141,6 @@ interface ChordPanelProps {
   onDone: () => void;
 }
 
-/** Mock: editing a chord the track has is choosing its shape (Jeremy, 2026-11-07), or today's editor. */
-const EDIT_MOCK: Mock = {
-  param: 'chordedit',
-  label: 'Editing a chord',
-  options: [
-    { value: 'shapes', label: 'Shapes only, name renamed apart' },
-    { value: 'today', label: 'Today’s editor' },
-  ],
-};
-
 /** The Chord set's tiles a page holds: four to a row, two rows. */
 const PAGE = 8;
 
@@ -176,7 +167,6 @@ export function cursorPlace(clip: Part, cursor: Cursor): string {
 type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean; change?: boolean } | { kind: 'copy'; name: string; newName: string };
 
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
-  const shapesEditor = useMock(EDIT_MOCK) === 'shapes';
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [editorFor, setEditorFor] = useState<EditorFor | null>(null);
@@ -264,7 +254,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
     return [
       { label: editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert', onSelect: () => insert(n) },
       { label: 'Edit', onSelect: () => openOn(n) },
-      ...(shapesEditor ? [{ label: 'Rename', onSelect: () => { setPicked(n); setEditorFor({ kind: 'edit', name: n, rename: true }); } }] : []),
+      { label: 'Rename', onSelect: () => { setPicked(n); setEditorFor({ kind: 'edit', name: n, rename: true }); } },
       { label: 'Copy to new chord', onSelect: () => copy(n) },
       ...(entry && entry.uses === 0 ? [{ label: 'Delete', onSelect: () => remove(entry) }] : []),
     ];
@@ -294,7 +284,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
       ))}
     </div>
   );
-  /** Mocks b and c: Insert and the picked chord's Edit and Delete, under the chords. */
+  /** Insert for the picked chord, and what it writes, under the tiles. */
   const pickedEntry = set.find(e => e.name === name);
   /** Insert says where it writes (Jeremy, 2026-11-07); off the tab, only "Insert". */
   const insertLabel = editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert';
@@ -354,9 +344,9 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
       {editorOpen && (
         <section className="chord-panel-section" aria-label="Chord editor">
           <h3 className="chord-panel-label">
-            {editorFor?.kind === 'edit' ? (changing ? 'Change chord' : shapesEditor ? 'Edit chord' : `Edit ${editorOn}`) : editorFor?.kind === 'copy' ? `New chord from ${editorOn}` : 'New chord'}
+            {editorFor?.kind === 'edit' ? (changing ? 'Change chord' : 'Edit chord') : editorFor?.kind === 'copy' ? `New chord from ${editorOn}` : 'New chord'}
           </h3>
-          {shapesEditor && editorFor?.kind === 'edit' && !editorFor.change && editorOn ? (
+          {editorFor?.kind === 'edit' && !editorFor.change && editorOn ? (
             <ChordShapesEditor
               key={`shapes:${editorOn}`} name={editorOn} shape={shapeOfDef(editorOn)} clip={clip} taken={taken}
               renaming={editorFor.rename}

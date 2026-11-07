@@ -11,15 +11,17 @@
 \chord ("F" 1 1 2 3 3 1)
 \chord ("Bm" 2 3 4 4 2 x)
 \section "1. Pages"
-(3.1 0.2 0.3 0.4 2.5 3.6).4{ch "G" txt "Tab view. Open the Chords panel (the last button in the rail on the left). Chord set shows eight tiles; the right caret under them shows page 2 of 2 (F and Bm, tinted: not used). Hover a tile: Used 1 time, or Not used"}
+  (3.1 0.2 0.3 0.4 2.5 3.6).4{ch "G" txt "Tab view. Open the Chords panel (the last button in the rail on the left). Chord set shows eight tiles; the right caret under them shows page 2 of 2 (F and Bm, tinted: not used). Hover a tile: Used 1 time, or Not used"}
   r.4 (0.1 1.2 0.3 2.4 3.5).4{ch "C"} r.4 |
 \section "2. Fold"
-(2.1 3.2 2.3 0.4).4{ch "D" txt "Double-click this D's diagram: Edit chord opens under the tiles. Press Chord set: only the tiles fold, the editor stays. Press it again, then Done"}
+  (2.1 3.2 2.3 0.4).4{ch "D" txt "Double-click this D's diagram: Edit chord opens under the tiles. Press Chord set: only the tiles fold, the editor stays. Press it again, then Done"}
   r.4 (0.1 0.2 0.3 2.4 2.5 0.6).4{ch "Em"} r.4 |
-\section "3. Insert"
-(0.1 1.2 2.3 2.4 0.5).4{ch "Am"} r.4{txt "Press this rest. Pick Bm on page 2: the button under the tiles reads Insert at bar 3, beat 2. Press it: Bm's notes and name land here"} (3.1 3.2 0.3 2.4 3.5).4{ch "Cadd9"} r.4 |
+\section "3. Insert" (0.1 1.2 2.3 2.4 0.5).4{ch "Am"}
+  r.4{txt "Press this rest. Pick Bm on page 2: the button under the tiles reads Insert at bar 3, beat 2. Press it: Bm's notes and name land here"}
+  (3.1 3.2 0.3 2.4 3.5).4{ch "Cadd9"} r.4 |
 \section "4. Edit"
-(3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Double-click G in the Chord set: only its shapes. Press another: bar 1's diagram changes at once; Ctrl or Command+Z takes it back. Double-click the name G to rename it: type G2, press Enter. Press Done"}
+  (3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Double-click G in the Chord set: Edit chord, only its Shapes and Change chord. Press another shape: bar 1's diagram changes at once; Ctrl or Command+Z takes it back. Double-click the name G (or press F2 on it), type G2, press Enter: only the name changes. Press Change chord: the same dialog as +, on G2. Press Cancel: back to its shapes. Press Done"}
   r.4 (3.1 0.2 0.3 0.4 2.5).4{ch "G/B"} r.4 |
 \section "5. New"
-r.1{txt "Right-click C: Insert, Edit, Rename, Copy to new chord. Press Copy to new chord: New chord from C, named C 2, with Root, Type and shapes. Press Add chord. The Mock card, bottom right, switches Editing a chord to today's editor"} |
+  r.1{txt "Right-click C: Insert, Edit, Rename, Copy to new chord. Press Copy to new chord: New chord from C, named C 2, with Root, Type and shapes, as + shows. Press Add chord. Right-click Bm on page 2: Delete is last, as Bm is not used"} |
+

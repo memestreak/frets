@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * The chord editor (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issue #251): a chord's name, its
- * root and type, and its shape, in the Chords panel itself, where its + was. The + opens it empty (Add
- * chord); a chord's pencil, or a double-click on it in the list or on its name in the tab, opens it on
- * that chord (Save chord, or Save as new chord to keep it and add the changed copy under a new name). Add,
- * Save, Cancel and Esc close it.
+ * The chord dialog (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400): a chord's
+ * name, its root and type, and its shape, in the Chords panel under the Chord set. The + opens it empty
+ * (Add chord), Copy to new chord on a copy, and Edit chord's Change chord on that chord (Save chord, or
+ * Save as new chord to keep it and add the changed copy under a new name): one dialog for defining a chord
+ * and for changing one. Add and Save close it; Cancel and Esc close it unchanged.
  *
  * The chord is looked up by root and type, or by name behind the magnifier, as on the Chords page. The
  * name follows the chord until something is typed in it, so it can differ from the chord's symbol
@@ -179,7 +179,7 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
   const atCursor = draft.atCursor !== null && draft.shape !== null && shapeKey(draft.shape) === shapeKey(draft.atCursor);
 
   return (
-    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Edit ${opened.name}` : from ? `Copy ${from.chord.name} to a new chord` : 'Add a chord'}>
+    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Change ${opened.name}` : from ? `Copy ${from.chord.name} to a new chord` : 'Add a chord'}>
       <label className="chord-editor-field">
         <span className="field-label">Name</span>
         <input
@@ -207,7 +207,7 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
       )}
       {(drawing || atCursor) && <NoteNames draft={draft} label={atCursor ? 'The notes at the cursor are' : 'These notes are'} />}
       <div className="chord-editor-buttons">
-        {isTaken && <p className="chord-panel-note">“{draft.name}” is already in this track’s chords.</p>}
+        {isTaken && <p className="chord-panel-note">“{draft.name}” is already in the Chord set.</p>}
         {needsNewName && <p className="chord-panel-note">Give it a new name to save it as a new chord.</p>}
         <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
         {opened && (
@@ -401,10 +401,10 @@ export function ShapeEditor({ shape, onChange }: { shape: Shape; onChange: (s: S
 }
 
 /**
- * Mock (`?chordedit=shapes`, Jeremy 2026-11-07): editing a chord the track has is choosing its shape.
- * Its name is a heading, renamed only by a double-click (Enter renames, Esc leaves it); a shape picked
- * or drawn is its shape at once (undo takes it back); "Another chord's shapes" looks one up and Back
- * returns to its own. Done or Esc closes. It never makes a new chord: +, Copy to new chord do.
+ * Edit chord (issue #400): editing a chord the track has is choosing its shape. Its name is a heading,
+ * renamed by a double-click or F2 (Enter renames, Esc leaves it) or the menu's Rename; a shape picked is
+ * its shape at once (undo takes it back). Change chord opens the chord dialog on it, the one + opens.
+ * Done or Esc closes. It never makes a new chord: +, Copy to new chord and Save as new chord do.
  */
 export function ChordShapesEditor({ name, shape, clip, taken, renaming, onShape, onRename, onHear, onChangeChord, onClose }: {
   name: string;
