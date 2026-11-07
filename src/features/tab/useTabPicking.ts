@@ -16,7 +16,7 @@ import type { MarkHit } from './marks';
 import { removeMark } from './noteEdits';
 import { pitchAt } from './normalMode';
 import { writtenStrings } from './notation';
-import { movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { enterOnStaff, movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
 import type { FieldKind } from './WordField';
 import type { EditorState, Picked } from './useEditorState';
 import type { Notice } from './notice';
@@ -43,7 +43,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
   /**
@@ -273,12 +273,12 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
       // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).
-      const here = splitRestAt(clip, at, hit.at ?? 0);
-      const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
-      // The caret goes to the note pressed in, where the press was (Jeremy, 2026-11-07, issue #396).
-      toPitch(edit.clip, here.cursor, pitch);
-      if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
-      if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
+      // The caret goes on past the note by its length, as with A–G and Enter (Jeremy, 2026-11-07, issue #396).
+      const edit = enterOnStaff(clip, at, hit.at ?? 0, pitch, inputLength, false);
+      toPitch(edit.clip, edit.cursor, pitch);
+      setCursorAt(edit.cursor, edit.at);
+      if (edit.note) hearNote(edit.note);
+      if (edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
       toPitch(clip, at, pitch);
     } else {

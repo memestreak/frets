@@ -15,7 +15,7 @@ import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { isSpan } from './spans';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, pitchOf, pitchOfLetter, stepPitch, stringAtPitch, type TypedAccidental } from './staffEntry';
 import { STAFF_LINES } from './notation';
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
@@ -56,6 +56,8 @@ export interface EditorKeys {
   /** The tab is drawn (not the staff alone): ↓ off the staff's lowest note goes down to it. */
   tabShown: boolean;
   lastDigit: RefObject<LastDigit>;
+  /** A sign typed on the staff for the next letter (-, = or 0), or null. */
+  accidental: RefObject<TypedAccidental | null>;
   /** Each drawn line of tab's first and last column, for Shift+Home / End (worked out only when asked). */
   lines: () => Lines;
   /**
@@ -232,8 +234,12 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     if (normalKeyDown(e, editor)) handled();
     if (e.defaultPrevented) return;
   } else {
+    if (editor.staffPitch !== null && letterKeyDown(e, editor, editor.staffPitch)) {
+      handled();
+      return;
+    }
     // On the staff in note input a digit is the next note's length, as in MuseScore: 5 a quarter, 3 a
-    // sixteenth (8, 9 and 0 are none). It never types a fret there.
+    // sixteenth (8 and 9 are none; 0 is a natural, above). It never types a fret there.
     if (editor.staffPitch !== null && /^[0-9]$/.test(key) && plain) {
       handled();
       const value = valueForDigit(Number(key));
@@ -802,20 +808,40 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     return true;
   }
   if (chord) return false;
-  if ((key === '#' || key === 'b') && !e.altKey) {
-    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), null);
-    return true;
-  }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {
     // Inside a rest, the note goes where the cursor is in it (issue #293).
-    const here = splitRestAt(clip, cursor, editor.cursorAt);
-    const edit = toggleStaffNote(here.clip, here.cursor, pitch, editor.inputLength);
-    toPitch(edit.clip, here.cursor, pitch, editor.selection);
-    if (edit.string !== null) editor.hearNote({ ...here.cursor, string: edit.string });
-    if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
+    enterAtCaret(editor, pitch, true);
     return true;
   }
   return false;
+}
+
+/**
+ * A–G on the staff in note input enter that note, as Dorico's do (Jeremy, 2026-11-07, issue #396): the
+ * letter nearest the caret's pitch, in the key, or flat, sharp or natural when -, = or 0 came just before.
+ * True when the key was one of them.
+ */
+function letterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  const sign = ({ '-': -1, '=': 1, '0': 0 } as const)[e.key as '-' | '=' | '0'];
+  if (sign !== undefined && !e.shiftKey) {
+    editor.accidental.current = sign;
+    return true;
+  }
+  if (!/^[a-g]$/.test(e.key)) return false;
+  const typed = editor.accidental.current;
+  editor.accidental.current = null;
+  enterAtCaret(editor, pitchOfLetter(editor.clip, editor.cursor.bar, e.key, pitch, typed), false);
+  return true;
+}
+
+/** A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396). */
+function enterAtCaret(editor: EditorKeys, pitch: number, toggle: boolean) {
+  const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle);
+  editor.toPitch(edit.clip, edit.cursor, pitch, null);
+  editor.setCursorAt(edit.cursor, edit.at);
+  if (edit.note) editor.hearNote(edit.note);
+  if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
 }
 
 /**

@@ -31,7 +31,7 @@ import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
-import { pitchAtStep } from './staffEntry';
+import { pitchAtStep, type TypedAccidental } from './staffEntry';
 import { markBox, markTool } from './marks';
 import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
@@ -525,6 +525,9 @@ export default function TabPage() {
    * note input there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
    * beside the notes; on the staff, at the note's pitch or the line or space; on a rest, its column.
    */
+  /** A sign typed on the staff for the next letter in note input (Jeremy, 2026-11-07, issue #396). */
+  const accidentalRef = useRef<TypedAccidental | null>(null);
+
   const enterInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
     const on = hit ?? staff ?? rest;
     if (!on || !clip.bars[on.bar]?.columns[on.column]) {
@@ -713,7 +716,7 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),

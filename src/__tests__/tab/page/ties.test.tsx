@@ -142,7 +142,7 @@ describe('one Tied note alone (Alt+press)', () => {
   it('is listed in the ? overlay, with = and − for longer and shorter', () => {
     const listed = TAB_SHORTCUTS.flatMap(g => g.shortcuts);
     expect(listed.some(s => s.keys.includes('Alt+press'))).toBe(true);
-    expect(listed.filter(s => s.keys.includes('=') && s.keys.includes('−')).map(s => s.does)).toEqual(['Longer or shorter next note', 'Longer or shorter (the bar stays full)']);
+    expect(listed.filter(s => s.keys.includes('=') && s.keys.includes('−')).map(s => s.does)).toEqual(['Longer or shorter next note (on the staff, W and Q only)', 'Longer or shorter (the bar stays full)']);
   });
 });
 

@@ -58,8 +58,13 @@ The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
 `2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings, and ↑ past the top
 string goes up to the staff, as in normal mode. On the staff ↑ goes nowhere and ↓ comes back down to the
 tab, as Dorico's ↑ ↓ go between staves (Jeremy, 2026-11-07, issue #396; they moved the ghost a line or space
-before, and Ctrl/⌘+↑ ↓ do the same). Alt+↑ ↓ move the note at the caret's pitch, or with none there its
-ghost, for want of Dorico's letter keys; # and b move the ghost a semitone; Enter on the staff adds or takes away a note; → past a short bar
+before, and Ctrl/⌘+↑ ↓ do the same). On the staff A–G enter that note, as Dorico's do: the letter
+on the line or space nearest the caret's pitch, as the key has it (F♯ in G major); -, = or 0 typed just before
+make it flat, sharp or natural (Jeremy, 2026-11-07, issue #396; # and b moved the ghost a semitone before, and
+- and = there were Shorter and Longer). Every note made on the staff, by a letter, Enter or a press, moves the
+caret on past it by its length, as Dorico's does; a fret typed on the tab leaves the caret where it is, for a
+second digit or a chord. Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
+the staff adds a note or takes away the one there; → past a short bar
 adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
 line across the staff just left of where the next note goes, with that next note drawn there as a faint
 ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint

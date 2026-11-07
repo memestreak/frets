@@ -6,7 +6,8 @@
  * (issue #174, `docs/specs/2026-10-28-tab-staff-drag-design.md`), and to another string from the tab.
  * Pitches here are sounding MIDI numbers, as `notation.ts` reckons them. Pure.
  */
-import { keyAt, STRING_COUNT, type Part, type Column, type Duration, type Note } from './clip';
+import { keyAt, STRING_COUNT, ticks, type Part, type Column, type Duration, type Note } from './clip';
+import { advance, splitRestAt } from './grid';
 import { clearNote, columnAt, MAX_FRET, normalize, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { keyAccidentals, spellPitch } from '@/lib/theory/keys';
 import { LETTER_PCS } from '@/lib/theory/notes';
@@ -256,4 +257,39 @@ export function moveNotes(clip: Part, places: readonly Cursor[], move: PitchMove
     bars = bars.map((b, i) => (i === bar ? { ...b, columns } : b));
   }
   return { clip: normalize({ ...clip, bars }), string: moved[0]?.string ?? null, moved };
+}
+
+/** A sign typed before a letter in note input, as Dorico's: - a flat, = a sharp, 0 a natural. */
+export type TypedAccidental = -1 | 0 | 1;
+
+/**
+ * The pitch a letter key names in note input, as Dorico's A–G (Jeremy, 2026-11-07, issue #396): that
+ * letter on the line or space nearest `near`, as the key has it (F♯ in G major); with a sign typed first,
+ * that letter flat, natural or sharp instead.
+ */
+export function pitchOfLetter(clip: Part, bar: number, letter: string, near: number, sign: TypedAccidental | null): number {
+  const wanted = 'cdefgab'.indexOf(letter.toLowerCase());
+  const from = stepOf(clip, bar, near);
+  const up = (((wanted - (from + STEP_ZERO)) % 7) + 7) % 7;
+  const step = Math.max(LOWEST_STEP, Math.min(HIGHEST_STEP, up <= 3 ? from + up : from + up - 7));
+  const inKey = pitchOfStep(clip, bar, step);
+  if (sign === null) return inKey;
+  return inKey - keyAccidentals(keyAt(clip, bar))[wanted] + sign;
+}
+
+/**
+ * A note put on the staff in note input at the caret (`at` ticks into its column, splitting a rest there),
+ * and the caret on past it by its length, as Dorico's goes on (Jeremy, 2026-11-07, issue #396). A note
+ * already at the pitch is taken away when `toggle` (Enter), the caret staying; else it stays and the caret
+ * goes on past it.
+ */
+export function enterOnStaff(clip: Part, cursor: Cursor, at: number, pitch: number, length: Duration, toggle: boolean): StaffEdit & { cursor: Cursor; at: number; note: Cursor | null } {
+  const here = splitRestAt(clip, cursor, at);
+  const there = stringAtPitch(here.clip, here.cursor, pitch);
+  if (there !== null && toggle) return { ...toggleStaffNote(here.clip, here.cursor, pitch), cursor: here.cursor, at: 0, note: null };
+  const edit = there !== null ? { clip: here.clip, string: there } : toggleStaffNote(here.clip, here.cursor, pitch, length);
+  if (edit.string === null) return { ...edit, cursor: here.cursor, at: 0, note: null };
+  const column = edit.clip.bars[here.cursor.bar].columns[here.cursor.column];
+  const moved = advance(edit.clip, here.cursor, 0, ticks(column.duration));
+  return { clip: moved.clip, string: edit.string, cursor: moved.cursor, at: moved.at, note: { ...here.cursor, string: edit.string } };
 }

@@ -109,7 +109,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
-    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret on it (issue #396)', async () => {
+    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret on past it (issue #396)', async () => {
       await open();
       // Over the first column, a few lines above its heads.
       const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
@@ -122,9 +122,13 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
       fireEvent.pointerLeave(svg());
       expect(screen.queryByTestId('shadow-note')).toBeNull();
-      // The caret is on the note just entered, where the press was (Jeremy, 2026-11-07): Enter takes it away again.
+      // The caret goes on past the note by its length, as Dorico's (Jeremy, 2026-11-07): Enter adds the same pitch
+      // to the next column, and ← then Enter takes it away again.
       fireEvent.keyDown(editor(), { key: 'Enter' });
-      expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(5);
+      fireEvent.keyDown(editor(), { key: 'ArrowLeft' });
+      fireEvent.keyDown(editor(), { key: 'Enter' });
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
     });
 
     it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
@@ -225,6 +229,32 @@ describe('dragging notes on the staff (issue #174)', () => {
       const y = screen.getByTestId('input-cursor').getAttribute('y');
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('input-cursor').getAttribute('y')).not.toBe(y);
+    });
+
+    it('in note input a fret on the tab leaves the caret; A–G on the staff enter that note and move on, - = 0 first a flat, sharp or natural (issue #396)', async () => {
+      await open();
+      fireEvent.keyDown(editor(), { key: 'n' });
+      fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+      fireEvent.keyDown(editor(), { key: 'ArrowRight' });
+      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+      const box = () => screen.getByTestId('input-cursor').getAttribute('x');
+      const x = box();
+      fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
+      // A fret typed on the tab: the caret stays on it, for a second digit or a chord.
+      expect(box()).toBe(x);
+      fireEvent.keyDown(editor(), { key: 'ArrowUp', metaKey: true });
+      expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
+      const heads = screen.getAllByTestId('staff-head').length;
+      // The caret is on the 5 (A4): G is the nearest G, G4, added to its column, and the caret goes on past it.
+      fireEvent.keyDown(editor(), { key: 'g' });
+      // Then - and B: B♭, then = and F: F♯, each a note on.
+      fireEvent.keyDown(editor(), { key: '-' });
+      fireEvent.keyDown(editor(), { key: 'b' });
+      fireEvent.keyDown(editor(), { key: '=' });
+      fireEvent.keyDown(editor(), { key: 'f' });
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(heads + 3);
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(alphaTexText()).toContain('(7.5 5.6).4 3.4.4 (5.1 8.2).4 6.1.4 | 7.2.4 r.4 r.2 |');
     });
 
     it('in note input ↑ off the top string takes the caret up to the staff (issue #396)', async () => {
@@ -429,7 +459,7 @@ describe('note input’s staff cursor (issue #382)', () => {
 });
 
 describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
-  it('draws the caret’s line and ghost over a note just entered, and only the next note’s ghost at another pitch', async () => {
+  it('draws the caret’s line and ghost over a note at its own pitch; Enter moves the caret on past the note it adds', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(8), SLOW);
@@ -440,16 +470,18 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
     fireEvent.keyDown(editor(), { key: 'Enter' });
     await waitFor(() => expect(screen.getAllByTestId('staff-head')).toHaveLength(9));
-    // Over the note just entered, at its own pitch, the caret's line and its ghost: the caret always shows (issue #396).
+    fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+    expect(alphaTexText()).toMatch(/\| \S+\.4 r\.4 r\.2 \|/);
+    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
+    act(() => editor().focus());
+    // Back on the note just entered, at its own pitch: the caret's line and its ghost, as the caret always shows (issue #396).
+    fireEvent.keyDown(editor(), { key: 'ArrowLeft' });
     expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
-    // ↑ does nothing on the staff (Jeremy, 2026-11-07, issue #396); # moves the ghost off the note's pitch.
+    // ↑ does nothing on the staff (Jeremy, 2026-11-07, issue #396).
     const ghost = screen.getByTestId('staff-ghost').innerHTML;
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
     expect(screen.getByTestId('staff-ghost').innerHTML).toBe(ghost);
-    fireEvent.keyDown(editor(), { key: '#' });
-    expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
-    expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
 
   it('never moves the caret with the mouse: the caret and the mouse’s shadow note both show (issue #396)', async () => {
