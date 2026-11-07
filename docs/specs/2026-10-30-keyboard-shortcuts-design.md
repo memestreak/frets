@@ -28,7 +28,7 @@ module constant written next to the code that binds the keys:
 
 | Page | Groups | Bound in |
 |---|---|---|
-| Tab | Page, Moving on the tab, Note input, Selected notes, On the staff, Palette, Off the tab | `editorKeys.ts`, `TabPage.tsx`, `tools.ts` |
+| Tab | Page, Moving on the tab, Note input mode, Selected notes, On the staff, Palette, Off the tab | `editorKeys.ts`, `TabPage.tsx`, `tools.ts` |
 | Chords | Chords | `ChordsPage.tsx`, `ShapeGroups.tsx`, `ChordPickers.tsx` |
 | Triads | Triads | `Triads.tsx` |
 | Scale lab | Scale lab | `ScaleLab.tsx`, `DiatonicChords.tsx`, `PositionShapes.tsx` |

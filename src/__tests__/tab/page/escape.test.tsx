@@ -5,7 +5,7 @@ setUpPage();
 
 /** Esc leaves note input wherever the keys are on the page (Jeremy, 2026-11-03); an open panel takes it first. */
 describe('Esc always leaves note input', () => {
-  const pencil = () => screen.getByRole('button', { name: 'Note input' });
+  const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
   const inNoteInput = () => {
     renderAt();
     act(() => editor().focus());

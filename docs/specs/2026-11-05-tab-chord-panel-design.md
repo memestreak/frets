@@ -83,7 +83,7 @@ part of #368.
 - **Insert** Name | Notes | Both (Both by default; Q6): writes the chord
   over the cursor column, its shape as the column's notes, or both, as one
   column (strummed by its notes, not a stroke). A name inserted with no
-  definition gets one with the shape it was inserted with. In note input
+  definition gets one with the shape it was inserted with. In note input mode
   (Jeremy, 2026-11-06: the notes should "conform to whatever the note
   length was chosen by the digit key"), Notes and Both go in as a note
   typed does: a new column of the Input length at the cursor, over what is
@@ -171,7 +171,7 @@ Settled while building (my calls, open to change):
 - The panel has the list, + and Insert: no name field, no shapes; each
   chord has Edit; its uses, or ○ for an unused one.
 - A chord name's Edit, its Enter and its double-click open the Chords
-  panel and that chord's editor, the stored shape picked; not note input.
+  panel and that chord's editor, the stored shape picked; not note input mode.
 - Picking a chord in the list doesn't open its editor; its Edit and a
   double-click do.
 - The editor on G: Root G, Type major, Name empty (G follows), "Save
@@ -217,7 +217,7 @@ Settled while building (my calls, open to change):
 - With a chord picked, moving the cursor leaves the panel exactly as it
   was.
 - Insert Name, Notes and Both each write what they say at the cursor.
-- In note input with an eighth chosen, Insert Both on a quarter rest twice
+- In note input mode with an eighth chosen, Insert Both on a quarter rest twice
   writes two eighth C columns, named, then `r.4`; Notes writes the notes
   alone at an eighth; Name names the rest, a quarter still.
 - `parseLayout` reads `chords`.

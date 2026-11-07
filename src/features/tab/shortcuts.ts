@@ -11,7 +11,7 @@ const PAGE: ShortcutGroup = {
   shortcuts: [
     { keys: ['Space'], does: 'Play or stop' },
     { keys: ['L'], does: 'Loop points on or off, round the selection if there is one' },
-    { keys: ['N'], does: 'Note input on or off' },
+    { keys: ['N'], does: 'Note input mode on or off' },
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },
     { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut (leaving rests), paste over' },
@@ -39,7 +39,7 @@ const MOVING: ShortcutGroup = {
 };
 
 const INPUT: ShortcutGroup = {
-  title: 'Note input',
+  title: 'Note input mode',
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Next grid line in a rest, else the next note' },
     { keys: ['Shift+Space'], does: 'On by the next note’s length' },
@@ -53,7 +53,7 @@ const INPUT: ShortcutGroup = {
     { keys: [';'], does: 'Tuplet entry: pick a tuplet (the same again, or None, stops it)' },
     { keys: ['/'], does: 'Grace entry on or off: frets typed are grace notes' },
     { keys: ['Alt+1–4'], does: 'Make voice 1–4 active' },
-    { keys: ['Esc'], does: 'Leave note input' },
+    { keys: ['Esc'], does: 'Leave note input mode' },
   ],
 };
 

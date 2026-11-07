@@ -46,7 +46,7 @@ meter. An empty bar is drawn as one Whole-bar rest.
   (`<rest measure="yes"/>`). ASCII draws no rests, so it is unchanged.
 - A press on a Whole-bar rest picks the bar's rests together as one
   thing, even where the bar stores two. A fret typed on it puts the note
-  on beat 1. In note input a press on it snaps to note input's grid like
+  on beat 1. In note input mode a press on it snaps to note input mode's grid like
   any rest's, and ← → step through it by the grid
   (`2026-11-01-tab-note-input-grid-design.md`; Jeremy, 2026-11-03).
 - Multi-bar rests are unchanged: a run of empty bars still draws as one.
@@ -144,7 +144,7 @@ Step 4 has since done the first two (`docs/specs/2026-11-04-tab-bars-always-full
 - An empty bar draws one whole rest centred in the bar on the staff and
   under the tab, in 4/4, 3/4 and 5/8 (one `staff-rest` in 5/8, not two).
 - A press on a 5/8 Whole-bar rest selects both of its Columns; a fret
-  typed on it goes on beat 1. In note input a press over its second rest's
+  typed on it goes on beat 1. In note input mode a press over its second rest's
   place enters the note there.
 - MusicXML writes an empty 3/4 bar as one `<rest measure="yes"/>`;
   alphaTex writes it `r.2{d}`, unchanged.
