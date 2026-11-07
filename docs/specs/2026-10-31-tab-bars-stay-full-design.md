@@ -27,7 +27,7 @@ What is left is selected, as MuseScore leaves it (Jeremy, 2026-10-31: a staff no
 head lit; then, of keeping nothing selected or MuseScore's way, he chose MuseScore's): in normal mode, after Delete of a note the column it was in (its rest, or the chord's other
 notes) is selected and lit, with no note or staff head kept picked; after Ctrl/⌘+Delete, the column
 the cursor lands on; a cut keeps its rests selected; a paste or Insert paste selects what it put in.
-Note input keeps the cursor where it is, to type on.
+Note input mode keeps the cursor where it is, to type on.
 
 In normal mode a column with no note picked (a rest the arrows land on, or a chord with no string
 picked) is lit as a one-column selection is, never boxed (Jeremy, 2026-10-31: the box came back after a
@@ -42,7 +42,7 @@ Off the tab, with the playback line, Delete and Backspace follow the same rules
   pasted bar lines are not kept, so the clip's bars keep their lengths.
 - A column the paste covers only in part leaves the rest of its time as rests (the fewest that fill it).
 - A pasted note that would cross a bar line is split there and tied over (its marks stay on the first
-  part). A tuplet is not split: its bar runs over, as note input's long notes do.
+  part). A tuplet is not split: its bar runs over, as note input mode's long notes do.
 - A short bar's missing time is room too, before the paste goes on to the next bar.
 - Past the clip's end, bars of rests are added in the last bar's time.
 - Into an empty clip the pasted clip comes whole, with its name, time and tuning, as before.
@@ -54,4 +54,4 @@ Off the tab, with the playback line, Delete and Backspace follow the same rules
   reads the clipboard with `navigator.clipboard.readText`, which the browser may ask permission for;
   Ctrl/⌘+Shift+V needs none.
 - MuseScore keeps a whole-bar rest whole when a paste covers part of it; Frets splits it into the fewest
-  rests, as note input does.
+  rests, as note input mode does.

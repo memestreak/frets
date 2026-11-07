@@ -36,14 +36,14 @@ PR, or removes the file and its row when the behaviour is gone.
 | `notes-into-tuplet.atex` | Selected notes squeezed into a tuplet, a Gap left after it | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `pick-every-mark.atex` | A chord name, accent, fermata, bend, tie and time signature picked: Attachment lines and the notes' tint, and a signature's panel opened by Enter | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
 | `pick-spans.atex` | A let ring line picked and its end Handle dragged to join the next; a P.M. line deleted; a vibrato grown by Alt+Shift+→ | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
-| `rest-key-in-note-input.atex` | `,` in note input writes a rest of the Input length and moves the cursor on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
+| `rest-key-in-note-input.atex` | `,` in note input mode writes a rest of the Input length and moves the cursor on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `rests-follow-the-meter.atex` | Delete leaves a Gap written by the meter: rests that show each beat | `docs/specs/2026-11-03-tab-rests-are-gaps-design.md` |
 | `shift-press-grows.atex` | A Shift+press outside the selection grows it, keeping its start; inside it, it trims the end nearer the press | `docs/specs/2026-11-05-tab-shift-press-grows-design.md`, #366 |
 | `tie-chain-is-one-note.atex` | A press on any Tied note picks the whole Tie chain, and Delete takes all of it | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
-| `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
+| `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input mode | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tuplet-entry.atex` | Tuplet entry: a triplet typed note by note, the Tuplet button lit while it is on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `tuplet-on-a-note.atex` | A tuplet on one picked note takes its time, the bar staying full | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
-| `typed-note-ties-over.atex` | A note typed in note input past the bar line is tied over it | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
+| `typed-note-ties-over.atex` | A note typed in note input mode past the bar line is tied over it | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `voice-move.atex` | Alt+2 moves selected notes into voice 2; Select only voice › keeps one voice of a selection | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |
 | `voice-typing.atex` | N, Alt+2 and a fret make a second voice, Delete on its last note takes it away; a fret on a string voice 1 is sounding is refused | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |
 | `voices-drawn.atex` | A bass under a melody: stems by voice on the staff and the tab, notes starting together lined up, the other voice grey while editing | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |

@@ -77,11 +77,11 @@ only Voice 1 is laid out as now.
 - The cursor shows a small number for the Active voice beside it ("2")
   when it isn't Voice 1.
 - A press on a note, rest or Mark of any Voice picks it and makes its
-  Voice active. Note input starts in the Active voice.
+  Voice active. Note input mode starts in the Active voice.
 - When the cursor leaves the tab (Esc, or a press elsewhere), the Active
   voice goes back to Voice 1.
 - **The other Voices muted (Q6 b, Q22):** while the cursor or a pick is
-  on the tab, in normal mode and in note input, on the staff and on the
+  on the tab, in normal mode and in note input mode, on the staff and on the
   tab, the Active voice's notes, rests and Marks are drawn in ink and
   the other Voices' in `--line-strong` (lighter than `--ink-muted`).
   Notes selected in other Voices are still drawn selected, in
@@ -90,13 +90,13 @@ only Voice 1 is laid out as now.
 
 ## Keys (Q8, Q17)
 
-- **Alt+1–4**: with nothing picked or selected, or in note input, make
+- **Alt+1–4**: with nothing picked or selected, or in note input mode, make
   that Voice active at the cursor's time (the cursor moves to the same
   time in it, as `cursorAtTime` places it). With notes picked or
   selected in normal mode, move them into that Voice (below).
 - V stays Vibrato. There is no Shift+V and no other way to create a
   Voice: making an absent Voice active and typing creates it (Q17).
-- The `?` overlay lists Alt+1–4 under "Note input" ("Make voice 1–4
+- The `?` overlay lists Alt+1–4 under "Note input mode" ("Make voice 1–4
   active") and under "Selected notes and rests" ("Move to voice 1–4").
 
 ## Typing into an absent Voice (Q9)

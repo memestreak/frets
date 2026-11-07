@@ -29,7 +29,7 @@ yes to fixing it as a bug.
   on an empty bar, or Ctrl/⌘+Delete off the tab.
 - A tempo and a section are marks of the bar, and stay with it as before.
 - When something is written over a column (a longer note, a paste, a note
-  typed in note input over its time), its text, chord name, fermata and wah
+  typed in note input mode over its time), its text, chord name, fermata and wah
   move to the column now sounding at its start, usually the note that
   covers it (Jeremy, 2026-11-06, option 1 of: that note, the bar's start,
   the next column). A text joins one already there, `"a / b"`; a chord

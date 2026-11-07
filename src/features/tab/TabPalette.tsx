@@ -60,8 +60,8 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
           <span className="tab-palette-label" aria-hidden="true">Input</span>
           <div className="tab-palette-tools">
             <button
-              type="button" className="btn btn-secondary btn-toggle tab-tool" aria-label="Note input"
-              aria-pressed={!disabled && inputMode} disabled={disabled} data-tip="Note input (N)"
+              type="button" className="btn btn-secondary btn-toggle tab-tool" aria-label="Note input mode"
+              aria-pressed={!disabled && inputMode} disabled={disabled} data-tip="Note input mode (N)"
               // Keep the focus, and so the cursor, on the tab.
               onMouseDown={e => e.preventDefault()}
               onClick={onInputMode}

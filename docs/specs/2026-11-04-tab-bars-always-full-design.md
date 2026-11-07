@@ -61,7 +61,7 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
 
 ## Typing (A12, Q14)
 
-- **Note input**: a typed note longer than the room before the next note
+- **Note input mode**: a typed note longer than the room before the next note
   writes over what follows, split and tied by the meter, over bar lines
   too. It no longer runs over the bar. A fret typed on a Column that
   already holds a note joins its chord at the chord's length, as before.
@@ -197,7 +197,7 @@ No key is added or removed, so the `?` overlay is unchanged.
   `editorKeys.ts`, `useEditorState.ts`, `TabPage.tsx`, and its line in
   `src/lib/README.md`.
 - `editing_tests/`: add `insert-pushes.atex` (Insert and Ctrl/⌘+Delete
-  across a bar line) and `typed-note-ties-over.atex` (note input past the
+  across a bar line) and `typed-note-ties-over.atex` (note input mode past the
   bar line); update `longer-note-writes-over.atex` for runs
   (`.claude/skills/test-arrangement/`).
 - Update `public/tab-alphatex.txt` and `public/skills/frets-tab/SKILL.md`
@@ -210,11 +210,11 @@ Small points the questions didn't reach, decided by the rules above:
 - An edit that would put a tuplet across a bar line is refused, with "That
   would put a tuplet across a bar line." under the clip; so is a time
   signature change or Move extra that would.
-- In note input, a fret typed on the string of a lone note (not a chord's,
+- In note input mode, a fret typed on the string of a lone note (not a chord's,
   a tuplet's or a grace note) at another input length writes over at that
-  length, as Dorico's and MuseScore's note input do; on another string it
+  length, as Dorico's and MuseScore's note input mode do; on another string it
   joins the chord at the chord's length, as before.
-- In note input, ← and → step over the tied-on part of a note, the Tie
+- In note input mode, ← and → step over the tied-on part of a note, the Tie
   chain being one Sounding note.
 - A re-bar that reaches the clip's end drops the Gap after the last note,
   so changing 4/4 to 3/4 and back leaves no bar of rests.
@@ -229,10 +229,10 @@ Small points the questions didn't reach, decided by the rules above:
 
 `src/__tests__/tab/timeline.test.ts`, the editing tests and page tests:
 
-- Note input, input length a half, on beat 4 of a 4/4 bar of rests: a
+- Note input mode, input length a half, on beat 4 of a 4/4 bar of rests: a
   quarter on beat 4 tied to a quarter on beat 1 of the next bar; no bar is
   Uneven.
-- Note input, a half typed on beat 1 of `q q q q`: `h q q`; on beat 2 it
+- Note input mode, a half typed on beat 1 of `q q q q`: `h q q`; on beat 2 it
   writes over beats 2–3, leaving `q h q`.
 - A half typed over the first half of a whole note: `h rh`, the
   uncovered part a Gap, not tied on.
@@ -250,7 +250,7 @@ Small points the questions didn't reach, decided by the rules above:
 - Normal mode: a fret on a picked quarter rest is a quarter; on a 4/4
   Whole-bar rest a whole note; on 3/4's a dotted half; on 5/8's `q.` tied
   to `q`.
-- Insert in note input with input length an eighth on beat 2: an eighth
+- Insert in note input mode with input length an eighth on beat 2: an eighth
   Gap there, the rest of the Voice an eighth later across the bar line;
   normal mode on a picked quarter: a quarter later; with beats 2–3
   selected: a half later.
