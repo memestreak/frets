@@ -29,6 +29,11 @@ them, and a diagram under every chord name, or none.
   rest alike. Its only link to notes is the Chords panel's Insert. A double-click opens the chord editor
   in the Chords panel, as a double-click on the name or in the list does;
   so do Edit and Enter.
+- **The chart's chords edit too** (Jeremy, 2026-11-07). A press on a
+  chord in the Chord chart picks it (blue); a double-click, Enter or its
+  right-click menu's Edit opens its chord editor in the Chords panel, as a
+  diagram over the music does. A chord of another track shows that track
+  first. Esc or a press elsewhere lets it go.
 - **Which chords.** A chord whose `\chord` definition has a shape. A name
   with no definition ("E" typed, "N.C."), a definition with no strings or
   none played, and `showdiagram false` draw the name only.
@@ -78,6 +83,9 @@ them, and a diagram under every chord name, or none.
 - A picked chord tints no notes and no rest; its line ends on the top
   staff's top line (the staff in Both, the top string in Tab) at its
   column's x, over notes or a rest.
+- A press on a chart chord picks it and Esc lets it go; a double-click,
+  Enter and its right-click Edit open its chord editor; another track's
+  chord shows that track.
 - Free text is over the chord names.
 - The diagrams' row is there only when they are on; the tab moves down.
 - The drawing draws a diagram under each shaped name and none when off.

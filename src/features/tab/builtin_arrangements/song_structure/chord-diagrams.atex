@@ -17,7 +17,7 @@
 (0.1 1.2 2.3 2.4 0.5).2{ch "Am" txt "5. View options (the eye over the clip), or Settings, Tab, Notation: turn Chord diagrams off, then Chord chart off; each goes. Turn both on again"}
   (1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F"} |
 (3.1 0.2 0.3 0.4 2.5 3.6).2{ch "G" txt "6. Export: the PNG and SVG previews show the chart and the diagrams too"}
-  (0.1 1.2 0.3 2.4 3.5).2{ch "C"} |
+  (0.1 1.2 0.3 2.4 3.5).2{ch "C" txt "8. In the Chord chart, press F: it turns blue; Escape key lets it go. Double-click F, or press it and the Enter key, or right-click it and choose Edit: the Chords panel opens on F. Double-click D in the chart: Gtr II is shown, its panel open on D"} |
 r.1{ch "N.C." txt "7. Pick Gtr II in Track: the chart is the same, every track's chords together"} |
 \track "Gtr II"
 \chord ("Em" 0 0 0 2 2 0)

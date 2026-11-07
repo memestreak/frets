@@ -658,3 +658,6 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-editor-editor-svg :is(line, circle, text, rect:not(.chord-editor-hit)) { pointer-events: none; }
 .chord-editor-hit { fill: transparent; cursor: pointer; }
 .chord-editor-hit:hover { fill: var(--select-soft); }
+/* A Chord chart chord: picked, it is drawn blue, so it needs no outline (issue #242). */
+.tab-chart-chord { cursor: pointer; }
+.tab-chart-chord:focus { outline: none; }

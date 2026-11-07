@@ -51,7 +51,7 @@ import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type Tool
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
 import { ChordChart } from './ChordChart';
-import { chartChords } from './chordDiagrams';
+import { chartChords, type ChartChord } from './chordDiagrams';
 
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
@@ -379,6 +379,15 @@ export default function TabPage() {
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
     setRailPanel('chords');
     editorRef.current?.focus();
+  };
+  /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
+  const editChartChord = (chord: ChartChord) => {
+    const others = whole.tracks.map((_, i) => i).filter(i => i !== track);
+    const owner = chord.owner === 0 ? track : others[chord.owner - 1];
+    if (owner !== track) chooseTrack(owner);
+    setPicked(null);
+    setChordsAt({ name: chord.name });
+    setRailPanel('chords');
   };
   /** A picked thing's Edit: a chord name's Chords panel, a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
@@ -1053,7 +1062,7 @@ export default function TabPage() {
                 onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
               />
               </HoverTips>
-              <ChordChart chords={chart} width={clipWidth} />
+              <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} />
             </>
             : <>
               {/* The page keeps its heading for screen readers. */}

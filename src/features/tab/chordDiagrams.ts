@@ -43,22 +43,27 @@ function* columnsOf(part: Part): Iterable<Column> {
   }
 }
 
+/** A chord of the Chord chart, and whose it is: 0 the shown track, 1 on its other tracks in order (`Part.alongside`). */
+export interface ChartChord extends ShapedChord {
+  owner: number;
+}
+
 /**
  * The Chord chart: every chord the music names that has a diagram, once, in the order first named,
  * the shown track's first and then the other tracks' (spec Q2: every track's together). Two tracks'
  * chords of one name and shape are one; of one name and different shapes, both.
  */
-export function chartChords(part: Part): ShapedChord[] {
-  const chart: ShapedChord[] = [];
+export function chartChords(part: Part): ChartChord[] {
+  const chart: ChartChord[] = [];
   const seen = new Set<string>();
-  for (const track of [part, ...(part.alongside ?? [])]) {
+  for (const [owner, track] of [part, ...(part.alongside ?? [])].entries()) {
     for (const column of columnsOf(track)) {
       if (!column.chord) continue;
       const chord = diagramOf(track, column.chord);
       const key = chord && `${chord.name}|${chord.shape.join(',')}`;
       if (!chord || seen.has(key!)) continue;
       seen.add(key!);
-      chart.push(chord);
+      chart.push({ ...chord, owner });
     }
   }
   return chart;
