@@ -36,7 +36,7 @@ import { markBox, markTool } from './marks';
 import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
-import { TabClip } from './TabClip';
+import { TabClip, type DoubleClickPlace } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
@@ -520,6 +520,35 @@ export default function TabPage() {
     }
   };
 
+  /**
+   * Goes into note input with the caret where a double-click landed, as Dorico's double-click starts
+   * note input there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
+   * beside the notes; on the staff, at the note's pitch or the line or space; on a rest, its column.
+   */
+  const enterInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
+    const on = hit ?? staff ?? rest;
+    if (!on || !clip.bars[on.bar]?.columns[on.column]) {
+      setSelection(null);
+      enterInput(true);
+      return;
+    }
+    const at = { bar: on.bar, column: on.column, string: hit?.string ?? staff?.string ?? cursor.string };
+    setInputMode(true);
+    setSelection(null);
+    setPicked(null);
+    setCursorAt(at, 0);
+    setInputLength(startLength(clip, at));
+    if (staff) {
+      const note = staff.string === null ? null : noteAt(clip, at);
+      toPitch(clip, at, note && note.fret !== null ? writtenStrings(clip.tuning)[at.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, at.bar, staff.step));
+    } else {
+      setCursor(at);
+      setColumnOnly(!hit);
+      setStaffPitch(null);
+    }
+    editorRef.current?.focus();
+  };
+
   // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
     if (view !== 'tab') return;
@@ -898,12 +927,11 @@ export default function TabPage() {
     onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
     // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
-    // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
-    onDoubleClick: (word: TextHit | null, onMark: boolean) => {
+    // on the staff or the tab goes into it (Jeremy, 2026-10-31) with the caret where it landed (2026-11-07).
+    onDoubleClick: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => {
       if (word && hasEdit(word)) return editPicked(word);
       if (word || onMark || inputMode) return;
-      setSelection(null);
-      enterInput(true);
+      enterInputAt(place);
     },
   });
 

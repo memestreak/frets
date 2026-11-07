@@ -55,9 +55,11 @@ is Bend, as on the tab.
 ## Note input
 
 The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
-`2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings or, on the staff,
-lines and spaces, and ↑ past the top string goes up to the staff, as in normal mode (Jeremy, 2026-11-07,
-issue #396; Ctrl/⌘+↓ comes back down); Alt+↑ ↓ move notes; Enter on the staff adds or takes away a note; → past a short bar
+`2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings, and ↑ past the top
+string goes up to the staff, as in normal mode. On the staff ↑ goes nowhere and ↓ comes back down to the
+tab, as Dorico's ↑ ↓ go between staves (Jeremy, 2026-11-07, issue #396; they moved the ghost a line or space
+before, and Ctrl/⌘+↑ ↓ do the same). Alt+↑ ↓ move the note at the caret's pitch, or with none there its
+ghost, for want of Dorico's letter keys; # and b move the ghost a semitone; Enter on the staff adds or takes away a note; → past a short bar
 adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
 line across the staff just left of where the next note goes, with that next note drawn there as a faint
 ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint
@@ -67,7 +69,9 @@ goes too, since the mouse is placing the note. On a note the line stays off it, 
 caret's pitch nothing is drawn.
 
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input, a double-click on the staff or the
-  tab goes into note input, as N does; in note input it does nothing more.
+  tab goes into note input with the caret where it landed, as Dorico's does (Jeremy, 2026-11-07, issue #396):
+  on a fret, on that note; beside the notes on a string, on that string at that column; on the staff, at the
+  note's pitch or the line or space. In note input it does nothing more.
 - **Going in on a picked note puts the caret on it** (Jeremy, 2026-11-07, issue #396), as Dorico's caret
   starts on the note selected: its string picked on the tab, or its pitch on the staff, so digits retype it.
 - **Off a note no string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,

@@ -91,11 +91,11 @@ const PICKED: ShortcutGroup = {
 const STAFF: ShortcutGroup = {
   title: 'On the staff',
   shortcuts: [
-    { keys: ['Up', 'Down'], does: 'Line or space up or down' },
-    { keys: ['Shift+Up', 'Shift+Down', '#', 'b'], does: 'A semitone up or down' },
+    { keys: ['Down'], does: 'Back down to the tab' },
+    { keys: ['Alt+Up', 'Alt+Down'], does: 'Move the note at the caret a line or space (no note: its ghost)' },
+    { keys: ['Alt+Shift+Up', 'Alt+Shift+Down'], does: 'The same, a semitone' },
+    { keys: ['#', 'b'], does: 'The ghost a semitone up or down' },
     { keys: ['Enter'], does: 'Add or take away the note' },
-    { keys: ['Alt+Up', 'Alt+Down'], does: 'Move the note a line or space' },
-    { keys: ['Alt+Shift+Up', 'Alt+Shift+Down'], does: 'Move the note a semitone' },
     { keys: ['Alt+Mod+Up', 'Alt+Mod+Down'], does: 'Move the whole chord' },
     { keys: ['1–7'], does: 'Length (5 a quarter)' },
   ],

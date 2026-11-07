@@ -67,6 +67,13 @@ export const MUTED_VOICE_INK = 'var(--line-strong)';
 /** How strongly the mouse's shadow note and box are drawn in note input: fainter than the caret's ghost (0.45). */
 const MOUSE_SHADOW = 0.25;
 
+/** Where a double-click landed: a place on a string, on the staff, or a rest or stem. */
+export interface DoubleClickPlace {
+  hit: Hit | null;
+  staff: StaffHit | null;
+  rest: { bar: number; column: number } | null;
+}
+
 export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
   clip: Part;
   /**
@@ -144,7 +151,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * on a mark (issue #238: on nothing of these it goes into note input, as MuseScore's does; issue #289:
    * on a word with an Edit it opens its field).
    */
-  onDoubleClick?: (word: TextHit | null, onMark: boolean) => void;
+  onDoubleClick?: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => void;
   /**
    * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
@@ -508,7 +515,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     <svg
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
-      className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark } = target(e); onDoubleClick(text, !!mark); } : undefined}
+      className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark, hit, staff, rest } = target(e); onDoubleClick(text, !!mark, { hit, staff, rest }); } : undefined}
       onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
       onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}

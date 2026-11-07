@@ -729,12 +729,7 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   return false;
 }
 
-/**
- * The keys the staff cursor takes (issue #136, #174): ↑ ↓ a line or space in the key, Shift+↑ ↓ (or #
- * and b) a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
- * space, with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the cursor goes with it. True when
- * the key was one of them.
- */
+/** ⌘/Ctrl+↑ ↓ in note input: the caret up to the staff or back down to the tab. True when it was one. */
 function staffOrTabKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   // In note input with the staff and the tab both drawn, ⌘/Ctrl+↑ takes the caret up to the staff and
   // ⌘/Ctrl+↓ back down to the tab, so the keys alone go between them (Jeremy, 2026-11-06, issue #396).
@@ -767,6 +762,12 @@ function toTab(editor: EditorKeys) {
   editor.setColumnOnly(false);
 }
 
+/**
+ * The keys the staff caret takes in note input (issue #136, #174, #396): ↓ back down to the tab; # and b
+ * the ghost a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
+ * space (no note there: the ghost), with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the caret
+ * goes with it. True when the key was one of them.
+ */
 function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
   const { clip, cursor, toPitch } = editor;
   const { key } = e;
@@ -775,7 +776,14 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     const up = key === 'ArrowUp';
     if (e.altKey) {
       const move = { steps: up ? 1 : -1, semitones: e.shiftKey };
-      const edit = moveNotes(clip, notesToMove(clip, cursor, pitch, null, chord), move);
+      const places = notesToMove(clip, cursor, pitch, null, chord);
+      if (!places.length) {
+        // No note at the caret's pitch: Alt moves its ghost instead, a line or space (with Shift a
+        // semitone), for want of Dorico's letter keys (Jeremy, 2026-11-07, issue #396).
+        if (!chord) toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
+        return true;
+      }
+      const edit = moveNotes(clip, places, move);
       if (edit.problem) {
         editor.onNotice({ tone: 'error', lines: [edit.problem] });
         return true;
@@ -788,8 +796,9 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
       return true;
     }
     if (chord) return false;
-    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
-    toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
+    // ↑ ↓ go between the staff and the tab, as Dorico's go between staves: ↓ back down to the tab, ↑ nowhere
+    // above it (Jeremy, 2026-11-07, issue #396; they moved the ghost before).
+    if (!up && !e.shiftKey && editor.tabShown) toTab(editor);
     return true;
   }
   if (chord) return false;

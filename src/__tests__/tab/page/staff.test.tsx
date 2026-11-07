@@ -215,8 +215,8 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'ArrowUp', metaKey: true });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
-      // The staff has the keys: ↑ steps a line or space, the ghost showing off the note.
-      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      // The staff has the keys: Alt+↑ steps the ghost a line or space.
+      fireEvent.keyDown(editor(), { key: 'ArrowUp', altKey: true });
       expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
       fireEvent.keyDown(editor(), { key: 'ArrowDown', ctrlKey: true });
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
@@ -235,6 +235,13 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
+      // On the staff ↑ goes nowhere and ↓ comes back down to the tab, as Dorico's go between staves.
+      const ghost = screen.getByTestId('staff-ghost').innerHTML;
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      expect(screen.getByTestId('staff-ghost').innerHTML).toBe(ghost);
+      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     });
 
     it('in normal mode ↑ ↓ go string by string and note by note, between the tab and the staff (issue #396)', async () => {
@@ -436,7 +443,11 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     // Over the note just entered, at its own pitch, the caret's line and its ghost: the caret always shows (issue #396).
     expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
+    // ↑ does nothing on the staff (Jeremy, 2026-11-07, issue #396); # moves the ghost off the note's pitch.
+    const ghost = screen.getByTestId('staff-ghost').innerHTML;
     fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+    expect(screen.getByTestId('staff-ghost').innerHTML).toBe(ghost);
+    fireEvent.keyDown(editor(), { key: '#' });
     expect(screen.getByTestId('staff-ghost')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-caret')).toBeNull();
   });
@@ -463,9 +474,9 @@ describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
     expect(ghostY()).toBe(before);
     // The mouse's shadow is fainter than the caret's ghost.
     expect(Number(screen.getByTestId('shadow-note').getAttribute('opacity'))).toBeLessThan(Number(screen.getByTestId('staff-ghost').getAttribute('opacity')));
-    // ↑ moves the caret's ghost, not the mouse's.
+    // Alt+↑ moves the caret's ghost (no note at its pitch), not the mouse's.
     const shadowAt = screen.getByTestId('shadow-note').innerHTML;
-    fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+    fireEvent.keyDown(editor(), { key: 'ArrowUp', altKey: true });
     expect(ghostY()).not.toBe(before);
     expect(screen.getByTestId('shadow-note').innerHTML).toBe(shadowAt);
     fireEvent.pointerLeave(svg);

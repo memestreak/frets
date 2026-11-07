@@ -53,6 +53,35 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
   });
 
+  it('a double-click on a fret, or beside the notes on a string, goes into note input with the caret there (issue #396)', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+    await open();
+    const read = readAlphaTexWith(alphaTab, THREE_BARS);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+    const xs = bars.flatMap(b => b.columns.map(c => c.x));
+    const svg = () => screen.getByRole('img', { name: /drawn as/ });
+    const at = (column: number, string: number) => ({ clientX: xs[column], clientY: top + rows.staffTop + string * 14, button: 0 });
+    const doubleClick = (place: ReturnType<typeof at>) => {
+      fireEvent.pointerDown(svg(), place);
+      fireEvent.pointerUp(svg(), place);
+      fireEvent.doubleClick(svg(), place);
+    };
+    const pencil = () => screen.getByRole('button', { name: /^Note input( mode)?$/ });
+    // On the second 7: the caret on it, so a digit retypes it.
+    doubleClick(at(1, 0));
+    expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    keys('9');
+    expect(alphaTex()).toMatch(/^5.1.2 9.1.2 \|/);
+    keys('Escape');
+    // On the D string under the first 5, where there is no note: the caret there, and a digit adds one.
+    doubleClick(at(0, 3));
+    expect(pencil()).toHaveAttribute('aria-pressed', 'true');
+    keys('4');
+    expect(alphaTex()).toMatch(/^\(5.1 4.4\).2 9.1.2 \|/);
+  });
+
   it('in normal mode a fret number dragged to another string keeps its pitch; off the drawing it goes back', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
     await open();
