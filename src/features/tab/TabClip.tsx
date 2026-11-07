@@ -654,18 +654,26 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             </g>
           ))}
           {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
-            // The Grid over the caret's bar and, as Dorico draws it, over the bar under the mouse too, on the staff and the tab.
-            const bars = new Set([highlight.cursor!.bar, ...(hover?.system === si ? [hover.bar] : [])]);
-            const top = rows.score ? rows.score.top : rows.staffTop;
-            const bottom = rows.staffBottom;
-            return system.bars.filter(b => bars.has(b.index)).map(placed => {
+            // The Grid over the part the caret is on, the staff or the tab (Jeremy, 2026-11-07), and, as Dorico
+            // draws it, over the bar under the mouse too, on the part the mouse is over (issue #396).
+            const onStaff = (staff: boolean) => (rows.score && rows.tab ? staff : !!rows.score);
+            const wanted = [{ bar: highlight.cursor!.bar, staff: onStaff(highlight.staffPitch != null) }];
+            if (hover?.system === si) wanted.push({ bar: hover.bar, staff: onStaff(hover.step !== null) });
+            const grids = wanted.filter((w, k) => wanted.findIndex(o => o.bar === w.bar && o.staff === w.staff) === k);
+            return grids.map(({ bar, staff }) => {
+              const placed = system.bars.find(b => b.index === bar);
+              if (!placed) return null;
               const lines = gridLines(placed, gridStep);
+              const top = staff ? rows.score!.top : rows.staffTop;
+              const bottom = staff ? rows.score!.bottom : rows.staffBottom;
+              // Over the tab the ruler sits a little higher, clear of the top string's numbers.
+              const rule = top - (staff ? 9 : 14);
               return (
-                <g key={placed.index} pointerEvents="none" data-testid="grid-lines" data-bar={placed.index} data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                <g key={`${bar}:${staff}`} pointerEvents="none" data-testid="grid-lines" data-bar={bar} data-part={staff ? 'staff' : 'tab'} data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
                   {gridLook === 'ruler' && (
                     <>
-                      <line x1={placed.x0} x2={placed.x1} y1={top - 9} y2={top - 9} strokeWidth={0.75} strokeOpacity={0.6} />
-                      {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={top - 9} y2={top - (l.beat ? 15 : 12)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
+                      <line x1={placed.x0} x2={placed.x1} y1={rule} y2={rule} strokeWidth={0.75} strokeOpacity={0.6} />
+                      {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={rule} y2={rule - (l.beat ? 6 : 3)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
                     </>
                   )}
                   {gridLook === 'lines' && lines.map((l, k) => (

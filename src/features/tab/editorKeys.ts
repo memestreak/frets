@@ -628,19 +628,19 @@ function typeEntered(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, 
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
  * chord. ← → select the next or last column, on the same string when it has a note there, and add
- * nothing. A digit on a tab note still types its fret (Jeremy, 2026-10-30). True when the key was one of them.
+ * nothing. A digit never types a fret here, on the tab either: frets are typed in note input, as in Dorico
+ * (Jeremy, 2026-11-07, issue #396). True when the key was one of them.
  */
 function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const { clip, cursor, selection, target, columnOnly, staffPitch, commit } = editor;
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  // A column picked by itself (a rest, or a stem under the tab alone) takes the length digits in every
-  // view: with no string picked there is no fret for a digit to type (issue #290).
-  const columnPicked = columnOnly && !!columnAt(clip, cursor);
-  if ((onStaff || columnPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A digit sets the length of what is picked, a note on the staff or the tab, a rest or a stem (issue #290),
+  // as Dorico's duration keys do on a selection; it never types a fret (Jeremy, 2026-11-07, issue #396).
+  if (/^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
-    if (value) commit(setValue(clip, target, value));
+    if (value && (selection || columnAt(clip, cursor))) commit(setValue(clip, target, value));
     return true;
   }
   if (key === 'ArrowUp' || key === 'ArrowDown') {

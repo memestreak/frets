@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { type Clip, partOf } from '@/features/tab/clip';
-import { setUpPage, OTHER, renderAt, alphaTexText, SLOW, TEX, undo, pageClip } from './helpers';
+import { setUpPage, OTHER, renderAt, alphaTexText, SLOW, TEX, undo, pageClip, openWith } from './helpers';
 
 setUpPage();
 
@@ -293,11 +293,10 @@ describe('TabPage playback', () => {
     expect(field).toHaveValue('120');
   });
 
-  it('puts the line between columns at a press just above or below the drawing, with the controls hidden', () => {
-    renderAt();
+  it('puts the line between columns at a press just above or below the drawing, with the controls hidden', async () => {
+    await openWith('5.1.1 |\n7.1.1 |');
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
-    act(() => editor.focus());
-    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    fireEvent.keyDown(editor, { key: 'ArrowRight', ctrlKey: true });
     act(() => editor.blur());
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     // jsdom puts the drawing at 0, 0: 10 px above it, over the first bar.
@@ -314,11 +313,10 @@ describe('TabPage playback', () => {
     expect(screen.queryByTestId('play-mark')).toBeNull();
   });
 
-  it('drops the line on a press off the drawing, as any selection goes, and keeps it for the controls', () => {
-    renderAt();
+  it('drops the line on a press off the drawing, as any selection goes, and keeps it for the controls', async () => {
+    await openWith('5.1.1 |\n7.1.1 |');
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
-    act(() => editor.focus());
-    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    fireEvent.keyDown(editor, { key: 'ArrowRight', ctrlKey: true });
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     expect(screen.getByTestId('play-mark')).toBeInTheDocument();
     // Play and the other controls keep it, so they start from it (Jeremy, 2026-11-01: any selection).
@@ -328,11 +326,10 @@ describe('TabPage playback', () => {
     expect(screen.queryByTestId('play-mark')).toBeNull();
   });
 
-  it('lets the tab cursor go when the line is placed, filling its bar', () => {
-    renderAt();
+  it('lets the tab cursor go when the line is placed, filling its bar', async () => {
+    await openWith('5.1.1 |\n7.1.1 |');
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
-    act(() => editor.focus());
-    for (const key of ['5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
+    fireEvent.keyDown(editor, { key: 'ArrowRight', ctrlKey: true });
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
     expect(screen.queryByTestId('tab-cursor')).toBeNull();

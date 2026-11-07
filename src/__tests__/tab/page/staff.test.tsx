@@ -161,14 +161,15 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('selected-note')).toBeNull();
     });
 
-    it('a double-click on the staff or the tab goes into note input, picking nothing (Jeremy, 2026-10-31)', async () => {
+    it('a double-click on the staff or the tab goes into note input, the caret on the note pressed (Jeremy, 2026-10-31, 2026-11-07)', async () => {
       await open();
       const pencil = () => tool('Note input');
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
       press(headAt(0));
       fireEvent.doubleClick(svg(), headAt(0));
       expect(pencil()).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.queryByTestId('staff-cursor')).toBeNull();
+      // On the staff, as Dorico's caret starts on the note selected; nothing on the tab.
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
       // In note input a double-click changes nothing; N goes back out.
       fireEvent.doubleClick(svg(), headAt(0));
@@ -231,12 +232,11 @@ describe('dragging notes on the staff (issue #174)', () => {
       press(headAt(2));
       expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
       expect(screen.queryByTestId('selected-note')).toBeNull();
-      // Going into note input picks nothing on either part (Jeremy, 2026-10-31).
+      // Going into note input puts the caret on the note pressed, on the staff (Jeremy, 2026-11-07); nothing on the tab.
       fireEvent.keyDown(editor(), { key: 'n' });
-      // Nothing picked: only the caret's line on the tab, on the column with no string (issue #396).
       expect(screen.queryByTestId('staff-selected')).toBeNull();
-      expect(screen.queryByTestId('staff-cursor')).toBeNull();
-      expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      expect(screen.queryByTestId('tab-caret')).toBeNull();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
       // A press on the staff gives it the keys again, and only it lights: the caret's line and ghost on the
       // note pressed, as the caret always shows (issue #396), then the pitch's ghost once ↑ moves off it.

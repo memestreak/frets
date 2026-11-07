@@ -83,8 +83,8 @@ describe('a Tie chain is one note', () => {
     expect(Math.abs(cursorX() - spot(OVER, 3, 0).clientX)).toBeLessThan(13);
     // The tied (7) past the bar line is drawn picked too.
     expect(screen.getAllByTestId('tied-note')).toHaveLength(1);
-    // A fret typed there changes both, and keeps the tie.
-    keys('9');
+    // In note input mode, which starts on it (Jeremy, 2026-11-07), a fret typed there changes both, and keeps the tie.
+    keys('n', '9');
     expect(alphaTex()).toBe('5.1.4 5.1.4 5.1.4 9.1.4 |\n-.1.4 r.4 r.2 |');
   });
 
@@ -93,7 +93,7 @@ describe('a Tie chain is one note', () => {
     const INSIDE = '5.1.4 -.1.8 r.8 r.2 |';
     await open(INSIDE, 'both');
     press(INSIDE, 1, 0, { parts: 'both' });
-    keys('7');
+    keys('n', '7');
     expect(alphaTex()).toBe('7.1.4 -.1.8 r.8 r.2 |');
   });
 

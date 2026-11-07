@@ -75,15 +75,15 @@ const savedFixed = () => JSON.parse(localStorage.getItem(EDITING_KEY) ?? '{}').f
 describe('note input’s grid (issue #293)', () => {
   it('by default follows note input’s length: → steps a quarter at a time through a rest after a quarter', async () => {
     await open();
-    // Note input, the high e picked; → onto the rest, then two quarters into it.
-    keys('n', 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    // Note input on the 5, its high e picked (Jeremy, 2026-11-07); → onto the rest, then two quarters into it.
+    keys('n', 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     expect(bar()).toBe('5.1.4 r.4 r.4 7.1.4 |');
   });
 
   it('with the fixed grid on (Alt+G), → stops on each 16th inside a rest, and a note typed there goes in at that point', async () => {
     await open();
-    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    keys('n', altKey('KeyG'), 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     // The meter writes the quarter across the bar's middle as two tied 8ths, and the rests after it on the beat.
     expect(bar()).toBe('5.1.4 r.8 7.1.8 -.1.8 r.8 r.4 |');
@@ -91,7 +91,7 @@ describe('note input’s grid (issue #293)', () => {
 
   it('← comes back into a rest at its last grid line, and steps back through it', async () => {
     await open();
-    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
+    keys('n', altKey('KeyG'), 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
     // From the 7 back into the eighth rest before it: its second 16th. Two 16ths shorter, then 9.
     keys('ArrowLeft', '-', '-', '9');
     expect(bar()).toBe('5.1.4 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
@@ -104,7 +104,7 @@ describe('note input’s grid (issue #293)', () => {
 
   it('Shift+Space moves on by the next note’s length, over notes and into rests', async () => {
     await open();
-    keys('n', 'ArrowDown', { key: ' ', shiftKey: true });
+    keys('n', { key: ' ', shiftKey: true });
     // A quarter on from the first note is the rest's start; an eighth on from there is inside it.
     keys('-', { key: ' ', shiftKey: true }, '7');
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
@@ -143,9 +143,9 @@ describe('note input’s grid (issue #293)', () => {
     keys('n');
     expect(gridBars()).toEqual([0]);
     fireEvent.pointerMove(svg, over(1));
-    // As Dorico draws it: the Grid over the hovered bar too, the caret's line where it was, the mouse's faint box.
+    // As Dorico draws it: the Grid over the hovered bar too, the caret's box on the 5 where it was, the mouse's faint box.
     expect(gridBars()).toEqual([0, 1]);
-    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
     fireEvent.pointerLeave(svg);
     expect(gridBars()).toEqual([0]);
@@ -183,11 +183,8 @@ describe('note input’s grid (issue #293)', () => {
 
   it('draws the caret’s line on the tab on a column with no string picked, wherever the mouse is (issue #396)', async () => {
     const { svg, over } = await openTwoBars();
-    // A press above the first bar's rest picks its column, no string.
-    fireEvent.pointerDown(svg, { ...over(0), clientY: 1, button: 0 });
-    fireEvent.pointerUp(svg, { ...over(0), clientY: 1, button: 0 });
-    fireEvent.pointerLeave(svg);
-    keys('n');
+    // → onto the first bar's rest picks its column, no string.
+    keys('ArrowRight', 'n');
     expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
     fireEvent.pointerMove(svg, over(1));
     expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
@@ -201,7 +198,7 @@ describe('note input’s grid (issue #293)', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
     // The bars moved under the still mouse: its Grid and box wait for it to move again.
     expect(gridBars()).toEqual([0]);
-    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
   it('out of note input, → moves a column at a time, as before', async () => {

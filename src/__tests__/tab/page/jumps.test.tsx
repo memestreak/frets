@@ -3,7 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { layoutClip } from '@/features/tab/layout';
 import { partOf } from '@/features/tab/clip';
-import { setUpPage, renderAt, SLOW, undo, litFrets, isLit, editor, keys, alphaTex } from './helpers';
+import { setUpPage, renderAt, SLOW, undo, litFrets, isLit, editor, keys, alphaTex, openWith } from './helpers';
 
 setUpPage();
 
@@ -102,6 +102,36 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
   });
 
+  it('a fret pressed in normal mode is picked, not retyped; in note input mode a press on a note puts the caret on it to retype (Jeremy, 2026-11-07)', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
+    await open();
+    const read = readAlphaTexWith(alphaTab, THREE_BARS);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+    const xs = bars.flatMap(b => b.columns.map(c => c.x));
+    // The drawing is made again each time alphaTex() goes to the text view and back.
+    const svg = () => screen.getByRole('img', { name: /drawn as/ });
+    const press = (column: number, string: number) => {
+      const at = { clientX: xs[column], clientY: top + rows.staffTop + string * 14, button: 0 };
+      fireEvent.pointerDown(svg(), at);
+      fireEvent.pointerUp(svg(), at);
+    };
+    // The fifth column's 3, on the B string: picked, and a digit doesn't retype it.
+    press(4, 1);
+    expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+    keys('9');
+    expect(alphaTex()).toContain('3.2.2');
+    // N puts the caret on it, its string picked: a digit retypes it.
+    keys('n');
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    keys('9');
+    expect(alphaTex()).toContain('9.2');
+    // A press on another note in note input mode moves the caret onto it, to retype too.
+    press(0, 0);
+    keys('8');
+    expect(alphaTex().split('\n')[0]).toMatch(/^8\.1\.2 7\.1\.2/);
+  });
+
   it('in note input a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
     await open();
@@ -166,7 +196,8 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
 
   it('Ctrl/⌘+← → move a bar at a time, Ctrl/⌘+Home / End to the clip’s ends', async () => {
     await open();
-    keys({ key: 'ArrowRight', ctrlKey: true }, '1');
+    // In note input mode, where digits type frets (Jeremy, 2026-11-07), on the first note's string.
+    keys('n', { key: 'ArrowRight', ctrlKey: true }, '1');
     expect(alphaTex().split('\n')[1]).toBe('1.1.2 9.1.2 |');
     keys({ key: 'ArrowRight', metaKey: true }, { key: 'ArrowRight', ctrlKey: true }, '2');
     expect(alphaTex().split('\n')[2]).toBe('(2.1 3.2).2 5.2.2 |');
@@ -205,24 +236,22 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(copied()).toBe('5.1.2 7.1.2 |\n8.1.2 |');
   });
 
-  it('W and Q make a note longer and shorter, as + and − do', () => {
-    renderAt();
-    act(() => editor().focus());
-    // A fret on the Whole-bar rest is a whole note (step 4).
-    keys('5', 'q');
+  it('W and Q make a note longer and shorter, as + and − do', async () => {
+    await openWith('5.1.1 |');
+    keys('q');
     // The time given up is a rest; longer again, the note writes over it (issue #290).
     expect(alphaTex()).toBe('5.1.2 r.2 |');
     keys('q', 'w', 'w');
     expect(alphaTex()).toBe('5.1.1 |');
   });
 
-  it('Ctrl+Y redoes, as Ctrl+Shift+Z does', () => {
-    renderAt();
-    act(() => editor().focus());
+  it('Ctrl+Y redoes, as Ctrl+Shift+Z does', async () => {
+    await openWith('5.1.1 |');
     keys('5');
+    expect(alphaTex()).toBe('5.1.4 r.4 r.2 |');
     undo();
-    expect(alphaTex()).toBe('|');
-    fireEvent.keyDown(document.body, { key: 'y', ctrlKey: true });
     expect(alphaTex()).toBe('5.1.1 |');
+    fireEvent.keyDown(document.body, { key: 'y', ctrlKey: true });
+    expect(alphaTex()).toBe('5.1.4 r.4 r.2 |');
   });
 });

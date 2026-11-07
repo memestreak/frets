@@ -509,10 +509,13 @@ export default function TabPage() {
       }
       setPicked(null);
       setInputLength(startLength(clip, at));
-      // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
-      // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
-      setColumnOnly(true);
-      setStaffPitch(null);
+      // On a note pressed in normal mode, the caret goes onto it, its string (or its pitch on the staff) picked,
+      // so digits retype it, as Dorico's caret starts on the note selected (Jeremy, 2026-11-07, issue #396).
+      // Anywhere else no string is picked for you (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its column
+      // alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
+      const onNote = !selection && !columnOnly && noteAt(clip, cursor) !== null;
+      setColumnOnly(!onNote);
+      if (!onNote) setStaffPitch(null);
       editorRef.current?.focus();
     }
   };

@@ -38,11 +38,12 @@ first.
    tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch and the caret
    follows on past the note by its length, its ghost at the same pitch; a press on the tab enters a
    0 there with the caret on it, for digits to change (Dorico's tab is always in chord input). The
-   Grid is drawn over the caret's bar and, as Dorico draws it, over the bar under the mouse, on the
-   staff and the tab, its beats a little stronger. Pressing Staff, Tab or Both leaves the focus on
+   Grid is drawn over the caret's bar, on the part the caret is on (in Both view, the staff or the tab;
+   Jeremy, 2026-11-07), and, as Dorico draws it, over the bar under the mouse, on the part it is over,
+   its beats a little stronger. Pressing Staff, Tab or Both leaves the focus on
    the editor, as the palette's buttons do, so the caret and the Grid stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
-   **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
-   bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
+   **Ruler over the staff** (the default), ticks on a line over that part, or **Lines across the
+   bar**, faint lines from that part's top line to its bottom one. (Dots under the bar, a third mock, was
    dropped.)
    Only places a note can go are marked: each note's start and the grid lines inside rests, never one
    inside a note's length, which the same voice can't take (Jeremy, 2026-11-03). Entering inside a note,

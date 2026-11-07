@@ -5,6 +5,12 @@ setUpPage();
 
 describe('TabPage normal mode and note input (issue #238)', () => {
   const pencil = () => screen.getByRole('button', { name: 'Note input' });
+  /** A clip to start from: digits type no frets in normal mode (Jeremy, 2026-11-07, issue #396). */
+  const openWith = async (bar: string) => {
+    renderAt(`#tab=${encodeURIComponent(`\\ts (4 4)\n${bar}`)}`);
+    await waitFor(() => expect(alphaTex()).toBe(bar), SLOW);
+    act(() => editor().focus());
+  };
 
   it('starts in normal mode; N and the pencil go in and out of note input, Esc out', () => {
     renderAt();
@@ -23,39 +29,42 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('draws the cursor outlined in note input and the selected note filled in normal mode', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5');
+  it('draws the cursor outlined in note input and the selected note filled in normal mode', async () => {
+    await openWith('5.1.1 |');
     expect(screen.getByTestId('selected-note')).toBeInTheDocument();
-    keys('n', 'ArrowDown');
+    keys('n');
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     expect(screen.queryByTestId('selected-note')).toBeNull();
   });
 
-  it('in normal mode a digit types the selected tab note’s fret, ↑ ↓ change it by one, Ctrl/⌘+↑ ↓ move it a string', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5', 'ArrowUp');
+  it('in normal mode a digit sets the selected tab note’s length, never its fret; ↑ ↓ change the fret by one, Ctrl/⌘+↑ ↓ move it a string', async () => {
+    await openWith('5.1.1 |');
+    keys('ArrowUp');
     expect(alphaTex()).toBe('6.1.1 |');
     keys('ArrowDown', 'ArrowDown');
     expect(alphaTex()).toBe('4.1.1 |');
+    // A digit is a length, as Dorico's duration keys on a selection (Jeremy, 2026-11-07): 0 is none.
+    keys('0');
+    expect(alphaTex()).toBe('4.1.1 |');
+    keys('5');
+    expect(alphaTex()).toBe('4.1.4 r.4 r.2 |');
+    keys('7');
+    expect(alphaTex()).toBe('4.1.1 |');
     // The open string is as low as it goes.
-    keys('0', 'ArrowDown');
+    keys('ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown');
     expect(alphaTex()).toBe('0.1.1 |');
-    keys('4', { key: 'ArrowDown', ctrlKey: true });
+    keys('ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', { key: 'ArrowDown', ctrlKey: true });
     expect(alphaTex()).toBe('9.2.1 |');
     keys({ key: 'ArrowUp', metaKey: true });
     expect(alphaTex()).toBe('4.1.1 |');
   });
 
-  it('in normal mode ← → select the next column and add no rests; in note input → adds one to type on', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5', 'ArrowRight', 'ArrowRight');
+  it('in normal mode ← → select the next column and add no rests; in note input → adds one to type on', async () => {
+    await openWith('5.1.1 |');
+    keys('ArrowRight', 'ArrowRight');
     expect(alphaTex()).toBe('5.1.1 |');
-    // Going in picks no string; ↑ picks the last one back.
-    keys('n', 'ArrowUp', 'ArrowRight', '7');
+    // Going in on the note picks its string (Jeremy, 2026-11-07).
+    keys('n', 'ArrowRight', '7');
     // From the clip's last Column → starts a new bar, and 7 takes the length of the note there.
     expect(alphaTex()).toBe('5.1.1 |\n7.1.1 |');
     // Back in normal mode, ← on a column with no note on the string selects the column.
@@ -75,10 +84,9 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(alphaTex()).toBe('(6.1 6.2).4 r.4 r.2 |');
   });
 
-  it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5', { key: '^', shiftKey: true, code: 'Digit6' });
+  it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', async () => {
+    await openWith('5.1.1 |');
+    keys({ key: '^', shiftKey: true, code: 'Digit6' });
     expect(alphaTex()).toBe('5.1.2 r.2 |');
     // In note input the note already there keeps its length; the next one takes the new one.
     keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
@@ -114,7 +122,7 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 r.4 r.4 r.4 |')}`);
     await waitFor(() => expect(alphaTex()).toBe('5.1.4 r.4 r.4 r.4 |'), SLOW);
     act(() => editor().focus());
-    keys('n', 'ArrowDown', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
+    keys('n', 'ArrowRight', { key: '^', shiftKey: true, code: 'Digit6' }, '7');
     expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
   });
 
@@ -132,13 +140,14 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(alphaTex()).toMatch(/^3\.6\.4 5\.6\.4 \(9\.1 7\.6\)\.4 8\.6\.4 /);
   });
 
-  it('going into note input picks no string, on a note or off one (Jeremy, 2026-10-30, 2026-10-31)', () => {
+  it('going into note input picks no string off a note, and the note’s own on a picked note (Jeremy, 2026-10-30, 2026-11-07)', () => {
     renderAt();
     act(() => editor().focus());
     keys('n');
-    // No box goes round the column either: the shadow square under the mouse is the cursor (Jeremy, 2026-10-31).
+    // Off a note no box goes round the column: the caret's upright line shows it (issue #396).
     expect(screen.queryByTestId('input-cursor')).toBeNull();
     expect(screen.queryByTestId('column-cursor')).toBeNull();
+    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
     // A digit types nothing until ↑ ↓ or a press picks a string.
     keys('5');
     expect(alphaTex()).toBe('|');
@@ -147,19 +156,19 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     // Off a note again (the B string, empty), going back in picks nothing.
     keys('ArrowDown', 'Escape', 'n');
     expect(screen.queryByTestId('input-cursor')).toBeNull();
-    // On a note, too, nothing is picked (the first ↑ picks the B string back, the second goes up to the 5).
+    // On a note picked in normal mode, the caret goes onto it, its string picked, so a digit retypes it,
+    // as Dorico's caret starts on the note selected (Jeremy, 2026-11-07).
     keys('ArrowUp', 'ArrowUp', 'Escape');
     expect(screen.getByTestId('selected-note')).toBeInTheDocument();
     keys('n');
-    expect(screen.queryByTestId('input-cursor')).toBeNull();
-    expect(screen.queryByTestId('selected-note')).toBeNull();
-    // ↑ ↓ pick the string back.
-    keys('ArrowUp');
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('selected-note')).toBeNull();
+    keys('7');
+    expect(alphaTex()).toBe('7.1.4 r.4 r.2 |');
     // The palette's pencil does the same as N.
-    keys('ArrowDown', 'Escape');
+    keys('Escape');
     fireEvent.click(screen.getByRole('button', { name: 'Note input' }));
-    expect(screen.queryByTestId('input-cursor')).toBeNull();
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
   it('N anywhere on the page goes into note input, but not in a text field', () => {
@@ -181,10 +190,9 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     field.remove();
   });
 
-  it('Shift+N steps the harmonic, as N did', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5', 'N');
+  it('Shift+N steps the harmonic, as N did', async () => {
+    await openWith('5.1.1 |');
+    keys('N');
     expect(alphaTex()).toBe('5.1{nh}.1 |');
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });

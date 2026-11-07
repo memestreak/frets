@@ -36,7 +36,7 @@ note selected on the tab coloured on the staff; the same goes for note input's c
 | Press on a note (tab number or staff head) | Selects it. |
 | Press beside the notes (an empty string, a blank line or space) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. |
 | Digit, a staff note selected | Sets its length, MuseScore's numbers: 1 a 64th, 2 a 32nd, 3 a 16th, 4 an eighth, 5 a quarter, 6 a half, 7 a whole (Q1, Jeremy). |
-| Digit, a tab note selected | Types its fret, two digits joining as before, and the staff follows (Q1, Jeremy). |
+| Digit, a tab note selected | Sets its length, as on the staff: frets are typed only in note input, as in Dorico (Jeremy, 2026-11-07, issue #396; it typed the fret before). |
 | ↑ ↓, tab | The selected notes a fret higher or lower on their own strings; nothing moves when one would pass 0 or 24. |
 | Ctrl/⌘+↑ ↓, tab | The note to the next string up or down that plays the same pitch. |
 | Drag a tab number up or down | The note to the string under the pointer, at the same pitch (`2026-10-31-tab-drag-fret-string-design.md`). |
@@ -65,10 +65,12 @@ goes too, since the mouse is placing the note. On a note the line stays off it, 
 caret's pitch nothing is drawn.
 
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input, a double-click on the staff or the
-  tab goes into note input, as N does, picking nothing; in note input it does nothing more.
-- **No string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
-  the column alone, or the column with digits going to the last note's string): going in, on a note
-  or off one, picks no string and no staff line (Jeremy, 2026-10-31); nothing is drawn round the column (Jeremy, 2026-10-31: no
+  tab goes into note input, as N does; in note input it does nothing more.
+- **Going in on a picked note puts the caret on it** (Jeremy, 2026-11-07, issue #396), as Dorico's caret
+  starts on the note selected: its string picked on the tab, or its pitch on the staff, so digits retype it.
+- **Off a note no string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
+  the column alone, or the column with digits going to the last note's string): going in off a note
+  picks no string and no staff line (Jeremy, 2026-10-31); nothing is drawn round the column (Jeremy, 2026-10-31: no
   box round the whole tab column; the shadow under the mouse is the cursor), and digits do nothing until ↑ ↓ (which
   first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
   then ↓, then the fret.

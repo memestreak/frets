@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { act, cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { LAYOUT_KEY, parseLayout } from '@/features/tab/TabRail';
-import { setUpPage, renderAt, editor, keys, alphaTex } from './helpers';
+import { setUpPage, renderAt, alphaTex, openWith } from './helpers';
 
 setUpPage();
 
@@ -58,10 +58,8 @@ describe('the rail of panels (issue #301)', () => {
     expect(panel()).toBeNull();
   });
 
-  it('keeps the tab’s cursor when a rail button and a tool are pressed', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5');
+  it('keeps the tab’s cursor when a rail button and a tool are pressed', async () => {
+    await openWith('5.1.1 |');
     fireEvent.click(railButton('Articulations'));
     fireEvent.click(screen.getByRole('button', { name: 'Palm mute' }));
     expect(alphaTex()).toContain('5.1{pm}');
