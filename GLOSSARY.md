@@ -98,6 +98,17 @@ alphaTex). Beams, and the splits of notes and Gaps, follow where Beat
 groups meet.
 _Avoid_: group (alone)
 
+**Change chord**:
+The chord dialog opened on a chord of the Chord set, from Edit chord's
+Change chord link: the same Name, Root, Type and shapes as defining a new
+chord, with Cancel, Save as new chord and Save chord.
+_Avoid_: modify chord
+
+**Chord set**:
+The chords an Arrangement defines for a Track, shown as tiles in the Tab
+page's Chords panel, each with its diagram; an unused one is tinted.
+_Avoid_: chord list, chord library
+
 **Clip**:
 The music in an Arrangement: one or more Tracks over the bars they
 share.
@@ -107,6 +118,13 @@ Everything that sounds at one moment in one Voice of a bar: a note on
 any of the strings, or none, sharing one length. The Clip stores bars
 as Columns.
 _Avoid_: beat (Guitar Pro's word for it)
+
+**Edit chord**:
+The Chords panel's view of one chord of the Chord set, opened by
+double-click or the chord's menu: its shapes, picked live, and its name,
+renamed by double-click or F2. It follows the chord picked in the Chord
+set, the tab or the Chord chart.
+_Avoid_: chord editor, chord view
 
 **Gap**:
 Time in a Voice with no note. It is drawn as the rests the meter calls
