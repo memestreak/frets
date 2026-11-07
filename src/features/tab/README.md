@@ -136,7 +136,9 @@ and in its spec.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,
   boxes, and `textAt` — `2026-10-26-tab-words-design.md`.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
-  which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`.
+  which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`; and
+  `textGoesUnder`, which puts a short one under the chord names (`Rows.textUnder`) —
+  `2026-11-07-tab-short-text-under-chords-design.md`.
 - `sectionText.ts` — a section over its bar: its size, `sectionBoxes`, and
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
@@ -470,6 +472,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   read from Columns and written back by the meter (no visible change)
 - `docs/specs/2026-11-03-tab-text-wrap-design.md`: a long Text over a
   column wraps onto more lines
+- `docs/specs/2026-11-07-tab-short-text-under-chords-design.md`: a short
+  Text goes under the chord names and their diagrams, a long one over
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
 - `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input mode's grid,

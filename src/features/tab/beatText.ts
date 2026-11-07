@@ -31,6 +31,18 @@ export const BEAT_TEXT_MIN_ROOM = 100;
  */
 export const BEAT_TEXT_MAX_ROOM = beatTextWidth('Text very near the line end runs to the edge and wraps there');
 
+/** The most characters a short text has, such as "let ring throughout": counted, not measured, so it never moves when the line's width changes. */
+export const SHORT_TEXT_LENGTH = 20;
+
+/**
+ * Whether a text goes under the chord names and their diagrams, right over the music, rather than over
+ * the names: a short one, such as "let ring" or "P.M.", on a line with chord names. A long one stays over
+ * the names, so it never pushes a chord off its music (Jeremy, 2026-11-07).
+ */
+export function textGoesUnder(text: string, lineHasChords: boolean): boolean {
+  return lineHasChords && text.length <= SHORT_TEXT_LENGTH;
+}
+
 /** Where a text on a line goes: its lines, and its first line's place in the line's text rows, from the top (its last line is on its level's bottom row). */
 export type PlacedBeatText = StackedWord;
 

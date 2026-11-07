@@ -275,7 +275,10 @@ then "." and its duration:
                wraps at its spaces onto more lines, before the next
                beat's text or the right edge, and after about 60
                characters at most; one that still touches
-               the text before it is drawn a level higher. Write words
+               the text before it is drawn a level higher. On a line
+               with chord names, a text of 20 characters or fewer
+               ("let ring", "P.M.") is drawn under the names and their
+               diagrams, a longer one over them. Write words
                printed over the tab that aren't a chord name, section or
                tempo ("rit.", "harm.", "fade out") this way.
 

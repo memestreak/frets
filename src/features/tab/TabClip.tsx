@@ -1,6 +1,6 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, textRowOf, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
@@ -1104,13 +1104,14 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
         );
       }
     }
-    if (rows.text !== null) {
+    {
       for (const placed of bar.columns) {
-        if (!placed.column.text) continue;
+        const textRow = textRowOf(rows, placed);
+        if (!placed.column.text || textRow === null) continue;
         const look = lookOf({ kind: 'text', index: placed.index });
         parts.push(
           <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
             fill={look.ink} data-testid="beat-text"
           >
             {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}

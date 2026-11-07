@@ -1,5 +1,5 @@
 import type { Part } from './clip';
-import type { Layout } from './layout';
+import { textRowOf, type Layout } from './layout';
 import type { FieldKind } from './WordField';
 import { SECTION_LINE } from './sectionText';
 
@@ -28,7 +28,10 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
     if (!placed) continue;
     const { rows, top } = layout.systems[s];
-    const row = { chord: rows.chords, text: rows.text, section: rows.section, capo: rows.capo, ending: rows.endings, repeat: rows.endings }[kind];
+    // A short text's field opens over it, under the chord names; a new text's over the names.
+    const spot = placed.columns[column];
+    const text = spot?.column.text ? textRowOf(rows, spot) : rows.text;
+    const row = { chord: rows.chords, text, section: rows.section, capo: rows.capo, ending: rows.endings, repeat: rows.endings }[kind];
     // A section moved up clear of another opens its field over where it is drawn (issue #389).
     const raised = kind === 'section' ? placed.sectionTop * SECTION_LINE : 0;
     const y = top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;

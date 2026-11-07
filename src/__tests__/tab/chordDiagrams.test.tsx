@@ -97,8 +97,8 @@ describe('diagrams over the names', () => {
     expect(lines).toHaveLength(1);
     expect(Math.min(lines[0].y0, lines[0].y1)).toBeGreaterThan(system.top + system.rows.diagrams!);
   });
-  it('free text goes over the chord names', () => {
-    const rows = layoutClip(part('\\ts (4 4)\nr.1{ch "C" txt "Intro"} |\n'), 2000).systems[0].rows;
+  it('long free text goes over the chord names', () => {
+    const rows = layoutClip(part('\\ts (4 4)\nr.1{ch "C" txt "Intro, quietly, then building"} |\n'), 2000).systems[0].rows;
     expect(rows.text!).toBeLessThan(rows.chords!);
   });
 });

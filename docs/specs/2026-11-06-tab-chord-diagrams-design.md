@@ -18,8 +18,9 @@ them, and a diagram under every chord name, or none.
   wrapping onto another row when the width runs out.
 - **Diagrams over the names.** Under every chord name over the music, a
   small diagram (0.7 of the chart's size), the name over it as books print
-  them. Free text goes over the chord names, so a chord and its diagram sit
-  right over the music (Jeremy, 2026-11-06). The rows under (wah, the
+  them. Long free text goes over the chord names, so a chord and its diagram sit
+  right over the music (Jeremy, 2026-11-06); a short one goes under them
+  (`2026-11-07-tab-short-text-under-chords-design.md`). The rows under (wah, the
   staff) move down to make room, only on a line that draws one.
 - **Picked with its name.** A press on a diagram picks its chord name: both
   drawn in the selection's blue. A chord belongs to its time, not to the
@@ -86,7 +87,7 @@ them, and a diagram under every chord name, or none.
 - A press on a chart chord picks it and Esc lets it go; a double-click,
   Enter and its right-click Edit open its chord editor; another track's
   chord shows that track.
-- Free text is over the chord names.
+- Long free text is over the chord names.
 - The diagrams' row is there only when they are on; the tab moves down.
 - The drawing draws a diagram under each shaped name and none when off.
 - MusicXML: A at 5 5 6 7 7 5 has frame-strings 6, frame-frets 4,
