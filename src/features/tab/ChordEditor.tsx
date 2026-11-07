@@ -28,8 +28,12 @@ export interface ChordOpened {
 }
 
 interface ChordEditorProps {
-  /** The chord being edited; null for a new one (the +). */
+  /** The chord being edited; null for a new one (the +, or Copy to new chord). */
   opened: ChordOpened | null;
+  /** A new chord's start: the chord Copy to new chord copies, its shape and a free name. */
+  from?: { chord: ChordOpened; name: string } | null;
+  /** Mock (`?chordeditor=`): whether root and type show for a chord it starts from, or wait behind "Change root and type". */
+  lookupShown?: boolean;
   /** The part: its tuning and capo. */
   clip: Part;
   /** The cursor's column: a new chord offers its fingering first, and names its notes. */
@@ -56,20 +60,22 @@ function readingOf(part: Part, opened: ChordOpened) {
 }
 
 /** What the editor edits: the chord looked up, the shape picked or drawn, and the name. */
-function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null, onHear: (shape: Shape) => void) {
+function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null, from: { chord: ChordOpened; name: string } | null, onHear: (shape: Shape) => void) {
   const tuning = useMemo(() => lowFirst(clip), [clip]);
+  /** The chord it starts from: the one opened, or the one copied. */
+  const start = opened ?? from?.chord ?? null;
   /** A new chord's offer: the cursor column's fingering. */
   const atCursor = useMemo(() => {
-    const frets = opened ? null : fretsOfColumn(column);
+    const frets = start ? null : fretsOfColumn(column);
     return frets ? toShape(frets) : null;
-  }, [column, opened]);
+  }, [column, start]);
   // An opened chord starts on its root and type ("A barre/5" on A major, from its notes).
-  const [initial] = useState(() => (opened ? readingOf(clip, opened) : null));
+  const [initial] = useState(() => (start ? readingOf(clip, start) : null));
   const [root, setRoot] = useState<ChordRoot | ''>(initial?.root ?? '');
   const [typeId, setTypeId] = useState(initial?.type ?? '');
   const chord = useMemo<ChordInfo | null>(() => (root && typeId ? chordOf(root, typeId) : null), [root, typeId]);
   /** The editor's own shape (the chord's, or the cursor's) shows first, before the chord's. */
-  const own = opened ? opened.shape : atCursor;
+  const own = start ? start.shape : atCursor;
   const shapes = useMemo(() => {
     const found = chord ? shapesOf(chord, tuning) : [];
     return own && !found.some(s => shapeKey(s) === shapeKey(own)) ? [own, ...found] : found;
@@ -79,6 +85,7 @@ function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null,
   const [drawn, setDrawn] = useState(false);
   /** The name typed; null while it follows the chord. It never rewrites what was typed. */
   const [typedName, setTypedName] = useState<string | null>(() => {
+    if (from) return from.name;
     if (!opened) return null;
     const symbol = initial ? chordOf(initial.root, initial.type).symbol : null;
     return opened.name === symbol ? null : opened.name;
@@ -120,8 +127,10 @@ function useDraft(clip: Part, column: Column | null, opened: ChordOpened | null,
 }
 type Draft = ReturnType<typeof useDraft>;
 
-export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear, onClose }: ChordEditorProps) {
-  const draft = useDraft(clip, column, opened, onHear);
+export function ChordEditor({ opened, from = null, lookupShown = true, clip, column, taken, onAdd, onSave, onHear, onClose }: ChordEditorProps) {
+  const draft = useDraft(clip, column, opened, from, onHear);
+  /** Root and type: always for a chord from nothing; for one it starts from, as the mock says until asked for. */
+  const [lookup, setLookup] = useState(lookupShown || (!opened && !from));
   const [drawing, setDrawing] = useState(false);
   // Opening takes the keys, so Esc closes it: a new chord's Name field, or the editor itself.
   const editor = useRef<HTMLDivElement>(null);
@@ -174,7 +183,7 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
   const atCursor = draft.atCursor !== null && draft.shape !== null && shapeKey(draft.shape) === shapeKey(draft.atCursor);
 
   return (
-    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Edit ${opened.name}` : 'Add a chord'}>
+    <div ref={editor} tabIndex={-1} className="chord-editor" role="group" aria-label={opened ? `Edit ${opened.name}` : from ? `Copy ${from.chord.name} to a new chord` : 'Add a chord'}>
       <label className="chord-editor-field">
         <span className="field-label">Name</span>
         <input
@@ -189,7 +198,12 @@ export function ChordEditor({ opened, clip, column, taken, onAdd, onSave, onHear
         />
         <span className="chord-panel-note chord-editor-hint">Leave it empty to use the chord’s name.</span>
       </label>
-      <Lookup draft={draft} />
+      {lookup ? <Lookup draft={draft} /> : (
+        <div className="chord-panel-row">
+          <span className="chord-panel-note">{draft.chord ? `${draft.chord.symbol} shapes` : 'Its own shape'}</span>
+          <button type="button" className="chord-editor-link" onClick={() => setLookup(true)}>Change root and type</button>
+        </div>
+      )}
       <div className="chord-panel-row">
         <span className="chord-panel-label">{drawing ? 'Your own shape' : 'Shape'}</span>
         {drawing && <button type="button" className="chord-editor-link" onClick={() => setDrawing(false)}>Back to shapes</button>}

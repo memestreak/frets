@@ -661,3 +661,28 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 /* A Chord chart chord: picked, it is drawn blue, so it needs no outline (issue #242). */
 .tab-chart-chord { cursor: pointer; }
 .tab-chart-chord:focus { outline: none; }
+
+/* Mocks (?chordlist=, ?chordeditor=), 2026-11-07. */
+.chord-panel-scroll { max-height: 236px; overflow-y: auto; overscroll-behavior: contain; margin-right: -4px; padding-right: 4px; }
+.chord-panel-list-insert .chord-panel-item { grid-template-columns: minmax(0, 1fr) 28px 28px 28px; }
+.chord-panel-icon:disabled { opacity: .4; cursor: default; }
+.chord-panel-what.seg .seg-opt { padding: 2px 7px; font-size: 12px; line-height: 18px; min-height: 0; height: auto; }
+.chord-panel-insert .btn { padding-inline: 10px; }
+.chord-panel-actions { display: inline-flex; margin-left: auto; }
+.chord-panel-tiles {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+  max-height: 176px; overflow-y: auto; overscroll-behavior: contain;
+}
+.chord-panel-tile {
+  display: grid; justify-items: center; gap: 1px; padding: 3px 2px; min-width: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
+}
+.chord-panel-tile:hover { background: var(--surface-sunken); }
+.chord-panel-tile[aria-pressed='true'] { background: var(--select-soft); border-color: var(--select); }
+.chord-panel-tile:focus-visible { outline: none; }
+.chord-panel-tile-name { font: 600 12px/16px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chord-panel-tile-unused { font: 400 10px/12px var(--font-sans); color: var(--ink-muted); }
+.chord-panel-selector { display: grid; grid-template-columns: 52px minmax(0, 1fr) 24px 24px; align-items: center; gap: 4px; }
+.chord-panel-picked { padding: 2px; border: 1px solid transparent; border-radius: var(--radius-sm); background: none; cursor: pointer; }
+.chord-panel-picked:hover { background: var(--surface-sunken); }
+.chord-panel-picked:focus-visible { outline: none; }

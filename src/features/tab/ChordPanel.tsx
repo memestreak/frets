@@ -7,7 +7,10 @@
  * tab open the chord editor (`ChordEditor`) where the + was. Picking a chord only picks it; moving the cursor
  * changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
+import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
+import { useMock, type Mock } from '@/components/mocks/useMock';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
@@ -66,7 +69,7 @@ function useFolded(): [readonly FoldId[], (id: FoldId) => void] {
   return [folded, fold];
 }
 
-/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right while it is open. */
+/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right, folded or not. */
 function Fold({ id, title, label = title, folded, onFold, extra, children }: {
   id: FoldId; title: string; label?: string; folded: readonly FoldId[]; onFold: (id: FoldId) => void; extra?: ReactNode; children: ReactNode;
 }) {
@@ -86,7 +89,7 @@ function Fold({ id, title, label = title, folded, onFold, extra, children }: {
             {title}
           </button>
         </h3>
-        {open && extra}
+        {extra}
       </div>
       {open && children}
     </section>
@@ -155,11 +158,49 @@ interface ChordPanelProps {
   onDone: () => void;
 }
 
+/** Mock: how the track's chords take less room, and where Insert is (Jeremy, 2026-11-07). */
+const LIST_MOCK: Mock = {
+  param: 'chordlist',
+  label: 'Track chords',
+  options: [
+    { value: 'a', label: 'a Scroll list, Insert on each row' },
+    { value: 'b', label: 'b Diagram tiles, Insert under them' },
+    { value: 'c', label: 'c One at a time (selector)' },
+  ],
+};
+/** Mock: whether a chord opened or copied shows its root and type. */
+const EDITOR_MOCK: Mock = {
+  param: 'chordeditor',
+  label: 'Chord editor',
+  options: [
+    { value: 'full', label: 'Root and type always' },
+    { value: 'shape', label: 'Shapes only for a chord you have' },
+  ],
+};
+
+/** A name the set hasn't got, for a copy of `name`: "C 2", or "C 3" if that's taken. */
+export function freeName(name: string, taken: readonly string[]): string {
+  for (let n = 2; ; n++) if (!taken.includes(`${name} ${n}`)) return `${name} ${n}`;
+}
+
+/** Into the tab: an arrow down into a bar. */
+function InsertIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2v8M5 7l3 3 3-3M2.5 13.5h11" />
+    </svg>
+  );
+}
+
+/** What the chord editor is open for: a new chord (+), a chord of the set, a copy of one, or nothing (closed). */
+type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string } | { kind: 'copy'; name: string; newName: string };
+
 export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
+  const layout = useMock(LIST_MOCK);
+  const shapesOnly = useMock(EDITOR_MOCK) === 'shape';
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
-  /** What the chord editor is open for: a new chord (+), a chord of the set, or nothing (closed). */
-  const [editorFor, setEditorFor] = useState<{ kind: 'add' } | { kind: 'edit'; name: string } | null>(null);
+  const [editorFor, setEditorFor] = useState<EditorFor | null>(null);
   const openOn = (n: string) => {
     setPicked(n);
     setEditorFor({ kind: 'edit', name: n });
@@ -170,6 +211,8 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   };
   const [what, setWhat] = useState<InsertWhat>('both');
   const [folded, fold] = useFolded();
+  const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
+  const menuTrigger = useMenuTrigger();
   // A name's Edit picks that chord and opens its chord editor.
   useEffect(() => {
     if (!at?.name) return;
@@ -181,6 +224,13 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   const tuning = useMemo(() => lowFirst(clip), [clip]);
   const set = useMemo(() => chordSet({ ...track, chords: clip.chords }), [track, clip.chords]);
   const name = picked && set.some(e => e.name === picked) ? picked : null;
+  const taken = set.map(e => e.name);
+
+  // The chord picked stays in sight in a list that scrolls (a name's Edit in the tab picks one out of view).
+  const list = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    list.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [name]);
 
   /** A chord's own shape (low string first), from its definition; null for none. */
   const shapeOfDef = (n: string) => {
@@ -194,17 +244,17 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
     if (hear && frets) onHear(frets);
   };
 
-  const insert = () => {
-    if (!editing || !name || !column) return;
-    const frets = shapeFor(clip, name);
+  const insert = (n: string | null = name) => {
+    if (!editing || !n || !column) return;
+    const frets = shapeFor(clip, n);
     // A name inserted with no definition yet gets the shape it was inserted with.
-    const defined = !chordDefOf(clip.chords, name)?.frets && frets && what !== 'notes' ? withChordShape(clip, name, frets) : clip;
+    const defined = !chordDefOf(clip.chords, n)?.frets && frets && what !== 'notes' ? withChordShape(clip, n, frets) : clip;
     // In note input, notes go in as a note typed does: a new column of the Input length at the cursor, and on.
     if (inputLength && what !== 'name' && frets) {
-      onInsertAtInput(defined, insertedColumn(emptyColumn(inputLength), what, name, frets));
+      onInsertAtInput(defined, insertedColumn(emptyColumn(inputLength), what, n, frets));
       return;
     }
-    onChange(withColumn(defined, cursor, c => insertedColumn(c, what, name, frets)));
+    onChange(withColumn(defined, cursor, c => insertedColumn(c, what, n, frets)));
   };
 
   /** The trash can by an unused chord: no column loses its name. */
@@ -213,59 +263,177 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
     onChange(withoutChord(clip, entry.name));
     if (picked === entry.name) setPicked(null);
   };
+  const copy = (n: string) => {
+    setPicked(n);
+    setEditorFor({ kind: 'copy', name: n, newName: freeName(n, taken) });
+  };
 
   // Presses on the panel's buttons keep the tab's focus, and so its cursor, as the palette's do.
   const keep = (e: MouseEvent) => e.preventDefault();
-  /** The chord the editor is open on, while it is still in the set. */
-  const editorOn = editorFor?.kind === 'edit' && set.some(e => e.name === editorFor.name) ? editorFor.name : null;
+  /** The chord the editor is open on (or copies), while it is still in the set. */
+  const editorOn = editorFor && editorFor.kind !== 'add' && set.some(e => e.name === editorFor.name) ? editorFor.name : null;
+  const editorOpen = editorFor?.kind === 'add' || editorOn !== null;
+
+  /** A chord's right-click menu (or long press, or Shift+F10). */
+  const menuItems = (n: string): MenuItem[] => {
+    const entry = set.find(e => e.name === n);
+    return [
+      { label: `Insert ${n}`, onSelect: () => insert(n) },
+      { label: 'Edit', onSelect: () => openOn(n) },
+      { label: 'Copy to new chord', onSelect: () => copy(n) },
+      ...(entry && entry.uses === 0 ? [{ label: 'Delete', onSelect: () => remove(entry) }] : []),
+    ];
+  };
+  /** What every chord in the list answers: a press picks, a double-click opens it, a right-click its menu. */
+  const chordProps = (n: string) => ({
+    onMouseDown: keep,
+    onClick: () => pick(n),
+    onDoubleClick: () => openOn(n),
+    ...menuTrigger.props((trigger, x, y) => {
+      setPicked(n);
+      setMenu({ ...menuSpot(trigger, x, y), name: n });
+    }),
+  });
+  const thumb = (n: string, def: ChordEntry['def']) => {
+    const s = def?.frets ? toShape(def.frets) : null;
+    const c = s && chordToDraw(clip, n, s);
+    return c && s ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : null;
+  };
+  const uses = (entry: ChordEntry) => (entry.uses === 0
+    ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
+    : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>);
+  const editIcon = (n: string) => (
+    <button type="button" className="chord-panel-icon" aria-label={`Edit ${n}`} data-tip="Edit" onMouseDown={keep} onClick={() => openOn(n)}>
+      <PencilIcon />
+    </button>
+  );
+  // Only an unused chord can go, so no column loses its name (Jeremy, 2026-11-06).
+  const deleteIcon = (entry: ChordEntry) => (entry.uses === 0 ? (
+    <button
+      type="button" className="chord-panel-icon chord-panel-delete" aria-label={`Delete ${entry.name}`} data-tip="Delete"
+      onMouseDown={keep} onClick={() => remove(entry)}
+    >
+      <TrashIcon />
+    </button>
+  ) : <span aria-hidden="true" />);
+  const whatSeg = (
+    <div className="seg chord-panel-what" role="group" aria-label="Insert">
+      {INSERT_WHAT.map(o => (
+        <button key={o.id} type="button" className="seg-opt" aria-pressed={what === o.id} onMouseDown={keep} onClick={() => setWhat(o.id)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+  /** Mocks b and c: Insert and the picked chord's Edit and Delete, under the chords. */
+  const pickedEntry = set.find(e => e.name === name);
+  const actionBar = pickedEntry && (
+    <div className="chord-panel-insert">
+      {whatSeg}
+      <button type="button" className="btn btn-primary" disabled={!editing} onMouseDown={keep} onClick={() => insert()}>Insert {pickedEntry.name}</button>
+      <span className="chord-panel-actions">
+        {editIcon(pickedEntry.name)}
+        {deleteIcon(pickedEntry)}
+      </span>
+    </div>
+  );
+
+  const addButton = (
+    <button
+      type="button" className="chord-panel-icon" aria-label="Add a chord" data-tip="Add a chord"
+      onMouseDown={keep} onClick={() => setEditorFor({ kind: 'add' })}
+    >
+      <PlusIcon />
+    </button>
+  );
+
+  let chords: ReactNode;
+  if (layout === 'b') {
+    chords = (
+      <>
+        <div ref={list} className="chord-panel-tiles" role="group" aria-label="Chords">
+          {set.map(entry => (
+            <button
+              key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
+              aria-label={entry.name} {...chordProps(entry.name)}
+            >
+              <span className="chord-panel-tile-name">{entry.name}</span>
+              <span className="chord-panel-thumb" aria-hidden="true">{thumb(entry.name, entry.def)}</span>
+              {entry.uses === 0 && <span className="chord-panel-tile-unused" title="Not used in this track">not used</span>}
+            </button>
+          ))}
+        </div>
+        {actionBar}
+      </>
+    );
+  } else if (layout === 'c') {
+    const at = name ? set.findIndex(e => e.name === name) : -1;
+    const step = (by: number) => {
+      if (set.length === 0) return;
+      pick(set[(at + by + set.length) % set.length].name);
+    };
+    chords = (
+      <>
+        <div className="chord-panel-selector">
+          <button type="button" className="chord-panel-picked" aria-label={name ?? 'No chord picked'} {...(name ? chordProps(name) : {})}>
+            <span className="chord-panel-thumb" aria-hidden="true">{pickedEntry && thumb(pickedEntry.name, pickedEntry.def)}</span>
+          </button>
+          <select className="input" aria-label="Chord" value={name ?? ''} onChange={e => pick(e.target.value)}>
+            {!name && <option value="" disabled>Pick a chord</option>}
+            {set.map(e => <option key={e.name} value={e.name}>{e.name}{e.uses === 0 ? ' (not used)' : ''}</option>)}
+          </select>
+          <button type="button" className="chord-panel-step" aria-label="Previous chord" onMouseDown={keep} onClick={() => step(-1)}>‹</button>
+          <button type="button" className="chord-panel-step" aria-label="Next chord" onMouseDown={keep} onClick={() => step(1)}>›</button>
+        </div>
+        {actionBar}
+      </>
+    );
+  } else {
+    chords = (
+      <>
+        <div ref={list} className="chord-panel-scroll">
+          <ul className="chord-panel-list chord-panel-list-insert">
+            {set.map(entry => (
+              <li key={entry.name} className="chord-panel-item">
+                <button type="button" className="chord-panel-entry" aria-pressed={entry.name === name} {...chordProps(entry.name)}>
+                  <span className="chord-panel-thumb" aria-hidden="true">{thumb(entry.name, entry.def)}</span>
+                  <span className="chord-panel-name">{entry.name}</span>
+                  {uses(entry)}
+                </button>
+                <button
+                  type="button" className="chord-panel-icon" aria-label={`Insert ${entry.name}`} data-tip="Insert at the cursor"
+                  disabled={!editing} onMouseDown={keep} onClick={() => { setPicked(entry.name); insert(entry.name); }}
+                >
+                  <InsertIcon />
+                </button>
+                {editIcon(entry.name)}
+                {deleteIcon(entry)}
+              </li>
+            ))}
+          </ul>
+        </div>
+        {set.length > 0 && <div className="chord-panel-row"><span className="chord-panel-note">Insert</span>{whatSeg}</div>}
+      </>
+    );
+  }
 
   return (
     <div className="chord-panel">
-      <Fold id="chords" title="This track’s chords" folded={folded} onFold={fold}>
-        {set.length === 0 && <p className="chord-panel-note">None yet.</p>}
-        <ul className="chord-panel-list">
-          {set.map(entry => {
-            const s = entry.def?.frets ? toShape(entry.def.frets) : null;
-            const c = s && chordToDraw(clip, entry.name, s);
-            return (
-              <li key={entry.name} className="chord-panel-item">
-                <button
-                  type="button" className="chord-panel-entry" aria-pressed={entry.name === name}
-                  onMouseDown={keep} onClick={() => pick(entry.name)}
-                  onDoubleClick={() => openOn(entry.name)}
-                >
-                  <span className="chord-panel-thumb" aria-hidden="true">
-                    {c && s && <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} />}
-                  </span>
-                  <span className="chord-panel-name">{entry.name}</span>
-                  {entry.uses === 0
-                    ? <span className="chord-panel-unused" role="img" aria-label="Not used" title="Not used in this track">○</span>
-                    : <span className="chord-panel-uses" title={`Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`}>{entry.uses}</span>}
-                </button>
-                <button
-                  type="button" className="chord-panel-icon" aria-label={`Edit ${entry.name}`} data-tip="Edit"
-                  onMouseDown={keep} onClick={() => openOn(entry.name)}
-                >
-                  <PencilIcon />
-                </button>
-                {/* Only an unused chord can go, so no column loses its name (Jeremy, 2026-11-06). */}
-                {entry.uses === 0 ? (
-                  <button
-                    type="button" className="chord-panel-icon chord-panel-delete" aria-label={`Delete ${entry.name}`} data-tip="Delete"
-                    onMouseDown={keep} onClick={() => remove(entry)}
-                  >
-                    <TrashIcon />
-                  </button>
-                ) : <span aria-hidden="true" />}
-              </li>
-            );
-          })}
-        </ul>
-        {editorFor?.kind === 'add' || editorOn ? (
+      <Fold id="chords" title="This track’s chords" folded={folded} onFold={fold} extra={addButton}>
+        {set.length === 0 ? <p className="chord-panel-note">None yet. Press + to add one.</p> : chords}
+      </Fold>
+
+      {editorOpen && (
+        <section className="chord-panel-section" aria-label="Chord editor">
+          <h3 className="chord-panel-label">
+            {editorFor?.kind === 'edit' ? `Edit ${editorOn}` : editorFor?.kind === 'copy' ? `New chord from ${editorOn}` : 'New chord'}
+          </h3>
           <ChordEditor
-            key={editorOn === null ? 'add' : `edit:${editorOn}`}
-            opened={editorOn ? { name: editorOn, shape: shapeOfDef(editorOn) } : null}
-            clip={clip} column={column} taken={set.map(e => e.name)}
+            key={editorFor?.kind === 'add' ? 'add' : `${editorFor?.kind}:${editorOn}`}
+            opened={editorFor?.kind === 'edit' && editorOn ? { name: editorOn, shape: shapeOfDef(editorOn) } : null}
+            from={editorFor?.kind === 'copy' && editorOn ? { chord: { name: editorOn, shape: shapeOfDef(editorOn) }, name: editorFor.newName } : null}
+            lookupShown={!shapesOnly}
+            clip={clip} column={column} taken={taken}
             onAdd={(n, frets) => { onChange(withNewChord(clip, n, frets)); setPicked(n); closeEditor(); }}
             onSave={(from, to, frets) => {
               const renamed = withRenamedChord(clip, from, to);
@@ -276,27 +444,15 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
             onHear={shape => { if (hear) onHear(toFrets(shape)); }}
             onClose={closeEditor}
           />
-        ) : (
-          <button
-            type="button" className="chord-panel-icon chord-panel-add" aria-label="Add a chord" data-tip="Add a chord"
-            onMouseDown={keep} onClick={() => setEditorFor({ kind: 'add' })}
-          >
-            <PlusIcon />
-          </button>
-        )}
-      </Fold>
+        </section>
+      )}
 
-      {name && (
-        <div className="chord-panel-insert">
-          <div className="seg" role="group" aria-label="Insert">
-            {INSERT_WHAT.map(o => (
-              <button key={o.id} type="button" className="seg-opt" aria-pressed={what === o.id} onMouseDown={keep} onClick={() => setWhat(o.id)}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary" onMouseDown={keep} onClick={insert}>Insert {name}</button>
-        </div>
+      {menu && (
+        <ShapeMenu
+          x={menu.x} y={menu.y} label={menu.name}
+          onClose={() => setMenu(null)}
+          items={menuItems(menu.name)}
+        />
       )}
     </div>
   );
