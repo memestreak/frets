@@ -118,6 +118,15 @@ const CHOOSER: ShortcutGroup = {
   ],
 };
 
+const CHORDS: ShortcutGroup = {
+  title: 'In the Chords panel',
+  shortcuts: [
+    { keys: ['Shift+F10'], does: 'Open the picked chord’s menu' },
+    { keys: ['F2'], does: 'Rename the chord in Edit chord' },
+    { keys: ['Esc'], does: 'Close Edit chord or the chord dialog' },
+  ],
+};
+
 const HEAD: ShortcutGroup = {
   title: 'Picked title, credits or tuning',
   shortcuts: [
@@ -148,4 +157,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHORDS, CHOOSER];
