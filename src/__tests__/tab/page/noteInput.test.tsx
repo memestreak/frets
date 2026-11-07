@@ -3,7 +3,8 @@ import { setUpPage, renderAt, SLOW, editor, keys, alphaTex, undo } from './helpe
 
 setUpPage();
 
-describe('TabPage normal mode and note input (issue #238)', () => {
+// A clip from a link takes alphaTab a while to draw the first time in a busy run.
+describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, () => {
   const pencil = () => screen.getByRole('button', { name: 'Note input' });
   /** A clip to start from: digits type no frets in normal mode (Jeremy, 2026-11-07, issue #396). */
   const openWith = async (bar: string) => {
@@ -37,11 +38,12 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     expect(screen.queryByTestId('selected-note')).toBeNull();
   });
 
-  it('in normal mode a digit sets the selected tab note’s length, never its fret; ↑ ↓ change the fret by one, Ctrl/⌘+↑ ↓ move it a string', async () => {
+  it('in normal mode a digit sets the selected tab note’s length, never its fret; Alt+↑ ↓ change the fret by one, Ctrl/⌘+↑ ↓ move it a string', async () => {
     await openWith('5.1.1 |');
-    keys('ArrowUp');
+    // Alt changes the fret, as Dorico's Alt+arrows change what is picked (Jeremy, 2026-11-07, issue #396).
+    keys({ key: 'ArrowUp', altKey: true });
     expect(alphaTex()).toBe('6.1.1 |');
-    keys('ArrowDown', 'ArrowDown');
+    keys({ key: 'ArrowDown', altKey: true }, { key: 'ArrowDown', altKey: true });
     expect(alphaTex()).toBe('4.1.1 |');
     // A digit is a length, as Dorico's duration keys on a selection (Jeremy, 2026-11-07): 0 is none.
     keys('0');
@@ -51,9 +53,11 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     keys('7');
     expect(alphaTex()).toBe('4.1.1 |');
     // The open string is as low as it goes.
-    keys('ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown');
+    const altDown = { key: 'ArrowDown', altKey: true };
+    const altUp = { key: 'ArrowUp', altKey: true };
+    keys(altDown, altDown, altDown, altDown, altDown);
     expect(alphaTex()).toBe('0.1.1 |');
-    keys('ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', { key: 'ArrowDown', ctrlKey: true });
+    keys(altUp, altUp, altUp, altUp, { key: 'ArrowDown', ctrlKey: true });
     expect(alphaTex()).toBe('9.2.1 |');
     keys({ key: 'ArrowUp', metaKey: true });
     expect(alphaTex()).toBe('4.1.1 |');
@@ -67,21 +71,21 @@ describe('TabPage normal mode and note input (issue #238)', () => {
     keys('n', 'ArrowRight', '7');
     // From the clip's last Column → starts a new bar, and 7 takes the length of the note there.
     expect(alphaTex()).toBe('5.1.1 |\n7.1.1 |');
-    // Back in normal mode, ← on a column with no note on the string selects the column.
-    keys('Escape', 'ArrowDown');
+    // Back in normal mode the note typed stays picked, and Alt+↓ lowers it.
+    keys('Escape', { key: 'ArrowDown', altKey: true });
     expect(alphaTex()).toBe('5.1.1 |\n6.1.1 |');
   });
 
-  it('Alt+↑ ↓ select the next note up or down in the chord', () => {
-    renderAt();
-    act(() => editor().focus());
-    // A chord typed in note input: 5 on the high e, 7 on the B.
-    keys('n', 'ArrowDown', '5', 'ArrowDown', '7', 'Escape');
-    // The B's 7 is selected; Alt+↑ selects the e's 5, which ↑ then raises.
-    keys({ key: 'ArrowUp', altKey: true }, 'ArrowUp');
-    expect(alphaTex()).toBe('(6.1 7.2).4 r.4 r.2 |');
-    keys({ key: 'ArrowDown', altKey: true }, 'ArrowDown');
-    expect(alphaTex()).toBe('(6.1 6.2).4 r.4 r.2 |');
+  it('in normal mode ↑ ↓ go string by string, and Alt+↑ ↓ change the fret of the note picked (issue #396)', async () => {
+    await openWith('(5.1 7.2).1 |');
+    // The e's 5 is picked; ↓ picks the B's 7, which Alt+↓ lowers; nothing else changes.
+    keys('ArrowDown', { key: 'ArrowDown', altKey: true });
+    expect(alphaTex()).toBe('(5.1 6.2).1 |');
+    keys('ArrowUp', { key: 'ArrowUp', altKey: true });
+    expect(alphaTex()).toBe('(6.1 6.2).1 |');
+    // ↓ to a string with no note picks the column there; Alt+↓ then has nothing to lower.
+    keys('ArrowDown', 'ArrowDown', { key: 'ArrowDown', altKey: true });
+    expect(alphaTex()).toBe('(6.1 6.2).1 |');
   });
 
   it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', async () => {

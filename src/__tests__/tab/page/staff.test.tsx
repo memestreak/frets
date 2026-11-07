@@ -88,7 +88,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.pointerUp(svg(), { ...at, button: 0 });
     };
 
-    it('in normal mode a digit sets the selected note’s length, ↑ ↓ a semitone, Ctrl/⌘ an octave', async () => {
+    it('in normal mode a digit sets the selected note’s length, Alt+Shift+↑ ↓ a semitone, Ctrl/⌘ an octave', async () => {
       await open();
       press(headAt(2));
       const shown = () => {
@@ -101,14 +101,15 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: '6' });
       // Longer, the note writes over half the half rest after it, so the bar stays full (issue #290).
       expect(shown()).toBe('(7.5 5.6).4 3.4.2 r.4 |');
-      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      // Alt changes the pitch, as Dorico's Alt+arrows do (Jeremy, 2026-11-07, issue #396).
+      fireEvent.keyDown(editor(), { key: 'ArrowUp', altKey: true, shiftKey: true });
       expect(shown()).toBe('(7.5 5.6).4 4.4.2 r.4 |');
       fireEvent.keyDown(editor(), { key: 'ArrowDown', ctrlKey: true });
       // An octave under the D string's 4th fret (F♯) is the low E string's 2nd.
       expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
-    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret following on past it (issue #396)', async () => {
+    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret on it (issue #396)', async () => {
       await open();
       // Over the first column, a few lines above its heads.
       const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
@@ -121,10 +122,9 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
       fireEvent.pointerLeave(svg());
       expect(screen.queryByTestId('shadow-note')).toBeNull();
-      // The caret went on past the note by its length, as Dorico's does: Enter puts the same pitch in the
-      // next column (on the note just entered it would take it away again).
+      // The caret is on the note just entered, where the press was (Jeremy, 2026-11-07): Enter takes it away again.
       fireEvent.keyDown(editor(), { key: 'Enter' });
-      expect(screen.getAllByTestId('staff-head')).toHaveLength(5);
+      expect(screen.getAllByTestId('staff-head')).toHaveLength(3);
     });
 
     it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
@@ -221,10 +221,45 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'ArrowDown', ctrlKey: true });
       expect(screen.queryByTestId('staff-cursor')).toBeNull();
       expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
-      // ↑ ↓ are the strings' again: the box moves.
+      // ↑ ↓ are the strings' again: the box moves (it came down on the chord's lowest note, the low E's).
       const y = screen.getByTestId('input-cursor').getAttribute('y');
-      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('input-cursor').getAttribute('y')).not.toBe(y);
+    });
+
+    it('in note input ↑ off the top string takes the caret up to the staff (issue #396)', async () => {
+      await open();
+      fireEvent.keyDown(editor(), { key: 'n' });
+      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
+      expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+      fireEvent.keyDown(editor(), { key: 'ArrowUp' });
+      expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();
+      expect(screen.queryByTestId('input-cursor')).toBeNull();
+    });
+
+    it('in normal mode ↑ ↓ go string by string and note by note, between the tab and the staff (issue #396)', async () => {
+      await open();
+      const staffPicked = () => screen.queryByTestId('staff-selected');
+      const tabPicked = () => screen.queryByTestId('selected-note');
+      const press = (key: string, times = 1) => { for (let k = 0; k < times; k += 1) fireEvent.keyDown(editor(), { key }); };
+      // Down the strings to the low E's 5, then up to the A's 7.
+      press('ArrowDown', 5);
+      expect(tabPicked()).toBeInTheDocument();
+      press('ArrowUp');
+      expect(tabPicked()).toBeInTheDocument();
+      // On up past the top string to the staff, on the chord's lowest note.
+      press('ArrowUp', 5);
+      expect(staffPicked()).toBeInTheDocument();
+      expect(tabPicked()).toBeNull();
+      // On the staff ↑ ↓ go note by note in the chord, and past the lowest back down to the tab.
+      press('ArrowUp');
+      expect(staffPicked()).toBeInTheDocument();
+      press('ArrowDown', 2);
+      expect(staffPicked()).toBeNull();
+      expect(tabPicked()).toBeInTheDocument();
+      // No fret changed on the way.
+      fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
+      expect(frets()).toBe('(7.5 5.6).4 3.4.4 r.2 |');
     });
 
     it('lights only the part pressed: a staff note not on the tab, a tab note not on the staff', async () => {

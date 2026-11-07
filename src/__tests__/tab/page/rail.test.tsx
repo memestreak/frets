@@ -63,7 +63,8 @@ describe('the rail of panels (issue #301)', () => {
     fireEvent.click(railButton('Articulations'));
     fireEvent.click(screen.getByRole('button', { name: 'Palm mute' }));
     expect(alphaTex()).toContain('5.1{pm}');
-  });
+    // A clip from a link takes alphaTab a while to draw the first time in a busy run.
+  }, 20000);
 });
 
 describe('parseLayout', () => {

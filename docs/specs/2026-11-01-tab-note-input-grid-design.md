@@ -35,8 +35,8 @@ first.
    note's ghost (over a note at another pitch only the ghost, to add to the chord; over one at its
    own pitch both, the ghost see-through), on the tab its box on a string, or a short upright line on
    a column with no string picked. The mouse shows its own shadow note on the staff and a box on the
-   tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch and the caret
-   follows on past the note by its length, its ghost at the same pitch; a press on the tab enters a
+   tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch with the caret
+   on the new note, where the press was (Jeremy, 2026-11-07; for a while it went on past the note); a press on the tab enters a
    0 there with the caret on it, for digits to change (Dorico's tab is always in chord input). The
    Grid is drawn over the caret's bar, on the part the caret is on (in Both view, the staff or the tab;
    Jeremy, 2026-11-07), and, as Dorico draws it, over the bar under the mouse, on the part it is over,

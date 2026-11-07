@@ -28,7 +28,7 @@ const MOVING: ShortcutGroup = {
   title: 'Moving on the tab',
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Last or next column' },
-    { keys: ['Up', 'Down'], does: 'String above or below' },
+    { keys: ['Up', 'Down'], does: 'String above or below; past the top string up to the staff' },
     { keys: ['Mod+Left', 'Mod+Right'], does: 'Last or next bar' },
     { keys: ['Mod+Home', 'Mod+End'], does: 'Start or end of the clip' },
     { keys: ['Shift+Left', 'Shift+Right'], does: 'Select columns' },
@@ -61,9 +61,10 @@ const INPUT: ShortcutGroup = {
 const NORMAL: ShortcutGroup = {
   title: 'Selected notes and rests',
   shortcuts: [
-    { keys: ['Up', 'Down'], does: 'Fret up or down one' },
-    { keys: ['Mod+Up', 'Mod+Down'], does: 'Same pitch on the next string' },
-    { keys: ['Alt+Up', 'Alt+Down'], does: 'Next note up or down the chord' },
+    { keys: ['Up', 'Down'], does: 'String above or below (on the staff, the next note); past the top string up to the staff, past the lowest note down to the tab' },
+    { keys: ['Alt+Up', 'Alt+Down'], does: 'Fret up or down one (on the staff, a line or space)' },
+    { keys: ['Alt+Shift+Up', 'Alt+Shift+Down'], does: 'On the staff, a semitone' },
+    { keys: ['Mod+Up', 'Mod+Down'], does: 'Same pitch on the next string (on the staff, an octave)' },
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
     { keys: ['=', '−', 'W', 'Q'], does: 'Longer or shorter (the bar stays full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },

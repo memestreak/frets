@@ -229,8 +229,8 @@ When is the length chosen, where can a note start, and how does the cursor move?
 - The drawn Grid marks only where a note can go: each note's start and the grid lines inside
   rests, never inside a note's length, which the same Voice can't take.
 - The mouse never moves the caret, as in Dorico: it shows a fainter shadow note where a press
-  would put one, and the caret always shows. A press on the staff enters the note and the caret
-  follows on past it. The Grid is over the caret's bar and the bar under the mouse (issue #396).
+  would put one, and the caret always shows. A press on the staff enters the note with the caret
+  on it. The Grid is over the caret's bar and the bar under the mouse (issue #396).
 - Later: entering inside a note shortens it to that point, as Dorico does with Insert mode off
   (issue #332).
 - A note longer than the room before the next note writes over it, split and tied by the meter.

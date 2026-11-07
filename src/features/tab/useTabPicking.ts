@@ -1,12 +1,12 @@
 import { useRef } from 'react';
-import { ticks, type Part } from './clip';
+import type { Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
 import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
-import { advance, splitRestAt } from './grid';
+import { splitRestAt } from './grid';
 import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
 import { draggedRange, type RangeDrag } from './rangeBox';
 import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
@@ -43,7 +43,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
-    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
+    setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
   /**
@@ -275,14 +275,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // the grid line pressed (issue #293).
       const here = splitRestAt(clip, at, hit.at ?? 0);
       const edit = stringAtPitch(here.clip, here.cursor, pitch) === null ? toggleStaffNote(here.clip, here.cursor, pitch, inputLength) : { clip: here.clip, string: null };
-      if (edit.string !== null) {
-        // The caret follows the note in, on past it by its length, as Dorico's does (Jeremy, 2026-11-07, issue #396),
-        // its ghost at the same pitch.
-        hearNote({ ...here.cursor, string: edit.string });
-        const moved = advance(edit.clip, here.cursor, 0, ticks(inputLength));
-        toPitch(moved.clip, moved.cursor, pitch);
-        setCursorAt(moved.cursor, moved.at);
-      } else toPitch(edit.clip, here.cursor, pitch);
+      // The caret goes to the note pressed in, where the press was (Jeremy, 2026-11-07, issue #396).
+      toPitch(edit.clip, here.cursor, pitch);
+      if (edit.string !== null) hearNote({ ...here.cursor, string: edit.string });
       if ('problem' in edit && edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
     } else if (inputMode) {
       toPitch(clip, at, pitch);
