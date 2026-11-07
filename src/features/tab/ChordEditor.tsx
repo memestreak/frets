@@ -141,13 +141,15 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
   const isTaken = draft.name !== opened?.name && taken.includes(draft.name);
   const keyOf = (s: Shape | null) => (s ? shapeKey(s) : '');
   const changed = opened !== null && (draft.name !== opened.name || keyOf(draft.shape) !== keyOf(opened.shape));
-  const canOk = draft.name !== '' && !isTaken && (opened === null || changed);
+  // Save chord is never grey for want of a change: unchanged, it just closes (Jeremy, 2026-11-07).
+  const canOk = draft.name !== '' && !isTaken;
   // An opened chord can be kept as it was and saved again, changed, under a name of its own.
   const canAddNew = opened !== null && draft.name !== '' && draft.name !== opened.name && !taken.includes(draft.name);
   const needsNewName = opened !== null && changed && draft.name === opened.name;
   const ok = () => {
     if (!canOk) return;
-    if (opened) onSave(opened.name, draft.name, frets);
+    if (opened && !changed) onClose();
+    else if (opened) onSave(opened.name, draft.name, frets);
     else onAdd(draft.name, frets);
   };
   const startDrawing = () => {
@@ -192,7 +194,9 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
             }
           }}
         />
-        <span className="chord-panel-note chord-editor-hint">Leave it empty to use the chord’s name.</span>
+        <span className="chord-panel-note chord-editor-hint">
+          {opened ? `Leave it empty and the name follows the chord (${draft.suggested || opened.name}).` : 'Leave it empty to use the chord’s name.'}
+        </span>
       </label>
       <Lookup draft={draft} />
       <div className="chord-panel-row">

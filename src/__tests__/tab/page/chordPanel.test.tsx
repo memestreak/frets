@@ -275,14 +275,21 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
   it('opens on the chord’s root and type, its name following it; another shape and Save keeps its show props, back on Edit chord', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
-    const edit = changeChord('G');
+    let edit = changeChord('G');
     expect(inPanel().getByRole('heading', { name: 'Change chord' })).toBeInTheDocument();
     expect(edit.getByRole('radio', { name: 'G' })).toHaveAttribute('aria-checked', 'true');
     expect(edit.getByRole('combobox', { name: 'Type' })).toHaveValue('M');
     expect(edit.getByRole('textbox', { name: 'Name' })).toHaveValue('');
     expect(edit.getByRole('textbox', { name: 'Name' })).toHaveAttribute('placeholder', 'G');
     expect(edit.getByRole('button', { name: 'Draw your own' })).toBeInTheDocument();
-    expect(edit.getByRole('button', { name: 'Save chord' })).toBeDisabled();
+    expect(edit.getByText('Leave it empty and the name follows the chord (G).')).toBeInTheDocument();
+    // Save chord can be pressed with nothing changed: it goes back, saving nothing (Jeremy, 2026-11-07).
+    expect(edit.getByRole('button', { name: 'Save chord' })).toBeEnabled();
+    fireEvent.click(edit.getByRole('button', { name: 'Save chord' }));
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+    expect(definitions()[0]).toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
+    fireEvent.click(editorOf('Edit G').getByRole('button', { name: 'Change chord' }));
+    edit = editorOf('Change G');
     const other = edit.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
     fireEvent.click(other);
     // Nothing changes until Save.

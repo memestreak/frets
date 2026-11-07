@@ -88,8 +88,11 @@ and the Penpot page "Tab Chords panel (issue 400)".
   - Nothing changes until a button: **Add chord** (new) puts the chord in
     the set with the shape (none for a name with no shape, "Riff A"),
     picks it for Insert, and leaves the columns as they were. **Save
-    chord** (on a chord), grey until the name or shape changes, renames
-    the chord and gives it the shape, then goes back to Edit chord on it.
+    chord** (on a chord) renames the chord and gives it the shape, then
+    goes back to Edit chord on it; with nothing changed it just goes back
+    (Jeremy, 2026-11-07: never grey for want of a change). On a chord,
+    Name's hint reads "Leave it empty and the name follows the chord
+    (G)."
     A name already in the set can't be taken ("“G” is already in the
     Chord set."); Enter in Name does the same as the button.
   - **Save as new chord** (on a chord; Jeremy, 2026-11-06: "make minor
@@ -225,7 +228,8 @@ Settled while building (my calls, open to change):
   renames the definition and the column's `{ch}`, Edit chord staying open
   on G barre. The menu's Rename opens it with the field focused.
 - Change chord on G: heading "Change chord", Root G, Type major, Name
-  empty (G follows), Draw your own there, "Save chord" grey. Another
+  empty (G follows, the hint saying so), Draw your own there; Save chord
+  with nothing changed goes back to Edit chord, G as it was. Another
   shape changes nothing until Save; Save gives G that shape, keeping
   `showname`, C untouched, and goes back to Edit chord. Cancel after
   picking, and Esc, change nothing and go back to Edit chord.
