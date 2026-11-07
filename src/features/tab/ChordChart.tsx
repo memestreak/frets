@@ -33,8 +33,10 @@ export function chartDrawing(chords: readonly ShapedChord[], width: number, look
   return { drawing, height };
 }
 
-/** The chart on the page, as wide as the drawing under it; `onEdit` opens a chord's editor. */
-export function ChordChart({ chords, width, onEdit }: { chords: readonly ChartChord[]; width: number; onEdit: (chord: ChartChord) => void }) {
+/** The chart on the page, as wide as the drawing under it; `onEdit` opens a chord's editor, `onPick` hears of a press picking one. */
+export function ChordChart({ chords, width, onEdit, onPick }: {
+  chords: readonly ChartChord[]; width: number; onEdit: (chord: ChartChord) => void; onPick?: (chord: ChartChord) => void;
+}) {
   const [picked, setPicked] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; index: number } | null>(null);
   const menuTrigger = useMenuTrigger<SVGGElement>();
@@ -66,7 +68,7 @@ export function ChordChart({ chords, width, onEdit }: { chords: readonly ChartCh
             <g
               key={`${chord.name}-${i}`} role="button" tabIndex={0} aria-label={`${chord.name}, edit`} aria-pressed={picked === i}
               className="tab-chart-chord" data-keep-focus data-testid="chart-chord"
-              onClick={() => setPicked(i)} onDoubleClick={() => edit(i)} onKeyDown={e => onKeyDown(e, i)}
+              onClick={() => { setPicked(i); onPick?.(chords[i]); }} onDoubleClick={() => edit(i)} onKeyDown={e => onKeyDown(e, i)}
               onBlur={() => { if (!menu) setPicked(p => (p === i ? null : p)); }}
               {...menuTrigger.props((trigger, x, y) => {
                 setPicked(i);

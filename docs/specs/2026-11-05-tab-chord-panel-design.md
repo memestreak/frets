@@ -56,6 +56,13 @@ and the Penpot page "Tab Chords panel (issue 400)".
     MuseScore and Dorico apply a pick at once too.
   - **Change chord** opens the chord dialog on it (below); **Done** or
     Esc close Edit chord.
+  - **It follows the chord picked** (Jeremy, 2026-11-07, over greying the
+    other chords while it is open): a tile pressed, a chord name picked in
+    the tab, or a Chord chart chord of this track pressed moves Edit chord
+    to that chord, and Change chord to that chord's Change chord, dropping
+    what wasn't saved, as Cancel does. Dorico's and MuseScore's Properties
+    panels follow the selection likewise. A new chord's dialog (+, Copy to
+    new chord) stays.
 - **The chord dialog** (`ChordEditor.tsx`): one dialog for defining a
   chord and for changing one (Jeremy, 2026-11-07: a detailed edit "as
   close as possible to the way of defining a new chord"). + opens it
@@ -227,6 +234,11 @@ Settled while building (my calls, open to change):
   "C" says it's in the Chord set and Esc leaves G; "G barre" with Enter
   renames the definition and the column's `{ch}`, Edit chord staying open
   on G barre. The menu's Rename opens it with the field focused.
+- With Edit chord on G, pressing the C tile moves it to C, C's shape
+  picked; with Change chord on G and another shape picked, pressing C
+  moves to Change C and G keeps its shape. Picking the G name in the tab,
+  or pressing G in the Chord chart, moves Edit chord on C to G. With +
+  open, pressing a tile leaves it.
 - Change chord on G: heading "Change chord", Root G, Type major, Name
   empty (G follows, the hint saying so), Draw your own there; Save chord
   with nothing changed goes back to Edit chord, G as it was. Another

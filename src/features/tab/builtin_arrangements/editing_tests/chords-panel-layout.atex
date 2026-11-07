@@ -20,7 +20,7 @@
   r.4{txt "Press this rest. Pick Bm on page 2: the button under the tiles reads Insert at bar 3, beat 2. Press it: Bm's notes and name land here"}
   (3.1 3.2 0.3 2.4 3.5).4{ch "Cadd9"} r.4 |
 \section "4. Edit"
-  (3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Double-click G in the Chord set: Edit chord, only its Shapes and Change chord. Press another shape: bar 1's diagram changes at once; Ctrl or Command+Z takes it back. Double-click the name G (or press F2 on it), type G2, press Enter: only the name changes. Press Change chord: the same dialog as +, on G2. Press Cancel: back to its shapes. Press Done"}
+  (3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Double-click G in the Chord set: Edit chord, only its Shapes and Change chord. Press another shape: bar 1's diagram changes at once; Ctrl or Command+Z takes it back. Double-click the name G (or press F2 on it), type G2, press Enter: only the name changes. Press Change chord: the same dialog as +, on G2. Press Cancel: back to its shapes. Press the C tile, then the G/B name in bar 4: Edit chord moves to each. Press Change chord, pick another shape, press the D tile: Change chord moves to D and G/B is as it was. Press Done"}
   r.4 (3.1 0.2 0.3 0.4 2.5).4{ch "G/B"} r.4 |
 \section "5. New"
   r.1{txt "Right-click C: Insert, Edit, Rename, Copy to new chord. Press Copy to new chord: New chord from C, named C 2, with Root, Type and shapes, as + shows. Press Add chord. Right-click Bm on page 2: Delete is last, as Bm is not used"} |

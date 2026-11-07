@@ -397,6 +397,48 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
   });
 });
 
+describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-07)', () => {
+  it('a tile pressed moves Edit chord to it', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    editFromMenu('G');
+    fireEvent.click(tile('C'));
+    expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
+    expect(editorOf('Edit C').getByRole('button', { name: 'Shape x-3-2-0-1-0' })).toHaveAttribute('aria-pressed', 'true');
+    expect(tile('C')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('a tile pressed moves Change chord to it, dropping what wasn’t saved', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    const change = changeChord('G');
+    fireEvent.click(change.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!);
+    fireEvent.click(tile('C'));
+    expect(inPanel().queryByRole('group', { name: 'Change G' })).toBeNull();
+    expect(editorOf('Change C').getByRole('radio', { name: 'C' })).toHaveAttribute('aria-checked', 'true');
+    expect(definitions()[0]).toBe('\\chord ("G" 3 0 0 0 2 3) {showname true}');
+  });
+
+  it('a chord name picked in the tab, and a Chord chart chord pressed, move it too', async () => {
+    const layout = await open();
+    fireEvent.click(railButton('Chords'));
+    editFromMenu('C');
+    pressWord(layout, { kind: 'chord', index: 0 });
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+    editFromMenu('C');
+    fireEvent.click(screen.getByRole('button', { name: 'G, edit' }));
+    expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
+  });
+
+  it('a new chord’s dialog stays: + and Copy to new chord don’t follow', async () => {
+    await open();
+    fireEvent.click(railButton('Chords'));
+    fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
+    fireEvent.click(tile('C'));
+    expect(inPanel().getByRole('group', { name: 'Add a chord' })).toBeInTheDocument();
+  });
+});
+
 describe('Add a chord (+)', () => {
   /** Opens + on the panel. */
   async function openAdd() {

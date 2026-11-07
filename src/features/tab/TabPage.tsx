@@ -372,6 +372,16 @@ export default function TabPage() {
   // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
   const [railPanel, setRailPanel] = useOpenPanel();
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
+  /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord follows it (Jeremy, 2026-11-07). */
+  const [chordFollow, setChordFollow] = useState<{ name: string } | null>(null);
+  useEffect(() => {
+    if (picked?.kind !== 'chord') return;
+    const name = columnAt(clip, { ...cursor, ...placeOf(clip, picked.index) })?.chord;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a chord name picked is an outside event for the panel.
+    if (name) setChordFollow({ name });
+    // Only a new pick counts; the clip changing under it doesn't.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked]);
   const openChordsAt = (index: number) => {
     const place = placeOf(clip, index);
     setCursor(c => ({ ...c, ...place }));
@@ -997,7 +1007,7 @@ export default function TabPage() {
         onOpen={id => { setRailPanel(id); setChordsAt(null); }}
         chords={(
           <ChordPanel
-            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt}
+            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt} follow={chordFollow}
             onChange={next => commit(next)}
             inputLength={inputMode ? inputLength : null}
             onInsertAtInput={(part, column) => writeAtInput(editorKeys(), part, column)}
@@ -1062,7 +1072,7 @@ export default function TabPage() {
                 onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
               />
               </HoverTips>
-              <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} />
+              <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} onPick={chord => { if (chord.owner === 0) setChordFollow({ name: chord.name }); }} />
             </>
             : <>
               {/* The page keeps its heading for screen readers. */}

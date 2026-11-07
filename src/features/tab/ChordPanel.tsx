@@ -128,6 +128,8 @@ interface ChordPanelProps {
   editing: boolean;
   /** The chord a name's Edit last asked for (each Edit a new object): its chord editor opens. */
   at: { name: string | null } | null;
+  /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord moves to it. */
+  follow?: { name: string } | null;
   onChange: (next: Part) => void;
   /** Note input's length while note input is on, else null: Insert then writes a new column of it and moves on. */
   inputLength: Duration | null;
@@ -166,7 +168,7 @@ export function cursorPlace(clip: Part, cursor: Cursor): string {
 /** What the chord editor is open for: a new chord (+), a chord of the set, a copy of one, or nothing (closed). */
 type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean; change?: boolean } | { kind: 'copy'; name: string; newName: string };
 
-export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, editing, at, follow, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [editorFor, setEditorFor] = useState<EditorFor | null>(null);
@@ -210,7 +212,23 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
     return frets ? toShape(frets) : null;
   };
 
+  /**
+   * Edit chord and Change chord follow the chord picked, in the set or on the page (Jeremy, 2026-11-07):
+   * Change chord's unsaved changes go, as Cancel's do. A new chord (+, a copy) stays where it is.
+   */
+  const followTo = (n: string) => {
+    if (editorFor?.kind !== 'edit' || editorFor.name === n || !set.some(e => e.name === n)) return;
+    setPicked(n);
+    setEditorFor({ kind: 'edit', name: n, change: editorFor.change });
+  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new `follow` is an outside event.
+    if (follow) followTo(follow.name);
+    // Only a new pick counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [follow]);
   const pick = (n: string) => {
+    followTo(n);
     setPicked(n);
     const frets = shapeFor(clip, n);
     if (hear && frets) onHear(frets);
