@@ -17,9 +17,9 @@
 (2.1 3.2 2.3 0.4).4{ch "D" txt "Double-click this D's diagram: its editor opens under the list. Press This track's chords: only the list folds, the editor stays. Press it again, then Cancel"}
   r.4 (0.1 0.2 0.3 2.4 2.5 0.6).4{ch "Em"} r.4 |
 \section "3. Insert"
-(0.1 1.2 2.3 2.4 0.5).4{ch "Am"} r.4{txt "Press this rest. In (a) press the arrow on Bm's row; in (b) and (c) pick Bm, then Insert Bm. Bm's notes and name land here"} (3.1 3.2 0.3 2.4 3.5).4{ch "Cadd9"} r.4 |
+(0.1 1.2 2.3 2.4 0.5).4{ch "Am"} r.4{txt "Press this rest. In (a) press the arrow on Bm's row; in (b) and (c) pick Bm, then the Insert button (it names this place: bar 3, beat 2). Bm's notes and name land here"} (3.1 3.2 0.3 2.4 3.5).4{ch "Cadd9"} r.4 |
 \section "4. Copy"
-(3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Right-click C in the list (or the chord in (c)): Insert, Edit, Copy to new chord. Press Copy to new chord: a New chord from C opens, named C 2, on C's shape. Pick another shape, press Add chord"}
+(3.1 3.2 2.3 0.4).4{ch "Dsus4" txt "Right-click C in the list (or the chord in (c)): Insert, Edit, Copy to new chord (Insert names the place when a column is picked). Press Copy to new chord: a New chord from C opens, named C 2, on C's shape. Pick another shape, press Add chord"}
   r.4 (3.1 0.2 0.3 0.4 2.5).4{ch "G/B"} r.4 |
 \section "5. Editor"
 r.1{txt "Add &chordeditor=shape to the link (or use the Mock card), then double-click G in the list: no Root or Type, only G's shapes and Change root and type. Press + : a new chord still shows Root and Type"} |

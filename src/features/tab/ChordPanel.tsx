@@ -14,7 +14,7 @@ import { useMock, type Mock } from '@/components/mocks/useMock';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
-import type { Column, Duration, Part, Track } from './clip';
+import { ticks, timeAt, WHOLE, type Column, type Duration, type Part, type Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { ChordEditor } from './ChordEditor';
 import { NoteSoundIcon } from './PlaybackFooter';
@@ -183,6 +183,20 @@ export function freeName(name: string, taken: readonly string[]): string {
   for (let n = 2; ; n++) if (!taken.includes(`${name} ${n}`)) return `${name} ${n}`;
 }
 
+const PARTS: Record<string, string> = { '0.25': '¼', '0.5': '½', '0.75': '¾' };
+
+/** Where Insert writes, as a player counts it: "bar 3, beat 2", "bar 1, beat 2½". */
+export function cursorPlace(clip: Part, cursor: Cursor): string {
+  const bar = clip.bars[cursor.bar];
+  if (!bar) return '';
+  const before = bar.columns.slice(0, cursor.column).reduce((t, c) => t + (c.grace ? 0 : ticks(c.duration)), 0);
+  const beat = before / (WHOLE / timeAt(clip, cursor.bar).value) + 1;
+  const whole = Math.floor(beat);
+  const part = Math.round((beat - whole) * 100) / 100;
+  const label = part === 0 ? `${whole}` : PARTS[String(part)] ? `${whole}${PARTS[String(part)]}` : beat.toFixed(2);
+  return `bar ${cursor.bar + 1}, beat ${label}`;
+}
+
 /** Into the tab: an arrow down into a bar. */
 function InsertIcon() {
   return (
@@ -278,7 +292,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   const menuItems = (n: string): MenuItem[] => {
     const entry = set.find(e => e.name === n);
     return [
-      { label: `Insert ${n}`, onSelect: () => insert(n) },
+      { label: editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert', onSelect: () => insert(n) },
       { label: 'Edit', onSelect: () => openOn(n) },
       { label: 'Copy to new chord', onSelect: () => copy(n) },
       ...(entry && entry.uses === 0 ? [{ label: 'Delete', onSelect: () => remove(entry) }] : []),
@@ -327,10 +341,12 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
   );
   /** Mocks b and c: Insert and the picked chord's Edit and Delete, under the chords. */
   const pickedEntry = set.find(e => e.name === name);
+  /** Insert says where it writes (Jeremy, 2026-11-07); off the tab, only "Insert". */
+  const insertLabel = editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert';
   const actionBar = pickedEntry && (
     <div className="chord-panel-insert">
       {whatSeg}
-      <button type="button" className="btn btn-primary" disabled={!editing} onMouseDown={keep} onClick={() => insert()}>Insert {pickedEntry.name}</button>
+      <button type="button" className="btn btn-primary" disabled={!editing} onMouseDown={keep} onClick={() => insert()}>{insertLabel}</button>
       <span className="chord-panel-actions">
         {editIcon(pickedEntry.name)}
         {deleteIcon(pickedEntry)}
@@ -401,7 +417,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, onChange, inputLe
                   {uses(entry)}
                 </button>
                 <button
-                  type="button" className="chord-panel-icon" aria-label={`Insert ${entry.name}`} data-tip="Insert at the cursor"
+                  type="button" className="chord-panel-icon" aria-label={`Insert ${entry.name}`} data-tip={editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert'}
                   disabled={!editing} onMouseDown={keep} onClick={() => { setPicked(entry.name); insert(entry.name); }}
                 >
                   <InsertIcon />
