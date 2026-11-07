@@ -9,7 +9,7 @@ import { BAR_TEXT_INSET, boldTextWidth, SECTION_BOX_HEIGHT, SECTION_LINE, sectio
 import { tempoNoteWidth } from './TempoNote';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
 import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
-import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth } from './layout';
+import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth, textRowOf } from './layout';
 
 /** A free text's box: its widest line, and its first and last lines' middles, down from the system's top. */
 function beatTextBox(placed: PlacedColumn, textRow: number): { x0: number; x1: number; y0: number; y1: number } {
@@ -122,8 +122,9 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
         const half = Math.max(w, grid.x1 - grid.x0) / 2;
         return { x: placed.x - half - 3, y: system.top + top, width: 2 * half + 6, height: grid.y1 + 3 - top };
       }
-      if (!placed.column.text || rows.text === null) return null;
-      const text = beatTextBox(placed, rows.text);
+      const textRow = textRowOf(rows, placed);
+      if (!placed.column.text || textRow === null) return null;
+      const text = beatTextBox(placed, textRow);
       return box(s, (text.y0 + text.y1) / 2, text.x0, text.x1, 18 + text.y1 - text.y0);
     }
     if (!('bar' in hit)) continue;
@@ -203,12 +204,11 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
     const grid = diagramBox(placed, rows);
     if (grid && x >= grid.x0 - 2 && x <= grid.x1 + 2 && localY >= grid.y0 - 2 && localY <= grid.y1 + 2) return { kind: 'chord', index: placed.index };
   }
-  if (rows.text !== null) {
-    for (const placed of system.bars.flatMap(b => b.columns)) {
-      if (!placed.column.text) continue;
-      const text = beatTextBox(placed, rows.text);
-      if (localY >= text.y0 - 6 && localY <= text.y1 + 6 && x >= text.x0 - 2 && x <= text.x1 + 2) return { kind: 'text', index: placed.index };
-    }
+  for (const placed of system.bars.flatMap(b => b.columns)) {
+    const textRow = textRowOf(rows, placed);
+    if (!placed.column.text || textRow === null) continue;
+    const text = beatTextBox(placed, textRow);
+    if (localY >= text.y0 - 6 && localY <= text.y1 + 6 && x >= text.x0 - 2 && x <= text.x1 + 2) return { kind: 'text', index: placed.index };
   }
   for (const bar of system.bars) {
     const x0 = barTextX(bar);
