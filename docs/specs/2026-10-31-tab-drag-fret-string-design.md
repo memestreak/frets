@@ -9,7 +9,7 @@ string. It is Ctrl/⌘+↑ ↓ with the pointer.
 - **The pitch stays** (Jeremy, 2026-10-31, option 1 of three: keep the pitch / keep the fret / keep
   the pitch with Shift keeping the fret). The fret is worked out again for the new string: a 5 on the
   B string dragged to the G string becomes a 9. The note keeps its marks.
-- **Normal mode only.** In note input a press on the tab enters a note, as before, and doesn't drag.
+- **Normal mode only.** In note input mode a press on the tab enters a note, as before, and doesn't drag.
 - **The press selects at once**, as any press on a note does; a press that doesn't move only selects.
 - **The number follows the pointer**, a string for each string gap it goes up or down, and shows its
   new fret while the drag goes on. Over a string that has a note in the column, or can't play the
@@ -27,4 +27,4 @@ string. It is Ctrl/⌘+↑ ↓ with the pointer.
 `staffEntry.ts`: `noteToString` (pure: a note to a given string at the same pitch, or null), which
 `moveToString` (Ctrl/⌘+↑ ↓) now uses too. `hitTest.ts`: `FretDrag`. `TabClip.tsx`: `onDragFret`, the
 press on a fret number and the string under the pointer. `TabPage.tsx`: `onDragFret` previews the
-move while dragging and commits it on letting go; it is only passed outside note input.
+move while dragging and commits it on letting go; it is only passed outside note input mode.

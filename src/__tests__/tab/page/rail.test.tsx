@@ -22,7 +22,7 @@ describe('the rail of panels (issue #301)', () => {
     renderAt();
     expect(railButton('Notes')).toHaveAttribute('aria-pressed', 'true');
     expect(panel()).toHaveAccessibleName('Notes');
-    expect(screen.getByRole('button', { name: 'Note input' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Note input mode' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Quarter note/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Tuplet/ })).toBeInTheDocument();
     // The other panels' tools are not shown.
@@ -35,7 +35,7 @@ describe('the rail of panels (issue #301)', () => {
     expect(panel()).toHaveAccessibleName('Articulations');
     expect(railButton('Notes')).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: /^Vibrato/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Note input' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Note input mode' })).toBeNull();
     fireEvent.click(railButton('Articulations'));
     expect(panel()).toBeNull();
     fireEvent.click(railButton('Bars'));

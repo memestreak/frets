@@ -11,13 +11,13 @@ A double-click picks what is under it, as a press does, then:
 
 - **on something with an Edit** in its right-click menu (`docs/specs/2026-11-01-tab-selection-look-design.md`):
   a chord name, text over a column, a section, a tempo, the capo, an ending, or a repeat's end or its
-  ×N count, it opens the same field the menu's Edit opens, where Edit puts it. This works in note input
+  ×N count, it opens the same field the menu's Edit opens, where Edit puts it. This works in note input mode
   too, as the menu does.
 - **on something with only Delete**: a mark (P.M. and let ring lines too), a repeat's start or a double
   bar, it leaves it picked and does nothing more.
 - **on a time or key signature**: its panel is already open from the press; nothing more.
-- **anywhere else** on the staff or the tab, out of note input, it goes into note input, picking nothing,
-  as before (issue #238, Jeremy 2026-10-31). In note input it does nothing.
+- **anywhere else** on the staff or the tab, out of note input mode, it goes into note input mode, picking nothing,
+  as before (issue #238, Jeremy 2026-10-31). In note input mode it does nothing.
 
 ## Code
 

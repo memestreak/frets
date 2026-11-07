@@ -31,7 +31,7 @@ Jeremy, 2026-11-01, after asking what MuseScore does: a note or a chord, picked 
 > Since step 4 a run is laid out again from its start and keeps its bar full, and the length keys do nothing in a tuplet; a fret on a picked rest takes the rest's length (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
 
 - A run of several columns (Shift-selected), a grace note, or a note or rest in a tuplet: the length keys change each column's length and the bar may come out long or short, as before.
-- In note input the keys set the next note's length (`inputLength.ts`), not a rest's.
+- In note input mode the keys set the next note's length (`inputLength.ts`), not a rest's.
 
 ## Picking a rest with the tab alone
 
