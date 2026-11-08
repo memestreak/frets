@@ -4,7 +4,7 @@
  * tie on the note it arrives at (alphaTex `-`). Pure; no React.
  */
 import { ticks, type Column, type Duration, type Note, type Part } from './clip';
-import { columnAt, indexOf, normalize, placeOf, selectedRange, type Cursor, type Selection } from './editing';
+import { columnAt, indexOf, moveColumn, normalize, placeOf, selectedRange, type Cursor, type MoveOptions, type Selection } from './editing';
 import { durationOf } from './sounding';
 import { writeOver, timeOf } from './timeline';
 
@@ -272,4 +272,24 @@ export function litTiedNotes(clip: Part, cursor: Cursor, selection: Selection | 
   return chainPlaces(clip, cursor)
     .map(p => ({ index: indexOf(clip, p.bar, p.column), string: cursor.string }))
     .filter(p => p.index !== here);
+}
+
+/**
+ * A move on past Columns that hold only tied-on notes, so a Tie chain is one stop (step 4 in note input mode,
+ * step 5 in normal mode). It stops where it can go no further.
+ */
+export function overTiedOn(moved: { clip: Part; cursor: Cursor }, step: 1 | -1, options: MoveOptions = {}): { clip: Part; cursor: Cursor } {
+  let out = moved;
+  while (onlyTiedOn(out.clip, out.cursor)) {
+    const next = moveColumn(out.clip, out.cursor, step, options);
+    if (next.cursor.bar === out.cursor.bar && next.cursor.column === out.cursor.column) break;
+    out = next;
+  }
+  return out;
+}
+
+/** Whether the cursor's Column holds only notes tied on from the Column before. */
+function onlyTiedOn(clip: Part, cursor: Cursor): boolean {
+  const notes = (columnAt(clip, cursor)?.notes ?? []).filter(note => note !== null);
+  return notes.length > 0 && notes.every(note => note.tie);
 }

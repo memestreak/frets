@@ -1,31 +1,27 @@
 /**
  * The keys the Tab page's editor takes (`docs/specs/2026-10-25-tab-editing-design.md`): on the drawn
  * tab, on the staff's own cursor (issue #136), and off the tab on the playback line. Each handler
- * reads the editor as it is and changes it through the callbacks it is given.
+ * reads the editor as it is and changes it through the callbacks it is given. Note input mode's own
+ * keys are in `noteInputKeys.ts`.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { barTicks, isRest, ticks, timeAt, type Column, type Duration, type Part } from './clip';
 import { placeAtTime, SPLITS_TUPLET, timeOf, writeSpan } from './timeline';
 import { durationOf } from './sounding';
-import { addGrace, enterGrace, groupAt, isProblem, lengthInTuplet, removeGrace, startTuplet, tupletSpanTicks, typeInTuplet } from './tuplets';
-import { clampCursor, clearNote, columnAt, columnCount, cursorTime, deleteColumns, emptyColumn, indexOf, insertTime, MAX_FRET, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, setFret, type Cursor, type MoveOptions, type Selection, type Target } from './editing';
-import { chainPlaces, chainStart, chainTicks } from './ties';
-import { clearToRests, stepDuration } from './noteEdits';
+import { addGrace, groupAt, removeGrace, tupletSpanTicks, typeInTuplet } from './tuplets';
+import { clampCursor, clearNote, columnAt, columnCount, cursorTime, deleteColumns, emptyColumn, indexOf, insertTime, moveColumn, noteAt, placeOf, removeEmptyBar, selectedRange, type Cursor, type Selection, type Target } from './editing';
+import { chainPlaces, chainStart, chainTicks, overTiedOn } from './ties';
+import { clearToRests, setValue, stepDuration } from './noteEdits';
 import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { isSpan } from './spans';
 import type { Notice } from './notice';
-import { enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, pitchOf, pitchOfLetter, stepPitch, stringAtPitch, type TypedAccidental } from './staffEntry';
-import { STAFF_LINES } from './notation';
+import { movedPitch, moveNotes, moveToString, notesToMove, stringAtPitch, type TypedAccidental } from './staffEntry';
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
-import { setValue } from './noteEdits';
-import { lengthOf, stepLength } from './inputLength';
-import { advance, lastStop, splitRestAt, stepInRest } from './grid';
+import { advance } from './grid';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
-
-/** How long after one digit a second one joins it into a two-digit fret. */
-const SECOND_DIGIT_MS = 1000;
+import { noteInputKeyDown, toStaff, toTab } from './noteInputKeys';
 
 /** What takes Esc before note input does: an open panel, menu or dialog closes first, as in Dorico and MuseScore. */
 const POPUPS = '[role="dialog"], [role="menu"], dialog[open]';
@@ -118,48 +114,86 @@ export interface EditorKeys {
   leave: () => void;
 }
 
-/** A key on the drawn tab. */
+/**
+ * A key on the drawn tab. It tries, in turn: the keys every mode takes first (Alt+← →, Alt+1–4, a picked mark
+ * or word, an open panel's Esc); the mode's own keys (`noteInputKeyDown` in `noteInputKeys.ts`, or
+ * `normalKeyDown`), with Space and N; then the keys every mode shares (`sharedKeyDown`).
+ */
 export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys) {
-  const { clip, cursor, selection, target, columnOnly, picked, lastDigit, commit } = editor;
   const { key } = e;
   // A sign typed for the next letter lasts only until that letter: any other key lets it go (Jeremy, 2026-11-07).
   if (!/^([a-g]|-|=|0|Shift|Alt|Control|Meta)$/.test(key)) editor.accidental.current = null;
-  const count = columnCount(clip);
   // A modifier on its own does nothing: holding Alt (or Shift) to step leaves a picked mark or word picked.
   if (key === 'Alt' || key === 'Shift' || key === 'Control' || key === 'Meta') return;
-  // Alt+← → step through notes, rests, marks and words, as MuseScore's do (issue #238), from a picked one too.
-  if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+  if (stepOrVoiceKeyDown(e, editor)) {
     e.preventDefault();
-    editor.stepElement(key === 'ArrowRight' ? 1 : -1);
     return;
   }
-  // Alt+1–4 make that Voice active, or move the picked or selected notes into it (step 9, Q8); read by the
-  // key's place, as Alt types another character on a Mac.
+  if (pickedKeyDown(e, editor)) return;
+  // A panel open over the tab with the keys still here (a bar's time signature) takes Esc itself, and closes.
+  if (key === 'Escape' && popupTakesEscape(e)) return;
+  if (editor.inputMode && noteInputKeyDown(e, editor)) {
+    e.preventDefault();
+    return;
+  }
+  if (spaceOrNKeyDown(e, editor)) {
+    e.preventDefault();
+    return;
+  }
+  if (!editor.inputMode) {
+    if (normalKeyDown(e, editor)) e.preventDefault();
+    if (e.defaultPrevented) return;
+  }
+  sharedKeyDown(e, editor);
+}
+
+/**
+ * Alt+← → step through notes, rests, marks and words, as MuseScore's do (issue #238), from a picked one too;
+ * Alt+1–4 make that Voice active, or move the picked or selected notes into it (step 9, Q8). True when the key
+ * was one of them.
+ */
+function stepOrVoiceKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  const { key } = e;
+  if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    editor.stepElement(key === 'ArrowRight' ? 1 : -1);
+    return true;
+  }
+  // Read by the key's place, as Alt types another character on a Mac.
   const voiceDigit = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey ? /^Digit([1-4])$/.exec(e.code) : null;
   if (voiceDigit) {
-    e.preventDefault();
     editor.voiceKey(Number(voiceDigit[1]) - 1);
-    return;
+    return true;
   }
-  // A picked mark: Delete takes it away (the note stays), Esc lets it go; any other key lets it go and does what it does.
-  if (picked?.kind === 'mark') {
+  return false;
+}
+
+/**
+ * A picked mark or word: Delete takes it away, Esc lets it go (and leaves note input mode), Enter edits a
+ * word or a tuplet's number; any other key lets it go and goes on to do what it does. True when the key was
+ * used up here.
+ */
+function pickedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  const { clip, cursor, selection, picked, commit } = editor;
+  const { key } = e;
+  if (!picked) return false;
+  if (picked.kind === 'mark') {
     // A picked tie arc: `=` takes it away too, as the lit Tie tool does (step 5).
     if (key === 'Delete' || key === 'Backspace' || (key === 't' && picked.mark === 'tie')) {
       e.preventDefault();
       editor.deletePicked(picked);
-      return;
+      return true;
     }
     // A picked Span: Alt+Shift+→ / ← move its end a column, as Dorico's Shift+Alt+→ / ← (step 8, Q9).
     if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && isSpan(picked.mark)) {
       e.preventDefault();
       editor.moveSpanEnd(key === 'ArrowRight' ? 1 : -1);
-      return;
+      return true;
     }
     // A picked tuplet's number: Enter opens the Tuplet panel, as its menu's Edit does (step 8).
     if (key === 'Enter' && picked.mark === 'tuplet' && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       editor.editPicked(picked);
-      return;
+      return true;
     }
     editor.setPicked(null);
     if (key === 'Escape') {
@@ -170,97 +204,53 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       // Mark over the whole column put the cursor on (step 8).
       if (selection) commit(clip, cursor, null);
       editor.setColumnOnly(false);
-      return;
+      return true;
     }
+    return false;
   }
-  // A picked word: Delete takes it away, Enter edits it, Esc lets it go; any other key lets it go and does what it does.
-  if (picked && picked.kind !== 'mark') {
-    if (key === 'Delete' || key === 'Backspace') {
-      e.preventDefault();
-      editor.deletePicked(picked);
-      return;
-    }
-    if (key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      editor.editPicked(picked);
-      return;
-    }
-    editor.setPicked(null);
-    if (key === 'Escape') {
-      e.preventDefault();
-      if (editor.inputMode) editor.setInputMode(false);
-      return;
-    }
-  }
-  // Shift+Space in note input moves the cursor on by the next note's length, over notes and rests, as
-  // Dorico's Space does; Space itself still plays (Jeremy, 2026-11-01).
-  if (key === ' ' && e.shiftKey && editor.inputMode && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  // A picked word.
+  if (key === 'Delete' || key === 'Backspace') {
     e.preventDefault();
-    lastDigit.current = null;
-    const moved = advance(clip, cursor, editor.cursorAt, ticks(editor.inputLength));
-    commit(moved.clip, moved.cursor, null);
-    editor.setCursorAt(moved.cursor, moved.at);
-    return;
+    editor.deletePicked(picked);
+    return true;
   }
-  if (key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    // Space on the tab never types or scrolls; while the footer shows, the page-wide key plays.
+  if (key === 'Enter' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
-    return;
+    editor.editPicked(picked);
+    return true;
   }
-  const handled = () => e.preventDefault();
+  editor.setPicked(null);
+  if (key === 'Escape') {
+    e.preventDefault();
+    if (editor.inputMode) editor.setInputMode(false);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Space on the tab never types or scrolls (while the footer shows, the page-wide key plays); N goes into note
+ * input mode and back out (issue #238), as in MuseScore. True when the key was one of them.
+ */
+function spaceOrNKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-  // N goes into note input and back out (issue #238), as in MuseScore; Esc leaves it too.
-  if (key === 'n' && plain) {
-    handled();
+  if (e.key === ' ' && plain) return true;
+  if (e.key === 'n' && plain) {
     editor.setInputMode(!editor.inputMode);
-    return;
+    return true;
   }
-  // A panel open over the tab with the keys still here (a bar's time signature) takes Esc itself, and closes.
-  if (key === 'Escape' && popupTakesEscape(e)) return;
-  if (key === 'Escape' && editor.inputMode) {
-    handled();
-    editor.setInputMode(false);
-    return;
-  }
-  // Shift and a digit's key set the length on the tab (MuseScore's tab keys): Shift+5 a quarter. In note
-  // input that is the next note's length; in normal mode, the selected notes'.
-  const shiftedDigit = e.shiftKey && plain && editor.staffPitch === null ? digitOfCode(e.code) : null;
-  if (shiftedDigit !== null) {
-    handled();
-    const value = valueForDigit(shiftedDigit);
-    if (value && editor.inputMode) editor.setInputLength(lengthOf(value));
-    else if (value && !(target.selection && editor.everyVoice((part, run) => setValue(part, { ...target, selection: run }, value)))) commit(setValue(clip, target, value));
-    return;
-  }
-  if (!editor.inputMode) {
-    if (normalKeyDown(e, editor)) handled();
-    if (e.defaultPrevented) return;
-  } else {
-    if (editor.staffPitch !== null && letterKeyDown(e, editor, editor.staffPitch)) {
-      handled();
-      return;
-    }
-    // On the staff in note input a digit is the next note's length, as in MuseScore: 5 a quarter, 3 a
-    // sixteenth (8 and 9 are none; 0 is a natural, above). It never types a fret there.
-    if (editor.staffPitch !== null && /^[0-9]$/.test(key) && plain) {
-      handled();
-      const value = valueForDigit(Number(key));
-      if (value) editor.setInputLength(lengthOf(value));
-      return;
-    }
-    if (staffOrTabKeyDown(e, editor)) {
-      handled();
-      return;
-    }
-    if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
-      handled();
-      return;
-    }
-    if (moveKeyDown(e, editor)) {
-      handled();
-      return;
-    }
-  }
+  return false;
+}
+
+/**
+ * The keys every mode shares, after the mode's own: the jumps, Ctrl/⌘ keys, Shift+← →, Delete, Esc off the
+ * tab, `;`, the cycling keys and the tools. Normal mode's longer and shorter and its Insert are here too, as
+ * note input mode took its own.
+ */
+function sharedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys) {
+  const { clip, cursor, selection, target, columnOnly, lastDigit, commit } = editor;
+  const { key } = e;
+  const handled = () => e.preventDefault();
   if (jumpKeyDown(e, editor)) {
     handled();
     return;
@@ -271,6 +261,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
       e.preventDefault();
       editor.addBar(e.shiftKey ? 'before' : 'after');
     }
+    const count = columnCount(clip);
     if (key.toLowerCase() === 'a' && count > 0) {
       e.preventDefault();
       const last = placeOfLast(clip);
@@ -280,69 +271,15 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     // Copy, cut and paste arrive as clipboard events; undo is the page's.
     return;
   }
-  // With Alt, a digit is not a fret.
-  if (/^[0-9]$/.test(key) && !e.altKey) {
-    handled();
-    // A fret goes on a string; with none picked, ↑ ↓ or a press picks one first.
-    if (columnOnly) return;
-    const digit = Number(key);
-    if (editor.inputMode && typeEntered(e, editor, digit)) return;
-    // A fret typed on a rest in note input makes a note of note input's length, where the cursor is in the rest.
-    const length = editor.inputMode ? editor.inputLength : undefined;
-    // A Tie chain is one note: a fret typed on any of it goes on its first note, and the rest follow (step 5).
-    const typedOn = noteAt(clip, cursor)?.tie ? chainStart(clip, cursor) : cursor;
-    const here = splitRestAt(clip, typedOn, editor.cursorAt);
-    const spot = `${here.cursor.bar}:${here.cursor.column}:${here.cursor.string}`;
-    const before = lastDigit.current;
-    const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
-    if (joined !== null && joined <= MAX_FRET) {
-      lastDigit.current = null;
-      commit(setFret(here.clip, here.cursor, joined, length), here.cursor);
-    } else {
-      lastDigit.current = { spot, digit, at: e.timeStamp };
-      commit(setFret(here.clip, here.cursor, digit, length), here.cursor);
-    }
-    editor.hearNote(here.cursor);
-    return;
-  }
   lastDigit.current = null;
-  if (key === 'ArrowUp' || key === 'ArrowDown') {
+  if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.shiftKey) {
     handled();
-    // ↑ off the top string goes up to the staff, when it is drawn (Jeremy, 2026-11-07, issue #396).
-    if (key === 'ArrowUp' && !columnOnly && cursor.string === 0 && editor.staffShown) {
-      toStaff(editor);
-      return;
-    }
-    // With no string picked, ↑ ↓ pick back the string the cursor was last on.
-    const string = columnOnly ? cursor.string : Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
-    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
-    commit(clip, { ...cursor, string }, null);
-    editor.setColumnOnly(false);
-    return;
-  }
-  if (key === 'ArrowLeft' || key === 'ArrowRight') {
-    handled();
+    if (!columnAt(clip, cursor)) return;
     const step = key === 'ArrowLeft' ? -1 : 1;
-    if (e.shiftKey) {
-      if (!columnAt(clip, cursor)) return;
-      const moved = moveColumn(clip, cursor, step, { grow: false }).cursor;
-      const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
-      commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
-      editor.startRegion();
-    } else {
-      // In note input the cursor stops at each grid line inside a rest, and once on a note (issue #293).
-      const inside = editor.inputMode ? stepInRest(clip, cursor, editor.cursorAt, step, editor.gridStep) : null;
-      if (inside !== null) {
-        commit(clip, cursor, null);
-        editor.setCursorAt(cursor, inside);
-        return;
-      }
-      const moved = overTiedOn(moveColumn(clip, cursor, step), step);
-      commit(moved.clip, moved.cursor, null);
-      // Coming back into a rest, ← lands on its last grid line.
-      const went = moved.cursor.bar !== cursor.bar || moved.cursor.column !== cursor.column;
-      if (editor.inputMode && step === -1 && went) editor.setCursorAt(moved.cursor, lastStop(moved.clip, moved.cursor, editor.gridStep));
-    }
+    const moved = moveColumn(clip, cursor, step, { grow: false }).cursor;
+    const anchor = selection?.anchor ?? indexOf(clip, cursor.bar, cursor.column);
+    commit(clip, moved, { anchor, focus: indexOf(clip, moved.bar, moved.column) });
+    editor.startRegion();
     return;
   }
   if (key === 'Backspace' || key === 'Delete') {
@@ -350,45 +287,17 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     deleteAtCursor(editor, e.ctrlKey || e.metaKey);
     return;
   }
-  // = and − are Dorico's longer and shorter, W and Q MuseScore's (issue #238); + (Shift+= on many keyboards) is = too.
+  // = and − are Dorico's longer and shorter, W and Q MuseScore's (issue #238); + (Shift+= on many keyboards) is
+  // = too. Here they change the selected notes' length.
   const longer = key === '=' || key === '+' || key === 'w';
   if (longer || key === '-' || key === 'q') {
     handled();
-    // In note input they change the next note's length; in normal mode, the selected notes'.
-    if (editor.inputMode) editor.setInputLength(stepLength(editor.inputLength, longer ? 1 : -1));
-    else if (!(target.selection && editor.everyVoice((part, run) => stepDuration(part, { ...target, selection: run }, longer ? 1 : -1)))) commit(stepDuration(clip, target, longer ? 1 : -1));
+    if (!(target.selection && editor.everyVoice((part, run) => stepDuration(part, { ...target, selection: run }, longer ? 1 : -1)))) commit(stepDuration(clip, target, longer ? 1 : -1));
     return;
   }
   if (key === 'Insert') {
     handled();
-    // A Gap pushing the music on (spec Q21): note input's length where the cursor is, else the picked
-    // note's or rest's length, or the selection's whole time.
-    const column = columnAt(clip, cursor);
-    let at = cursorTime(clip, cursor) + (editor.inputMode ? editor.cursorAt : 0);
-    let length = column && !column.grace ? ticks(column.duration) : barTicks(timeAt(clip, cursor.bar));
-    // A picked note of a Tie chain: a Gap as long as the whole chain, before it (step 5).
-    if (!editor.inputMode && !selection && !columnOnly && noteAt(clip, cursor) && chainPlaces(clip, cursor).length > 1) {
-      const start = chainStart(clip, cursor);
-      at = cursorTime(clip, start);
-      length = chainTicks(clip, cursor);
-    }
-    if (editor.inputMode) length = ticks(editor.inputLength);
-    else if (selection) {
-      const [from, to] = selectedRange(selection);
-      const first = placeOf(clip, from);
-      const last = placeOf(clip, to);
-      at = cursorTime(clip, { ...first, string: 0 });
-      const lastColumn = clip.bars[last.bar].columns[last.column];
-      length = cursorTime(clip, { ...last, string: 0 }) + (lastColumn.grace ? 0 : ticks(lastColumn.duration)) - at;
-    }
-    if (length <= 0) return;
-    const inserted = insertTime(clip, at, length, cursor);
-    if (!inserted) {
-      editor.onNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
-      return;
-    }
-    commit(inserted.clip, inserted.cursor, null);
-    if (!editor.inputMode) editor.startRegion();
+    insertGap(editor);
     return;
   }
   if (key === 'Escape') {
@@ -429,6 +338,39 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     handled();
     editor.onTool(tool);
   }
+}
+
+/**
+ * Insert in normal mode: a Gap pushing the music on (spec Q21), the picked note's or rest's length, or the
+ * selection's whole time, before it; the Gap is then selected.
+ */
+function insertGap(editor: EditorKeys) {
+  const { clip, cursor, selection, columnOnly, commit } = editor;
+  const column = columnAt(clip, cursor);
+  let at = cursorTime(clip, cursor);
+  let length = column && !column.grace ? ticks(column.duration) : barTicks(timeAt(clip, cursor.bar));
+  // A picked note of a Tie chain: a Gap as long as the whole chain, before it (step 5).
+  if (!selection && !columnOnly && noteAt(clip, cursor) && chainPlaces(clip, cursor).length > 1) {
+    const start = chainStart(clip, cursor);
+    at = cursorTime(clip, start);
+    length = chainTicks(clip, cursor);
+  }
+  if (selection) {
+    const [from, to] = selectedRange(selection);
+    const first = placeOf(clip, from);
+    const last = placeOf(clip, to);
+    at = cursorTime(clip, { ...first, string: 0 });
+    const lastColumn = clip.bars[last.bar].columns[last.column];
+    length = cursorTime(clip, { ...last, string: 0 }) + (lastColumn.grace ? 0 : ticks(lastColumn.duration)) - at;
+  }
+  if (length <= 0) return;
+  const inserted = insertTime(clip, at, length, cursor);
+  if (!inserted) {
+    editor.onNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
+    return;
+  }
+  commit(inserted.clip, inserted.cursor, null);
+  editor.startRegion();
 }
 
 /**
@@ -565,92 +507,27 @@ export function graceKey(editor: EditorKeys) {
 }
 
 /**
- * A fret typed in note input with Grace entry or Tuplet entry on, or in a tuplet (step 6, Q6, Q7 and Q11).
- * True when it was one of them; otherwise the fret goes in as it always did.
- */
-function typeEntered(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, digit: number): boolean {
-  const { clip, cursor, lastDigit, commit, inputLength } = editor;
-  const before = lastDigit.current;
-  const soon = (spot: string) => before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS;
-  if (editor.graceEntry) {
-    // Each fret a grace note before the time at the cursor, after any already there; two digits join on it.
-    const here = splitRestAt(clip, cursor, editor.cursorAt);
-    const spot = `grace:${here.cursor.bar}:${here.cursor.column}:${here.cursor.string}`;
-    const joined = soon(spot) ? before!.digit * 10 + digit : null;
-    if (joined !== null && joined <= MAX_FRET) {
-      lastDigit.current = null;
-      const grace = { ...here.cursor, column: here.cursor.column - 1 };
-      commit(setFret(here.clip, grace, joined), here.cursor);
-      editor.hearNote(grace);
-      return true;
-    }
-    const entered = enterGrace(here.clip, here.cursor, digit);
-    lastDigit.current = { spot: `grace:${entered.cursor.bar}:${entered.cursor.column}:${entered.cursor.string}`, digit, at: e.timeStamp };
-    commit(entered.clip, entered.cursor);
-    editor.hearNote({ ...entered.cursor, column: entered.cursor.column - 1 });
-    return true;
-  }
-  const column = columnAt(clip, cursor);
-  const spot = `${cursor.bar}:${cursor.column}:${cursor.string}`;
-  // A second digit joins the first on the note it typed, as anywhere.
-  if (soon(spot) && before!.digit * 10 + digit <= MAX_FRET) return false;
-  const group = column && !column.grace ? groupAt(clip, cursor) : null;
-  if (group && !column!.notes.some(Boolean)) {
-    // In a tuplet's Gap: a tuplet note of the Input length in its ratio, when it fits.
-    const typed = typeInTuplet(clip, cursor, editor.cursorAt, digit, inputLength);
-    if (typed) {
-      lastDigit.current = { spot: `${typed.cursor.bar}:${typed.cursor.column}:${typed.cursor.string}`, digit, at: e.timeStamp };
-      commit(typed.clip, typed.cursor);
-      editor.hearNote(typed.cursor);
-    }
-    return true;
-  }
-  if (group) {
-    // On a tuplet note: its fret, and its length the Input length in the tuplet's ratio when that fits.
-    const fretted = setFret(clip, cursor, digit);
-    const lengthened = column!.duration.value === inputLength.value && column!.duration.dots === inputLength.dots
-      ? fretted
-      : lengthInTuplet(fretted, cursor, inputLength);
-    lastDigit.current = { spot, digit, at: e.timeStamp };
-    commit(lengthened, cursor);
-    editor.hearNote(cursor);
-    return true;
-  }
-  const n = editor.tupletEntry;
-  if (n === null) return false;
-  // Tuplet entry: a new tuplet from where its first rest began, or from the cursor.
-  const t = cursorTime(clip, cursor) + editor.cursorAt;
-  const span = tupletSpanTicks(n, inputLength);
-  const unit = span / n;
-  const from = editor.tupletFrom;
-  const start = from !== null && t >= from && t < from + span && Number.isInteger((t - from) / unit) ? from : t;
-  const made = startTuplet(clip, start, Math.round((t - start) / unit), n, inputLength, cursor.string, digit);
-  if (isProblem(made)) {
-    editor.onNotice({ tone: 'error', lines: [made.problem] });
-    return true;
-  }
-  editor.setTupletFrom(null);
-  const at = { ...cursor, ...placeAtTime(made, t) };
-  lastDigit.current = { spot: `${at.bar}:${at.column}:${at.string}`, digit, at: e.timeStamp };
-  commit(made, at, null);
-  editor.hearNote(at);
-  return true;
-}
-
-/**
  * Normal mode's keys (issue #238, as MuseScore's): on a selected staff note or rest a digit sets its length (5 a
  * quarter) and ↑ ↓ move it a semitone, Alt+Shift+↑ ↓ a step in the key, Ctrl/⌘+↑ ↓ an octave; on a
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
  * chord. ← → select the next or last column, on the same string when it has a note there, and add
  * nothing. A digit never types a fret here, on the tab either: frets are typed in note input, as in Dorico
- * (Jeremy, 2026-11-07, issue #396). True when the key was one of them.
+ * (Jeremy, 2026-11-07, issue #396); Shift and a digit's key on the tab set the length too. True when the key
+ * was one of them.
  */
 function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const { clip, cursor, selection, target, columnOnly, staffPitch, commit } = editor;
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
+  // Shift and a digit's key set the selected notes' length on the tab (MuseScore's tab keys): Shift+5 a quarter.
+  const shiftedDigit = e.shiftKey && !chord && !e.altKey && !onStaff ? digitOfCode(e.code) : null;
+  if (shiftedDigit !== null) {
+    const value = valueForDigit(shiftedDigit);
+    if (value && !(target.selection && editor.everyVoice((part, run) => setValue(part, { ...target, selection: run }, value)))) commit(setValue(clip, target, value));
+    return true;
+  }
   // A digit sets the length of what is picked, a note on the staff or the tab, a rest or a stem (issue #290),
   // as Dorico's duration keys do on a selection; it never types a fret (Jeremy, 2026-11-07, issue #396).
   if (/^[0-9]$/.test(key) && !chord && !e.altKey) {
@@ -737,115 +614,6 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   return false;
 }
 
-/** ⌘/Ctrl+↑ ↓ in note input: the caret up to the staff or back down to the tab. True when it was one. */
-function staffOrTabKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
-  // In note input with the staff and the tab both drawn (never to a part not drawn), ⌘/Ctrl+↑ takes the caret up to the staff and
-  // ⌘/Ctrl+↓ back down to the tab, so the keys alone go between them (Jeremy, 2026-11-06, issue #396).
-  if ((e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || !editor.staffShown || !editor.tabShown) return false;
-  const { staffPitch } = editor;
-  if (e.key === 'ArrowUp') {
-    if (staffPitch === null) toStaff(editor);
-    return true;
-  }
-  if (staffPitch !== null) toTab(editor);
-  return true;
-}
-
-/**
- * Up from the tab to the staff (issue #396): at the cursor's note, else the column's lowest note, else the
- * staff's lowest line.
- */
-function toStaff(editor: EditorKeys) {
-  const { clip, cursor } = editor;
-  const at = editor.columnOnly ? null : pitchAt(clip, cursor);
-  const lowest = nextInChord(clip, cursor, null, false);
-  const pitch = at ?? (lowest !== null ? pitchAt(clip, { ...cursor, string: lowest }) : null);
-  editor.toPitch(clip, lowest !== null && at === null ? { ...cursor, string: lowest } : cursor, pitch ?? pitchAtStep(clip, cursor.bar, STAFF_LINES[0]), null);
-}
-
-/** Down from the staff to the tab (issue #396): on the string of the note the staff's caret was on, else the string it was last on. */
-function toTab(editor: EditorKeys) {
-  editor.commit(editor.clip, editor.cursor, null);
-  editor.setStaffPitch(null);
-  editor.setColumnOnly(false);
-}
-
-/**
- * The keys the staff caret takes in note input (issue #136, #174, #396): ↓ back down to the tab; # and b
- * the ghost a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
- * space (no note there: the ghost), with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the caret
- * goes with it. True when the key was one of them.
- */
-function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
-  const { clip, cursor, toPitch } = editor;
-  const { key } = e;
-  const chord = e.ctrlKey || e.metaKey;
-  if (key === 'ArrowUp' || key === 'ArrowDown') {
-    const up = key === 'ArrowUp';
-    if (e.altKey) {
-      const move = { steps: up ? 1 : -1, semitones: e.shiftKey };
-      const places = notesToMove(clip, cursor, pitch, null, chord);
-      if (!places.length) {
-        // No note at the caret's pitch: Alt moves its ghost instead, a line or space (with Shift a
-        // semitone), for want of Dorico's letter keys (Jeremy, 2026-11-07, issue #396).
-        if (!chord) toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
-        return true;
-      }
-      const edit = moveNotes(clip, places, move);
-      if (edit.problem) {
-        editor.onNotice({ tone: 'error', lines: [edit.problem] });
-        return true;
-      }
-      if (!edit.moved.length) return true;
-      const moved = movedPitch(clip, cursor.bar, pitch, move);
-      toPitch(edit.clip, cursor, moved, null);
-      const string = stringAtPitch(edit.clip, cursor, moved);
-      if (string !== null) editor.hearNote({ ...cursor, string });
-      return true;
-    }
-    if (chord) return false;
-    // ↑ ↓ go between the staff and the tab, as Dorico's go between staves: ↓ back down to the tab, ↑ nowhere
-    // above it (Jeremy, 2026-11-07, issue #396; they moved the ghost before).
-    if (!up && !e.shiftKey && editor.tabShown) toTab(editor);
-    return true;
-  }
-  if (chord) return false;
-  if (key === 'Enter' && !e.altKey && !e.shiftKey) {
-    // Inside a rest, the note goes where the cursor is in it (issue #293).
-    enterAtCaret(editor, pitch, true);
-    return true;
-  }
-  return false;
-}
-
-/**
- * A–G on the staff in note input enter that note, as Dorico's do (Jeremy, 2026-11-07, issue #396): the
- * letter nearest the caret's pitch, in the key, or flat, sharp or natural when -, = or 0 came just before.
- * True when the key was one of them.
- */
-function letterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
-  if (e.ctrlKey || e.metaKey || e.altKey) return false;
-  const sign = ({ '-': -1, '=': 1, '0': 0 } as const)[e.key as '-' | '=' | '0'];
-  if (sign !== undefined && !e.shiftKey) {
-    editor.accidental.current = sign;
-    return true;
-  }
-  if (!/^[a-g]$/.test(e.key)) return false;
-  const typed = editor.accidental.current;
-  editor.accidental.current = null;
-  enterAtCaret(editor, pitchOfLetter(editor.clip, editor.cursor.bar, e.key, pitch, typed), false);
-  return true;
-}
-
-/** A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396). */
-function enterAtCaret(editor: EditorKeys, pitch: number, toggle: boolean) {
-  const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle);
-  editor.toPitch(edit.clip, edit.cursor, pitch, null);
-  editor.setCursorAt(edit.cursor, edit.at);
-  if (edit.note) editor.hearNote(edit.note);
-  if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
-}
-
 /**
  * The keys that jump by more than a column (issue #238, `jumps.ts`): Ctrl/⌘+← → a bar and
  * Ctrl/⌘+Home / End the clip's ends move the cursor; with Shift they grow the selection that way,
@@ -866,29 +634,6 @@ function jumpKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys):
     return true;
   }
   commit(clip, jumpCursor(clip, cursor, jump), null);
-  return true;
-}
-
-/**
- * Alt+↑ ↓ off the staff cursor (issue #174): on a selection, with the staff drawn, every selected note
- * moves a line or space (with Shift a semitone) and the selection stays; on the tab's note, the note
- * moves to the next string up or down that plays the same pitch. True when the key was one of them.
- */
-function moveKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
-  const { clip, cursor, selection, columnOnly, commit } = editor;
-  if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return false;
-  const up = e.key === 'ArrowUp';
-  if (selection) {
-    if (!editor.staffShown) return true;
-    const edit = moveNotes(clip, notesToMove(clip, cursor, 0, selection, false), { steps: up ? 1 : -1, semitones: e.shiftKey });
-    if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
-    else commit(edit.clip);
-    return true;
-  }
-  const note = columnOnly ? null : noteAt(clip, cursor);
-  if (!note || note.fret === null || e.shiftKey || e.ctrlKey || e.metaKey) return true;
-  const moved = moveToString(clip, cursor, pitchOf(clip, cursor.string, note.fret), up ? -1 : 1);
-  if (moved.string !== null) commit(moved.clip, { ...cursor, string: moved.string });
   return true;
 }
 
@@ -994,24 +739,4 @@ function placeOfLast(clip: Part): { bar: number; column: number } {
     if (clip.bars[b].columns.length > 0) return { bar: b, column: clip.bars[b].columns.length - 1 };
   }
   return { bar: 0, column: 0 };
-}
-
-/**
- * A move on past Columns that hold only tied-on notes, so a Tie chain is one stop (step 4 in note input,
- * step 5 in normal mode). It stops where it can go no further.
- */
-function overTiedOn(moved: { clip: Part; cursor: Cursor }, step: 1 | -1, options: MoveOptions = {}): { clip: Part; cursor: Cursor } {
-  let out = moved;
-  while (onlyTiedOn(out.clip, out.cursor)) {
-    const next = moveColumn(out.clip, out.cursor, step, options);
-    if (next.cursor.bar === out.cursor.bar && next.cursor.column === out.cursor.column) break;
-    out = next;
-  }
-  return out;
-}
-
-/** Whether the cursor's Column holds only notes tied on from the Column before. */
-function onlyTiedOn(clip: Part, cursor: Cursor): boolean {
-  const notes = (columnAt(clip, cursor)?.notes ?? []).filter(note => note !== null);
-  return notes.length > 0 && notes.every(note => note.tie);
 }
