@@ -1161,7 +1161,11 @@ export function withPart(clip: Clip, part: Part, index = 0): Clip {
   const inStep = from.length === clip.masterBars.length && from.every((o, b) => o === b);
   const tracks = clip.tracks.map((other, t): Track => {
     if (t === index) {
-      const bars = part.bars.map(bar => trackBarOf(bar, voice));
+      // Voice 1 is never absent: a bar an edit of another Voice added (Ctrl+Enter in Voice 2) gets its rests.
+      const bars = part.bars.map((bar, b) => {
+        const made = trackBarOf(bar, voice);
+        return voice > 0 && made.voices[0].length === 0 ? { ...made, voices: [restColumns(part, b), ...made.voices.slice(1)] } : made;
+      });
       return copied({ ...other, tuning: part.tuning, bars }, part, TRACK_FIELDS);
     }
     if (inStep) return other;

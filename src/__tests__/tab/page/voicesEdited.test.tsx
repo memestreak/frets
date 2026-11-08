@@ -332,3 +332,30 @@ describe('Export and the line under the clip', () => {
     expect(groups).toEqual(['Note input mode', 'Selected notes and rests']);
   });
 });
+
+describe('a note typed in Voice 2 over a bar of rests (found by fuzzing, PR for issues #421, #422)', () => {
+  it('keeps Voice 1’s rest: the bar stays full and its Voice 2 note drawn once Voice 1 is active again', async () => {
+    renderAt('#tab=' + encodeURIComponent('r.1 | r.1'));
+    await screen.findAllByTestId('tab-system');
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: 'n' });
+    fireEvent.keyDown(editor(), { key: '2', code: 'Digit2', altKey: true });
+    fireEvent.keyDown(editor(), { key: '3', code: 'Digit3' });
+    // Leaving the tab makes Voice 1 active again (step 9, Q7).
+    act(() => editor().blur());
+    expect(notice()).toHaveTextContent(/^$/);
+    expect(screen.getAllByTestId('other-voice').length).toBeGreaterThan(0);
+    expect(written()).toContain('\\voice r.1 \\voice 3.1.4 r.4 r.2 |');
+  });
+
+  it('Ctrl+Enter with Voice 2 active adds a bar with Voice 1’s rest in it too', async () => {
+    renderAt('#tab=' + encodeURIComponent('r.1 |'));
+    await screen.findAllByTestId('tab-system');
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: '2', code: 'Digit2', altKey: true });
+    fireEvent.keyDown(editor(), { key: 'Enter', ctrlKey: true });
+    act(() => editor().blur());
+    expect(notice()).toHaveTextContent(/^$/);
+    expect(screen.queryByTestId('bar-warning')).toBeNull();
+  });
+});
