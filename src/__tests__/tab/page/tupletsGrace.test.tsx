@@ -154,12 +154,13 @@ describe('Tuplet entry in note input (Q6, Q7)', () => {
 describe('grace notes (Q8–Q11)', () => {
   const QUARTERS = '5.1.4 7.1.4 r.2 |';
 
-  it('`/` on a picked note adds one before it at its fret, the cursor on it, so a fret typed changes it', async () => {
+  it('`/` on a picked note adds one before it at its fret, the cursor on it, so a fret typed in note input changes it', async () => {
     await open(QUARTERS);
     press(QUARTERS, 1);
     keys('/');
     expect(alphaTex()).toBe('5.1.4 7.1.8{gr} 7.1.4 r.2 |');
-    keys('9');
+    // Frets are typed in note input mode, which starts on the grace note (Jeremy, 2026-11-07).
+    keys('n', '9', 'Escape');
     expect(alphaTex()).toBe('5.1.4 9.1.8{gr} 7.1.4 r.2 |');
     // `/` on the grace note adds a second; both are sixteenths.
     keys('/');

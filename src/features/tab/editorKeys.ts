@@ -15,7 +15,8 @@ import type { WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { isSpan } from './spans';
 import type { Notice } from './notice';
-import { movedPitch, moveNotes, moveToString, notesToMove, pitchOf, stepPitch, stringAtPitch, toggleStaffNote } from './staffEntry';
+import { enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, pitchAtStep, pitchOf, pitchOfLetter, stepPitch, stringAtPitch, type TypedAccidental } from './staffEntry';
+import { STAFF_LINES } from './notation';
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { setValue } from './noteEdits';
@@ -52,7 +53,11 @@ export interface EditorKeys {
   staffPitch: number | null;
   /** The notation staff is drawn (Staff or Both), so Alt+↑ ↓ on a selection move its notes' pitch. */
   staffShown: boolean;
+  /** The tab is drawn (not the staff alone): ↓ off the staff's lowest note goes down to it. */
+  tabShown: boolean;
   lastDigit: RefObject<LastDigit>;
+  /** A sign typed on the staff for the next letter (-, = or 0), or null. */
+  accidental: RefObject<TypedAccidental | null>;
   /** Each drawn line of tab's first and last column, for Shift+Home / End (worked out only when asked). */
   lines: () => Lines;
   /**
@@ -95,6 +100,8 @@ export interface EditorKeys {
   /** The cursor on the column at a pitch, the staff cursor on that pitch. */
   toPitch: (next: Part, at: Cursor, pitch: number, selection: Selection | null) => void;
   setColumnOnly: (columnOnly: boolean) => void;
+  /** Gives the keys to the staff at a pitch, or with null back to the tab. */
+  setStaffPitch: (pitch: number | null) => void;
   /** A selection starts: the string and the staff's cursor let go. */
   startRegion: () => void;
   setPicked: (picked: null) => void;
@@ -115,6 +122,8 @@ export interface EditorKeys {
 export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys) {
   const { clip, cursor, selection, target, columnOnly, picked, lastDigit, commit } = editor;
   const { key } = e;
+  // A sign typed for the next letter lasts only until that letter: any other key lets it go (Jeremy, 2026-11-07).
+  if (!/^([a-g]|-|=|0|Shift|Alt|Control|Meta)$/.test(key)) editor.accidental.current = null;
   const count = columnCount(clip);
   // A modifier on its own does nothing: holding Alt (or Shift) to step leaves a picked mark or word picked.
   if (key === 'Alt' || key === 'Shift' || key === 'Control' || key === 'Meta') return;
@@ -227,12 +236,20 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     if (normalKeyDown(e, editor)) handled();
     if (e.defaultPrevented) return;
   } else {
+    if (editor.staffPitch !== null && letterKeyDown(e, editor, editor.staffPitch)) {
+      handled();
+      return;
+    }
     // On the staff in note input a digit is the next note's length, as in MuseScore: 5 a quarter, 3 a
-    // sixteenth (8, 9 and 0 are none). It never types a fret there.
+    // sixteenth (8 and 9 are none; 0 is a natural, above). It never types a fret there.
     if (editor.staffPitch !== null && /^[0-9]$/.test(key) && plain) {
       handled();
       const value = valueForDigit(Number(key));
       if (value) editor.setInputLength(lengthOf(value));
+      return;
+    }
+    if (staffOrTabKeyDown(e, editor)) {
+      handled();
       return;
     }
     if (editor.staffPitch !== null && staffKeyDown(e, editor, editor.staffPitch)) {
@@ -291,6 +308,11 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   lastDigit.current = null;
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     handled();
+    // ↑ off the top string goes up to the staff, when it is drawn (Jeremy, 2026-11-07, issue #396).
+    if (key === 'ArrowUp' && !columnOnly && cursor.string === 0 && editor.staffShown) {
+      toStaff(editor);
+      return;
+    }
     // With no string picked, ↑ ↓ pick back the string the cursor was last on.
     const string = columnOnly ? cursor.string : Math.min(5, Math.max(0, cursor.string + (key === 'ArrowUp' ? -1 : 1)));
     // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
@@ -621,56 +643,54 @@ function typeEntered(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, 
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
  * chord. ← → select the next or last column, on the same string when it has a note there, and add
- * nothing. A digit on a tab note still types its fret (Jeremy, 2026-10-30). True when the key was one of them.
+ * nothing. A digit never types a fret here, on the tab either: frets are typed in note input, as in Dorico
+ * (Jeremy, 2026-11-07, issue #396). True when the key was one of them.
  */
 function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const { clip, cursor, selection, target, columnOnly, staffPitch, commit } = editor;
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
   const onStaff = staffPitch !== null;
-  // A column picked by itself (a rest, or a stem under the tab alone) takes the length digits in every
-  // view: with no string picked there is no fret for a digit to type (issue #290).
-  const columnPicked = columnOnly && !!columnAt(clip, cursor);
-  if ((onStaff || columnPicked) && /^[0-9]$/.test(key) && !chord && !e.altKey) {
+  // A digit sets the length of what is picked, a note on the staff or the tab, a rest or a stem (issue #290),
+  // as Dorico's duration keys do on a selection; it never types a fret (Jeremy, 2026-11-07, issue #396).
+  if (/^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
-    if (value) commit(setValue(clip, target, value));
+    if (value && (selection || columnAt(clip, cursor))) commit(setValue(clip, target, value));
     return true;
   }
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     const up = key === 'ArrowUp';
-    // The next note up or down the chord, by pitch.
-    if (e.altKey && !e.shiftKey && !chord) {
-      const from = onStaff ? staffPitch : columnOnly ? null : pitchAt(clip, cursor);
-      const string = nextInChord(clip, cursor, from, up);
-      if (string === null) return true;
-      const at = { ...cursor, string };
-      if (onStaff) editor.toPitch(clip, at, pitchAt(clip, at)!, null);
-      else {
-        commit(clip, at, null);
-        editor.setColumnOnly(false);
-      }
-      return true;
-    }
+    const sign = up ? 1 : -1;
+    // ↑ ↓ go between the notes, as Dorico's arrows go between the notes and staves: on the tab string by string
+    // and off the top string up to the staff, on the staff note by note and off the lowest down to the tab.
+    // Alt with them changes what is picked, as Dorico's Alt+arrows do (Jeremy, 2026-11-07, issue #396).
     if (onStaff) {
-      // ↑ ↓ a semitone, Alt+Shift a step in the key, Ctrl/⌘ an octave; Shift alone (a range across staves in MuseScore) nothing yet.
-      if (e.shiftKey && !e.altKey) return true;
-      const sign = up ? 1 : -1;
-      const move = e.altKey ? { steps: sign, semitones: false } : chord ? { steps: 12 * sign, semitones: true } : { steps: sign, semitones: true };
-      const places = notesToMove(clip, cursor, staffPitch, selection, false);
-      if (!places.length) return true;
-      const edit = moveNotes(clip, places, move);
-      if (edit.problem) {
-        editor.onNotice({ tone: 'error', lines: [edit.problem] });
+      if (e.altKey || chord) {
+        // Alt a step in the key, Alt+Shift a semitone, Ctrl/⌘ an octave.
+        const move = chord ? { steps: 12 * sign, semitones: true } : { steps: sign, semitones: e.shiftKey };
+        const places = notesToMove(clip, cursor, staffPitch, selection, false);
+        if (!places.length) return true;
+        const edit = moveNotes(clip, places, move);
+        if (edit.problem) {
+          editor.onNotice({ tone: 'error', lines: [edit.problem] });
+          return true;
+        }
+        const moved = movedPitch(clip, cursor.bar, staffPitch, move);
+        editor.toPitch(edit.clip, cursor, moved, selection);
+        const string = stringAtPitch(edit.clip, cursor, moved);
+        if (string !== null && !selection) editor.hearNote({ ...cursor, string });
         return true;
       }
-      const moved = movedPitch(clip, cursor.bar, staffPitch, move);
-      editor.toPitch(edit.clip, cursor, moved, selection);
-      const string = stringAtPitch(edit.clip, cursor, moved);
-      if (string !== null && !selection) editor.hearNote({ ...cursor, string });
+      if (e.shiftKey) return true;
+      const string = nextInChord(clip, cursor, staffPitch, up);
+      if (string !== null) {
+        const at = { ...cursor, string };
+        editor.toPitch(clip, at, pitchAt(clip, at)!, null);
+      } else if (!up && editor.tabShown) toTab(editor);
       return true;
     }
-    if (e.altKey || e.shiftKey) return true;
-    if (chord) {
+    if (e.shiftKey && !e.altKey) return true;
+    if (chord && !e.altKey) {
       // The note to the next string up or down that plays its pitch.
       const pitch = columnOnly || selection ? null : pitchAt(clip, cursor);
       if (pitch === null) return true;
@@ -678,12 +698,25 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
       if (moved.string !== null) commit(moved.clip, { ...cursor, string: moved.string });
       return true;
     }
-    const places = selectedNotes(clip, cursor, target.selection);
-    const next = stepFrets(clip, places, up ? 1 : -1);
-    if (next !== clip) {
-      commit(next);
-      if (places.length === 1) editor.hearNote(places[0]);
+    if (e.altKey) {
+      // Alt+↑ ↓ a fret higher or lower, every selected note.
+      if (chord || e.shiftKey) return true;
+      const places = selectedNotes(clip, cursor, target.selection);
+      const next = stepFrets(clip, places, sign);
+      if (next !== clip) {
+        commit(next);
+        if (places.length === 1) editor.hearNote(places[0]);
+      }
+      return true;
     }
+    // A string at a time; with none picked (a rest), ↓ picks the top string. Off the top, up to the staff.
+    if (up && (columnOnly || cursor.string === 0)) {
+      if (editor.staffShown) toStaff(editor);
+      return true;
+    }
+    const string = columnOnly ? 0 : Math.min(5, cursor.string + 1 - (up ? 2 : 0));
+    commit(clip, { ...cursor, string }, null);
+    editor.setColumnOnly(false);
     return true;
   }
   if ((key === 'ArrowLeft' || key === 'ArrowRight') && !e.shiftKey && !chord && !e.altKey) {
@@ -704,11 +737,44 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   return false;
 }
 
+/** ⌘/Ctrl+↑ ↓ in note input: the caret up to the staff or back down to the tab. True when it was one. */
+function staffOrTabKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+  // In note input with the staff and the tab both drawn (never to a part not drawn), ⌘/Ctrl+↑ takes the caret up to the staff and
+  // ⌘/Ctrl+↓ back down to the tab, so the keys alone go between them (Jeremy, 2026-11-06, issue #396).
+  if ((e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || !editor.staffShown || !editor.tabShown) return false;
+  const { staffPitch } = editor;
+  if (e.key === 'ArrowUp') {
+    if (staffPitch === null) toStaff(editor);
+    return true;
+  }
+  if (staffPitch !== null) toTab(editor);
+  return true;
+}
+
 /**
- * The keys the staff cursor takes (issue #136, #174): ↑ ↓ a line or space in the key, Shift+↑ ↓ (or #
- * and b) a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
- * space, with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the cursor goes with it. True when
- * the key was one of them.
+ * Up from the tab to the staff (issue #396): at the cursor's note, else the column's lowest note, else the
+ * staff's lowest line.
+ */
+function toStaff(editor: EditorKeys) {
+  const { clip, cursor } = editor;
+  const at = editor.columnOnly ? null : pitchAt(clip, cursor);
+  const lowest = nextInChord(clip, cursor, null, false);
+  const pitch = at ?? (lowest !== null ? pitchAt(clip, { ...cursor, string: lowest }) : null);
+  editor.toPitch(clip, lowest !== null && at === null ? { ...cursor, string: lowest } : cursor, pitch ?? pitchAtStep(clip, cursor.bar, STAFF_LINES[0]), null);
+}
+
+/** Down from the staff to the tab (issue #396): on the string of the note the staff's caret was on, else the string it was last on. */
+function toTab(editor: EditorKeys) {
+  editor.commit(editor.clip, editor.cursor, null);
+  editor.setStaffPitch(null);
+  editor.setColumnOnly(false);
+}
+
+/**
+ * The keys the staff caret takes in note input (issue #136, #174, #396): ↓ back down to the tab; # and b
+ * the ghost a semitone; Enter adds or takes away the note at its pitch; Alt+↑ ↓ move that note a line or
+ * space (no note there: the ghost), with Shift a semitone, with ⌘ (Ctrl) its whole chord, and the caret
+ * goes with it. True when the key was one of them.
  */
 function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
   const { clip, cursor, toPitch } = editor;
@@ -718,7 +784,14 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
     const up = key === 'ArrowUp';
     if (e.altKey) {
       const move = { steps: up ? 1 : -1, semitones: e.shiftKey };
-      const edit = moveNotes(clip, notesToMove(clip, cursor, pitch, null, chord), move);
+      const places = notesToMove(clip, cursor, pitch, null, chord);
+      if (!places.length) {
+        // No note at the caret's pitch: Alt moves its ghost instead, a line or space (with Shift a
+        // semitone), for want of Dorico's letter keys (Jeremy, 2026-11-07, issue #396).
+        if (!chord) toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
+        return true;
+      }
+      const edit = moveNotes(clip, places, move);
       if (edit.problem) {
         editor.onNotice({ tone: 'error', lines: [edit.problem] });
         return true;
@@ -731,25 +804,46 @@ function staffKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys,
       return true;
     }
     if (chord) return false;
-    // Moving the cursor lets any selection go (Jeremy, 2026-10-28).
-    toPitch(clip, cursor, e.shiftKey ? pitch + (up ? 1 : -1) : stepPitch(clip, cursor.bar, pitch, up ? 1 : -1), null);
+    // ↑ ↓ go between the staff and the tab, as Dorico's go between staves: ↓ back down to the tab, ↑ nowhere
+    // above it (Jeremy, 2026-11-07, issue #396; they moved the ghost before).
+    if (!up && !e.shiftKey && editor.tabShown) toTab(editor);
     return true;
   }
   if (chord) return false;
-  if ((key === '#' || key === 'b') && !e.altKey) {
-    toPitch(clip, cursor, pitch + (key === '#' ? 1 : -1), null);
-    return true;
-  }
   if (key === 'Enter' && !e.altKey && !e.shiftKey) {
     // Inside a rest, the note goes where the cursor is in it (issue #293).
-    const here = splitRestAt(clip, cursor, editor.cursorAt);
-    const edit = toggleStaffNote(here.clip, here.cursor, pitch, editor.inputLength);
-    toPitch(edit.clip, here.cursor, pitch, editor.selection);
-    if (edit.string !== null) editor.hearNote({ ...here.cursor, string: edit.string });
-    if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
+    enterAtCaret(editor, pitch, true);
     return true;
   }
   return false;
+}
+
+/**
+ * A–G on the staff in note input enter that note, as Dorico's do (Jeremy, 2026-11-07, issue #396): the
+ * letter nearest the caret's pitch, in the key, or flat, sharp or natural when -, = or 0 came just before.
+ * True when the key was one of them.
+ */
+function letterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, pitch: number): boolean {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  const sign = ({ '-': -1, '=': 1, '0': 0 } as const)[e.key as '-' | '=' | '0'];
+  if (sign !== undefined && !e.shiftKey) {
+    editor.accidental.current = sign;
+    return true;
+  }
+  if (!/^[a-g]$/.test(e.key)) return false;
+  const typed = editor.accidental.current;
+  editor.accidental.current = null;
+  enterAtCaret(editor, pitchOfLetter(editor.clip, editor.cursor.bar, e.key, pitch, typed), false);
+  return true;
+}
+
+/** A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396). */
+function enterAtCaret(editor: EditorKeys, pitch: number, toggle: boolean) {
+  const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle);
+  editor.toPitch(edit.clip, edit.cursor, pitch, null);
+  editor.setCursorAt(edit.cursor, edit.at);
+  if (edit.note) editor.hearNote(edit.note);
+  if (edit.problem) editor.onNotice({ tone: 'error', lines: [edit.problem] });
 }
 
 /**

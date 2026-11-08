@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { choosePlace, movedPitch, moveNotes, moveToString, notesToMove, noteToString, pitchAtStep, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
-import { type Part, partOf } from '@/features/tab/clip';
+import { choosePlace, enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, noteToString, pitchAtStep, pitchOfLetter, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
+import { type Duration, type Part, partOf } from '@/features/tab/clip';
 
 function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
@@ -25,6 +25,39 @@ describe('the staff cursor\'s pitch', () => {
     expect(pitchAtStep(c, 0, 8)).toBe(65);
     // The bottom line is E4 written, E3 sounding.
     expect(pitchAtStep(c, 0, 0)).toBe(52);
+  });
+});
+
+describe('A–G in note input (issue #396)', () => {
+  it('names the letter nearest the caret, in the key; - = 0 typed first make it flat, sharp or natural', () => {
+    const c = clipOf('r.1 |');
+    const E3 = 52;
+    // From E: G is two steps up, C two down, A three up, B three down.
+    expect(pitchOfLetter(c, 0, 'g', E3, null)).toBe(55);
+    expect(pitchOfLetter(c, 0, 'c', E3, null)).toBe(48);
+    expect(pitchOfLetter(c, 0, 'b', E3, null)).toBe(47);
+    expect(pitchOfLetter(c, 0, 'a', E3, null)).toBe(57);
+    expect(pitchOfLetter(c, 0, 'e', E3, null)).toBe(E3);
+    expect(pitchOfLetter(c, 0, 'b', E3, -1)).toBe(46);
+    expect(pitchOfLetter(c, 0, 'f', E3, 1)).toBe(54);
+    // In G major F is F♯, and 0 typed first makes it F♮.
+    const g = clipOf('\\ks G r.1 |');
+    expect(pitchOfLetter(g, 0, 'f', E3, null)).toBe(54);
+    expect(pitchOfLetter(g, 0, 'f', E3, 0)).toBe(53);
+    expect(pitchOfLetter(g, 0, 'f', E3, -1)).toBe(52);
+  });
+
+  it('enters the note at the caret and moves the caret on by its length; Enter on a note there takes it away', () => {
+    const clip = clipOf('r.1 |');
+    const quarter: Duration = { value: 4, dots: 0 };
+    const added = enterOnStaff(clip, { bar: 0, column: 0, string: 0 }, 0, 52, quarter, false);
+    expect(frets(added.clip, 0).filter(f => f !== null)).toHaveLength(1);
+    // On past it, a quarter into the bar.
+    expect(added.cursor.column).toBe(1);
+    expect(added.note).toEqual({ bar: 0, column: 0, string: added.string });
+    const gone = enterOnStaff(added.clip, { bar: 0, column: 0, string: 0 }, 0, 52, quarter, true);
+    expect(frets(gone.clip, 0).every(f => f === null)).toBe(true);
+    expect(gone.cursor.column).toBe(0);
   });
 });
 

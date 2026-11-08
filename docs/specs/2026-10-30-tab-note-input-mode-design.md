@@ -36,17 +36,18 @@ note selected on the tab coloured on the staff; the same goes for note input mod
 | Press on a note (tab number or staff head) | Selects it. |
 | Press beside the notes (an empty string, a blank line or space) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. |
 | Digit, a staff note selected | Sets its length, MuseScore's numbers: 1 a 64th, 2 a 32nd, 3 a 16th, 4 an eighth, 5 a quarter, 6 a half, 7 a whole (Q1, Jeremy). |
-| Digit, a tab note selected | Types its fret, two digits joining as before, and the staff follows (Q1, Jeremy). |
-| ↑ ↓, tab | The selected notes a fret higher or lower on their own strings; nothing moves when one would pass 0 or 24. |
+| Digit, a tab note selected | Sets its length, as on the staff: frets are typed only in note input, as in Dorico (Jeremy, 2026-11-07, issue #396; it typed the fret before). |
+| ↑ ↓, tab | The string above or below, as Dorico's arrows go between notes and staves; up past the top string (or from the column alone) to the staff when it is shown, on the note's pitch or else the column's lowest note (Jeremy, 2026-11-07, issue #396; it changed the fret before). From the column alone ↓ picks the top string. |
+| Alt+↑ ↓, tab | The selected notes a fret higher or lower on their own strings, as Dorico's Alt+arrows change what is picked; nothing moves when one would pass 0 or 24 (it was plain ↑ ↓ before). |
 | Ctrl/⌘+↑ ↓, tab | The note to the next string up or down that plays the same pitch. |
 | Drag a tab number up or down | The note to the string under the pointer, at the same pitch (`2026-10-31-tab-drag-fret-string-design.md`). |
-| ↑ ↓, staff | The selected notes a semitone up or down (Q4, Jeremy). |
-| Alt+Shift+↑ ↓, staff | A line or space, in the key. |
+| ↑ ↓, staff | Selects the next note up or down the chord by pitch; down past the lowest to the tab when it is shown (Jeremy, 2026-11-07, issue #396; ↑ ↓ moved it a semitone before, and Alt+↑ ↓ went between the notes). |
+| Alt+↑ ↓, staff | The selected notes a line or space, in the key, as in note input. |
+| Alt+Shift+↑ ↓, staff | A semitone. |
 | Ctrl/⌘+↑ ↓, staff | An octave. |
-| Alt+↑ ↓ | Selects the next note up or down the chord by pitch; from the column alone, its top or bottom note. |
 | ← → | Selects the next or last column: its note on the same string, else the column. Adds no rests. |
 
-With Shift+← → or Ctrl/⌘+A selecting columns, ↑ ↓ and their modifiers move every selected note.
+With Shift+← → or Ctrl/⌘+A selecting columns, Alt+↑ ↓ and their modifiers move every selected note.
 The palette, the letter keys, Delete, Shift+← →, the jumps of `2026-10-30-tab-musescore-selection-design.md`,
 copy, cut and paste work as before. Enter, # and b on the staff belong to note input mode; in normal mode b
 is Bend, as on the tab.
@@ -54,9 +55,19 @@ is Bend, as on the tab.
 ## Note input mode
 
 The keys are as they were before modes (`2026-10-25-tab-editing-design.md`,
-`2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings or, on the staff,
-lines and spaces; Alt+↑ ↓ move notes; Enter on the staff adds or takes away a note; → past a short bar
-adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
+`2026-10-27-tab-staff-entry-design.md`): digits type frets, ↑ ↓ move between strings, and ↑ past the top
+string goes up to the staff, as in normal mode. On the staff ↑ goes nowhere and ↓ comes back down to the
+tab, as Dorico's ↑ ↓ go between staves (Jeremy, 2026-11-07, issue #396; they moved the ghost a line or space
+before, and Ctrl/⌘+↑ ↓ do the same). On the staff A–G enter that note, as Dorico's do: the letter
+on the line or space nearest the caret's pitch, as the key has it (F♯ in G major); -, = or 0 typed just before
+make it flat, sharp or natural from the plain letter, for that one letter only (any other key, or leaving note
+input, lets the sign go; a second sign replaces the first) (Jeremy, 2026-11-07, issue #396; # and b moved the ghost a semitone before, and
+- and = there were Shorter and Longer). Every note made on the staff, by a letter, Enter or a press, moves the
+caret on past it by its length, as Dorico's does; a fret typed on the tab leaves the caret where it is, for a
+second digit or a chord. Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
+the staff adds a note or takes away the one there; → past a short bar
+adds a rest to type on. The tab's cursor is outlined, as before; on a string with no note it holds a
+faint 0, the tab's ghost note, as MuseScore's tab shadow note does (Jeremy, 2026-11-08, issue #396). The staff's is Dorico's caret, an upright
 line across the staff just left of where the next note goes, with that next note drawn there as a faint
 ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint
 outlined head, which read as a whole note already entered. One ghost note shows at a time (Jeremy,
@@ -65,13 +76,16 @@ goes too, since the mouse is placing the note. On a note the line stays off it, 
 caret's pitch nothing is drawn.
 
 - **A double-click goes in** (Jeremy, 2026-10-31): out of note input mode, a double-click on the staff or the
-  tab goes into note input mode, as N does, picking nothing; in note input mode it does nothing more.
-- **No string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
-  the column alone, or the column with digits going to the last note's string): going in, on a note
-  or off one, picks no string and no staff line (Jeremy, 2026-10-31); nothing is drawn round the column (Jeremy, 2026-10-31: no
-  box round the whole tab column; the shadow under the mouse is the cursor), and digits do nothing until ↑ ↓ (which
-  first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
-  then ↓, then the fret.
+  tab goes into note input mode with the caret where it landed, as Dorico's does (Jeremy, 2026-11-07, issue #396):
+  on a fret, on that note; beside the notes on a string, on that string at that column; on the staff, at the
+  note's pitch or the line or space; on a rest on the staff, on its middle line, as N on a rest picked there. In note input mode it does nothing more.
+- **Going in on a picked note puts the caret on it** (Jeremy, 2026-11-07, issue #396), as Dorico's caret
+  starts on the note selected: its string picked on the tab, or its pitch on the staff, so digits retype it.
+- **Off a note the caret goes on the string it was last on** (Jeremy, 2026-11-08, issue #396), as Dorico's tab
+  caret is always on a string: a fret types at once, and on an empty clip that is N, then the fret. Before,
+  no string was picked (Jeremy, 2026-10-30 and 2026-10-31) and digits waited for ↑ ↓ or a press. No staff line or
+  space is picked for you, and with only the staff drawn the caret takes the column alone. The short upright
+  line on the tab is left for a column with no string, as after Shift+← →.
 
 - **The shadow note** (Q2, Jeremy: "your cursor changes to the note representation"): under the
   pointer, over the staff, a faint note of the length a press would enter, on the line or space

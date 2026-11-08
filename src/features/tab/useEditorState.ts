@@ -176,7 +176,10 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
     setPicked(null);
     setAlone(false);
     setNotice(null);
-    setRestSpot(null);
+    // The caret keeps its place inside a rest while only its string or staff line changes (Jeremy, 2026-11-08,
+    // issue #396: ↑ after → in an empty bar sent it back to the bar's start).
+    const sameRest = next === clip && nextCursor.bar === cursor.bar && nextCursor.column === cursor.column;
+    if (!sameRest) setRestSpot(null);
   };
   const commit = (next: Part, nextCursor: Cursor = cursor, nextSelection: Selection | null = selection) => {
     if (refused(next)) return false;

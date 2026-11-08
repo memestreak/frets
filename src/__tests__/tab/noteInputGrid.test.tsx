@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
@@ -28,6 +28,25 @@ async function open() {
   render(<TabPage />);
   await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
   act(() => editor().focus());
+}
+const TWO_BARS = '\\title "Grid"\n\\ts (4 4)\n5.1.4 r.2{d} | r.1 |';
+/** Two bars, the second empty, with where they are drawn, a pointer spot in each and where the drawn grid starts. */
+async function openTwoBars() {
+  window.history.replaceState(null, '', `/tab#tab=${encodeURIComponent(TWO_BARS)}`);
+  render(<TabPage />);
+  await screen.findByRole('heading', { name: 'Grid' }, { timeout: 5000 });
+  act(() => editor().focus());
+  const read = readAlphaTexWith(alphaTab, TWO_BARS);
+  if (!read.ok) throw new Error(read.errors.join('\n'));
+  const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
+  const svg = screen.getByRole('img', { name: /drawn as/ });
+  const over = (bar: number) => {
+    const rest = bars[bar].columns[bars[bar].columns.length - 1];
+    return { clientX: rest.x + rest.width / 2, clientY: top + rows.staffTop };
+  };
+  /** The bars the Grid is drawn over. */
+  const gridBars = () => screen.queryAllByTestId('grid-lines').map(g => Number(g.getAttribute('data-bar'))).sort();
+  return { svg, bars, over, gridBars };
 }
 const editor = () => screen.getByRole('textbox', { name: /Tab editor/ });
 const keys = (...list: (string | { key: string; code?: string; altKey?: boolean; shiftKey?: boolean })[]) => {
@@ -56,15 +75,15 @@ const savedFixed = () => JSON.parse(localStorage.getItem(EDITING_KEY) ?? '{}').f
 describe('note input’s grid (issue #293)', () => {
   it('by default follows note input’s length: → steps a quarter at a time through a rest after a quarter', async () => {
     await open();
-    // Note input, the high e picked; → onto the rest, then two quarters into it.
-    keys('n', 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    // Note input on the 5, its high e picked (Jeremy, 2026-11-07); → onto the rest, then two quarters into it.
+    keys('n', 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     expect(bar()).toBe('5.1.4 r.4 r.4 7.1.4 |');
   });
 
   it('with the fixed grid on (Alt+G), → stops on each 16th inside a rest, and a note typed there goes in at that point', async () => {
     await open();
-    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight');
+    keys('n', altKey('KeyG'), 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     // The meter writes the quarter across the bar's middle as two tied 8ths, and the rests after it on the beat.
     expect(bar()).toBe('5.1.4 r.8 7.1.8 -.1.8 r.8 r.4 |');
@@ -72,7 +91,7 @@ describe('note input’s grid (issue #293)', () => {
 
   it('← comes back into a rest at its last grid line, and steps back through it', async () => {
     await open();
-    keys('n', altKey('KeyG'), 'ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
+    keys('n', altKey('KeyG'), 'ArrowRight', 'ArrowRight', 'ArrowRight', '7');
     // From the 7 back into the eighth rest before it: its second 16th. Two 16ths shorter, then 9.
     keys('ArrowLeft', '-', '-', '9');
     expect(bar()).toBe('5.1.4 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
@@ -85,13 +104,13 @@ describe('note input’s grid (issue #293)', () => {
 
   it('Shift+Space moves on by the next note’s length, over notes and into rests', async () => {
     await open();
-    keys('n', 'ArrowDown', { key: ' ', shiftKey: true });
+    keys('n', { key: ' ', shiftKey: true });
     // A quarter on from the first note is the rest's start; an eighth on from there is inside it.
     keys('-', { key: ' ', shiftKey: true }, '7');
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
-  it('draws the grid over the cursor’s bar in note input only: a ruler by default, lines when Settings says so', async () => {
+  it('draws the grid in note input only: a ruler by default, lines when Settings says so', async () => {
     await open();
     expect(screen.queryByTestId('grid-lines')).toBeNull();
     keys('n');
@@ -105,11 +124,117 @@ describe('note input’s grid (issue #293)', () => {
     expect(screen.getByTestId('grid-lines')).toHaveAttribute('data-look', 'lines');
   });
 
+  it('keeps the grid when Staff, Tab or Both is pressed: the press leaves the focus on the editor (issue #396)', async () => {
+    await open();
+    keys('n');
+    const show = screen.getByRole('group', { name: 'Show' });
+    for (const name of ['Staff', 'Both', 'Tab']) {
+      const button = within(show).getByRole('button', { name });
+      // A press that doesn't take the focus: the editor isn't blurred, so note input's cursor and grid stay.
+      expect(fireEvent.mouseDown(button)).toBe(false);
+      fireEvent.click(button);
+      expect(button).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('grid-lines')).toBeInTheDocument();
+    }
+  });
+
+  it('never moves the caret with the mouse: the Grid shows over the caret’s bar and the bar under the mouse (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
+    keys('n');
+    expect(gridBars()).toEqual([0]);
+    fireEvent.pointerMove(svg, over(1));
+    // As Dorico draws it: the Grid over the hovered bar too, the caret's box on the 5 where it was, the mouse's faint box.
+    expect(gridBars()).toEqual([0, 1]);
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+    fireEvent.pointerLeave(svg);
+    expect(gridBars()).toEqual([0]);
+    expect(screen.queryByTestId('shadow-fret')).toBeNull();
+  });
+
+  it('moves the caret by the keys, not the mouse’s box, while the mouse rests on the clip (issue #396)', async () => {
+    const { svg, bars, over } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    const box = () => [screen.getByTestId('shadow-fret').getAttribute('x'), screen.getByTestId('shadow-fret').getAttribute('y')];
+    const before = box();
+    keys('ArrowDown');
+    // A string picked: the caret's box, in the first bar, and the mouse's box where it was.
+    expect(Number(screen.getByTestId('input-cursor').getAttribute('x'))).toBeLessThan(bars[0].x1);
+    expect(box()).toEqual(before);
+  });
+
+  it('starts note input at the caret, never where the mouse was before (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
+    // A press on the first bar, then the mouse over the second and off the clip.
+    fireEvent.pointerDown(svg, { ...over(0), button: 0 });
+    fireEvent.pointerUp(svg, { ...over(0), button: 0 });
+    fireEvent.pointerMove(svg, over(1));
+    fireEvent.pointerLeave(svg);
+    keys('n');
+    expect(gridBars()).toEqual([0]);
+    // Nor while it rests over the second bar: nothing of the mouse is kept outside note input.
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    keys('n');
+    expect(gridBars()).toEqual([0]);
+    expect(screen.queryByTestId('shadow-fret')).toBeNull();
+  });
+
+  it('puts the caret’s box on a string when N goes in on a rest’s column, wherever the mouse is (Jeremy, 2026-11-08, issue #396)', async () => {
+    const { svg, over } = await openTwoBars();
+    // → onto the first bar's rest picks its column; N picks the string it was last on, not the column alone.
+    keys('ArrowRight', 'n');
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
+    fireEvent.pointerMove(svg, over(1));
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
+  });
+
+  it('keeps the caret, and its Grid, where it was when the view changes (issue #396)', async () => {
+    const { svg, over, gridBars } = await openTwoBars();
+    keys('n');
+    fireEvent.pointerMove(svg, over(1));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Both' }));
+    // The bars moved under the still mouse: its Grid and box wait for it to move again.
+    expect(gridBars()).toEqual([0]);
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+  });
+
+  it('keeps the caret’s place in a rest when ↑ ↓ pick a string (Jeremy, 2026-11-08, issue #396)', async () => {
+    await open();
+    // On the rest's column with no string picked, then a grid line on into the rest.
+    keys('ArrowRight', 'n', 'ArrowRight', 'ArrowUp');
+    expect(screen.getByTestId('tab-ghost')).toBeInTheDocument();
+    keys('ArrowDown', '7');
+    // The 7 went where the caret was, a quarter into the rest, not at its start.
+    expect(bar()).toBe('5.1.4 r.4 7.2.4 r.4 |');
+  });
+
+  it('shows a faint 0 in the caret’s box on a string with no note, as MuseScore’s tab does (issue #396)', async () => {
+    await open();
+    keys('n');
+    // On the 5: nothing ghosted over a note.
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+    keys('ArrowDown');
+    expect(screen.getByTestId('tab-ghost')).toHaveTextContent('0');
+    // A typed fret takes its place.
+    keys('7');
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+    // Back on an empty string it shows again, and out of note input there is none.
+    keys('ArrowDown');
+    expect(screen.getByTestId('tab-ghost')).toBeInTheDocument();
+    keys('Escape');
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+  });
+
   it('out of note input, → moves a column at a time, as before', async () => {
     await open();
     keys('ArrowRight', 'ArrowRight');
     // Normal mode stopped on the rest's start, not inside it.
-    keys('n', 'ArrowDown', '7');
+    keys('n', '7');
     expect(bar()).toBe('5.1.4 7.1.4 r.2 |');
   });
 

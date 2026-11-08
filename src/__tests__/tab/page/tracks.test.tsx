@@ -18,7 +18,8 @@ describe('TabPage with several tracks (issues #237, #243)', () => {
     expect(screen.getAllByTestId('tab-column')).toHaveLength(2);
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
-    fireEvent.keyDown(editor, { key: '7' });
+    // Frets are typed in note input mode (Jeremy, 2026-11-07): ↓ picks the top string.
+    for (const key of ['n', '7']) fireEvent.keyDown(editor, { key });
     const saved = pageClip() as unknown as Clip;
     expect(saved.tracks[0].bars[0].voices[0]).toHaveLength(1);
     expect(saved.tracks[0].bars[0].voices[0][0].notes[2]).toEqual({ fret: 5 });

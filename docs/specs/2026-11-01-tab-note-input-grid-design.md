@@ -29,10 +29,21 @@ first.
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
-7. **The grid is drawn over the cursor's bar** in note input, as Dorico shows it, its beats a little
-   stronger. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
-   **Ruler over the staff** (the default), ticks on a line over the top staff, or **Lines across the
-   bar**, faint lines from the top staff to the bottom one. (Dots under the bar, a third mock, was
+7. **The caret follows Dorico's model** (Jeremy, 2026-11-07, issue #396). The mouse never moves
+   the caret: only the keys, a press and N do, and nothing of the mouse is kept outside note input.
+   The caret always shows in note input, wherever the mouse is: on the staff its line and the next
+   note's ghost (over a note at another pitch only the ghost, to add to the chord; over one at its
+   own pitch both, the ghost see-through), on the tab its box on a string (N picks the string last used;
+   Jeremy, 2026-11-08), or a short upright line on a column with no string picked. The mouse shows its own shadow note on the staff and a box on the
+   tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch and the caret
+   goes on past the note by its length, as A–G and Enter do (Jeremy, 2026-11-07); a press on the tab enters a
+   0 there with the caret on it, for digits to change (Dorico's tab is always in chord input). The
+   Grid is drawn over the caret's bar, on the part the caret is on (in Both view, the staff or the tab;
+   Jeremy, 2026-11-07), and, as Dorico draws it, over the bar under the mouse, on the part it is over,
+   its beats a little stronger. Pressing Staff, Tab or Both leaves the focus on
+   the editor, as the palette's buttons do, so the caret and the Grid stay. How is a preference, Settings › Tab › Editing › Grid drawn as (Jeremy, 2026-11-03):
+   **Ruler over the staff** (the default), ticks on a line over that part, or **Lines across the
+   bar**, faint lines from that part's top line to its bottom one. (Dots under the bar, a third mock, was
    dropped.)
    Only places a note can go are marked: each note's start and the grid lines inside rests, never one
    inside a note's length, which the same voice can't take (Jeremy, 2026-11-03). Entering inside a note,

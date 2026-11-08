@@ -3,7 +3,7 @@
  * Each test file calls `setUpPage()` once.
  */
 import { vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { LetGoAfterUse } from '@/components/LetGoAfterUse';
 // Loaded before any test, as the original single file did: the page loads alphaTab lazily, and a first load
@@ -136,3 +136,13 @@ export const alphaTex = () => {
   const body = text.split('\n').filter(l => l.includes('|') || !/^\\(title|ts|tuning|capo) /.test(l)).join(' ');
   return (body.match(/[^|]*\|/g) ?? []).map(b => b.trim().replace(/\s+/g, ' ')).join('\n');
 };
+
+/**
+ * The page open on a 4/4 clip of `bar`, the editor focused. Frets are typed only in note input (Jeremy,
+ * 2026-11-07, issue #396), so a test that needs notes to start from opens on them.
+ */
+export async function openWith(bar: string) {
+  renderAt(`#tab=${encodeURIComponent(`\\ts (4 4)\n${bar}`)}`);
+  await waitFor(() => expect(alphaTex()).toBe(bar), SLOW);
+  act(() => editor().focus());
+}

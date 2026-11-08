@@ -31,12 +31,12 @@ import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
-import { pitchAtStep } from './staffEntry';
+import { pitchAtStep, type TypedAccidental } from './staffEntry';
 import { markBox, markTool } from './marks';
 import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
-import { TabClip } from './TabClip';
+import { TabClip, type DoubleClickPlace } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
@@ -523,12 +523,15 @@ export default function TabPage() {
     setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
   };
   /** Note input on or off; going in, the keys come to the tab. */
+  /** The rest last picked on the staff, so going into note input from it starts the caret there. */
+  const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
   const enterInput = (on: boolean) => {
     // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
     // MuseScore's note input begin there (Jeremy, 2026-11-06).
     const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     setInputMode(on);
     setCursorAt(at, 0);
+    accidentalRef.current = null;
     if (on) {
       if (selection) {
         setCursor(at);
@@ -536,12 +539,55 @@ export default function TabPage() {
       }
       setPicked(null);
       setInputLength(startLength(clip, at));
-      // No string is picked for you, even on a note (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its
-      // column alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
-      setColumnOnly(true);
-      setStaffPitch(null);
+      // On a note pressed in normal mode, the caret goes onto it, its string (or its pitch on the staff) picked,
+      // so digits retype it, as Dorico's caret starts on the note selected (Jeremy, 2026-11-07, issue #396).
+      // Anywhere else on the tab the caret picks the string it was last on, so a fret can be typed at once, as
+      // Dorico's tab caret is always on a string (Jeremy, 2026-11-08, issue #396; no string was picked before).
+      // With only the staff drawn it takes the column alone, and no staff line or space is picked for you.
+      const onNote = !selection && !columnOnly && noteAt(clip, cursor) !== null;
+      setColumnOnly(!onNote && parts === 'staff');
+      if (!onNote) setStaffPitch(null);
+      // On a rest picked on the staff, the caret starts on the staff, on its middle line, as Dorico's starts on
+      // the staff picked (Jeremy, 2026-11-07, issue #396).
+      const rest = restOnStaff.current;
+      if (!onNote && parts !== 'tab' && rest && rest.bar === at.bar && rest.column === at.column) toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
       editorRef.current?.focus();
     }
+  };
+
+  /**
+   * Goes into note input with the caret where a double-click landed, as Dorico's double-click starts
+   * note input there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
+   * beside the notes; on the staff, at the note's pitch or the line or space; on a rest on the staff, its middle line.
+   */
+  /** A sign typed on the staff for the next letter in note input (Jeremy, 2026-11-07, issue #396). */
+  const accidentalRef = useRef<TypedAccidental | null>(null);
+
+  const enterInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
+    const on = hit ?? staff ?? rest;
+    if (!on || !clip.bars[on.bar]?.columns[on.column]) {
+      setSelection(null);
+      enterInput(true);
+      return;
+    }
+    const at = { bar: on.bar, column: on.column, string: hit?.string ?? staff?.string ?? cursor.string };
+    setInputMode(true);
+    setSelection(null);
+    setPicked(null);
+    setCursorAt(at, 0);
+    setInputLength(startLength(clip, at));
+    if (staff) {
+      const note = staff.string === null ? null : noteAt(clip, at);
+      toPitch(clip, at, note && note.fret !== null ? writtenStrings(clip.tuning)[at.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, at.bar, staff.step));
+    } else if (rest && parts !== 'tab') {
+      // A rest on the staff: the caret on the staff's middle line, as N on a rest picked there (Jeremy, 2026-11-07).
+      toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
+    } else {
+      setCursor(at);
+      setColumnOnly(!hit && parts === 'staff');
+      setStaffPitch(null);
+    }
+    editorRef.current?.focus();
   };
 
   // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
@@ -708,9 +754,9 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', lastDigit: lastDigitRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
-    commit, toPitch, setColumnOnly, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
+    commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
   });
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());
@@ -914,20 +960,23 @@ export default function TabPage() {
     [clip, shownSelection, voiceOnly],
   );
   const clipHandlers = useStableHandlers({
-    onPick: picking.onPick, onPickStaff: picking.onPickStaff, onDragStaff: picking.onDragStaff,
+    onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
+    onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
     onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
-    onPickRhythm: inputMode ? undefined : picking.onPickRhythm,
+    onPickRhythm: inputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
+      restOnStaff.current = parts !== 'tab' && !extend ? { bar: rest.bar, column: rest.column } : null;
+      picking.onPickRhythm(rest, extend);
+    },
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
     // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
-    // on the staff or the tab goes into it (Jeremy, 2026-10-31), picking nothing, as N does.
-    onDoubleClick: (word: TextHit | null, onMark: boolean) => {
+    // on the staff or the tab goes into it (Jeremy, 2026-10-31) with the caret where it landed (2026-11-07).
+    onDoubleClick: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => {
       if (word && hasEdit(word)) return editPicked(word);
       if (word || onMark || inputMode) return;
-      setSelection(null);
-      enterInput(true);
+      enterInputAt(place);
     },
   });
 
@@ -1025,7 +1074,8 @@ export default function TabPage() {
             {view === 'tab' && (
               <div className="seg tab-parts" role="group" aria-label="Show">
                 {PARTS.map(p => (
-                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onClick={() => setParts(p)}>
+                  // A press keeps the focus where it is, as the palette's do: the editor stays in use, its cursor and Grid with it (issue #396).
+                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onMouseDown={e => e.preventDefault()} onClick={() => setParts(p)}>
                     {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
                   </button>
                 ))}

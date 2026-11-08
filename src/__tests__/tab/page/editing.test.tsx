@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { setUpPage, renderAt, alphaTexText, notice, paste, SLOW, settle, undo, pressFirstTimeSignature, litFrets, editor, vibrato, keys, alphaTex } from './helpers';
+import { setUpPage, renderAt, alphaTexText, notice, paste, SLOW, settle, undo, pressFirstTimeSignature, litFrets, editor, vibrato, keys, alphaTex, openWith } from './helpers';
 import { tool } from '../tool';
 
 setUpPage();
@@ -11,7 +11,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
     // The bar stays full: each note writes over the bar's Gap (step 4).
     expect(alphaTex()).toBe('12.3.4 (14.3 0.4).4 r.2 |');
@@ -22,7 +22,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'ArrowRight', '7');
     const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--select-soft)"]') ?? null;
     expect(band()).toBeNull();
@@ -48,7 +48,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     // − shortens the note in normal mode; in note input it is the next note's length (issue #238).
     keys('5', 'ArrowRight', '7', 'h', 'Escape', '-', 'n');
     fireEvent.click(vibrato());
@@ -65,7 +65,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'ArrowRight', '7');
     const pressAll = () => {
       fireEvent.click(tool('Eighth note'));
@@ -88,15 +88,12 @@ describe('TabPage editing', () => {
     expect(alphaTex()).toBe('5.1.4 7.1.8 r.8 r.2 |');
   });
 
-  it('picks a bend amount from the Bend button\'s panel, and takes it away with None', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('7');
+  it('picks a bend amount from the Bend button\'s panel, and takes it away with None', async () => {
+    await openWith('7.1.1 |');
     const bend = () => tool('Bend');
     fireEvent.click(bend());
     expect(bend()).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'full' }));
-    // A fret on a Whole-bar rest fills the bar (step 4).
     expect(alphaTex()).toBe('7.1{b (0 4)}.1 |');
     expect(screen.queryByRole('dialog', { name: 'Bend' })).toBeNull();
     expect(bend()).toHaveAttribute('aria-pressed', 'true');
@@ -121,7 +118,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'i', 'g', 's');
     expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 r.4 r.2 |');
     expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
@@ -164,10 +161,8 @@ describe('TabPage editing', () => {
     expect(alphaTex()).toBe('\\ac 5.1.4 |\n7.1.1 |\n7.1.4 r.4 r.2 |');
   });
 
-  it('writes free text over a column from the palette, and edits it from a press on it', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5');
+  it('writes free text over a column from the palette, and edits it from a press on it', async () => {
+    await openWith('5.1.1 |');
     fireEvent.click(tool('Text over this column'));
     const field = screen.getByRole('textbox', { name: 'Text over the column' });
     // Long enough for a few wrapped lines (issue #323); a chord name's field stops at 40.
@@ -186,10 +181,9 @@ describe('TabPage editing', () => {
     expect(screen.queryByTestId('beat-text')).toBeNull();
   });
 
-  it('names a chord from C and a field over the tab, and sets the capo from the palette', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5', 'c');
+  it('names a chord from C and a field over the tab, and sets the capo from the palette', async () => {
+    await openWith('5.1.1 |');
+    keys('c');
     const field = screen.getByRole('textbox', { name: 'Chord name' });
     fireEvent.change(field, { target: { value: 'Am7' } });
     fireEvent.keyDown(field, { key: 'Enter' });
@@ -217,7 +211,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
     // The two selected notes are lit, with no band behind them (Jeremy, 2026-10-30).
     expect(litFrets().map(t => t.textContent)).toEqual(['7', '9']);
@@ -285,7 +279,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'ArrowRight', '7');
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
     // The first Esc leaves note input, the second the tab.
@@ -318,7 +312,7 @@ describe('TabPage editing', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input's (issue #238).
-    keys('n', 'ArrowDown');
+    keys('n');
     keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
     // On string 3, under a column whose notes are on strings 1 and 2.
     keys('ArrowLeft', 'Delete');
@@ -365,10 +359,8 @@ describe('TabPage editing', () => {
     expect(alphaTex()).toBe('5.1.4 5.1.4 5.1.4 7.1.4 |');
   });
 
-  it('sets the key signature on the piano keys, Major or Minor keeping its signs', () => {
-    renderAt();
-    act(() => editor().focus());
-    keys('5');
+  it('sets the key signature on the piano keys, Major or Minor keeping its signs', async () => {
+    await openWith('5.1.1 |');
     fireEvent.click(tool('Key signature from this bar'));
     const panel = screen.getByRole('dialog', { name: 'Key signature' });
     expect(panel).toHaveTextContent('Key signature: C major');
