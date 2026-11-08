@@ -66,9 +66,14 @@ export async function runReply(options: ReplyOptions): Promise<ReplyResult> {
 }
 
 function addUsage(total: Usage, more: Usage) {
-  for (const key of ['promptTokens', 'completionTokens', 'cost'] as const) {
+  for (const key of ['promptTokens', 'completionTokens', 'cachedTokens', 'cost'] as const) {
     if (more[key] !== undefined) total[key] = (total[key] ?? 0) + more[key];
   }
+}
+
+/** The viewer's message as the request carries it: the ask, then the arrangement as it is now. */
+export function askWithArrangement(ask: string, arrangement: string): string {
+  return `${ask}\n\n<arrangement>\n${arrangement}\n</arrangement>`;
 }
 
 /** The system prompt: what the panel is for, then the agent guide to Frets' alphaTex. */
@@ -76,9 +81,11 @@ export function systemPrompt(guide: string): string {
   return [
     'You are helping a guitarist with the arrangement open on the Tab page of Frets, a guitar app.',
     'They may ask you to analyse it (harmony, rhythm, technique, playability) or to change it.',
-    'Read the arrangement with read_arrangement before answering about it; it may have changed since you last read it.',
+    'Each message from the viewer ends with the arrangement as it was when they sent it, as read_arrangement gives it, so you needn\'t read it first.',
+    'Read it again with read_arrangement after a change, or if they may have edited it since.',
     'Change it only when asked, with replace_bars for a run of bars or replace_arrangement for anything else.',
     'Every change you make in one reply is undone together by one Undo, so make the whole change the viewer asked for.',
+    'The arrangement comes with the problems Frets marks on it; mention any that bear on what was asked, and fix them only when asked.',
     'Answer briefly. Your answer is shown as markdown: use short lists, a small table or `code` where they help (HTML shows as text). Name bars by number. Do not paste alphaTex into your answer unless asked.',
     'Frets writes alphaTex as the guide below describes.',
     '',

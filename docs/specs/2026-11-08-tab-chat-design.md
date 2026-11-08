@@ -25,8 +25,15 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   our own.
 - **One request format for every model (Q9).** OpenAI-style chat
   completions with tools, so any OpenRouter model works by name while models
-  are compared. Claude-only features (prompt caching, thinking) wait until a
-  model is chosen.
+  are compared. Claude-only features (thinking) wait until a model is chosen.
+- **Cheaper requests (issue #424, 2026-11-08: about 8¢ a Haiku ask).** The
+  system prompt, mostly the guide (about 10k tokens), is marked
+  `cache_control: ephemeral`, so Claude and Gemini read it from their cache
+  after the first call, within a reply and for a few minutes after; OpenRouter
+  drops the mark for other providers. Each ask is sent with the arrangement as
+  it is then (what `read_arrangement` answers, in `<arrangement>` tags after
+  the ask), so the model needn't spend a call reading it first; the
+  conversation keeps the ask alone, so earlier asks don't resend it.
 - **Settings › Tab › Chat (Q2, Q5).** Two fields, saved under
   `frets.tab.chat`: **OpenRouter key** (shown as dots, but not as a password field, so password managers don't offer to save it) and **Model**
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
@@ -48,8 +55,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   "Changed bars 3 to 4 of track 1", "Changed bar 2 of track 1", in red with ⚠
   when it failed; the same line several times in a row is shown once, "(3
   times)"), then the
-  model's words (as markdown: `docs/specs/2026-11-08-tab-chat-markdown-design.md`), then the model, the tokens in and out, and the cost OpenRouter
-  reports, so models can be compared.
+  model's words (as markdown: `docs/specs/2026-11-08-tab-chat-markdown-design.md`), then the model, the tokens in (and how many came from the
+  cache) and out, and the cost OpenRouter reports, so models can be compared.
 - **Changes apply at once, one Undo step per reply (Q3).** A reply's first
   change is an undo step; its later changes join that step, so one Undo
   takes the whole reply back. If the viewer edits while a reply runs, the
@@ -64,7 +71,13 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 
 - `read_arrangement`: the whole clip as alphaTex, one bar per line, each
   ending in a comment `// track T, bar B` (numbers from 1), then the number
-  of tracks, the track shown, the cursor's bar, and the selected bars.
+  of tracks, the track shown, the cursor's bar, and the selected bars, then
+  the problems Frets marks: each bar's red ⚠ (`barErrors`: a bar that doesn't
+  add up, a tuplet that doesn't fit, an uneven Voice) as "Track T, bar B: …",
+  and what the reader says reading the clip back ("Kept but not drawn yet:
+  …"), or "Frets marks no problems." A change answers with the problems it
+  leaves the same way, an uneven bar named once. Text the AlphaTex view
+  can't read isn't the arrangement, so the model doesn't see it (issue #428).
 - `replace_bars(track, first_bar, last_bar, alphatex)`: bars `first_bar` to
   `last_bar` of one track replaced by the given bars, more or fewer;
   empty deletes them; `last_bar = first_bar - 1` inserts before `first_bar`
@@ -76,7 +89,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   (`readAlphaTex`). Text it can't read changes nothing, and its errors go
   back to the model, which can try again. Bars or a track that isn't there,
   wrong arguments, or arguments that aren't JSON are refused the same way.
-- The system prompt says what the panel is for and how changes undo, then
+- The system prompt says what the panel is for, that each ask carries the
+  arrangement, how changes undo, and to mention problems that bear on the ask
+  but fix them only when asked, then
   carries the agent guide, `public/tab-alphatex.txt`, fetched once a visit.
 
 ## How
@@ -105,7 +120,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 
 ## Not yet
 
-- Streaming replies, prompt caching and thinking (after a model is chosen).
+- Streaming replies and thinking (after a model is chosen). Caching the
+  conversation as it grows, not only the system prompt.
 - Calling Anthropic directly once Claude is chosen (option A on the page).
 - Taking `?chat` off (issue #424's last step).
 
@@ -114,6 +130,11 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - `read_arrangement` numbers every bar of every track (`// track 1, bar 2`),
   names the track shown, the cursor's bar and the selected bars, says
   "Nothing is selected." with none, and its text reads back as the same clip.
+- `read_arrangement` lists "Track 1, bar 2: Bar 2 doesn't add up to 4/4: 2
+  beats short.", a short bar of track 2 as "Track 2, bar 1: …", "Kept but not
+  drawn yet: tr (trill).", and "Frets marks no problems." with none; a
+  `replace_bars` that leaves bar 2 short names it once, and one that fills it
+  says no problems.
 - `writeAlphaTex` writes as before (the alphaTex tests pass unchanged).
 - `replace_bars` replaces bars 2 to 3 with two bars (4 stay 4), 2 to 4 with
   one (2), deletes bar 4 with empty text (3), inserts before bar 1 with
@@ -136,7 +157,10 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   changed bar 1 of track 1, but the alphaTex had errors". Three reads in a
   row, then a failed one, then a read show as three lines, the first "(3
   times)".
-- The usage line reads `m · 12,345 in, 67 out · $0.0042`, `m · $0.25`, `m`.
+- The usage line reads `m · 12,345 in, 67 out · $0.0042`, with 10,000 cached
+  `m · 12,345 in (10,000 cached), 67 out · $0.0042`, `m · $0.25`, `m`;
+  OpenRouter's `prompt_tokens_details.cached_tokens` is read as the cached
+  tokens. Every message but the system prompt is sent as it is.
 - `frets.tab.chat` keeps a trimmed key and model; anything else falls back to
   no key and `anthropic/claude-opus-5.5`. `?chat` and `?theme=light&chat=1`
   show the panel; none and `?chats` don't.
@@ -149,8 +173,11 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the
   answer and the usage summed; the bars change; one Undo puts both back. The
   request carries `Bearer <key>`, the model, the guide at the end of the
-  system prompt, and the ask last.
-- A second ask is sent with the first ask and answer; New chat clears the list
+  system prompt, sent as one text part marked `cache_control: { type:
+  'ephemeral' }`, and the ask last, followed by `<arrangement>` with its
+  numbered bars and its problems.
+- A second ask is sent with the first ask, alone, and answer, and only the
+  second carries the arrangement; New chat clears the list
   and the next ask goes alone.
 - A refused key shows OpenRouter's message and changes nothing.
 - Delete and Ctrl+Z typed in the message box don't change the clip.
