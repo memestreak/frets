@@ -505,7 +505,7 @@
   display: grid; align-items: start; justify-content: end; grid-template-columns: 48px minmax(0, var(--clip-width));
   margin-left: calc(-1 * (max(0px, (100vw - 1240px) / 2) + 4px));
 }
-.tab-rail-layout[data-open] { grid-template-columns: 48px 17rem minmax(0, var(--clip-width)); }
+.tab-rail-layout[data-open] { grid-template-columns: 48px var(--rail-panel-width, 17rem) minmax(0, var(--clip-width)); }
 .tab-rail-clip { min-width: 0; }
 .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 16px; }
 .tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
@@ -535,6 +535,17 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
   height: 100%; max-height: calc(100vh - 32px); min-height: min-content; padding: 4px 14px 16px;
   border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
+/* The line between the panel and the clip is a handle (issue #431): its hit area runs 14px either side
+   of the panel's right border, inside the panel's padding and the clip's; hovered or dragged, the line darkens. */
+.tab-rail-divider {
+  position: absolute; top: 0; bottom: 0; right: -15px; width: 28px; z-index: 1;
+  display: flex; justify-content: center; cursor: ew-resize; touch-action: none; outline: none;
+}
+.tab-rail-divider::before { content: ''; width: 1px; background: transparent; }
+.tab-rail-divider:hover::before, .tab-rail-divider:focus-visible::before, .tab-rail-divider[data-dragging]::before {
+  width: 3px; border-radius: 2px; background: var(--line-strong);
+}
+body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: none; }
 .tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tab-rail-panel-name { display: flex; align-items: center; gap: 6px; }
 .tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
@@ -559,6 +570,7 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
     border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   }
   .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
+  .tab-rail-divider { display: none; }
 }
 /* The Tuplet panel `;` opens at the cursor (step 6): the choice ↑ ↓ are on is outlined, as a keyboard's place. */
 .tab-tuplet-panel { outline: none; }

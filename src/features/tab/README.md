@@ -309,7 +309,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 ## Palette, panels and fields
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
-- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and, with `?chat`, Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and, with `?chat`, Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout` with the panels' width, set by dragging the line between the panel and the clip (`docs/specs/2026-11-08-tab-rail-width-design.md`, issue #431); it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
 - `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424), shown with `?chat`: `ChatPanel.tsx` the panel; `markdown.ts` and `ReplyMarkdown.tsx` a reply's markdown read and drawn as elements, never HTML (`docs/specs/2026-11-08-tab-chat-markdown-design.md`, issue #427); `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the agent guide); `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`) and `?chat`.
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, eight to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
@@ -442,6 +442,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
+  the open Rail panel and the clip to set every panel's width, 224 to 560px,
+  kept across visits (issue #431)
 - `docs/specs/2026-11-08-tab-chat-markdown-design.md`: the Chat panel draws
   a reply's markdown, links in a new tab, never raw HTML (issue #427)
 - `docs/specs/2026-11-08-tab-chat-design.md`: the Chat panel, behind
