@@ -9,11 +9,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { readAlphaTex } from '../alphatexRead';
 import type { Clip } from '../clip';
-import type { PageSpot } from './arrangementTools';
+import { arrangementNow, type PageSpot } from './arrangementTools';
 import { ModelPicker } from './ModelPicker';
 import { ReplyMarkdown } from './ReplyMarkdown';
 import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
-import { runReply, systemPrompt } from './reply';
+import { askWithArrangement, runReply, systemPrompt } from './reply';
 import type { ChatPrefs } from './chatPrefs';
 
 /** A line on what a tool did, as "Changed bars 3 to 4 of track 1". */
@@ -86,12 +86,16 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
     const stop = new AbortController();
     const notes: Note[] = [];
     setWorking({ notes: [], stop });
+    // The conversation keeps the ask alone; the request carries it with the arrangement as it is now,
+    // so the model needn't spend a call reading it first.
     const asked: ChatMessage = { role: 'user', content: text };
     let changed = false;
     try {
+      const { clip, spot } = current();
+      const withArrangement: ChatMessage = { role: 'user', content: askWithArrangement(text, await arrangementNow(clip, spot, readAlphaTex)) };
       const result = await runReply({
         complete, apiKey: prefs.apiKey, model: prefs.model,
-        messages: [{ role: 'system', content: systemPrompt(await guide()) }, ...history.current, asked],
+        messages: [{ role: 'system', content: systemPrompt(await guide()) }, ...history.current, withArrangement],
         current, read: readAlphaTex, signal: stop.signal,
         onClip: clip => { onClip(clip, !changed); changed = true; },
         onNote: note => { notes.push(note); setWorking({ notes: [...notes], stop }); },
@@ -210,7 +214,8 @@ export function runsOf(notes: readonly Note[]): { note: Note; count: number }[] 
 export function usageLine(model: string, usage: Usage): string {
   const parts = [model];
   if (usage.promptTokens !== undefined || usage.completionTokens !== undefined) {
-    parts.push(`${(usage.promptTokens ?? 0).toLocaleString('en')} in, ${(usage.completionTokens ?? 0).toLocaleString('en')} out`);
+    const cached = usage.cachedTokens ? ` (${usage.cachedTokens.toLocaleString('en')} cached)` : '';
+    parts.push(`${(usage.promptTokens ?? 0).toLocaleString('en')} in${cached}, ${(usage.completionTokens ?? 0).toLocaleString('en')} out`);
   }
   if (usage.cost !== undefined) parts.push(`$${usage.cost < 0.01 ? usage.cost.toFixed(4) : usage.cost.toFixed(2)}`);
   return parts.join(' · ');

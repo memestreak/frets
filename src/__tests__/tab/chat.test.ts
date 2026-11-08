@@ -4,8 +4,8 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { clipReducer, type ClipState } from '@/features/tab/clipState';
 import { describeArrangement, runTool, spliceBars, TOOLS, type PageSpot } from '@/features/tab/chat/arrangementTools';
 import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_MODEL, parseChatPrefs, readChatParam } from '@/features/tab/chat/chatPrefs';
-import { ChatError, errorText, fetchPresets, PRESETS_URL, readCompletion, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
-import { MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
+import { ChatError, errorText, fetchPresets, PRESETS_URL, readCompletion, wireMessages, type ChatMessage, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
+import { askWithArrangement, MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
 import { runsOf, usageLine } from '@/features/tab/chat/ChatPanel';
 import type { Clip } from '@/features/tab/clip';
 
@@ -39,12 +39,31 @@ describe('read_arrangement', () => {
     expect(result.ok && writeAlphaTex(result.clip)).toBe(writeAlphaTex(FOUR));
   });
 
+  it('lists the problems Frets marks: a bar that doesn\'t add up, by track and bar, and a mark kept but not drawn', async () => {
+    const answer = async (tex: string) => (await runTool('read_arrangement', '{}', { clip: clipOf(tex), spot: SPOT, read })).answer;
+    expect(await answer('\\title "Short"\n:4 0.6 1.6 2.6 3.6 | 5.6 6.6 |')).toContain('Problems Frets marks:\n- Track 1, bar 2: Bar 2 doesn\'t add up to 4/4: 2 beats short.');
+    expect(await answer('\\title "Bass"\n\\track "L"\n:4 0.1 1.1 2.1 3.1 |\n\\track "B"\n:2 0.6 |')).toContain('- Track 2, bar 1: Bar 1 doesn\'t add up');
+    expect(await answer('\\title "Trill"\n:4 0.6{tr (9 16)} 1.6 2.6 3.6 |')).toContain('- Kept but not drawn yet: tr (trill).');
+    const clean = await answer('\\title "Four"\n:4 0.6 1.6 2.6 3.6 |');
+    expect(clean).toContain('Frets marks no problems.');
+    expect(clean).not.toContain('Problems Frets marks');
+  });
+
   it('writes the clip as writeAlphaTex did before it was split into tracks and bars', () => {
     expect(writeAlphaTex(TWO_TRACKS)).toMatch(/^\\title "Duo"\n\\track "Lead"\n/);
   });
 });
 
 describe('replace_bars', () => {
+  it('answers with the problems the change leaves, the uneven bar once', async () => {
+    const out = await runTool('replace_bars', JSON.stringify({ track: 1, first_bar: 2, last_bar: 2, alphatex: ':4 5.6 6.6 |' }), { clip: FOUR, spot: SPOT, read });
+    expect(out.clip).toBeDefined();
+    expect(out.answer).toContain('Problems Frets marks:\n- Track 1, bar 2: Bar 2 doesn\'t add up to 4/4: 2 beats short.');
+    expect(out.answer.match(/doesn't add up/g)).toHaveLength(1);
+    expect((await runTool('replace_bars', JSON.stringify({ track: 1, first_bar: 2, last_bar: 2, alphatex: ':4 5.6 6.6 7.6 8.6 |' }), { clip: FOUR, spot: SPOT, read })).answer).toContain('Frets marks no problems.');
+  });
+
+
   it('replaces a run of bars with as many, more or fewer', async () => {
     const same = await runTool('replace_bars', JSON.stringify({ track: 1, first_bar: 2, last_bar: 3, alphatex: ':2 12.6 12.5 | :1 0.4 |' }), { clip: FOUR, spot: SPOT, read });
     expect(same.clip && bars(same.clip)).toBe(4);
@@ -178,6 +197,10 @@ describe('one reply', () => {
     expect(onClip).not.toHaveBeenCalled();
   });
 
+  it('sends an ask with the arrangement after it', () => {
+    expect(askWithArrangement('Why?', 'BARS')).toBe('Why?\n\n<arrangement>\nBARS\n</arrangement>');
+  });
+
   it('puts the agent guide after its own instructions', () => {
     expect(systemPrompt('GUIDE TEXT')).toMatch(/Frets[\s\S]*Undo[\s\S]*\n\nGUIDE TEXT$/);
   });
@@ -188,13 +211,22 @@ describe('OpenRouter', () => {
     const answer = readCompletion({
       model: 'anthropic/claude-opus-5.5',
       choices: [{ message: { content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'read_arrangement', arguments: '{}' } }, { bad: true }] } }],
-      usage: { prompt_tokens: 1200, completion_tokens: 30, cost: 0.0123 },
+      usage: { prompt_tokens: 1200, completion_tokens: 30, cost: 0.0123, prompt_tokens_details: { cached_tokens: 1000 } },
     }, 'asked');
     expect(answer.model).toBe('anthropic/claude-opus-5.5');
     expect(answer.message.tool_calls).toHaveLength(1);
-    expect(answer.usage).toEqual({ promptTokens: 1200, completionTokens: 30, cost: 0.0123 });
+    expect(answer.usage).toEqual({ promptTokens: 1200, completionTokens: 30, cachedTokens: 1000, cost: 0.0123 });
     const plain = readCompletion({ choices: [{ message: { content: 'Hi' } }] }, 'asked');
-    expect(plain).toEqual({ message: { role: 'assistant', content: 'Hi' }, model: 'asked', usage: { promptTokens: undefined, completionTokens: undefined, cost: undefined } });
+    expect(plain).toEqual({ message: { role: 'assistant', content: 'Hi' }, model: 'asked', usage: { promptTokens: undefined, completionTokens: undefined, cachedTokens: undefined, cost: undefined } });
+  });
+
+  it('marks the system prompt for caching and sends every other message as it is', () => {
+    const tool: ChatMessage = { role: 'tool', tool_call_id: 't', content: 'Done.' };
+    expect(wireMessages([{ role: 'system', content: 'SYS' }, { role: 'user', content: 'hi' }, tool])).toEqual([
+      { role: 'system', content: [{ type: 'text', text: 'SYS', cache_control: { type: 'ephemeral' } }] },
+      { role: 'user', content: 'hi' },
+      tool,
+    ]);
   });
 
   it('fails clearly with no choice, and says what a failed status means', () => {
@@ -213,6 +245,7 @@ describe('OpenRouter', () => {
 
   it('shows the model, tokens and cost under a reply', () => {
     expect(usageLine('m', { promptTokens: 12345, completionTokens: 67, cost: 0.0042 })).toBe('m · 12,345 in, 67 out · $0.0042');
+    expect(usageLine('m', { promptTokens: 12345, cachedTokens: 10000, completionTokens: 67, cost: 0.0042 })).toBe('m · 12,345 in (10,000 cached), 67 out · $0.0042');
     expect(usageLine('m', { cost: 0.25 })).toBe('m · $0.25');
     expect(usageLine('m', {})).toBe('m');
   });

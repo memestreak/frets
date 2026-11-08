@@ -26,6 +26,8 @@ export type ChatMessage =
 export interface Usage {
   promptTokens?: number;
   completionTokens?: number;
+  /** Of `promptTokens`, those read from the provider's cache, at a fraction of the price. */
+  cachedTokens?: number;
   /** In US dollars. */
   cost?: number;
 }
@@ -64,7 +66,7 @@ export const completeWithOpenRouter: Complete = async ({ apiKey, model, messages
         // How OpenRouter names the app in its activity list.
         'X-Title': 'Frets',
       },
-      body: JSON.stringify({ model, messages, tools, usage: { include: true } }),
+      body: JSON.stringify({ model, messages: wireMessages(messages), tools, usage: { include: true } }),
     });
   } catch (e) {
     if (signal?.aborted) throw e;
@@ -74,6 +76,18 @@ export const completeWithOpenRouter: Complete = async ({ apiKey, model, messages
   if (!response.ok) throw new ChatError(errorText(response.status, body));
   return readCompletion(body, model);
 };
+
+/**
+ * The messages as sent: the system prompt (the instructions and the whole alphaTex guide, most of every
+ * request) marked for the provider to cache, so the calls after the first, within a reply and for some
+ * minutes after, pay a fraction for it. Claude and Gemini cache only what is marked; OpenRouter drops the
+ * mark for providers that cache on their own or not at all.
+ */
+export function wireMessages(messages: readonly ChatMessage[]): unknown[] {
+  return messages.map(m => (m.role === 'system'
+    ? { role: 'system', content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] }
+    : m));
+}
 
 /** What the viewer is told for a failed call. */
 export function errorText(status: number, body: unknown): string {
@@ -90,7 +104,7 @@ export function readCompletion(body: unknown, asked: string): Completion {
   const data = body as {
     model?: unknown;
     choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
-    usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; cost?: unknown };
+    usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; cost?: unknown; prompt_tokens_details?: { cached_tokens?: unknown } };
     error?: { message?: unknown };
   } | null;
   const message = data?.choices?.[0]?.message;
@@ -107,7 +121,10 @@ export function readCompletion(body: unknown, asked: string): Completion {
       ...(calls.length > 0 ? { tool_calls: calls } : {}),
     },
     model: typeof data?.model === 'string' ? data.model : asked,
-    usage: { promptTokens: number(data?.usage?.prompt_tokens), completionTokens: number(data?.usage?.completion_tokens), cost: number(data?.usage?.cost) },
+    usage: {
+      promptTokens: number(data?.usage?.prompt_tokens), completionTokens: number(data?.usage?.completion_tokens),
+      cachedTokens: number(data?.usage?.prompt_tokens_details?.cached_tokens), cost: number(data?.usage?.cost),
+    },
   };
 }
 

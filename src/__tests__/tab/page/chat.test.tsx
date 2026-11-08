@@ -88,12 +88,20 @@ describe('the Chat panel', () => {
     expect(alphaTex()).toBe('12.6.1 |\n9.5.1 |');
     undo();
     expect(alphaTex()).toBe(before);
-    // The request: the key, the model, the guide in the system prompt, the ask last.
+    // The request: the key, the model, the guide at the end of the system prompt, marked to be cached,
+    // and the ask last, carrying the arrangement as it was, with its numbered bars and its problems.
     expect(sent[0].headers.Authorization).toBe('Bearer sk-or-test');
     expect(sent[0].body.model).toBe('anthropic/claude-opus-5.5');
-    expect(sent[0].body.messages[0]).toMatchObject({ role: 'system' });
-    expect(sent[0].body.messages[0].content).toMatch(/THE GUIDE$/);
-    expect(sent[0].body.messages.at(-1)).toEqual({ role: 'user', content: 'Make both bars whole notes' });
+    const system = sent[0].body.messages[0] as unknown as { role: string; content: { type: string; text: string; cache_control: object }[] };
+    expect(system.role).toBe('system');
+    expect(system.content).toHaveLength(1);
+    expect(system.content[0].text).toMatch(/THE GUIDE$/);
+    expect(system.content[0].cache_control).toEqual({ type: 'ephemeral' });
+    const asked = sent[0].body.messages.at(-1)!;
+    expect(asked.role).toBe('user');
+    expect(asked.content).toMatch(/^Make both bars whole notes\n\n<arrangement>\n/);
+    expect(asked.content).toContain('// track 1, bar 1');
+    expect(asked.content).toMatch(/\n\n(Frets marks no problems\.|Problems Frets marks:\n[\s\S]*)\n<\/arrangement>$/);
   });
 
   it('keeps the conversation for the next ask, and New chat forgets it', async () => {
@@ -107,6 +115,9 @@ describe('the Chat panel', () => {
     ask('And bar 2?');
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(sent[1].body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
+    // An earlier ask is sent alone; only the newest carries the arrangement.
+    expect(sent[1].body.messages[1].content).toBe('What rhythm is this?');
+    expect(sent[1].body.messages[3].content).toMatch(/^And bar 2\?\n\n<arrangement>\n/);
     await waitFor(() => expect(within(chatPanel()).getAllByText('Four quarter notes a bar.')).toHaveLength(2));
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'New chat' }));
     expect(within(chatPanel()).queryByText('What rhythm is this?')).toBeNull();
