@@ -243,7 +243,16 @@ and in its spec.
 ## Drawing
 
 - `TabClip.tsx` — draws a layout as SVG (a `memo`), with the cursor and selection;
-  `rangeBoxes`, `WahMark`, `SystemRowMarks`.
+  keeps the hit testing and the layers, and draws each line's strings and notes
+  with the parts below. `rangeBoxes`.
+- `ClipWords.tsx` — `SystemWords`: the words over a line (endings, the capo,
+  sections, tempos, "Free time", chord names and their diagrams, free text).
+- `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
+  (P.M., let ring, w/ bar, fermatas, hairpins, vibrato, mordents, strokes,
+  `WahMark`, accents).
+- `ClipBars.tsx` — `BarDrawing` (bar lines, repeat signs and counts, double
+  bars), `TimeNumbers` (a time signature on the tab) and `StaffJoin` (the
+  bracket joining staff and tab).
 - `TabColumn.tsx` — one column: its numbers, joins, bends and marks;
   `hiddenNumber`, `BendCarry`.
 - `TabStems.tsx` — the tab's own stems, beams and rests when no staff
