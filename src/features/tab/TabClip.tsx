@@ -1,30 +1,26 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { barNumber, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, textRowOf, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { barNumber, bendCarries, bendRaises, bendLandings, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note } from './clip';
+import { layoutClip, SPACE, STRING_GAP, stepY, stringY, type Layout, type Parts, type Rows, type System } from './layout';
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
-import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
-import { barTextX, endingSpans, CAPO_SIZE, capoText, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, textAt, type TextHit, type WordHit } from './layoutText';
-import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
-import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, type NoteDrawnAt, previousDrawnAt, vibratoRuns, legatoArcs, type LegatoArc } from './runs';
-import { BAR_DASHES, FermataSign, ShadowNote, StaffCursor, StaffDrawing, TimeBrackets, type NoteAt } from './StaffDrawing';
+import { sameWord, textAt, type TextHit, type WordHit } from './layoutText';
+import { type NoteDrawnAt, previousDrawnAt, legatoArcs, type LegatoArc } from './runs';
+import { ShadowNote, StaffCursor, StaffDrawing, type NoteAt } from './StaffDrawing';
 import { staffCursorPlace } from './staffEntry';
 import { staffMarks } from './staffMarks';
-import { GLYPHS } from './smufl';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
-import { markAt, markLights, mordentSign, vibratoWave, type MarkHit, type MarkLit } from './marks';
+import { markAt, markLights, type MarkHit, type MarkLit } from './marks';
 import { columnsInRectangle, type Rectangle } from './rectangle';
-import { ColumnDrawing, type Joins, columnMarks, hiddenNumber, labelWidth } from './TabColumn';
+import { ColumnDrawing, type Joins, hiddenNumber, labelWidth } from './TabColumn';
 import { Stems } from './TabStems';
-import { TempoNote } from './TempoNote';
 import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
-import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
 import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
-import { ChordGrid } from './ChordGrid';
-import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
+import { BarDrawing, StaffJoin, TimeNumbers } from './ClipBars';
+import { SystemRowMarks } from './ClipMarks';
+import { SystemWords } from './ClipWords';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
 export interface Highlight {
@@ -767,11 +763,11 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   );
 });
 
-/** A bar's number: its size, and how far in from the bar's opening line it starts. */
 /** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
 const RECT_START = 4;
 /** How far across from another Voice's fret number a press still picks it: about the number's half width and a little. */
 const ON_NOTE_REACH = 10;
+/** A bar's number: its size, and how far in from the bar's opening line it starts. */
 const BAR_NUMBER_SIZE = 9;
 const BAR_NUMBER_INSET = 2;
 
@@ -930,342 +926,16 @@ function notesOf(
   return parts;
 }
 
-/** What a whammy bar's run is labelled, as guitar books print it. */
-const WHAMMY_LABEL = 'w/ bar';
-
-/** The wah's sign centred on (x, y): "+" closed, "o" open, as Guitar Pro prints them. */
-function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: number; look: TabLook }) {
-  return kind === 'closed'
-    ? <path d={`M${x - 4} ${y} h8 M${x} ${y - 4} v8`} stroke={look.ink} strokeWidth={1.2} fill="none" data-testid="wah" />
-    : <circle cx={x} cy={y} r={3.6} stroke={look.ink} strokeWidth={1.1} fill="none" data-testid="wah" />;
-}
-
-/** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
-function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null; lit: MarkLit }) {
-  const parts: ReactNode[] = [];
-  const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
-  // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
-  for (const { mark, label, has } of RUN_MARKS) {
-    const y = rows[mark];
-    if (y === null) continue;
-    const name = mark === 'palmMute' ? 'palm-mute' : 'let-ring';
-    for (const { columns, x0, x1 } of runsIn(system, has)) {
-      const lw = runLabelWidth(label);
-      // A run shorter than its label is the label alone: its line and end tick would cross the word.
-      const longer = x1 > x0 + lw + 2;
-      // A press on the line picks it as a Mark (step 8), or its columns selected light it (issue #276).
-      const picked = columns.every(c => inRun(c.index)) || lit(mark, columns[0].index, null, columns[columns.length - 1].index);
-      const ink = litLook(look, picked).ink;
-      parts.push(
-        <g key={`${name}-${columns[0].index}`} data-testid={name} data-selected={picked || undefined}>
-          <text x={x0} y={y + 4} fontSize={10} fontWeight={700} fill={ink}>{label}</text>
-          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={ink} strokeDasharray="3 3" />}
-          {longer && <line x1={x1} x2={x1} y1={y - 4} y2={y + 4} stroke={ink} />}
-        </g>,
-      );
-    }
-  }
-
-  // The whammy bar: "w/ bar" and a dashed line over each run of columns that use it, as guitar books print it.
-  if (rows.whammy !== null) {
-    const y = rows.whammy;
-    const lw = runLabelWidth(WHAMMY_LABEL);
-    for (const { columns, x0, x1 } of runsIn(system, c => !!c.whammy)) {
-      const longer = x1 > x0 + lw + 2;
-      const ink = litLook(look, columns.some(c => lit('whammy', c.index, null))).ink;
-      parts.push(
-        <g key={`whammy-run-${columns[0].index}`} data-testid="whammy-run">
-          <text x={x0} y={y + 4} fontSize={10} fontStyle="italic" fill={ink}>{WHAMMY_LABEL}</text>
-          {longer && <line x1={x0 + lw} x2={x1} y1={y} y2={y} stroke={ink} strokeDasharray="3 3" />}
-        </g>,
-      );
-    }
-  }
-
-  // Fermatas, over the tab when there is no staff to carry them.
-  if (rows.fermatas !== null) {
-    for (const bar of system.bars) {
-      for (const { column, x, index } of bar.columns) {
-        if (column.fermata) parts.push(<FermataSign key={`fermata-${index}`} fermata={column.fermata} x={x} y={rows.fermatas + 5} look={litLook(look, lit('fermata', index, null))} />);
-      }
-    }
-  }
-
-  // Hairpins: one wedge over each run of neighbouring columns getting louder (opening) or softer (closing).
-  if (rows.hairpins !== null) {
-    for (const run of columnRuns(system, c => c.hairpin ?? null)) {
-      const y = rows.hairpins;
-      const [x0, x1] = [run.from.x - 4, run.end];
-      const [narrow, wide] = run.kind === 'crescendo' ? [x0, x1] : [x1, x0];
-      const picked = lit('hairpin', run.from.index, null, run.to.index);
-      parts.push(
-        <path
-          key={`hairpin-${run.from.index}`} d={`M${wide} ${y - 4} L${narrow} ${y} L${wide} ${y + 4}`}
-          fill="none" stroke={litLook(look, picked).ink} strokeWidth={1.1} data-testid="hairpin" data-selected={picked || undefined}
-        />,
-      );
-    }
-  }
-
-  // Vibrato: one wave over each run of neighbouring notes that have it, over the tab under a staff too.
-  if (rows.vibrato !== null) {
-    for (const run of vibratoRuns(system)) {
-      const { d, strokeWidth } = vibratoWave(run.from.x, rows.vibrato, run.kind === 'wide', run.end);
-      const on = inRun(run.from.index) || lit('vibrato', run.from.index, null, run.to.index);
-      parts.push(<path key={`vibrato-${run.from.index}`} d={d} fill="none" stroke={litLook(look, on).ink} strokeWidth={strokeWidth} data-testid="vibrato" />);
-    }
-  }
-
-  for (const bar of system.bars) {
-    for (const { column, x, index } of bar.columns) {
-      const mordent = columnMordent(column);
-      if (mordent && rows.vibrato !== null) {
-        const { d, transform } = mordentSign(x, rows.vibrato, mordent);
-        parts.push(<path key={`mordent-${index}`} d={d} transform={transform} fill={litLook(look, lit('mordent', index, null)).ink} data-testid="mordent" />);
-      }
-      if (column.stroke && rows.strokes !== null) {
-        const sy = rows.strokes;
-        const ink = litLook(look, lit('stroke', index, null)).ink;
-        parts.push(column.stroke === 'down'
-          ? <path key={`stroke-${index}`} d={`M${x - 4} ${sy + 4} v-7 h8 v7`} fill="none" stroke={ink} strokeWidth={1.5} />
-          : <path key={`stroke-${index}`} d={`M${x - 4} ${sy - 4} L${x} ${sy + 4} L${x + 4} ${sy - 4}`} fill="none" stroke={ink} strokeWidth={1.5} />);
-      }
-      if (column.wah && rows.wah !== null) parts.push(<WahMark key={`wah-${index}`} kind={column.wah} x={x} y={rows.wah} look={litLook(look, lit('wah', index, null))} />);
-      parts.push(<g key={`marks-${index}`}>{columnMarks(column, x, rows, look, mark => lit(mark, index, null))}</g>);
-    }
-  }
-  return <>{parts}</>;
-}
-
-/** The room between a tempo and "Free time" in the same bar. */
-const FREE_TIME_GAP = 10;
-
-/** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean }) {
-  const parts: ReactNode[] = [];
-  // Another Voice's drawing carries only the words on its own columns: chord names and texts (step 9, Q13).
-  if (columnsOnly) return <>{columnWords(system, rows, word, plain)}</>;
-  /** The look of a word: the selection's blue when it is the picked one (issue #276). */
-  const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
-  // Endings: one bracket over each run of bars with the same ending.
-  endingSpans(system).forEach(({ bar, n, x0, x1 }) => {
-    const y = rows.endings!;
-    const look = lookOf({ kind: 'ending', bar });
-    parts.push(
-      <g key={`ending-${bar}`} stroke={look.ink} fill="none" strokeWidth={1.2} data-testid="ending">
-        <polyline points={`${x0},${y + 8} ${x0},${y - 4} ${x1},${y - 4}`} />
-        <text x={x0 + 4} y={y + 6} fontSize={11} fontWeight={700} fill={look.ink} stroke="none">{n}.</text>
-      </g>,
-    );
-  });
-
-  // The capo, over the start of the first line, as printed tab has it.
-  if (system.first && clip.capo && rows.capo !== null) {
-    const look = lookOf({ kind: 'capo', bar: 0 });
-    parts.push(
-      <text key="capo" x={system.lineStart} y={rows.capo + 4} fontSize={CAPO_SIZE} fontWeight={700} fill={look.ink} data-testid="capo">
-        {capoText(clip.capo)}
-      </text>,
-    );
-  }
-
-  // Sections and tempos, over the bar they start at; chord names and free text over their columns.
-  for (const bar of system.bars) {
-    const x0 = barTextX(bar);
-    const { section } = bar.bar;
-    const tempo = tempoOver(bar);
-    if (section && rows.section !== null) {
-      // Its first line, moved up clear of a section it would run into (issue #389).
-      const { y0: y } = sectionBox(bar, rows.section);
-      const lines = bar.sectionLines.length > 0 ? bar.sectionLines : [section.text];
-      const look = lookOf({ kind: 'section', bar: bar.index });
-      const { marker, text } = sectionBoxes(section);
-      parts.push(
-        <g key={`section-${bar.index}`} data-testid="section" fill={look.ink}>
-          {marker && (
-            <>
-              <rect x={x0 + 0.6} y={y - SECTION_BOX_HEIGHT / 2} width={marker.width - 1.2} height={SECTION_BOX_HEIGHT} fill="none" stroke={look.ink} strokeWidth={1.2} />
-              <text x={x0 + marker.width / 2} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700} textAnchor="middle">{section.marker}</text>
-            </>
-          )}
-          <text x={x0 + text.x} y={y + 5} fontSize={SECTION_SIZE} fontWeight={700}>
-            {lines.map((line, k) => (
-              <tspan key={k} x={x0 + text.x} dy={k === 0 ? 0 : SECTION_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
-            ))}
-          </text>
-        </g>,
-      );
-    }
-    if (tempo && rows.tempo !== null) {
-      const y = rows.tempo;
-      const look = lookOf({ kind: 'tempo', bar: bar.index });
-      const { noteX, numberX } = tempoParts(tempo);
-      const nx = x0 + noteX;
-      parts.push(
-        <g key={`tempo-${bar.index}`} data-testid="tempo" fill={look.ink} fontSize={TEMPO_SIZE} fontWeight={700}>
-          {tempo.label && <text x={x0} y={y + 4}>{tempo.label}</text>}
-          <TempoNote x={nx} y={y + 2} size={TEMPO_SIZE} ink={look.ink} />
-          <text x={x0 + numberX} y={y + 4}>{` = ${tempo.bpm}`}</text>
-        </g>,
-      );
-    }
-    // "Free time" over the bar that starts it, after the bar's tempo when it has one.
-    if (rows.tempo !== null && startsFreeTime(clip, bar.index)) {
-      const after = tempo ? tempoParts(tempo).width + FREE_TIME_GAP : 0;
-      parts.push(
-        <text key={`free-${bar.index}`} x={x0 + after} y={rows.tempo + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic" fill={plain.ink} data-testid="free-time">
-          Free time
-        </text>,
-      );
-    }
-  }
-  parts.push(...columnWords(system, rows, word, plain));
-  return <>{parts}</>;
-}
-
-/** The words on a line's columns: chord names and free text. */
-function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
-  const parts: ReactNode[] = [];
-  const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
-  // Under each chord name its diagram (issue #242), picked with it.
-  if (rows.diagrams !== null) {
-    for (const placed of system.bars.flatMap(bar => bar.columns)) {
-      if (!placed.diagram) continue;
-      const look = lookOf({ kind: 'chord', index: placed.index });
-      parts.push(
-        <ChordGrid
-          key={`grid-${placed.index}`} chord={placed.diagram} look={look}
-          x={placed.x - (gridSize(placed.diagram).width * OVER_NAME_SCALE) / 2} y={rows.diagrams} scale={OVER_NAME_SCALE}
-        />,
-      );
-    }
-  }
-  for (const bar of system.bars) {
-    if (rows.chords !== null) {
-      for (const placed of bar.columns) {
-        if (!placed.column.chord) continue;
-        const look = lookOf({ kind: 'chord', index: placed.index });
-        parts.push(
-          <text
-            key={`chord-${placed.index}`} x={placed.x} y={rows.chords + 4} fontSize={CHORD_SIZE} fontWeight={700} fill={look.ink}
-            textAnchor="middle" data-testid="chord-name"
-          >
-            {prettyChord(placed.column.chord)}
-          </text>,
-        );
-      }
-    }
-    {
-      for (const placed of bar.columns) {
-        const textRow = textRowOf(rows, placed);
-        if (!placed.column.text || textRow === null) continue;
-        const look = lookOf({ kind: 'text', index: placed.index });
-        parts.push(
-          <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
-            fill={look.ink} data-testid="beat-text"
-          >
-            {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}
-            {placed.textLines.map((line, k, lines) => (
-              <tspan key={k} x={placed.x - BEAT_TEXT_INSET} dy={k === 0 ? 0 : BEAT_TEXT_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
-            ))}
-          </text>,
-        );
-      }
-    }
-  }
-  return parts;
-}
-
-/** A time signature's two numbers, close together round the staff's middle. */
-function TimeNumbers({ time, x, rows, look, brackets = false }: { time: TimeSignature; x: number; rows: Rows; look: TabLook; brackets?: boolean }) {
-  const middle = (rows.staffTop + rows.staffBottom) / 2;
-  return (
-    <g fontSize={20} fontWeight={700} fill={look.ink} textAnchor="middle" data-testid="time-signature">
-      <text x={x} y={middle - 2}>{time.beats}</text>
-      <text x={x} y={middle + 16}>{time.value}</text>
-      {brackets && <TimeBrackets x={x} middle={middle + 2} height={44} look={look} />}
-    </g>
-  );
-}
-
-function BarDrawing({ bar, rows, look: plain, final, word }: { bar: PlacedBar; rows: Rows; look: TabLook; final: boolean; word: WordHit | null }) {
-  const { x0, x1 } = bar;
-  // A picked repeat sign, count or double bar is drawn in the selection's blue (issue #276).
-  const lookOf = (kind: 'repeatStart' | 'repeatEnd' | 'repeatCount' | 'doubleBar') => litLook(plain, sameWord(word, { kind, bar: bar.index }));
-  const dots = (x: number, look: TabLook) => [1.5, 3.5].map(k => (
-    <circle key={`${x}-${k}`} cx={x} cy={stringY(rows, k)} r={2.2} fill={look.ink} />
-  ));
-  const vertical = (x: number, w: number, look: TabLook, dashed = false) => (
-    <line x1={x} x2={x} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={w} strokeDasharray={dashed ? BAR_DASHES : undefined} />
-  );
-  const thickEnd = final || bar.bar.repeatEnd !== undefined;
-  const end = bar.bar.repeatEnd !== undefined ? lookOf('repeatEnd') : plain;
-  return (
-    <g>
-      {bar.bar.repeatStart && (() => {
-        const look = lookOf('repeatStart');
-        return (
-          <g data-testid="repeat-start" data-selected={look !== plain || undefined}>
-            {vertical(x0 + 2, 3, look)}
-            {vertical(x0 + 7, 1, look)}
-            {dots(x0 + 12, look)}
-          </g>
-        );
-      })()}
-      {thickEnd ? (
-        <g data-selected={end !== plain || undefined}>
-          {vertical(x1 - 6, 1, end)}
-          {vertical(x1 - 1.5, 3, end)}
-          {bar.bar.repeatEnd !== undefined && <g data-testid="repeat-end">{dots(x1 - 11, end)}</g>}
-        </g>
-      ) : bar.bar.doubleBar ? (
-        <g data-testid="double-bar" data-selected={lookOf('doubleBar') !== plain || undefined}>{vertical(x1 - 4, 1, lookOf('doubleBar'))}{vertical(x1, 1, lookOf('doubleBar'))}</g>
-      ) : bar.restRun && !bar.restRun.last ? null : vertical(x1, 1, plain, bar.bar.freeTime)}
-      {bar.bar.repeatEnd !== undefined && bar.bar.repeatEnd !== 2 && (
-        <text
-          x={x1} y={rows.endings! + 6} fontSize={REPEAT_COUNT_SIZE} fontWeight={700} fill={lookOf('repeatCount').ink} textAnchor="end"
-          data-testid="repeat-count" data-selected={lookOf('repeatCount') !== plain || undefined}
-        >
-          {repeatCountText(bar.bar.repeatEnd)}
-        </text>
-      )}
-    </g>
-  );
-}
-
-/**
- * The staff and the tab of one guitar joined as one part (Jeremy, 2026-10-27): a square bracket in
- * front, its ends curling over the lines, and the opening line drawn through both.
- */
-function StaffJoin({ x, top, bottom, look }: { x: number; top: number; bottom: number; look: TabLook }) {
-  const bar = x - BRACKET_GAP - BRACKET_THICKNESS;
-  return (
-    <g data-testid="staff-join">
-      <rect x={bar} y={top} width={BRACKET_THICKNESS} height={bottom - top} fill={look.ink} />
-      <path d={GLYPHS.bracketTop.d} transform={`translate(${bar} ${top}) scale(${BRACKET_SCALE})`} fill={look.ink} />
-      <path d={GLYPHS.bracketBottom.d} transform={`translate(${bar} ${bottom}) scale(${BRACKET_SCALE})`} fill={look.ink} />
-      <line x1={x} x2={x} y1={top} y2={bottom} stroke={look.ink} strokeWidth={1.5} />
-    </g>
-  );
-}
-
-/** The bracket's bar, a little thinner than Bravura's half a staff space (Jeremy), and its gap before the lines. */
-const BRACKET_THICKNESS = 3.5;
-const BRACKET_GAP = 4;
-/** Bravura draws the ends for a bar half a space thick; they are scaled to meet this one. */
-const BRACKET_SCALE = BRACKET_THICKNESS * 2;
-
-/**
- * In normal mode, the note the staff's cursor is on, when one is drawn there: lit in place rather than
- * covered by a cursor head, whose sign would sit apart from the note's own (issue #276).
- */
 /** The heads drawn in the cursor's column on the staff; none on a rest or off the system. */
 function staffColumnHeads(system: System, cursor: { bar: number; column: number }): readonly { step: number }[] {
   const bar = system.bars.find(b => b.index === cursor.bar);
   return bar?.columns[cursor.column]?.heads ?? [];
 }
 
+/**
+ * In normal mode, the note the staff's cursor is on, when one is drawn there: lit in place rather than
+ * covered by a cursor head, whose sign would sit apart from the note's own (issue #276).
+ */
 function staffNoteAt(system: System, highlight: Highlight): NoteAt | null {
   const { cursor, input, columnOnly } = highlight;
   if (!cursor || input || columnOnly) return null;
