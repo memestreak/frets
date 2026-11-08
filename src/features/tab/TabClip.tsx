@@ -547,6 +547,18 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             />
           )}
           {/*
+            In note input, with no note under the caret's box, a faint 0 in it: the note a press or a digit would put
+            there, as MuseScore's tab shadow note (Jeremy, 2026-11-08, issue #396).
+          */}
+          {highlight.input && !highlight.range && !highlight.columnOnly && highlight.staffPitch == null && rows.tab
+            && !clip.bars[highlight.cursor.bar]?.columns[highlight.cursor.column]?.notes[highlight.cursor.string] && (
+            <g pointerEvents="none" data-testid="tab-ghost">
+              {/* The string line breaks round it, as round a note's number. */}
+              <rect x={spot.x - 6} y={stringY(rows, highlight.cursor.string) - 7} width={12} height={14} fill={look.paper} />
+              <text x={spot.x} y={stringY(rows, highlight.cursor.string) + 4.5} fontSize={13} fontWeight={600} fill={look.ink} fillOpacity={0.45} textAnchor="middle">0</text>
+            </g>
+          )}
+          {/*
             In note input on a column with no string picked, the caret's upright line, as on the staff (Dorico's),
             so the caret never goes missing, wherever the mouse is (issue #396).
           */}

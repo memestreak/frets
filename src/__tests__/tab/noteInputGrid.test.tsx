@@ -201,6 +201,24 @@ describe('note input’s grid (issue #293)', () => {
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
+  it('shows a faint 0 in the caret’s box on a string with no note, as MuseScore’s tab does (issue #396)', async () => {
+    await open();
+    keys('n');
+    // On the 5: nothing ghosted over a note.
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+    keys('ArrowDown');
+    expect(screen.getByTestId('tab-ghost')).toHaveTextContent('0');
+    // A typed fret takes its place.
+    keys('7');
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+    // Back on an empty string it shows again, and out of note input there is none.
+    keys('ArrowDown');
+    expect(screen.getByTestId('tab-ghost')).toBeInTheDocument();
+    keys('Escape');
+    expect(screen.queryByTestId('tab-ghost')).toBeNull();
+  });
+
   it('out of note input, → moves a column at a time, as before', async () => {
     await open();
     keys('ArrowRight', 'ArrowRight');

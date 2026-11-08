@@ -66,7 +66,8 @@ input, lets the sign go; a second sign replaces the first) (Jeremy, 2026-11-07, 
 caret on past it by its length, as Dorico's does; a fret typed on the tab leaves the caret where it is, for a
 second digit or a chord. Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
 the staff adds a note or takes away the one there; → past a short bar
-adds a rest to type on. The tab's cursor is outlined, as before. The staff's is Dorico's caret, an upright
+adds a rest to type on. The tab's cursor is outlined, as before; on a string with no note it holds a
+faint 0, the tab's ghost note, as MuseScore's tab shadow note does (Jeremy, 2026-11-08, issue #396). The staff's is Dorico's caret, an upright
 line across the staff just left of where the next note goes, with that next note drawn there as a faint
 ghost note (the Input length, on the pitch Enter would put in, with its sign; issue #382). It was a faint
 outlined head, which read as a whole note already entered. One ghost note shows at a time (Jeremy,
