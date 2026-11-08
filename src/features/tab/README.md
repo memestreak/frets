@@ -212,7 +212,7 @@ and in its spec.
   note added or removed (`addGrace`, `enterGrace`, `removeGrace`) —
   `2026-11-04-tab-tuplets-grace-rest-design.md`.
 - `ties.ts` — a Tie chain as one note: where it starts and ends
-  (`chainStart`, `chainPlaces`), the notes an edit on a selection takes
+  (`chainStart`, `chainPlaces`), a move past it as one stop (`overTiedOn`), the notes an edit on a selection takes
   (`takenNotes`), its length (`lengthAnchor`, `chainDuration`), what is
   drawn picked with it (`litTiedNotes`) and T, which ties forward
   (`tieForward`, `tieOnInput`) —
@@ -252,7 +252,13 @@ and in its spec.
 - `tools.ts` — the palette's table (name, key, edit, whether lit), shared
   by the palette, the keys and the `?` overlay.
 - `editorKeys.ts` — the keys on the tab, on the staff cursor and on the
-  playback line.
+  playback line: `editorKeyDown` tries the keys every mode takes first,
+  then the mode's own, then the shared ones; normal mode's keys
+  (`normalKeyDown`) are here too.
+- `noteInputKeys.ts` — note input mode's own keys: frets typed on the tab,
+  letters and Enter on the staff caret, the next note's length, the caret
+  between staff and tab, ← → through a rest's grid lines, Shift+Space and
+  Insert.
 
 ## Drawing
 
