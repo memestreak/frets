@@ -100,10 +100,10 @@ and in its spec.
   `2026-10-30-tab-tracks-design.md`, `2026-11-03-tab-voices-design.md`.
 - `clipState.ts` — the clip with undo and redo, which arrangement it is,
   and the clip as last saved (`base`), so undoing back to it leaves nothing
-  unsaved; `sameMusic` lets an FX change play on without a stop.
+  unsaved; `amend` joins a change to the last undo step (a Chat reply's later changes); `sameMusic` lets an FX change play on without a stop.
 - `alphatexRead.ts` — reads alphaTex with alphaTab's parser and maps its
   score onto a clip — `2026-10-25-tab-alphatex-design.md`.
-- `alphatex.ts` — writes a clip as plain alphaTex, the canonical form.
+- `alphatex.ts` — writes a clip as plain alphaTex, the canonical form; `alphaTexTracks` gives it a track and a bar at a time, for the Chat panel.
 - `alphatexText.ts` — pure helpers for the AlphaTex view's editor: where
   the comments are, and which line a spot in the text is on —
   `2026-10-27-tab-alphatex-editing-design.md`.
@@ -309,7 +309,8 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 ## Palette, panels and fields
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
-- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text) and Chords (`ChordPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and, with `?chat`, Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout`; it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424), shown with `?chat`: `ChatPanel.tsx` the panel; `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the agent guide); `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`) and `?chat`.
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, eight to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
@@ -441,6 +442,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-08-tab-chat-design.md`: the Chat panel, behind
+  `?chat`: ask a model through OpenRouter about the arrangement or for a
+  change; each reply's changes are one Undo step (issue #424)
 - `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`: Delete and cut
   leave rests that keep the column's text, chord name and other marks of
   its time; a note written over them takes them; only Ctrl/⌘+Delete
