@@ -455,8 +455,6 @@
   position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-muted);
 }
 .tab-rows { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
-.tab-folder-items { padding-left: 22px; }
-.tab-examples-heading { padding: 4px 12px 0; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
 .tab-row { display: flex; align-items: center; gap: 2px; min-height: 36px; }
 .tab-row-main {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 12px; text-align: left;
@@ -579,17 +577,12 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-panel-fold:focus-visible { outline: none; }
 .chord-panel-chevron { flex: none; }
 .chord-panel-chevron[data-open] { transform: rotate(90deg); }
-/* A chord in the list, then its Edit and, while no column uses it, its trash can: every row keeps their room, so the names line up. */
-.chord-panel-item { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 2px; }
 .chord-panel-icon {
   display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0;
   color: var(--ink-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
 }
 .chord-panel-icon:hover { color: var(--ink); background: var(--surface-sunken); }
-.chord-panel-delete:hover { color: var(--danger); }
 .chord-panel-icon:focus-visible { outline: none; }
-/* + under the list, at its left, as the list's last row. */
-.chord-panel-add { justify-self: start; margin-left: 2px; }
 /* What the cursor column's notes are, as names to take; and the caption under its fingering. */
 .chord-editor-names { display: grid; gap: 4px; }
 .chord-editor-caption { display: block; font: 400 11px/14px var(--font-sans); color: var(--ink-muted); text-align: center; }
@@ -601,26 +594,19 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 }
 .chord-panel-step:hover { background: var(--surface-sunken); }
 .chord-panel-note { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
-.chord-panel-shape, .chord-panel-entry, .chord-panel-chip {
+.chord-panel-shape, .chord-panel-chip {
   border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
 }
 .chord-panel-shape { padding: 2px; }
 .chord-panel-shape svg, .chord-panel-thumb svg { display: block; width: 100%; height: auto; }
-.chord-panel-shape:hover, .chord-panel-entry:hover, .chord-panel-chip:hover { background: var(--surface-sunken); }
-.chord-panel-shape[aria-pressed='true'], .chord-panel-entry[aria-pressed='true'], .chord-panel-chip[aria-pressed='true'] {
+.chord-panel-shape:hover, .chord-panel-chip:hover { background: var(--surface-sunken); }
+.chord-panel-shape[aria-pressed='true'], .chord-panel-chip[aria-pressed='true'] {
   background: var(--select-soft); border-color: var(--select);
 }
-.chord-panel-shape:focus-visible, .chord-panel-entry:focus-visible, .chord-panel-chip:focus-visible, .chord-panel-step:focus-visible { outline: none; }
+.chord-panel-shape:focus-visible, .chord-panel-chip:focus-visible, .chord-panel-step:focus-visible { outline: none; }
 .chord-panel-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chord-panel-chip { padding: 2px 8px; border-color: var(--line-strong); font: 500 14px/20px var(--font-sans); }
-.chord-panel-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.chord-panel-entry {
-  display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; width: 100%;
-  padding: 2px 8px 2px 2px; text-align: left;
-}
 .chord-panel-thumb { display: block; width: 44px; min-height: 30px; }
-.chord-panel-name { font: 600 14px/20px var(--font-sans); }
-.chord-panel-uses, .chord-panel-unused { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); }
 .chord-panel-insert { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* The Hear toggle in the panel's head, by its title: a small speaker, lit while on. */
 .chord-panel-hear {
