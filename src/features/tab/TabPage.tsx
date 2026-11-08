@@ -14,7 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, title
 import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceSelections } from './voices';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -78,6 +78,11 @@ const MOD = isMac() ? '⌘' : 'Ctrl+';
 const COLUMN_REACH = 16;
 /** The reader's warning of two Voices on one string (`stringClashes`): a paste that has one is refused with its own line (step 9, Q10). */
 const CLASH_WARNING = /has two voices on string \d+\.$/;
+/**
+ * The reader's warning of a bar that doesn't fill its time (`unevenMessage`): a copied run of notes always
+ * has one, but a paste writes it through the meter, so the bars it lands in stay full and the line would be wrong.
+ */
+const UNEVEN_WARNING = /doesn't add up to/;
 
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
@@ -371,10 +376,27 @@ export default function TabPage() {
   /** Note input mode on or off; going in, the keys come to the tab. */
   /** The rest last picked on the staff, so going into note input mode from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
+  /**
+   * The part as note input mode edits it: a bar that holds nothing (a new arrangement's) as its Whole-bar
+   * rest, put in the clip as the same music, so the caret, the Grid and its stops work there as in any
+   * rest (issues #421, #422).
+   */
+  const withRests = (): Part => {
+    const part = withRestsInEmptyBars(clip);
+    if (!part) return clip;
+    dispatchClip({ type: 'fill', clip: withPart(whole, part, track) });
+    return part;
+  };
+  // A bar emptied in note input mode (every bar deleted, an undo back to a new arrangement) is its rest again.
+  useEffect(() => {
+    const part = noteInputMode ? withRestsInEmptyBars(clip) : null;
+    if (part) dispatchClip({ type: 'fill', clip: withPart(whole, part, track) });
+  }, [noteInputMode, clip, whole, track, dispatchClip]);
   const enterNoteInput = (on: boolean) => {
+    const part = on ? withRests() : clip;
     // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
     // MuseScore's note input mode begin there (Jeremy, 2026-11-06).
-    const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
+    const at = on && selection ? { ...cursor, ...placeOf(part, selectedRange(selection)[0]) } : cursor;
     setNoteInputMode(on);
     setCursorAt(at, 0);
     accidentalRef.current = null;
@@ -384,19 +406,19 @@ export default function TabPage() {
         setSelection(null);
       }
       setPicked(null);
-      setInputLength(startLength(clip, at));
+      setInputLength(startLength(part, at));
       // On a note pressed in normal mode, the caret goes onto it, its string (or its pitch on the staff) picked,
       // so digits retype it, as Dorico's caret starts on the note selected (Jeremy, 2026-11-07, issue #396).
       // Anywhere else on the tab the caret picks the string it was last on, so a fret can be typed at once, as
       // Dorico's tab caret is always on a string (Jeremy, 2026-11-08, issue #396; no string was picked before).
       // With only the staff drawn it takes the column alone, and no staff line or space is picked for you.
-      const onNote = !selection && !columnOnly && noteAt(clip, cursor) !== null;
+      const onNote = !selection && !columnOnly && noteAt(part, cursor) !== null;
       setColumnOnly(!onNote && parts === 'staff');
       if (!onNote) setStaffPitch(null);
       // On a rest picked on the staff, the caret starts on the staff, on its middle line, as Dorico's starts on
       // the staff picked (Jeremy, 2026-11-07, issue #396).
       const rest = restOnStaff.current;
-      if (!onNote && parts !== 'tab' && rest && rest.bar === at.bar && rest.column === at.column) toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
+      if (!onNote && parts !== 'tab' && rest && rest.bar === at.bar && rest.column === at.column) toPitch(part, at, pitchAtStep(part, at.bar, 4), null, part !== clip);
       editorRef.current?.focus();
     }
   };
@@ -409,9 +431,15 @@ export default function TabPage() {
   /** A sign typed on the staff for the next letter in note input mode (Jeremy, 2026-11-07, issue #396). */
   const accidentalRef = useRef<TypedAccidental | null>(null);
 
+  /** Note input mode off, if it is on. */
+  const leaveNoteInput = () => {
+    if (noteInputMode) enterNoteInput(false);
+  };
+
   const enterNoteInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
+    const part = withRests();
     const on = hit ?? staff ?? rest;
-    if (!on || !clip.bars[on.bar]?.columns[on.column]) {
+    if (!on || !part.bars[on.bar]?.columns[on.column]) {
       setSelection(null);
       enterNoteInput(true);
       return;
@@ -421,13 +449,13 @@ export default function TabPage() {
     setSelection(null);
     setPicked(null);
     setCursorAt(at, 0);
-    setInputLength(startLength(clip, at));
+    setInputLength(startLength(part, at));
     if (staff) {
-      const note = staff.string === null ? null : noteAt(clip, at);
-      toPitch(clip, at, note && note.fret !== null ? writtenStrings(clip.tuning)[at.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, at.bar, staff.step));
+      const note = staff.string === null ? null : noteAt(part, at);
+      toPitch(part, at, note && note.fret !== null ? writtenStrings(part.tuning)[at.string] + (part.capo ?? 0) + note.fret : pitchAtStep(part, at.bar, staff.step), null, part !== clip);
     } else if (rest && parts !== 'tab') {
       // A rest on the staff: the caret on the staff's middle line, as N on a rest picked there (Jeremy, 2026-11-07).
-      toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
+      toPitch(part, at, pitchAtStep(part, at.bar, 4), null, part !== clip);
     } else {
       setCursor(at);
       setColumnOnly(!hit && parts === 'staff');
@@ -615,7 +643,7 @@ export default function TabPage() {
     }
     // A paste that would sound one string in two Voices is refused, and says so itself (step 9, Q10).
     if (!putAtCursor(result.clip, insert)) return;
-    const lines = result.warnings.filter(line => !CLASH_WARNING.test(line));
+    const lines = result.warnings.filter(line => !CLASH_WARNING.test(line) && !UNEVEN_WARNING.test(line));
     if (lines.length > 0) setNotice({ tone: 'info', lines });
   };
 
@@ -704,8 +732,12 @@ export default function TabPage() {
     onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
     onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
     onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
-    onMiss: () => { setSelection(null); dropLine(); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
-    onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
+    // A press that takes the caret away (blank space, the playback line's place above or below the staff, a
+    // mark or a word picked) ends note input mode too, so the pencil is never lit without a caret.
+    onMiss: () => { leaveNoteInput(); setSelection(null); dropLine(); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
+    onPickText: (...args: Parameters<typeof picking.onPickText>) => { leaveNoteInput(); picking.onPickText(...args); },
+    onPickMark: (...args: Parameters<typeof picking.onPickMark>) => { leaveNoteInput(); picking.onPickMark(...args); },
+    onPickColumn: (...args: Parameters<typeof pickColumn>) => { leaveNoteInput(); pickColumn(...args); }, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
     onPickRhythm: noteInputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
       restOnStaff.current = parts !== 'tab' && !extend ? { bar: rest.bar, column: rest.column } : null;

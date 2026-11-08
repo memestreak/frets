@@ -21,6 +21,16 @@ input.
   tab, on the rail or a control, with a mark, word or the score head's title picked (the pick goes
   too). An open panel, menu or dialog takes Esc first and closes, as in Dorico and MuseScore; the next
   Esc leaves note input mode.
+- **Whatever takes the caret away ends note input mode too** (Jeremy, 2026-11-08, issues #421, #422), so
+  the pencil is never lit without a caret: a press on blank space, above or below the staff (the playback
+  line), or on a mark or a word, and the focus going off the clip (Tab to another control, a press away
+  from a chord name's field, a control used off the clip). The clip's own fields and panels, the palette,
+  the Rail, dialogs and menus keep it, as does the window losing the focus.
+- **A new arrangement's bar**, which holds nothing, is its Whole-bar rest once note input mode starts
+  (P1: an empty bar is one Whole-bar rest), so the caret goes on the staff where a double-click lands,
+  and the Grid and its stops are there, as in any rest (issues #421, #422). It is the same music (it
+  writes as the same alphaTex), so it is no undo step and leaves nothing unsaved, and a paste into it
+  still takes the pasted clip's name, time and tuning.
 - Harmonic moves from N to **Shift+N**, still stepping natural, pinch, artificial, off.
 
 ## Normal mode

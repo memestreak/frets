@@ -7,7 +7,7 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barSpan, beatGroupsAt, defaultGroupCounts, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barSpan, beatGroupsAt, defaultGroupCounts, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, hasNotes, isUneven, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
 import { emptyBarRests } from './sounding';
 import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
@@ -514,8 +514,27 @@ export function copyText(clip: Part, range: [number, number]): string {
   return writePart(sliceClip(clip, range));
 }
 
+/**
+ * Whether the part holds nothing yet: its bars empty, or (once note input mode has written it out,
+ * `withRestsInEmptyBars`) one bar of Voice 1 holding only its rests, with no other Voice.
+ */
 export function isEmpty(clip: Part): boolean {
-  return clip.bars.every(b => b.columns.length === 0);
+  if (clip.bars.every(b => b.columns.length === 0)) return true;
+  const [bar] = clip.bars;
+  return clip.bars.length === 1 && (clip.voice ?? 0) === 0 && !bar.otherVoices?.length && !hasNotes(bar.columns) && bar.columns.every(isPlainRest);
+}
+
+/**
+ * The part with each bar that holds nothing (a new arrangement's, or one left by deleting every bar) as its
+ * Whole-bar rest, as the Tab editing principles have it (P1, "an empty bar is one Whole-bar rest"); null when
+ * no bar is empty. Note input mode starts on it, so its caret, Grid and stops work there as in any rest
+ * (issues #421, #422). It writes as the same alphaTex, so it is the same music.
+ */
+export function withRestsInEmptyBars(clip: Part): Part | null {
+  if (!clip.bars.some(b => b.columns.length === 0)) return null;
+  const bars = clip.bars.map((bar, b) =>
+    bar.columns.length > 0 ? bar : { ...bar, columns: emptyBarRests(timeAt(clip, b), beatGroupsAt(clip, b)).map(emptyColumn) });
+  return { ...clip, bars };
 }
 
 /** The pasted part's own Voice as one run of Columns, bar lines dropped, and how long it is. */
@@ -537,8 +556,13 @@ export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: P
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
   if (isEmpty(clip)) {
+    const whole = normalize({ ...pasted, bars: incoming });
     const last = incoming.length - 1;
-    return { clip: normalize({ ...pasted, bars: incoming }), cursor: { ...cursor, bar: last, column: incoming[last].columns.length - 1 } };
+    if (whole.bars.every((_, b) => !isUneven(whole, b))) return { clip: whole, cursor: { ...cursor, bar: last, column: incoming[last].columns.length - 1 } };
+    // A copy that starts or ends inside a bar is written from the start through the meter instead, as paste
+    // writes it anywhere else, so every bar is full (P1); the pasted clip's name, time and tuning still come.
+    const fresh = withRestsInEmptyBars({ ...pasted, bars: [{ columns: [] }] })!;
+    return writePasted(fresh, { ...cursor, bar: 0, column: 0 }, pasted);
   }
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
   const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
@@ -559,6 +583,12 @@ export function pasteOver(clip: Part, cursor: Cursor, pasted: Part): { clip: Par
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
   if (isEmpty(clip)) return insertPaste(clip, cursor, pasted);
+  return writePasted(clip, cursor, pasted);
+}
+
+/** `pasted`'s Columns written over the clip's time from the cursor's column on, as `pasteOver` writes them. */
+function writePasted(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
+  const incoming = pasted.bars.filter(b => b.columns.length > 0);
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
   const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
   const written = writeOver(clip, at, columns);

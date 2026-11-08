@@ -32,6 +32,11 @@ export type ClipAction =
   | { type: 'fx'; track: number; fx: FxSettings }
   /** A clip shown while a drag goes on, not an undo step of its own. */
   | { type: 'preview'; clip: Clip }
+  /**
+   * The same music written out in full (empty bars as their rests, issues #421, #422): no undo step, and
+   * nothing unsaved when there was nothing unsaved before.
+   */
+  | { type: 'fill'; clip: Clip }
   | { type: 'undo' }
   | { type: 'redo' }
   /** Another arrangement (a saved one, a new one, a built-in, an import or a link) in place of the clip, with a fresh history. */
@@ -80,6 +85,8 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
     }
     case 'preview':
       return { ...state, clip: action.clip };
+    case 'fill':
+      return { ...state, clip: action.clip, base: state.clip === state.base ? action.clip : state.base };
     case 'undo': {
       const clip = state.past[state.past.length - 1];
       if (!clip) return state;

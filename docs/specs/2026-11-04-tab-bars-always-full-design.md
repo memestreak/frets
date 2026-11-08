@@ -80,6 +80,11 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
   clipboard's Voice 1 in at the cursor and pushes what follows by its
   length. The pasted bar lines are not kept, as with paste. Into an empty
   clip the pasted clip still comes whole, with its name, time and tuning.
+  A copy that starts or ends inside a bar (most copies) is written from
+  the clip's start through the meter instead, so its bar is filled with
+  rests and never short; the pasted clip's name, time and tuning still
+  come. A paste never says a copied bar "doesn't add up": the bars it
+  lands in stay full (issues #421, #422).
 - **Ctrl/⌘+Delete** takes the selection's time, or the cursor's Column's,
   and pulls what follows back. Bars it covers whole are removed, as now
   and as MuseScore's "Remove selected range" does; the time it takes from a
