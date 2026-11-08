@@ -7,15 +7,12 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import { appHtml, type AppsHtml } from '@/mcp/types';
 import { writePart } from '../alphatex';
-import { shareLink } from '../shareLink';
+import { SITE, shareLink } from '../shareLink';
 import { VIEW_WORDS, describeLine, describeLoop, lineFromInput, loopOf } from './lineJson';
 import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, toolInput, type LineInput, type LoopInput, type View } from './tool';
 
 /** The app's name: `mcp/apps/tab/`, built to `mcp/dist/tab.html`. */
 export const APP_NAME = 'tab';
-
-/** Where Open in Frets and the result's link go. */
-export const SITE = 'https://frets.eminor.net';
 
 /** What the tool hands the app: the checked line, how to draw it, and its loop points if it has any. */
 export interface TabState {

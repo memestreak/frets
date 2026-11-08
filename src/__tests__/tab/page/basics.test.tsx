@@ -286,6 +286,8 @@ describe('TabPage', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy link' })); });
     await waitFor(() => expect(writeText).toHaveBeenCalled(), SLOW);
     const link = new URL(writeText.mock.calls[0][0]);
+    // Production's, whatever origin the page is on (a preview, localhost).
+    expect(link.origin).toBe('https://frets.eminor.net');
     expect(link.pathname).toBe('/tab');
     expect(link.hash.startsWith('#tabz=')).toBe(true);
     expect(notice()).toHaveTextContent('Copied a link to this arrangement.');
