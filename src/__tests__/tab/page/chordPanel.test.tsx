@@ -117,6 +117,40 @@ describe('the Chords panel', () => {
     expect(list().getByRole('group', { name: 'Chords' }).querySelectorAll('.chord-panel-tile-empty')).toHaveLength(6);
   });
 
+  it('puts as many tiles on a row as the panel holds, two rows a page: ten fit one page at 532px, six a page at 200px (issue #431)', async () => {
+    const many = [
+      '\\title "Many"', '\\ts (4 4)',
+      ...['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Am', 'Bm', 'Em'].map(n => `\\chord ("${n}")`),
+      'r.1 |',
+    ].join('\n');
+    // jsdom lays nothing out: give the Chords panel's contents a width.
+    let width = 532;
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get(this: HTMLElement) { return this.classList.contains('chord-panel') ? width : 0; },
+    });
+    try {
+      renderAt(`#tab=${encodeURIComponent(many)}`);
+      await screen.findByRole('heading', { name: 'Many' }, SLOW);
+      fireEvent.click(railButton('Chords'));
+      const grid = () => list().getByRole('group', { name: 'Chords' });
+      // (532 + 4) / 60: eight to a row.
+      expect(grid().style.gridTemplateColumns).toBe('repeat(8, minmax(0, 1fr))');
+      expect(within(grid()).getAllByRole('button')).toHaveLength(10);
+      expect(inPanel().queryByRole('button', { name: 'More chords' })).toBeNull();
+      // Narrower, on a fresh open: three to a row, six a page.
+      width = 200;
+      fireEvent.click(railButton('Chords'));
+      fireEvent.click(railButton('Chords'));
+      expect(grid().style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
+      expect(within(grid()).getAllByRole('button')).toHaveLength(6);
+      expect(inPanel().getByText('1 / 2')).toBeInTheDocument();
+    } finally {
+      // Back to jsdom's own, on Element.
+      delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+    }
+  });
+
   it('a right-click on a tile picks it and opens its menu: Insert, Edit, Rename, Copy to new chord, and Delete only when unused', async () => {
     await open();
     fireEvent.click(railButton('Chords'));

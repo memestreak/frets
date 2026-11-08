@@ -4,10 +4,12 @@
  * The Tab page's tools in a rail of panels on the left, as Dorico has them
  * (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301). Each rail button opens its panel beside the
  * clip, and pressing it again closes it. The rail and panel grow into the page's left margin, so the clip
- * keeps its right edge. Its panel Chords is the track's chords (`ChordPanel`, issue #251), and Chat, shown with `?chat`, asks a model about the arrangement (`ChatPanel`, issue #424). Which panel is open is kept across visits (`frets.tab.layout`), but it is
- * not a preference, so Settings doesn't list it.
+ * keeps its right edge. Its panel Chords is the track's chords (`ChordPanel`, issue #251), and Chat, shown with `?chat`, asks a model about the arrangement (`ChatPanel`, issue #424). Dragging the line
+ * between the panel and the clip sets every panel's width (`docs/specs/2026-11-08-tab-rail-width-design.md`,
+ * issue #431). Which panel is open, and the panels' width, are kept across visits (`frets.tab.layout`), but
+ * they are not preferences, so Settings doesn't list them.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ICONS } from './TabPalette';
 
@@ -27,19 +29,46 @@ export const LAYOUT_KEY = 'frets.tab.layout';
 /** A first visit opens Notes. */
 const FIRST_PANEL: PanelId = 'notes';
 
-/** The panel `frets.tab.layout` keeps open: one of the panels, or null when all are closed. */
-export function parseLayout(text: string | null): PanelId | null {
+/** Every panel's width in px: 17rem until the divider is dragged, and never narrower or wider than these. */
+export const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
+/** The clip keeps at least this much width beside a panel being widened. */
+const CLIP_MIN = 400;
+
+/** What `frets.tab.layout` keeps: the open panel (null when all are closed) and every panel's width. */
+export interface RailLayout {
+  panel: PanelId | null;
+  width: number;
+}
+
+const isPanel = (panel: unknown): panel is PanelId =>
+  panel === 'chords' || panel === 'chat' || PANELS.some(p => p.id === panel);
+
+/** A width kept within the panels' limits, in whole px. */
+export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) =>
+  Math.round(Math.min(Math.max(px, PANEL_WIDTH.min), Math.max(PANEL_WIDTH.min, max)));
+
+/** Reads `frets.tab.layout`; a field missing or unreadable is as on a first visit. */
+export function parseLayout(text: string | null): RailLayout {
+  const layout: RailLayout = { panel: FIRST_PANEL, width: PANEL_WIDTH.start };
   try {
     const saved: unknown = JSON.parse(text ?? 'null');
-    if (saved && typeof saved === 'object' && 'panel' in saved) {
-      const { panel } = saved;
-      if (panel === null) return null;
-      if (panel === 'chords' || panel === 'chat' || PANELS.some(p => p.id === panel)) return panel as PanelId;
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+      if ('panel' in saved && (saved.panel === null || isPanel(saved.panel))) layout.panel = saved.panel;
+      if ('width' in saved && typeof saved.width === 'number' && Number.isFinite(saved.width)) layout.width = clampWidth(saved.width);
     }
   } catch {
     // Unreadable: as on a first visit.
   }
-  return FIRST_PANEL;
+  return layout;
+}
+
+/** Writes one field of `frets.tab.layout`, keeping the other. */
+function keepLayout(change: Partial<RailLayout>) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ ...parseLayout(localStorage.getItem(LAYOUT_KEY)), ...change }));
+  } catch {
+    // Not kept: it still applies now.
+  }
 }
 
 /** The Chords panel's rail icon: a chord diagram's grid with one dot. */
@@ -67,16 +96,82 @@ const CHAT_PANEL = { id: 'chat', name: 'Chat', icon: CHAT_ICON } as const;
 export function useOpenPanel(): [PanelId | null, (id: PanelId | null) => void] {
   const [open, setOpen] = useState<PanelId | null>(FIRST_PANEL);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the kept panel exists only in the browser.
-  useEffect(() => setOpen(parseLayout(localStorage.getItem(LAYOUT_KEY))), []);
+  useEffect(() => setOpen(parseLayout(localStorage.getItem(LAYOUT_KEY)).panel), []);
   const choose = (id: PanelId | null) => {
     setOpen(id);
-    try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ panel: id }));
-    } catch {
-      // Not kept: it still opens now.
-    }
+    keepLayout({ panel: id });
   };
   return [open, choose];
+}
+
+/** Every panel's width, kept across visits; read after the first render, as the open panel is. */
+function usePanelWidth(): [number, (px: number, keep?: boolean) => void] {
+  const [width, setWidth] = useState<number>(PANEL_WIDTH.start);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the kept width exists only in the browser.
+  useEffect(() => setWidth(parseLayout(localStorage.getItem(LAYOUT_KEY)).width), []);
+  const set = (px: number, keep = true) => {
+    setWidth(px);
+    if (keep) keepLayout({ width: px });
+  };
+  return [width, set];
+}
+
+/**
+ * The line between the open panel and the clip, as a handle: drag it, or tab to it and press ← →
+ * (Shift for bigger steps), to set every panel's width. A press doesn't take the focus from the tab.
+ */
+function PanelDivider({ width, onWidth }: { width: number; onWidth: (px: number, keep?: boolean) => void }) {
+  const drag = useRef<{ x: number; width: number; max: number; now: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  /** The widest the panel may be now: the clip keeps `CLIP_MIN` of the layout's width. */
+  const widest = (el: HTMLElement) => {
+    const layout = el.closest('.tab-rail-layout');
+    // Not laid out (as in tests): no limit but the panels' own.
+    if (!layout?.clientWidth) return PANEL_WIDTH.max;
+    const rail = layout.querySelector('.tab-rail');
+    return Math.min(PANEL_WIDTH.max, layout.clientWidth - (rail?.getBoundingClientRect().width ?? 0) - CLIP_MIN);
+  };
+  const down = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    drag.current = { x: e.clientX, width, max: widest(e.currentTarget), now: width };
+    setDragging(true);
+  };
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    d.now = clampWidth(d.width + e.clientX - d.x, d.max);
+    onWidth(d.now, false);
+  };
+  const up = () => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    setDragging(false);
+    onWidth(d.now);
+  };
+  const key = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 64 : 16;
+    const by = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    if (!by) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onWidth(clampWidth(width + by, widest(e.currentTarget)));
+  };
+  // A focusable separator is ARIA's window splitter, an interactive widget, which jsx-a11y doesn't know.
+  /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
+  return (
+    <div
+      className="tab-rail-divider" role="separator" aria-orientation="vertical" aria-label="Panel width"
+      aria-valuenow={width} aria-valuemin={PANEL_WIDTH.min} aria-valuemax={PANEL_WIDTH.max} tabIndex={0}
+      data-dragging={dragging ? '' : undefined}
+      // Keep the focus, and so the cursor, on the tab; no text is selected while dragging.
+      onMouseDown={e => e.preventDefault()}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up}
+      onKeyDown={key}
+    />
+  );
+  /* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
 }
 
 interface TabRailProps {
@@ -98,8 +193,12 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
   const rail = chat ? [...RAIL, CHAT_PANEL] : RAIL;
   const panel = rail.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
+  const [width, setWidth] = usePanelWidth();
   return (
-    <div className="tab-rail-layout" data-open={panel ? '' : undefined}>
+    <div
+      className="tab-rail-layout" data-open={panel ? '' : undefined}
+      style={width === PANEL_WIDTH.start ? undefined : { '--rail-panel-width': `${width}px` } as CSSProperties}
+    >
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
           {rail.map(p => (
@@ -136,6 +235,7 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
               </button>
             </div>
             {tools ? palette(tools.groups, 'tab-rail-tools', tools.input) : panel.id === 'chat' ? chat : chords}
+            <PanelDivider width={width} onWidth={setWidth} />
           </aside>
         </HoverTips>
       )}

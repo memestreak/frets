@@ -39,8 +39,9 @@ question at a time; a higher-fidelity mock then offered two looks and he picked 
   side of the arrangement rather than the far left of the window"): rail, panel and clip sit together,
   with any spare margin to the rail's left. On a wide screen (about 1,900px) opening a panel moves nothing. On a narrower one the margin is too
   small for the panel, so the clip gives up width on its left.
-- Every panel is one width (17rem), so switching panels never moves the clip; only opening or closing
-  one does.
+- Every panel is one width (17rem until the line between it and the clip is dragged,
+  `2026-11-08-tab-rail-width-design.md`), so switching panels never moves the clip; only opening or
+  closing one does.
 - Under 900px the rail is a **row** of buttons over the clip, and the open panel sits under it,
   pushing the clip down (Q6).
 

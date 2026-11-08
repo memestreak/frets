@@ -2,14 +2,15 @@
 
 /**
  * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues
- * #251 and #400): the track's Chord set as diagram tiles, eight to a page; + to add a chord; and one Insert
+ * #251 and #400): the track's Chord set as diagram tiles, as many to a row as the panel's width holds (four at its first
+ * width), two rows to a page; + to add a chord; and one Insert
  * under the tiles for the chord picked. A right-click on a tile opens its menu (Insert, Edit, Rename, Copy to
  * new chord, Delete when unused). Edit, a double-click on a tile, and a chord name's Edit or double-click in
  * the tab open Edit chord (`ChordShapesEditor`): the chord's shapes, a pick applying at once. Its Change chord,
  * + and Copy to new chord open the chord dialog (`ChordEditor`). Picking a chord only picks it; moving the
  * cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
@@ -143,8 +144,35 @@ interface ChordPanelProps {
   onDone: () => void;
 }
 
-/** The Chord set's tiles a page holds: four to a row, two rows. */
-const PAGE = 8;
+/** A tile's room in px, with the gap after it: four to a row at the panel's first width (17rem). */
+const TILE_ROOM = 60;
+/** The rows of tiles a page holds. */
+const ROWS = 2;
+/** Tiles to a row at the panel's first width, and wherever the width isn't known (tests). */
+const FIRST_COLUMNS = 4;
+
+/**
+ * How many tiles fit in a row of the Chord set, kept up to date as the panel's width changes (issue #431),
+ * so a wider panel puts more chords on each row rather than spacing four apart.
+ */
+function useTileColumns() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [columns, setColumns] = useState(FIRST_COLUMNS);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // The gap after the last tile isn't there, so the row has one gap's room more than its width.
+    const measure = () => {
+      if (el.clientWidth) setColumns(Math.max(1, Math.floor((el.clientWidth + 4) / TILE_ROOM)));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, columns] as const;
+}
 
 /** A name the set hasn't got, for a copy of `name`: "C 2", or "C 3" if that's taken. */
 export function freeName(name: string, taken: readonly string[]): string {
@@ -197,13 +225,19 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
   const name = picked && set.some(e => e.name === picked) ? picked : null;
   const taken = set.map(e => e.name);
 
-  /** The page of the Chord set shown; a chord picked elsewhere (its name's Edit in the tab) brings its page. */
+  /** The tiles to a row, which the panel's width sets, and so to a page. */
+  const [panelRef, columns] = useTileColumns();
+  const perPage = columns * ROWS;
+  /**
+   * The page of the Chord set shown; a chord picked elsewhere (its name's Edit in the tab) brings its page,
+   * and so does a change of the page's size, so the chord picked stays in view.
+   */
   const [page, setPage] = useState(0);
-  const [pageOf, setPageOf] = useState<string | null>(null);
-  if (name !== pageOf) {
-    setPageOf(name);
+  const [pageOf, setPageOf] = useState<{ name: string | null; perPage: number }>({ name: null, perPage });
+  if (name !== pageOf.name || perPage !== pageOf.perPage) {
+    setPageOf({ name, perPage });
     const at = name ? set.findIndex(e => e.name === name) : -1;
-    if (at >= 0 && Math.floor(at / PAGE) !== page) setPage(Math.floor(at / PAGE));
+    if (at >= 0 && Math.floor(at / perPage) !== page) setPage(Math.floor(at / perPage));
   }
 
   /** A chord's own shape (low string first), from its definition; null for none. */
@@ -322,12 +356,12 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
     </button>
   );
 
-  const pages = Math.max(1, Math.ceil(set.length / PAGE));
+  const pages = Math.max(1, Math.ceil(set.length / perPage));
   const shownPage = Math.min(page, pages - 1);
   const chords = (
     <>
-      <div className="chord-panel-tiles" role="group" aria-label="Chords">
-        {set.slice(shownPage * PAGE, (shownPage + 1) * PAGE).map(entry => (
+      <div className="chord-panel-tiles" role="group" aria-label="Chords" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+        {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => (
           <button
             key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
             data-unused={entry.uses === 0 || undefined} aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
@@ -338,7 +372,7 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
           </button>
         ))}
         {/* A short last page keeps a full page's room, so the carets and Insert don't move. */}
-        {pages > 1 && Array.from({ length: (pages * PAGE - set.length) * Number(shownPage === pages - 1) }, (_, i) => (
+        {pages > 1 && Array.from({ length: (pages * perPage - set.length) * Number(shownPage === pages - 1) }, (_, i) => (
           <span key={`empty${i}`} className="chord-panel-tile-empty" aria-hidden="true" />
         ))}
       </div>
@@ -354,7 +388,7 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
   );
 
   return (
-    <div className="chord-panel">
+    <div className="chord-panel" ref={panelRef}>
       <Fold id="chords" title="Chord set" folded={folded} onFold={fold} extra={addButton}>
         {set.length === 0 ? <p className="chord-panel-note">None yet. Press + to add one.</p> : chords}
       </Fold>

@@ -20,8 +20,11 @@ and the Penpot page "Tab Chords panel (issue 400)".
   2026-11-05.
 - **The Chord set** (Jeremy, 2026-11-07: it was "This track's chords"):
   the panel's first section, its chords as tiles, each its name over its
-  diagram, four to a row, eight to a page (Jeremy, 2026-11-07: less room
-  than a list). Under them ‹ "1 / 2" › page through them, shown only with
+  diagram, two rows to a page (Jeremy, 2026-11-07: less room than a list):
+  four to a row at the panel's first width, and as many as fit when the
+  panel is widened or narrowed, so a wider panel uses fewer rows rather than
+  spacing four apart (Jeremy, 2026-11-08, issue #431;
+  `2026-11-08-tab-rail-width-design.md`). Under them ‹ "1 / 2" › page through them, shown only with
   more than one page; a short last page keeps a full page's room, so
   nothing below moves. A chord no column uses is tinted; hovering a tile
   says "Used 3 times" or "Not used". No icons on the tiles: a press picks
