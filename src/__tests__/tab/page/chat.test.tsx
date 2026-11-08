@@ -55,7 +55,9 @@ describe('the Chat panel', () => {
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Open Settings' }));
     const key = await screen.findByLabelText('OpenRouter key');
-    expect(key).toHaveAttribute('type', 'password');
+    // Dots, but not a password field: password managers would offer to save it as a login.
+    expect(key).toHaveAttribute('type', 'text');
+    expect(key).toHaveClass('settings-secret');
     fireEvent.change(key, { target: { value: '  sk-or-typed ' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5' });

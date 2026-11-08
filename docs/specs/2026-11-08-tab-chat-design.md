@@ -28,7 +28,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   are compared. Claude-only features (prompt caching, thinking) wait until a
   model is chosen.
 - **Settings › Tab › Chat (Q2, Q5).** Two fields, saved under
-  `frets.tab.chat`: **OpenRouter key** (typed hidden) and **Model**
+  `frets.tab.chat`: **OpenRouter key** (shown as dots, but not as a password field, so password managers don't offer to save it) and **Model**
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
 - **The panel (Q7).** From the top: the **Model** field (the same setting as
@@ -137,7 +137,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   with no step before it is a step of its own; it clears redo.
 - On the page: without `?chat`, no Chat button and no Tab › Chat. With it and
   no key, the box is disabled and Open Settings opens Tab › Chat, whose key
-  field is hidden text; saving `  sk-or-typed ` keeps `sk-or-typed` and
+  field shows dots and is not a password field; saving `  sk-or-typed ` keeps `sk-or-typed` and
   enables the box.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the
   answer and the usage summed; the bars change; one Undo puts both back. The

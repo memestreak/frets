@@ -133,14 +133,19 @@ function colourField(key: 'text' | 'background', label: string): SettingsField<C
 
 const PART_NAMES: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Both' };
 
-/** A line of text, as the Chat section's key and model; `secret` hides what is typed. */
+/**
+ * A line of text, as the Chat section's key and model. `secret` hides what is typed by drawing it as dots
+ * (`.settings-secret`), not as a password field, so password managers don't offer to save it as a login.
+ */
 function textField<V, K extends keyof V & string>(key: K, label: string, opts: { secret?: boolean; placeholder?: string } = {}): SettingsField<V> {
   return {
     key, label,
     control: ({ value, set, labelId }) => (
       <input
-        className="input settings-text" type={opts.secret ? 'password' : 'text'} aria-labelledby={labelId} value={value[key] as string}
-        placeholder={opts.placeholder} spellCheck={false} autoComplete="off" onChange={e => set({ ...value, [key]: e.target.value })}
+        className={`input settings-text${opts.secret ? ' settings-secret' : ''}`} type="text" aria-labelledby={labelId} value={value[key] as string}
+        placeholder={opts.placeholder} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off"
+        data-1p-ignore={opts.secret || undefined} data-lpignore={opts.secret ? 'true' : undefined} data-bwignore={opts.secret || undefined}
+        onChange={e => set({ ...value, [key]: e.target.value })}
       />
     ),
   };
