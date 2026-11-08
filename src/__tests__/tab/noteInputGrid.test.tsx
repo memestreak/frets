@@ -201,6 +201,16 @@ describe('note input’s grid (issue #293)', () => {
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
+  it('keeps the caret’s place in a rest when ↑ ↓ pick a string (Jeremy, 2026-11-08, issue #396)', async () => {
+    await open();
+    // On the rest's column with no string picked, then a grid line on into the rest.
+    keys('ArrowRight', 'n', 'ArrowRight', 'ArrowUp');
+    expect(screen.getByTestId('tab-ghost')).toBeInTheDocument();
+    keys('ArrowDown', '7');
+    // The 7 went where the caret was, a quarter into the rest, not at its start.
+    expect(bar()).toBe('5.1.4 r.4 7.2.4 r.4 |');
+  });
+
   it('shows a faint 0 in the caret’s box on a string with no note, as MuseScore’s tab does (issue #396)', async () => {
     await open();
     keys('n');
