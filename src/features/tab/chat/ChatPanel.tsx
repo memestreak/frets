@@ -11,6 +11,7 @@ import { readAlphaTex } from '../alphatexRead';
 import type { Clip } from '../clip';
 import type { PageSpot } from './arrangementTools';
 import { ModelPicker } from './ModelPicker';
+import { ReplyMarkdown } from './ReplyMarkdown';
 import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
 import { runReply, systemPrompt } from './reply';
 import type { ChatPrefs } from './chatPrefs';
@@ -177,7 +178,7 @@ function ChatEntry({ entry }: { entry: Entry }) {
   return (
     <div className="tab-chat-reply">
       <Notes notes={entry.notes} />
-      {entry.text && <p className="tab-chat-text">{entry.text}</p>}
+      {entry.text && <ReplyMarkdown text={entry.text} />}
       <p className="tab-chat-meta">{usageLine(entry.model, entry.usage)}</p>
     </div>
   );
