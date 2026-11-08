@@ -11,6 +11,12 @@
 
 import { PARTS, type Parts } from './layout';
 
+/**
+ * Production Frets, where every link to a clip points: Copy link on a PR preview or on localhost
+ * still makes a link for production, as do the MCP tool and its app.
+ */
+export const SITE = 'https://frets.eminor.net';
+
 /** A link holding the plain text, percent-encoded. */
 export const PLAIN_HASH = '#tab=';
 /** A link holding the text compressed. */

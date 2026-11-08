@@ -22,11 +22,10 @@ import type { Hit } from '../hitTest';
 import { isWholeBarRest, layoutClip, type Parts } from '../layout';
 import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
 import { DEFAULT_SOUND } from '../playback';
-import { shareLink } from '../shareLink';
+import { SITE, shareLink } from '../shareLink';
 import { TabClip } from '../TabClip';
 import { useWidth } from '../useWidth';
 import type { LoopPoints } from './lineJson';
-import { SITE } from './register';
 import type { View } from './tool';
 
 /** The switch's choices, in the Tab page's order. */

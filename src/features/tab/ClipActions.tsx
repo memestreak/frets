@@ -11,7 +11,7 @@ import { writeGuitarPro } from './guitarPro';
 import type { Parts } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
-import { shareLink } from './shareLink';
+import { SITE, shareLink } from './shareLink';
 import type { TabView } from './viewOptions';
 import type { View } from './views';
 import { ViewOptions } from './ViewOptions';
@@ -64,10 +64,10 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
   };
   const showCopied = () => tick(setCopied);
 
-  /** Copies a link that opens this clip, as a new arrangement played with this Sound and FX, for whoever follows it. */
+  /** Copies a link that opens this clip on production Frets (even from a preview), as a new arrangement played with this Sound and FX, for whoever follows it. */
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(await shareLink(window.location.origin, writeAlphaTex(clip)));
+      await navigator.clipboard.writeText(await shareLink(SITE, writeAlphaTex(clip)));
       onNotice({ tone: 'info', lines: ['Copied a link to this arrangement.'] });
       tick(setLinked);
     } catch {

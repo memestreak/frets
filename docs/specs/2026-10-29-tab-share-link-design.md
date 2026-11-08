@@ -23,9 +23,13 @@ alphaTex format landed, but nothing in the app made one.
   no fields after the tab; volume, speed, transpose and the metronome stay
   the opener's.
 - Compressed: UTF-8, raw deflate, base64url without padding, in
-  `https://<origin>/tab#tabz=<code>` (`shareLink.ts`, the browser's
+  `https://frets.eminor.net/tab#tabz=<code>` (`shareLink.ts`, the browser's
   `CompressionStream`). Sweet Child O' Mine's 181 bars make a 4.2 KB link,
   against 30 KB percent-encoded.
+- The link is always production's (`SITE` in `shareLink.ts`), even when
+  copied on a PR preview or on localhost, so a shared link looks right and
+  keeps working after the preview is gone. To try a link on a preview, swap
+  the origin by hand.
 - `#tab=<percent-encoded text>` is still read, alphaTex or ASCII: agents and
   people write those by hand (`public/tab-alphatex.txt`).
 - Copy link leaves out what the page shows. A link made elsewhere (a preview,
