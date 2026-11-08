@@ -1,7 +1,7 @@
 /**
  * A double-click on a word, bar line or mark on the Tab page (issue #289): one with an Edit in its
  * right-click menu opens that same field; one with only Delete stays picked; anywhere else, out of note
- * input, it still goes into note input (issue #238).
+ * input, it still goes into note input mode (issue #238).
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
@@ -68,7 +68,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     await open();
     doubleClick(at());
     expect(screen.getByRole('dialog', { name: field })).toBeInTheDocument();
-    // It edits, and does not go into note input.
+    // It edits, and does not go into note input mode.
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -82,7 +82,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(screen.getByTestId('repeat-count')).toHaveTextContent('×4');
   });
 
-  it('a chord name opens the Chords panel and that chord’s editor (issue #251), not note input', async () => {
+  it('a chord name opens the Chords panel and that chord’s editor (issue #251), not note input mode', async () => {
     await open();
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
     expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('works in note input too', async () => {
+  it('works in note input mode too', async () => {
     await open();
     fireEvent.click(pencil());
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
@@ -109,14 +109,14 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
 });
 
 describe('a double-click on something with no Edit', () => {
-  it.each(['repeatStart', 'doubleBar'] as const)('a %s stays picked, opening nothing and not going into note input', async kind => {
+  it.each(['repeatStart', 'doubleBar'] as const)('a %s stays picked, opening nothing and not going into note input mode', async kind => {
     await open();
     doubleClick(barLineAt(kind));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('a mark stays picked, opening nothing and not going into note input', async () => {
+  it('a mark stays picked, opening nothing and not going into note input mode', async () => {
     await open();
     const marks = markBoxes(LAYOUT);
     expect(marks.length).toBeGreaterThan(0);
@@ -125,7 +125,7 @@ describe('a double-click on something with no Edit', () => {
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('a note still goes into note input (issue #238)', async () => {
+  it('a note still goes into note input mode (issue #238)', async () => {
     await open();
     // The fourth column's fret, on the third string (index 2) of the first line.
     const system = LAYOUT.systems[0];

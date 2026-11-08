@@ -18,7 +18,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, inputMode = false, onInputMode, groups, className, grid, gridValue, onGrid, voices }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid, gridValue, onGrid, voices }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -33,14 +33,14 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   onTool: (id: ToolId) => void;
   /** In the text views: shown, so nothing moves, but not pressable. */
   disabled: boolean;
-  /** Note input is on (issue #238): the pencil, first, stays lit. */
-  inputMode?: boolean;
-  /** The pencil pressed: note input on or off, as N does. */
-  onInputMode?: () => void;
+  /** Note input mode is on (issue #238): the pencil, first, stays lit. */
+  noteInputMode?: boolean;
+  /** The pencil pressed: note input mode on or off, as N does. */
+  onNoteInputMode?: () => void;
   /** Only these groups, by label (a rail panel's, TabRail.tsx); all when left out. */
   groups?: readonly string[];
   className?: string;
-  /** Note input's fixed grid (issue #293), or null while it follows note input's length; first in the Duration group. */
+  /** Note input mode's fixed grid (issue #293), or null while it follows note input mode's length; first in the Duration group. */
   grid?: GridValue | null;
   /** The note value the grid steps by now, drawn on the button. */
   gridValue?: NoteValue;
@@ -55,19 +55,19 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   const shown = groups ? TOOL_GROUPS.filter(group => groups.includes(group.label)) : TOOL_GROUPS;
   return (
     <div className={className ? `tab-palette ${className}` : 'tab-palette'} role="toolbar" aria-label="Symbols">
-      {onInputMode && (
+      {onNoteInputMode && (
         <div className="tab-palette-group" role="group" aria-label="Input">
           <span className="tab-palette-label" aria-hidden="true">Input</span>
           <div className="tab-palette-tools">
             <button
               type="button" className="btn btn-secondary btn-toggle tab-tool" aria-label="Note input mode"
-              aria-pressed={!disabled && inputMode} disabled={disabled} data-tip="Note input mode (N)"
+              aria-pressed={!disabled && noteInputMode} disabled={disabled} data-tip="Note input mode (N)"
               // Keep the focus, and so the cursor, on the tab.
               onMouseDown={e => e.preventDefault()}
-              onClick={onInputMode}
+              onClick={onNoteInputMode}
             >
               <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                {/* A pencil, as MuseScore's note input button. */}
+                {/* A pencil, as MuseScore's note input mode button. */}
                 <path d="M5 19l1-4L16 5l3 3L9 18l-4 1zM14 7l3 3" strokeLinejoin="round" />
               </svg>
             </button>

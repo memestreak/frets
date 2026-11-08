@@ -12,7 +12,7 @@ function clipOf(text: string): Part {
 }
 const bars = (clip: Part) => writeBars(clip).join('\n');
 
-describe('note input’s length (issue #238)', () => {
+describe('note input mode’s length (issue #238)', () => {
   it('starts from the cursor’s note, else the last note before it, else a quarter', () => {
     const clip = clipOf('\\ts (4 4)\n5.1.8{d} r.8 r.2 |');
     expect(startLength(clip, { bar: 0, column: 0, string: 0 })).toEqual({ value: 8, dots: 1 });

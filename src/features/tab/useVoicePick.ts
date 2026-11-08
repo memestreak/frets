@@ -34,7 +34,7 @@ export function useVoicePick(editor: EditorState, { whole, track, voice, setVoic
   stepToElement: (step: 1 | -1) => void;
 }) {
   const {
-    clip, cursor, selection, columnOnly, inputMode, picked,
+    clip, cursor, selection, columnOnly, noteInputMode, picked,
     setCursor, setSelection, setPicked, setCursorAt, setColumnOnly, setStaffPitch, editorRef,
   } = editor;
   /** The selection Select only voice made, which holds one Voice's notes alone while it stays as it was (Q21). */
@@ -76,7 +76,7 @@ export function useVoicePick(editor: EditorState, { whole, track, voice, setVoic
   };
   /** Alt+1–4: with notes picked or selected in normal mode, they move into that Voice; else it becomes active. */
   const voiceKey = (to: number) => {
-    const picksNotes = !inputMode && (selection !== null || (!columnOnly && noteAt(clip, cursor) !== null));
+    const picksNotes = !noteInputMode && (selection !== null || (!columnOnly && noteAt(clip, cursor) !== null));
     if (picksNotes && moveToVoiceKey(to)) return;
     chooseVoice(to);
   };

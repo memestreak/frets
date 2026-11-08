@@ -18,10 +18,10 @@ export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 /**
  * The keys that work anywhere on the page (Jeremy, 2026-10-30: shortcuts are page-wide), not the tab's own
- * (`editorKeys.ts`): the grid keys, Esc and N for note input, L, Space, the playback line's keys, paste,
+ * (`editorKeys.ts`): the grid keys, Esc and N for note input mode, L, Space, the playback line's keys, paste,
  * copy, cut, undo and redo; and what the tab does as it takes the keys and lets them go.
  */
-export function usePageKeys(editor: EditorState, { view, parts, range, showPlayback, setEditingPrefs, enterInput, chooseVoice, paste, copyOrCut, undo }: {
+export function usePageKeys(editor: EditorState, { view, parts, range, showPlayback, setEditingPrefs, enterNoteInput, chooseVoice, paste, copyOrCut, undo }: {
   view: View;
   /** What the Notation view shows: the staff, the tab or both. */
   parts: Parts;
@@ -31,8 +31,8 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
   showPlayback: boolean;
   /** Changes Settings › Tab › Editing (the grid). */
   setEditingPrefs: TabPrefs['setEditing'];
-  /** Note input on or off. */
-  enterInput: (on: boolean) => void;
+  /** Note input mode on or off. */
+  enterNoteInput: (on: boolean) => void;
   /** Makes a Voice active (`useVoicePick`). */
   chooseVoice: (next: number) => void;
   /** Puts pasted text in at the cursor, or in before it with `insert`. */
@@ -43,18 +43,18 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
   undo: (redo: boolean) => void;
 }) {
   const {
-    clip, cursor, selection, setSelection, inputMode, staffPitch, setStaffPitch, columnOnly, setColumnOnly,
-    setEditing, setPicked, setNotice, editorRef,
+    clip, cursor, selection, setSelection, noteInputMode, staffPitch, setStaffPitch, columnOnly, setColumnOnly,
+    setTabFocused, setPicked, setNotice, editorRef,
   } = editor;
   const { playback, playFrom, playUntil, markAt, toggleLoop, placeLine, editAtLine } = range;
 
   // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
   const onLineKey = useEffectEvent((e: KeyboardEvent) => {
     if (view !== 'tab') return;
-    // N anywhere on the page goes into note input and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
+    // N anywhere on the page goes into note input mode and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
     const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    // Alt+[ and Alt+] make note input's grid finer and coarser, as Dorico's do (issue #293), turning the fixed grid on
-    // at what it was first; Alt+G switches between the fixed grid and note input's length. On the tab or off it.
+    // Alt+[ and Alt+] make note input mode's grid finer and coarser, as Dorico's do (issue #293), turning the fixed grid on
+    // at what it was first; Alt+G switches between the fixed grid and note input mode's length. On the tab or off it.
     const gridKey = e.code === 'BracketLeft' ? -1 : e.code === 'BracketRight' ? 1 : e.code === 'KeyG' ? 'toggle' : 0;
     if (gridKey && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
       e.preventDefault();
@@ -62,11 +62,11 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
       else setEditingPrefs(p => ({ ...p, fixedGrid: true, grid: p.fixedGrid ? stepGrid(p.grid, gridKey) : p.grid }));
       return;
     }
-    // Esc anywhere on the page leaves note input (Jeremy, 2026-11-03): after a press off the tab, on the rail or a
+    // Esc anywhere on the page leaves note input mode (Jeremy, 2026-11-03): after a press off the tab, on the rail or a
     // control too. An open panel, menu or dialog takes it first, as in Dorico and MuseScore; the next Esc leaves.
-    if (e.key === 'Escape' && inputMode && !(e.target as Element | null)?.closest?.('.tab-editor') && !popupTakesEscape(e)) {
+    if (e.key === 'Escape' && noteInputMode && !(e.target as Element | null)?.closest?.('.tab-editor') && !popupTakesEscape(e)) {
       e.preventDefault();
-      enterInput(false);
+      enterNoteInput(false);
       return;
     }
     // L anywhere on the page does what the Loop button does, while the footer shows (Jeremy, 2026-11-04), as
@@ -78,7 +78,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
     }
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
       e.preventDefault();
-      enterInput(!inputMode);
+      enterNoteInput(!noteInputMode);
       return;
     }
     lineKeyDown(e, { clip, count: columnCount(clip), line: markAt, selection, select: setSelection, placeLine, editAtLine });
@@ -144,7 +144,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
    * after a press that selected a bar or column, which shows as a box (issue #317).
    */
   const onEditorFocus = () => {
-    setEditing(true);
+    setTabFocused(true);
     if (parts !== 'staff' || staffPitch !== null || columnOnly) return;
     const note = noteAt(clip, cursor);
     setStaffPitch(note && note.fret !== null ? writtenStrings(clip.tuning)[cursor.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, cursor.bar, 4));
@@ -160,7 +160,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
     if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
     // So does the Tuplet panel `;` opens (step 6).
     if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.tab-tuplet-panel')) return;
-    setEditing(false);
+    setTabFocused(false);
     setPicked(null);
     setColumnOnly(false);
     // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).

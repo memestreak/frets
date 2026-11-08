@@ -4,7 +4,7 @@ import { setUpPage, renderAt, SLOW, editor, keys, alphaTex, undo } from './helpe
 setUpPage();
 
 // A clip from a link takes alphaTab a while to draw the first time in a busy run.
-describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, () => {
+describe('TabPage normal mode and note input mode (issue #238)', { timeout: 20000 }, () => {
   const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
   /** A clip to start from: digits type no frets in normal mode (Jeremy, 2026-11-07, issue #396). */
   const openWith = async (bar: string) => {
@@ -13,14 +13,14 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     act(() => editor().focus());
   };
 
-  it('starts in normal mode; N and the pencil go in and out of note input, Esc out', () => {
+  it('starts in normal mode; N and the pencil go in and out of note input mode, Esc out', () => {
     renderAt();
     act(() => editor().focus());
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
     keys('n');
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
-    expect(editor()).toHaveAccessibleName(/note input/);
-    // Esc leaves note input and keeps the tab.
+    expect(editor()).toHaveAccessibleName(/note input mode:/);
+    // Esc leaves note input mode and keeps the tab.
     keys('Escape');
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
     expect(editor()).toHaveFocus();
@@ -30,7 +30,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('draws the cursor outlined in note input and the selected note filled in normal mode', async () => {
+  it('draws the cursor outlined in note input mode and the selected note filled in normal mode', async () => {
     await openWith('5.1.1 |');
     expect(screen.getByTestId('selected-note')).toBeInTheDocument();
     keys('n');
@@ -63,7 +63,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toBe('4.1.1 |');
   });
 
-  it('in normal mode ← → select the next column and add no rests; in note input → adds one to type on', async () => {
+  it('in normal mode ← → select the next column and add no rests; in note input mode → adds one to type on', async () => {
     await openWith('5.1.1 |');
     keys('ArrowRight', 'ArrowRight');
     expect(alphaTex()).toBe('5.1.1 |');
@@ -88,18 +88,18 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toBe('(6.1 6.2).1 |');
   });
 
-  it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input', async () => {
+  it('Shift with a digit’s key sets the selected note’s length in normal mode, the next note’s in note input mode', async () => {
     await openWith('5.1.1 |');
     keys({ key: '^', shiftKey: true, code: 'Digit6' });
     expect(alphaTex()).toBe('5.1.2 r.2 |');
-    // In note input the note already there keeps its length; the next one takes the new one.
+    // In note input mode the note already there keeps its length; the next one takes the new one.
     keys('n', { key: '$', shiftKey: true, code: 'Digit4' });
     expect(alphaTex()).toBe('5.1.2 r.2 |');
     keys('ArrowUp', 'ArrowRight', '7');
     expect(alphaTex()).toMatch(/^5\.1\.2 7\.1\.8 /);
   });
 
-  it('in note input W Q, + − and the Duration buttons set the next note’s length and light it', () => {
+  it('in note input mode W Q, + − and the Duration buttons set the next note’s length and light it', () => {
     renderAt();
     act(() => editor().focus());
     keys('n', '5', 'ArrowRight');
@@ -122,7 +122,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toBe('5.1.4 7.1.16 3.1.16 -.1.8 -.1.16 2.1.16 -.1.8 -.1.8{d} r.16 |');
   });
 
-  it('a note of note input’s length takes its time from the rests after it', async () => {
+  it('a note of note input mode’s length takes its time from the rests after it', async () => {
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 r.4 r.4 r.4 |')}`);
     await waitFor(() => expect(alphaTex()).toBe('5.1.4 r.4 r.4 r.4 |'), SLOW);
     act(() => editor().focus());
@@ -130,7 +130,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toBe('5.1.4 7.1.2 r.4 |');
   });
 
-  it('going into note input lets the selection go, the cursor at its first column (Jeremy, 2026-11-06)', async () => {
+  it('going into note input mode lets the selection go, the cursor at its first column (Jeremy, 2026-11-06)', async () => {
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n3.6.4 5.6.4 7.6.4 8.6.4 |')}`);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     act(() => editor().focus());
@@ -144,7 +144,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toMatch(/^3\.6\.4 5\.6\.4 \(9\.1 7\.6\)\.4 8\.6\.4 /);
   });
 
-  it('going into note input picks the string last used off a note, and the note’s own on a picked note (Jeremy, 2026-11-07, 2026-11-08)', () => {
+  it('going into note input mode picks the string last used off a note, and the note’s own on a picked note (Jeremy, 2026-11-07, 2026-11-08)', () => {
     renderAt();
     act(() => editor().focus());
     keys('n');
@@ -172,7 +172,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
-  it('N anywhere on the page goes into note input, but not in a text field', () => {
+  it('N anywhere on the page goes into note input mode, but not in a text field', () => {
     renderAt();
     const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
     fireEvent.keyDown(document.body, { key: 'n' });
@@ -198,7 +198,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('Insert puts in a Gap as long as the picked note, the selection, or note input’s length, pushing the music on (step 4)', async () => {
+  it('Insert puts in a Gap as long as the picked note, the selection, or note input mode’s length, pushing the music on (step 4)', async () => {
     const quarters = '\\ts (4 4)\n1.1.4 2.1.4 3.1.4 4.1.4 |';
     renderAt(`#tab=${encodeURIComponent(quarters)}`);
     await waitFor(() => expect(alphaTex()).toBe('1.1.4 2.1.4 3.1.4 4.1.4 |'), SLOW);
@@ -211,7 +211,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     keys({ key: 'ArrowRight', shiftKey: true }, 'Insert');
     expect(alphaTex()).toBe('1.1.4 r.4 r.4 2.1.4 |\n3.1.4 4.1.4 r.2 |');
     undo();
-    // Note input, an eighth: an eighth later, notes tied over where the beats now fall.
+    // Note input mode, an eighth: an eighth later, notes tied over where the beats now fall.
     keys('Escape');
     act(() => editor().focus());
     keys('n', 'q', 'Insert');

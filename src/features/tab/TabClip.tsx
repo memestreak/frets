@@ -38,11 +38,11 @@ export interface Highlight {
   /** The staff's own cursor on the cursor's column: the sounding pitch Enter would put there (issue #136). */
   staffPitch?: number | null;
   /**
-   * In note input (issue #238) the cursor is outlined, where typing goes; in normal mode what it is on is
+   * In note input mode (issue #238) the cursor is outlined, where typing goes; in normal mode what it is on is
    * selected, filled, as MuseScore colours a selected note.
    */
   input?: boolean;
-  /** How far into its rest note input's cursor is, in ticks (issue #293): drawn that far along the rest. */
+  /** How far into its rest note input mode's cursor is, in ticks (issue #293): drawn that far along the rest. */
   at?: number;
   /**
    * Written notes of a Tie chain drawn picked besides the cursor's: the rest of a picked chain, or a
@@ -63,7 +63,7 @@ export interface Highlight {
  */
 export const MUTED_VOICE_INK = 'var(--line-strong)';
 
-/** How strongly the mouse's shadow note and box are drawn in note input: fainter than the caret's ghost (0.45). */
+/** How strongly the mouse's shadow note and box are drawn in note input mode: fainter than the caret's ghost (0.45). */
 const MOUSE_SHADOW = 0.25;
 
 /** Where a double-click landed: a place on a string, on the staff, or a rest or stem. */
@@ -149,22 +149,22 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   onPickRect?: (from: number, to: number) => void;
   /**
    * A double-click on the drawing, staff or tab: the word or bar line under it, if any, and whether it was
-   * on a mark (issue #238: on nothing of these it goes into note input, as MuseScore's does; issue #289:
+   * on a mark (issue #238: on nothing of these it goes into note input mode, as MuseScore's does; issue #289:
    * on a word with an Edit it opens its field).
    */
   onDoubleClick?: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => void;
   /**
-   * In note input (issue #238): the note value a press would enter, shown under the pointer as a faint
+   * In note input mode (issue #238): the note value a press would enter, shown under the pointer as a faint
    * note on the staff, or a faint 0 on a string of the tab, as MuseScore's shadow note.
    */
   shadow?: number | null;
   /**
-   * Note input's grid in ticks (issue #293): a press beside the notes, and the shadow note, snap to the
-   * nearest note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input.
+   * Note input mode's grid in ticks (issue #293): a press beside the notes, and the shadow note, snap to the
+   * nearest note or grid line inside a rest, and the press says how far into the rest (`at`). Null outside note input mode.
    */
   gridStep?: number | null;
   /**
-   * How the grid is drawn in note input, as Dorico shows it (Settings › Tab › Editing), over the cursor's bar
+   * How the grid is drawn in note input mode, as Dorico shows it (Settings › Tab › Editing), over the cursor's bar
    * and the bar under the pointer, as Dorico draws it (Jeremy, 2026-11-07, issue #396):
    * a ruler over the top staff, or faint lines across the staves.
    */
@@ -254,7 +254,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * What a press at a point in the drawing is on. A right-click picks a word, signature, bar line or mark,
    * as a press does, for its menu (issue #276, step 8).
    */
-  /** In note input, a press's column moved to the nearest stop on the grid, with how far into its rest. */
+  /** In note input mode, a press's column moved to the nearest stop on the grid, with how far into its rest. */
   const snapped = <T extends { bar: number; column: number }>(on: T | null, px: number): (T & { at?: number }) | null => {
     if (!on || gridStep === null) return on;
     const stop = stopNear(layout, on.bar, px, gridStep);
@@ -408,9 +408,9 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
   const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; alt: boolean; last: StaffDrag | null } | null>(null);
   /**
-   * Where the mouse's shadow note is drawn in note input: on the staff at a step, or on a string of the tab;
+   * Where the mouse's shadow note is drawn in note input mode: on the staff at a step, or on a string of the tab;
    * in the drawing's units, with the bar under it for the Grid. The mouse never moves the caret, as in Dorico
-   * (Jeremy, 2026-11-07, issue #396), and nothing of it is kept outside note input.
+   * (Jeremy, 2026-11-07, issue #396), and nothing of it is kept outside note input mode.
    */
   const [hover, setHover] = useState<{ system: number; bar: number; x: number; step: number | null; string: number | null } | null>(null);
   // Another view, width or size moves the bars under a still pointer: the shadow waits for it to move again.
@@ -548,7 +548,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             />
           )}
           {/*
-            In note input, with no note under the caret's box, a faint 0 in it: the note a press or a digit would put
+            In note input mode, with no note under the caret's box, a faint 0 in it: the note a press or a digit would put
             there, as MuseScore's tab shadow note (Jeremy, 2026-11-08, issue #396).
           */}
           {highlight.input && !highlight.range && !highlight.columnOnly && highlight.staffPitch == null && rows.tab
@@ -560,7 +560,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             </g>
           )}
           {/*
-            In note input on a column with no string picked, the caret's upright line, as on the staff (Dorico's),
+            In note input mode on a column with no string picked, the caret's upright line, as on the staff (Dorico's),
             so the caret never goes missing, wherever the mouse is (issue #396).
           */}
           {!highlight.range && highlight.columnOnly && highlight.input && highlight.staffPitch == null && rows.tab && (
@@ -579,7 +579,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             </text>
           )}
           {/* On its column with no string picked, the box goes round the whole column; the staff's own cursor shows it there. */}
-          {/* Not in note input: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
+          {/* Not in note input mode: there the shadow square under the mouse is the cursor until a string is pressed (Jeremy, 2026-10-31). */}
           {!highlight.range && highlight.columnOnly && !highlight.input && highlight.staffPitch == null && (rows.tab || rows.score) && (() => {
             // An empty bar has no column to select: the box goes round the whole bar, as round a selected bar (issue #317).
             const empty = layout.systems[spot.system].bars.find(b => b.index === highlight.cursor!.bar);
@@ -709,7 +709,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           })()}
           {cursorOnStaff && !selectedNote && (() => {
             const place = staffCursorPlace(clip, highlight!.cursor!.bar, highlight!.staffPitch!);
-            // The caret always shows in note input, as Dorico's, wherever the mouse is (Jeremy, 2026-11-07, issue
+            // The caret always shows in note input mode, as Dorico's, wherever the mouse is (Jeremy, 2026-11-07, issue
             // #396): its ghost, the next note to add, and its line, but on a note at another pitch (one just
             // entered, say) only the ghost, to add to the chord (Jeremy, 2026-11-06). Over a note at its own pitch,
             // both, the ghost see-through over the head.

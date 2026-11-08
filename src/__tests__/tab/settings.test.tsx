@@ -131,7 +131,7 @@ describe('Settings', () => {
     expect(inDialog().queryByRole('checkbox', { name: /Fill short bars/ })).toBeNull();
   });
 
-  it('sets note input’s grid under Tab › Editing: note input’s length by default, or a fixed grid (issue #293)', () => {
+  it('sets note input mode’s grid under Tab › Editing: note input mode’s length by default, or a fixed grid (issue #293)', () => {
     render(<TabPage />);
     openSettings();
     fireEvent.click(section('Editing'));
@@ -145,7 +145,7 @@ describe('Settings', () => {
     expect(saved(EDITING_KEY)).toEqual({ fixedGrid: true, grid: 8, gridLook: 'ruler' });
   });
 
-  it('sets how note input’s grid is drawn under Tab › Editing: a ruler over the staff by default, or lines across the bar', () => {
+  it('sets how note input mode’s grid is drawn under Tab › Editing: a ruler over the staff by default, or lines across the bar', () => {
     render(<TabPage />);
     openSettings();
     fireEvent.click(section('Editing'));

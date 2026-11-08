@@ -16,7 +16,7 @@ const bars = (clip: Part) => writeBars(clip).join('\n');
 const at = (column: number, bar = 0) => ({ bar, column, string: 0 });
 const SIXTEENTH = gridTicks(16);
 
-describe('note input’s grid (issue #293)', () => {
+describe('note input mode’s grid (issue #293)', () => {
   it('stops at a rest’s start and at each grid line inside it, counted from the bar’s start', () => {
     const clip = clipOf('\\ts (4 4)\n5.1.8{d} r.16 r.2{d} |');
     // A note, and a rest no longer than the grid, are one stop each.

@@ -30,8 +30,8 @@ first.
    a note at the column after it, and past the clip's end a bar of rests is added.
 6. Playing from inside a rest starts at the rest's start (fine, Jeremy).
 7. **The caret follows Dorico's model** (Jeremy, 2026-11-07, issue #396). The mouse never moves
-   the caret: only the keys, a press and N do, and nothing of the mouse is kept outside note input.
-   The caret always shows in note input, wherever the mouse is: on the staff its line and the next
+   the caret: only the keys, a press and N do, and nothing of the mouse is kept outside note input mode.
+   The caret always shows in note input mode, wherever the mouse is: on the staff its line and the next
    note's ghost (over a note at another pitch only the ghost, to add to the chord; over one at its
    own pitch both, the ghost see-through), on the tab its box on a string (N picks the string last used;
    Jeremy, 2026-11-08), or a short upright line on a column with no string picked. The mouse shows its own shadow note on the staff and a box on the

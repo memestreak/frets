@@ -11,7 +11,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ICONS } from './TabPalette';
 
-/** Draws the palette with only `groups`; `className` sets its look; the note input pencil first when `input`. */
+/** Draws the palette with only `groups`; `className` sets its look; the note input mode pencil first when `input`. */
 export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
 
 export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords';

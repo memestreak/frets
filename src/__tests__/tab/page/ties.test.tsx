@@ -13,7 +13,7 @@ import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTex } from './helpers';
 import { tool } from '../tool';
 
-// Every note the page asks to hear, counted: `=` in note input plays nothing (spec Q22).
+// Every note the page asks to hear, counted: `=` in note input mode plays nothing (spec Q22).
 const heard = vi.hoisted(() => ({ count: 0 }));
 vi.mock('@/features/tab/PlaybackFooter', async importOriginal => {
   const actual = await importOriginal<typeof import('@/features/tab/PlaybackFooter')>();
@@ -66,7 +66,7 @@ function copied() {
   return (body.join(' ').match(/[^|]*\|/g) ?? []).map(b => b.trim()).join('\n');
 }
 
-/** The middle x of the cursor's box: round a note, a Column, or note input's. */
+/** The middle x of the cursor's box: round a note, a Column, or note input mode's. */
 const cursorX = () => {
   const box = ['selected-note', 'column-cursor', 'input-cursor'].map(id => screen.queryByTestId(id)).find(Boolean)!;
   return Number(box.getAttribute('x')) + Number(box.getAttribute('width')) / 2;
@@ -185,7 +185,7 @@ describe('T, the Tie tool, and the keys round it', () => {
     expect(alphaTex()).toBe('7.3.4 7.3.4 r.2 |');
   });
 
-  it('T in note input ties on a note of the input length, keeps the cursor on the chain, and plays nothing', async () => {
+  it('T in note input mode ties on a note of the input length, keeps the cursor on the chain, and plays nothing', async () => {
     const TUNE = '5.1.2 7.1.4 8.1.4 |';
     localStorage.setItem('frets.tab.playback', JSON.stringify({ hearNotes: true }));
     await open(TUNE);
@@ -219,7 +219,7 @@ describe('T, the Tie tool, and the keys round it', () => {
     expect(alphaTex()).toBe('5.1.4{tt} r.4 r.2 |');
   });
 
-  it('= in note input makes the next note longer', async () => {
+  it('= in note input mode makes the next note longer', async () => {
     await open('5.1.4 r.4 r.2 |');
     keys('n', { key: '%', shiftKey: true, code: 'Digit5' }, '=');
     expect(tool('Half note')).toHaveAttribute('aria-pressed', 'true');

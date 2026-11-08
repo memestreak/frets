@@ -4,7 +4,7 @@
  * shape picked is the chord's at once and the name is renamed apart; Change chord opens the chord dialog +
  * opens (renames it, or another shape, or Save as new chord); the menu copies, renames and deletes an unused
  * chord; + adds a chord (looked up, the cursor column's, or drawn); moving the cursor changes nothing, and
- * Insert writes a name, notes or both at the cursor (in note input, at the Input length).
+ * Insert writes a name, notes or both at the cursor (in note input mode, at the Input length).
  */
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
@@ -612,8 +612,8 @@ describe('the cursor column', () => {
   });
 });
 
-describe('Insert in note input', () => {
-  /** The cursor on the third column (a quarter rest), in note input with an eighth as its length. */
+describe('Insert in note input mode', () => {
+  /** The cursor on the third column (a quarter rest), in note input mode with an eighth as its length. */
   async function inputAtRest() {
     await open();
     act(() => editor().focus());

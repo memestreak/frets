@@ -2,7 +2,7 @@
  * The keys the Tab page's editor takes (`docs/specs/2026-10-25-tab-editing-design.md`): on the drawn
  * tab, on the staff's own cursor (issue #136), and off the tab on the playback line. Each handler
  * reads the editor as it is and changes it through the callbacks it is given. Note input mode's own
- * keys are in `noteInputKeys.ts`.
+ * keys are in `noteInputModeKeys.ts`.
  */
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import { barTicks, isRest, ticks, timeAt, type Column, type Duration, type Part } from './clip';
@@ -21,12 +21,12 @@ import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { advance } from './grid';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
-import { noteInputKeyDown, toStaff, toTab } from './noteInputKeys';
+import { noteInputModeKeyDown, toStaff, toTab } from './noteInputModeKeys';
 
-/** What takes Esc before note input does: an open panel, menu or dialog closes first, as in Dorico and MuseScore. */
+/** What takes Esc before note input mode does: an open panel, menu or dialog closes first, as in Dorico and MuseScore. */
 const POPUPS = '[role="dialog"], [role="menu"], dialog[open]';
 
-/** Whether a panel, menu or dialog is open, or the key came from inside one: its Esc closes it, not note input. */
+/** Whether a panel, menu or dialog is open, or the key came from inside one: its Esc closes it, not note input mode. */
 export function popupTakesEscape(e: { target: EventTarget | null }): boolean {
   const target = e.target as Element | null;
   return Boolean(target?.closest?.(POPUPS)) || document.querySelector(POPUPS) !== null;
@@ -57,23 +57,23 @@ export interface EditorKeys {
   /** Each drawn line of tab's first and last column, for Shift+Home / End (worked out only when asked). */
   lines: () => Lines;
   /**
-   * Note input (issue #238): the cursor types, as the tab always did. Off, normal mode: what the
+   * Note input mode (issue #238): the cursor types, as the tab always did. Off, normal mode: what the
    * cursor is on is selected, and MuseScore's keys change it.
    */
-  inputMode: boolean;
-  setInputMode: (on: boolean) => void;
-  /** Note input's length (`inputLength.ts`): the next note entered on a rest takes it. */
+  noteInputMode: boolean;
+  setNoteInputMode: (on: boolean) => void;
+  /** Note input mode's length (`inputLength.ts`): the next note entered on a rest takes it. */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
-  /** Note input's grid (`grid.ts`, issue #293), in ticks: where ← → stop inside a rest. */
+  /** Note input mode's grid (`grid.ts`, issue #293), in ticks: where ← → stop inside a rest. */
   gridStep: number;
-  /** How far into the cursor's rest note input's cursor is, in ticks: 0 at its start, and anywhere but a rest. */
+  /** How far into the cursor's rest note input mode's cursor is, in ticks: 0 at its start, and anywhere but a rest. */
   cursorAt: number;
-  /** Puts note input's cursor that far into the rest at `at` (after a commit, which sets it back to 0). */
+  /** Puts note input mode's cursor that far into the rest at `at` (after a commit, which sets it back to 0). */
   setCursorAt: (at: Cursor, ticks: number) => void;
-  /** Tuplet entry's tuplet in note input, or null (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`). */
+  /** Tuplet entry's tuplet in note input mode, or null (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`). */
   tupletEntry: number | null;
-  /** Grace entry in note input: typed frets go in as grace notes. */
+  /** Grace entry in note input mode: typed frets go in as grace notes. */
   graceEntry: boolean;
   /** Where a tuplet Tuplet entry began with `,` starts, until its first note makes it. */
   tupletFrom: number | null;
@@ -116,7 +116,7 @@ export interface EditorKeys {
 
 /**
  * A key on the drawn tab. It tries, in turn: the keys every mode takes first (Alt+← →, Alt+1–4, a picked mark
- * or word, an open panel's Esc); the mode's own keys (`noteInputKeyDown` in `noteInputKeys.ts`, or
+ * or word, an open panel's Esc); the mode's own keys (`noteInputModeKeyDown` in `noteInputModeKeys.ts`, or
  * `normalKeyDown`), with Space and N; then the keys every mode shares (`sharedKeyDown`).
  */
 export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys) {
@@ -132,7 +132,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
   if (pickedKeyDown(e, editor)) return;
   // A panel open over the tab with the keys still here (a bar's time signature) takes Esc itself, and closes.
   if (key === 'Escape' && popupTakesEscape(e)) return;
-  if (editor.inputMode && noteInputKeyDown(e, editor)) {
+  if (editor.noteInputMode && noteInputModeKeyDown(e, editor)) {
     e.preventDefault();
     return;
   }
@@ -140,7 +140,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
     e.preventDefault();
     return;
   }
-  if (!editor.inputMode) {
+  if (!editor.noteInputMode) {
     if (normalKeyDown(e, editor)) e.preventDefault();
     if (e.defaultPrevented) return;
   }
@@ -198,8 +198,8 @@ function pickedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
     editor.setPicked(null);
     if (key === 'Escape') {
       e.preventDefault();
-      // Esc always leaves note input (Jeremy, 2026-11-03), a picked mark or word let go with it.
-      if (editor.inputMode) editor.setInputMode(false);
+      // Esc always leaves note input mode (Jeremy, 2026-11-03), a picked mark or word let go with it.
+      if (editor.noteInputMode) editor.setNoteInputMode(false);
       // A Span's run, selected for the tools while it was picked, goes with it, and so does the column a
       // Mark over the whole column put the cursor on (step 8).
       if (selection) commit(clip, cursor, null);
@@ -222,7 +222,7 @@ function pickedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   editor.setPicked(null);
   if (key === 'Escape') {
     e.preventDefault();
-    if (editor.inputMode) editor.setInputMode(false);
+    if (editor.noteInputMode) editor.setNoteInputMode(false);
     return true;
   }
   return false;
@@ -236,7 +236,7 @@ function spaceOrNKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKe
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
   if (e.key === ' ' && plain) return true;
   if (e.key === 'n' && plain) {
-    editor.setInputMode(!editor.inputMode);
+    editor.setNoteInputMode(!editor.noteInputMode);
     return true;
   }
   return false;
@@ -383,10 +383,10 @@ export function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
   // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
   // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). It is the column
   // picked by itself, as a press on a rest picks one, so it lights with no box round it (Jeremy, 2026-11-01).
-  // Note input keeps the cursor where it is, to type on.
+  // Note input mode keeps the cursor where it is, to type on.
   const leave = (next: Part, at: Cursor) => {
     commit(next, at, null);
-    if (!editor.inputMode && columnAt(next, at)) editor.startRegion();
+    if (!editor.noteInputMode && columnAt(next, at)) editor.startRegion();
   };
   if (removeTime) {
     if (selection) {
@@ -421,7 +421,7 @@ export function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
   // A rest, or an empty bar, stays: only Ctrl/⌘+Delete takes time away.
 }
 
-/** The cursor `step` ticks on from time `t`, in the Part as edited: note input's cursor after `,`. */
+/** The cursor `step` ticks on from time `t`, in the Part as edited: note input mode's cursor after `,`. */
 function cursorAfter(editor: EditorKeys, next: Part, t: number, step: number) {
   const place = placeAtTime(next, t);
   const from = { ...editor.cursor, ...place };
@@ -431,7 +431,7 @@ function cursorAfter(editor: EditorKeys, next: Part, t: number, step: number) {
 }
 
 /**
- * The Chords panel's Insert in note input (issue #251): its column at the Input length, written at the cursor
+ * The Chords panel's Insert in note input mode (issue #251): its column at the Input length, written at the cursor
  * over what is there as a fret typed on a rest is, and the cursor moved on by it, as entering a note does.
  * `part` is the clip with any definition Insert adds.
  */
@@ -447,14 +447,14 @@ export function writeAtInput(editor: EditorKeys, part: Part, column: Column) {
 }
 
 /**
- * `,` (the Rest tool, step 6 Q12–Q13). In note input: a Gap of the Input length at the cursor, over any notes
+ * `,` (the Rest tool, step 6 Q12–Q13). In note input mode: a Gap of the Input length at the cursor, over any notes
  * there, the cursor moved on by it; inside a tuplet, the Input length in the tuplet's ratio; with Tuplet
  * entry on, one tuplet note on, the tuplet made when its first note is typed; with Grace entry on, nothing.
  * In normal mode, what Delete does.
  */
 export function restKey(editor: EditorKeys) {
   const { clip, cursor, inputLength } = editor;
-  if (!editor.inputMode) {
+  if (!editor.noteInputMode) {
     deleteAtCursor(editor, false);
     return;
   }
@@ -498,7 +498,7 @@ export function restKey(editor: EditorKeys) {
 }
 
 /**
- * `/` (the Grace tool, step 6 Q8 and Q11). In note input it turns Grace entry on and off (the page's); in
+ * `/` (the Grace tool, step 6 Q8 and Q11). In note input mode it turns Grace entry on and off (the page's); in
  * normal mode it adds a grace note before the picked note, at its fret, the cursor on the new grace note.
  */
 export function graceKey(editor: EditorKeys) {
@@ -512,7 +512,7 @@ export function graceKey(editor: EditorKeys) {
  * selected tab note ↑ ↓ change its fret by one and Ctrl/⌘+↑ ↓ move it to the next string at the same
  * pitch; with a selection every selected note goes. Alt+↑ ↓ select the next note up or down in the
  * chord. ← → select the next or last column, on the same string when it has a note there, and add
- * nothing. A digit never types a fret here, on the tab either: frets are typed in note input, as in Dorico
+ * nothing. A digit never types a fret here, on the tab either: frets are typed in note input mode, as in Dorico
  * (Jeremy, 2026-11-07, issue #396); Shift and a digit's key on the tab set the length too. True when the key
  * was one of them.
  */

@@ -24,7 +24,7 @@ import type { Notice } from './notice';
 /** Every column of a bar, selected. */
 /**
  * What a press, a drag or Alt+← → on the drawn tab does: where the cursor goes, what is selected or
- * picked, and the notes a press enters in note input or a drag moves. Each is handed to `TabClip`
+ * picked, and the notes a press enters in note input mode or a drag moves. Each is handed to `TabClip`
  * (or the keys); the page wires them up.
  */
 export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openSignature, dropLine }: {
@@ -42,7 +42,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   dropLine: () => void;
 }) {
   const {
-    clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, inputMode, inputLength,
+    clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, noteInputMode, inputLength,
     setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
@@ -174,7 +174,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
   };
 
-  /** A press on the tab: the cursor there, a note entered (note input) or a bar selected (normal mode); with Shift, the selection grows. */
+  /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
   const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false) => {
     lastDigitRef.current = null;
     setStaffPitch(null);
@@ -187,13 +187,13 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
       const there = hasColumn && noteAt(clip, hit);
-      if (inputMode && hasColumn && !there) {
-        // In note input a press on a string enters an open string there, as MuseScore's does; digits then change it.
+      if (noteInputMode && hasColumn && !there) {
+        // In note input mode a press on a string enters an open string there, as MuseScore's does; digits then change it.
         // Inside a rest it goes at the grid line pressed (issue #293).
         const here = splitRestAt(clip, hit, into);
         commit(setFret(here.clip, here.cursor, 0, inputLength), here.cursor, null);
         hearNote(here.cursor);
-      } else if (!inputMode && !there && hasColumn) {
+      } else if (!noteInputMode && !there && hasColumn) {
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
         commit(clip, hit, barSelection(clip, hit.bar));
         startRegion();
@@ -202,7 +202,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
         markAlone(hit, alone);
       } else {
         commit(clip, hit, null);
-        if (!inputMode) setColumnOnly(true);
+        if (!noteInputMode) setColumnOnly(true);
       }
     }
   };
@@ -270,8 +270,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (note) {
       toPitch(clip, notePlace(at, alone), pitch);
       markAlone(at, alone);
-    } else if (inputMode && clip.bars[hit.bar].columns.length > 0) {
-      // In note input a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
+    } else if (noteInputMode && clip.bars[hit.bar].columns.length > 0) {
+      // In note input mode a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).
       // The caret goes on past the note by its length, as with A–G and Enter (Jeremy, 2026-11-07, issue #396).
       const edit = enterOnStaff(clip, at, hit.at ?? 0, pitch, inputLength, false);
@@ -279,7 +279,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       setCursorAt(edit.cursor, edit.at);
       if (edit.note) hearNote(edit.note);
       if (edit.problem) setNotice({ tone: 'error', lines: [edit.problem] });
-    } else if (inputMode) {
+    } else if (noteInputMode) {
       toPitch(clip, at, pitch);
     } else {
       // In normal mode a press beside the heads selects the bar, as on the tab.

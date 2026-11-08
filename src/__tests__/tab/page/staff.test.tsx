@@ -74,7 +74,7 @@ describe('dragging notes on the staff (issue #174)', () => {
     expect(editor()).not.toHaveFocus();
   });
 
-  describe('normal mode and note input on the staff (issue #238)', () => {
+  describe('normal mode and note input mode on the staff (issue #238)', () => {
     const open = async () => {
       localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'both' }));
       renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n(5.6 7.5).4 3.4.4 r.2 |')}`);
@@ -109,7 +109,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(shown()).toBe('(7.5 5.6).4 2.6.2 r.4 |');
     });
 
-    it('shows a shadow note under the pointer only in note input, and a press there enters it, the caret on past it (issue #396)', async () => {
+    it('shows a shadow note under the pointer only in note input mode, and a press there enters it, the caret on past it (issue #396)', async () => {
       await open();
       // Over the first column, a few lines above its heads.
       const over = { clientX: headAt(0).clientX, clientY: headAt(2).clientY - 20 };
@@ -131,7 +131,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
     });
 
-    it('in note input a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
+    it('in note input mode a digit is the next note’s length, never a fret, and the shadow note shows it', async () => {
       await open();
       const shown = () => {
         fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
@@ -165,7 +165,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('selected-note')).toBeNull();
     });
 
-    it('a double-click on the staff or the tab goes into note input, the caret on the note pressed (Jeremy, 2026-10-31, 2026-11-07)', async () => {
+    it('a double-click on the staff or the tab goes into note input mode, the caret on the note pressed (Jeremy, 2026-10-31, 2026-11-07)', async () => {
       await open();
       const pencil = () => tool('Note input mode');
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
@@ -175,7 +175,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       // On the staff, as Dorico's caret starts on the note selected; nothing on the tab.
       expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
       expect(screen.queryByTestId('input-cursor')).toBeNull();
-      // In note input a double-click changes nothing; N goes back out.
+      // In note input mode a double-click changes nothing; N goes back out.
       fireEvent.doubleClick(svg(), headAt(0));
       expect(pencil()).toHaveAttribute('aria-pressed', 'true');
       fireEvent.keyDown(editor(), { key: 'n' });
@@ -204,14 +204,14 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(lit()).toEqual([false, false, true]);
       expect(screen.getByTestId('staff-rest').querySelector('path')!.getAttribute('fill')).toBe('var(--select)');
       expect(screen.getAllByTestId('range-box')).toHaveLength(1);
-      // In note input a press there enters a note, as before.
+      // In note input mode a press there enters a note, as before.
       fireEvent.keyDown(editor(), { key: 'Escape' });
       fireEvent.keyDown(editor(), { key: 'n' });
       press(onRest);
       expect(screen.getAllByTestId('staff-head')).toHaveLength(4);
     });
 
-    it('in note input ⌘/Ctrl+↑ takes the caret up to the staff and ⌘/Ctrl+↓ back down to the tab (issue #396)', async () => {
+    it('in note input mode ⌘/Ctrl+↑ takes the caret up to the staff and ⌘/Ctrl+↓ back down to the tab (issue #396)', async () => {
       await open();
       fireEvent.keyDown(editor(), { key: 'n' });
       fireEvent.keyDown(editor(), { key: 'ArrowDown' });
@@ -231,7 +231,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('input-cursor').getAttribute('y')).not.toBe(y);
     });
 
-    it('in note input a fret on the tab leaves the caret; A–G on the staff enter that note and move on, - = 0 first a flat, sharp or natural (issue #396)', async () => {
+    it('in note input mode a fret on the tab leaves the caret; A–G on the staff enter that note and move on, - = 0 first a flat, sharp or natural (issue #396)', async () => {
       await open();
       fireEvent.keyDown(editor(), { key: 'n' });
       fireEvent.keyDown(editor(), { key: 'ArrowRight' });
@@ -278,7 +278,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('tab-caret')).toBeNull();
     });
 
-    it('with only the staff drawn, ⌘/Ctrl+↓ in note input keeps the caret on the staff (issue #396)', async () => {
+    it('with only the staff drawn, ⌘/Ctrl+↓ in note input mode keeps the caret on the staff (issue #396)', async () => {
       await open();
       fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
       // A head picked, then N: the caret on its pitch.
@@ -290,7 +290,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
     });
 
-    it('in note input ↑ off the top string takes the caret up to the staff (issue #396)', async () => {
+    it('in note input mode ↑ off the top string takes the caret up to the staff (issue #396)', async () => {
       await open();
       fireEvent.keyDown(editor(), { key: 'n' });
       expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
@@ -336,7 +336,7 @@ describe('dragging notes on the staff (issue #174)', () => {
       press(headAt(2));
       expect(screen.getByTestId('staff-selected')).toBeInTheDocument();
       expect(screen.queryByTestId('selected-note')).toBeNull();
-      // Going into note input puts the caret on the note pressed, on the staff (Jeremy, 2026-11-07); nothing on the tab.
+      // Going into note input mode puts the caret on the note pressed, on the staff (Jeremy, 2026-11-07); nothing on the tab.
       fireEvent.keyDown(editor(), { key: 'n' });
       expect(screen.queryByTestId('staff-selected')).toBeNull();
       expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
@@ -469,7 +469,7 @@ describe('dragging notes on the staff (issue #174)', () => {
   });
 });
 
-describe('note input’s staff cursor (issue #382)', () => {
+describe('note input mode’s staff cursor (issue #382)', () => {
   it('is a caret, never a notehead: N then 5 on a whole rest enters nothing and makes the length a quarter', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);
@@ -490,7 +490,7 @@ describe('note input’s staff cursor (issue #382)', () => {
   });
 });
 
-describe('note input’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
+describe('note input mode’s staff cursor on a note (Jeremy, 2026-11-06)', () => {
   it('draws the caret’s line and ghost over a note at its own pitch; Enter moves the caret on past the note it adds', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n:8 3.6 5.6 7.6 8.6 3.6 5.6 7.6 8.6 | r.1 |')}`);

@@ -21,8 +21,8 @@ import type { EditorKeys } from './editorKeys';
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
 
-/** A key in note input mode. True when it was one of note input's own; the caller prevents its default. */
-export function noteInputKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
+/** A key in note input mode. True when it was one of note input mode's own; the caller prevents its default. */
+export function noteInputModeKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const { clip, cursor, columnOnly, lastDigit, commit, staffPitch } = editor;
   const { key } = e;
   const chord = e.ctrlKey || e.metaKey;
@@ -38,7 +38,7 @@ export function noteInputKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: 
   }
   // Esc always leaves note input mode (Jeremy, 2026-11-03); an open panel took it before this.
   if (key === 'Escape') {
-    editor.setInputMode(false);
+    editor.setNoteInputMode(false);
     return true;
   }
   // Shift and a digit's key set the next note's length on the tab (MuseScore's tab keys): Shift+5 a quarter.

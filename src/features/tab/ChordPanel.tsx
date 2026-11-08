@@ -125,15 +125,15 @@ interface ChordPanelProps {
   track: Track;
   cursor: Cursor;
   /** Whether the cursor is in the tab: off it, Insert does nothing, as the palette does. */
-  editing: boolean;
+  tabFocused: boolean;
   /** The chord a name's Edit last asked for (each Edit a new object): its chord editor opens. */
   at: { name: string | null } | null;
   /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord moves to it. */
   follow?: { name: string } | null;
   onChange: (next: Part) => void;
-  /** Note input's length while note input is on, else null: Insert then writes a new column of it and moves on. */
+  /** Note input mode's length while note input mode is on, else null: Insert then writes a new column of it and moves on. */
   inputLength: Duration | null;
-  /** Insert in note input: `part` (the clip with any definition added) with `column` written at the cursor, the cursor moved on. */
+  /** Insert in note input mode: `part` (the clip with any definition added) with `column` written at the cursor, the cursor moved on. */
   onInsertAtInput: (part: Part, column: Column) => void;
   /** Whether a chord or shape picked sounds: `HearChordsToggle`, in the panel's head (a Playback preference). */
   hear: boolean;
@@ -168,7 +168,7 @@ export function cursorPlace(clip: Part, cursor: Cursor): string {
 /** What the chord editor is open for: a new chord (+), a chord of the set, a copy of one, or nothing (closed). */
 type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean; change?: boolean } | { kind: 'copy'; name: string; newName: string };
 
-export function ChordPanel({ clip, track, cursor, editing, at, follow, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [editorFor, setEditorFor] = useState<EditorFor | null>(null);
@@ -235,11 +235,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, follow, onChange,
   };
 
   const insert = (n: string | null = name) => {
-    if (!editing || !n || !column) return;
+    if (!tabFocused || !n || !column) return;
     const frets = shapeFor(clip, n);
     // A name inserted with no definition yet gets the shape it was inserted with.
     const defined = !chordDefOf(clip.chords, n)?.frets && frets && what !== 'notes' ? withChordShape(clip, n, frets) : clip;
-    // In note input, notes go in as a note typed does: a new column of the Input length at the cursor, and on.
+    // In note input mode, notes go in as a note typed does: a new column of the Input length at the cursor, and on.
     if (inputLength && what !== 'name' && frets) {
       onInsertAtInput(defined, insertedColumn(emptyColumn(inputLength), what, n, frets));
       return;
@@ -270,7 +270,7 @@ export function ChordPanel({ clip, track, cursor, editing, at, follow, onChange,
   const menuItems = (n: string): MenuItem[] => {
     const entry = set.find(e => e.name === n);
     return [
-      { label: editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert', onSelect: () => insert(n) },
+      { label: tabFocused && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert', onSelect: () => insert(n) },
       { label: 'Edit', onSelect: () => openOn(n) },
       { label: 'Rename', onSelect: () => { setPicked(n); setEditorFor({ kind: 'edit', name: n, rename: true }); } },
       { label: 'Copy to new chord', onSelect: () => copy(n) },
@@ -305,11 +305,11 @@ export function ChordPanel({ clip, track, cursor, editing, at, follow, onChange,
   /** Insert for the picked chord, and what it writes, under the tiles. */
   const pickedEntry = set.find(e => e.name === name);
   /** Insert says where it writes (Jeremy, 2026-11-07); off the tab, only "Insert". */
-  const insertLabel = editing && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert';
+  const insertLabel = tabFocused && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert';
   const actionBar = pickedEntry && (
     <div className="chord-panel-insert">
       {whatSeg}
-      <button type="button" className="btn btn-primary" disabled={!editing} onMouseDown={keep} onClick={() => insert()}>{insertLabel}</button>
+      <button type="button" className="btn btn-primary" disabled={!tabFocused} onMouseDown={keep} onClick={() => insert()}>{insertLabel}</button>
     </div>
   );
 

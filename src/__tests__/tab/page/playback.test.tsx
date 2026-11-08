@@ -347,7 +347,7 @@ describe('TabPage playback', () => {
     renderAt();
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
-    // Typed in note input (issue #238).
+    // Typed in note input mode (issue #238).
     for (const key of ['n', 'ArrowDown', '5', 'ArrowRight', '7']) fireEvent.keyDown(editor, { key });
     // Placing the line fills the bar with a rest after the 5 and the 7.
     fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: 80, clientY: -10 });
@@ -377,7 +377,7 @@ describe('TabPage playback', () => {
     const loop = () => screen.getByRole('button', { name: 'Loop' });
     const editor = screen.getByRole('textbox', { name: /Tab editor/ });
     act(() => editor.focus());
-    // Typed in note input (issue #238).
+    // Typed in note input mode (issue #238).
     for (const key of ['n', 'ArrowDown', '5', 'ArrowRight', '7', 'ArrowRight', '9']) fireEvent.keyDown(editor, { key });
     // No selection: the whole clip; pressed again, cleared.
     fireEvent.click(loop());

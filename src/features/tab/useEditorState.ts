@@ -35,8 +35,8 @@ export interface EditorState {
   selectionAsSet: Selection | null;
   setSelection: (next: Selection | null) => void;
   /** Whether the tab has the keys. */
-  editing: boolean;
-  setEditing: (on: boolean) => void;
+  tabFocused: boolean;
+  setTabFocused: (on: boolean) => void;
   /**
    * The cursor is on its column only, with no string picked (Jeremy, 2026-10-27): Esc on a string, or a
    * press above or below the staff while the playback controls are hidden. The tools and keys then work
@@ -64,24 +64,24 @@ export interface EditorState {
   alone: boolean;
   setAlone: (on: boolean) => void;
   /**
-   * Note input (issue #238, as MuseScore's): N or the palette's pencil goes in and out, Esc out. In it the
+   * Note input mode (issue #238, as MuseScore's): N or the palette's pencil goes in and out, Esc out. In it the
    * cursor types and a press enters a note; out of it, in normal mode, a press selects what it is on.
    */
-  inputMode: boolean;
-  setInputMode: (on: boolean) => void;
+  noteInputMode: boolean;
+  setNoteInputMode: (on: boolean) => void;
   /**
-   * Note input's length (`inputLength.ts`): the next note entered on a rest takes it, as MuseScore's
+   * Note input mode's length (`inputLength.ts`): the next note entered on a rest takes it, as MuseScore's
    * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
    */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
   /**
-   * Tuplet entry (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`): in note input, the tuplet the
-   * typed notes go in as, picked from the Tuplet panel, or null. Leaving note input turns it off.
+   * Tuplet entry (`docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md`): in note input mode, the tuplet the
+   * typed notes go in as, picked from the Tuplet panel, or null. Leaving note input mode turns it off.
    */
   tupletEntry: number | null;
   setTupletEntry: (n: number | null) => void;
-  /** Grace entry: in note input, typed frets go in as grace notes before the cursor's time (`/`). Leaving note input turns it off. */
+  /** Grace entry: in note input mode, typed frets go in as grace notes before the cursor's time (`/`). Leaving note input mode turns it off. */
   graceEntry: boolean;
   setGraceEntry: (on: boolean) => void;
   /**
@@ -91,7 +91,7 @@ export interface EditorState {
   tupletFrom: number | null;
   setTupletFrom: (at: number | null) => void;
   /**
-   * How many ticks into its rest note input's cursor is (`grid.ts`, issue #293): ← →, a press or Shift+Space
+   * How many ticks into its rest note input mode's cursor is (`grid.ts`, issue #293): ← →, a press or Shift+Space
    * move it there, and every commit puts it back to 0. It counts only while the cursor is still on that rest.
    */
   cursorAt: number;
@@ -135,19 +135,19 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
 }): EditorState {
   const [cursorAsSet, setCursor] = useState<Cursor>(START);
   const [selectionAsSet, setSelection] = useState<Selection | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [tabFocused, setTabFocused] = useState(false);
   const [columnOnly, setColumnOnly] = useState(false);
   const [staffPitch, setStaffPitch] = useState<number | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [alone, setAlone] = useState(false);
-  const [inputMode, setInputModeOnly] = useState(false);
+  const [noteInputMode, setNoteInputModeOnly] = useState(false);
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   const [tupletEntry, setTupletEntry] = useState<number | null>(null);
   const [graceEntry, setGraceEntry] = useState(false);
   const [tupletFrom, setTupletFrom] = useState<number | null>(null);
-  // Leaving note input turns Tuplet entry and Grace entry off.
-  const setInputMode = (on: boolean) => {
-    setInputModeOnly(on);
+  // Leaving note input mode turns Tuplet entry and Grace entry off.
+  const setNoteInputMode = (on: boolean) => {
+    setNoteInputModeOnly(on);
     if (!on) {
       setTupletEntry(null);
       setGraceEntry(false);
@@ -159,7 +159,7 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
   const lastDigitRef = useRef<LastDigit>(null);
 
   const cursor = clampCursor(clip, cursorAsSet);
-  const cursorAt = inputMode && restSpot && restSpot.bar === cursor.bar && restSpot.column === cursor.column && isInsideRest(clip, cursor, restSpot.at) ? restSpot.at : 0;
+  const cursorAt = noteInputMode && restSpot && restSpot.bar === cursor.bar && restSpot.column === cursor.column && isInsideRest(clip, cursor, restSpot.at) ? restSpot.at : 0;
   const setCursorAt = (at: Cursor, ticks: number) => setRestSpot(ticks > 0 ? { bar: at.bar, column: at.column, at: ticks } : null);
   const selection = selectionAsSet && Math.max(selectionAsSet.anchor, selectionAsSet.focus) < columnCount(clip) ? selectionAsSet : null;
 
@@ -229,8 +229,8 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
   };
 
   return {
-    clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing,
-    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, inputMode, setInputMode,
+    clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, tabFocused, setTabFocused,
+    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, noteInputMode, setNoteInputMode,
     inputLength, setInputLength, tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitVoices, commitReBar, setNotice,
     startRegion, toPitch,
   };

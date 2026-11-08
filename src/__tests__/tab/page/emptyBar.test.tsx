@@ -37,7 +37,7 @@ describe('a press in an empty bar (issue #317)', () => {
     expect(screen.queryByTestId('bar-cursor')).toBeNull();
   });
 
-  it('keeps note input’s own cursor there: no box round the bar', async () => {
+  it('keeps note input mode’s own cursor there: no box round the bar', async () => {
     renderAt();
     await screen.findAllByTestId('tab-system');
     act(() => editor().focus());

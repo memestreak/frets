@@ -26,7 +26,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
   /** Puts an edited whole clip in, as one undo step. */
   replace: (next: Clip) => void;
 }) {
-  const { clip, cursor, cursorAsSet, selection, selectionAsSet, setSelection, editing, editorRef, startRegion, setNotice } = editor;
+  const { clip, cursor, cursorAsSet, selection, selectionAsSet, setSelection, tabFocused, editorRef, startRegion, setNotice } = editor;
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   const playback = usePlayback(clip, sound, settings.volume, {
     loopPause: settings.loopPause ? settings.loopPauseSeconds : 0,
@@ -59,7 +59,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
   const playFrom = markAt !== null ? Math.min(markAt, count - 1)
     : selectedColumns ? selectedColumns[0]
     : loopStart !== null ? loopStart
-    : editing ? indexOf(clip, cursor.bar, cursor.column) : 0;
+    : tabFocused ? indexOf(clip, cursor.bar, cursor.column) : 0;
   // "Stop playback at region end" (Jeremy, 2026-10-28): with a region selected, Play stops after its
   // last column, unless it starts past it. A loop still goes round instead.
   const playUntil = settings.stopAtRegionEnd && selectedColumns && playFrom <= selectedColumns[1] ? selectedColumns[1] : null;
@@ -72,7 +72,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     const next = playback.toggleLoop(selectedColumns);
     if (!Array.isArray(next)) return;
     setSelection(null);
-    if (editing) editorRef.current?.blur();
+    if (tabFocused) editorRef.current?.blur();
   };
   /**
    * A press above or below the staff: the playback line goes there (while playing, playback jumps
@@ -87,7 +87,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
         if (gap !== markAt) setSelection(gap > markAt ? { anchor: markAt, focus: gap - 1 } : { anchor: markAt - 1, focus: gap });
         return;
       }
-      const from = selection ?? (editing && columnAt(clip, cursor) ? { anchor: indexOf(clip, cursor.bar, cursor.column), focus: indexOf(clip, cursor.bar, cursor.column) } : null);
+      const from = selection ?? (tabFocused && columnAt(clip, cursor) ? { anchor: indexOf(clip, cursor.bar, cursor.column), focus: indexOf(clip, cursor.bar, cursor.column) } : null);
       if (from !== null) {
         const end = selectedRange(from)[1];
         setSelection(growSelection(from, from.anchor, gap > end ? gap - 1 : gap));
@@ -99,7 +99,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
     setSelection(null);
     // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
-    if (editing) editorRef.current?.blur();
+    if (tabFocused) editorRef.current?.blur();
     if (playback.seek(index)) return;
     setPlayMark({ index, clip: whole, cursor: cursorAsSet, selection: null });
   };

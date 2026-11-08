@@ -18,7 +18,7 @@ const rule = (selector: string) => {
 };
 
 describe('the rail of panels (issue #301)', () => {
-  it('opens Notes on a first visit, with the note input pencil, Duration and Rhythm', () => {
+  it('opens Notes on a first visit, with the note input mode pencil, Duration and Rhythm', () => {
     renderAt();
     expect(railButton('Notes')).toHaveAttribute('aria-pressed', 'true');
     expect(panel()).toHaveAccessibleName('Notes');

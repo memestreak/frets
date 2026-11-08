@@ -208,29 +208,29 @@ export default function TabPage() {
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });
   const {
-    cursor, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
-    staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
+    cursor, setCursor, selection, selectionAsSet, setSelection, tabFocused, setTabFocused, columnOnly, setColumnOnly,
+    staffPitch, setStaffPitch, picked, setPicked, noteInputMode, setNoteInputMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
     tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
   } = editor;
   /** Where the Tuplet panel `;` opened is, in the tab's units; null while it is shut (step 6, Q16). */
   const [tupletPanel, setTupletPanel] = useState<{ x: number; y: number } | null>(null);
-  /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
+  /** Note input mode's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
   const { fixedGrid, grid, gridLook } = prefs.editing;
-  /** The grid's step in ticks: the fixed grid's, else note input's length (MuseScore's way, the default). */
+  /** The grid's step in ticks: the fixed grid's, else note input mode's length (MuseScore's way, the default). */
   const gridStep = fixedGrid ? gridTicks(grid) : ticks(inputLength);
   /** The Grid panel's pick: a fixed grid, or null for Note length. */
   const pickGrid = (next: GridValue | null) => prefs.setEditing(e => (next === null ? { ...e, fixedGrid: false } : { ...e, fixedGrid: true, grid: next }));
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
-  const lit = editing && !picked;
+  const lit = tabFocused && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !editing || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : WORD_TOOL[picked.kind];
+  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
    */
-  const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && editing && inputMode && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
+  const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && tabFocused && noteInputMode && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
   /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
   const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
   const paletteKinds = lit ? cursorKinds : {
@@ -323,7 +323,7 @@ export default function TabPage() {
   const chooseView = (next: View) => {
     if (next !== 'tab') {
       playback.stop();
-      setEditing(false);
+      setTabFocused(false);
       setPicked(null);
       chooseVoice(0);
     }
@@ -368,14 +368,14 @@ export default function TabPage() {
     setPlaybackSettings(next);
   };
   const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
-  /** Note input on or off; going in, the keys come to the tab. */
-  /** The rest last picked on the staff, so going into note input from it starts the caret there. */
+  /** Note input mode on or off; going in, the keys come to the tab. */
+  /** The rest last picked on the staff, so going into note input mode from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
-  const enterInput = (on: boolean) => {
+  const enterNoteInput = (on: boolean) => {
     // Going in lets any selection or pick go, the cursor at the selection's start, as Dorico's caret and
-    // MuseScore's note input begin there (Jeremy, 2026-11-06).
+    // MuseScore's note input mode begin there (Jeremy, 2026-11-06).
     const at = on && selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
-    setInputMode(on);
+    setNoteInputMode(on);
     setCursorAt(at, 0);
     accidentalRef.current = null;
     if (on) {
@@ -402,22 +402,22 @@ export default function TabPage() {
   };
 
   /**
-   * Goes into note input with the caret where a double-click landed, as Dorico's double-click starts
-   * note input there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
+   * Goes into note input mode with the caret where a double-click landed, as Dorico's double-click starts
+   * note input mode there (Jeremy, 2026-11-07, issue #396): on a string, that string picked, on its note or
    * beside the notes; on the staff, at the note's pitch or the line or space; on a rest on the staff, its middle line.
    */
-  /** A sign typed on the staff for the next letter in note input (Jeremy, 2026-11-07, issue #396). */
+  /** A sign typed on the staff for the next letter in note input mode (Jeremy, 2026-11-07, issue #396). */
   const accidentalRef = useRef<TypedAccidental | null>(null);
 
-  const enterInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
+  const enterNoteInputAt = ({ hit, staff, rest }: DoubleClickPlace) => {
     const on = hit ?? staff ?? rest;
     if (!on || !clip.bars[on.bar]?.columns[on.column]) {
       setSelection(null);
-      enterInput(true);
+      enterNoteInput(true);
       return;
     }
     const at = { bar: on.bar, column: on.column, string: hit?.string ?? staff?.string ?? cursor.string };
-    setInputMode(true);
+    setNoteInputMode(true);
     setSelection(null);
     setPicked(null);
     setCursorAt(at, 0);
@@ -448,25 +448,25 @@ export default function TabPage() {
    * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
    */
   const onTool = (id: ToolId) => {
-    if (!editing) return;
+    if (!tabFocused) return;
     if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
     else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
-    // In note input the Duration buttons set the next note's length, as the length keys do.
-    else if (inputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
-    else if (inputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
-    // `,` and the Rest tool: a Gap of the Input length in note input, Delete in normal mode (step 6, Q12–Q13).
+    // In note input mode the Duration buttons set the next note's length, as the length keys do.
+    else if (noteInputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
+    else if (noteInputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
+    // `,` and the Rest tool: a Gap of the Input length in note input mode, Delete in normal mode (step 6, Q12–Q13).
     else if (id === 'rest') restKey(editorKeys());
-    // `/` and the Grace tool: Grace entry on and off in note input, else a grace note before the picked note (Q8, Q11).
-    else if (id === 'grace' && inputMode) setGraceEntry(!graceEntry);
+    // `/` and the Grace tool: Grace entry on and off in note input mode, else a grace note before the picked note (Q8, Q11).
+    else if (id === 'grace' && noteInputMode) setGraceEntry(!graceEntry);
     else if (id === 'grace') graceKey(editorKeys());
     // A picked tie arc: the Tie tool takes it away, as Delete does (step 5).
     else if (id === 'tie' && picked?.kind === 'mark' && picked.mark === 'tie') deletePicked(picked);
-    // In note input `=` adds a tied note of the input length after the note at the cursor (step 5).
-    else if (inputMode && id === 'tie') {
+    // In note input mode `=` adds a tied note of the input length after the note at the cursor (step 5).
+    else if (noteInputMode && id === 'tie') {
       const tied = tieOnInput(clip, cursor, inputLength);
       if (tied) commit(tied, cursor);
     }
@@ -485,13 +485,13 @@ export default function TabPage() {
   };
 
   /**
-   * A tuplet picked in the Tuplet panel (the button's, or `;`'s at the cursor), step 6. In note input it turns
+   * A tuplet picked in the Tuplet panel (the button's, or `;`'s at the cursor), step 6. In note input mode it turns
    * Tuplet entry on, or off for the same tuplet or None (Q6); in normal mode it goes over the picked note's
    * time, squeezes the selection, or takes the tuplet away (Q1, Q2, Q4), or the line under the clip says why not.
    */
   const pickTuplet = (n: number | null) => {
-    if (!editing) return;
-    if (inputMode) {
+    if (!tabFocused) return;
+    if (noteInputMode) {
       setTupletEntry(n === null || n === tupletEntry ? null : n);
       setTupletFrom(null);
       return;
@@ -511,7 +511,7 @@ export default function TabPage() {
 
   /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
   const onPanelChoice = (apply: () => Part) => {
-    if (editing) commitKeepingMark(apply());
+    if (tabFocused) commitKeepingMark(apply());
   };
 
   /**
@@ -556,7 +556,7 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
@@ -588,14 +588,14 @@ export default function TabPage() {
       const made = pasteVoices(whole, track, clip, at, put, insert);
       const run = voiceRange(made.part, voice, [made.from, made.to]);
       const end = run ? placeOf(made.part, run[1]) : at;
-      const done = editor.commitVoices(made.clip, made.part, { ...cursor, ...end }, inputMode || !run ? null : { anchor: run[0], focus: run[1] });
-      if (done && !inputMode && run) startRegion();
+      const done = editor.commitVoices(made.clip, made.part, { ...cursor, ...end }, noteInputMode || !run ? null : { anchor: run[0], focus: run[1] });
+      if (done && !noteInputMode && run) startRegion();
       setView('tab');
       return done;
     }
     const pasted = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
     let done: boolean;
-    if (inputMode) done = commit(pasted.clip, pasted.cursor, null);
+    if (noteInputMode) done = commit(pasted.clip, pasted.cursor, null);
     else {
       // In normal mode what was put in is selected, as MuseScore leaves a paste (Jeremy, 2026-10-31).
       const start = isEmpty(clip) ? 0 : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
@@ -656,7 +656,7 @@ export default function TabPage() {
 
   // The keys that work anywhere on the page, paste, copy, cut, undo, and the tab taking and letting go of the keys.
   const { onEditorFocus, onEditorBlur } = usePageKeys(editor, {
-    view, parts, range, showPlayback, setEditingPrefs: prefs.setEditing, enterInput, chooseVoice,
+    view, parts, range, showPlayback, setEditingPrefs: prefs.setEditing, enterNoteInput, chooseVoice,
     paste: (text, insert) => void pasteTab(text, insert), copyOrCut,
     undo: redo => dispatchClip({ type: redo ? 'redo' : 'undo' }),
   });
@@ -673,7 +673,7 @@ export default function TabPage() {
 
   // In normal mode a column with no note picked is lit as a selection is, never boxed: arrowing onto a rest,
   // as MuseScore does, lights the rest (Jeremy, 2026-10-31: the box came back after Delete and the arrows).
-  const columnLit = editing && !picked && !inputMode && columnOnly && staffCursor == null && columnAt(clip, cursor) !== null;
+  const columnLit = tabFocused && !picked && !noteInputMode && columnOnly && staffCursor == null && columnAt(clip, cursor) !== null;
   // A picked Mark's run of columns is selected for the tools, but drawn as the Mark's tint, not a selection (step 8).
   const shownSelection = picked?.kind === 'mark' ? null : selection;
   const litStart = shownSelection ? selectedRange(shownSelection)[0] : columnLit ? cursorIndex : null;
@@ -683,17 +683,17 @@ export default function TabPage() {
    * What the drawing is handed, the same from one render to the next while it shows the same thing, so
    * a playback step or a change elsewhere on the page doesn't draw it again (`TabClip` is a `memo`).
    */
-  const showsCursor = editing && !picked;
+  const showsCursor = tabFocused && !picked;
   const { bar: cursorBar, column: cursorColumn, string: cursorString } = cursor;
   const boxed = shownSelection !== null;
   // A picked Tie chain lights all its written notes, and a selection the chains it runs on into (step 5).
-  const tiedKey = showsCursor && !inputMode ? JSON.stringify(litTiedNotes(clip, cursor, selection, columnOnly, editor.alone)) : '[]';
+  const tiedKey = showsCursor && !noteInputMode ? JSON.stringify(litTiedNotes(clip, cursor, selection, columnOnly, editor.alone)) : '[]';
   const highlight = useMemo(() => ({
     cursor: showsCursor ? { bar: cursorBar, column: cursorColumn, string: cursorString } : null,
     range: litStart === null || litEnd === null ? null : [litStart, litEnd] as [number, number],
-    boxed, columnOnly, staffPitch: staffCursor, input: inputMode, at: cursorAt,
+    boxed, columnOnly, staffPitch: staffCursor, input: noteInputMode, at: cursorAt,
     tied: JSON.parse(tiedKey) as { index: number; string: number }[],
-  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, inputMode, cursorAt, tiedKey]);
+  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, noteInputMode, cursorAt, tiedKey]);
   const errors = useMemo(() => barErrors(clip), [clip]);
   // A selection covers every Voice in its time (Q12), drawn selected in each; not one Select only voice made.
   const shownVoiceSelections = useMemo(
@@ -703,21 +703,21 @@ export default function TabPage() {
   const clipHandlers = useStableHandlers({
     onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
     onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
-    onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
+    onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     onMiss: () => { setSelection(null); dropLine(); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
-    onPickRhythm: inputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
+    onPickRhythm: noteInputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
       restOnStaff.current = parts !== 'tab' && !extend ? { bar: rest.bar, column: rest.column } : null;
       picking.onPickRhythm(rest, extend);
     },
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
-    // one on a mark or a bar line with no Edit leaves it picked. Out of note input, one anywhere else
+    // one on a mark or a bar line with no Edit leaves it picked. Out of note input mode, one anywhere else
     // on the staff or the tab goes into it (Jeremy, 2026-10-31) with the caret where it landed (2026-11-07).
     onDoubleClick: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => {
       if (word && hasEdit(word)) return editPicked(word);
-      if (word || onMark || inputMode) return;
-      enterInputAt(place);
+      if (word || onMark || noteInputMode) return;
+      enterNoteInputAt(place);
     },
   });
 
@@ -731,20 +731,20 @@ export default function TabPage() {
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
     <TabPalette
       // Lit for the cursor's notes; while a word over the tab is picked, only that word's tool (Jeremy, 2026-10-27).
-      isOn={id => (pickedTool ? id === pickedTool : lit && (inputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id)
-        // In note input Grace lights while Grace entry is on (step 6, Q11).
-        : inputMode && id === 'grace' ? graceEntry
+      isOn={id => (pickedTool ? id === pickedTool : lit && (noteInputMode && (toolValue(id) || id === 'dot') ? lengthIsOn(inputLength, id)
+        // In note input mode Grace lights while Grace entry is on (step 6, Q11).
+        : noteInputMode && id === 'grace' ? graceEntry
         // A beam tool lights for every note it acts on having its override (spec Q8, Q10).
         : id === 'beamBreak' || id === 'beamJoin' ? beamLit(clip, target, id === 'beamBreak' ? 'break' : 'join')
         : isOn(clip, cursor, id, columnOnly)))}
-      kinds={inputMode && lit ? { ...paletteKinds, tuplet: tupletEntry ? { ...inputLength, tuplet: tupletEntry } : null } : paletteKinds}
+      kinds={noteInputMode && lit ? { ...paletteKinds, tuplet: tupletEntry ? { ...inputLength, tuplet: tupletEntry } : null } : paletteKinds}
       onTool={onTool} onBend={quarters => onPanelChoice(() => setBend(clip, target, quarters))}
       onTuplet={pickTuplet}
       onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
-      inputMode={inputMode} groups={groups} className={className} onInputMode={input ? () => enterInput(!inputMode) : undefined}
+      noteInputMode={noteInputMode} groups={groups} className={className} onNoteInputMode={input ? () => enterNoteInput(!noteInputMode) : undefined}
       grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid}
-      voices={input ? { active: editing ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
+      voices={input ? { active: tabFocused ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
   );
 
   return (
@@ -794,9 +794,9 @@ export default function TabPage() {
         onOpen={id => { setRailPanel(id); setChordsAt(null); }}
         chords={(
           <ChordPanel
-            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} editing={editing} at={chordsAt} follow={chordFollow}
+            key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} tabFocused={tabFocused} at={chordsAt} follow={chordFollow}
             onChange={next => commit(next)}
-            inputLength={inputMode ? inputLength : null}
+            inputLength={noteInputMode ? inputLength : null}
             onInsertAtInput={(part, column) => writeAtInput(editorKeys(), part, column)}
             hear={playbackSettings.hearChords}
             onHear={frets => playback.hearShape(frets)}
@@ -874,7 +874,7 @@ export default function TabPage() {
                 <div
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
                   ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                  aria-label={inputMode
+                  aria-label={noteInputMode
                     ? 'Tab editor, note input mode: ↑ ↓ pick a string and digits type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
                     : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input mode; Shift+F10 to insert a bar'}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
@@ -887,9 +887,9 @@ export default function TabPage() {
                       clip={drawn} layout={layout} width={clipWidth} parts={parts} barNumbers={shown.barNumbers} title={`${name}, drawn as ${parts === 'staff' ? 'a staff' : 'tab'}`}
                       {...clipHandlers} columnReach={COLUMN_REACH}
                       highlight={highlight}
-                      shadow={inputMode ? inputLength.value : null} gridStep={inputMode ? gridStep : null} gridLook={gridLook}
-                      picked={editing ? picked : null}
-                      errors={errors} mutedVoices={editing} voiceSelections={shownVoiceSelections}
+                      shadow={noteInputMode ? inputLength.value : null} gridStep={noteInputMode ? gridStep : null} gridLook={gridLook}
+                      picked={tabFocused ? picked : null}
+                      errors={errors} mutedVoices={tabFocused} voiceSelections={shownVoiceSelections}
                     />
                   </HoverTips>
                 </div>
@@ -908,7 +908,7 @@ export default function TabPage() {
             {head.panels}
             {view === 'tab' && tupletPanel && (
               <TupletPanel
-                {...tupletPanel} current={inputMode ? tupletEntry : (cursorKinds.tuplet?.tupletSpan ? null : cursorKinds.tuplet?.tuplet ?? null)}
+                {...tupletPanel} current={noteInputMode ? tupletEntry : (cursorKinds.tuplet?.tupletSpan ? null : cursorKinds.tuplet?.tuplet ?? null)}
                 onPick={n => { closeTuplets(true); pickTuplet(n); }} onClose={closeTuplets}
               />
             )}
@@ -958,7 +958,7 @@ export default function TabPage() {
             if (refocus) editorRef.current?.focus();
             else {
               // A press away from the menu: the tab lets the keys go, as its blur would have when the menu opened.
-              setEditing(false);
+              setTabFocused(false);
               setPicked(null);
               setColumnOnly(false);
               chooseVoice(0);
@@ -971,7 +971,7 @@ export default function TabPage() {
             ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
           ] : [
             // Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
-            ...(!inputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
+            ...(!noteInputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
               label: 'Move to voice', onSelect: () => {},
               items: [0, 1, 2, 3].filter(v => v !== voice).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => { moveToVoiceKey(v); } })),
             }] : []),

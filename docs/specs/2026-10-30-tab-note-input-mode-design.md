@@ -36,13 +36,13 @@ note selected on the tab coloured on the staff; the same goes for note input mod
 | Press on a note (tab number or staff head) | Selects it. |
 | Press beside the notes (an empty string, a blank line or space) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. |
 | Digit, a staff note selected | Sets its length, MuseScore's numbers: 1 a 64th, 2 a 32nd, 3 a 16th, 4 an eighth, 5 a quarter, 6 a half, 7 a whole (Q1, Jeremy). |
-| Digit, a tab note selected | Sets its length, as on the staff: frets are typed only in note input, as in Dorico (Jeremy, 2026-11-07, issue #396; it typed the fret before). |
+| Digit, a tab note selected | Sets its length, as on the staff: frets are typed only in note input mode, as in Dorico (Jeremy, 2026-11-07, issue #396; it typed the fret before). |
 | ↑ ↓, tab | The string above or below, as Dorico's arrows go between notes and staves; up past the top string (or from the column alone) to the staff when it is shown, on the note's pitch or else the column's lowest note (Jeremy, 2026-11-07, issue #396; it changed the fret before). From the column alone ↓ picks the top string. |
 | Alt+↑ ↓, tab | The selected notes a fret higher or lower on their own strings, as Dorico's Alt+arrows change what is picked; nothing moves when one would pass 0 or 24 (it was plain ↑ ↓ before). |
 | Ctrl/⌘+↑ ↓, tab | The note to the next string up or down that plays the same pitch. |
 | Drag a tab number up or down | The note to the string under the pointer, at the same pitch (`2026-10-31-tab-drag-fret-string-design.md`). |
 | ↑ ↓, staff | Selects the next note up or down the chord by pitch; down past the lowest to the tab when it is shown (Jeremy, 2026-11-07, issue #396; ↑ ↓ moved it a semitone before, and Alt+↑ ↓ went between the notes). |
-| Alt+↑ ↓, staff | The selected notes a line or space, in the key, as in note input. |
+| Alt+↑ ↓, staff | The selected notes a line or space, in the key, as in note input mode. |
 | Alt+Shift+↑ ↓, staff | A semitone. |
 | Ctrl/⌘+↑ ↓, staff | An octave. |
 | ← → | Selects the next or last column: its note on the same string, else the column. Adds no rests. |

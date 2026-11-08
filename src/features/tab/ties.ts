@@ -234,7 +234,7 @@ export function tieForward(clip: Part, { cursor, selection }: { cursor: Cursor; 
 }
 
 /**
- * `=` in note input (spec Q9): a note of `length` tied on after the chain at the cursor, for every note of
+ * `=` in note input mode (spec Q9): a note of `length` tied on after the chain at the cursor, for every note of
  * its chord whose chain ends at the same time, written over what follows and split and tied by the
  * meter. Null on a rest, or when it would put a tuplet across a bar line.
  */

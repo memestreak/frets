@@ -161,7 +161,7 @@ describe('= ties forward', () => {
     expect(bars(tied)).toBe('5.1.4 -.1.4 7.1.4 -.1.4 |');
   });
 
-  it('in note input, input length a quarter, on a half on beat 1 of h q q: h. q, the cursor still on beat 1; again, a whole note', () => {
+  it('in note input mode, input length a quarter, on a half on beat 1 of h q q: h. q, the cursor still on beat 1; again, a whole note', () => {
     const clip = clipOf('\\ts (4 4)\n5.1.2 3.1.4 4.1.4 |');
     const once = edited(clip, tieOnInput(clip, at(0, 0), quarter)!);
     expect(bars(once)).toBe('5.1.2{d} 4.1.4 |');

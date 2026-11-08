@@ -80,7 +80,7 @@ describe('an empty bar is one Whole-bar rest', () => {
     expect(screen.getAllByTestId('rest')).toHaveLength(1);
   });
 
-  it('in note input, a press on a string over a 5/8 Whole-bar rest enters the note at the grid line pressed (issue #293)', async () => {
+  it('in note input mode, a press on a string over a 5/8 Whole-bar rest enters the note at the grid line pressed (issue #293)', async () => {
     const text = '\\ts (5 8)\nr.4{d} r.4 | 3.6.8 5.6.8 7.6.8 8.6.4 |';
     await open('tab', text, 'rest');
     fireEvent.keyDown(editor(), { key: 'n' });

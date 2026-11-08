@@ -315,7 +315,7 @@ function shortened(columns: Column[], k: number, written: Column, old: number): 
 }
 
 /**
- * A fret typed in a tuplet's Gap in note input (spec Q7): a tuplet note of `length` in the tuplet's ratio,
+ * A fret typed in a tuplet's Gap in note input mode (spec Q7): a tuplet note of `length` in the tuplet's ratio,
  * `at` ticks into the Column at `cursor`. With no fret (`,`, spec Q12) a Gap that long. Null when it
  * doesn't fit before the tuplet's end.
  */
@@ -366,7 +366,7 @@ export function tupletSpanTicks(n: number, length: Duration): number {
   return ticks({ value: length.value, dots: length.dots, tuplet: n }) * n;
 }
 
-/** Whether a Column is a rest inside a tuplet: note input's grid stops at each tuplet note in it (spec Q7). */
+/** Whether a Column is a rest inside a tuplet: note input mode's grid stops at each tuplet note in it (spec Q7). */
 export function isTupletRest(column: Column | undefined): boolean {
   return !!column && !column.grace && !!column.duration.tuplet && !column.notes.some(Boolean);
 }

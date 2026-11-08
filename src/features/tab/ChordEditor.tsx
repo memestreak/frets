@@ -157,7 +157,7 @@ export function ChordEditor({ opened, from = null, clip, column, taken, onAdd, o
     if (!draft.shape) draft.draw(NO_SHAPE);
   };
   // Esc closes it wherever the focus is: a button pressed in it lets go of the focus after use
-  // (`useLetGoAfterUse`), so the key may come from the page. It goes no further (not to note input,
+  // (`useLetGoAfterUse`), so the key may come from the page. It goes no further (not to note input mode,
   // nor the selection), and leaves a dialog or menu open over the page to take its own Esc.
   const close = useRef(onClose);
   useEffect(() => {
