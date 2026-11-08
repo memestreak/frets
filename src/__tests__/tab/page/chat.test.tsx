@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { OPENROUTER_URL, MODELS_URL } from '@/features/tab/chat/openRouter';
+import { OPENROUTER_URL, MODELS_URL, PRESETS_URL } from '@/features/tab/chat/openRouter';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { CHAT_KEY } from '@/features/tab/chat/chatPrefs';
 import { setUpPage, renderAt, alphaTex, undo, BUILTIN_FILES, SLOW } from './helpers';
@@ -20,6 +20,11 @@ function serve(...answers: object[]) {
     if (at === BUILTIN_URL) return new Response(JSON.stringify(BUILTIN_FILES));
     if (at === '/tab-alphatex.txt') return new Response('THE GUIDE');
     if (at === MODELS_URL) return new Response(JSON.stringify({ data: [{ id: 'anthropic/claude-opus-5.5', supported_parameters: ['tools'] }, { id: 'no/tools', supported_parameters: [] }] }));
+    if (at === PRESETS_URL) {
+      const key = (init?.headers as Record<string, string>).Authorization;
+      // As OpenRouter answered on 2026-11-08 (fewer fields).
+      return new Response(JSON.stringify({ data: [{ id: 'c9c5', name: 'default', slug: 'default', description: 'Tab default', status: 'active' }], total_count: 1 }), { status: key === 'Bearer sk-or-test' ? 200 : 401 });
+    }
     if (at === OPENROUTER_URL) {
       sent.push({ headers: init?.headers as Record<string, string>, body: JSON.parse(String(init?.body)) });
       const answer = answers[Math.min(sent.length - 1, answers.length - 1)];
@@ -137,13 +142,15 @@ describe('the Chat panel', () => {
     expect(alphaTex()).toBe(before);
   });
 
-  it('offers the models that take tools, and saves the one typed', async () => {
+  it('offers the presets saved on OpenRouter first, then the models that take tools, and saves the one typed', async () => {
     withKey();
     serve();
     renderAt(`?chat${TEX}`);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
-    await waitFor(() => expect(document.querySelectorAll('datalist option')).toHaveLength(1));
+    await waitFor(() => expect(document.querySelectorAll('datalist option')).toHaveLength(2));
+    const offered = [...document.querySelectorAll('datalist option')].map(o => [(o as HTMLOptionElement).value, o.textContent]);
+    expect(offered).toEqual([['@preset/default', 'Tab default'], ['anthropic/claude-opus-5.5', '']]);
     fireEvent.change(within(chatPanel()).getByRole('combobox', { name: 'Model' }), { target: { value: 'openai/gpt-5' } });
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).model).toBe('openai/gpt-5');
   });

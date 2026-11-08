@@ -4,7 +4,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { clipReducer, type ClipState } from '@/features/tab/clipState';
 import { describeArrangement, runTool, spliceBars, TOOLS, type PageSpot } from '@/features/tab/chat/arrangementTools';
 import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_MODEL, parseChatPrefs, readChatParam } from '@/features/tab/chat/chatPrefs';
-import { ChatError, errorText, readCompletion, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
+import { ChatError, errorText, fetchPresets, PRESETS_URL, readCompletion, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
 import { MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
 import { runsOf, usageLine } from '@/features/tab/chat/ChatPanel';
 import type { Clip } from '@/features/tab/clip';
@@ -256,5 +256,35 @@ describe('a reply’s changes are one Undo step', () => {
     expect(state.past).toEqual([FOUR]);
     const undone = clipReducer(clipReducer(state, { type: 'replace', clip: two }), { type: 'undo' });
     expect(clipReducer(undone, { type: 'amend', clip: two }).future).toEqual([]);
+  });
+});
+
+describe('fetchPresets', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const answering = (status: number, body: object) => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(body), { status }));
+    vi.stubGlobal('fetch', fetch);
+    return fetch;
+  };
+
+  it('lists the active presets as @preset/<slug>, with their descriptions, asking with the key', async () => {
+    const fetch = answering(200, { data: [
+      { slug: 'default', name: 'default', description: 'Tab default', status: 'active' },
+      { slug: 'old', name: 'Old', description: 'gone', status: 'archived' },
+      { slug: 'named', name: 'Named only', description: '' },
+      { name: 'no slug' },
+    ] });
+    expect(await fetchPresets('sk-or-k')).toEqual([
+      { model: '@preset/default', description: 'Tab default' },
+      { model: '@preset/named', description: 'Named only' },
+    ]);
+    expect(fetch).toHaveBeenCalledWith(PRESETS_URL, expect.objectContaining({ headers: { Authorization: 'Bearer sk-or-k' } }));
+  });
+
+  it('is null when refused or unreachable', async () => {
+    answering(401, { error: { message: 'Unauthorized', code: 401 } });
+    expect(await fetchPresets('bad')).toBeNull();
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+    expect(await fetchPresets('k')).toBeNull();
   });
 });

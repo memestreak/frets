@@ -32,7 +32,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
 - **The panel (Q7).** From the top: the **Model** field (the same setting as
-  in Settings, suggesting OpenRouter's models that take tools); the
+  in Settings, suggesting first the viewer's presets saved on OpenRouter, as
+  `@preset/<slug>` with their descriptions, then OpenRouter's models that take
+  tools); the
   conversation; a message box; **Send** (or Enter; Shift+Enter is a new line),
   **Stop** while a reply runs, and **New chat** once there is something to
   forget. With no key, the box is disabled and a line offers **Open
@@ -83,7 +85,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   `spliceBars`, `runTool`.
 - `chat/openRouter.ts`: `completeWithOpenRouter` (the request, its headers:
   `Authorization`, `X-Title: Frets`; `usage: { include: true }` for the
-  cost), `readCompletion`, `errorText`, `fetchToolModels`.
+  cost), `readCompletion`, `errorText`, `fetchToolModels`, `fetchPresets` (`GET /api/v1/presets` with
+  the key; an ordinary key lists them, and browsers may ask, tested 2026-11-08).
 - `chat/reply.ts`: `runReply`, the loop of model calls and tool runs, at most
   `MAX_STEPS` (12) calls; `systemPrompt`.
 - `chat/chatPrefs.ts`: `frets.tab.chat`, its parser, `?chat`.
@@ -147,5 +150,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   and the next ask goes alone.
 - A refused key shows OpenRouter's message and changes nothing.
 - Delete and Ctrl+Z typed in the message box don't change the clip.
-- The Model field suggests only the models that take tools, and a typed model
-  is saved.
+- The Model field suggests the presets first (`@preset/default`, "Tab
+  default"), then only the models that take tools, and a typed model is saved.
+- `fetchPresets` lists active presets with a slug as `@preset/<slug>` (the
+  name when there's no description), skips archived ones and ones without a
+  slug, sends `Bearer <key>`, and is null on a 401 or no connection.

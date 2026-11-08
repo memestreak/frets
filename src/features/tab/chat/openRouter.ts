@@ -8,6 +8,7 @@ import type { ToolDef } from './arrangementTools';
 
 export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const MODELS_URL = 'https://openrouter.ai/api/v1/models';
+export const PRESETS_URL = 'https://openrouter.ai/api/v1/presets';
 
 export interface ToolCall {
   id: string;
@@ -125,6 +126,32 @@ export async function fetchToolModels(signal?: AbortSignal): Promise<string[] | 
       .filter(m => typeof m.id === 'string' && (!Array.isArray(m.supported_parameters) || m.supported_parameters.includes('tools')))
       .map(m => m.id as string)
       .sort();
+  } catch {
+    return null;
+  }
+}
+
+/** A preset saved on OpenRouter: a model with its settings, named by slug, used as the model `@preset/<slug>`. */
+export interface Preset {
+  model: string;
+  description: string;
+}
+
+/**
+ * The viewer's active presets as models (`@preset/<slug>`), newest first, or null when the list can't be had.
+ * Listing them needs the viewer's key (tested 2026-11-08: an ordinary key lists them, and browsers may ask).
+ */
+export async function fetchPresets(apiKey: string, signal?: AbortSignal): Promise<Preset[] | null> {
+  try {
+    const response = await fetch(PRESETS_URL, { headers: { Authorization: `Bearer ${apiKey}` }, signal });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { data?: { slug?: unknown; description?: unknown; name?: unknown; status?: unknown }[] };
+    return (body.data ?? [])
+      .filter(p => typeof p.slug === 'string' && p.slug !== '' && (p.status === undefined || p.status === 'active'))
+      .map(p => ({
+        model: `@preset/${p.slug as string}`,
+        description: typeof p.description === 'string' && p.description.trim() ? p.description.trim() : typeof p.name === 'string' ? p.name : '',
+      }));
   } catch {
     return null;
   }

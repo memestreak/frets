@@ -10,7 +10,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { readAlphaTex } from '../alphatexRead';
 import type { Clip } from '../clip';
 import type { PageSpot } from './arrangementTools';
-import { completeWithOpenRouter, fetchToolModels, type ChatMessage, type Complete, type Usage } from './openRouter';
+import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
 import { runReply, systemPrompt } from './reply';
 import type { ChatPrefs } from './chatPrefs';
 
@@ -51,6 +51,9 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
   const [draft, setDraft] = useState('');
   const [working, setWorking] = useState<{ notes: Note[]; stop: AbortController } | null>(null);
   const [models, setModels] = useState<string[]>([]);
+  /** The presets listed with a key; shown only while that key is still the one saved. */
+  const [listed, setListed] = useState<{ apiKey: string; presets: Preset[] }>({ apiKey: '', presets: [] });
+  const presets = listed.apiKey === prefs.apiKey ? listed.presets : [];
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +63,14 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
     void fetchToolModels(stop.signal).then(list => { if (list) setModels(list); });
     return () => stop.abort();
   }, []);
+  // The viewer's presets on OpenRouter, offered first; listing them takes the key.
+  useEffect(() => {
+    const apiKey = prefs.apiKey;
+    if (!apiKey) return;
+    const stop = new AbortController();
+    void fetchPresets(apiKey, stop.signal).then(list => { if (list) setListed({ apiKey, presets: list }); });
+    return () => stop.abort();
+  }, [prefs.apiKey]);
   // The newest entry in view: the list scrolls, never the page.
   useEffect(() => {
     const list = listRef.current;
@@ -118,7 +129,10 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
           className="input" list={listId} aria-label="Model" value={prefs.model} spellCheck={false} disabled={!!working}
           onChange={e => onModel(e.target.value)} onKeyDown={e => e.stopPropagation()}
         />
-        <datalist id={listId}>{models.map(m => <option key={m} value={m} aria-label={m} />)}</datalist>
+        <datalist id={listId}>
+          {presets.map(p => <option key={p.model} value={p.model} aria-label={p.model}>{p.description}</option>)}
+          {models.map(m => <option key={m} value={m} aria-label={m} />)}
+        </datalist>
       </label>
       {!prefs.apiKey && (
         <p className="tab-chat-hint">
