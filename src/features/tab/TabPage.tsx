@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type FocusEvent, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
@@ -9,24 +9,22 @@ import { GearIcon } from '@/components/icons';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useGeneralGroup } from '@/components/settings/general';
 import { KEEPS_SELECTION, useDeselect } from '@/hooks/useDeselect';
-import { useSpaceKey } from '@/hooks/useSpaceKey';
 import { writeAscii } from './ascii';
 import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, titled, trackName, withPart, unevenMessage, UNTITLED, ticks, type Clip, type Part } from './clip';
-import { cursorInVoice, moveToVoice, pastesVoices, pasteVoices, perVoice, selectionInVoice, sliceVoices, spansVoices, stepAcrossVoices, voiceRange, voiceSelections } from './voices';
-import type { Hit } from './hitTest';
+import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceSelections } from './voices';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, columnCount, growSelection, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START, type Cursor, type Selection } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
 import { TupletPanel } from './TupletPanel';
 import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, graceKey, popupTakesEscape, lineKeyDown, restKey, writeAtInput, type EditorKeys } from './editorKeys';
+import { editorKeyDown, graceKey, restKey, writeAtInput, type EditorKeys } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
-import { gridTicks, stepGrid, type GridValue } from './grid';
+import { gridTicks, type GridValue } from './grid';
 import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
@@ -57,18 +55,19 @@ import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, 
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
-import { LoopHandles, PlaybackFooter, Playhead, rollsOf, usePlayback, type PlaybackSettings } from './PlaybackFooter';
+import { LoopHandles, PlaybackFooter, Playhead, type PlaybackSettings } from './PlaybackFooter';
 import { useArrangementFile } from './useArrangementFile';
 import { useEditorState, type Picked } from './useEditorState';
 import { useHeadPanels } from './useHeadPanels';
+import { usePageKeys } from './usePageKeys';
+import { usePlayRange } from './usePlayRange';
 import { useStableHandlers } from './useStableHandlers';
 import { useTabPicking } from './useTabPicking';
+import { useActiveVoice, useVoicePick } from './useVoicePick';
 import { useWidth } from './useWidth';
-import { TAB_SHORTCUTS } from './shortcuts';
-import { showShortcuts, useShortcuts } from '@/components/shortcuts/useShortcuts';
+import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
 
-const TEXT_FIELDS = 'input, select, textarea, dialog';
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
 const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
@@ -108,8 +107,9 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * `public/tab-alphatex.txt` and `public/tab-ascii.txt`.
  *
  * The page wires its parts together: the editor's state (`useEditorState`), presses and drags on the
- * tab (`useTabPicking`), the fields and panels over it (`useHeadPanels`) and the file actions
- * (`useArrangementFile`).
+ * tab (`useTabPicking`), the fields and panels over it (`useHeadPanels`), the file actions
+ * (`useArrangementFile`), the Active voice (`useVoicePick`), playback and the playback line
+ * (`usePlayRange`), and the page-wide keys (`usePageKeys`).
  */
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
@@ -125,13 +125,8 @@ export default function TabPage() {
   const opened = state.id;
   const [trackPick, setTrackPick] = useState({ opened, track: 0 });
   const track = trackPick.opened === opened ? Math.min(trackPick.track, whole.tracks.length - 1) : 0;
-  /**
-   * The Active voice (step 9, `GLOSSARY.md`), from 0: the Voice the cursor types into, picked by Alt+1–4, the
-   * Rail's Voice row or a press on its notes; back to Voice 1 when the cursor leaves the tab, or another
-   * track or arrangement opens.
-   */
-  const [voicePick, setVoicePick] = useState({ opened, track: 0, voice: 0 });
-  const voice = voicePick.opened === opened && voicePick.track === track ? voicePick.voice : 0;
+  // The Active voice (step 9, `GLOSSARY.md`), from 0.
+  const { voice, setVoice } = useActiveVoice(opened, track);
   // Its edits go back into the whole clip through `dispatch`.
   const clip = useMemo(() => partOf(whole, track, voice), [whole, track, voice]);
   const dispatch = (action: ClipAction | PartAction) => dispatchClip(clipAction(whole, action, track));
@@ -213,82 +208,11 @@ export default function TabPage() {
   /* — the editor: a cursor on a column and string, and a run of selected columns — */
   const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });
   const {
-    cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
+    cursor, setCursor, selection, selectionAsSet, setSelection, editing, setEditing, columnOnly, setColumnOnly,
     staffPitch, setStaffPitch, picked, setPicked, inputMode, setInputMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
     tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
   } = editor;
-  /** The selection Select only voice made, which holds one Voice's notes alone while it stays as it was (Q21). */
-  const [onlyVoice, setOnlyVoice] = useState<Selection | null>(null);
-  const voiceOnly = selection !== null && onlyVoice === editor.selectionAsSet;
-  /**
-   * Another Voice made active (step 9, Q5, Q8): the cursor moves to the same time in it, and a selection to
-   * that Voice's notes at its time, unless `at` says where they go (a press on its note, a move into it).
-   */
-  const chooseVoice = (next: number, at?: { cursor: Cursor; selection: Selection | null }) => {
-    if (next === voice && !at) return;
-    const to = partOf(whole, track, next);
-    setVoicePick({ opened, track, voice: next });
-    setCursor(at ? at.cursor : cursorInVoice(clip, to, cursor));
-    setSelection(at ? at.selection : selection ? selectionInVoice(clip, selection, next) : null);
-    setPicked(null);
-    setCursorAt(cursor, 0);
-  };
-  /** A press on another Voice's note or rest (Q5): it is picked, and its Voice made active. */
-  const pickVoice = (next: number, hit: Hit) => {
-    chooseVoice(next, { cursor: { bar: hit.bar, column: hit.column, string: hit.string }, selection: null });
-    setColumnOnly(false);
-    setStaffPitch(null);
-    editorRef.current?.focus();
-  };
-  /**
-   * Alt+1–4 (Q8) or the menu's Move to voice: the picked or selected notes go into Voice `to` (Q11), stay
-   * picked or selected there, and it becomes active. False when there is nothing to move.
-   */
-  const moveToVoiceKey = (to: number): boolean => {
-    const moved = moveToVoice(whole, track, clip, { cursor, selection, columnOnly }, to);
-    if (!moved) return false;
-    const done = editor.commitVoices(moved.clip, moved.part, moved.cursor, selection ? moved.selection : null);
-    if (!done) return true;
-    setVoicePick({ opened, track, voice: to });
-    if (!selection) setColumnOnly(columnOnly);
-    return true;
-  };
-  /** Alt+1–4: with notes picked or selected in normal mode, they move into that Voice; else it becomes active. */
-  const voiceKey = (to: number) => {
-    const picksNotes = !inputMode && (selection !== null || (!columnOnly && noteAt(clip, cursor) !== null));
-    if (picksNotes && moveToVoiceKey(to)) return;
-    chooseVoice(to);
-  };
-  /** Select only voice ›: the selection keeps Voice `only`'s notes, and it becomes active (Q21). */
-  const selectOnlyVoice = (only: number) => {
-    if (!selection) return;
-    const kept = selectionInVoice(clip, selection, only);
-    if (!kept) return;
-    chooseVoice(only, { cursor: { ...cursor, ...placeOf(partOf(whole, track, only), Math.max(kept.anchor, kept.focus)) }, selection: kept });
-    setOnlyVoice(kept);
-  };
-  /**
-   * An edit of a selection run on every Voice it covers, as one undo step (Q19): Delete, cut, the Marks, the
-   * length keys. False when the selection holds the Active voice's notes alone, which the edit itself takes.
-   */
-  const everyVoice = (edit: (part: Part, selection: Selection) => Part): boolean => {
-    if (!selection || voiceOnly || !spansVoices(clip, selection)) return false;
-    const next = perVoice(whole, track, clip, selection, edit);
-    editor.commitVoices(next, partOf(next, track, voice), cursor, selection, true);
-    return true;
-  };
-  /** Alt+← →: the next note or rest by time in whichever Voice comes first (Q13), else the Active voice's next element. */
-  const stepElement = (step: 1 | -1) => {
-    const across = picked ? null : stepAcrossVoices(clip, cursor, step);
-    if (!across) return picking.stepToElement(step);
-    const to = partOf(whole, track, across.voice);
-    const column = to.bars[across.bar].columns[across.column];
-    const string = column.notes.findIndex(Boolean);
-    chooseVoice(across.voice, { cursor: { bar: across.bar, column: across.column, string: string >= 0 ? string : cursor.string }, selection: null });
-    setColumnOnly(string < 0);
-    setStaffPitch(null);
-  };
   /** Where the Tuplet panel `;` opened is, in the tab's units; null while it is shut (step 6, Q16). */
   const [tupletPanel, setTupletPanel] = useState<{ x: number; y: number } | null>(null);
   /** Note input's grid (`grid.ts`, issue #293), a Settings › Tab › Editing preference the palette's Grid button and Alt+[ ] change too. */
@@ -319,7 +243,6 @@ export default function TabPage() {
     wah: pickedTool === 'wah' ? cursorKinds.wah : null,
     whammy: pickedTool === 'whammy' ? cursorKinds.whammy : null,
   };
-  const count = columnCount(clip);
   // With no string picked, the tools work on the cursor's whole column, as on a one-column selection.
   const cursorIndex = indexOf(clip, cursor.bar, cursor.column);
   const target = {
@@ -332,30 +255,13 @@ export default function TabPage() {
   // The controls show only when chosen (the small button under the tab); hidden, Space doesn't play.
   const { playback: playbackSettings, setPlayback: setPlaybackSettings, metronome, setMetronome } = prefs;
   const showPlayback = playbackSettings.shown;
-  // The playback line: put on a column by a press above or below the staff (Jeremy,
-  // 2026-10-26); it holds until the clip, the cursor or the selection changes. Play starts there,
-  // else at the selection's first column, else the cursor's, else the first; Loop takes the selection.
-  const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
   // The clip's own instrument, or the nearest of Frets' sounds to it (`instrument.ts`).
   const sound = soundFor(clip.instrument?.program);
-  const playback = usePlayback(clip, sound, playbackSettings.volume, {
-    loopPause: playbackSettings.loopPause ? playbackSettings.loopPauseSeconds : 0,
-    transpose: playbackSettings.transpose,
-    metronome: metronome.on,
-    countIn: metronome.countIn,
-    countInBars: metronome.countInBars,
-    clickVolume: metronome.clickVolume,
-    effects: clip.fx ?? DEFAULT_FX,
-    rolls: rollsOf(playbackSettings),
-    // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
-    // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
-    // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
-    onStopAt: column => {
-      if (!playbackSettings.stopAtPlayhead) return;
-      setSelection(null);
-      setPlayMark({ index: column, clip: whole, cursor: cursorAsSet, selection: null });
-    },
+  // Playback, the playback line, and where Play starts and stops.
+  const range = usePlayRange(editor, {
+    whole, wholeWith, sound, settings: playbackSettings, metronome, replace: next => dispatchClip({ type: 'replace', clip: next }),
   });
+  const { playback, selectedColumns, markAt, playFrom, playUntil, toggleLoop, pickColumn, dropLine } = range;
   /** A note just entered: it sounds, alone, with "Hear notes as you enter them" on and the controls showing. */
   const hearNote = (at: { bar: number; column: number; string: number }) => {
     if (playbackSettings.hearNotes && showPlayback) playback.hear(at.bar, at.column, at.string);
@@ -366,9 +272,13 @@ export default function TabPage() {
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord,
-    openSignature: head.openSignature, dropLine: () => setPlayMark(null),
+    openSignature: head.openSignature, dropLine,
   });
   const { deletePicked } = picking;
+  // The Active voice picked, and the edits that cross Voices.
+  const {
+    voiceOnly, chooseVoice, pickVoice, moveToVoiceKey, voiceKey, selectOnlyVoice, everyVoice, stepElement, voicePresentAtCursor,
+  } = useVoicePick(editor, { whole, track, voice, setVoice, stepToElement: picking.stepToElement });
   // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
   const [railPanel, setRailPanel] = useOpenPanel();
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
@@ -427,7 +337,7 @@ export default function TabPage() {
     playback.stop();
     setTrackPick({ opened, track: next });
     setSelection(null);
-    setPlayMark(null);
+    dropLine();
     setPicked(null);
     head.closeAll();
     setMenu(null);
@@ -458,70 +368,6 @@ export default function TabPage() {
     setPlaybackSettings(next);
   };
   const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
-  const selectedColumns = selection ? selectedRange(selection) : null;
-  const markAt = playMark && playMark.clip === whole && playMark.cursor === cursorAsSet && playMark.selection === selectionAsSet
-    ? playMark.index : null;
-  // Else Play starts at the selection, else the loop points' start (Loop lets the selection go once it
-  // takes it), else the cursor; with no cursor on the tab, from the beginning. A line past the clip's
-  // end plays its last column.
-  const loopStart = Array.isArray(playback.loop) ? playback.loop[0] : null;
-  const playFrom = markAt !== null ? Math.min(markAt, count - 1)
-    : selectedColumns ? selectedColumns[0]
-    : loopStart !== null ? loopStart
-    : editing ? indexOf(clip, cursor.bar, cursor.column) : 0;
-  // "Stop playback at region end" (Jeremy, 2026-10-28): with a region selected, Play stops after its
-  // last column, unless it starts past it. A loop still goes round instead.
-  const playUntil = playbackSettings.stopAtRegionEnd && selectedColumns && playFrom <= selectedColumns[1] ? selectedColumns[1] : null;
-  /**
-   * Loop, the button or L: the loop points go round the selection, which then goes (Jeremy, 2026-11-05),
-   * else round the whole clip; or they go. The tab lets the keys go too, as when the playhead moves, so
-   * nothing stays lit; Space then plays from the loop's start.
-   */
-  const toggleLoop = () => {
-    const next = playback.toggleLoop(selectedColumns);
-    if (!Array.isArray(next)) return;
-    setSelection(null);
-    if (editing) editorRef.current?.blur();
-  };
-  /**
-   * A press above or below the staff: the playback line goes there (while playing, playback jumps
-   * there), and any selection goes. With Shift, the columns from the line (else the selection's
-   * anchor, else the cursor) to there are selected, with no string picked (Jeremy, 2026-10-27).
-   */
-  const pickColumn = (gap: number, extend: boolean) => {
-    if (extend) {
-      // From the line, the columns between it and the gap pressed (Jeremy, 2026-10-28: one column, not two);
-      // from a selection or the cursor, grown to the column beside the gap (issue #366): the one before it when the gap is after.
-      if (markAt !== null) {
-        if (gap !== markAt) setSelection(gap > markAt ? { anchor: markAt, focus: gap - 1 } : { anchor: markAt - 1, focus: gap });
-        return;
-      }
-      const from = selection ?? (editing && columnAt(clip, cursor) ? { anchor: indexOf(clip, cursor.bar, cursor.column), focus: indexOf(clip, cursor.bar, cursor.column) } : null);
-      if (from !== null) {
-        const end = selectedRange(from)[1];
-        setSelection(growSelection(from, from.anchor, gap > end ? gap - 1 : gap));
-        startRegion();
-        return;
-      }
-    }
-    const index = Math.min(gap, count);
-    // Moving the playhead lets the selection go, while playing too (Jeremy, 2026-10-27); loop points stay.
-    setSelection(null);
-    // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
-    if (editing) editorRef.current?.blur();
-    if (playback.seek(index)) return;
-    setPlayMark({ index, clip: whole, cursor: cursorAsSet, selection: null });
-  };
-  /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
-  const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip: whole, cursor: cursorAsSet, selection: null });
-  /** An edit made off the tab, from the playback line: one undo step, the line held at a gap of the new clip. */
-  const editAtLine = (next: Part, index: number) => {
-    const edited = wholeWith(next);
-    if (edited !== whole) dispatchClip({ type: 'replace', clip: edited });
-    setSelection(null);
-    setNotice(null);
-    setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
-  };
   /** Note input on or off; going in, the keys come to the tab. */
   /** The rest last picked on the staff, so going into note input from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
@@ -590,50 +436,6 @@ export default function TabPage() {
     editorRef.current?.focus();
   };
 
-  // Off the tab, in the Notation view, the arrow keys, Delete and Esc work on the playback line (`lineKeyDown`).
-  const onLineKey = useEffectEvent((e: KeyboardEvent) => {
-    if (view !== 'tab') return;
-    // N anywhere on the page goes into note input and back out, as on the tab (Jeremy, 2026-10-30: shortcuts are page-wide).
-    const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
-    // Alt+[ and Alt+] make note input's grid finer and coarser, as Dorico's do (issue #293), turning the fixed grid on
-    // at what it was first; Alt+G switches between the fixed grid and note input's length. On the tab or off it.
-    const gridKey = e.code === 'BracketLeft' ? -1 : e.code === 'BracketRight' ? 1 : e.code === 'KeyG' ? 'toggle' : 0;
-    if (gridKey && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
-      e.preventDefault();
-      if (gridKey === 'toggle') prefs.setEditing(p => ({ ...p, fixedGrid: !p.fixedGrid }));
-      else prefs.setEditing(p => ({ ...p, fixedGrid: true, grid: p.fixedGrid ? stepGrid(p.grid, gridKey) : p.grid }));
-      return;
-    }
-    // Esc anywhere on the page leaves note input (Jeremy, 2026-11-03): after a press off the tab, on the rail or a
-    // control too. An open panel, menu or dialog takes it first, as in Dorico and MuseScore; the next Esc leaves.
-    if (e.key === 'Escape' && inputMode && !(e.target as Element | null)?.closest?.('.tab-editor') && !popupTakesEscape(e)) {
-      e.preventDefault();
-      enterInput(false);
-      return;
-    }
-    // L anywhere on the page does what the Loop button does, while the footer shows (Jeremy, 2026-11-04), as
-    // the Space key plays; Let ring, which had L, is on I, Guitar Pro 8's key for it.
-    if (e.key === 'l' && plain && showPlayback && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"]`)) {
-      e.preventDefault();
-      if (!e.repeat) toggleLoop();
-      return;
-    }
-    if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
-      e.preventDefault();
-      enterInput(!inputMode);
-      return;
-    }
-    lineKeyDown(e, { clip, count, line: markAt, selection, select: setSelection, placeLine, editAtLine });
-  });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => onLineKey(e);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-  // While the footer shows, Space anywhere on the page plays and stops (Jeremy, 2026-10-26), but not
-  // in a field or a dialog; the tab keeps the focus, so its cursor stays.
-  useSpaceKey(() => playback.toggle(playFrom, playUntil), { enabled: showPlayback, keepFocusOn: '.tab-editor' });
-  useShortcuts(TAB_SHORTCUTS);
 
   /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
   const addBar = (where: 'before' | 'after') => {
@@ -757,20 +559,10 @@ export default function TabPage() {
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, inputMode, setInputMode: enterInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
-    dropLine: () => setPlayMark(null), leave: () => editorRef.current?.blur(),
+    dropLine, leave: () => editorRef.current?.blur(),
   });
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());
 
-  /**
-   * The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. Not
-   * after a press that selected a bar or column, which shows as a box (issue #317).
-   */
-  const onEditorFocus = () => {
-    setEditing(true);
-    if (parts !== 'staff' || staffPitch !== null || columnOnly) return;
-    const note = noteAt(clip, cursor);
-    setStaffPitch(note && note.fret !== null ? writtenStrings(clip.tuning)[cursor.string] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, cursor.bar, 4));
-  };
 
   /**
    * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
@@ -781,25 +573,9 @@ export default function TabPage() {
    */
   useDeselect(selection !== null || markAt !== null, () => {
     setSelection(null);
-    setPlayMark(null);
+    dropLine();
   }, { keep: TAB_KEEPS, escape: false });
 
-  /**
-   * The tab losing the focus leaves the cursor's bar, which fills up when Settings says to (Jeremy, 2026-10-27): a press
-   * off the tab, Esc. Not while the focus stays on the clip's own parts (a chord name's field, the
-   * time signature panel) or goes to the palette, nor when the whole window loses it.
-   */
-  const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
-    // Its right-click menu takes the focus for a moment and gives it back: what is picked stays picked, and lit.
-    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
-    // So does the Tuplet panel `;` opens (step 6).
-    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.tab-tuplet-panel')) return;
-    setEditing(false);
-    setPicked(null);
-    setColumnOnly(false);
-    // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).
-    chooseVoice(0);
-  };
 
   /**
    * Puts a clip in at the cursor, or at the selection's start: over the time there, as MuseScore pastes
@@ -842,10 +618,9 @@ export default function TabPage() {
     const lines = result.warnings.filter(line => !CLASH_WARNING.test(line));
     if (lines.length > 0) setNotice({ tone: 'info', lines });
   };
-  const pasteText = useEffectEvent((text: string, insert: boolean) => pasteTab(text, insert));
 
   /** Writes the selected columns (or the cursor's) to the clipboard as alphaTex; a cut also makes them rests. */
-  const copyOrCut = useEffectEvent((e: ClipboardEvent, cut: boolean) => {
+  const copyOrCut = (e: ClipboardEvent, cut: boolean) => {
     const range = copiedRange();
     if (!range || !e.clipboardData) return;
     e.preventDefault();
@@ -862,7 +637,7 @@ export default function TabPage() {
     const cleared = clearToRests(clip, { anchor: range[0], focus: range[1] });
     commit(cleared.clip, clampCursor(cleared.clip, cursor), cleared.selection);
     startRegion();
-  });
+  };
 
   // New, Arrangements…, Save, Save as…, and what opens from outside My arrangements.
   const file = useArrangementFile(arrangements, {
@@ -879,46 +654,12 @@ export default function TabPage() {
     onInsert: inserted => putAtCursor(inserted, true),
   });
 
-  /** Whether the next paste is Insert paste, from Ctrl/⌘+Shift+V. */
-  const insertNext = useRef(false);
-
-  // Paste anywhere on the page; copy and cut in the editor; undo and redo.
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
-      const text = e.clipboardData?.getData('text/plain');
-      const insert = insertNext.current;
-      insertNext.current = false;
-      if (!text) return;
-      e.preventDefault();
-      void pasteText(text, insert);
-    };
-    // Copy and cut belong to the editor only; elsewhere they copy the page's own selected text.
-    const inEditor = (e: Event) => editorRef.current !== null && editorRef.current.contains(e.target as Node);
-    const onCopy = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, false); };
-    const onCut = (e: ClipboardEvent) => { if (inEditor(e)) copyOrCut(e, true); };
-    const onKey = (e: KeyboardEvent) => {
-      // Ctrl/⌘+Shift+V is Insert paste: the paste it makes goes in before the cursor (issue #238).
-      insertNext.current = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v';
-      // Ctrl+Y redoes too, as in MuseScore and Windows (issue #238); ⌘+Y is left to the browser.
-      const redoY = e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === 'y';
-      if (!redoY && (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z')) return;
-      if ((e.target as Element | null)?.closest?.(TEXT_FIELDS)) return;
-      e.preventDefault();
-      dispatchClip({ type: redoY || e.shiftKey ? 'redo' : 'undo' });
-      setNotice(null);
-    };
-    document.addEventListener('paste', onPaste);
-    document.addEventListener('copy', onCopy);
-    document.addEventListener('cut', onCut);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('paste', onPaste);
-      document.removeEventListener('copy', onCopy);
-      document.removeEventListener('cut', onCut);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [dispatchClip, editorRef]);
+  // The keys that work anywhere on the page, paste, copy, cut, undo, and the tab taking and letting go of the keys.
+  const { onEditorFocus, onEditorBlur } = usePageKeys(editor, {
+    view, parts, range, showPlayback, setEditingPrefs: prefs.setEditing, enterInput, chooseVoice,
+    paste: (text, insert) => void pasteTab(text, insert), copyOrCut,
+    undo: redo => dispatchClip({ type: redo ? 'redo' : 'undo' }),
+  });
 
   const actions = useClipActions({
     clip: whole, track, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
@@ -963,7 +704,7 @@ export default function TabPage() {
     onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
     onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
     onDragFret: inputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
-    onMiss: () => { setSelection(null); setPlayMark(null); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
+    onMiss: () => { setSelection(null); dropLine(); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: picking.onPickText, onPickMark: picking.onPickMark, onPickColumn: pickColumn, onPickVoice: pickVoice,
     onPickWarning: head.openFix,
     onPickRhythm: inputMode ? undefined : (rest: Parameters<typeof picking.onPickRhythm>[0], extend: boolean) => {
@@ -986,9 +727,6 @@ export default function TabPage() {
     editorRef.current?.focus();
     chooseVoice(v);
   };
-  /** Whether Voice `v` has notes in the cursor's bar, for its button's tip (Q17). */
-  const voicePresentAtCursor = (v: number) => v === voice ? clip.bars[cursor.bar]?.columns.some(c => c.notes.some(Boolean)) ?? false
-    : v === 0 || (clip.bars[cursor.bar]?.otherVoices?.some(o => o.voice === v) ?? false);
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
     <TabPalette

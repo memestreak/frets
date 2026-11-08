@@ -1,7 +1,7 @@
 /**
  * The Tab page's keys for the `?` overlay (issue #180). The palette's come from its own table
  * (`tools.ts`), so a tool's key here is the one its tip names; the rest mirror `editorKeys.ts`,
- * `TabPage.tsx` and `useSpaceKey`, and change with them.
+ * `usePageKeys.ts` and `useSpaceKey`, and change with them.
  */
 import type { Shortcut, ShortcutGroup } from '@/lib/shortcuts';
 import { TOOL_GROUPS } from './tools';

@@ -55,6 +55,14 @@ and in its spec.
   `commit` (and `commitVoices` for an edit of several Voices), which refuse
   an edit that sounds one string in two Voices.
 - `useTabPicking.ts` — presses, drags and Alt+← → on the tab.
+- `useVoicePick.ts` — the Active voice (`useActiveVoice`) and the edits that
+  cross Voices: a press on another Voice's note, Alt+1–4, Move to voice,
+  Select only voice, an edit of every Voice a selection covers, Alt+← →.
+- `usePlayRange.ts` — playback (`usePlayback`), the playback line, where
+  Play starts and stops, Loop, and a press above or below the staff.
+- `usePageKeys.ts` — the keys that work anywhere on the page (the grid keys,
+  Esc and N, L, Space, the playback line's keys), paste, copy, cut, undo
+  and redo, and the tab taking and letting go of the keys.
 - `useHeadPanels.tsx` — the word fields, the signature panels and the
   score head's panels.
 - `useArrangementFile.tsx` — New, Arrangements…, Save, Save as…, ⌘S/⌘O and
@@ -71,7 +79,7 @@ and in its spec.
 - `usePopover.ts` — places and closes the small panels opened at a press or
   under a button.
 - `shortcuts.ts` — the page's keys for the `?` overlay: the palette's from
-  `tools.ts`, the rest listed by hand from `editorKeys.ts`, `TabPage.tsx`
+  `tools.ts`, the rest listed by hand from `editorKeys.ts`, `usePageKeys.ts`
   and `useSpaceKey`.
 - `tabSettings.tsx` — the page's preferences, one Settings section each
   (Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing,
