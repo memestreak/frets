@@ -4,7 +4,8 @@
  */
 
 import { STRING_COUNT, isLetRing, isPalmMuted, type Column, type Note } from './clip';
-import { BEND_PEAK, bendShape, type PlacedColumn, type System } from './layout';
+import { type PlacedColumn, type System } from './layout';
+import { BEND_PEAK, bendShape } from './rows';
 
 /** The vibrato waves of a line: one over each run of neighbouring columns with vibrato, wide where any note's is. */
 export function vibratoRuns(system: System) {

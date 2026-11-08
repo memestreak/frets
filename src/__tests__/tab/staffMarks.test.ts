@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { layoutClip, stepY, type Parts } from '@/features/tab/layout';
+import { layoutClip, type Parts } from '@/features/tab/layout';
+import { stepY } from '@/features/tab/rows';
 import { markAt, markBox, markBoxes } from '@/features/tab/marks';
 import { staffMarks } from '@/features/tab/staffMarks';
 import { type Part, partOf } from '@/features/tab/clip';

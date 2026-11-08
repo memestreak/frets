@@ -7,7 +7,8 @@
  * `marks.ts` picks it.
  */
 import { isRest, type Part, type Column } from './clip';
-import { BEND_PEAK, DIVES_ROOM, stringY, type Layout, type PlacedColumn, type Rows } from './layout';
+import { stringY, type Layout, type PlacedColumn } from './layout';
+import { BEND_PEAK, DIVES_ROOM, type Rows } from './rows';
 
 /** The shapes the palette's Whammy bar button sets, as alphaTex points (quarter tones), in its panel's order. */
 export const WHAMMY_SHAPES = {

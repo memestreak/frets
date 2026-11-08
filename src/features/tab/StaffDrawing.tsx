@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { type PlacedBar, type PlacedColumn, type System } from './layout';
+import { BEND_LABEL_STEP, SPACE, STEM_STEPS, stepY, type ScoreRows } from './rows';
+import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, HEAD_WIDTH } from './widths';
 import type { Accidental } from '@/lib/theory/keys';
 import { accidentalLanes, keySigns, STAFF_LINES, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';

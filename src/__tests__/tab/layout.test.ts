@@ -1,6 +1,8 @@
 import { markAt } from '@/features/tab/marks';
 import { readAscii } from '@/features/tab/ascii';
-import { BEND_LABEL_RAISE, BEND_RISE, columnWidth, layoutClip, lineAt, rowsFor, stepY } from '@/features/tab/layout';
+import { layoutClip, lineAt } from '@/features/tab/layout';
+import { BEND_LABEL_RAISE, BEND_RISE, rowsFor, stepY } from '@/features/tab/rows';
+import { columnWidth } from '@/features/tab/widths';
 import { boundaryAt, columnAt, hitTest, staffAt } from '@/features/tab/hitTest';
 import { textAt } from '@/features/tab/layoutText';
 import * as alphaTab from '@coderline/alphatab';

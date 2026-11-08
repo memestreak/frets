@@ -9,7 +9,9 @@ import { BAR_TEXT_INSET, boldTextWidth, SECTION_BOX_HEIGHT, SECTION_LINE, sectio
 import { tempoNoteWidth } from './TempoNote';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
 import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
-import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System, chordWidth, textRowOf } from './layout';
+import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System } from './layout';
+import { textRowOf } from './rows';
+import { chordWidth } from './widths';
 
 /** A free text's box: its widest line, and its first and last lines' middles, down from the system's top. */
 function beatTextBox(placed: PlacedColumn, textRow: number): { x0: number; x1: number; y0: number; y1: number } {

@@ -1,7 +1,8 @@
 // The marks in their own rows over a line's tab (under a staff alone), drawn by `TabClip`.
 import type { ReactNode } from 'react';
 import { columnMordent } from './clip';
-import type { Rows, System } from './layout';
+import type { System } from './layout';
+import type { Rows } from './rows';
 import { mordentSign, vibratoWave, type MarkLit } from './marks';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, vibratoRuns } from './runs';
 import { FermataSign } from './StaffDrawing';

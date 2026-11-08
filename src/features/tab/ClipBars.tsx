@@ -1,7 +1,8 @@
 // A bar's lines and repeat signs, the time signature's numbers, and the bracket joining staff and tab, drawn by `TabClip`.
 import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import type { TimeSignature } from './clip';
-import { stringY, type PlacedBar, type Rows } from './layout';
+import { stringY, type PlacedBar } from './layout';
+import { type Rows } from './rows';
 import { sameWord, type WordHit } from './layoutText';
 import { GLYPHS } from './smufl';
 import { BAR_DASHES, TimeBrackets } from './StaffDrawing';

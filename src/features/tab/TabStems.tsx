@@ -2,7 +2,8 @@
 
 import { type ReactNode } from 'react';
 import { isRest, TREMOLO_VALUES, tupletGroups, tupletLabel, type Column } from './clip';
-import { wholeRestX, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { wholeRestX, type PlacedBar, type PlacedColumn } from './layout';
+import { type Rows } from './rows';
 import { beamGroups } from './beams';
 import { MultiRest } from './StaffDrawing';
 import { type MarkLit } from './marks';

@@ -7,7 +7,9 @@ import { isRest } from './clip';
 import type { MarkHit } from './marks';
 import { xAlong } from './grid';
 import { staffBar } from './staffGeometry';
-import { accidentalRoom, HEAD_WIDTH, type Layout, lineAt, SPACE, STRING_GAP, type ScoreRows, type System, stepY, wholeRestX } from './layout';
+import { type Layout, lineAt, type System, wholeRestX } from './layout';
+import { SPACE, STRING_GAP, type ScoreRows, stepY } from './rows';
+import { accidentalRoom, HEAD_WIDTH } from './widths';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
 export interface Hit {
