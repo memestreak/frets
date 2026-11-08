@@ -15,7 +15,7 @@ import {
   TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
 import type { TabView } from './viewOptions';
-import type { Parts } from './layout';
+import type { Show } from './layout';
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
 const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
@@ -47,13 +47,13 @@ const isImage = (format: TabExportFormat) => format === 'png' || format === 'svg
  * menu, on the format last picked. It stays open after an action; × or Esc
  * close it.
  */
-export function TabExportDialog({ clip, track, parts, view, open, style, onStyle, onClose }: {
+export function TabExportDialog({ clip, track, show, view, open, style, onStyle, onClose }: {
   /** The whole clip, every track: saved as alphaTex, MusicXML and Guitar Pro; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
   /** The track the page shows. */
   track: number;
-  /** What the page shows, which the image draws too: the staff, the tab or both. */
-  parts: Parts;
+  /** What the page shows, which the image draws too: the staff, the tab, both, or the lead sheet. */
+  show: Show;
   /** The View options as the page shows them: bar numbers and size for the image, the rhythm line for ASCII. */
   view: TabView;
   open: boolean;
@@ -89,10 +89,10 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
     setStatus('');
   };
   const fail = (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
-  const svg = () => tabSvg(part, style, title, parts, view);
+  const svg = () => tabSvg(part, style, title, show, view);
   const ascii = () => writeAscii(part, { rhythm: view.asciiRhythm, chords: view.asciiChords });
   // Laid out only while open: shut, the dialog draws nothing, and the page draws it on every change (issue #302).
-  const { width, height } = open ? tabImageSize(part, style, title, parts, view) : { width: 0, height: 0 };
+  const { width, height } = open ? tabImageSize(part, style, title, show, view) : { width: 0, height: 0 };
   const baseName = tabFileName(clip.name);
 
   /** What each format saves: its kind (name ending, type) and the file. */
@@ -153,7 +153,7 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
           <div className="settings-dialog-body">
             <Fold open={isImage(format)} testId="export-preview-fold">
               <div className="export-preview" data-testid="export-preview">
-                <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
+                <TabImage clip={part} style={style} title={title} show={show} view={view} />
               </div>
               <p className="export-size" data-testid="export-size">
                 {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}

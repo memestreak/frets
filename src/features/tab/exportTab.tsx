@@ -7,7 +7,9 @@ import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Part, Tempo } from './clip';
 import { creditsOf, HEAD, shownTuning, tuningBlock, type TuningBlock } from './credits';
-import { layoutClip, type Parts } from './layout';
+import { layoutClip, partsOf, type Show } from './layout';
+import { layoutLeadSheet } from './leadSheet';
+import { LeadSheetDrawing } from './LeadSheetDrawing';
 import { tempoParts } from './layoutText';
 import { TabClip } from './TabClip';
 import { CHART_GAP, chartDrawing } from './ChordChart';
@@ -149,11 +151,11 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
+export function tabImageSize(clip: Part, style: TabExportStyle, title: string, show: Show = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const inner = (style.width - 2 * PAD) / zoom;
-  const tab = layoutClip(laidOut(clip, view), inner, parts, view.chordDiagrams);
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
+  const music = show === 'lead' ? layoutLeadSheet(clip, inner, view.barNumbers).height : layoutClip(laidOut(clip, view), inner, partsOf(show), view.chordDiagrams).height;
+  return { width: style.width, height: Math.ceil(music * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
 }
 
 /** The Chord chart's chords, as the page shows it under the head (issue #242); none when off. */
@@ -170,8 +172,8 @@ function chartRoom(clip: Part, inner: number, view: TabView, zoom: number): numb
  * it (the title only if the style shows the name), on white unless transparent; the staff, the tab or
  * both, as the page shows them, at the page's Size. The Export dialog's preview draws the same.
  */
-export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
-  const { width, height } = tabImageSize(clip, style, title, parts, view);
+export function TabImage({ clip, style, title, show = 'tab', view = DEFAULT_VIEW }: { clip: Part; style: TabExportStyle; title: string; show?: Show; view?: TabView }) {
+  const { width, height } = tabImageSize(clip, style, title, show, view);
   // At a Size other than 100% the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
   const head = headOf(clip, style, title, view);
@@ -192,19 +194,28 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
         <HeadDrawing head={head} width={inner} ink={look.ink} />
       </g>
       {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
-      <TabClip
-        clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
-        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} chordDiagrams={view.chordDiagrams}
-      />
+      {show === 'lead'
+        ? (
+          // The lead sheet's grid (issue #295), from where the tab would start.
+          <g transform={`translate(${PAD} ${PAD + Math.max(0, top) + chartRoom(clip, inner, view, zoom)}) scale(${zoom})`}>
+            <LeadSheetDrawing layout={layoutLeadSheet(clip, inner, view.barNumbers)} look={look} />
+          </g>
+        )
+        : (
+          <TabClip
+            clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={partsOf(show)} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
+            x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} chordDiagrams={view.chordDiagrams}
+          />
+        )}
     </svg>
   );
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
+export function tabSvg(clip: Part, style: TabExportStyle, title: string, show: Show = 'tab', view: TabView = DEFAULT_VIEW): string {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view })));
+  flushSync(() => root.render(createElement(TabImage, { clip, style, title, show, view })));
   const svg = host.querySelector('svg')!;
   root.unmount();
   svg.removeAttribute('class');

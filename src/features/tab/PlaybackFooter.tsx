@@ -672,7 +672,7 @@ export function Playhead({ clip, layout, width, playback, mark, markOnly = false
 }
 
 /** Where the music heard is, read once a frame while `active` (the clip is playing); null otherwise. */
-function useHeardPosition(playback: Playback, active: boolean): HeardPosition | null {
+export function useHeardPosition(playback: Playback, active: boolean): HeardPosition | null {
   const [heard, setHeard] = useState<HeardPosition | null>(null);
   // The latest reader, so the frame loop needn't restart each time the page draws.
   const read = useRef(playback.heardPosition);

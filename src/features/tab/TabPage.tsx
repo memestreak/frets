@@ -22,7 +22,9 @@ import { TupletPanel } from './TupletPanel';
 import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
 import { editorKeyDown, graceKey, restKey, writeAtInput, type EditorKeys } from './editorKeys';
-import { layoutClip, PARTS, type Parts } from './layout';
+import { layoutClip, partsOf, SHOW_NAMES, SHOWS, type Show } from './layout';
+import { layoutLeadSheet, leadKey, type LeadHit } from './leadSheet';
+import { LeadPlayhead, LeadSheet } from './LeadSheetDrawing';
 import type { Lines } from './jumps';
 import { gridTicks, type GridValue } from './grid';
 import { textBox, type TextHit } from './layoutText';
@@ -102,6 +104,8 @@ function hasDelete(hit: Picked): boolean {
 }
 /** The tools that act on the Active voice alone, not every Voice of a selection (step 9, Q19): ties, tuplets, grace notes, Beam overrides. */
 const ACTIVE_VOICE_ONLY: ReadonlySet<ToolId> = new Set<ToolId>(['tie', 'tuplet', 'grace', 'beamBreak', 'beamJoin']);
+/** The tools that work in the lead sheet: the words it draws (issue #295, spec "Editing"). */
+const LEAD_TOOLS: ReadonlySet<ToolId> = new Set<ToolId>(['chordName', 'beatText', 'section']);
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
@@ -155,11 +159,20 @@ export default function TabPage() {
     return show && { show, over: notation.show };
   });
   useEffect(dropShowParam, []);
-  /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27). */
-  const parts = linkShow && linkShow.over === notation.show ? linkShow.show : notation.show;
-  const setParts = (show: Parts) => {
+  /** In the Notation view: the staff, the tab or both (Jeremy, 2026-10-27), or the lead sheet (issue #295). */
+  const show = linkShow && linkShow.over === notation.show ? linkShow.show : notation.show;
+  const lead = show === 'lead';
+  /** What the tab's layout is made for: the lead sheet keeps the tab's, for what still reads one. */
+  const parts = partsOf(show);
+  const setShow = (next: Show) => {
     setLinkShow(null);
-    setNotation(n => ({ ...n, show }));
+    setNotation(n => ({ ...n, show: next }));
+    // The lead sheet edits no notes: note input mode ends, and nothing stays picked (spec "Editing").
+    if (next === 'lead') {
+      setNoteInputMode(false);
+      setPicked(null);
+      setSelection(null);
+    }
   };
   // Settings' "Fill short bars with rests" (off by default): the cursor leaving a short bar completes it.
   // The View options: what the drawn clip shows that is the reader's choice (bar numbers), from four sections.
@@ -206,6 +219,11 @@ export default function TabPage() {
    * leave the clip as it was don't lay it out again.
    */
   const layout = useMemo(() => layoutClip(drawn, clipWidth, parts, chordDiagrams), [drawn, clipWidth, parts, chordDiagrams]);
+  /**
+   * The lead sheet's grid (issue #295): laid out from the clip itself, so its rows follow the arrangement's
+   * own bars per line whatever "Clip's line breaks" says (spec "A row").
+   */
+  const leadLayout = useMemo(() => (lead ? layoutLeadSheet(clip, clipWidth, notation.barNumbers) : null), [lead, clip, clipWidth, notation.barNumbers]);
   // The Chord chart under the score head (issue #242): every track's chords with a shape, once.
   const chart = useMemo(() => (chartOn ? chartChords(drawn) : []), [drawn, chartOn]);
   const paperStyle = colours ? paperVars(colours) : undefined;
@@ -282,7 +300,7 @@ export default function TabPage() {
   };
 
   // The fields and panels over the tab and from the score's head.
-  const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
+  const head = useHeadPanels(editor, { layout, lead: leadLayout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
@@ -512,6 +530,8 @@ export default function TabPage() {
    */
   const onTool = (id: ToolId) => {
     if (!tabFocused) return;
+    // The lead sheet edits only chord names, texts and sections (issue #295): the other tools do nothing there.
+    if (lead && !LEAD_TOOLS.has(id)) return;
     if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     else if (id === 'lyrics') head.openLyric(cursor);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
@@ -585,6 +605,8 @@ export default function TabPage() {
    */
   const openMenu = (el: HTMLElement, x: number, y: number) => {
     head.closeSignatures();
+    // In the lead sheet only a picked word has a menu: the bar menu's edits are the notes' (issue #295).
+    if (lead && !picked) return;
     if (picked) {
       setMenu({ ...pickedMenuSpot(el, x, y, picked), hit: picked });
       return;
@@ -627,6 +649,39 @@ export default function TabPage() {
   });
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());
 
+  /**
+   * The lead sheet's keys (issue #295, `leadKey`): the caret a column or a bar on, C a chord name at it, Enter and
+   * Delete on a picked word, Esc lets go. Any other key does nothing here, but the page's own (Space, L, undo) still work.
+   */
+  const onLeadKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const key = leadKey(clip, cursor, picked !== null, e);
+    if (!key) return;
+    e.preventDefault();
+    if ('move' in key) {
+      setPicked(null);
+      setCursor(c => ({ ...c, ...key.move }));
+      return;
+    }
+    if (key.act === 'chord') head.openWord('chord');
+    else if (key.act === 'edit' && picked && hasEdit(picked)) editPicked(picked);
+    else if (key.act === 'delete' && picked) deletePicked(picked);
+    else if (key.act === 'letGo') {
+      if (picked) setPicked(null);
+      else editorRef.current?.blur();
+    }
+  };
+  /** A press on the lead sheet: a word picked, as on the tab, or the caret on a beat's column. */
+  const onLeadPick = (hit: LeadHit) => {
+    if (hit.kind !== 'beat') {
+      picking.onPickText(hit);
+      return;
+    }
+    setPicked(null);
+    setSelection(null);
+    setColumnOnly(true);
+    setCursor(c => ({ ...c, bar: hit.bar, column: hit.column }));
+    editorRef.current?.focus();
+  };
 
   /**
    * A press anywhere off the drawn bars (the score's head, under the tab, the page around it) lets the
@@ -720,13 +775,13 @@ export default function TabPage() {
 
   // The keys that work anywhere on the page, paste, copy, cut, undo, and the tab taking and letting go of the keys.
   const { onEditorFocus, onEditorBlur } = usePageKeys(editor, {
-    view, parts, range, showPlayback, setEditingPrefs: prefs.setEditing, enterNoteInput, chooseVoice,
+    view, parts, lead, range, showPlayback, setEditingPrefs: prefs.setEditing, enterNoteInput, chooseVoice,
     paste: (text, insert) => void pasteTab(text, insert), copyOrCut,
     undo: redo => dispatchClip({ type: redo ? 'redo' : 'undo' }),
   });
 
   const actions = useClipActions({
-    clip: whole, track, view, parts, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
+    clip: whole, track, view, show, shown, onShown: setShown, exportStyle, alphaTexText, shownText, onNotice: setNotice,
   });
 
   const name = clip.name.trim() || UNTITLED;
@@ -888,10 +943,10 @@ export default function TabPage() {
           <div className="tab-card-start">
             {view === 'tab' && (
               <div className="seg tab-parts" role="group" aria-label="Show">
-                {PARTS.map(p => (
+                {SHOWS.map(p => (
                   // A press keeps the focus where it is, as the palette's do: the editor stays in use, its cursor and Grid with it (issue #396).
-                  <button key={p} type="button" className="seg-opt" aria-pressed={parts === p} onMouseDown={e => e.preventDefault()} onClick={() => setParts(p)}>
-                    {{ staff: 'Staff', tab: 'Tab', both: 'Both' }[p]}
+                  <button key={p} type="button" className="seg-opt" aria-pressed={show === p} onMouseDown={e => e.preventDefault()} onClick={() => setShow(p)}>
+                    {SHOW_NAMES[p]}
                   </button>
                 ))}
               </div>
@@ -945,8 +1000,26 @@ export default function TabPage() {
             </>}
           <div className="relative">
             {/* Under the editor: the loop bracket. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
-            {view === 'tab'
+            {view === 'tab' && !lead && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="under" />}
+            {view === 'tab' && leadLayout
+              ? clipWidth > 0 && (
+                <div
+                  // The lead sheet takes the keys as the tab does, but only its own (issue #295).
+                  ref={editorRef} className="tab-editor tab-lead-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
+                  aria-label="Lead sheet: a press puts the caret on a beat or picks a chord name, text or section; Left and Right move the caret, C types a chord name; Enter edits and Delete takes away what is picked"
+                  onKeyDown={onLeadKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
+                  {...menuTrigger.props(openMenu)}
+                >
+                  <LeadSheet
+                    clip={clip} layout={leadLayout} width={clipWidth}
+                    picked={tabFocused && picked?.kind !== 'mark' ? picked : null}
+                    caret={tabFocused && !picked ? { bar: cursor.bar, column: cursor.column } : null}
+                    onPick={onLeadPick} onEdit={hit => { if (hasEdit(hit)) editPicked(hit); }}
+                    onMiss={() => { setPicked(null); dropLine(); (document.activeElement as HTMLElement | null)?.blur(); }}
+                  />
+                </div>
+              )
+              : view === 'tab'
               ? clipWidth > 0 && (
                 <div
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
@@ -981,8 +1054,9 @@ export default function TabPage() {
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
             {/* The playhead's and the playback line's lines, over the selection's band. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
-            {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
+            {view === 'tab' && !lead && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
+            {view === 'tab' && leadLayout && clipWidth > 0 && <LeadPlayhead clip={clip} layout={leadLayout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} />}
+            {view === 'tab' && !lead && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
             {head.panels}
             {view === 'tab' && tupletPanel && (
               <TupletPanel
@@ -1024,7 +1098,9 @@ export default function TabPage() {
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
         role="status" data-testid="tab-notice"
       >
-        {notice ? notice.lines.join(' ') : empty ? 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.' : unevenLine}
+        {notice ? notice.lines.join(' ')
+          : empty ? (lead ? 'The lead sheet draws the chord names of what is written: write it in Staff, Tab or Both, or import or paste alphaTex or ASCII tab.' : 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.')
+          : unevenLine}
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={file.importText} />
@@ -1071,7 +1147,7 @@ export default function TabPage() {
       {actions.popups}
       <SettingsDialog settingsGroups={settingsGroups} open={settingsOpen} at={settingsAt} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
-        clip={whole} track={track} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
+        clip={whole} track={track} show={show} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}
       />
     </div>

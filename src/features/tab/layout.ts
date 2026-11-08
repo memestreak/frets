@@ -19,6 +19,16 @@ import { BAR_PAD_END, BAR_TIME_WIDTH, barLead, BRACKET_MARGIN, CLEF_WIDTH, colum
 export type Parts = 'tab' | 'staff' | 'both';
 export const PARTS: readonly Parts[] = ['staff', 'tab', 'both'];
 
+/**
+ * The switch over the clip: the three Parts, or the lead sheet, a grid of bars with chord names and
+ * no staff or tab (issue #295, `docs/specs/2026-11-08-tab-lead-sheet-design.md`; `leadSheet.ts`).
+ */
+export type Show = Parts | 'lead';
+export const SHOWS: readonly Show[] = [...PARTS, 'lead'];
+export const SHOW_NAMES: Record<Show, string> = { staff: 'Staff', tab: 'Tab', both: 'Both', lead: 'Lead sheet' };
+/** The Parts a choice lays the clip out with: the lead sheet keeps the tab's layout for what still uses one. */
+export const partsOf = (show: Show): Parts => (show === 'lead' ? 'tab' : show);
+
 /** How far short of the next note a bend's arrows stop; short of a pre-bend's, its wider "PB" label clear of theirs. */
 const BEND_END_GAP = 16;
 const PRE_BEND_CLEAR = 36;

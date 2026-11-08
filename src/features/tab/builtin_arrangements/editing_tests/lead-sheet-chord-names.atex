@@ -1,0 +1,11 @@
+\title "Lead sheet: chord names"
+\ts (4 4)
+\chord ("G" 3 0 0 0 2 3)
+\chord ("C" 0 1 0 2 3 x)
+(3.1 0.2 0.3 0.4 2.5 3.6).4{ch "G" txt "1. Press Lead sheet (top left). Click beat 3 of bar 2: a blue caret there. Press C, type D, Enter: D at beat 3, G before it"}
+  (3.1 0.2 0.3 0.4 2.5 3.6).4 (3.1 0.2 0.3 0.4 2.5 3.6).4
+  (3.1 0.2 0.3 0.4 2.5 3.6).4 |
+(3.1 0.2 0.3 0.4 2.5 3.6).4 (3.1 0.2 0.3 0.4 2.5 3.6).4
+  (3.1 0.2 0.3 0.4 2.5 3.6).4 (3.1 0.2 0.3 0.4 2.5 3.6).4 |
+(0.1 1.2 0.3 2.4 3.5).1{ch "C" txt "2. Click C: blue. Delete key: gone, bar 3 says D again. Type 5 or N: no note changes"} |
+
