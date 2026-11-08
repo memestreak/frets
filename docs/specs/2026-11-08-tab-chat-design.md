@@ -32,9 +32,12 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
 - **The panel (Q7).** From the top: the **Model** field (the same setting as
-  in Settings, suggesting first the viewer's presets saved on OpenRouter, as
-  `@preset/<slug>` with their descriptions, then OpenRouter's models that take
-  tools); the
+  in Settings: type any model, or pick from a list under it, opened by
+  pressing the field, its ▾ or the Down arrow key, of the viewer's presets
+  saved on OpenRouter, as `@preset/<slug>` with their descriptions, then
+  OpenRouter's models that take tools. The list shows everything until the
+  viewer types, then what contains the typed text; a browser's datalist would
+  hide every entry not containing the saved model); the
   conversation; a message box; **Send** (or Enter; Shift+Enter is a new line),
   **Stop** while a reply runs, and **New chat** once there is something to
   forget. With no key, the box is disabled and a line offers **Open
@@ -90,6 +93,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - `chat/reply.ts`: `runReply`, the loop of model calls and tool runs, at most
   `MAX_STEPS` (12) calls; `systemPrompt`.
 - `chat/chatPrefs.ts`: `frets.tab.chat`, its parser, `?chat`.
+- `chat/ModelPicker.tsx`: the Model field and its list.
 - `chat/ChatPanel.tsx`: the panel. `TabRail` takes its contents as `chat`
   and shows the Chat button only then.
 - `clipState.ts`: a new action, `amend`, joins a change to the last undo
@@ -150,8 +154,11 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   and the next ask goes alone.
 - A refused key shows OpenRouter's message and changes nothing.
 - Delete and Ctrl+Z typed in the message box don't change the clip.
-- The Model field suggests the presets first (`@preset/default`, "Tab
-  default"), then only the models that take tools, and a typed model is saved.
+- The Model field lists the presets first (`@preset/default`, "Tab
+  default"), then only the models that take tools, all of them though the
+  field holds a model only one contains; typing "tab def" leaves the preset;
+  picking it saves `@preset/default` and closes the list; Escape closes it; a
+  typed model is saved.
 - `fetchPresets` lists active presets with a slug as `@preset/<slug>` (the
   name when there's no description), skips archived ones and ones without a
   slug, sends `Bearer <key>`, and is null on a 401 or no connection.

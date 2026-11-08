@@ -6,10 +6,11 @@
  * (Settings › Tab › Chat); the conversation lasts for this visit only. Each reply's changes are applied at
  * once, and one Undo takes them all back.
  */
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { readAlphaTex } from '../alphatexRead';
 import type { Clip } from '../clip';
 import type { PageSpot } from './arrangementTools';
+import { ModelPicker } from './ModelPicker';
 import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
 import { runReply, systemPrompt } from './reply';
 import type { ChatPrefs } from './chatPrefs';
@@ -54,7 +55,6 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
   /** The presets listed with a key; shown only while that key is still the one saved. */
   const [listed, setListed] = useState<{ apiKey: string; presets: Preset[] }>({ apiKey: '', presets: [] });
   const presets = listed.apiKey === prefs.apiKey ? listed.presets : [];
-  const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
 
   // The models offered, for the Model field's suggestions; typed freely when the list can't be had.
@@ -123,17 +123,10 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
 
   return (
     <div className="tab-chat">
-      <label className="tab-chat-model">
-        <span>Model</span>
-        <input
-          className="input" list={listId} aria-label="Model" value={prefs.model} spellCheck={false} disabled={!!working}
-          onChange={e => onModel(e.target.value)} onKeyDown={e => e.stopPropagation()}
-        />
-        <datalist id={listId}>
-          {presets.map(p => <option key={p.model} value={p.model} aria-label={p.model}>{p.description}</option>)}
-          {models.map(m => <option key={m} value={m} aria-label={m} />)}
-        </datalist>
-      </label>
+      <div className="tab-chat-model">
+        <span aria-hidden="true">Model</span>
+        <ModelPicker value={prefs.model} onChange={onModel} presets={presets} models={models} disabled={!!working} />
+      </div>
       {!prefs.apiKey && (
         <p className="tab-chat-hint">
           Add your OpenRouter key in Settings to start.{' '}

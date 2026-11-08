@@ -148,9 +148,21 @@ describe('the Chat panel', () => {
     renderAt(`?chat${TEX}`);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
-    await waitFor(() => expect(document.querySelectorAll('datalist option')).toHaveLength(2));
-    const offered = [...document.querySelectorAll('datalist option')].map(o => [(o as HTMLOptionElement).value, o.textContent]);
-    expect(offered).toEqual([['@preset/default', 'Tab default'], ['anthropic/claude-opus-5.5', '']]);
+    const field = within(chatPanel()).getByRole('combobox', { name: 'Model' });
+    const offered = () => within(chatPanel()).queryAllByRole('option').map(o => o.textContent);
+    // Everything is listed, though the field holds a model only one entry contains.
+    await waitFor(() => { fireEvent.blur(field); fireEvent.focus(field); expect(offered()).toHaveLength(2); });
+    expect(offered()).toEqual(['@preset/defaultTab default', 'anthropic/claude-opus-5.5']);
+    // Typing filters the list; picking one saves it and closes the list.
+    fireEvent.change(field, { target: { value: 'tab def' } });
+    expect(offered()).toEqual(['@preset/defaultTab default']);
+    fireEvent.click(within(chatPanel()).getByRole('option'));
+    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).model).toBe('@preset/default');
+    expect(within(chatPanel()).queryByRole('listbox')).toBeNull();
+    // Escape closes the list and stays out of the page.
+    fireEvent.focus(field);
+    fireEvent.keyDown(field, { key: 'Escape' });
+    expect(within(chatPanel()).queryByRole('listbox')).toBeNull();
     fireEvent.change(within(chatPanel()).getByRole('combobox', { name: 'Model' }), { target: { value: 'openai/gpt-5' } });
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).model).toBe('openai/gpt-5');
   });

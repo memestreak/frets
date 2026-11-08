@@ -709,3 +709,21 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 @media (max-width: 899px) {
   .tab-chat-list { max-height: 50vh; }
 }
+/* The Chat panel's Model field: a list of presets and models under it, all shown until the viewer types. */
+.tab-chat-picker { position: relative; }
+.tab-chat-picker .input { width: 100%; padding-right: 28px; }
+.tab-chat-picker-toggle {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 28px; display: grid; place-items: center;
+  border: 0; background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-chat-picker-toggle:hover { color: var(--ink); }
+.tab-chat-picker-list {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto;
+  margin: 0; padding: 4px 0; list-style: none; background: var(--surface-raised); border: 1px solid var(--line-strong);
+  border-radius: 8px; box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+.tab-chat-picker-group { padding: 6px 10px 2px; font-size: 11px; line-height: 14px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tab-chat-picker-option { display: grid; padding: 4px 10px; cursor: pointer; }
+.tab-chat-picker-option[aria-selected="true"] { background: var(--surface-sunken); }
+.tab-chat-picker-model { font: 13px/18px var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.tab-chat-picker-description { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
