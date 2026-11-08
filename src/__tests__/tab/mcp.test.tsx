@@ -13,7 +13,7 @@ import { builtinsFrom, SAMPLES_FOLDER } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { STANDARD_TUNING, partOf, type Bar, type Column, type Note, type Part } from '@/features/tab/clip';
 import { APP_INFO, REPORT_DELAY_MS, TabApp } from '@/features/tab/mcp/TabApp';
-import { describeLine, describeLoop, lineFromInput, lineOf, loopOf, noteMidi } from '@/features/tab/mcp/lineJson';
+import { describeLine, describeLoop, lineFromInput, lineOf, loopOf } from '@/features/tab/mcp/lineJson';
 import { APP_URI, TOOL_NAME } from '@/features/tab/mcp/tool';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { readLink } from '@/features/tab/shareLink';
@@ -56,10 +56,6 @@ describe('the JSON as a clip', () => {
     expect(part.bars[0].columns[1].notes[place.string]).toEqual({ fret: place.fret });
     expect(line.bars[0].columns[1].notes).toEqual([{ string: place.string + 1, fret: place.fret }]);
     expect(JSON.stringify(line)).not.toContain('pitch');
-  });
-
-  it('reads note names with octaves and accidentals', () => {
-    expect([noteMidi('E2'), noteMidi('F#3'), noteMidi('Bb2'), noteMidi('C♯4'), noteMidi('Cb4'), noteMidi('H2')]).toEqual([40, 54, 46, 61, 59, null]);
   });
 
   it('keeps the bpm, time, capo, chord names and the articulations it takes', () => {

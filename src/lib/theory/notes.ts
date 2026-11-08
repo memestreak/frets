@@ -28,14 +28,31 @@ export const LETTER_PCS = [0, 2, 4, 5, 7, 9, 11] as const;
  */
 export function pitchClassOf(name: string): number {
   const letter = LETTERS.indexOf(name[0].toUpperCase());
+  return mod12(LETTER_PCS[letter] + accidentalShift(name.slice(1)));
+}
+
+/**
+ * A sounding note name's MIDI number: "E2" 40 (the low E string), "F#3" 54,
+ * "Bb2" 46, "Cb4" 59, "B#3" 60. Null for anything else. ASCII or real
+ * accidentals, one or two of them; the octave goes with the letter.
+ */
+export function midiOf(name: string): number | null {
+  const m = /^([A-Ga-g])(##|bb|#|b|♯|♭|𝄪|𝄫)?(-?\d)$/u.exec(name.trim());
+  if (!m) return null;
+  const letter = LETTERS.indexOf(m[1].toUpperCase());
+  return LETTER_PCS[letter] + accidentalShift(m[2] ?? '') + 12 * (Number(m[3]) + 1);
+}
+
+/** How far accidentals move a letter, in semitones: "#" 1, "bb" −2, "𝄪" 2. */
+function accidentalShift(signs: string): number {
   let shift = 0;
-  for (const c of name.slice(1)) {
+  for (const c of signs) {
     if (c === '#' || c === '♯') shift += 1;
     else if (c === 'b' || c === '♭') shift -= 1;
     else if (c === '𝄪') shift += 2;
     else if (c === '𝄫') shift -= 2;
   }
-  return mod12(LETTER_PCS[letter] + shift);
+  return shift;
 }
 
 /** A note moved up by a tonal interval, spelled: ("D", "5P") → "A". */

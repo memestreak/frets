@@ -4,7 +4,7 @@
  * `Part`, placing each `pitch` as staff entry does; `lineOf` turns a `Part` back into the JSON the model
  * reads, every note on its string and fret. Pure; shared by the server (which checks) and the app.
  */
-import { LETTERS, LETTER_PCS } from '@/lib/theory/notes';
+import { midiOf } from '@/lib/theory/notes';
 import {
   COMMON_TIME, DEFAULT_BPM, STANDARD_TUNING, STRING_COUNT, isTimeSignature, tupletProblems, unevenBy,
   type Bar, type Column, type Duration, type Note, type Part, type TimeSignature,
@@ -21,17 +21,6 @@ export type LineResult =
 
 /** "Bar 2, column 3" for a place in the line, counted from 1 as the model counts them. */
 const placeName = (bar: number, column: number) => `Bar ${bar + 1}, column ${column + 1}`;
-
-/**
- * A sounding note name's MIDI number: "E2" 40 (the low E string), "F#3" 54, "Bb2" 46, "Cb4" 59. Null
- * for anything else. ASCII or real accidentals, one or two of them.
- */
-export function noteMidi(name: string): number | null {
-  const m = /^([A-Ga-g])(##|bb|#|b|♯|♭|𝄪|𝄫)?(-?\d)$/u.exec(name.trim());
-  if (!m) return null;
-  const shifts: Record<string, number> = { '': 0, '#': 1, '♯': 1, '##': 2, '𝄪': 2, b: -1, '♭': -1, bb: -2, '𝄫': -2 };
-  return LETTER_PCS[LETTERS.indexOf(m[1].toUpperCase())] + shifts[m[2] ?? ''] + 12 * (Number(m[3]) + 1);
-}
 
 /** A zod issue's path as the model would find it: "Bar 2, column 3, note 1, fret". */
 function pathName(path: readonly PropertyKey[]): string {
@@ -133,7 +122,7 @@ export function lineFromInput(raw: unknown): LineResult {
         column.notes[s] = noteOf(note, note.fret);
       }
       for (const note of pitched) {
-        const midi = noteMidi(note.pitch!);
+        const midi = midiOf(note.pitch!);
         if (midi === null) return { ok: false, error: `${placeName(b, c)}: "${note.pitch}" isn't a note such as E4, F#3 or Bb2.` };
         const place = choosePlace(part, { bar: b, column: c }, midi);
         if (!place) {

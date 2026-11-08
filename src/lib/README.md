@@ -7,7 +7,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   place that imports tonal. It knows nothing about the guitar.
   `docs/specs/2026-10-30-music-theory-core-design.md` says why and what goes
   where.
-  - `notes.ts`: pitch classes (`pitchClassOf`), sharp and flat spellings,
+  - `notes.ts`: pitch classes (`pitchClassOf`), a sounding note name's MIDI
+    number (`midiOf`, "E2" 40), sharp and flat spellings,
     `prettyNote` (♭ ♯ 𝄪 𝄫 glyphs), `transposeNote`.
   - `intervals.ts`: degree labels (`intervalLabel`, "♭3"), chord tone labels
     (`toneLabel`, "R", "♯9"), quality-first names ("m3") and their words.
