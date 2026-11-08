@@ -122,15 +122,21 @@ and in its spec.
 
 ## Layout and hit testing (pure)
 
-- `layout.ts` — `layoutClip`: systems, bars and columns at a width; `rowsFor`
-  (the rows over the staff each line uses), `lineAt`, `spreadLines`,
-  `multiRests`, `bendShape`, `isWholeBarRest` and `wholeRestX` (an empty
+- `layout.ts` — `layoutClip`: systems, bars and columns at a width;
+  `lineAt`, `spreadLines` and `justify` (the line breaking),
+  `multiRests`, `isWholeBarRest` and `wholeRestX` (an empty
   full bar drawn as one rest) — `2026-10-28-tab-line-spacing-design.md`,
   `2026-10-28-tab-line-breaks-design.md`,
   `2026-10-30-tab-track-rests-design.md`,
   `2026-11-03-tab-rests-are-gaps-design.md`; every Voice on one time line
   (`PlacedBar.voices`), stems, rests and heads by Voice —
   `2026-11-04-tab-voices-drawn-edited-design.md`.
+- `rows.ts` — `rowsFor` (the rows each line uses, top to bottom: words,
+  the staff, the tab's marks, the tab), `textRowOf`, the staff's `stepY`
+  and `SPACE`, and the bend constants with `bendShape` (issue #413).
+- `widths.ts` — how wide each thing on a line is drawn: `columnWidth`,
+  `noteInset`, `noteLabel`, `chordWidth` and `prettyChord`, a bar's lead,
+  key signatures, heads and accidentals (`signRoom`) (issue #413).
 - `voiceLayers.ts` — each other Voice as a layout and a part of its own,
   so `TabClip` draws it as it draws the part's own, muted while editing.
 - `layoutText.ts` — the words over the tab and the signatures: sizes,

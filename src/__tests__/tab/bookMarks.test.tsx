@@ -6,7 +6,8 @@
 import { render } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { layoutClip, noteLabel, signRoom, type Parts } from '@/features/tab/layout';
+import { layoutClip, type Parts } from '@/features/tab/layout';
+import { noteLabel, signRoom } from '@/features/tab/widths';
 import { barHeads } from '@/features/tab/notation';
 import { TabClip } from '@/features/tab/TabClip';
 import { type Part, partOf } from '@/features/tab/clip';

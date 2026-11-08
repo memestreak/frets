@@ -85,7 +85,8 @@ describe('a press on the staff', () => {
   it('lands on the head pressed, or on the line or space of a column', async () => {
     const alphaTab = await import('@coderline/alphatab');
     const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
-    const { layoutClip, stepY } = await import('@/features/tab/layout');
+    const { layoutClip } = await import('@/features/tab/layout');
+    const { stepY } = await import('@/features/tab/rows');
     const { hitTest, staffAt } = await import('@/features/tab/hitTest');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n(0.1 3.4).4 r.4 r.2 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
@@ -160,7 +161,8 @@ describe('the bracket joining the staff and the tab', () => {
   it('has room in front of the lines in Both only', async () => {
     const alphaTab = await import('@coderline/alphatab');
     const { readAlphaTexWith } = await import('@/features/tab/alphatexRead');
-    const { BRACKET_WIDTH, layoutClip } = await import('@/features/tab/layout');
+    const { layoutClip } = await import('@/features/tab/layout');
+    const { BRACKET_WIDTH } = await import('@/features/tab/widths');
     const read = readAlphaTexWith(alphaTab, '\\ts (4 4)\n3.3.1 |\n');
     if (!read.ok) throw new Error(read.errors.join('\n'));
     expect(layoutClip(partOf(read.clip), 900, 'both').systems[0].lineStart).toBeGreaterThan(BRACKET_WIDTH);

@@ -5,7 +5,9 @@
 
 import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
-import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, charWidth, TAP_RADIUS, GRACE_SIZE, noteLabel, stringY, type PlacedBar, type PlacedColumn, type Rows } from './layout';
+import { stringY, type PlacedBar, type PlacedColumn } from './layout';
+import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, TAP_RADIUS, type Rows } from './rows';
+import { charWidth, GRACE_SIZE, noteLabel } from './widths';
 import { type NoteDrawnAt } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type DrawnMark } from './marks';

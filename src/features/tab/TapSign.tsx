@@ -1,4 +1,4 @@
-import { TAP_RADIUS } from './layout';
+import { TAP_RADIUS } from './rows';
 import { type TabLook } from './tabLook';
 
 /** A tap's sign: a T in a circle centred on (x, y), filled with the paper so a line under it is hidden. */

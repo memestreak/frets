@@ -4,7 +4,9 @@
  * `staffMarks.ts` places the technique marks by it, so the two agree.
  */
 import { isRest } from './clip';
-import { HEAD_WIDTH, SPACE, STEM_STEPS, stemUpFor, stepY, wholeRestX, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
+import { stemUpFor, wholeRestX, type PlacedBar, type PlacedColumn, type System } from './layout';
+import { SPACE, STEM_STEPS, stepY, type ScoreRows } from './rows';
+import { HEAD_WIDTH } from './widths';
 import { GLYPHS, type GlyphName } from './smufl';
 import { beamGroups } from './beams';
 import { type DrawnAt } from './runs';

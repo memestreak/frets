@@ -4,7 +4,8 @@
  * line to them; and a picked Span's Handles. Pure; works on a `layoutClip` layout, in the drawing's units.
  */
 import type { Note } from './clip';
-import { lineAt, SPACE, stepY, stringY, type Layout, type PlacedBar, type PlacedColumn, type System } from './layout';
+import { lineAt, stringY, type Layout, type PlacedBar, type PlacedColumn, type System } from './layout';
+import { SPACE, stepY } from './rows';
 import { staffRest } from './staffGeometry';
 import { textBox, type WordHit } from './layoutText';
 import { markBoxes, sameMark, type Box, type MarkHit } from './marks';

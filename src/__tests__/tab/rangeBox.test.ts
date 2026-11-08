@@ -1,7 +1,8 @@
 /** The box round a selected run of columns (issue #276): bar line to bar line, halfway between notes, a box per line. */
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { layoutClip, stepY, stringY } from '@/features/tab/layout';
+import { layoutClip, stringY } from '@/features/tab/layout';
+import { stepY } from '@/features/tab/rows';
 import { partOf, type Part } from '@/features/tab/clip';
 import { draggedRange, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles } from '@/features/tab/rangeBox';
 import { rhythmAt } from '@/features/tab/hitTest';

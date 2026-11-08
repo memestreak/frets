@@ -1,5 +1,6 @@
 import type { Part } from './clip';
-import { textRowOf, type Layout } from './layout';
+import { type Layout } from './layout';
+import { textRowOf } from './rows';
 import type { FieldKind } from './WordField';
 import { SECTION_LINE } from './sectionText';
 

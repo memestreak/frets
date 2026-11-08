@@ -2,7 +2,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { attachment } from '@/features/tab/attachment';
 import { type Part, partOf } from '@/features/tab/clip';
-import { layoutClip, stepY, stringY, type Layout, type Parts } from '@/features/tab/layout';
+import { layoutClip, stringY, type Layout, type Parts } from '@/features/tab/layout';
+import { stepY } from '@/features/tab/rows';
 import { markBoxes, type MarkHit } from '@/features/tab/marks';
 
 function clipOf(body: string): Part {

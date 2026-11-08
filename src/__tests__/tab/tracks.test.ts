@@ -11,7 +11,8 @@ import { setSection } from '@/features/tab/barEdits';
 import { asClip, emptyClip, parseClip, partOf, trackName, withPart, type Clip, type Part } from '@/features/tab/clip';
 import { clipAction, sameMusic } from '@/features/tab/clipState';
 import { deleteColumns, indexOf, insertBar, removeEmptyBar, setFret } from '@/features/tab/editing';
-import { columnWidth, layoutClip, multiRests } from '@/features/tab/layout';
+import { layoutClip, multiRests } from '@/features/tab/layout';
+import { columnWidth } from '@/features/tab/widths';
 import { perform } from '@/features/tab/playback';
 
 /** Two guitars: the first with the repeat, section and tempo every track shares; the second in drop D, capo 2. */

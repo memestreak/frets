@@ -1,6 +1,7 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note } from './clip';
-import { layoutClip, SPACE, STRING_GAP, stepY, stringY, type Layout, type Parts, type Rows, type System } from './layout';
+import { layoutClip, stringY, type Layout, type Parts, type System } from './layout';
+import { SPACE, STRING_GAP, stepY, type Rows } from './rows';
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { sameWord, textAt, type TextHit, type WordHit } from './layoutText';

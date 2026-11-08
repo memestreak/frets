@@ -5,7 +5,7 @@
  * one. An SVG group, so the page, the chart and the exported image all draw it the same.
  */
 import type { ReactNode } from 'react';
-import { prettyChord } from './layout';
+import { prettyChord } from './widths';
 import { GRID_FRET, GRID_MARKS, GRID_NAME, GRID_STRING, gridFrets, type ShapedChord } from './chordDiagrams';
 import type { TabLook } from './tabLook';
 
