@@ -34,6 +34,14 @@ Issue #431. Until now every Rail panel was 17rem
   A missing, non-number or out-of-range width reads as 272px or the nearest
   limit; a missing panel reads as Notes.
 - **Under 900px** the panel sits over the clip, so there is no divider.
+- **The Chord set fills the width** (Jeremy, 2026-11-08: "the chord set
+  should attempt to use as few lines as possible, rather than spacing
+  themselves apart … if the nav is wide enough, all the chords should fit on
+  the same line and should wrap to the next line as the [panel] shrinks").
+  Each tile takes 60px of room with its gap, so a row holds
+  `floor((width + 4) / 60)` tiles: four at 272px, six at 400px, eight at
+  560px, three at 224px. A page is still two rows, so it holds twice that,
+  and the pager shows only when the set needs more than one page.
 - No double-click reset: Jeremy's apps avoid double-click triggers. Drag back,
   or use the keys.
 
@@ -49,6 +57,8 @@ Issue #431. Until now every Rail panel was 17rem
 - A right-button press doesn't resize.
 - → makes 272 into 288; Shift+← then 224, which is kept.
 - A kept `{ panel: 'chords', width: 400 }` opens Chords at 400px.
+- The Chord set's contents 532px wide: eight tiles to a row, all ten chords
+  on one page, no pager; 200px: three to a row, six a page, "1 / 2".
 - No divider with every panel closed; under 900px it is hidden (CSS), and the
   open layout's column is `var(--rail-panel-width, 17rem)`.
 
@@ -60,4 +70,6 @@ Issue #431. Until now every Rail panel was 17rem
 2. `tab.css`: the open layout's middle column is
    `var(--rail-panel-width, 17rem)`; `.tab-rail-divider` and its line; hidden
    under 900px.
-3. The rail spec, `src/lib/README.md` (the key) and the Tab README.
+3. `ChordPanel.tsx`: `useTileColumns` measures the panel and sets the
+   tiles' columns and the page's size.
+4. The rail spec, the Chords panel spec, `src/lib/README.md` (the key) and the Tab README.

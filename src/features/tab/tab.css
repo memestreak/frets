@@ -665,7 +665,8 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-panel-what.seg .seg-opt { padding: 2px 7px; font-size: 12px; line-height: 18px; min-height: 0; height: auto; }
 .chord-panel-insert .btn { padding-inline: 10px; }
 .chord-panel-tiles {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 4px;
+  /* Its columns, as many as the panel's width holds, are set on the element (ChordPanel's useTileColumns). */
+  display: grid; grid-auto-rows: 1fr; gap: 4px;
 }
 .chord-panel-tile {
   display: grid; justify-items: center; gap: 1px; padding: 3px 2px; min-width: 0;
