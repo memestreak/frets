@@ -89,3 +89,15 @@ describe('Download Guitar Pro', () => {
     expect(fromGuitarPro(bytes).tracks.map(t => t.name)).toEqual(read.clip.tracks.map(t => t.name ?? ''));
   });
 });
+
+describe('chord diagrams in Guitar Pro (issue #242)', () => {
+  it('carry each track’s chords with their shapes, as the Chord chart draws them', () => {
+    const example = builtins.find(b => b.id === 'chord-diagrams')!;
+    const result = readAlphaTexWith(alphaTab, example.text);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    const score = fromGuitarPro(writeGuitarProWith(alphaTab, result.clip));
+    const chords = (t: number) => [...score.tracks[t].staves[0].chords!.values()].map(c => `${c.name} ${c.strings.join(' ')}`);
+    expect(chords(0)).toContain('A 5 5 6 7 7 5');
+    expect(chords(1)).toContain('D 2 3 2 0 -1 -1');
+  });
+});

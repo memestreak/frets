@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
-import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System, wholeRestX } from './layout';
+import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, BEND_LABEL_STEP, HEAD_WIDTH, SPACE, STEM_STEPS, stepY, type PlacedBar, type PlacedColumn, type ScoreRows, type System } from './layout';
 import type { Accidental } from '@/lib/theory/keys';
 import { accidentalLanes, keySigns, STAFF_LINES, type Head, type SmallHead } from './notation';
 import { GLYPHS, type GlyphName } from './smufl';
-import { GRACE_SCALE, staffBar } from './staffGeometry';
+import { GRACE_SCALE, restShift, staffBar, staffRest } from './staffGeometry';
 import { bendLabel, type StaffMark } from './staffMarks';
 import { mordentSign, vibratoWave, type MarkHit } from './marks';
 import { sameWord, type WordHit } from './layoutText';
@@ -278,9 +278,6 @@ function beamCount(value: number): number {
 const FLAGS: Record<number, [GlyphName, GlyphName]> = {
   8: ['flag8thUp', 'flag8thDown'], 16: ['flag16thUp', 'flag16thDown'], 32: ['flag32ndUp', 'flag32ndDown'], 64: ['flag64thUp', 'flag64thDown'],
 };
-const RESTS: Record<number, GlyphName> = {
-  1: 'restWhole', 2: 'restHalf', 4: 'restQuarter', 8: 'rest8th', 16: 'rest16th', 32: 'rest32nd', 64: 'rest64th',
-};
 const HEADS: GlyphName[] = ['noteheadWhole', 'noteheadHalf', 'noteheadBlack'];
 const X_HEADS: GlyphName[] = ['noteheadXWhole', 'noteheadXHalf', 'noteheadXBlack'];
 const DIAMOND_HEADS: GlyphName[] = ['noteheadDiamondWhole', 'noteheadDiamondHalf', 'noteheadDiamondBlack'];
@@ -310,14 +307,6 @@ export function ghostChord(column: Column, heads: Head[]): boolean {
   return heads.length > 1 && heads.every(h => column.notes[h.string]?.ghost) && heads[heads.length - 1].step - heads[0].step <= GHOST_CHORD_SPREAD;
 }
 
-/**
- * How far a rest moves, in steps, in a bar of two or more Voices (step 9, Q2): an up-stem Voice's up, a
- * down-stem Voice's down, clear of the other's notes; none in a bar of one Voice.
- */
-export function restShift(placed: PlacedColumn | undefined): number {
-  return placed?.voiceUp === undefined ? 0 : placed.voiceUp ? VOICE_REST_SHIFT : -VOICE_REST_SHIFT;
-}
-const VOICE_REST_SHIFT = 4;
 
 /** One bar's notes on the staff. */
 /** A note by its column's place in the clip and its string. */
@@ -338,15 +327,14 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, ti
     // A Whole-bar rest: one whole rest centred in the bar, whatever the meter and however many rests it stores.
     const lit = selected !== null && bar.columns.some(p => p.index >= selected[0] && p.index <= selected[1]);
     const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
-    const x = wholeRestX(bar) - GLYPHS.restWhole.width * SPACE / 2;
-    return <g data-testid="staff-rest"><Glyph name="restWhole" x={x} y={stepY(score, 6 + restShift(bar.columns[0]))} look={look} /></g>;
+    const rest = staffRest(bar, bar.columns[0], score);
+    return <g data-testid="staff-rest"><Glyph name={rest.glyph} x={rest.x} y={rest.y} look={look} /></g>;
   }
   const parts: ReactNode[] = [];
   const { columns: geometry, groups, groupUp, beamY } = staffBar(bar, score);
 
   for (const placed of bar.columns) {
     const { column, heads } = placed;
-    const x = placed.x + (placed.headShift ?? 0);
     // A selected column's heads, signs, ledger lines and rest are drawn in the selection colour, as MuseScore colours selected notes.
     const lit = selected !== null && placed.index >= selected[0] && placed.index <= selected[1];
     const look = lit ? { ...barLook, ink: 'var(--select)' } : barLook;
@@ -357,11 +345,9 @@ function StaffBar({ bar, score, look: barLook, alone, selected, selectedNote, ti
     if (isRest(column) || heads.length === 0) {
       if (column.grace) continue;
       const shift = restShift(placed);
-      const restStep = (value === 1 ? 6 : 4) + shift;
-      const glyph = RESTS[value];
-      const rx = x - GLYPHS[glyph].width * SPACE / 2;
-      parts.push(<g key={`rest-${key}`} data-testid="staff-rest" data-step={restStep}><Glyph name={glyph} x={rx} y={stepY(score, restStep)} look={look} /></g>);
-      for (let d = 0; d < dots; d++) parts.push(<circle key={`rdot-${key}-${d}`} cx={rx + GLYPHS[glyph].width * SPACE + 4 + d * 5} cy={stepY(score, 5 + shift)} r={1.6} fill={look.ink} />);
+      const rest = staffRest(bar, placed, score);
+      parts.push(<g key={`rest-${key}`} data-testid="staff-rest" data-step={rest.step}><Glyph name={rest.glyph} x={rest.x} y={rest.y} look={look} /></g>);
+      for (let d = 0; d < dots; d++) parts.push(<circle key={`rdot-${key}-${d}`} cx={rest.x + rest.width + 4 + d * 5} cy={stepY(score, 5 + shift)} r={1.6} fill={look.ink} />);
       continue;
     }
     const { up, width, xs, stemX, tip, group } = geometry.get(placed)!;

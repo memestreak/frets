@@ -658,3 +658,36 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-editor-editor-svg :is(line, circle, text, rect:not(.chord-editor-hit)) { pointer-events: none; }
 .chord-editor-hit { fill: transparent; cursor: pointer; }
 .chord-editor-hit:hover { fill: var(--select-soft); }
+/* A Chord chart chord: picked, it is drawn blue, so it needs no outline (issue #242). */
+.tab-chart-chord { cursor: pointer; }
+.tab-chart-chord:focus { outline: none; }
+
+/* The Chord set as tiles, a page at a time, and the chord editor for a chord it has (issue #400). */
+.chord-panel-icon:disabled { opacity: .4; cursor: default; }
+.chord-panel-what.seg .seg-opt { padding: 2px 7px; font-size: 12px; line-height: 18px; min-height: 0; height: auto; }
+.chord-panel-insert .btn { padding-inline: 10px; }
+.chord-panel-tiles {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 4px;
+}
+.chord-panel-tile {
+  display: grid; justify-items: center; gap: 1px; padding: 3px 2px; min-width: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
+}
+.chord-panel-tile:hover { background: var(--surface-sunken); }
+.chord-panel-tile[aria-pressed='true'] { background: var(--select-soft); border-color: var(--select); }
+.chord-panel-tile:focus-visible { outline: none; }
+.chord-panel-tile-name { font: 600 12px/16px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chord-panel-tile[data-unused] { position: relative; }
+.chord-panel-tile[data-unused]::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
+}
+.chord-panel-pager { display: flex; align-items: center; justify-content: center; gap: 6px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.chord-panel-step:disabled { opacity: .35; cursor: default; }
+.chord-editor-title {
+  justify-self: start; margin: -2px -4px; padding: 2px 4px; border: 0; border-radius: var(--radius-sm); background: none;
+  font: 600 18px/24px var(--font-sans); color: var(--ink); cursor: default; text-align: left;
+}
+.chord-editor-title:hover { background: var(--surface-sunken); }
+.chord-editor-title:focus-visible { outline: none; }
+.chord-panel-tile-empty { visibility: hidden; }

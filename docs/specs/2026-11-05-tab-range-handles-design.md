@@ -28,7 +28,7 @@ either end directly, and shows which part of the box can be moved.
   nothing.
 - A drag only selects: the music doesn't change and nothing goes on the undo list.
 - A handle takes a press before anything under it, as a Span's Handle does, anywhere along its edge.
-- In note input and normal mode alike, whenever the box is drawn.
+- In note input mode and normal mode alike, whenever the box is drawn.
 
 How it looks (Jeremy, 2026-11-06, after mocks of knobs half way down each edge, grip bars and pins, then
 knobs on the bottom corners shown on hover): **no knobs**. A Range handle is the box's own left or right

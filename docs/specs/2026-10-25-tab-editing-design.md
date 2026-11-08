@@ -46,8 +46,8 @@ readers pass keys through to it.
 
 ## Keys
 
-These are note input's keys since issue #238 split normal mode from note input
-(`2026-10-30-tab-note-input-mode-design.md`); N turns note input on, and normal mode has MuseScore's.
+These are note input mode's keys since issue #238 split normal mode from note input mode
+(`2026-10-30-tab-note-input-mode-design.md`); N turns note input mode on, and normal mode has MuseScore's.
 
 
 | Key | Does |

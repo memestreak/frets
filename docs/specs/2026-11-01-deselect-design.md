@@ -21,7 +21,7 @@ next Esc.
 - Triads: a picked grip now goes on a press off the board's cells and the controls, as well as Esc.
 - Tab: a selected run went on a press off the bars (#279). The playback line (the red line placed by a
   press just over or under the tab) now goes the same way; Play and the other controls keep it. Esc on
-  the Tab page stays the editor's own, a step at a time: note input, then the selection, then the line,
+  the Tab page stays the editor's own, a step at a time: note input mode, then the selection, then the line,
   then the tab.
 - Arrangements… (Tab): Esc lets the picked files go and keeps the dialog open; with nothing picked, Esc
   closes it. A press on the dialog's empty space lets them go; the lines, buttons and the preview keep

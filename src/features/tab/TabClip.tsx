@@ -1,6 +1,6 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, columnMordent, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note, type TimeSignature } from './clip';
-import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
+import { prettyChord, CHORD_SIZE, layoutClip, SPACE, STRING_GAP, stepY, stringY, textRowOf, type Layout, type Parts, type PlacedBar, type Rows, type System } from './layout';
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
 import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
@@ -22,6 +22,8 @@ import { repeatCountText, REPEAT_COUNT_SIZE } from './barLines';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
 import { attachment, columnNear, handleAt, type Handle } from './attachment';
 import { boxSpan, RANGE_EDGE_REACH, rangeBoxes, rangeEndAt, rangeHandleAt, rangeHandles, type RangeDrag, type RangeHandle } from './rangeBox';
+import { ChordGrid } from './ChordGrid';
+import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { drawnLayout, otherVoices, voiceLayout, voicePart } from './voiceLayers';
 
 /** What the editor shows on the page: the cursor (a column and a string) and the selected columns. */
@@ -74,8 +76,10 @@ export interface DoubleClickPlace {
   rest: { bar: number; column: number } | null;
 }
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
+  /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
+  chordDiagrams?: boolean;
   /**
    * On the page while the cursor or a pick is on the tab (step 9, Q6 b, Q22): the Voices other than the
    * part's own (the Active voice) are drawn in `MUTED_VOICE_INK`.
@@ -178,7 +182,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
   onPickRhythm?: (at: { bar: number; column: number; lastBar?: number }, extend: boolean) => void;
 }) {
-  const layout = useMemo(() => given ?? layoutClip(clip, width, parts), [given, clip, width, parts]);
+  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, chordDiagrams), [given, clip, width, parts, chordDiagrams]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
@@ -630,6 +634,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             if (head) out.push(<ellipse key={`tint-head-${t.index}-${t.string}`} cx={placed.x} cy={stepY(rows.score!, head.step)} rx={8} ry={6} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-head" />);
             return out;
           })))}
+          {/* A picked word's rest, tinted under its glyph as a note's head is (issue #393). */}
+          {attached.rests.filter(r => r.system === si).map((r, k) => (
+            <rect key={`tint-rest-${k}`} x={r.x} y={r.y} width={r.width} height={r.height} rx={3} fill="var(--select-soft)" pointerEvents="none" data-testid="tinted-rest" />
+          ))}
           {/* Under the numbers, as the cursor's box is, so the Tied note's number shows through. */}
           {rows.tab && highlight?.tied && (highlight.range || highlight.staffPitch == null) && system.bars.flatMap(bar => bar.columns.flatMap(placed =>
             highlight.tied!.filter(t => t.index === placed.index).map(t => {
@@ -1119,6 +1127,19 @@ function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = fals
 function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
+  // Under each chord name its diagram (issue #242), picked with it.
+  if (rows.diagrams !== null) {
+    for (const placed of system.bars.flatMap(bar => bar.columns)) {
+      if (!placed.diagram) continue;
+      const look = lookOf({ kind: 'chord', index: placed.index });
+      parts.push(
+        <ChordGrid
+          key={`grid-${placed.index}`} chord={placed.diagram} look={look}
+          x={placed.x - (gridSize(placed.diagram).width * OVER_NAME_SCALE) / 2} y={rows.diagrams} scale={OVER_NAME_SCALE}
+        />,
+      );
+    }
+  }
   for (const bar of system.bars) {
     if (rows.chords !== null) {
       for (const placed of bar.columns) {
@@ -1134,13 +1155,14 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
         );
       }
     }
-    if (rows.text !== null) {
+    {
       for (const placed of bar.columns) {
-        if (!placed.column.text) continue;
+        const textRow = textRowOf(rows, placed);
+        if (!placed.column.text || textRow === null) continue;
         const look = lookOf({ kind: 'text', index: placed.index });
         parts.push(
           <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={rows.text + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
             fill={look.ink} data-testid="beat-text"
           >
             {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}

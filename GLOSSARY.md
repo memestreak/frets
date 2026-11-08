@@ -98,6 +98,17 @@ alphaTex). Beams, and the splits of notes and Gaps, follow where Beat
 groups meet.
 _Avoid_: group (alone)
 
+**Change chord**:
+The chord dialog opened on a chord of the Chord set, from Edit chord's
+Change chord link: the same Name, Root, Type and shapes as defining a new
+chord, with Cancel, Save as new chord and Save chord.
+_Avoid_: modify chord
+
+**Chord set**:
+The chords an Arrangement defines for a Track, shown as tiles in the Tab
+page's Chords panel, each with its diagram; an unused one is tinted.
+_Avoid_: chord list, chord library
+
 **Clip**:
 The music in an Arrangement: one or more Tracks over the bars they
 share.
@@ -108,6 +119,13 @@ any of the strings, or none, sharing one length. The Clip stores bars
 as Columns.
 _Avoid_: beat (Guitar Pro's word for it)
 
+**Edit chord**:
+The Chords panel's view of one chord of the Chord set, opened by
+double-click or the chord's menu: its shapes, picked live, and its name,
+renamed by double-click or F2. It follows the chord picked in the Chord
+set, the tab or the Chord chart.
+_Avoid_: chord editor, chord view
+
 **Gap**:
 Time in a Voice with no note. It is drawn as the rests the meter calls
 for, split where Beat groups meet; a rest is not kept as a thing of its
@@ -115,11 +133,11 @@ own.
 _Avoid_: explicit rest
 
 **Grace entry**:
-A toggle in Note input, on `/`, lit while on: each fret typed goes in
+A toggle in Note input mode, on `/`, lit while on: each fret typed goes in
 as a grace note before the time at the cursor, taking no time.
 
 **Grid**:
-The steps Note input's cursor stops at inside a Gap, and where a press
+The steps Note input mode's cursor stops at inside a Gap, and where a press
 snaps to: the Input length unless a fixed Grid is picked.
 
 **Handle**:
@@ -127,7 +145,7 @@ A small circle at each end of a picked Span, dragged to change which
 columns the Span covers, never the notes' time.
 
 **Input length**:
-The length the next note entered in Note input takes, chosen before the
+The length the next note entered in Note input mode takes, chosen before the
 note goes in.
 
 **Line break**:
@@ -144,11 +162,13 @@ _Avoid_: annotation
 
 **Normal mode**:
 The Tab page's mode for picking and changing what is there; the page
-starts in it. Notes are entered in Note input.
+starts in it. Notes are entered in Note input mode.
 
-**Note input**:
+**Note input mode**:
 The Tab page's mode for entering notes, turned on and off with N or the
-pencil; Esc goes back to Normal mode.
+pencil; Esc goes back to Normal mode. Dorico's name. Edits happen in
+Normal mode too, so it is not an edit mode.
+_Avoid_: note input (alone), edit mode, editing mode
 
 **Phrase**:
 A short stretch of music with a shape of its own, such as a riff, a
@@ -239,7 +259,7 @@ One instrument's line in a Clip, with its own tuning, instrument and
 playback effects.
 
 **Tuplet entry**:
-A toggle in Note input, picked from the Tuplet panel (`;`), lit while
+A toggle in Note input mode, picked from the Tuplet panel (`;`), lit while
 on: the notes typed go in as a tuplet of the Input length, a new one
 starting when the last is full.
 

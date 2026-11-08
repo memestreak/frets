@@ -6,8 +6,9 @@
 import { barLength, barsPerLine, barTicks, beatGroupsAt, beatTicks, type TimeSignature, changesKey, changesTime, hasNotes, isRest, MAX_VOICES, startsFreeTime, keyAt, ticks, timeAt, voiceColumns, WHOLE, type Bar, type Bend, type Part, type Column, type Note } from './clip';
 import { accidentalLanes, barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
-import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts } from './beatText';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, placeBeatTexts, textGoesUnder } from './beatText';
 import { BAR_TEXT_INSET, placeSections, SECTION_LINE } from './sectionText';
+import { diagramOf, overNameHeight, type ShapedChord } from './chordDiagrams';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -37,8 +38,12 @@ export interface Rows {
   wah: number | null;
   /** Chord names over their columns. */
   chords: number | null;
-  /** Free text over its column (alphaTex txt): its first line's middle; a wrapped text's lines go on down from it. */
+  /** The top of the diagrams under the chord names (issue #242), when the line draws any. */
+  diagrams: number | null;
+  /** Long free text over its column (alphaTex txt), over the chord names: its first line's middle; a wrapped text's lines go on down from it. */
   text: number | null;
+  /** Short free text (`textGoesUnder`), under the chord names and their diagrams, right over the music. */
+  textUnder: number | null;
   /** Fermatas, over the tab when there is no staff to carry them. */
   fermatas: number | null;
   /** Hairpins (crescendo, decrescendo), right under the staff or over the tab's other marks. */
@@ -83,6 +88,9 @@ export interface ScoreRows {
   top: number;
   bottom: number;
 }
+
+/** From a chord name's row down to the top of the diagram under it. */
+const DIAGRAM_DROP = 7;
 
 /** The notation staff's space between lines; a step (line to space) is half of it. */
 export const SPACE = 9;
@@ -156,21 +164,28 @@ export function rowsFor(
   freeTimeLabel = clip.bars.some((_, i) => startsFreeTime(clip, i)),
   /** How many text rows the line's wrapped and stacked texts take (`placeBeatTexts`): the text row grows down by the rest. */
   textLines = 1,
+  /** How many text rows the line's short texts under the chord names take: their row grows down by the rest. */
+  textUnderLines = 1,
   /** How many rows the line's stacked sections take (`placeSections`): the section row grows down by the rest. */
   sectionLines = 1,
+  /** Chord diagrams under the names (the View options' Chord diagrams). */
+  diagrams = false,
 ): Rows {
   const tab = parts !== 'staff';
   // Every Voice's columns: another Voice's chord names, texts and marks take their rows too (step 9).
   const columns = clip.bars.flatMap(b => [...b.columns, ...(b.otherVoices ?? []).flatMap(o => o.columns)]);
   const notes = columns.flatMap(c => c.notes).filter((n): n is Note => n !== null);
+  const chords = columns.some(c => c.chord);
   const used = {
     capo: !!clip.capo,
     // "Free time" goes in the tempo's row, over the chord names, as Guitar Pro prints it.
     // The first bar's tempo is printed in the score's head (`tempoOver` in layoutText.ts).
     tempo: clip.bars.some((b, index) => index > 0 && b.tempo) || freeTimeLabel,
     section: clip.bars.some(b => b.section),
-    chords: columns.some(c => c.chord),
-    text: columns.some(c => c.text),
+    chords,
+    diagrams: diagrams && columns.some(c => c.chord && diagramOf(clip, c.chord)),
+    text: columns.some(c => c.text && !textGoesUnder(c.text, chords)),
+    textUnder: columns.some(c => c.text && textGoesUnder(c.text, chords)),
     endings: clip.bars.some(b => b.ending !== undefined || (b.repeatEnd !== undefined && b.repeatEnd !== 2)),
     wah: columns.some(c => c.wah),
     // Strokes, let ring, P.M. and P.H. sit between the staff and the tab, as printed guitar music has
@@ -209,8 +224,13 @@ export function rowsFor(
     tempo: row(used.tempo),
     section: tall(row(used.section, true), (Math.max(1, sectionLines) - 1) * SECTION_LINE),
     endings: row(used.endings),
-    chords: row(used.chords),
+    // Long free text over the chord names, so a chord and its diagram sit right over the music (Jeremy, 2026-11-06).
     text: tall(row(used.text), (Math.max(1, textLines) - 1) * BEAT_TEXT_LINE),
+    chords: row(used.chords),
+    // The diagrams hang under the names (books print the name over its diagram); the rows after start under them.
+    diagrams: tall(used.diagrams ? y + DIAGRAM_DROP : null, DIAGRAM_DROP + overNameHeight()),
+    // Short free text, such as "let ring", under them, by the music it is about (Jeremy, 2026-11-07).
+    textUnder: tall(row(used.textUnder), (Math.max(1, textUnderLines) - 1) * BEAT_TEXT_LINE),
     // The wah's signs, like any mark on the music, go under the chord names (Jeremy, 2026-10-28).
     wah: row(used.wah),
   };
@@ -269,6 +289,11 @@ export function rowsFor(
   };
 }
 
+/** The row a column's free text is drawn in: under the chord names when it is a short one, else over them. */
+export function textRowOf(rows: Rows, placed: PlacedColumn): number | null {
+  return placed.textUnder ? rows.textUnder : rows.text;
+}
+
 /** How far the staff's notes and stems reach, in steps: the highest over the top line, the lowest under the bottom one. */
 export interface StaffReach {
   high: number;
@@ -323,8 +348,12 @@ export interface PlacedColumn {
   stemUp: boolean;
   /** Its free text, wrapped to the room before the next text on the line (`beatText.ts`); empty without one. */
   textLines: string[];
+  /** The diagram drawn under its chord name, when Chord diagrams are on and its chord has a shape (issue #242). */
+  diagram?: ShapedChord;
   /** Its text's first line, in text rows down from the line's text row: above 0 when moved up clear of another. */
   textTop: number;
+  /** Whether its text is a short one under the chord names (`rows.textUnder`) rather than over them (`rows.text`). */
+  textUnder: boolean;
   /**
    * In a bar where two or more Voices are present: whether its Voice is an up-stem one (Voices 1 and 3) or
    * a down-stem one (2 and 4), which sets its stems, rests and marks' side (step 9, Q2). None otherwise.
@@ -498,8 +527,10 @@ export interface System {
   /** On the staff: where the key signature's first sign goes. */
   keyX: number;
   first: boolean;
-  /** How many text rows its free texts take, wrapped and stacked (`placeBeatTexts`). */
+  /** How many text rows its free texts over the chord names take, wrapped and stacked (`placeBeatTexts`). */
   textRows: number;
+  /** How many text rows its short texts under the chord names take. */
+  textUnderRows: number;
   /** How many rows its sections take, stacked clear of each other (`placeSections`). */
   sectionRows: number;
 }
@@ -734,7 +765,7 @@ function placeOthers(multi: BarVoices, own: PlacedColumn[], places: number[], sq
       const heads = other.heads[k];
       const placed: PlacedColumn = {
         column, index: places[other.voice] + k, x: 0, start: 0, width: 0, bendRoom: 0, bendPeakRoom: 0, heads,
-        stemUp: stemUpFor(heads), textLines: [], textTop: 0,
+        stemUp: stemUpFor(heads), textLines: [], textTop: 0, textUnder: false,
       };
       if (multi.several) {
         placed.voiceUp = other.voice % 2 === 0;
@@ -783,7 +814,7 @@ function followAnchor(placed: PlacedColumn): void {
   placed.x = placed.start + Math.min(a.inset, placed.width / 2) + a.signs;
 }
 
-export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Layout {
+export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diagrams = false): Layout {
   const staff = parts !== 'tab';
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
   // room, so the lines start one under another). No string names: the score's head shows the tuning
@@ -825,7 +856,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
-      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, sectionRows: 1,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, textUnderRows: 1, sectionRows: 1,
     });
     complete.push(true);
     current = [];
@@ -887,7 +918,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = (multi ? multi.spotSigns[multi.ownFrom[k]] : signRoom(columnHeads)) / 2;
       const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
-      const placed: PlacedColumn = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0 };
+      const placed: PlacedColumn = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0, textUnder: false };
       if (multi?.several) {
         placed.voiceUp = ownVoice % 2 === 0;
         placed.stemUp = placed.voiceUp;
@@ -923,6 +954,17 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
   // The other Voices' columns follow their own Voice's, wherever spreading the lines moved them.
   for (const system of drafts) for (const bar of system.bars) for (const v of bar.voices ?? []) for (const placed of v.columns) followAnchor(placed);
   if (staff) for (const system of drafts) for (const bar of system.bars) if (bar.voices) sideBySide(bar);
+  // The diagram under each chord name with a shape (issue #242), in every Voice.
+  if (diagrams) {
+    for (const system of drafts) {
+      for (const bar of system.bars) {
+        for (const placed of [...bar.columns, ...(bar.voices ?? []).flatMap(v => v.columns)]) {
+          const diagram = placed.column.chord ? diagramOf(clip, placed.column.chord) : null;
+          if (diagram) placed.diagram = diagram;
+        }
+      }
+    }
+  }
   // How far right of each note its bend's arrows may run: to just before the next note on the line, in its Voice.
   for (const system of drafts) {
     const placed = system.bars.flatMap(b => b.columns);
@@ -937,18 +979,26 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
       const list = system.bars.flatMap(b => b.voices?.find(o => o.voice === v)?.columns ?? []);
       if (list.length > 0) bendRooms(list);
     }
-    // A text wraps to the room before the next text on the line, or before the drawing's right edge, and
-    // moves up clear of one it still touches (issue #323). Every Voice's texts share the row.
-    const texted = [...placed, ...system.bars.flatMap(b => (b.voices ?? []).flatMap(v => v.columns))].filter(c => c.column.text).sort((a, b) => a.x - b.x);
-    const texts = placeBeatTexts(
-      texted.map(c => ({ x0: c.x - BEAT_TEXT_INSET, text: c.column.text! })),
-      Math.max(width, system.bars[system.bars.length - 1].x1),
-    );
-    texted.forEach((c, k) => {
-      c.textLines = texts.placed[k].lines;
-      c.textTop = texts.placed[k].top;
-    });
-    system.textRows = texts.rows;
+    // A text wraps to the room before the next text in its row, or before the drawing's right edge, and
+    // moves up clear of one it still touches (issue #323). Every Voice's texts share the rows: long ones
+    // over the chord names, short ones under them (`textGoesUnder`).
+    const voiced = [...placed, ...system.bars.flatMap(b => (b.voices ?? []).flatMap(v => v.columns))];
+    const lineHasChords = voiced.some(c => c.column.chord);
+    const texted = voiced.filter(c => c.column.text).sort((a, b) => a.x - b.x);
+    texted.forEach(c => { c.textUnder = textGoesUnder(c.column.text!, lineHasChords); });
+    const placeRow = (row: PlacedColumn[]) => {
+      const texts = placeBeatTexts(
+        row.map(c => ({ x0: c.x - BEAT_TEXT_INSET, text: c.column.text! })),
+        Math.max(width, system.bars[system.bars.length - 1].x1),
+      );
+      row.forEach((c, k) => {
+        c.textLines = texts.placed[k].lines;
+        c.textTop = texts.placed[k].top;
+      });
+      return texts.rows;
+    };
+    system.textRows = placeRow(texted.filter(c => !c.textUnder));
+    system.textUnderRows = placeRow(texted.filter(c => c.textUnder));
     // A section wraps to the room before the next, and moves up clear of one it still touches (issue #389).
     const sectioned = system.bars.filter(b => b.bar.section);
     const sections = placeSections(
@@ -966,7 +1016,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab'): Lay
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.sectionRows);
+      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;

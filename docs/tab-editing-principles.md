@@ -46,7 +46,7 @@ paste, Ctrl/⌘+Delete) pushes or pulls the following music across bar lines. A 
 Pickup bar set on purpose. (A10, A11)
 ✓ Dorico · ✓ MuseScore · ✗ Guitar Pro (bars run over)
 
-**P2 · Write over by default.** Note input writes over what is at the cursor; nothing moves unless
+**P2 · Write over by default.** Note input mode writes over what is at the cursor; nothing moves unless
 the action says it adds or takes time. An Insert mode toggle may come later; nothing here blocks
 it. (A11)
 ✓ Dorico · ✓ MuseScore · ✗ Guitar Pro
@@ -58,7 +58,7 @@ edit the bar is written out again by the meter. alphaTex, links and saves don't 
 ✓ Dorico · ½ MuseScore (written notes) · ✗ Guitar Pro (written beats)
 
 **P4 · Rests are gaps.** A rest is only the time between notes (a Gap), always written by the
-meter. A rest's length can't be set. `,` in note input moves on and leaves a gap; in normal mode it
+meter. A rest's length can't be set. `,` in note input mode moves on and leaves a gap; in normal mode it
 is Delete. An empty bar is one Whole-bar rest. (A3, A13)
 ✓ Dorico (without forced rests) · ½ MuseScore (rests are objects) · ✗ Guitar Pro
 
@@ -77,7 +77,7 @@ its start and keeps the bar full. A run is laid out again in order from its star
 a picked rest makes a note of that rest's length. (A8, A12)
 ✓ Dorico · ✓ MuseScore · ✗ Guitar Pro
 
-**P8 · Ties go forward.** T ties the picked note to the next one on its string; in note input it
+**P8 · Ties go forward.** T ties the picked note to the next one on its string; in note input mode it
 adds a tied note. Hand-made and automatic ties alike become one note for picking, Delete and
 length. Each written note of a chain keeps its own marks (a bend held and pushed higher, a chord
 name over a held note); Alt+press picks one for that. (A7; step 1 spec, Q1)
@@ -89,7 +89,7 @@ length changes. Flat beams, never over rests. (A6)
 ✓ Dorico · ✓ MuseScore · ✓ Guitar Pro
 
 **P10 · One pattern for tuplets and grace notes.** Normal mode applies them without moving time;
-note input turns on a lit entry mode (Tuplet entry, Grace entry). A tuplet takes a note's span;
+note input mode turns on a lit entry mode (Tuplet entry, Grace entry). A tuplet takes a note's span;
 Grace adds a grace note before the picked note. (A9, A14)
 ✓ Dorico · ½ MuseScore (no entry toggles) · ✗ Guitar Pro
 
@@ -97,7 +97,7 @@ Grace adds a grace note before the picked note. (A9, A14)
 them. Joins (tie, hammer-on, slide) stay true, as normalize keeps them.
 ✓ Dorico · ✓ MuseScore · ✓ Guitar Pro
 
-**P12 · Two modes, one set of keys.** Normal mode picks and changes; note input enters. The length
+**P12 · Two modes, one set of keys.** Normal mode picks and changes; note input mode enters. The length
 keys mean the same in both. The Grid follows the Input length by default, or is fixed (Alt+G,
 Alt+[ ]); Space always plays, Shift+Space moves on by the Input length. `=` and `−` make a note
 longer and shorter, as Dorico's.
@@ -157,7 +157,7 @@ ground rules they answer are in the ADR.
   start, in order, each with its new length; past the run's old end it writes over what follows,
   or leaves a gap if shorter. The bar stays full. One note is a run of one.
 - **A9 Tuplets.** In normal mode a tuplet is applied over a span: a picked note's time becomes the
-  tuplet (the note, then a gap). In note input, a tuplet turns on Tuplet entry, lit while on, until
+  tuplet (the note, then a gap). In note input mode, a tuplet turns on Tuplet entry, lit while on, until
   turned off (Dorico). Bars stay full. Step 6: a selection is squeezed into the tuplet, as
   Dorico's; taking a tuplet away lays its notes out plain; `;` opens the Tuplet panel at the
   cursor.
@@ -166,18 +166,18 @@ ground rules they answer are in the ADR.
   (alphaTex `\ac`). An imported Uneven bar keeps its quiet ⚠ with Move extra into next bar. The
   "Fill short bars with rests" setting went.
 - **A11 Adding time.** Explicit actions only. Insert adds a gap at the cursor (the Input length in
-  note input, else the picked note's length); Insert paste puts the clipboard in. Both push the
+  note input mode, else the picked note's length); Insert paste puts the clipboard in. Both push the
   following music forward across bar lines. Later, maybe: a Dorico-style Insert mode toggle, under
   which typing, length changes and Delete push and pull instead of writing over. Nothing here
   blocks adding it.
 - **A12 Typing on a rest** (normal mode): the rest becomes a note of that length (MuseScore,
   Guitar Pro). Picking a rest and typing changes pitch, not rhythm.
-- **A13 Rest key.** In note input it moves on by the Input length and leaves a gap (MuseScore's 0,
+- **A13 Rest key.** In note input mode it moves on by the Input length and leaves a gap (MuseScore's 0,
   Dorico's rest entry); in normal mode it turns the picked notes into a gap, the same as Delete. No
   rest is stored. Step 6: the key is `,`, as Dorico's; R does nothing for now (Dorico's
   repeat is issue #344).
 - **A14 Grace notes.** In normal mode, Grace adds a grace note before the picked note, at the same
-  fret, moving nothing (MuseScore). In note input, Grace entry, lit while on: typed notes go in as
+  fret, moving nothing (MuseScore). In note input mode, Grace entry, lit while on: typed notes go in as
   grace notes before the next normal note until it is turned off (Dorico). Step 6: the key is `/`
   (the slide moved to Alt+/); grace values by count (an eighth, two sixteenths, thirty-seconds);
   Delete removes one with no gap.
@@ -222,7 +222,7 @@ When is the length chosen, where can a note start, and how does the cursor move?
 
 **Rule (P2, P12, P4; A13, the note input grid).**
 
-- The Input length is chosen before the note in note input.
+- The Input length is chosen before the note in note input mode.
 - The Grid sets where a note can start; it follows the Input length unless you fix it.
 - A press snaps to the Grid in every rest, an empty bar's Whole-bar rest included; normal mode
   still picks the whole bar.
@@ -234,7 +234,7 @@ When is the length chosen, where can a note start, and how does the cursor move?
 - Later: entering inside a note shortens it to that point, as Dorico does with Insert mode off
   (issue #332).
 - A note longer than the room before the next note writes over it, split and tied by the meter.
-- `,` in note input moves on by the Input length and leaves a gap.
+- `,` in note input mode moves on by the Input length and leaves a gap.
 - Space always plays.
 
 Comparison:
@@ -242,7 +242,7 @@ Comparison:
 - **Length chosen.** Dorico: before the note, from the Notes panel or 1–9 (u). MuseScore: before
   the note, 1–9 pick 64th to longa, `.` a dot (m). Guitar Pro: on the beat you're on, before or
   after the fret (+ / − on the keypad); moving right past the bar's end makes a new beat as long as
-  the last (m). Frets: note input, before, as MuseScore (staff digits, tab Shift+digit, `=` / `−`
+  the last (m). Frets: note input mode, before, as MuseScore (staff digits, tab Shift+digit, `=` / `−`
   or W/Q, `.`); normal mode changes what's picked.
 - **Where a note can start.** Dorico: at any point of the rhythmic grid (Alt+[ ]); the caret moves
   by the grid through empty time (u). MuseScore: at a chord or rest; the cursor steps by notes and
@@ -252,7 +252,7 @@ Comparison:
   (issue #332).
 - **Entering a rest.** Dorico: rests are implicit; one can be entered on purpose (`,`) (u).
   MuseScore: 0 enters a rest of the input length and moves on (m). Guitar Pro: R makes the beat a
-  rest (m). Frets: `,` in note input writes a gap of the Input length and moves on; in normal mode
+  rest (m). Frets: `,` in note input mode writes a gap of the Input length and moves on; in normal mode
   it is Delete.
 - **Moving on after a note.** Dorico: automatically, by the note's length; Space advances by the
   grid (u). MuseScore: automatically after each note (u). Guitar Pro: right arrow; a new beat at the
@@ -375,7 +375,7 @@ edited?
 Comparison:
 
 - **Manual tie.** Dorico: T ties to the next note of the same pitch, or enters one (u). MuseScore:
-  T in normal mode ties to the next note of the same pitch (both must exist); + in note input adds
+  T in normal mode ties to the next note of the same pitch (both must exist); + in note input mode adds
   a tied note (m). Guitar Pro: L ties the note to the previous one on the same string (u). Frets: T
   ties forward, as Dorico's.
 - **Automatic ties.** Dorico: always; notes are split and tied by the meter, and re-notated when the
@@ -443,8 +443,8 @@ Comparison:
 - **Dot added or removed.** Dorico: as a length change; in Insert mode, pushes or pulls (m).
   MuseScore: as a length change, writes over or leaves rests (u). Guitar Pro: the beat grows or
   shrinks; the bar runs over or under (u). Frets: as a length change (P7).
-- **Rest turned into a note.** Dorico: note input at the caret, by the input length (u). MuseScore:
-  normal mode, the note takes the rest's length; note input, the input length, writing over (u).
+- **Rest turned into a note.** Dorico: note input mode at the caret, by the input length (u). MuseScore:
+  normal mode, the note takes the rest's length; note input mode, the input length, writing over (u).
   Guitar Pro: a fret on a rest beat makes it a note of the same length (u). Frets: as MuseScore.
 - **Note turned into a rest.** Dorico: Delete, implicit rests, re-spelled (u). MuseScore: Delete, a
   rest of the same length (m). Guitar Pro: R, a rest of the same length (m). Frets: Delete or `,`,
@@ -466,7 +466,7 @@ Making a tuplet changes how long each note is. Who absorbs the difference?
 - Normal mode: on one note, the tuplet takes its time (a quarter becomes a triplet eighth, then a
   triplet quarter rest); on a selection, the notes are squeezed into the tuplet, as Dorico's.
 - Normal mode: Grace adds a grace note before the picked note, at the same fret; nothing moves.
-- Note input: Tuplet entry and Grace entry turn on, lit while on, until turned off.
+- Note input mode: Tuplet entry and Grace entry turn on, lit while on, until turned off.
 - Taking a tuplet away (the same tuplet, None, or Delete on its number) lays the notes out plain
   from its start, writing over or leaving a gap.
 - Keys as Dorico's: `;` the Tuplet panel at the cursor, `/` Grace, Alt+/ slide.
@@ -481,7 +481,7 @@ Comparison:
   tuplet; its span becomes a rest (u). Guitar Pro: toggle off; the bar runs over (u).
 - **Grace notes.** Take no time in all four.
 
-Agrees: ✓ Dorico (tuplet and grace entry modes in note input); ½ MuseScore (tuplet over a span,
+Agrees: ✓ Dorico (tuplet and grace entry modes in note input mode); ½ MuseScore (tuplet over a span,
 grace added before; no entry toggles); ✗ Guitar Pro (the bar runs short until a tuplet is filled).
 
 ## 10. Delete, cut, paste and taking time
@@ -497,7 +497,9 @@ Comparison:
 - **Delete.** Dorico: implicit rests; in Insert mode, the gap closes (m). MuseScore: a rest of the
   same length; a range becomes "the correct rests according to the meter" (m). Guitar Pro: Delete
   removes notes; Delete beat removes time (m). Frets: rests written by the meter, as MuseScore's
-  range delete; a bar emptied is one Whole-bar rest.
+  range delete; a bar emptied is one Whole-bar rest. The rests keep the column's text, chord name
+  and other marks of its time, and a note written over that time takes them; only Ctrl/⌘+Delete
+  removes them (issue #393).
 - **Take time away.** Dorico: Insert mode + Delete (m). MuseScore: Ctrl/⌘+Delete, "Remove selected
   range" (m). Guitar Pro: Delete beat / bar (m). Frets: Ctrl/⌘+Delete.
 - **Cut.** Dorico, MuseScore: leaves rests (u). Guitar Pro: single track copies; multitrack cut
@@ -536,7 +538,7 @@ Settings and per-score options that change editing or rhythm notation.
 
 **Rule (A5, A6, A10).**
 
-- Preferences (Settings › Tab › Editing): only the note input Grid and how it is drawn.
+- Preferences (Settings › Tab › Editing): only the note input mode Grid and how it is drawn.
 - In the arrangement: Beat groups for ambiguous meters, Beam overrides, Pickup bars.
 - Commands: the Uneven bar ⚠'s fixes.
 - House style, no option: rests and ties by the meter, flat beams, no beams over rests.

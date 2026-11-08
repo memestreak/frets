@@ -5,7 +5,7 @@ setUpPage();
 
 // A clip from a link takes alphaTab a while to draw the first time in a busy run.
 describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, () => {
-  const pencil = () => screen.getByRole('button', { name: 'Note input' });
+  const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
   /** A clip to start from: digits type no frets in normal mode (Jeremy, 2026-11-07, issue #396). */
   const openWith = async (bar: string) => {
     renderAt(`#tab=${encodeURIComponent(`\\ts (4 4)\n${bar}`)}`);
@@ -171,13 +171,13 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(alphaTex()).toBe('7.1.4 r.4 r.2 |');
     // The palette's pencil does the same as N.
     keys('Escape');
-    fireEvent.click(screen.getByRole('button', { name: 'Note input' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Note input mode' }));
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
   });
 
   it('N anywhere on the page goes into note input, but not in a text field', () => {
     renderAt();
-    const pencil = () => screen.getByRole('button', { name: 'Note input' });
+    const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
     fireEvent.keyDown(document.body, { key: 'n' });
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     expect(editor()).toHaveFocus();

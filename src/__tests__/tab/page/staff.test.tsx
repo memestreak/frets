@@ -167,7 +167,7 @@ describe('dragging notes on the staff (issue #174)', () => {
 
     it('a double-click on the staff or the tab goes into note input, the caret on the note pressed (Jeremy, 2026-10-31, 2026-11-07)', async () => {
       await open();
-      const pencil = () => tool('Note input');
+      const pencil = () => tool('Note input mode');
       expect(pencil()).toHaveAttribute('aria-pressed', 'false');
       press(headAt(0));
       fireEvent.doubleClick(svg(), headAt(0));

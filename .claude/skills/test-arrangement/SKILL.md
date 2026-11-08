@@ -76,10 +76,11 @@ this column (`{txt "..."}`) goes over the column it's about:
 - **The result**, over the column where it shows: "This (5) turns (7)".
   When it shows on the same column, put it in the steps text. Say what
   stays when a slip would move it.
-- **Texts an edit removes.** A text belongs to its column, so an edit
-  that rests or overwrites that column (Delete, a longer note) takes the
-  text with it. Put the result on a column the edit leaves alone, and
-  name the place by bar: "Bar 2 is now one whole rest".
+- **Texts an edit removes.** A text belongs to its column's time:
+  Delete and cut leave it on the rest (issue #393), but an edit that
+  overwrites or takes away that time (a longer note, Ctrl/⌘+Delete)
+  takes the text with it. Put such a result on a column the edit leaves
+  alone, and name the place by bar: "Bar 2 is now one whole rest".
 - One way to do it, the shortest, and the way you checked in the browser.
 - A long text wraps, and texts that would touch stack
   (`docs/specs/2026-11-03-tab-text-wrap-design.md`), so length isn't a

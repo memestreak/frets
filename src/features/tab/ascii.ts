@@ -8,6 +8,7 @@
  * counts, palm mute, strokes and rhythm, each lined up with the strings
  * character for character.
  */
+import { chartChords, type ShapedChord } from './chordDiagrams';
 import {
   barTicks, hasNotes, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
@@ -749,12 +750,28 @@ export function mergedVoices(clip: Part): Part {
  * what ASCII tab can't hold: grace notes, tremolo picking and time signature changes are left out.
  * With `rhythm` false (the ASCII Tab view's option), the rhythm line is left out too.
  */
-export function writeAscii(part: Part, { rhythm = true }: { rhythm?: boolean } = {}): string {
+/**
+ * The Chord chart as ASCII tab sites print it (issue #242): each chord on a line, its name, then its frets
+ * low E first, x for a string not played ("C    x32010"); with a fret of 10 or more, the frets are
+ * joined by dashes ("x-10-12-12-11-x"). Empty for no chords.
+ */
+export function asciiChordChart(chords: readonly ShapedChord[]): string {
+  const width = Math.max(0, ...chords.map(c => c.name.length)) + 2;
+  return chords.map(c => {
+    const frets = c.shape.map(f => (f === null ? 'x' : String(f)));
+    return c.name.padEnd(width) + frets.join(c.shape.some(f => f !== null && f > 9) ? '-' : '');
+  }).join('\n');
+}
+
+export function writeAscii(part: Part, { rhythm = true, chords = false }: { rhythm?: boolean; chords?: boolean } = {}): string {
   const clip = mergedVoices(part);
   const head: string[] = [];
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
   if (!isStandardTuningNames(clip.tuning)) head.push(`Tuning: ${clip.tuning.join(' ')}`);
+  // The Chord chart under the head (issue #242), a reader skips it: not a string line.
+  const chart = chords ? asciiChordChart(chartChords(part)) : '';
+  if (chart) head.push('', chart);
 
   // The strings' standard names, high string first, in every tuning: they label the strings, and the
   // Tuning line says how they're tuned, as the score's head does in the Notation view (Jeremy, 2026-10-29).

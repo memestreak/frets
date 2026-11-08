@@ -112,7 +112,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
   const saveFormats = [
     { label: 'PNG image…', onSelect: () => save(SAVE_KINDS.png, () => svgToPng(picture())) },
     { label: 'SVG image…', onSelect: () => save(SAVE_KINDS.svg, () => new Blob([picture()], { type: 'image/svg+xml' })) },
-    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm }))) },
+    { label: 'ASCII tab…', onSelect: () => save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm, chords: shown.asciiChords }))) },
     { label: 'alphaTex…', onSelect: () => save(SAVE_KINDS.alphatex, () => asText(writeAlphaTex(clip))) },
     { label: 'MusicXML…', onSelect: () => save(SAVE_KINDS.musicxml, () => new Blob([writeMusicXml(clip)], { type: SAVE_KINDS.musicxml.mime })) },
     { label: 'Guitar Pro…', onSelect: () => save(SAVE_KINDS.guitarPro, async () => asBytes(await writeGuitarPro(clip))) },
@@ -153,7 +153,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
         // Pressed, it leaves the focus (and the cursor) on the tab.
         onMouseDown={e => e.preventDefault()}
         onClick={e => {
-          if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm })));
+          if (view === 'ascii') return save(SAVE_KINDS.ascii, () => asText(writeAscii(part, { rhythm: shown.asciiRhythm, chords: shown.asciiChords })));
           if (view === 'alphatex') return save(SAVE_KINDS.alphatex, () => asText(alphaTexText));
           const r = e.currentTarget.getBoundingClientRect();
           if (Date.now() - saveMenuPressedAway.current < PRESSED_AWAY_MS) return;

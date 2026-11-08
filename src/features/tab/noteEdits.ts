@@ -11,7 +11,7 @@ import { chainDuration, chainPlaces, chainStart, isTaken, lengthAnchor, takenNot
 import { isBeamable, unbeamed } from './beams';
 import { timeOf, writeOver } from './timeline';
 import { isProblem, lengthInTuplet, untuplet } from './tuplets';
-import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, indexOf, normalize, noteAt, noteBefore, placeOf, selectedRange, withColumn, without } from './editing';
+import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, hasTimeMarks, indexOf, normalize, noteAt, noteBefore, placeOf, restOf, selectedRange, withColumn, without } from './editing';
 
 
 /**
@@ -35,7 +35,7 @@ export function clearToRests(clip: Part, selection: Selection): { clip: Part; se
         if (i < from || i > taken.last) return column;
         const notes = column.notes.map((note, s) => (note && isTaken(taken.notes, i, s) ? null : note));
         if (i > to) return { ...column, notes };
-        return notes.some(Boolean) ? { ...column, notes } : { ...emptyColumn(column.duration), ...(column.extra ? { extra: column.extra } : {}) };
+        return notes.some(Boolean) || column.grace ? { ...column, notes } : restOf(column);
       }),
     })),
   };
@@ -45,7 +45,7 @@ export function clearToRests(clip: Part, selection: Selection): { clip: Part; se
     (b > first.bar || first.column === 0) && (b < last.bar || last.column === clip.bars[b].columns.length - 1)
     && rested.bars[b].columns.every(c => !c.notes.some(Boolean));
   const bars = rested.bars.map((bar, b) =>
-    b >= first.bar && b <= last.bar && whole(b) ? { ...bar, columns: fewestRests(barTicks(timeAt(rested, b))).map(emptyColumn) } : bar,
+    b >= first.bar && b <= last.bar && whole(b) ? { ...bar, columns: barOfRests(bar.columns, barTicks(timeAt(rested, b))) } : bar,
   );
   // A grace note left with no note goes, leaving no Gap (step 6, Q10).
   const next = normalize({ ...rested, bars: bars.map(bar => (bar.columns.some(c => c.grace && !c.notes.some(Boolean)) ? { ...bar, columns: bar.columns.filter(c => !(c.grace && !c.notes.some(Boolean))) } : bar)) });
@@ -53,6 +53,28 @@ export function clearToRests(clip: Part, selection: Selection): { clip: Part; se
   const start = indexOf(next, first.bar, whole(first.bar) ? 0 : Math.min(first.column, Math.max(0, next.bars[first.bar].columns.length - 1)));
   const end = indexOf(next, last.bar, whole(last.bar) ? next.bars[last.bar].columns.length - 1 : Math.min(last.column, next.bars[last.bar].columns.length - 1));
   return { clip: next, selection: selection.anchor <= selection.focus ? { anchor: start, focus: end } : { anchor: end, focus: start } };
+}
+
+/**
+ * A bar with no note left, started again as the fewest rests that fill it (issue #290), but for the
+ * marks of its time (issue #393): each rest that carried one still starts where it did, keeping them,
+ * so a text on beat 3 of 4/4 leaves a half rest and two quarters, the text on the third.
+ */
+function barOfRests(columns: Column[], room: number): Column[] {
+  const marked: { at: number; column: Column }[] = [];
+  let t = 0;
+  for (const column of columns) {
+    if (column.grace) continue;
+    if (hasTimeMarks(column) && t < room) marked.push({ at: t, column });
+    t += ticks(column.duration);
+  }
+  const starts = [0, ...marked.map(m => m.at).filter(at => at > 0), room];
+  const out: Column[] = [];
+  for (let k = 0; k < starts.length - 1; k++) {
+    const marks = marked.find(m => m.at === starts[k])?.column;
+    fewestRests(starts[k + 1] - starts[k]).forEach((duration, i) => out.push(i === 0 && marks ? { ...restOf(marks), duration } : emptyColumn(duration)));
+  }
+  return out;
 }
 
 /**

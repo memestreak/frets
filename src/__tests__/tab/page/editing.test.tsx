@@ -58,7 +58,7 @@ describe('TabPage editing', () => {
     expect(tool('Eighth note')).toHaveAttribute('aria-pressed', 'true');
     // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
     act(() => editor().blur());
-    expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input']);
+    expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input mode']);
   });
 
   it('acts on nothing from the palette once the cursor has left the tab, by Esc or a press elsewhere', () => {

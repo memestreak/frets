@@ -222,6 +222,17 @@ describe('the MusicXML file', () => {
     expect(texts(doc, 'direction words')).toEqual(['N.C.']);
   });
 
+  it('writes a chord with a shape with its diagram as a frame (issue #242), and one with none without', () => {
+    const doc = docOf(clipOf('\\chord ("A" 5 5 6 7 7 5)\n\\chord ("C" 0 1 0 2 3 x)\n0.6.4{ch "A"} 0.6.4{ch "C"} 0.6.4{ch "E"} r.4 |'));
+    const [a, c, e] = [...doc.querySelectorAll('harmony')];
+    expect(texts(a, 'frame-strings, frame-frets, first-fret')).toEqual(['6', '4', '5']);
+    const notes = (h: Element) => [...h.querySelectorAll('frame-note')].map(n => `${texts(n, 'string')[0]}:${texts(n, 'fret')[0]}`);
+    expect(notes(a)).toEqual(['1:5', '2:5', '3:6', '4:7', '5:7', '6:5']);
+    expect(c.querySelector('first-fret')).toBeNull();
+    expect(notes(c)).toEqual(['1:0', '2:1', '3:0', '4:2', '5:3']);
+    expect(e.querySelector('frame')).toBeNull();
+  });
+
   it('writes repeats, endings, double bars, free time and the final bar line', () => {
     const doc = docOf(clipOf(builtins.find(b => b.id === 'repeats')!.text));
     const barlines = [...doc.querySelectorAll('barline')].map(b => [

@@ -203,14 +203,14 @@ describe('TabPage', () => {
       ...(within(panel).queryByRole('button', { name: 'None' }) ? ['Bar numbers'] : []),
     ];
     // Notation: bar numbers, the clip's line breaks, the header and the tuning's details.
-    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Tuning details', 'Bar numbers']);
+    expect(contents(open())).toEqual(['Colours', 'Notation', "Clip's line breaks", 'Arrangement header', 'Tuning details', 'Chord chart', 'Chord diagrams', 'Bar numbers']);
     close();
 
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
     const ascii = () => screen.getByTestId('tab-ascii').textContent!;
     expect(ascii()).toMatch(/^ +e/m);
     let panel = open();
-    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm']);
+    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm', 'Chord chart']);
     expect(within(panel).getByRole('group', { name: 'Colours' })).toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('switch', { name: 'Rhythm' }));
     expect(ascii()).not.toMatch(/^ +e/m);
@@ -225,8 +225,8 @@ describe('TabPage', () => {
     expect(numbers()).toBe(0);
     // Left open, the panel follows the view switched to.
     fireEvent.click(screen.getByRole('button', { name: 'ASCII Tab' }));
-    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm']);
-    expect(JSON.parse(localStorage.getItem('frets.tab.ascii')!)).toEqual({ rhythm: false });
+    expect(contents(panel)).toEqual(['Colours', 'ASCII Tab', 'Rhythm', 'Chord chart']);
+    expect(JSON.parse(localStorage.getItem('frets.tab.ascii')!)).toEqual({ rhythm: false, chords: true });
     expect(JSON.parse(localStorage.getItem('frets.tab.alphatex')!)).toEqual({ lineNumbers: false });
   });
 

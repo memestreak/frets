@@ -11,7 +11,7 @@ const PAGE: ShortcutGroup = {
   shortcuts: [
     { keys: ['Space'], does: 'Play or stop' },
     { keys: ['L'], does: 'Loop points on or off, round the selection if there is one' },
-    { keys: ['N'], does: 'Note input on or off' },
+    { keys: ['N'], does: 'Note input mode on or off' },
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },
     { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut (leaving rests), paste over' },
@@ -39,7 +39,7 @@ const MOVING: ShortcutGroup = {
 };
 
 const INPUT: ShortcutGroup = {
-  title: 'Note input',
+  title: 'Note input mode',
   shortcuts: [
     { keys: ['Left', 'Right'], does: 'Next grid line in a rest, else the next note' },
     { keys: ['Shift+Space'], does: 'On by the next note’s length' },
@@ -54,7 +54,7 @@ const INPUT: ShortcutGroup = {
     { keys: [';'], does: 'Tuplet entry: pick a tuplet (the same again, or None, stops it)' },
     { keys: ['/'], does: 'Grace entry on or off: frets typed are grace notes' },
     { keys: ['Alt+1–4'], does: 'Make voice 1–4 active' },
-    { keys: ['Esc'], does: 'Leave note input' },
+    { keys: ['Esc'], does: 'Leave note input mode' },
   ],
 };
 
@@ -68,7 +68,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
     { keys: ['=', '−', 'W', 'Q'], does: 'Longer or shorter (the bar stays full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
-    { keys: ['1–7'], does: 'Length (5 a quarter); frets are typed in note input' },
+    { keys: ['1–7'], does: 'Length (5 a quarter); frets are typed in note input mode' },
     { keys: ['Alt+press'], does: 'One tied note of a chain, for its own marks' },
     { keys: [';'], does: 'Tuplet over the note, or the selection squeezed into one' },
     { keys: ['/'], does: 'Grace note before the note' },
@@ -121,6 +121,15 @@ const CHOOSER: ShortcutGroup = {
   ],
 };
 
+const CHORDS: ShortcutGroup = {
+  title: 'In the Chords panel',
+  shortcuts: [
+    { keys: ['Shift+F10'], does: 'Open the picked chord’s menu' },
+    { keys: ['F2'], does: 'Rename the chord in Edit chord' },
+    { keys: ['Esc'], does: 'Close Edit chord or the chord dialog' },
+  ],
+};
+
 const HEAD: ShortcutGroup = {
   title: 'Picked title, credits or tuning',
   shortcuts: [
@@ -151,4 +160,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHORDS, CHOOSER];
