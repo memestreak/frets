@@ -694,8 +694,32 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
   margin: 0; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--surface-sunken); color: var(--ink);
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.tab-chat-reply { display: grid; gap: 4px; }
-.tab-chat-text { margin: 0; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tab-chat-reply { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+/* A reply's markdown (chat/ReplyMarkdown.tsx, issue #427): quiet, in the panel's own size; wide code and tables scroll in place. */
+.tab-chat-text { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
+.tab-chat-text :where(p, h3, h4, ul, ol, blockquote, pre, hr) { margin: 0; }
+.tab-chat-text :where(h3, h4) { font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.tab-chat-text h4 { font-size: 14px; }
+.tab-chat-text :where(ul, ol) { padding-left: 20px; }
+.tab-chat-text ul { list-style: disc; }
+.tab-chat-text ul ul { list-style: circle; }
+.tab-chat-text ol { list-style: decimal; }
+.tab-chat-text li + li { margin-top: 2px; }
+.tab-chat-text li > * + * { margin-top: 4px; }
+.tab-chat-text li::marker { color: var(--ink-muted); }
+.tab-chat-text blockquote { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-left: 10px; border-left: 2px solid var(--line-strong); color: var(--ink-muted); }
+.tab-chat-text hr { border: 0; border-top: 1px solid var(--line); }
+.tab-chat-text code { font: 12.5px/18px var(--font-mono); padding: 1px 4px; border-radius: 4px; background: var(--surface-sunken); }
+.tab-chat-text pre {
+  overflow-x: auto; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-sunken);
+  overflow-wrap: normal;
+}
+.tab-chat-text pre code { padding: 0; background: none; white-space: pre; }
+.tab-chat-text a { color: var(--primary); overflow-wrap: anywhere; }
+.tab-chat-table { overflow-x: auto; }
+.tab-chat-table table { border-collapse: collapse; font-size: 13px; line-height: 18px; }
+.tab-chat-table :where(th, td) { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: normal; }
+.tab-chat-table th { font-weight: 600; border-bottom-color: var(--line-strong); }
 .tab-chat-notes { margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
 .tab-chat-notes li::before { content: '✓ '; }
 .tab-chat-notes li[data-failed] { color: var(--danger); }

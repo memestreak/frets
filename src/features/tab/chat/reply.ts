@@ -79,7 +79,7 @@ export function systemPrompt(guide: string): string {
     'Read the arrangement with read_arrangement before answering about it; it may have changed since you last read it.',
     'Change it only when asked, with replace_bars for a run of bars or replace_arrangement for anything else.',
     'Every change you make in one reply is undone together by one Undo, so make the whole change the viewer asked for.',
-    'Answer briefly in plain sentences. Name bars by number. Do not paste alphaTex into your answer unless asked.',
+    'Answer briefly. Your answer is shown as markdown: use short lists, a small table or `code` where they help (HTML shows as text). Name bars by number. Do not paste alphaTex into your answer unless asked.',
     'Frets writes alphaTex as the guide below describes.',
     '',
     guide,

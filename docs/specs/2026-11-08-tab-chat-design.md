@@ -48,7 +48,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   "Changed bars 3 to 4 of track 1", "Changed bar 2 of track 1", in red with ⚠
   when it failed; the same line several times in a row is shown once, "(3
   times)"), then the
-  model's words, then the model, the tokens in and out, and the cost OpenRouter
+  model's words (as markdown: `docs/specs/2026-11-08-tab-chat-markdown-design.md`), then the model, the tokens in and out, and the cost OpenRouter
   reports, so models can be compared.
 - **Changes apply at once, one Undo step per reply (Q3).** A reply's first
   change is an undo step; its later changes join that step, so one Undo
