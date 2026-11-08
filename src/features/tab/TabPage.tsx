@@ -541,10 +541,11 @@ export default function TabPage() {
       setInputLength(startLength(clip, at));
       // On a note pressed in normal mode, the caret goes onto it, its string (or its pitch on the staff) picked,
       // so digits retype it, as Dorico's caret starts on the note selected (Jeremy, 2026-11-07, issue #396).
-      // Anywhere else no string is picked for you (Jeremy, 2026-10-30, 2026-10-31): the cursor takes its column
-      // alone until ↑ ↓ or a press picks one, and digits wait for it. Nor is a staff line or space.
+      // Anywhere else on the tab the caret picks the string it was last on, so a fret can be typed at once, as
+      // Dorico's tab caret is always on a string (Jeremy, 2026-11-08, issue #396; no string was picked before).
+      // With only the staff drawn it takes the column alone, and no staff line or space is picked for you.
       const onNote = !selection && !columnOnly && noteAt(clip, cursor) !== null;
-      setColumnOnly(!onNote);
+      setColumnOnly(!onNote && parts === 'staff');
       if (!onNote) setStaffPitch(null);
       // On a rest picked on the staff, the caret starts on the staff, on its middle line, as Dorico's starts on
       // the staff picked (Jeremy, 2026-11-07, issue #396).
@@ -583,7 +584,7 @@ export default function TabPage() {
       toPitch(clip, at, pitchAtStep(clip, at.bar, 4));
     } else {
       setCursor(at);
-      setColumnOnly(!hit);
+      setColumnOnly(!hit && parts === 'staff');
       setStaffPitch(null);
     }
     editorRef.current?.focus();

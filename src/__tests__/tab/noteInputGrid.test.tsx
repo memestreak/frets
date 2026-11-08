@@ -181,13 +181,14 @@ describe('note input’s grid (issue #293)', () => {
     expect(screen.queryByTestId('shadow-fret')).toBeNull();
   });
 
-  it('draws the caret’s line on the tab on a column with no string picked, wherever the mouse is (issue #396)', async () => {
+  it('puts the caret’s box on a string when N goes in on a rest’s column, wherever the mouse is (Jeremy, 2026-11-08, issue #396)', async () => {
     const { svg, over } = await openTwoBars();
-    // → onto the first bar's rest picks its column, no string.
+    // → onto the first bar's rest picks its column; N picks the string it was last on, not the column alone.
     keys('ArrowRight', 'n');
-    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
     fireEvent.pointerMove(svg, over(1));
-    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     expect(screen.getByTestId('shadow-fret')).toBeInTheDocument();
   });
 
@@ -233,7 +234,7 @@ describe('note input’s grid (issue #293)', () => {
     await open();
     keys('ArrowRight', 'ArrowRight');
     // Normal mode stopped on the rest's start, not inside it.
-    keys('n', 'ArrowDown', '7');
+    keys('n', '7');
     expect(bar()).toBe('5.1.4 7.1.4 r.2 |');
   });
 

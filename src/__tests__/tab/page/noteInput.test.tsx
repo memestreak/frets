@@ -17,7 +17,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     renderAt();
     act(() => editor().focus());
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
-    keys('n', 'ArrowDown');
+    keys('n');
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     expect(editor()).toHaveAccessibleName(/note input/);
     // Esc leaves note input and keeps the tab.
@@ -26,7 +26,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     expect(editor()).toHaveFocus();
     fireEvent.click(pencil());
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
-    keys('n', 'ArrowDown');
+    keys('n');
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -102,7 +102,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
   it('in note input W Q, + − and the Duration buttons set the next note’s length and light it', () => {
     renderAt();
     act(() => editor().focus());
-    keys('n', 'ArrowDown', '5', 'ArrowRight');
+    keys('n', '5', 'ArrowRight');
     const button = (name: string) => screen.getByRole('button', { name });
     // Going in, the length is the note's there (a quarter); Q halves it.
     keys('q');
@@ -140,35 +140,32 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     keys('n');
     expect(screen.queryByTestId('range-box')).toBeNull();
     // The cursor went back to the selection's start: a fret typed (on the top string) joins the third note.
-    keys('ArrowDown', '9');
+    keys('9');
     expect(alphaTex()).toMatch(/^3\.6\.4 5\.6\.4 \(9\.1 7\.6\)\.4 8\.6\.4 /);
   });
 
-  it('going into note input picks no string off a note, and the note’s own on a picked note (Jeremy, 2026-10-30, 2026-11-07)', () => {
+  it('going into note input picks the string last used off a note, and the note’s own on a picked note (Jeremy, 2026-11-07, 2026-11-08)', () => {
     renderAt();
     act(() => editor().focus());
     keys('n');
-    // Off a note no box goes round the column: the caret's upright line shows it (issue #396).
-    expect(screen.queryByTestId('input-cursor')).toBeNull();
-    expect(screen.queryByTestId('column-cursor')).toBeNull();
-    expect(screen.getByTestId('tab-caret')).toBeInTheDocument();
-    // A digit types nothing until ↑ ↓ or a press picks a string.
+    // Off a note the caret's box goes on the string it was last on, so a fret types at once, as Dorico's
+    // tab caret is always on a string (Jeremy, 2026-11-08, issue #396; no string was picked before).
+    expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tab-caret')).toBeNull();
     keys('5');
-    expect(alphaTex()).toBe('|');
-    keys('ArrowDown', '5');
     expect(alphaTex()).toBe('5.1.4 r.4 r.2 |');
-    // Off a note again (the B string, empty), going back in picks nothing.
-    keys('ArrowDown', 'Escape', 'n');
-    expect(screen.queryByTestId('input-cursor')).toBeNull();
+    // Off a note again (the B string, empty), going back in picks the B string.
+    keys('ArrowDown', 'Escape', 'n', '3');
+    expect(alphaTex()).toBe('(5.1 3.2).4 r.4 r.2 |');
     // On a note picked in normal mode, the caret goes onto it, its string picked, so a digit retypes it,
     // as Dorico's caret starts on the note selected (Jeremy, 2026-11-07).
-    keys('ArrowUp', 'ArrowUp', 'Escape');
+    keys('ArrowUp', 'Escape');
     expect(screen.getByTestId('selected-note')).toBeInTheDocument();
     keys('n');
     expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
     expect(screen.queryByTestId('selected-note')).toBeNull();
     keys('7');
-    expect(alphaTex()).toBe('7.1.4 r.4 r.2 |');
+    expect(alphaTex()).toBe('(7.1 3.2).4 r.4 r.2 |');
     // The palette's pencil does the same as N.
     keys('Escape');
     fireEvent.click(screen.getByRole('button', { name: 'Note input mode' }));
@@ -181,7 +178,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     fireEvent.keyDown(document.body, { key: 'n' });
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     expect(editor()).toHaveFocus();
-    keys('n', 'ArrowDown');
+    keys('n');
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
     act(() => editor().blur());
     fireEvent.keyDown(document.body, { key: 'n' });
@@ -217,7 +214,7 @@ describe('TabPage normal mode and note input (issue #238)', { timeout: 20000 }, 
     // Note input, an eighth: an eighth later, notes tied over where the beats now fall.
     keys('Escape');
     act(() => editor().focus());
-    keys('n', 'ArrowDown', 'q', 'Insert');
+    keys('n', 'q', 'Insert');
     expect(alphaTex()).toBe('1.1.4 r.8 2.1.8 -.1.8 3.1.4 4.1.8 |\n-.1.8 r.8 r.4 r.2 |');
   });
 });

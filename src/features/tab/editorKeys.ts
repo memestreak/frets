@@ -739,9 +739,9 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
 
 /** ⌘/Ctrl+↑ ↓ in note input: the caret up to the staff or back down to the tab. True when it was one. */
 function staffOrTabKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
-  // In note input with the staff and the tab both drawn, ⌘/Ctrl+↑ takes the caret up to the staff and
+  // In note input with the staff and the tab both drawn (never to a part not drawn), ⌘/Ctrl+↑ takes the caret up to the staff and
   // ⌘/Ctrl+↓ back down to the tab, so the keys alone go between them (Jeremy, 2026-11-06, issue #396).
-  if ((e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || !editor.staffShown) return false;
+  if ((e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || !editor.staffShown || !editor.tabShown) return false;
   const { staffPitch } = editor;
   if (e.key === 'ArrowUp') {
     if (staffPitch === null) toStaff(editor);

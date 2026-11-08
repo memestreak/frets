@@ -236,7 +236,6 @@ describe('dragging notes on the staff (issue #174)', () => {
       fireEvent.keyDown(editor(), { key: 'n' });
       fireEvent.keyDown(editor(), { key: 'ArrowRight' });
       fireEvent.keyDown(editor(), { key: 'ArrowRight' });
-      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
       const box = () => screen.getByTestId('input-cursor').getAttribute('x');
       const x = box();
       fireEvent.keyDown(editor(), { key: '5', code: 'Digit5' });
@@ -279,10 +278,21 @@ describe('dragging notes on the staff (issue #174)', () => {
       expect(screen.queryByTestId('tab-caret')).toBeNull();
     });
 
+    it('with only the staff drawn, ⌘/Ctrl+↓ in note input keeps the caret on the staff (issue #396)', async () => {
+      await open();
+      fireEvent.click(screen.getByRole('button', { name: 'Staff' }));
+      // A head picked, then N: the caret on its pitch.
+      press(headAt(0));
+      fireEvent.keyDown(editor(), { key: 'n' });
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+      // It doesn't go off to the tab, which isn't drawn.
+      fireEvent.keyDown(editor(), { key: 'ArrowDown', metaKey: true });
+      expect(screen.getByTestId('staff-caret')).toBeInTheDocument();
+    });
+
     it('in note input ↑ off the top string takes the caret up to the staff (issue #396)', async () => {
       await open();
       fireEvent.keyDown(editor(), { key: 'n' });
-      fireEvent.keyDown(editor(), { key: 'ArrowDown' });
       expect(screen.getByTestId('input-cursor')).toBeInTheDocument();
       fireEvent.keyDown(editor(), { key: 'ArrowUp' });
       expect(screen.getByTestId('staff-cursor')).toBeInTheDocument();

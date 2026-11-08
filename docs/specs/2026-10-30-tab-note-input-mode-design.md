@@ -81,12 +81,11 @@ caret's pitch nothing is drawn.
   note's pitch or the line or space; on a rest on the staff, on its middle line, as N on a rest picked there. In note input mode it does nothing more.
 - **Going in on a picked note puts the caret on it** (Jeremy, 2026-11-07, issue #396), as Dorico's caret
   starts on the note selected: its string picked on the tab, or its pitch on the staff, so digits retype it.
-- **Off a note no string is picked for you** (Jeremy, 2026-10-30, of the options: keep MuseScore's string cursor,
-  the column alone, or the column with digits going to the last note's string): going in off a note
-  picks no string and no staff line (Jeremy, 2026-10-31); nothing is drawn round the column (Jeremy, 2026-10-31: no
-  box round the whole tab column; the shadow under the mouse is the cursor), and digits do nothing until ↑ ↓ (which
-  first pick back the string last used) or a press on a string picks one. On an empty clip that is N,
-  then ↓, then the fret.
+- **Off a note the caret goes on the string it was last on** (Jeremy, 2026-11-08, issue #396), as Dorico's tab
+  caret is always on a string: a fret types at once, and on an empty clip that is N, then the fret. Before,
+  no string was picked (Jeremy, 2026-10-30 and 2026-10-31) and digits waited for ↑ ↓ or a press. No staff line or
+  space is picked for you, and with only the staff drawn the caret takes the column alone. The short upright
+  line on the tab is left for a column with no string, as after Shift+← →.
 
 - **The shadow note** (Q2, Jeremy: "your cursor changes to the note representation"): under the
   pointer, over the staff, a faint note of the length a press would enter, on the line or space

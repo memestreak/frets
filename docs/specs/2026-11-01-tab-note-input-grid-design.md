@@ -33,8 +33,8 @@ first.
    the caret: only the keys, a press and N do, and nothing of the mouse is kept outside note input.
    The caret always shows in note input, wherever the mouse is: on the staff its line and the next
    note's ghost (over a note at another pitch only the ghost, to add to the chord; over one at its
-   own pitch both, the ghost see-through), on the tab its box on a string, or a short upright line on
-   a column with no string picked. The mouse shows its own shadow note on the staff and a box on the
+   own pitch both, the ghost see-through), on the tab its box on a string (N picks the string last used;
+   Jeremy, 2026-11-08), or a short upright line on a column with no string picked. The mouse shows its own shadow note on the staff and a box on the
    tab, fainter than the caret's ghost. A press on the staff enters the shadow's pitch and the caret
    goes on past the note by its length, as A–G and Enter do (Jeremy, 2026-11-07); a press on the tab enters a
    0 there with the caret on it, for digits to change (Dorico's tab is always in chord input). The
