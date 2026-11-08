@@ -38,6 +38,9 @@ import { TabClip, type DoubleClickPlace } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
+import { ChatPanel } from './chat/ChatPanel';
+import { readChatParam } from './chat/chatPrefs';
+import type { PageSpot } from './chat/arrangementTools';
 import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
@@ -174,6 +177,12 @@ export default function TabPage() {
   };
   // Settings, from the gear: open or shut, and the ⚠ after the gear while preferences can't be saved.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Where Settings opens: the Tab group's first section, or Tab › Chat from the Chat panel.
+  const [settingsAt, setSettingsAt] = useState(TAB_SETTINGS_START);
+  const openSettings = (at = TAB_SETTINGS_START) => {
+    setSettingsAt(at);
+    setSettingsOpen(true);
+  };
   const saveProblem = usePreferenceSaveProblem();
   /** The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's, or with nothing picked the bar's. */
   const [menu, setMenu] = useState<{ x: number; y: number; hit: Picked | null } | null>(null);
@@ -286,6 +295,26 @@ export default function TabPage() {
   } = useVoicePick(editor, { whole, track, voice, setVoice, stepToElement: picking.stepToElement });
   // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
   const [railPanel, setRailPanel] = useOpenPanel();
+  /**
+   * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): only with `?chat` while it
+   * is unfinished. The model's changes go through `chatClip`: a reply's first is an undo step, and its
+   * later ones join it, unless the viewer edited in between.
+   */
+  const [chatOn] = useState(() => readChatParam(window.location.search));
+  const wholeNow = useRef(whole);
+  useEffect(() => { wholeNow.current = whole; }, [whole]);
+  const chatSet = useRef<Clip | null>(null);
+  const chatClip = (next: Clip, first: boolean) => {
+    dispatchClip({ type: !first && wholeNow.current === chatSet.current ? 'amend' : 'replace', clip: next });
+    chatSet.current = next;
+    // A second change in the same answer reads this one, before the page draws it.
+    wholeNow.current = next;
+  };
+  const chatSpot = (): PageSpot => ({
+    track,
+    cursorBar: cursor.bar,
+    selectedBars: selection ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar] : null,
+  });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
   /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord follows it (Jeremy, 2026-11-07). */
   const [chordFollow, setChordFollow] = useState<{ name: string } | null>(null);
@@ -372,7 +401,7 @@ export default function TabPage() {
     if (!next.shown) playback.stop();
     setPlaybackSettings(next);
   };
-  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
+  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback, chatOn)];
   /** Note input mode on or off; going in, the keys come to the tab. */
   /** The rest last picked on the staff, so going into note input mode from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
@@ -800,7 +829,7 @@ export default function TabPage() {
           {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
           <button
             type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => openSettings()}
           >
             <GearIcon />
           </button>
@@ -833,6 +862,13 @@ export default function TabPage() {
             hear={playbackSettings.hearChords}
             onHear={frets => playback.hearShape(frets)}
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
+          />
+        )}
+        chat={chatOn && (
+          <ChatPanel
+            prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))}
+            current={() => ({ clip: wholeNow.current, spot: chatSpot() })} onClip={chatClip}
+            onOpenSettings={() => openSettings({ group: 'tab', section: 'chat' })}
           />
         )}
         chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
@@ -1023,7 +1059,7 @@ export default function TabPage() {
         />
       )}
       {actions.popups}
-      <SettingsDialog settingsGroups={settingsGroups} open={settingsOpen} at={TAB_SETTINGS_START} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog settingsGroups={settingsGroups} open={settingsOpen} at={settingsAt} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
         clip={whole} track={track} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
         onClose={() => setExporting(false)}

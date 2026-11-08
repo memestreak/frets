@@ -677,3 +677,35 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
+
+/* The rail's Chat panel (chat/ChatPanel.tsx, issue #424): the model, the conversation, then the box to write in. */
+.tab-chat { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.tab-chat-model { display: grid; gap: 4px; font-size: 13px; color: var(--ink-muted); }
+.tab-chat-model .input { font: 13px/18px var(--font-mono); color: var(--ink); }
+.tab-chat-list {
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; max-height: calc(100vh - 300px);
+  font-size: 14px; line-height: 20px;
+}
+.tab-chat-hint { margin: 0; font-size: 13px; color: var(--ink-muted); }
+.tab-chat-link {
+  border: 0; padding: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer;
+}
+.tab-chat-ask {
+  margin: 0; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--surface-sunken); color: var(--ink);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.tab-chat-reply { display: grid; gap: 4px; }
+.tab-chat-text { margin: 0; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tab-chat-notes { margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.tab-chat-notes li::before { content: '✓ '; }
+.tab-chat-notes li[data-failed] { color: var(--danger); }
+.tab-chat-notes li[data-failed]::before { content: '⚠ '; }
+.tab-chat-meta { margin: 0; font-size: 11px; line-height: 14px; color: var(--ink-muted); overflow-wrap: anywhere; }
+.tab-chat-working { margin: 0; color: var(--ink-muted); font-style: italic; }
+.tab-chat-error { margin: 0; color: var(--danger); font-size: 13px; }
+.tab-chat-compose { display: grid; gap: 6px; }
+.tab-chat-compose textarea { resize: vertical; min-height: 60px; font: 14px/20px var(--font-sans); }
+.tab-chat-actions { display: flex; justify-content: flex-end; gap: 6px; }
+@media (max-width: 899px) {
+  .tab-chat-list { max-height: 50vh; }
+}

@@ -30,6 +30,11 @@ export type ClipAction =
   | { type: 'replace'; clip: Clip; from?: Clip }
   /** New FX for track `track`: changes made one after another, as a knob turns, are one undo step. */
   | { type: 'fx'; track: number; fx: FxSettings }
+  /**
+   * A further edit joined to the last undo step, so one Undo takes back both: the Chat panel's
+   * changes after the first in one reply (`docs/specs/2026-11-08-tab-chat-design.md`).
+   */
+  | { type: 'amend'; clip: Clip }
   /** A clip shown while a drag goes on, not an undo step of its own. */
   | { type: 'preview'; clip: Clip }
   /**
@@ -83,6 +88,10 @@ export function clipReducer(state: ClipState, action: ClipAction): ClipState {
       if (sameStep) return { ...state, clip, future: [] };
       return clipReducer(state, { type: 'replace', clip });
     }
+    case 'amend':
+      // With no step to join, it is one of its own.
+      if (state.past.length === 0) return clipReducer(state, { type: 'replace', clip: action.clip });
+      return { ...state, clip: action.clip, future: [] };
     case 'preview':
       return { ...state, clip: action.clip };
     case 'fill':

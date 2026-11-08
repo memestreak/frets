@@ -163,35 +163,53 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
  * tempo, sections) are written in the first track's bars only; alphaTab gives them to every track.
  */
 export function writeAlphaTex(clip: Clip): string {
-  const lines: string[] = [];
+  const lines = alphaTexTracks(clip).flatMap(track => [...track.head, ...wrapBars(track.bars)]);
+  return `${lines.join('\n')}\n`;
+}
+
+/** One track of the clip as alphaTex (`alphaTexTracks`): the lines before its bars, and each bar's tokens. */
+export interface TrackTex {
+  /** The first track's carry the clip's own header lines too. */
+  head: string[];
+  /** Each bar's marks, beats and closing bar line. */
+  bars: string[][];
+}
+
+/**
+ * The clip as `writeAlphaTex` writes it, a track at a time and a bar at a time, unwrapped: what the
+ * Chat panel numbers for a model and splices a model's bars into (`docs/specs/2026-11-08-tab-chat-design.md`).
+ */
+export function alphaTexTracks(clip: Clip): TrackTex[] {
   const several = clip.tracks.length > 1;
   const tagOf = (track: Track) => track.tag ?? (several ? (track.name ? `\\track ${quoted(track.name)}` : '\\track') : null);
   const first = clip.tracks[0];
-  if (first.fx && !tagOf(first)) lines.push(fxLine(first.fx));
-  if (clip.name) lines.push(`\\title ${quoted(clip.name)}`);
-  lines.push(...(clip.header ?? []));
-  clip.tracks.forEach((track, t) => {
+  return clip.tracks.map((track, t) => {
+    const head: string[] = [];
+    if (t === 0) {
+      if (first.fx && !tagOf(first)) head.push(fxLine(first.fx));
+      if (clip.name) head.push(`\\title ${quoted(clip.name)}`);
+      head.push(...(clip.header ?? []));
+    }
     const tag = tagOf(track);
     if (tag) {
-      lines.push(tag);
-      if (track.fx) lines.push(fxLine(track.fx));
+      head.push(tag);
+      if (track.fx) head.push(fxLine(track.fx));
     }
-    lines.push(...(track.header ?? []));
-    if (track.instrument?.tag) lines.push(track.instrument.tag);
+    head.push(...(track.header ?? []));
+    if (track.instrument?.tag) head.push(track.instrument.tag);
     if (t === 0) {
-      if (clip.multiBarRests) lines.push('\\multiBarRest');
-      if (clip.systemsLayout?.length) lines.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
-      if (clip.defaultSystemsLayout !== undefined) lines.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
+      if (clip.multiBarRests) head.push('\\multiBarRest');
+      if (clip.systemsLayout?.length) head.push(`\\systemsLayout (${clip.systemsLayout.join(' ')})`);
+      if (clip.defaultSystemsLayout !== undefined) head.push(`\\defaultSystemsLayout ${clip.defaultSystemsLayout}`);
       // Voices are written a bar at a time; a clip of one Voice writes none (`docs/specs/2026-11-03-tab-voices-design.md`).
-      if (clip.tracks.some(each => each.bars.some(bar => bar.voices.length > 1))) lines.push('\\voiceMode barWise');
-      lines.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
+      if (clip.tracks.some(each => each.bars.some(bar => bar.voices.length > 1))) head.push('\\voiceMode barWise');
+      head.push(`\\ts (${clip.time.beats} ${clip.time.value})`);
     }
-    lines.push(...trackLines(track));
+    head.push(...trackLines(track));
     // The bar marks every track shares are written in the first track's bars only.
     const bars = t === 0 ? clip.masterBars.map((master, b) => ({ ...master, ...track.bars[b] })) : track.bars;
-    lines.push(...wrapBars(barTokens(bars, clip.time)));
+    return { head, bars: barTokens(bars, clip.time) };
   });
-  return `${lines.join('\n')}\n`;
 }
 
 /** The part alone as alphaTex, one track: what is copied, and what playback reads. */

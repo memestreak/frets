@@ -1,0 +1,131 @@
+/**
+ * The Chat panel's one way out: OpenRouter's chat completions, called straight from the browser with
+ * the viewer's own key (`docs/specs/2026-11-08-tab-chat-design.md`). OpenRouter answers browsers from any
+ * site (tested 2026-11-08), so Frets needs no server of its own for it. Its OpenAI-style format reaches
+ * every model by name, for comparing models (issue #424, Q9).
+ */
+import type { ToolDef } from './arrangementTools';
+
+export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+export const MODELS_URL = 'https://openrouter.ai/api/v1/models';
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+export type ChatMessage =
+  | { role: 'system'; content: string }
+  | { role: 'user'; content: string }
+  | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
+  | { role: 'tool'; tool_call_id: string; content: string };
+
+/** What a call cost, as OpenRouter reports it; any part may be missing. */
+export interface Usage {
+  promptTokens?: number;
+  completionTokens?: number;
+  /** In US dollars. */
+  cost?: number;
+}
+
+export interface Completion {
+  message: Extract<ChatMessage, { role: 'assistant' }>;
+  /** The model that answered, which OpenRouter may name more fully than asked. */
+  model: string;
+  usage: Usage;
+}
+
+/** One request: the conversation so far, the tools, and the model. */
+export interface CompletionRequest {
+  apiKey: string;
+  model: string;
+  messages: ChatMessage[];
+  tools: ToolDef[];
+  signal?: AbortSignal;
+}
+
+export type Complete = (request: CompletionRequest) => Promise<Completion>;
+
+/** A failed call, with what to tell the viewer. */
+export class ChatError extends Error {}
+
+/** Asks OpenRouter for the model's next message. */
+export const completeWithOpenRouter: Complete = async ({ apiKey, model, messages, tools, signal }) => {
+  let response: Response;
+  try {
+    response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        // How OpenRouter names the app in its activity list.
+        'X-Title': 'Frets',
+      },
+      body: JSON.stringify({ model, messages, tools, usage: { include: true } }),
+    });
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    throw new ChatError('Couldn\'t reach OpenRouter. Check the connection and try again.');
+  }
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw new ChatError(errorText(response.status, body));
+  return readCompletion(body, model);
+};
+
+/** What the viewer is told for a failed call. */
+export function errorText(status: number, body: unknown): string {
+  const message = (body as { error?: { message?: unknown } } | null)?.error?.message;
+  const said = typeof message === 'string' && message ? `: ${message}` : '';
+  if (status === 401) return `OpenRouter didn't accept the key in Settings › Tab › Chat${said}`;
+  if (status === 402) return `The OpenRouter account is out of credit${said}`;
+  if (status === 429) return `OpenRouter says to slow down; try again in a moment${said}`;
+  return `OpenRouter answered ${status}${said}`;
+}
+
+/** The answer's first choice as a message, or a ChatError when it has none. */
+export function readCompletion(body: unknown, asked: string): Completion {
+  const data = body as {
+    model?: unknown;
+    choices?: { message?: { content?: unknown; tool_calls?: unknown } }[];
+    usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; cost?: unknown };
+    error?: { message?: unknown };
+  } | null;
+  const message = data?.choices?.[0]?.message;
+  if (!message) {
+    const said = typeof data?.error?.message === 'string' ? `: ${data.error.message}` : '';
+    throw new ChatError(`The model sent no answer${said}`);
+  }
+  const calls = Array.isArray(message.tool_calls) ? message.tool_calls.filter(isToolCall) : [];
+  const number = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n : undefined);
+  return {
+    message: {
+      role: 'assistant',
+      content: typeof message.content === 'string' ? message.content : null,
+      ...(calls.length > 0 ? { tool_calls: calls } : {}),
+    },
+    model: typeof data?.model === 'string' ? data.model : asked,
+    usage: { promptTokens: number(data?.usage?.prompt_tokens), completionTokens: number(data?.usage?.completion_tokens), cost: number(data?.usage?.cost) },
+  };
+}
+
+function isToolCall(call: unknown): call is ToolCall {
+  const c = call as ToolCall | null;
+  return !!c && typeof c.id === 'string' && typeof c.function?.name === 'string';
+}
+
+/** The ids of the models OpenRouter offers that take tools, or null when the list can't be had. */
+export async function fetchToolModels(signal?: AbortSignal): Promise<string[] | null> {
+  try {
+    const response = await fetch(MODELS_URL, { signal });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { data?: { id?: unknown; supported_parameters?: unknown }[] };
+    return (body.data ?? [])
+      .filter(m => typeof m.id === 'string' && (!Array.isArray(m.supported_parameters) || m.supported_parameters.includes('tools')))
+      .map(m => m.id as string)
+      .sort();
+  } catch {
+    return null;
+  }
+}

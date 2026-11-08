@@ -30,6 +30,7 @@ import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportSt
 import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
+import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 
 /** One section's state: read from its key once, written back on every change. */
 function usePreference<V>(key: string, parse: (raw: unknown) => V) {
@@ -48,9 +49,10 @@ export function useTabPrefs() {
   const [alphatex, setAlphaTex] = usePreference(ALPHATEX_KEY, parseAlphaTex);
   const [editing, setEditing] = usePreference(EDITING_KEY, parseEditing);
   const [exportStyle, setExportStyle] = usePreference(TAB_EXPORT_KEY, parseTabExportStyle);
+  const [chat, setChat] = usePreference(CHAT_KEY, parseChatPrefs);
   return {
     playback, setPlayback, metronome, setMetronome, notation, setNotation, colours, setColours,
-    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle,
+    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle, chat, setChat,
   };
 }
 
@@ -131,8 +133,24 @@ function colourField(key: 'text' | 'background', label: string): SettingsField<C
 
 const PART_NAMES: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Both' };
 
-/** Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops playback). */
-export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
+/** A line of text, as the Chat section's key and model; `secret` hides what is typed. */
+function textField<V, K extends keyof V & string>(key: K, label: string, opts: { secret?: boolean; placeholder?: string } = {}): SettingsField<V> {
+  return {
+    key, label,
+    control: ({ value, set, labelId }) => (
+      <input
+        className="input settings-text" type={opts.secret ? 'password' : 'text'} aria-labelledby={labelId} value={value[key] as string}
+        placeholder={opts.placeholder} spellCheck={false} autoComplete="off" onChange={e => set({ ...value, [key]: e.target.value })}
+      />
+    ),
+  };
+}
+
+/**
+ * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
+ * playback). Chat is listed only while the page shows the Chat panel (`?chat`, issue #424).
+ */
+export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void, chat = false): SettingsGroup {
   return {
     id: 'tab',
     name: 'Tab',
@@ -222,6 +240,15 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
         ],
       }),
+      ...(chat ? [section<ChatPrefs>({
+        id: 'chat', name: 'Chat', value: prefs.chat, defaults: DEFAULT_CHAT,
+        // Saved as read back, so a key pasted with a space round it still works.
+        save: value => prefs.setChat(parseChatPrefs(value)),
+        fields: [
+          textField('apiKey', 'OpenRouter key', { secret: true, placeholder: 'sk-or-…' }),
+          textField('model', 'Model', { placeholder: DEFAULT_CHAT.model }),
+        ],
+      })] : []),
     ],
   };
 }

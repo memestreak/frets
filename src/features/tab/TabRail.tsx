@@ -4,7 +4,7 @@
  * The Tab page's tools in a rail of panels on the left, as Dorico has them
  * (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301). Each rail button opens its panel beside the
  * clip, and pressing it again closes it. The rail and panel grow into the page's left margin, so the clip
- * keeps its right edge. Its last panel, Chords, is the track's chords (`ChordPanel`, issue #251). Which panel is open is kept across visits (`frets.tab.layout`), but it is
+ * keeps its right edge. Its panel Chords is the track's chords (`ChordPanel`, issue #251), and Chat, shown with `?chat`, asks a model about the arrangement (`ChatPanel`, issue #424). Which panel is open is kept across visits (`frets.tab.layout`), but it is
  * not a preference, so Settings doesn't list it.
  */
 import { useEffect, useState, type ReactNode } from 'react';
@@ -14,10 +14,10 @@ import { ICONS } from './TabPalette';
 /** Draws the palette with only `groups`; `className` sets its look; the note input mode pencil first when `input`. */
 export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
 
-export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords';
+export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords' | 'chat';
 
 /** The rail's tool panels, in order, and the palette groups each holds; Chords comes after them. */
-export const PANELS: readonly { id: Exclude<PanelId, 'chords'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
+export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
   { id: 'notes', name: 'Notes', icon: ICONS.quarter, groups: ['Duration', 'Rhythm'], input: true },
   { id: 'articulations', name: 'Articulations', icon: ICONS.accent, groups: ['Joins', 'Bends', 'Techniques', 'Accents'] },
   { id: 'bars', name: 'Bars', icon: ICONS.repeatStart, groups: ['Bars', 'Text'] },
@@ -34,7 +34,7 @@ export function parseLayout(text: string | null): PanelId | null {
     if (saved && typeof saved === 'object' && 'panel' in saved) {
       const { panel } = saved;
       if (panel === null) return null;
-      if (panel === 'chords' || PANELS.some(p => p.id === panel)) return panel as PanelId;
+      if (panel === 'chords' || panel === 'chat' || PANELS.some(p => p.id === panel)) return panel as PanelId;
     }
   } catch {
     // Unreadable: as on a first visit.
@@ -51,8 +51,14 @@ const CHORDS_ICON = (
   </>
 );
 
-/** Every panel the rail opens, in order: the tools', then Chords. */
+/** The Chat panel's rail icon: a speech bubble. */
+const CHAT_ICON = (
+  <path d="M5 5.5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5v-3.5H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" strokeLinejoin="round" />
+);
+
+/** Every panel the rail opens, in order: the tools', then Chords, then Chat when the page has it. */
 const RAIL: readonly { id: PanelId; name: string; icon: ReactNode }[] = [...PANELS, { id: 'chords', name: 'Chords', icon: CHORDS_ICON }];
+const CHAT_PANEL = { id: 'chat', name: 'Chat', icon: CHAT_ICON } as const;
 
 /**
  * The open panel, kept across visits; read after the first render, since the server has no storage.
@@ -82,18 +88,21 @@ interface TabRailProps {
   chords: ReactNode;
   /** What the Chords panel's head shows right of its title (its Hear toggle). */
   chordsHead?: ReactNode;
+  /** The Chat panel's contents; no Chat button without them (`?chat`, issue #424). */
+  chat?: ReactNode;
   children: ReactNode;
 }
 
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, children }: TabRailProps) {
-  const panel = RAIL.find(p => p.id === open);
+export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, children }: TabRailProps) {
+  const rail = chat ? [...RAIL, CHAT_PANEL] : RAIL;
+  const panel = rail.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
   return (
     <div className="tab-rail-layout" data-open={panel ? '' : undefined}>
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
-          {RAIL.map(p => (
+          {rail.map(p => (
             <button
               key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={open === p.id}
               data-tip={p.name}
@@ -126,7 +135,7 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
                 </svg>
               </button>
             </div>
-            {tools ? palette(tools.groups, 'tab-rail-tools', tools.input) : chords}
+            {tools ? palette(tools.groups, 'tab-rail-tools', tools.input) : panel.id === 'chat' ? chat : chords}
           </aside>
         </HoverTips>
       )}
