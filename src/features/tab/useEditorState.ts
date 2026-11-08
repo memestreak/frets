@@ -121,8 +121,11 @@ export interface EditorState {
    * string is picked and the staff's cursor goes, so nothing stays lit when the run does.
    */
   startRegion: () => void;
-  /** The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone. */
-  toPitch: (next: Part, at: Cursor, pitch: number, nextSelection?: Selection | null) => void;
+  /**
+   * The cursor on the column at a pitch: its string boxed when a note there has it, else the column alone.
+   * With `filled`, `next` is the clip with its empty bars written out, already put in: no edit of its own.
+   */
+  toPitch: (next: Part, at: Cursor, pitch: number, nextSelection?: Selection | null, filled?: boolean) => void;
 }
 
 /** The editor's state over the shown track `clip`. */
@@ -221,9 +224,13 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
     setStaffPitch(null);
   };
 
-  const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null) => {
+  const toPitch = (next: Part, at: Cursor, pitch: number, nextSelection: Selection | null = null, filled = false) => {
     const string = stringAtPitch(next, at, pitch);
-    commit(next, { ...at, string: string ?? at.string }, nextSelection);
+    const nextCursor = { ...at, string: string ?? at.string };
+    // `filled`: `next` is the clip with its empty bars written out, already put in as the same music (issues
+    // #421, #422), not an edit: no undo step of its own.
+    if (filled) followed(next, next, nextCursor, nextSelection);
+    else commit(next, nextCursor, nextSelection);
     setColumnOnly(string === null);
     setStaffPitch(pitch);
   };

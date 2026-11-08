@@ -16,6 +16,9 @@ import type { View } from './views';
 /** Fields, dialogs and the like: the page's keys, paste and undo leave what is typed there to them. */
 export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
+/** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palette, the Rail, panels and menus. */
+const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-rail, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
+
 /**
  * The keys that work anywhere on the page (Jeremy, 2026-10-30: shortcuts are page-wide), not the tab's own
  * (`editorKeys.ts`): the grid keys, Esc and N for note input mode, L, Space, the playback line's keys, paste,
@@ -139,6 +142,28 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
     };
   }, [editorRef]);
 
+  // The focus gone from the clip and its own fields and panels (Tab to another control, a press away from a
+  // chord name's field) takes the caret away, so note input mode ends too, as a press away does. The window
+  // losing the focus keeps it.
+  const onFocusMoved = useEffectEvent(() => {
+    if (!noteInputMode || !document.hasFocus()) return;
+    const now = document.activeElement;
+    if (!now || !now.closest(NOTE_INPUT_KEEPERS)) enterNoteInput(false);
+  });
+  useEffect(() => {
+    let timer = 0;
+    // Once the focus has landed: during `focusout` it is on nothing yet.
+    const moved = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(onFocusMoved, 0);
+    };
+    document.addEventListener('focusout', moved);
+    return () => {
+      document.removeEventListener('focusout', moved);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   /**
    * The focus coming to the clip; with the staff alone, its cursor is the only one, so it shows at once. Not
    * after a press that selected a bar or column, which shows as a box (issue #317).
@@ -163,6 +188,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
     setTabFocused(false);
     setPicked(null);
     setColumnOnly(false);
+
     // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).
     chooseVoice(0);
   };

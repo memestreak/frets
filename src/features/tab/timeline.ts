@@ -488,7 +488,7 @@ export function editTimeline(part: Part, edit: StreamEdit): Part | null {
   const made: Bar[] = laid.map((columns, i) => {
     const b = first + i;
     const old = b < stopBar ? part.bars[b] : undefined;
-    return carrying(old ? { ...old, columns } : { columns }, others, i);
+    return carrying(old ? { ...old, columns } : { columns }, others, i, spanOf(i));
   });
   const bars = [...part.bars.slice(0, first), ...made, ...part.bars.slice(stopBar)];
   // The bars laid are written by the meter at once, as the commit's rewrite would write them.
@@ -496,17 +496,27 @@ export function editTimeline(part: Part, edit: StreamEdit): Part | null {
   return writeVoice(result, readVoice(result), { bars: made.map((_bar, i) => first + i) });
 }
 
-/** `bar` carrying the other Voices' bar `i`, each that has more than rests in it. */
-function carrying(bar: Bar, others: Map<number, Column[][]>, i: number): Bar {
+/**
+ * `bar` carrying the other Voices' bar `i`, each that has more than rests in it, and Voice 1 always: it is
+ * never absent from a bar, so an edit of another Voice keeps its rests, and gives a bar it adds rests in
+ * Voice 1 (`span`) too (issue #422's fuzzing: Voice 1 went missing under a note typed in Voice 2).
+ */
+function carrying(bar: Bar, others: Map<number, Column[][]>, i: number, span: Span): Bar {
   const out = { ...bar };
   delete out.otherVoices;
   const voices: OtherVoice[] = [];
   for (const [voice, bars] of others) {
     const columns = bars[i] ?? [];
-    if (columns.some(c => !isRest(c) || Object.keys(c).some(k => k !== 'duration' && k !== 'notes'))) voices.push({ voice, columns });
+    if (voice === 0) voices.push({ voice, columns: columns.length > 0 ? columns : restsFor(span) });
+    else if (columns.some(c => !isRest(c) || Object.keys(c).some(k => k !== 'duration' && k !== 'notes'))) voices.push({ voice, columns });
   }
   if (voices.length > 0) out.otherVoices = voices.sort((x, y) => x.voice - y.voice);
   return out;
+}
+
+/** A bar's span as rests, written by the meter. */
+function restsFor(span: Span): Column[] {
+  return spell(meterOf(span.time, span.groups), span.offset, span.length, 'rest').map(duration => ({ duration, notes: Array<null>(STRING_COUNT).fill(null) }));
 }
 
 /** The stream cut off at `length` (padded with a Gap when shorter). Null when a tuplet is across that point. */
@@ -592,7 +602,7 @@ export function reBar(before: Part, after: Part, from: number, to: number, minBa
   const made = ownLaid.map((columns, i) => {
     const old = from + i < to ? after.bars[from + i] : undefined;
     const bar: Bar = old ? { ...old, columns } : { columns };
-    return carrying(bar, otherMap, i);
+    return carrying(bar, otherMap, i, spanOf(i));
   });
   const last = after.bars[to - 1];
   if (made.length < to - from && last) {

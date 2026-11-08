@@ -2,7 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeBars } from '@/features/tab/alphatex';
 import { emptyPart, partOf, type Part } from '@/features/tab/clip';
-import { pasteOver, type Cursor } from '@/features/tab/editing';
+import { isEmpty, pasteOver, withRestsInEmptyBars, type Cursor } from '@/features/tab/editing';
 
 function clipOf(text: string): Part {
   const result = readAlphaTexWith(alphaTab, text);
@@ -54,5 +54,33 @@ describe('pasteOver', () => {
     const result = pasteOver(emptyPart(), at(0, 0), clipOf('\\title "Line"\n\\ts (3 4)\n5.3.2{d} |'));
     expect(result.clip.name).toBe('Line');
     expect(result.clip.time).toEqual({ beats: 3, value: 4 });
+  });
+});
+
+// Issues #421, #422: a new arrangement's bar, empty or written out as its Whole-bar rest, is an empty clip.
+describe('a paste into a new arrangement', () => {
+  const restBar = withRestsInEmptyBars(emptyPart())!;
+
+  it('counts a new arrangement with its bar written out as its rest as empty, but not a bar of rests in Voice 2 or two bars', () => {
+    expect(isEmpty(emptyPart())).toBe(true);
+    expect(isEmpty(restBar)).toBe(true);
+    expect(bars(restBar)).toBe('r.1 |');
+    expect(isEmpty({ ...restBar, voice: 1 })).toBe(false);
+    expect(isEmpty({ ...restBar, bars: [...restBar.bars, ...restBar.bars] })).toBe(false);
+    expect(withRestsInEmptyBars(restBar)).toBeNull();
+  });
+
+  it('takes whole bars whole, with the pasted time', () => {
+    const result = pasteOver(restBar, at(0, 0), clipOf('\\ts (3 4)\n1.1.4 2.1.4 3.1.4 | 4.1.2{d} |'));
+    expect(result.clip.time).toEqual({ beats: 3, value: 4 });
+    expect(bars(result.clip)).toBe('1.1.4 2.1.4 3.1.4 |\n4.1.2{d} |');
+  });
+
+  it('writes a copy from inside a bar through the meter, so its bar is full', () => {
+    for (const into of [emptyPart(), restBar]) {
+      const result = pasteOver(into, at(0, 0), clipOf('\\ts (4 4)\n3.3.8 5.3.8 |'));
+      expect(bars(result.clip)).toBe('3.3.8 5.3.8 r.4 r.2 |');
+      expect(result.cursor).toEqual(at(0, 1));
+    }
   });
 });

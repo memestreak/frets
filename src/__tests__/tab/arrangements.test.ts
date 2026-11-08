@@ -85,6 +85,17 @@ describe('clipReducer saving', () => {
     expect(clipReducer(edited, { type: 'undo' }).clip).toBe(start.base);
   });
 
+  it('fills a clip in as the same music (issues #421, #422): no undo step, and unsaved only if it was', () => {
+    const filled = clipReducer(start, { type: 'fill', clip: { ...mine } });
+    expect(filled.past).toEqual([]);
+    expect(filled.clip).toBe(filled.base);
+    const edited = edit(start, 'Riff');
+    const after = clipReducer(edited, { type: 'fill', clip: { ...edited.clip } });
+    expect(after.past).toEqual(edited.past);
+    expect(after.base).toBe(start.base);
+    expect(after.clip).not.toBe(after.base);
+  });
+
   it('saves the clip as it is, keeping the history', () => {
     const edited = edit(start, 'Riff');
     const saved = clipReducer(edited, { type: 'saved', id: 'b', clip: edited.clip });

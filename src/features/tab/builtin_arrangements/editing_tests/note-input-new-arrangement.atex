@@ -1,0 +1,5 @@
+\title "Note input mode in a new arrangement"
+\ts (4 4)
+3.3.8 5.3.8 r.4 r.2 |
+r.1{txt "1. Tab view: press the 3 in bar 1, then Shift+Right arrow key and Ctrl/⌘+C: the 3 and 5 are copied. 2. Press New (Don't save), then Both. 3. Double-click the staff in the middle of the bar: the caret is on the staff where you pressed, a ruler with 4 ticks over it, and Save shows no unsaved dot. 4. Ctrl/⌘+V: the 3 and 5 then rests fill the bar, and nothing is said under the clip"} |
+
