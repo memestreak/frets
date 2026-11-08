@@ -259,11 +259,11 @@ export function moveNotes(clip: Part, places: readonly Cursor[], move: PitchMove
   return { clip: normalize({ ...clip, bars }), string: moved[0]?.string ?? null, moved };
 }
 
-/** A sign typed before a letter in note input, as Dorico's: - a flat, = a sharp, 0 a natural. */
+/** A sign typed before a letter in note input mode, as Dorico's: - a flat, = a sharp, 0 a natural. */
 export type TypedAccidental = -1 | 0 | 1;
 
 /**
- * The pitch a letter key names in note input, as Dorico's A–G (Jeremy, 2026-11-07, issue #396): that
+ * The pitch a letter key names in note input mode, as Dorico's A–G (Jeremy, 2026-11-07, issue #396): that
  * letter on the line or space nearest `near`, as the key has it (F♯ in G major); with a sign typed first,
  * that letter flat, natural or sharp instead.
  */
@@ -278,7 +278,7 @@ export function pitchOfLetter(clip: Part, bar: number, letter: string, near: num
 }
 
 /**
- * A note put on the staff in note input at the caret (`at` ticks into its column, splitting a rest there),
+ * A note put on the staff in note input mode at the caret (`at` ticks into its column, splitting a rest there),
  * and the caret on past it by its length, as Dorico's goes on (Jeremy, 2026-11-07, issue #396). A note
  * already at the pitch is taken away when `toggle` (Enter), the caret staying; else it stays and the caret
  * goes on past it.

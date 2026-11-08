@@ -1,6 +1,6 @@
 /**
  * The edits and moves of normal mode (issue #238, `docs/specs/2026-10-30-tab-note-input-mode-design.md`):
- * MuseScore's keys on what is selected, as against note input, where the cursor types. Pure.
+ * MuseScore's keys on what is selected, as against note input mode, where the cursor types. Pure.
  */
 import { chainStart } from './ties';
 import { type NoteValue, type Part, STRING_COUNT } from './clip';
@@ -10,7 +10,7 @@ import { pitchOf } from './staffEntry';
 /**
  * MuseScore's length keys, in normal mode on the staff (Jeremy, 2026-10-30): 1 a sixty-fourth, 2 a
  * thirty-second, 3 a sixteenth, 4 an eighth, 5 a quarter, 6 a half, 7 a whole. Frets has no longer or
- * shorter, so 8, 9 and 0 are nothing. On the tab, Shift with the digit does the same in note input.
+ * shorter, so 8, 9 and 0 are nothing. On the tab, Shift with the digit does the same in note input mode.
  */
 export function valueForDigit(digit: number): NoteValue | null {
   const values: Record<number, NoteValue> = { 1: 64, 2: 32, 3: 16, 4: 8, 5: 4, 6: 2, 7: 1 };

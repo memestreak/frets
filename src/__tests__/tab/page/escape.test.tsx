@@ -3,10 +3,10 @@ import { setUpPage, renderAt, SLOW, editor, keys, isLit } from './helpers';
 
 setUpPage();
 
-/** Esc leaves note input wherever the keys are on the page (Jeremy, 2026-11-03); an open panel takes it first. */
-describe('Esc always leaves note input', () => {
+/** Esc leaves note input mode wherever the keys are on the page (Jeremy, 2026-11-03); an open panel takes it first. */
+describe('Esc always leaves note input mode', () => {
   const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
-  const inNoteInput = () => {
+  const inNoteInputMode = () => {
     renderAt();
     act(() => editor().focus());
     keys('n');
@@ -14,14 +14,14 @@ describe('Esc always leaves note input', () => {
   };
 
   it('after a press off the tab, with the keys on the page', () => {
-    inNoteInput();
+    inNoteInputMode();
     act(() => editor().blur());
     fireEvent.keyDown(document.body, { key: 'Escape' });
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('with the keys on a palette or rail button', () => {
-    inNoteInput();
+    inNoteInputMode();
     const button = screen.getByRole('button', { name: 'Eighth note' });
     act(() => button.focus());
     fireEvent.keyDown(button, { key: 'Escape' });
@@ -29,7 +29,7 @@ describe('Esc always leaves note input', () => {
   });
 
   it('with the title picked, letting it go too', async () => {
-    inNoteInput();
+    inNoteInputMode();
     const title = await waitFor(() => screen.getByRole('button', { name: 'Untitled' }), SLOW);
     fireEvent.click(title);
     expect(title).toHaveAttribute('aria-pressed', 'true');
@@ -39,14 +39,14 @@ describe('Esc always leaves note input', () => {
   });
 
   it('with a modifier held', () => {
-    inNoteInput();
+    inNoteInputMode();
     act(() => editor().blur());
     fireEvent.keyDown(document.body, { key: 'Escape', shiftKey: true });
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('closes an open palette panel first, then leaves on the next Esc', () => {
-    inNoteInput();
+    inNoteInputMode();
     fireEvent.click(screen.getByRole('button', { name: 'Note input grid' }));
     expect(screen.getByRole('dialog', { name: 'Note input grid' })).toBeInTheDocument();
     keys('Escape');
@@ -57,7 +57,7 @@ describe('Esc always leaves note input', () => {
   });
 
   it('closes a panel open over the tab first, even with the keys on the tab', () => {
-    inNoteInput();
+    inNoteInputMode();
     const panel = document.createElement('div');
     panel.setAttribute('role', 'dialog');
     document.body.append(panel);

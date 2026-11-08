@@ -95,7 +95,7 @@ function ledgerSteps(step: number): number[] {
 }
 
 /**
- * The staff's own cursor (issue #136). In note input it is Dorico's caret, an upright line across the staff
+ * The staff's own cursor (issue #136). In note input mode it is Dorico's caret, an upright line across the staff
  * where the next note goes, with the next note itself drawn there faintly (`ShadowNote`, at the Input length)
  * on the pitch Enter would put in, with its sharp, flat or natural when the key doesn't give it. That is the
  * one ghost note: while the pointer's own is on the staff, `ghost` is false and only the line shows (Jeremy,
@@ -139,7 +139,7 @@ export function StaffCursor({ x, step, sign, score, selected = false, caret = tr
 }
 
 /**
- * The shadow note under the pointer in note input (issue #238, as MuseScore shows one): a faint note of
+ * The shadow note under the pointer in note input mode (issue #238, as MuseScore shows one): a faint note of
  * the length a press would enter, its head on the line or space pointed at, its stem up and flag.
  */
 export function ShadowNote({ x, step, value, score, testId = 'shadow-note', opacity = 0.45 }: { x: number; step: number; value: number; score: ScoreRows; testId?: string; opacity?: number }) {

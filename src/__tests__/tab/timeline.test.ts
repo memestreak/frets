@@ -28,7 +28,7 @@ const at = (bar: number, column: number, string = 0): Cursor => ({ bar, column, 
 const even = (part: Part) => part.bars.every((_bar, b) => !isUneven(part, b));
 const half = { value: 2, dots: 0 } as const;
 
-describe('note input writes over what follows', () => {
+describe('note input mode writes over what follows', () => {
   it('a half on beat 4 of a bar of rests is a quarter tied over the bar line; no bar is Uneven', () => {
     const clip = clipOf('\\ts (4 4)\nr.4 r.4 r.4 r.4 | r.1 |');
     const typed = setFret(clip, at(0, 3), 5, half);

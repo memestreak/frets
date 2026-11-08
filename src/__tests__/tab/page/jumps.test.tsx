@@ -53,7 +53,7 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(copied()).toBe('7.1.2 |\n8.1.2 9.1.2 |\n3.2.2 |');
   });
 
-  it('a double-click on a fret, or beside the notes on a string, goes into note input with the caret there (issue #396)', async () => {
+  it('a double-click on a fret, or beside the notes on a string, goes into note input mode with the caret there (issue #396)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
     await open();
     const read = readAlphaTexWith(alphaTab, THREE_BARS);
@@ -67,7 +67,7 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
       fireEvent.pointerUp(svg(), place);
       fireEvent.doubleClick(svg(), place);
     };
-    const pencil = () => screen.getByRole('button', { name: /^Note input( mode)?$/ });
+    const pencil = () => screen.getByRole('button', { name: 'Note input mode' });
     // On the second 7: the caret on it, so a digit retypes it.
     doubleClick(at(1, 0));
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
@@ -123,7 +123,7 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     fireEvent.pointerMove(svg(), onString(2));
     fireEvent.pointerCancel(svg(), onString(2));
     expect(alphaTex()).toMatch(/^5.1.2 7.1.2 \|/);
-    // In note input a press on a note doesn't drag it.
+    // In note input mode a press on a note doesn't drag it.
     keys('n');
     fireEvent.pointerDown(svg(), { ...onString(0), button: 0 });
     fireEvent.pointerMove(svg(), onString(2));
@@ -161,7 +161,7 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(alphaTex().split('\n')[0]).toMatch(/^8\.1\.2 7\.1\.2/);
   });
 
-  it('in note input a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
+  it('in note input mode a dim square follows the mouse on the tab, and a press there places a 0 to type over (Jeremy, 2026-10-31)', async () => {
     localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'tab' }));
     await open();
     const read = readAlphaTexWith(alphaTab, THREE_BARS);

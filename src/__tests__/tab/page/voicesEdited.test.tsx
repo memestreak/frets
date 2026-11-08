@@ -327,7 +327,7 @@ describe('Export and the line under the clip', () => {
     }
   });
 
-  it('lists Alt+1–4 in the ? overlay under Note input and Selected notes and rests', () => {
+  it('lists Alt+1–4 in the ? overlay under Note input mode and Selected notes and rests', () => {
     const groups = TAB_SHORTCUTS.filter(g => g.shortcuts.some(s => s.keys.includes('Alt+1–4'))).map(g => g.title);
     expect(groups).toEqual(['Note input mode', 'Selected notes and rests']);
   });

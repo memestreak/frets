@@ -140,7 +140,7 @@ const HEAD: ShortcutGroup = {
 
 /**
  * The palette's keyed tools, one row per key: tools sharing a key are the steps it goes through
- * ("Accent, then heavy accent"). The note lengths are under Note input already.
+ * ("Accent, then heavy accent"). The note lengths are under Note input mode already.
  */
 export function paletteShortcuts(): ShortcutGroup {
   const rows = new Map<string, string[]>();

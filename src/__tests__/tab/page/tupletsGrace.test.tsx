@@ -114,7 +114,7 @@ describe('`;` and the Tuplet panel in normal mode', () => {
   });
 });
 
-describe('Tuplet entry in note input (Q6, Q7)', () => {
+describe('Tuplet entry in note input mode (Q6, Q7)', () => {
   it('a triplet picked lights the Tuplet button; three frets with → between make one triplet, a fourth starts the next', async () => {
     await open('r.1 |');
     keys('n', 'ArrowUp', eighthLength, ';');
@@ -122,7 +122,7 @@ describe('Tuplet entry in note input (Q6, Q7)', () => {
     expect(tuplet()).toHaveAttribute('aria-pressed', 'true');
     keys('5', 'ArrowRight', '7', 'ArrowRight', '8', 'ArrowRight', '9');
     expect(alphaTex()).toBe('5.1.8{tu 3} 7.1.8{tu 3} 8.1.8{tu 3} 9.1.8{tu 3} r.4{tu 3} r.2 |');
-    // The same tuplet again turns it off; so does leaving note input.
+    // The same tuplet again turns it off; so does leaving note input mode.
     keys(';');
     fireEvent.keyDown(panel()!, { key: '3' });
     expect(tuplet()).toHaveAttribute('aria-pressed', 'false');
@@ -154,7 +154,7 @@ describe('Tuplet entry in note input (Q6, Q7)', () => {
 describe('grace notes (Q8–Q11)', () => {
   const QUARTERS = '5.1.4 7.1.4 r.2 |';
 
-  it('`/` on a picked note adds one before it at its fret, the cursor on it, so a fret typed in note input changes it', async () => {
+  it('`/` on a picked note adds one before it at its fret, the cursor on it, so a fret typed in note input mode changes it', async () => {
     await open(QUARTERS);
     press(QUARTERS, 1);
     keys('/');
@@ -182,7 +182,7 @@ describe('grace notes (Q8–Q11)', () => {
     expect(alphaTex()).toBe(QUARTERS);
   });
 
-  it('Grace entry: `/` in note input lights Grace; 5 then 7 go before the quarter there; `/` again, 9 is the main note', async () => {
+  it('Grace entry: `/` in note input mode lights Grace; 5 then 7 go before the quarter there; `/` again, 9 is the main note', async () => {
     await open('5.1.4 r.4 r.2 |');
     keys('n', 'ArrowUp', 'ArrowRight', '/');
     expect(grace()).toHaveAttribute('aria-pressed', 'true');
@@ -198,7 +198,7 @@ describe('grace notes (Q8–Q11)', () => {
 });
 
 describe('`,` and the Rest tool (Q12, Q13)', () => {
-  it('in note input, Input length a quarter, on a half on beat 1: a quarter Gap, the cursor on beat 2', async () => {
+  it('in note input mode, Input length a quarter, on a half on beat 1: a quarter Gap, the cursor on beat 2', async () => {
     await open('5.1.2 r.2 |');
     keys('n', 'ArrowUp', quarterLength, ',', '7');
     expect(alphaTex()).toBe('r.4 7.1.4 r.2 |');

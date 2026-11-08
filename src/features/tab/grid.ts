@@ -1,9 +1,9 @@
 /**
- * Note input's grid (issue #293): where the cursor stops inside a rest, and what a press in note input
- * snaps to. By default it follows note input's length, as MuseScore's does; a fixed grid (Dorico's
+ * Note input mode's grid (issue #293): where the cursor stops inside a rest, and what a press in note input mode
+ * snaps to. By default it follows note input mode's length, as MuseScore's does; a fixed grid (Dorico's
  * rhythmic grid) is turned on from the palette's Grid button, Alt+G or Alt+[ ]. ← → step one grid line
  * at a time through a plain rest (and so through the empty time at a bar's end) and one note at a time
- * over notes; Shift+Space moves on by note input's length (`advance`). A note entered between grid
+ * over notes; Shift+Space moves on by note input mode's length (`advance`). A note entered between grid
  * lines first splits the rest there (`splitRestAt`). Grid lines are counted from the bar's start, not
  * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
  * its step in ticks.
@@ -25,7 +25,7 @@ export function isGridValue(value: unknown): value is GridValue {
   return (GRID_VALUES as readonly unknown[]).includes(value);
 }
 
-/** How the grid is drawn in note input, over the cursor's bar and the bar under the mouse (Jeremy, 2026-11-03; issue #396): a ruler over the staff by default. */
+/** How the grid is drawn in note input mode, over the cursor's bar and the bar under the mouse (Jeremy, 2026-11-03; issue #396): a ruler over the staff by default. */
 export const GRID_LOOKS = ['ruler', 'lines'] as const;
 export type GridLook = (typeof GRID_LOOKS)[number];
 export const DEFAULT_GRID_LOOK: GridLook = 'ruler';
@@ -89,7 +89,7 @@ function tupletStops(bar: Bar, column: number): number[] | null {
 }
 
 /**
- * ← → in note input inside the cursor's rest: the next stop that way, in ticks from the rest's start,
+ * ← → in note input mode inside the cursor's rest: the next stop that way, in ticks from the rest's start,
  * or null when the key leaves the column (and the cursor goes to the next or last column, as before).
  */
 export function stepInRest(clip: Part, cursor: Cursor, at: number, way: 1 | -1, step: number): number | null {
@@ -165,7 +165,7 @@ export function xAlong(placed: PlacedColumn, at: number): number {
 }
 
 /**
- * The stop nearest a press at `x` in bar `bar` (note input, issue #293): a column's note, or a grid line
+ * The stop nearest a press at `x` in bar `bar` (note input mode, issue #293): a column's note, or a grid line
  * inside a rest, a Whole-bar rest's too (Jeremy, 2026-11-03). Null for a bar not drawn, an empty bar or one inside a multi-bar rest.
  */
 export function stopNear(layout: Layout, bar: number, x: number, step: number): { column: number; at: number; x: number } | null {
@@ -186,7 +186,7 @@ export function stopNear(layout: Layout, bar: number, x: number, step: number): 
 }
 
 /**
- * Shift+Space in note input (Jeremy, 2026-11-01): the cursor moved on by `length` ticks from where it is
+ * Shift+Space in note input mode (Jeremy, 2026-11-01): the cursor moved on by `length` ticks from where it is
  * (`at` ticks into its column), over notes and rests alike, as Dorico's Space moves its caret. Inside a
  * plain rest it stops there; inside a note, at the column after it. Past a bar's end it goes on into the
  * next bar, and past the clip's last bar, a bar of rests is added.

@@ -138,7 +138,7 @@ export const alphaTex = () => {
 };
 
 /**
- * The page open on a 4/4 clip of `bar`, the editor focused. Frets are typed only in note input (Jeremy,
+ * The page open on a 4/4 clip of `bar`, the editor focused. Frets are typed only in note input mode (Jeremy,
  * 2026-11-07, issue #396), so a test that needs notes to start from opens on them.
  */
 export async function openWith(bar: string) {

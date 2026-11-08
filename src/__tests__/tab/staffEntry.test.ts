@@ -28,7 +28,7 @@ describe('the staff cursor\'s pitch', () => {
   });
 });
 
-describe('A–G in note input (issue #396)', () => {
+describe('A–G in note input mode (issue #396)', () => {
   it('names the letter nearest the caret, in the key; - = 0 typed first make it flat, sharp or natural', () => {
     const c = clipOf('r.1 |');
     const E3 = 52;

@@ -1,5 +1,5 @@
 /**
- * Note input's grid on the Tab page (issue #293; docs/specs/2026-11-01-tab-note-input-grid-design.md):
+ * Note input mode's grid on the Tab page (issue #293; docs/specs/2026-11-01-tab-note-input-grid-design.md):
  * ← → stop at each grid line inside a rest and once on each note, a note typed there splits the rest,
  * presses snap to the grid, and the grid is set by the palette's Grid button, Alt+[ ] and Settings.
  */
@@ -72,10 +72,10 @@ afterEach(() => cleanup());
 const altKey = (code: string) => ({ key: 'Dead', code, altKey: true });
 const savedFixed = () => JSON.parse(localStorage.getItem(EDITING_KEY) ?? '{}').fixedGrid;
 
-describe('note input’s grid (issue #293)', () => {
-  it('by default follows note input’s length: → steps a quarter at a time through a rest after a quarter', async () => {
+describe('note input mode’s grid (issue #293)', () => {
+  it('by default follows note input mode’s length: → steps a quarter at a time through a rest after a quarter', async () => {
     await open();
-    // Note input on the 5, its high e picked (Jeremy, 2026-11-07); → onto the rest, then two quarters into it.
+    // Note input mode on the 5, its high e picked (Jeremy, 2026-11-07); → onto the rest, then two quarters into it.
     keys('n', 'ArrowRight', 'ArrowRight', 'ArrowRight');
     keys('7');
     expect(bar()).toBe('5.1.4 r.4 r.4 7.1.4 |');
@@ -97,7 +97,7 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
     // Over a note, ← is one stop: back past the 9's rest onto the first note.
     keys('ArrowLeft', 'ArrowLeft', 'ArrowLeft');
-    // Typed over at the input length, a 16th, as note input writes (step 4): the rest of the quarter is a Gap.
+    // Typed over at the input length, a 16th, as note input mode writes (step 4): the rest of the quarter is a Gap.
     keys('3');
     expect(bar()).toBe('3.1.16 r.16 r.8 r.16 9.1.16 7.1.8 -.1.8 r.8 r.4 |');
   });
@@ -110,7 +110,7 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 r.8 7.1.8 r.2 |');
   });
 
-  it('draws the grid in note input only: a ruler by default, lines when Settings says so', async () => {
+  it('draws the grid in note input mode only: a ruler by default, lines when Settings says so', async () => {
     await open();
     expect(screen.queryByTestId('grid-lines')).toBeNull();
     keys('n');
@@ -130,7 +130,7 @@ describe('note input’s grid (issue #293)', () => {
     const show = screen.getByRole('group', { name: 'Show' });
     for (const name of ['Staff', 'Both', 'Tab']) {
       const button = within(show).getByRole('button', { name });
-      // A press that doesn't take the focus: the editor isn't blurred, so note input's cursor and grid stay.
+      // A press that doesn't take the focus: the editor isn't blurred, so note input mode's cursor and grid stay.
       expect(fireEvent.mouseDown(button)).toBe(false);
       fireEvent.click(button);
       expect(button).toHaveAttribute('aria-pressed', 'true');
@@ -164,7 +164,7 @@ describe('note input’s grid (issue #293)', () => {
     expect(box()).toEqual(before);
   });
 
-  it('starts note input at the caret, never where the mouse was before (issue #396)', async () => {
+  it('starts note input mode at the caret, never where the mouse was before (issue #396)', async () => {
     const { svg, over, gridBars } = await openTwoBars();
     // A press on the first bar, then the mouse over the second and off the clip.
     fireEvent.pointerDown(svg, { ...over(0), button: 0 });
@@ -173,7 +173,7 @@ describe('note input’s grid (issue #293)', () => {
     fireEvent.pointerLeave(svg);
     keys('n');
     expect(gridBars()).toEqual([0]);
-    // Nor while it rests over the second bar: nothing of the mouse is kept outside note input.
+    // Nor while it rests over the second bar: nothing of the mouse is kept outside note input mode.
     keys('n');
     fireEvent.pointerMove(svg, over(1));
     keys('n');
@@ -223,14 +223,14 @@ describe('note input’s grid (issue #293)', () => {
     // A typed fret takes its place.
     keys('7');
     expect(screen.queryByTestId('tab-ghost')).toBeNull();
-    // Back on an empty string it shows again, and out of note input there is none.
+    // Back on an empty string it shows again, and out of note input mode there is none.
     keys('ArrowDown');
     expect(screen.getByTestId('tab-ghost')).toBeInTheDocument();
     keys('Escape');
     expect(screen.queryByTestId('tab-ghost')).toBeNull();
   });
 
-  it('out of note input, → moves a column at a time, as before', async () => {
+  it('out of note input mode, → moves a column at a time, as before', async () => {
     await open();
     keys('ArrowRight', 'ArrowRight');
     // Normal mode stopped on the rest's start, not inside it.
@@ -238,14 +238,14 @@ describe('note input’s grid (issue #293)', () => {
     expect(bar()).toBe('5.1.4 7.1.4 r.2 |');
   });
 
-  it('a press in note input snaps to the grid line nearest it inside a rest', async () => {
+  it('a press in note input mode snaps to the grid line nearest it inside a rest', async () => {
     await open();
     const read = readAlphaTexWith(alphaTab, TEX);
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const { top, rows, bars } = layoutClip(partOf(read.clip), 800, 'tab').systems[0];
     const rest = bars[0].columns[1];
     keys('n');
-    // Note input's quarter: a little past a third of the way along the dotted half's room is its second quarter.
+    // Note input mode's quarter: a little past a third of the way along the dotted half's room is its second quarter.
     const svg = screen.getByRole('img', { name: /drawn as/ });
     const over = { clientX: rest.x + rest.width / 3 + 4, clientY: top + rows.staffTop };
     fireEvent.pointerDown(svg, { ...over, button: 0 });
@@ -302,7 +302,7 @@ describe('note input’s grid (issue #293)', () => {
     keys(altKey('BracketLeft'), altKey('BracketLeft'), altKey('BracketLeft'));
     // Finer than a 32nd there is none.
     await waitFor(() => expect(savedGrid()).toBe(32));
-    // Alt+G back to note input's length, and again to the 32nd.
+    // Alt+G back to note input mode's length, and again to the 32nd.
     keys(altKey('KeyG'));
     await waitFor(() => expect(savedFixed()).toBe(false));
     fireEvent.click(gridButton());

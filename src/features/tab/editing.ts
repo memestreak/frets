@@ -306,7 +306,7 @@ export function lastNoteLength(clip: Part, cursor: Cursor): Duration {
   return { value: 4, dots: 0 };
 }
 
-/** A rest that takes time and is no tuplet's or grace's: one note input may split. */
+/** A rest that takes time and is no tuplet's or grace's: one note input mode may split. */
 export function isPlainRest(column: Column): boolean {
   return !column.grace && !column.duration.tuplet && !column.notes.some(Boolean);
 }
@@ -323,10 +323,10 @@ function isEmptyBar(clip: Part, bar: number): boolean {
 
 /**
  * A note going on the cursor's rest, `change` making the rest's Column a note
- * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`): with note input's `length` it is that long,
+ * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`): with note input mode's `length` it is that long,
  * written over what follows, split and tied by the meter; in normal mode it takes the rest's own
  * length, or the whole bar on a Whole-bar rest stored as more than one rest (5/8) or a bar with
- * nothing in it. With note input's `length`, a lone note retyped at another length is written over
+ * nothing in it. With note input mode's `length`, a lone note retyped at another length is written over
  * the same way. Null otherwise, where the note just goes in its Column.
  */
 function noteOnRest(clip: Part, cursor: Cursor, change: (column: Column) => Column, length?: Duration): Part | null {
@@ -334,7 +334,7 @@ function noteOnRest(clip: Part, cursor: Cursor, change: (column: Column) => Colu
   const column = bar.columns.length === 0 ? emptyColumn({ value: 4, dots: 0 }) : columnAt(clip, cursor);
   if (!column) return null;
   const at = cursorTime(clip, cursor);
-  // Retyping a lone note (not a chord's, a tuplet's or a grace note) at a new length writes over too, as Dorico's note input does.
+  // Retyping a lone note (not a chord's, a tuplet's or a grace note) at a new length writes over too, as Dorico's note input mode does.
   const lone = !isRest(column) && !column.grace && !column.duration.tuplet && column.notes.every((note, s) => !note || s === cursor.string);
   if (length && lone && ticks(column.duration) !== ticks(length)) return writeOver(clip, at, [change({ ...column, duration: { ...length } })]) ?? clip;
   if (!isPlainRest(column)) return null;
@@ -353,7 +353,7 @@ function noteAtCursor(clip: Part, cursor: Cursor, change: (column: Column) => Co
 /**
  * Puts a fret on the cursor's string, keeping the note's marks but not a dead note. On a note of a Tie
  * chain the whole chain takes it, as one note (`docs/specs/2026-11-04-tab-ties-forward-design.md`). On a
- * rest the note is the rest's length, or `length` when given (note input's), written over what follows.
+ * rest the note is the rest's length, or `length` when given (note input mode's), written over what follows.
  */
 export function setFret(clip: Part, at: Cursor, fret: number, length?: Duration): Part {
   const cursor = noteAt(clip, at)?.tie ? chainStart(clip, at) : at;

@@ -10,7 +10,7 @@ describe('TabPage editing', () => {
   it('types frets, two digits making one, and moves on with the arrows', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('ArrowDown', 'ArrowDown', '1', '2', 'ArrowRight', '1', '4', 'ArrowDown', '0');
     // The bar stays full: each note writes over the bar's Gap (step 4).
@@ -21,7 +21,7 @@ describe('TabPage editing', () => {
   it('draws a band only behind a Shift selection, never behind the cursor alone', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'ArrowRight', '7');
     const band = () => screen.queryByTestId('tab-cursor')?.querySelector('rect[fill="var(--select-soft)"]') ?? null;
@@ -33,7 +33,7 @@ describe('TabPage editing', () => {
     expect(screen.getByTestId('tab-cursor').querySelector('rect')).toBeNull();
     keys('ArrowRight');
     expect(litFrets()).toHaveLength(0);
-    // In note input no box goes round the column (Jeremy, 2026-10-31).
+    // In note input mode no box goes round the column (Jeremy, 2026-10-31).
     expect(screen.queryByTestId('column-cursor')).toBeNull();
     // Moving the cursor, any way, lets the selection go.
     keys({ key: 'ArrowLeft', shiftKey: true }, 'ArrowUp');
@@ -47,16 +47,16 @@ describe('TabPage editing', () => {
   it('marks notes and columns from the keys and from the palette', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
-    // − shortens the note in normal mode; in note input it is the next note's length (issue #238).
+    // − shortens the note in normal mode; in note input mode it is the next note's length (issue #238).
     keys('5', 'ArrowRight', '7', 'h', 'Escape', '-', 'n');
     fireEvent.click(vibrato());
     // A note made shorter leaves rests in the time it gave up, as MuseScore's does (issue #290).
     expect(alphaTex()).toBe('5.1{h}.4 7.1{v}.8 r.8 r.2 |');
     expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
     expect(tool('Eighth note')).toHaveAttribute('aria-pressed', 'true');
-    // Off the tab, no button is lit but note input's pencil, which says the mode, not the note.
+    // Off the tab, no button is lit but note input mode's pencil, which says the mode, not the note.
     act(() => editor().blur());
     expect(screen.getAllByRole('button', { pressed: true }).filter(b => b.closest('.tab-palette')).map(b => b.getAttribute('aria-label'))).toEqual(['Note input mode']);
   });
@@ -64,7 +64,7 @@ describe('TabPage editing', () => {
   it('acts on nothing from the palette once the cursor has left the tab, by Esc or a press elsewhere', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'ArrowRight', '7');
     const pressAll = () => {
@@ -74,7 +74,7 @@ describe('TabPage editing', () => {
       fireEvent.click(tool('Bend'));
       fireEvent.click(screen.getByRole('button', { name: 'full' }));
     };
-    // The first Esc leaves note input, the second the tab.
+    // The first Esc leaves note input mode, the second the tab.
     keys('Escape', 'Escape');
     expect(editor()).not.toHaveFocus();
     pressAll();
@@ -117,7 +117,7 @@ describe('TabPage editing', () => {
   it('steps V, Shift+N, A and \\ through their kinds, and toggles I, G and S', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'i', 'g', 's');
     expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 r.4 r.2 |');
@@ -210,7 +210,7 @@ describe('TabPage editing', () => {
   it('selects with Shift+arrows, copies the selection as alphaTex, makes rests of it and deletes it', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'ArrowRight', '7', 'ArrowRight', '9', { key: 'ArrowLeft', shiftKey: true });
     // The two selected notes are lit, with no band behind them (Jeremy, 2026-10-30).
@@ -278,11 +278,11 @@ describe('TabPage editing', () => {
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'ArrowRight', '7');
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
-    // The first Esc leaves note input, the second the tab.
+    // The first Esc leaves note input mode, the second the tab.
     keys('Escape', 'Escape');
     expect(screen.queryByTestId('tab-cursor')).toBeNull();
     expect(screen.queryByTestId('column-cursor')).toBeNull();
@@ -311,7 +311,7 @@ describe('TabPage editing', () => {
   it('Delete off the notes of a column makes it a rest, which stays; Ctrl/⌘+Delete removes it', () => {
     renderAt();
     act(() => editor().focus());
-    // Typing is note input's (issue #238).
+    // Typing is note input mode's (issue #238).
     keys('n');
     keys('5', 'ArrowDown', '7', 'ArrowRight', '3', 'ArrowDown', 'ArrowDown');
     // On string 3, under a column whose notes are on strings 1 and 2.

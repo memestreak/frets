@@ -255,7 +255,7 @@ and in its spec.
   playback line: `editorKeyDown` tries the keys every mode takes first,
   then the mode's own, then the shared ones; normal mode's keys
   (`normalKeyDown`) are here too.
-- `noteInputKeys.ts` — note input mode's own keys: frets typed on the tab,
+- `noteInputModeKeys.ts` — note input mode's own keys: frets typed on the tab,
   letters and Enter on the staff caret, the next note's length, the caret
   between staff and tab, ← → through a rest's grid lines, Shift+Space and
   Insert.

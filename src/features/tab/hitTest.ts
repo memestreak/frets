@@ -16,7 +16,7 @@ export interface Hit {
   bar: number;
   column: number;
   string: number;
-  /** In note input, how far into a rest the press snapped, in ticks (issue #293); absent at a column's start. */
+  /** In note input mode, how far into a rest the press snapped, in ticks (issue #293); absent at a column's start. */
   at?: number;
 }
 
@@ -67,7 +67,7 @@ export interface StaffHit {
   column: number;
   step: number;
   string: number | null;
-  /** In note input, how far into a rest the press snapped, in ticks (issue #293). */
+  /** In note input mode, how far into a rest the press snapped, in ticks (issue #293). */
   at?: number;
 }
 
