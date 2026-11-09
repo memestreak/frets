@@ -17,7 +17,7 @@ export type ToolId =
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
-  | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
+  | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
   | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo' | 'capo';
 
@@ -105,6 +105,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'heavyAccent', label: 'Heavy accent', key: 'A' },
       { id: 'staccato', label: 'Staccato', key: 'S' },
       { id: 'ottava', label: 'Octave line over the staff (8va, 8vb, 15ma, 15mb)', key: '' },
+      { id: 'dynamic', label: 'Dynamic from this column on (p, mf, ff…)', key: 'Shift+D' },
     ],
   },
   {
@@ -197,12 +198,12 @@ function chainColumns(clip: Part, target: Target): Target {
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
-export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
+export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The palette tool that sets each kind of word: `WORD_TOOLS` the other way round. */
 export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
-  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo',
+  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic',
 };
 
 /** The clip after a palette press. */
@@ -274,6 +275,8 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
     // Shift+L opens the Lyrics field, as Dorico's does (issue #408); L alone is Loop.
     L: 'lyrics',
+    // Shift+D opens the dynamic's field, as Dorico's Shift+D opens its dynamics popover.
+    D: 'dynamic',
   };
   return keys[key] ?? null;
 }
@@ -335,6 +338,7 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'chordName': return !!column?.chord;
     case 'beatText': return !!column?.text;
     case 'lyrics': return !!column?.lyrics?.length;
+    case 'dynamic': return !!column?.dynamic;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
     case 'capo': return !!clip.capo;

@@ -7,6 +7,7 @@ import { mordentSign, vibratoWave, type MarkLit } from './marks';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, vibratoRuns } from './runs';
 import { FermataSign } from './StaffDrawing';
 import { columnMarks } from './TabColumn';
+import { drawnDynamics, hairpinSpan } from './dynamics';
 import { litLook, type TabLook } from './tabLook';
 
 /** What a whammy bar's run is labelled, as guitar books print it. */
@@ -20,7 +21,11 @@ function WahMark({ kind, x, y, look }: { kind: 'open' | 'closed'; x: number; y: 
 }
 
 /** The marks in their own rows over the tab (under a staff alone): P.M. and let ring runs, and each column's stroke, vibrato, P.H. and accents. */
-export function SystemRowMarks({ system, rows, look, selected = null, lit }: { system: System; rows: Rows; look: TabLook; selected?: [number, number] | null; lit: MarkLit }) {
+export function SystemRowMarks({ system, rows, look, selected = null, lit, withDynamics = true }: {
+  system: System; rows: Rows; look: TabLook; selected?: [number, number] | null; lit: MarkLit;
+  /** Off for another Voice's layer: the part's own line draws every Voice's dynamics (`drawnDynamics`). */
+  withDynamics?: boolean;
+}) {
   const parts: ReactNode[] = [];
   const inRun = (index: number) => selected !== null && index >= selected[0] && index <= selected[1];
   // Palm mute and let ring: a label, then a dashed line over the run of columns that have it.
@@ -74,7 +79,7 @@ export function SystemRowMarks({ system, rows, look, selected = null, lit }: { s
   if (rows.hairpins !== null) {
     for (const run of columnRuns(system, c => c.hairpin ?? null)) {
       const y = rows.hairpins;
-      const [x0, x1] = [run.from.x - 4, run.end];
+      const { x0, x1 } = hairpinSpan(system, run, y);
       const [narrow, wide] = run.kind === 'crescendo' ? [x0, x1] : [x1, x0];
       const picked = lit('hairpin', run.from.index, null, run.to.index);
       parts.push(
@@ -82,6 +87,19 @@ export function SystemRowMarks({ system, rows, look, selected = null, lit }: { s
           key={`hairpin-${run.from.index}`} d={`M${wide} ${y - 4} L${narrow} ${y} L${wide} ${y + 4}`}
           fill="none" stroke={litLook(look, picked).ink} strokeWidth={1.1} data-testid="hairpin" data-selected={picked || undefined}
         />,
+      );
+    }
+  }
+
+  // Dynamics: each one's letters on the hairpins' row, centred on its column (issue #437); the other Voices' too,
+  // drawn by the part's own line so two at one time can stand clear of each other.
+  if (rows.dynamics !== null && withDynamics) {
+    for (const drawn of drawnDynamics(system, rows.dynamics)) {
+      const picked = drawn.own && lit('dynamic', drawn.index, null);
+      parts.push(
+        <g key={`dynamic-${drawn.own ? '' : 'v'}${drawn.index}-${drawn.box.x}`} fill={litLook(look, picked).ink} data-testid="dynamic" data-dynamic={drawn.dynamic} data-selected={picked || undefined}>
+          {drawn.letters.map((letter, i) => <path key={i} d={letter.d} transform={letter.transform} />)}
+        </g>,
       );
     }
   }

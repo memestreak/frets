@@ -392,6 +392,23 @@
 .tab-word-input { width: 100%; }
 /* The Text field: a line until Shift+Enter adds more (issue #445), never dragged bigger. */
 .tab-word-text { display: block; resize: none; line-height: 1.4; }
+/* The input and, for a dynamic that isn't one, its small red ⚠ beside it (issue #437). */
+.tab-word-row { display: flex; align-items: center; gap: 6px; }
+.tab-word-problem { display: inline-flex; color: var(--danger); cursor: default; }
+/* A dynamic's list under its field: each dynamic in its drawn letters, then as typed; the active one raised. */
+.tab-word-list {
+  max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised);
+}
+/* With no room under the field, the list opens over it instead. */
+.tab-word-list-up { position: absolute; bottom: calc(100% + 4px); left: 0; right: 0; }
+.tab-word-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 2px 8px; border-radius: 6px; cursor: pointer; color: var(--ink);
+}
+.tab-word-option[aria-selected="true"] { background: var(--surface-sunken); }
+.tab-word-option-text { font-size: 12px; color: var(--ink-muted); }
+.tab-word-none { padding: 2px 8px; font-size: 12px; color: var(--ink-muted); }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
 .tab-word-fit { width: auto; white-space: nowrap; }
@@ -699,11 +716,6 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-panel-tile[aria-pressed='true'] { background: var(--select-soft); border-color: var(--select); }
 .chord-panel-tile:focus-visible { outline: none; }
 .chord-panel-tile-name { font: 600 12px/16px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chord-panel-tile[data-unused] { position: relative; }
-.chord-panel-tile[data-unused]::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
-}
 .chord-panel-pager { display: flex; align-items: center; justify-content: center; gap: 6px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .chord-panel-step:disabled { opacity: .35; cursor: default; }
 .chord-editor-title {
@@ -713,6 +725,14 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
+/* A tile's use count: a solid dot on its diagram's bottom right corner, just over it; none for an unused chord. */
+.chord-panel-thumb { position: relative; }
+.chord-panel-count {
+  position: absolute; right: -8px; bottom: 1px; box-sizing: border-box;
+  min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--ink-muted); color: var(--surface-raised);
+  font: 600 9px/1 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none;
+}
 
 /* The rail's Chat panel (chat/ChatPanel.tsx, issue #424): the model, the conversation, then the box to write in. */
 .tab-chat { display: flex; flex-direction: column; gap: 10px; min-height: 0; }

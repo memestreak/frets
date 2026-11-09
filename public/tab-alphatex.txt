@@ -250,6 +250,11 @@ then "." and its duration:
     cre  dec   getting louder / softer from this beat: neighbouring beats
                that have it draw one hairpin, under the staff and over the
                tab: 7.3.16{cre} 9.3.16{cre}. Playback ignores it.
+    dy mf      a dynamic from this beat on, until the next: ppp pp p mp mf
+               f ff fff (and pppp to pppppp, ffff to ffffff, sf sfp sfpp
+               fp rf rfz sfz sffz fz pf sfzp). Drawn in italic letters on
+               the hairpins' row; playback plays it: 5.3.4{dy p}. Write it
+               only where the level changes; without one, music plays f.
     fermata medium  a fermata over the beat (fermata short, fermata long
                for the other shapes): 0.6.1{fermata medium}. Over the
                staff, over the tab without one. Playback ignores it.

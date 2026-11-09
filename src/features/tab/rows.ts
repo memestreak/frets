@@ -39,6 +39,8 @@ export interface Rows {
   fermatas: number | null;
   /** Hairpins (crescendo, decrescendo), right under the staff or over the tab's other marks. */
   hairpins: number | null;
+  /** Dynamics (p, mf, sfz), on the hairpins' row, as Dorico and the books put them on one line (issue #437). */
+  dynamics: number | null;
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
@@ -103,6 +105,13 @@ export function stepY(score: ScoreRows, step: number): number {
 export const STRING_GAP = 14;
 const FIRST_ROW = 12;
 const ROW_GAP = 15;
+/**
+ * How far a dynamic's letters reach under its row: `dynamics.ts`'s DYNAMIC_REACH.bottom, rounded up (it
+ * can't be imported here: `dynamics.ts` takes SPACE from this file). A test keeps the two in step.
+ */
+export const DYNAMIC_TAIL = 11;
+/** From a Lyric line's middle up to the top of its letters, and a little air. */
+const LYRIC_CLEAR = 8;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
 /** How high a bend's arrow rises over the tab's top string, as Guitar Pro draws it. */
@@ -184,7 +193,8 @@ export function rowsFor(
     // (Jeremy, 2026-11-06), and the rest under it. Vibrato and accents go on the staff.
     // A fermata goes on the staff when there is one, over the tab only without it.
     fermatas: parts === 'tab' && columns.some(c => c.fermata),
-    hairpins: columns.some(c => c.hairpin),
+    hairpins: columns.some(c => c.hairpin || c.dynamic),
+    dynamics: columns.some(c => c.dynamic),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
@@ -241,7 +251,12 @@ export function rowsFor(
     fermatas: row(used.fermatas),
     hairpins: row(used.hairpins),
   };
+  // A dynamic reaches further down than a hairpin: Lyrics right under their row go under its tail.
+  const underDynamics = () => {
+    if (used.dynamics && lyricCount > 0 && y === marksTop.hairpins) y += Math.max(0, DYNAMIC_TAIL + LYRIC_CLEAR - ROW_GAP);
+  };
   // Staff and tab: the words right under the staff and its hairpins, the tab's marks under them.
+  if (parts === 'both') underDynamics();
   const lyricsBetween = parts === 'both' ? tall(row(lyricCount > 0), (lyricCount - 1) * LYRIC_LINE) : null;
   const marks = {
     ...marksTop,
@@ -253,13 +268,15 @@ export function rowsFor(
     vibrato: row(used.vibrato),
     accents: row(used.accents),
   };
+  const dynamics = used.dynamics ? marks.hairpins : null;
   if (!tab) {
     // The staff alone: the words under everything under the staff.
+    underDynamics();
     const lyrics = tall(row(lyricCount > 0), (lyricCount - 1) * LYRIC_LINE);
     // The tab's rows stand at the staff's foot, drawing nothing.
     const end = y + 12;
     return {
-      ...words, ...marks, lyrics, lyricCount, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
+      ...words, ...marks, lyrics, lyricCount, dynamics, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
       bandTop: score!.top - 10, bandBottom: score!.bottom + 10, loopY: end,
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
@@ -284,7 +301,7 @@ export function rowsFor(
   // The tab alone: the words under its stems and tuplet numbers.
   const lyricsUnder = parts === 'tab' && lyricCount > 0 ? foot + 2 : null;
   return {
-    ...words, ...marks, lyrics: lyricsBetween ?? lyricsUnder, lyricCount, score, tab, tabStems, dives, staffTop, staffBottom,
+    ...words, ...marks, lyrics: lyricsBetween ?? lyricsUnder, lyricCount, dynamics, score, tab, tabStems, dives, staffTop, staffBottom,
     bandTop: (score ? score.top : staffTop) - 10, bandBottom: staffBottom + 10,
     loopY: tabStems ? under + 40 : under + 14,
     stemTop: under + 8, stemBottom: under + 32, tuplet: under + 45,

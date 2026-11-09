@@ -590,6 +590,8 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
       const column = voice.part.bars[b].columns[k];
       const at = flat + k;
       const out: XmlNode[] = [];
+      // A dynamic under the staff, before a hairpin starting with it (issue #437); MusicXML names each one as alphaTex does.
+      if (when === 'before' && column.dynamic) out.push(direction('below', el('dynamics', {}, el(column.dynamic, {}))));
       for (const mark of RUN_MARKS) {
         const value = mark.at(column);
         if (value === undefined) continue;

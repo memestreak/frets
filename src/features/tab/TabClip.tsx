@@ -829,7 +829,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
   const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} typing={typing} columnsOnly={notesOnly} />;
-  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} />;
+  const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} withDynamics={!notesOnly} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;
   if (notesOnly) return <>{words}{rowMarks}{notesOf(system, index, rows, look, previous, slides, joins, legato, whammy, selected, lit)}</>;

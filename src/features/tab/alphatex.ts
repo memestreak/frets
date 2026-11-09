@@ -147,6 +147,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.ottava) effects.push(`ot ${column.ottava}`);
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
   if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
+  if (column.dynamic) effects.push(`dy ${column.dynamic}`);
   if (column.fermata) effects.push(`fermata ${column.fermata}`);
   if (column.whammy) effects.push(`tb (${column.whammy.join(' ')})`);
   // A Beam override is written on the Column before, as alphaTab reads it.

@@ -13,7 +13,8 @@ import { layoutClip } from '@/features/tab/layout';
 import { lyricBox } from '@/features/tab/layoutText';
 import { lyricNote, lyricValue, setLyric, syllableOf } from '@/features/tab/lyrics';
 import { writeMusicXml } from '@/features/tab/musicxml';
-import { rowsFor } from '@/features/tab/rows';
+import { DYNAMIC_TAIL, rowsFor } from '@/features/tab/rows';
+import { DYNAMIC_REACH } from '@/features/tab/dynamics';
 import { minColumnWidth } from '@/features/tab/widths';
 import { TabClip } from '@/features/tab/TabClip';
 import { DEFAULT_TAB_EXPORT, tabImageSize, tabSvg } from '@/features/tab/exportTab';
@@ -82,6 +83,17 @@ describe('setting a syllable', () => {
     expect(setLyric(p, { bar: 0, column: 2 }, 0, 'la')).toBe(p);
     const one = setLyric(p, { bar: 0, column: 0 }, 0, 'la');
     expect(setLyric(one, { bar: 0, column: 0 }, 0, 'la')).toBe(one);
+  });
+});
+
+describe('under dynamics', () => {
+  it('Lyrics right under the hairpins\' row go under a dynamic\'s tail, in Both and Staff', () => {
+    expect(DYNAMIC_TAIL).toBe(Math.ceil(DYNAMIC_REACH.bottom));
+    for (const parts of ['both', 'staff'] as const) {
+      const rows = rowsFor(part('\\ts (4 4)\n0.3.4{dy p lyrics "a"} 2.3.4 4.3.2 |'), parts);
+      // A syllable's letters reach about 4 over its line's middle; 2 of air under the dynamic.
+      expect(rows.lyrics! - 4).toBeGreaterThan(rows.dynamics! + DYNAMIC_REACH.bottom + 2);
+    }
   });
 });
 

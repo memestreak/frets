@@ -28,6 +28,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `drag-range-handles.atex` | A selection box's left or right edge drags its start or end to another note, the other end staying | `docs/specs/2026-11-05-tab-range-handles-design.md` |
 | `delete-keeps-text.atex` | Delete on a note, a chord and cut leave rests that keep the column's text and chord name; a longer note over the rest takes them; Ctrl/⌘+Delete takes them with the time | `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`, #393 |
 | `delete-whole-bar.atex` | Delete on a bar selected whole leaves one whole rest | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |
+| `dynamics-enter-pick.atex` | Shift+D enters a dynamic at the cursor; a drawn one is picked, its field refuses what isn't a dynamic with a ⚠, and Delete takes it away | `docs/specs/2026-11-09-tab-dynamics-design.md`, #437 |
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |
 | `fret-follows-tie.atex` | A fret typed on any note of a Tie chain changes the whole chain, which stays tied | `docs/specs/2026-10-25-tab-editing-design.md`, `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `grace-before.atex` | `/` adds a grace note before the picked note, and a second makes them sixteenths | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |

@@ -17,6 +17,8 @@ import type { View } from './views';
 export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 /** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palette, the Rail, panels and menus. */
+/** What the tab gives the focus to for a while, staying lit and keeping what is picked (`onEditorBlur`). */
+const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word';
 const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-rail, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
 
 /**
@@ -47,7 +49,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
 }) {
   const {
     clip, cursor, selection, setSelection, noteInputMode, staffPitch, setStaffPitch, columnOnly, setColumnOnly,
-    setTabFocused, setPicked, setNotice, editorRef,
+    tabFocused, setTabFocused, setPicked, setNotice, editorRef,
   } = editor;
   const { playback, playFrom, playUntil, markAt, toggleLoop, placeLine, editAtLine } = range;
 
@@ -142,13 +144,26 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
     };
   }, [editorRef]);
 
+  /** The tab let go of: nothing lit or picked. */
+  const leaveTab = () => {
+    setTabFocused(false);
+    setPicked(null);
+    setColumnOnly(false);
+
+    // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).
+    chooseVoice(0);
+  };
+
   // The focus gone from the clip and its own fields and panels (Tab to another control, a press away from a
   // chord name's field) takes the caret away, so note input mode ends too, as a press away does. The window
   // losing the focus keeps it.
   const onFocusMoved = useEffectEvent(() => {
-    if (!noteInputMode || !document.hasFocus()) return;
+    if (!document.hasFocus()) return;
     const now = document.activeElement;
-    if (!now || !now.closest(NOTE_INPUT_KEEPERS)) enterNoteInput(false);
+    // The tab kept lit for a field or panel of its own (`onEditorBlur`): the focus leaving that, but not
+    // back to the tab, leaves the tab as a press away from it does.
+    if (tabFocused && !now?.closest(`.tab-editor, ${TAB_KEEPERS}`)) leaveTab();
+    if (noteInputMode && (!now || !now.closest(NOTE_INPUT_KEEPERS))) enterNoteInput(false);
   });
   useEffect(() => {
     let timer = 0;
@@ -181,16 +196,11 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
    * time signature panel) or goes to the palette, nor when the whole window loses it.
    */
   const onEditorBlur = (e: FocusEvent<HTMLDivElement>) => {
-    // Its right-click menu takes the focus for a moment and gives it back: what is picked stays picked, and lit.
-    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.shape-menu')) return;
-    // So does the Tuplet panel `;` opens (step 6).
-    if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.tab-tuplet-panel')) return;
-    setTabFocused(false);
-    setPicked(null);
-    setColumnOnly(false);
-
-    // Leaving the tab puts the Active voice back to Voice 1 (step 9, Q7).
-    chooseVoice(0);
+    // Its right-click menu, the Tuplet panel `;` opens (step 6), and a word's field (a dynamic's, a chord
+    // name's…) take the focus for a while and give it back: what is picked stays picked, and the cursor's
+    // column stays lit, so it shows what the field changes (Jeremy, 2026-11-09).
+    if (e.relatedTarget instanceof Element && e.relatedTarget.closest(TAB_KEEPERS)) return;
+    leaveTab();
   };
 
   return { onEditorFocus, onEditorBlur };

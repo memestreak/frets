@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { barErrors, MAX_CAPO, type Part } from './clip';
-import { columnAt, indexOf, type Cursor } from './editing';
-import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
+import { barErrors, dynamicOf, MAX_CAPO, type Part } from './clip';
+import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
+import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
@@ -91,6 +91,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     }
     // A chord name or text belongs to a column; an empty bar has none yet.
     if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
+    // A dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
+    if (kind === 'dynamic' && !columnAt(clip, at)) {
+      if (clip.bars[at.bar]?.columns.length !== 0) return;
+      setWord({ kind, bar: at.bar, column: 0 });
+      return;
+    }
     // The capo belongs to the whole clip, written over its first line.
     if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
     else setWord({ kind, bar: at.bar, column: at.column });
@@ -106,6 +112,14 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
+    // The field lets only a dynamic or nothing through; nothing takes it away.
+    if (w.kind === 'dynamic') {
+      const place = { bar: w.bar, column: w.column, string: cursor.string };
+      // An empty bar is filled with its rests first, so the dynamic has a column to go on.
+      const base = columnAt(clip, place) ? clip : withRestsInEmptyBars(clip) ?? clip;
+      const next = setDynamic(base, place, dynamicOf(value));
+      if (next !== base) commit(next, place);
+    }
     // An ending of 0, or none, takes the bracket away.
     if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
     // A count under 2, or none, is played twice, written without one.
