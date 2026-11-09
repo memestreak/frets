@@ -14,7 +14,7 @@ first.
    may come later; Shift+← → already grow the selection, so it would need its own key.
 2. **Values: quarter, eighth, sixteenth and thirty-second; a sixteenth by default.** Triplet grids
    may come later.
-3. **Shown on the page and kept.** A Grid button first in the palette's Duration group shows the
+3. **Shown on the page and kept.** A Grid button in the palette's Duration group (first under the note values, `2026-11-09-tab-duration-row-design.md`) shows the
    grid's note over a ruler; a press opens the four values. The grid is a preference, Settings ›
    Tab › Editing › Note input grid, kept between visits.
 
