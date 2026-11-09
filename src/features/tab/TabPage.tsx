@@ -14,7 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, title
 import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceSelections } from './voices';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -187,8 +187,13 @@ export default function TabPage() {
     setSettingsOpen(true);
   };
   const saveProblem = usePreferenceSaveProblem();
-  /** The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's, or with nothing picked the bar's. */
-  const [menu, setMenu] = useState<{ x: number; y: number; hit: Picked | null } | null>(null);
+  /**
+   * The menu a right-click, a long press or Shift+F10 opens: the picked word's or mark's; with nothing picked,
+   * the note menu on a note, else the bar menu (Jeremy, 2026-11-09).
+   */
+  const [menu, setMenu] = useState<{ x: number; y: number; hit: Picked | null; onNote: boolean } | null>(null);
+  /** What the last right-click or touch on the tab was on: a note, or beside the notes; null after any other press. */
+  const [menuPress, setMenuPress] = useState<boolean | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
@@ -524,6 +529,17 @@ export default function TabPage() {
     commit(next.clip, next.cursor, null);
   };
 
+  /** The bars a selection touches, else the cursor's bar: what the menu's Delete bar takes away. */
+  const menuBars: [number, number] = selection
+    ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar]
+    : [cursor.bar, cursor.bar];
+  /** Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238). In both menus. */
+  const insertPasteItem = { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) };
+  const removeBars = ([first, last]: [number, number]) => {
+    const next = deleteBars(clip, first, last);
+    commit(next.clip, { ...cursor, ...next.cursor }, null);
+  };
+
   /** Whether a palette tool puts on a Span that is picked once added (let ring, P.M.). */
   const spanTool = (id: ToolId): id is 'letRing' | 'palmMute' => !noteInputMode && (id === 'letRing' || id === 'palmMute');
   /**
@@ -626,10 +642,14 @@ export default function TabPage() {
   const openMenu = (el: HTMLElement, x: number, y: number) => {
     head.closeSignatures();
     if (picked) {
-      setMenu({ ...pickedMenuSpot(el, x, y, picked), hit: picked });
+      setMenu({ ...pickedMenuSpot(el, x, y, picked), hit: picked, onNote: false });
       return;
     }
-    setMenu({ ...menuSpot(el, x, y), hit: null });
+    // A right-click, or a touch held into a long press, says what it was on; Shift+F10 has no press, so a
+    // picked note or a selection that isn't whole bars gets the note menu.
+    setMenuPress(null);
+    const onNote = menuPress ?? (selection ? !coversWholeBars(clip, selection) : !columnOnly && !!noteAt(clip, cursor));
+    setMenu({ ...menuSpot(el, x, y), hit: null, onNote });
   };
 
   /** Where a picked thing's menu opens: at the pointer, or with no pointer over the tab, under the thing. */
@@ -810,6 +830,7 @@ export default function TabPage() {
     onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     // A press that takes the caret away (blank space, the playback line's place above or below the staff, a
     // mark or a word picked) ends note input mode too, so the pencil is never lit without a caret.
+    onMenuPress: setMenuPress,
     onMiss: () => { leaveNoteInput(); setSelection(null); dropLine(); setPicked(null); (document.activeElement as HTMLElement | null)?.blur(); },
     onPickText: (...args: Parameters<typeof picking.onPickText>) => { leaveNoteInput(); picking.onPickText(...args); },
     onPickMark: (...args: Parameters<typeof picking.onPickMark>) => { leaveNoteInput(); picking.onPickMark(...args); },
@@ -1070,7 +1091,7 @@ export default function TabPage() {
       {file.dialogs}
       {menu && (
         <ShapeMenu
-          x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : 'Tab'}
+          x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : menu.onNote ? 'Note' : 'Bar'}
           onClose={refocus => {
             if (refocus) editorRef.current?.focus();
             else {
@@ -1086,8 +1107,20 @@ export default function TabPage() {
             // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete; bar 1's signatures: Edit.
             ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit!) }] : []),
             ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
+          ] : !menu.onNote ? [
+            // The bar menu. Insert first, then Delete bar: the bars a selection touches, else the one pressed (Jeremy,
+            // 2026-11-09). The bar under a right-click already has the cursor: the press put it there.
+            {
+              label: 'Insert', onSelect: () => {},
+              items: [
+                { label: 'Bar before', onSelect: () => addBar('before') },
+                { label: 'Bar after', onSelect: () => addBar('after') },
+              ],
+            },
+            { label: menuBars[1] > menuBars[0] ? `Delete ${menuBars[1] - menuBars[0] + 1} bars` : 'Delete bar', onSelect: () => removeBars(menuBars) },
+            insertPasteItem,
           ] : [
-            // Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
+            // The note menu. Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
             ...(!noteInputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
               label: 'Move to voice', onSelect: () => {},
               items: [0, 1, 2, 3].filter(v => v !== voice).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => { moveToVoiceKey(v); } })),
@@ -1096,11 +1129,7 @@ export default function TabPage() {
               label: 'Select only voice', onSelect: () => {},
               items: [voice, ...voiceSelections(clip, selection).keys()].sort((a, b) => a - b).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => selectOnlyVoice(v) })),
             }] : []),
-            // The bar under a right-click already has the cursor: the press put it there.
-            { label: 'Insert bar before', onSelect: () => addBar('before') },
-            { label: 'Insert bar after', onSelect: () => addBar('after') },
-            // Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238).
-            { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) },
+            insertPasteItem,
             // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).
             ...(canBeamTarget(clip, beamTarget, 'break') ? [{ label: 'Break beam before', checked: beamLit(clip, beamTarget, 'break'), onSelect: () => onTool('beamBreak') }] : []),
             ...(canBeamTarget(clip, beamTarget, 'join') ? [{ label: 'Join beam to previous', checked: beamLit(clip, beamTarget, 'join'), onSelect: () => onTool('beamJoin') }] : []),

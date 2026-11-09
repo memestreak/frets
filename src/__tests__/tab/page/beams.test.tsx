@@ -138,7 +138,7 @@ describe('the beam tools and the menu (spec Q8, Q9)', () => {
       press(`\\title "Step seven"\n${text}`, column, 2, 2);
       menu = screen.getByRole('menu');
       expect(within(menu).queryByRole('menuitemcheckbox')).toBeNull();
-      expect(within(menu).getByRole('menuitem', { name: 'Insert bar after' })).toBeInTheDocument();
+      expect(within(menu).getByRole('menuitem', { name: 'Insert paste' })).toBeInTheDocument();
     }
   });
 });

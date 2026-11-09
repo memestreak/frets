@@ -278,7 +278,7 @@ describe('a selection over every Voice', () => {
     fireEvent.mouseEnter(move);
     expect(screen.getByRole('menu', { name: 'Move to voice' })).toBeInTheDocument();
     expect(move).toHaveFocus();
-    const after = screen.getByRole('menuitem', { name: 'Insert bar after' });
+    const after = screen.getByRole('menuitem', { name: 'Insert paste' });
     fireEvent.mouseLeave(move.parentElement!);
     fireEvent.mouseEnter(after);
     expect(screen.queryByRole('menu', { name: 'Move to voice' })).toBeNull();
