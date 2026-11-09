@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { barErrors, MAX_CAPO, type Part } from './clip';
 import { columnAt, indexOf, type Cursor } from './editing';
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
@@ -11,7 +11,7 @@ import { LyricField, type LyricNudge } from './LyricField';
 import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMove } from './lyrics';
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
-import type { WordHit } from './layoutText';
+import type { Typing } from './ClipWords';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
@@ -213,6 +213,16 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     else dispatch({ type: 'previewPart', part: from });
   };
 
+  // One object while nothing in it changes, so the drawing (memoised) isn't drawn again for nothing.
+  const typing = useMemo((): Typing | null => {
+    if (!lyric || lyric.bar >= clip.bars.length) return null;
+    const lit = lyricLit && lyricLit.bar < clip.bars.length ? lyricLit : null;
+    return {
+      note: indexOf(clip, lyric.bar, lyric.column),
+      hit: lit ? { kind: 'lyric', index: indexOf(clip, lit.bar, lit.column), line: lit.line } : null,
+    };
+  }, [lyric, lyricLit, clip]);
+
   const { tab, drawn } = shown;
   // Only while a popover is open: what its bar's ⚠ says.
   const fixText = fixBar ? barErrors(clip).get(fixBar.bar) : undefined;
@@ -268,10 +278,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
 
   return {
     openWord, openLyric, openSignature, openFix, closeSignatures, closeAll, panels,
-    /** The syllable to draw in the typing colour while the Lyrics field is open. */
-    typingLyric: (lyric && lyricLit && lyricLit.bar < clip.bars.length
-      ? { kind: 'lyric', index: indexOf(clip, lyricLit.bar, lyricLit.column), line: lyricLit.line }
-      : null) as WordHit | null,
+    /** While the Lyrics field is open: its note, tinted, and the syllable drawn in the typing colour. */
+    typing,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */
     openCredits: (x: number, y: number, field: HeadField) => setHeadPanel({ kind: 'credits', x, y, from: clip, field }),
     openTuning: (x: number, y: number) => setHeadPanel({ kind: 'tuning', x, y }),

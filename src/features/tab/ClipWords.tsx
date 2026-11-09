@@ -13,14 +13,16 @@ import { litLook, type TabLook } from './tabLook';
 import { HYPHEN_ROOM, LYRIC_LINE, LYRIC_SIZE, lyricWidth, syllableOf } from './lyrics';
 import { TempoNote } from './TempoNote';
 
+/** While the Lyrics field is open: its note (a column's index), and the syllable drawn in `--typing`. */
+export type Typing = { hit: WordHit | null; note: number };
+
 /** The room between a tempo and "Free time" in the same bar. */
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
 export function SystemWords({ system, rows, clip, look: plain, word, typing = null, columnsOnly = false }: {
   system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null;
-  /** The syllable the Lyrics field is at, in its own colour. */
-  typing?: { hit: WordHit; ink: string } | null;
+  typing?: Typing | null;
   columnsOnly?: boolean;
 }) {
   const parts: ReactNode[] = [];
@@ -105,7 +107,7 @@ export function SystemWords({ system, rows, clip, look: plain, word, typing = nu
 }
 
 /** The words on a line's columns: chord names and free text. */
-function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook, typing: { hit: WordHit; ink: string } | null): ReactNode[] {
+function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook, typing: Typing | null): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Under each chord name its diagram (issue #242), picked with it.
@@ -155,7 +157,7 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
       }
     }
   }
-  parts.push(...lyricWords(system, rows, hit => (typing && sameWord(typing.hit, hit) ? { ...plain, ink: typing.ink } : lookOf(hit))));
+  parts.push(...lyricWords(system, rows, hit => (typing && sameWord(typing.hit, hit) ? { ...plain, ink: 'var(--typing)' } : lookOf(hit))));
   return parts;
 }
 

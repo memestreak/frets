@@ -56,11 +56,11 @@ syllable a note. Frets kept both as written but drew neither.
     words sung on one note, and Alt+hyphen a hyphen, as in Dorico.
   - The cursor follows the field from note to note. Each syllable set is
     one undo step.
-  - While the field is open, one syllable is drawn in the typing colour
-    (Dorico shows its last lyric in its selection colour): the note's own,
-    when it has one, else the one the field set last. The colour is being
-    picked (mocks: burnt orange `--degree-root`, amber `--accent`, blue
-    `--select`).
+  - While the field is open, its note is drawn as selected (blue, Jeremy,
+    2026-11-09), and one syllable is drawn in burnt orange (`--typing`,
+    Fretwood's `--degree-root`; Jeremy's pick, 2026-11-09), as Dorico
+    shows its last lyric: the note's own when it has one, else the one the
+    field set last.
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
   Enter, a double-click or the right-click menu's Edit opens the field on
   it; Delete or the menu's Delete takes it away. Alt+← → step through
@@ -144,7 +144,8 @@ glossary yet; the PR says so.
   Enter writes `lyrics "Hel-"`, `lyrics "lo"`, `lyrics "world"`;
   Shift+Space goes back; Alt+Space types "a ver" and Alt+hyphen "x-y" on one note; the field's
   grip drags it, it keeps that place to the next note and opens over the
-  note again next time; Down types on line 2; Esc leaves it; Space past
+  note again next time; the field's note is drawn blue and the syllable just
+  typed is drawn in `--typing` while it is open; Down types on line 2; Esc leaves it; Space past
   the last note keeps the field there; Shift+L on
   a rest opens on the next note; a press picks a syllable, Delete takes it
   away, Enter opens it in the field.

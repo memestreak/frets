@@ -106,14 +106,18 @@ describe('typing Lyrics with Shift+L', () => {
     expect(parseFloat(box().style.top)).toBe(parseFloat(at.top));
   }, 20000);
 
-  it('draws the syllable just typed in the typing colour while the field is open, and plain once it closes', async () => {
+  it('draws the field\'s note as selected and draws the syllable just typed in the typing colour while it is open; plain once it closes', async () => {
     await openWith('0.6.4 2.5.4 3.5.2 |');
     shiftL();
     type('Hel', '-');
     const hel = () => screen.getAllByTestId('lyric').find(t => t.textContent === 'Hel')!;
-    expect(hel().getAttribute('fill')).toBe('var(--degree-root)');
+    expect(hel().getAttribute('fill')).toBe('var(--typing)');
+    // The field's note, the second (fret 2), is drawn as selected, in the selection blue.
+    const blue = () => [...document.querySelectorAll('svg text')].filter(t => t.getAttribute('fill') === 'var(--select)').map(t => t.textContent);
+    expect(blue()).toEqual(['2']);
     type('lo');
     expect(hel().getAttribute('fill')).toBe('var(--ink)');
+    expect(blue()).toEqual([]);
   }, 20000);
 
   it('on a rest it opens on the next note; each syllable is one undo step', async () => {
