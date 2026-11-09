@@ -365,9 +365,13 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 /** One palette in the column: its header folds it, and the line under it sets its height. */
-function StackPanel({ id, name, expanded, height, onToggle, onHeight, head, children }: {
+function StackPanel({ id, name, icon, status, expanded, height, onToggle, onHeight, head, children }: {
   id: PanelId;
   name: string;
+  /** Mock b: the palette's icon, before its name, in place of the rail's button. */
+  icon?: ReactNode;
+  /** Mock b: Chat's reply status, shown on its icon as the rail's button showed it. */
+  status?: ChatStatus;
   expanded: boolean;
   height: number | undefined;
   onToggle: () => void;
@@ -385,6 +389,14 @@ function StackPanel({ id, name, expanded, height, onToggle, onHeight, head, chil
           onMouseDown={e => e.preventDefault()} onClick={onToggle}
         >
           <Chevron open={expanded} />
+          {icon && (
+            <span className="tab-stack-icon" data-status={status && status !== 'idle' ? status : undefined}
+              data-tip={status && CHAT_STATUS[status] ? `${name}: ${CHAT_STATUS[status]}` : undefined}>
+              <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                {id === 'chat' && status === 'working' ? CHAT_WORKING_ICON : icon}
+              </svg>
+            </span>
+          )}
           <h2 className="tab-rail-panel-title">{name}</h2>
         </button>
         {expanded && head}
@@ -410,7 +422,7 @@ function HideAllIcon({ hidden }: { hidden: boolean }) {
   );
 }
 
-/** Mocks a–c of issue #454: several palettes open at once in one column beside the rail. */
+/** Mocks a–c of issue #454: several palettes open at once in one column beside the rail (b: no rail). */
 function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps & { kind: StackKind }) {
   const [width, setWidth] = usePanelWidth();
   /** Mock a only: the palettes the rail has put in the column, in the rail's order. */
@@ -476,12 +488,31 @@ function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, 
     return id === 'chat' ? chat : chords;
   };
 
+  /** Mock b has no rail (Jeremy, 2026-11-09): one button collapses the column to a strip and expands it again. */
+  const railless = kind === 'b';
+  const collapseButton = (
+    <button
+      type="button" className="tab-stack-collapse" aria-label={showColumn ? 'Collapse palettes' : 'Expand palettes'}
+      aria-expanded={showColumn} data-tip={showColumn ? 'Collapse palettes' : 'Expand palettes'}
+      data-status={!showColumn && chatStatus !== 'idle' ? chatStatus : undefined}
+      onMouseDown={e => e.preventDefault()} onClick={() => setHidden(h => !h)}
+    >
+      <HideAllIcon hidden={!showColumn} />
+    </button>
+  );
+
   return (
     <div
       className="tab-rail-layout" data-open={showColumn ? '' : undefined} data-stack={kind}
+      data-railless={railless ? '' : undefined}
       style={width === PANEL_WIDTH.start ? undefined : { '--rail-panel-width': `${width}px` } as CSSProperties}
     >
-      <HoverTips className="tab-rail-column">
+      {railless && !showColumn && (
+        <HoverTips className="tab-rail-column">
+          <div className="tab-stack-strip">{collapseButton}</div>
+        </HoverTips>
+      )}
+      {!railless && <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
           <button
             type="button" className="tab-rail-button tab-rail-hide" aria-label={hidden ? 'Show palettes' : 'Hide palettes'}
@@ -507,13 +538,15 @@ function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, 
             );
           })}
         </nav>
-      </HoverTips>
+      </HoverTips>}
       {showColumn && (
         <HoverTips className="tab-rail-column">
           <div className="tab-rail-panel tab-stack-frame" data-stack={kind}>
+          {railless && <div className="tab-stack-top">{collapseButton}</div>}
           <div ref={column} className="tab-stack" data-stack={kind}>
             {listed.map(p => (
               <StackPanel
+                icon={railless ? p.icon : undefined} status={railless && p.id === 'chat' ? chatStatus : undefined}
                 key={p.id} id={p.id} name={p.name} expanded={isOpen(p.id)} height={heights[p.id]}
                 onToggle={() => (isOpen(p.id) ? fold(p.id) : expand(p.id))}
                 onHeight={px => setHeights(h => ({ ...h, [p.id]: px }))}
