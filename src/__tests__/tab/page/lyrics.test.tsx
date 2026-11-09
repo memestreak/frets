@@ -17,7 +17,7 @@ setUpPage();
 
 const field = () => screen.queryByRole('textbox', { name: /^Lyric line/ }) as HTMLInputElement | null;
 /** Types `text` into the field, then presses `key` in it. */
-function type(text: string, key: string | { key: string; shiftKey?: boolean } = 'Enter') {
+function type(text: string, key: string | { key: string; shiftKey?: boolean; altKey?: boolean } = 'Enter') {
   fireEvent.change(field()!, { target: { value: text } });
   fireEvent.keyDown(field()!, typeof key === 'string' ? { key } : key);
 }
@@ -59,6 +59,16 @@ describe('typing Lyrics with Shift+L', () => {
     shiftL();
     type('zzz', 'Escape');
     expect(alphaTex()).toBe('0.6.4{lyrics 0 "a" lyrics 1 "two"} 2.5.4{lyrics "b"} 3.5.2 |');
+  }, 20000);
+
+  it('Alt+Space types a space in the syllable without moving on; Option+Space\'s no-break space is a space too', async () => {
+    await openWith('0.6.4 2.5.4 3.5.2 |');
+    shiftL();
+    type('a', { key: ' ', altKey: true });
+    expect(field()!.value).toBe('a ');
+    type('a ver', ' ');
+    type('y\u00a0oh');
+    expect(alphaTex()).toBe('0.6.4{lyrics "a ver"} 2.5.4{lyrics "y oh"} 3.5.2 |');
   }, 20000);
 
   it('on a rest it opens on the next note; each syllable is one undo step', async () => {

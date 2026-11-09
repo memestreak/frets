@@ -44,6 +44,13 @@ describe('reading and writing alphaTex', () => {
     expect(writeAlphaTex(clip)).not.toContain('\\lyrics');
   });
 
+  it('keeps a space inside a syllable (two words on one note), and writes it back exactly', () => {
+    const tex = '\\ts (4 4)\n0.6.4{lyrics "a ver"} 2.5.4{lyrics "y"} 3.5.2 |';
+    const { clip } = read(tex);
+    expect(sung(partOf(clip))).toBe('a ver y -');
+    expect(writeAlphaTex(clip)).toBe(`${tex}\n`);
+  });
+
   it('escapes a quote in a syllable, and keeps no lines that are all empty', () => {
     const { clip } = read('\\ts (4 4)\n0.6.4{lyrics "say \\"hi\\""} 0.6.4{lyrics 1 ""} 0.6.2 |');
     expect(partOf(clip).bars[0].columns[1].lyrics).toBeUndefined();

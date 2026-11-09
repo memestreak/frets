@@ -288,7 +288,8 @@ then "." and its duration:
                2.5.4{lyrics "lo"} 3.5.4{lyrics "world"}. End a syllable
                with "-" when the word goes on at the next one ("Hel-"
                "lo"): Frets draws the hyphen between them. One word, or
-               one syllable, per beat, with no spaces.
+               one syllable, per beat; a space only for two words sung
+               on one note (lyrics "a ver").
     lyrics 1 "Hi"  the same on another lyric line, counted from 0, for a
                second verse or a chorus under the first: lyrics 0 "Hel-"
                lyrics 1 "Good-" on one beat gives two lines.

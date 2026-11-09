@@ -45,7 +45,9 @@ syllable a note. Frets kept both as written but drew neither.
     same note.
   - Enter sets it and closes; Esc closes, leaving the note's syllable as it
     was; leaving the field sets it.
-  - An empty field clears the note's syllable. Spaces can't be typed.
+  - An empty field clears the note's syllable. Alt+Space (Option+Space
+    on a Mac) types a space in the syllable without moving on, for two
+    words sung on one note, as in Dorico.
   - The cursor follows the field from note to note. Each syllable set is
     one undo step.
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
@@ -125,7 +127,7 @@ glossary yet; the PR says so.
 - Drawing: a hyphen between joined syllables, after one at a System's end.
 - Page: Shift+L on a note opens the field; "Hel" `-` "lo" Space "world"
   Enter writes `lyrics "Hel-"`, `lyrics "lo"`, `lyrics "world"`;
-  Shift+Space goes back; Down types on line 2; Esc leaves it; Space past
+  Shift+Space goes back; Alt+Space types "a ver" on one note; Down types on line 2; Esc leaves it; Space past
   the last note keeps the field there; Shift+L on
   a rest opens on the next note; a press picks a syllable, Delete takes it
   away, Enter opens it in the field.
