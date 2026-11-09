@@ -20,6 +20,26 @@ import { ticks, timeAt, WHOLE, type Column, type Duration, type Part, type Track
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { ChordEditor, ChordShapesEditor } from './ChordEditor';
 import { NoteSoundIcon } from './PlaybackFooter';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+
+/** Mock (thread: chord use counts): how a tile shows how often its chord is used. */
+const COUNT_MOCK: Mock = {
+  param: 'mock', label: 'Use count', options: [
+    { value: 'a', label: 'a. Circle on the corner' },
+    { value: 'b', label: 'b. Solid dot on the corner' },
+    { value: 'c', label: 'c. Bare number on the corner' },
+    { value: 'd', label: 'd. Count by the name' },
+    { value: 'today', label: 'Today (fade unused)' },
+  ],
+};
+/** Mock: what an unused chord's tile shows. */
+const ZERO_MOCK: Mock = {
+  param: 'zero', label: 'Unused chord', options: [
+    { value: 'none', label: 'No badge' },
+    { value: 'zero', label: 'A faint 0' },
+    { value: 'fade', label: 'Faded, no badge' },
+  ],
+};
 
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
@@ -326,6 +346,14 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
     const c = s && chordToDraw(clip, n, s);
     return c && s ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : null;
   };
+  const countMock = useMock(COUNT_MOCK);
+  const zeroMock = useMock(ZERO_MOCK);
+  const fade = (entry: ChordEntry) => entry.uses === 0 && (countMock === 'today' || zeroMock === 'fade');
+  const badge = (entry: ChordEntry) => {
+    if (countMock === 'today' || (entry.uses === 0 && zeroMock !== 'zero')) return null;
+    const text = (countMock === 'd' ? '×' : '') + (entry.uses > 99 ? '99+' : String(entry.uses));
+    return <span className="chord-panel-count" data-style={countMock} data-zero={entry.uses === 0 || undefined} aria-hidden="true">{text}</span>;
+  };
   const usesText = (entry: ChordEntry) => (entry.uses === 0 ? 'Not used' : `Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`);
   const whatSeg = (
     <div className="seg chord-panel-what" role="group" aria-label="Insert">
@@ -364,11 +392,17 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
         {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => (
           <button
             key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
-            data-unused={entry.uses === 0 || undefined} aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
+            data-unused={fade(entry) || undefined} aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
             {...chordProps(entry.name)}
           >
-            <span className="chord-panel-tile-name">{entry.name}</span>
-            <span className="chord-panel-thumb" aria-hidden="true">{thumb(entry.name, entry.def)}</span>
+            <span className="chord-panel-tile-name">
+              {entry.name}
+              {countMock === 'd' && badge(entry)}
+            </span>
+            <span className="chord-panel-thumb" aria-hidden="true">
+              {thumb(entry.name, entry.def)}
+              {countMock !== 'd' && badge(entry)}
+            </span>
           </button>
         ))}
         {/* A short last page keeps a full page's room, so the carets and Insert don't move. */}

@@ -713,6 +713,28 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
+/* Mock: a tile's use count. a-c sit on the diagram's bottom right corner, barely over it; d follows the name. */
+.chord-panel-thumb { position: relative; }
+.chord-panel-count {
+  position: absolute; right: -8px; bottom: 1px; box-sizing: border-box;
+  min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px;
+  display: grid; place-items: center;
+  font: 600 9px/1 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.chord-panel-count[data-style='a'] { background: var(--surface-raised); border: 1px solid var(--line-strong); color: var(--ink); }
+.chord-panel-count[data-style='b'] { background: var(--ink-muted); color: var(--surface-raised); }
+.chord-panel-count[data-style='c'] {
+  right: -7px; bottom: 1px; min-width: 0; height: auto; padding: 0;
+  font-size: 11px; color: var(--ink-muted);
+  text-shadow: 0 0 2px var(--surface), 0 0 2px var(--surface), 0 0 2px var(--surface);
+}
+.chord-panel-count[data-style='d'] {
+  position: static; display: inline; min-width: 0; height: auto; padding: 0; margin-left: 3px;
+  font: 400 10px/16px var(--font-sans); color: var(--ink-muted); vertical-align: baseline;
+}
+.chord-panel-count[data-zero] { opacity: .6; }
+.chord-panel-count[data-zero][data-style='a'] { border-style: dashed; color: var(--ink-muted); }
+.chord-panel-count[data-zero][data-style='b'] { background: none; border: 1px dashed var(--ink-muted); color: var(--ink-muted); }
 
 /* The rail's Chat panel (chat/ChatPanel.tsx, issue #424): the model, the conversation, then the box to write in. */
 .tab-chat { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
