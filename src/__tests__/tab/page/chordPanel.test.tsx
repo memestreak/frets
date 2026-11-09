@@ -12,7 +12,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
-import { CHORD_PANEL_KEY, parseChordPanel } from '@/features/tab/ChordPanel';
+import { CHORD_PANEL_KEY, countBadge, parseChordPanel } from '@/features/tab/ChordPanel';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTexText } from './helpers';
 
 setUpPage();
@@ -78,14 +78,24 @@ function changeChord(name: string) {
   return editorOf(`Change ${name}`);
 }
 
+describe('a Chord set tile\'s dot', () => {
+  it('counts the uses: none for an unused chord, 99 spelled out, 99+ past it', () => {
+    expect(countBadge(0)).toBeNull();
+    expect(countBadge(1)).toBe('1');
+    expect(countBadge(99)).toBe('99');
+    expect(countBadge(100)).toBe('99+');
+  });
+});
+
 describe('the Chords panel', () => {
-  it('shows the Chord set as tiles: a used one says how often on hover, an unused one is tinted; no icons, no name field or shapes', async () => {
+  it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one has no dot or tint; no icons, no name field or shapes', async () => {
     await open();
     fireEvent.click(railButton('Chords'));
     expect(tile('G')).toHaveAttribute('title', 'Used 1 time');
-    expect(tile('G')).not.toHaveAttribute('data-unused');
+    expect(tile('G').querySelector('.chord-panel-count')).toHaveTextContent('1');
     expect(tile('C')).toHaveAttribute('title', 'Not used');
-    expect(tile('C')).toHaveAttribute('data-unused');
+    expect(tile('C').querySelector('.chord-panel-count')).toBeNull();
+    expect(tile('C')).not.toHaveAttribute('data-unused');
     expect(tile('G').querySelector('svg')).not.toBeNull();
     expect(inPanel().queryByRole('textbox')).toBeNull();
     expect(inPanel().queryByRole('button', { name: /^Shape / })).toBeNull();
