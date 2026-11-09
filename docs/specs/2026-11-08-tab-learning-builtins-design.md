@@ -45,16 +45,25 @@ Arrangements… → Built-in like the others:
   - `six-eight-strum`: 6/8 D D U D D U.
   - `reggae-chops`: rests on the beat, a short chop on each "and".
   - `palm-muted-eighths`: palm-muted power chords, the last one ringing.
-- **Songs** (`songs/`): four short original songs, 8 to 13 bars, each with
-  sections, a tempo, chord names and a riff or picked line.
-  - `campfire-in-g` "Campfire in G": picked intro, folk-strum verse
-    (G Em C D), half-bar chorus, 100 bpm.
-  - `back-porch-blues` "Back Porch Blues": a 12-bar boogie shuffle in A on
-    the clean electric, with an ending hit, 96 bpm.
-  - `morning-light` "Morning Light": a fingerpicked ballad in C
-    (C Am F G twice), let ring, 72 bpm.
-  - `night-drive` "Night Drive": a palm-muted E minor riff, repeated,
-    then a power-chord chorus, with distortion FX, 128 bpm.
+- **Songs** (`songs/`): four short original songs in different styles,
+  8 to 11 bars, each with sections, a tempo, chord names and real guitar
+  parts: a melody or lead line, techniques, and repeats. Jeremy,
+  2026-11-08, on a first draft: the songs were "way too simple", no
+  campfire song and no plain blues.
+  - `morning-light` "Morning Light": fingerstyle in C, Travis picking
+    with a melody on top (C Em/B Am7 Fmaj7 Dm7 G), a slide and a
+    hammer-on, repeat with first and second endings, harmonics to end;
+    76 bpm.
+  - `night-drive` "Night Drive": E minor rock on two tracks. Rhythm: a
+    syncopated palm-muted riff with power-chord stabs, a verse, a driving
+    chorus ending on B7; distortion FX. Lead: a fill, then bends,
+    vibrato and a triplet run over the chorus; 132 bpm.
+  - `cold-brew` "Cold Brew": funk in E minor: Em9 and A13 sixteenth
+    strums with muted strums, a single-note riff, a stop-time break with
+    half-step chord slides, a Cmaj9 Bm7 Am7 B7♯9 bridge; 100 bpm.
+  - `harbour-lights` "Harbour Lights": a jig in 6/8 in DADGAD tuning,
+    melody against open drones, a pull-off and a grace note, harmonics
+    to end; 150 bpm.
 
 ## Rules
 
@@ -64,7 +73,8 @@ Arrangements… → Built-in like the others:
   reads with no warnings, every bar full, and writes back exactly
   (`examples.test.ts`). They are written in the form Frets writes.
 - **Only what Frets draws.** Chord names and diagrams, stroke marks,
-  ties, dead notes, palm mute, sections, tempo, repeats, texts, FX.
+  ties, dead notes, palm mute, bends, slides, hammer-ons, harmonics,
+  grace notes, tuplets, tunings, tracks, sections, tempo, repeats, texts, FX.
 - File names are unique across all folders, as before.
 - `articulations/strumming.atex` stays: it shows the stroke marks as a
   feature, not a pattern to practise.
