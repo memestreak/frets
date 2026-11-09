@@ -349,6 +349,11 @@
 .tab-editor { position: relative; cursor: text; }
 .tab-palette { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .tab-palette-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+/* Duration's two rows: the note values, shortest to longest, over the grid, dot and rest. */
+.tab-palette-rows { display: grid; gap: 2px; }
+/* The note values stay on one row: in a narrow rail panel (224px) the buttons narrow to fit, never wrap. */
+.tab-palette-values { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 30px); justify-content: start; }
+.tab-palette-values .tab-tool { width: 100%; }
 /* Each group's name, 6px over its buttons. */
 .tab-palette-label {
   display: block; margin-bottom: 6px;

@@ -312,7 +312,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Palette, panels and fields
 
-- `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
+- `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`); Duration's note values get a row of their own, shortest to longest (`docs/specs/2026-11-09-tab-duration-row-design.md`).
 - `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout` with the panels' width, set by dragging the line between the panel and the clip (`docs/specs/2026-11-08-tab-rail-width-design.md`, issue #431); it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
 - `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): `ChatPanel.tsx` the panel; `markdown.ts` and `ReplyMarkdown.tsx` a reply's markdown read and drawn as elements, never HTML (`docs/specs/2026-11-08-tab-chat-markdown-design.md`, issue #427); `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the instructions, the agent guide, the custom prompt; `docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426); `guide.ts` the agent guide fetched once a visit; `promptFields.tsx` Settings' Instructions and Custom prompt fields; `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`, with the default instructions).
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, as many to a row as the panel's width holds and two rows to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
@@ -451,6 +451,9 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 - `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
   the open Rail panel and the clip to set every panel's width, 224 to 560px,
   kept across visits (issue #431)
+- `docs/specs/2026-11-09-tab-duration-row-design.md`: the palette's note
+  values on a row of their own, shortest to longest, over the Grid button,
+  dot and rest
 - `docs/specs/2026-11-09-tab-chat-prompt-design.md`: Settings › Tab › Chat
   edits the system prompt's instructions (with Reset to default), shows the
   alphaTex guide read-only, and adds a custom prompt sent last (issue #426)
