@@ -361,6 +361,7 @@ export function removeMark(clip: Part, hit: MarkHit): Part {
     }
     case 'ottava': return changeColumns(clip, wholeColumn, c => without(c, 'ottava'));
     case 'hairpin': return changeColumns(clip, wholeColumn, c => without(c, 'hairpin'));
+    case 'dynamic': return changeColumns(clip, wholeColumn, c => without(c, 'dynamic'));
   }
 }
 

@@ -38,6 +38,8 @@ export interface Rows {
   fermatas: number | null;
   /** Hairpins (crescendo, decrescendo), right under the staff or over the tab's other marks. */
   hairpins: number | null;
+  /** Dynamics (p, mf, sfz), on the hairpins' row, as Dorico and the books put them on one line (issue #437). */
+  dynamics: number | null;
   strokes: number | null;
   letRing: number | null;
   palmMute: number | null;
@@ -176,7 +178,8 @@ export function rowsFor(
     // (Jeremy, 2026-11-06), and the rest under it. Vibrato and accents go on the staff.
     // A fermata goes on the staff when there is one, over the tab only without it.
     fermatas: parts === 'tab' && columns.some(c => c.fermata),
-    hairpins: columns.some(c => c.hairpin),
+    hairpins: columns.some(c => c.hairpin || c.dynamic),
+    dynamics: columns.some(c => c.dynamic),
     strokes: columns.some(c => c.stroke),
     letRing: notes.some(n => n.letRing),
     palmMute: notes.some(n => n.palmMute),
@@ -239,11 +242,12 @@ export function rowsFor(
     vibrato: row(used.vibrato),
     accents: row(used.accents),
   };
+  const dynamics = used.dynamics ? marks.hairpins : null;
   if (!tab) {
     // The staff alone: the tab's rows stand at the staff's foot, drawing nothing.
     const end = y + 12;
     return {
-      ...words, ...marks, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
+      ...words, ...marks, dynamics, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
       bandTop: score!.top - 10, bandBottom: score!.bottom + 10, loopY: end,
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
@@ -265,7 +269,7 @@ export function rowsFor(
   const dives = used.whammy ? staffBottom + DIVES_GAP : null;
   const under = dives === null ? staffBottom : dives + DIVES_ROOM;
   return {
-    ...words, ...marks, score, tab, tabStems, dives, staffTop, staffBottom,
+    ...words, ...marks, dynamics, score, tab, tabStems, dives, staffTop, staffBottom,
     bandTop: (score ? score.top : staffTop) - 10, bandBottom: staffBottom + 10,
     loopY: tabStems ? under + 40 : under + 14,
     stemTop: under + 8, stemBottom: under + 32, tuplet: under + 45, height: tabStems ? under + 54 : under + 16,

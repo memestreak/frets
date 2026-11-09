@@ -12,13 +12,14 @@ import { GLYPHS } from './smufl';
 import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 import { whammyDrawings } from './whammy';
+import { drawnDynamics, hairpinSpan } from './dynamics';
 
 /** The marks a press can pick (every Mark but the words and bar lines, `layoutText.ts`). */
 export type DrawnMark =
   | 'palmMute' | 'letRing'
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
   | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
-  | 'whammy' | 'hairpin';
+  | 'whammy' | 'hairpin' | 'dynamic';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
 export interface MarkHit {
@@ -114,7 +115,14 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
     // A hairpin over neighbouring columns is one wedge, picked whole (issue #276).
     if (rows.hairpins !== null) {
       for (const run of columnRuns(system, c => c.hairpin ?? null)) {
-        add('hairpin', run.from.index, null, run.from.x - 6, rows.hairpins - THIN_REACH, run.end + 2, rows.hairpins + THIN_REACH, run.to.index);
+        const { x0, x1 } = hairpinSpan(system, run, rows.hairpins);
+        add('hairpin', run.from.index, null, x0 - 2, rows.hairpins - THIN_REACH, x1 + 2, rows.hairpins + THIN_REACH, run.to.index);
+      }
+    }
+    // A dynamic of the part's own Voice, where it is drawn beside another Voice's (`drawnDynamics`).
+    if (rows.dynamics !== null) {
+      for (const { own, index, box } of drawnDynamics(system, rows.dynamics)) {
+        if (own) add('dynamic', index, null, box.x - 2, box.y - 2, box.x + box.width + 2, box.y + box.height + 2);
       }
     }
     for (const bar of system.bars) {
@@ -326,5 +334,6 @@ export function markTool(clip: Part, hit: MarkHit): ToolId | null {
     case 'tuplet': return column?.duration.tuplet ? 'tuplet' : null;
     // No palette button sets a hairpin either.
     case 'hairpin': return null;
+    case 'dynamic': return column?.dynamic ? 'dynamic' : null;
   }
 }

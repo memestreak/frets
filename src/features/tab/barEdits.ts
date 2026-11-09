@@ -1,10 +1,10 @@
 /**
- * The words over the tab (chord names, text, sections, tempos, the capo) and what a bar carries
+ * The words over the tab (chord names, text, sections, tempos, the capo), dynamics, and what a bar carries
  * (repeats, endings, double bars, time and key signatures). Pure: each returns a new clip.
  */
 
 import { C_MAJOR, sameKey, type Key } from '@/lib/theory/keys';
-import { barLength, barSpan, barTicks, beatGroupsAt, keyAt, meterOffset, timeAt, type Bar, type Column, type Part, type TimeSignature, type Tempo } from './clip';
+import { barLength, barSpan, barTicks, beatGroupsAt, keyAt, meterOffset, timeAt, type Bar, type Column, type Dynamic, type Part, type TimeSignature, type Tempo } from './clip';
 import { type Cursor, columnAt, emptyColumn, normalize, replaceBar, withColumn, without } from './editing';
 import { meterOf, spell } from './sounding';
 import { layFrom } from './timeline';
@@ -16,6 +16,15 @@ export function setBeatText(clip: Part, cursor: Cursor, text: string): Part {
   return withColumn(clip, cursor, column => {
     const rest = without(column, 'text');
     return t ? { ...rest, text: t } : rest;
+  });
+}
+
+/** The dynamic from the cursor's column on (issue #437); null clears it. */
+export function setDynamic(clip: Part, cursor: Cursor, dynamic: Dynamic | null): Part {
+  if (!columnAt(clip, cursor)) return clip;
+  return withColumn(clip, cursor, column => {
+    const rest = without(column, 'dynamic');
+    return dynamic ? { ...rest, dynamic } : rest;
   });
 }
 

@@ -145,7 +145,7 @@ export const MULTI_REST_WIDTH = 300;
 
 /** A rest with nothing on it or over it. */
 export function plainRestColumn(c: Column): boolean {
-  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.whammy && !c.extra?.length;
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.dynamic && !c.whammy && !c.extra?.length;
 }
 
 /**

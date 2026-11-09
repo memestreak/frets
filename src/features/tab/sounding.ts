@@ -37,7 +37,7 @@ export interface ColumnMarks {
   length: number;
   /** Lasts the whole Column, so a split Column copies it to every piece: tremolo picking, octave line, hairpin. */
   held: Partial<Column>;
-  /** Belongs to the Column's start: a chord name, text, stroke, wah, fermata, whammy bar, kept alphaTex. */
+  /** Belongs to the Column's start: a chord name, text, stroke, wah, fermata, dynamic, whammy bar, kept alphaTex. */
   point: Partial<Column>;
 }
 
@@ -77,7 +77,7 @@ export interface ReadVoice {
 /** Note marks that last the whole note: a split copies them to every piece. Every other mark is an attack mark. */
 const HELD_NOTE_MARKS = ['palmMute', 'letRing', 'vibrato'] as const;
 const HELD_COLUMN_MARKS = ['tremolo', 'ottava', 'hairpin'] as const;
-const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'wah', 'fermata', 'whammy', 'beam', 'extra'] as const;
+const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'wah', 'fermata', 'dynamic', 'whammy', 'beam', 'extra'] as const;
 
 function picked<T extends object>(from: T, keys: readonly string[]): Partial<T> {
   const out: Record<string, unknown> = {};
