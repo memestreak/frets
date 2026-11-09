@@ -7,6 +7,7 @@ import { BEAT_TEXT_LINE, textGoesUnder } from './beatText';
 import { SECTION_LINE } from './sectionText';
 import { diagramOf, overNameHeight } from './chordDiagrams';
 import type { Parts, PlacedColumn } from './layout';
+import { LYRIC_LINE, lyricLines } from './lyrics';
 
 
 /**
@@ -50,6 +51,13 @@ export interface Rows {
   vibrato: number | null;
   /** Accents and staccato dots. */
   accents: number | null;
+  /**
+   * The Lyrics: the middle of Lyric line 1, each later line `LYRIC_LINE` under it (`lyricCount` of them).
+   * Under the staff, between the staff and the tab when both are drawn (as guitar songbooks print them),
+   * and under the tab alone (issue #408).
+   */
+  lyrics: number | null;
+  lyricCount: number;
   /** The notation staff, over the tab, when it is drawn. */
   score: ScoreRows | null;
   /** Whether the tab is drawn, and whether it has its own stems (not under a staff, which has them). */
@@ -97,6 +105,13 @@ export function stepY(score: ScoreRows, step: number): number {
 export const STRING_GAP = 14;
 const FIRST_ROW = 12;
 const ROW_GAP = 15;
+/**
+ * How far a dynamic's letters reach under its row: `dynamics.ts`'s DYNAMIC_REACH.bottom, rounded up (it
+ * can't be imported here: `dynamics.ts` takes SPACE from this file). A test keeps the two in step.
+ */
+export const DYNAMIC_TAIL = 11;
+/** From a Lyric line's middle up to the top of its letters, and a little air. */
+const LYRIC_CLEAR = 8;
 /** Room over the top string for bend arrows and their labels, and the H or P over a hammer-on. */
 const STAFF_HEADROOM = 30;
 /** How high a bend's arrow rises over the tab's top string, as Guitar Pro draws it. */
@@ -190,6 +205,7 @@ export function rowsFor(
     vibrato: tab && notes.some(n => n.vibrato || n.mordent),
     accents: parts === 'tab' && notes.some(n => n.accent || n.staccato),
   };
+  const lyricCount = lyricLines(columns);
   let y = FIRST_ROW - ROW_GAP;
   // A row comes ROW_GAP after the one before, plus room for a section's box when either is the section row.
   let lastWasSection = false;
@@ -231,9 +247,19 @@ export function rowsFor(
     // Then the tab's marks: the first row 26 under the staff, or under what reaches past its foot.
     y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) + 2;
   }
-  const marks = {
+  const marksTop = {
     fermatas: row(used.fermatas),
     hairpins: row(used.hairpins),
+  };
+  // A dynamic reaches further down than a hairpin: Lyrics right under their row go under its tail.
+  const underDynamics = () => {
+    if (used.dynamics && lyricCount > 0 && y === marksTop.hairpins) y += Math.max(0, DYNAMIC_TAIL + LYRIC_CLEAR - ROW_GAP);
+  };
+  // Staff and tab: the words right under the staff and its hairpins, the tab's marks under them.
+  if (parts === 'both') underDynamics();
+  const lyricsBetween = parts === 'both' ? tall(row(lyricCount > 0), (lyricCount - 1) * LYRIC_LINE) : null;
+  const marks = {
+    ...marksTop,
     strokes: tab ? row(used.strokes) : strokesOver,
     letRing: row(used.letRing),
     palmMute: row(used.palmMute),
@@ -244,10 +270,13 @@ export function rowsFor(
   };
   const dynamics = used.dynamics ? marks.hairpins : null;
   if (!tab) {
-    // The staff alone: the tab's rows stand at the staff's foot, drawing nothing.
+    // The staff alone: the words under everything under the staff.
+    underDynamics();
+    const lyrics = tall(row(lyricCount > 0), (lyricCount - 1) * LYRIC_LINE);
+    // The tab's rows stand at the staff's foot, drawing nothing.
     const end = y + 12;
     return {
-      ...words, ...marks, dynamics, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
+      ...words, ...marks, lyrics, lyricCount, dynamics, score, tab, tabStems: false, dives: null, staffTop: end, staffBottom: end,
       bandTop: score!.top - 10, bandBottom: score!.bottom + 10, loopY: end,
       stemTop: end, stemBottom: end, tuplet: end, height: end + 8,
     };
@@ -268,11 +297,15 @@ export function rowsFor(
   // The whammy bar's lines and their labels go under the tab, and the stems under them.
   const dives = used.whammy ? staffBottom + DIVES_GAP : null;
   const under = dives === null ? staffBottom : dives + DIVES_ROOM;
+  const foot = tabStems ? under + 54 : under + 16;
+  // The tab alone: the words under its stems and tuplet numbers.
+  const lyricsUnder = parts === 'tab' && lyricCount > 0 ? foot + 2 : null;
   return {
-    ...words, ...marks, dynamics, score, tab, tabStems, dives, staffTop, staffBottom,
+    ...words, ...marks, lyrics: lyricsBetween ?? lyricsUnder, lyricCount, dynamics, score, tab, tabStems, dives, staffTop, staffBottom,
     bandTop: (score ? score.top : staffTop) - 10, bandBottom: staffBottom + 10,
     loopY: tabStems ? under + 40 : under + 14,
-    stemTop: under + 8, stemBottom: under + 32, tuplet: under + 45, height: tabStems ? under + 54 : under + 16,
+    stemTop: under + 8, stemBottom: under + 32, tuplet: under + 45,
+    height: lyricsUnder === null ? foot : lyricsUnder + (lyricCount - 1) * LYRIC_LINE + 12,
   };
 }
 

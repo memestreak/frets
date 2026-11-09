@@ -122,6 +122,13 @@ function beamingTex(time: TimeSignature, groups: number[]): string {
   return `\\beaming (${unit} ${groups.map(n => (n * unit) / time.value).join(' ')})`;
 }
 
+/** A column's Lyrics as alphaTex: `lyrics "Hel-"` for line 1 alone, else `lyrics 1 "Hi"` for each line that has one (numbered from 0). */
+function lyricsTex(lyrics: readonly string[] | undefined): string[] {
+  if (!lyrics?.length) return [];
+  if (lyrics.length === 1) return [`lyrics ${quoted(lyrics[0])}`];
+  return lyrics.flatMap((l, i) => (l === '' ? [] : [`lyrics ${i} ${quoted(l)}`]));
+}
+
 function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
   const column = columns[index];
   // A grace note is written plain, at the length alphaTab gives it.
@@ -134,6 +141,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.tremolo) effects.push(`tp ${column.tremolo}`);
   if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
   if (column.text) effects.push(`txt ${quoted(column.text)}`);
+  effects.push(...lyricsTex(column.lyrics));
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   if (column.ottava) effects.push(`ot ${column.ottava}`);

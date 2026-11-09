@@ -37,7 +37,7 @@ import { SizeField } from './ViewOptions';
 import { TabClip, type DoubleClickPlace } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail, useOpenPanel } from './TabRail';
+import { TabRail, usePalettes } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
 import { useChatSession } from './chat/useChatSession';
 import type { PageSpot } from './chat/arrangementTools';
@@ -72,7 +72,7 @@ import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -238,7 +238,7 @@ export default function TabPage() {
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = tabFocused && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : WORD_TOOL[picked.kind];
+  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : picked.kind === 'lyric' ? 'lyrics' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
@@ -285,7 +285,7 @@ export default function TabPage() {
   const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
-    drawn, layout, hearNote, setNotice, openWord: head.openWord,
+    drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
     openSignature: head.openSignature, dropLine,
   });
   const { deletePicked } = picking;
@@ -293,8 +293,8 @@ export default function TabPage() {
   const {
     voiceOnly, chooseVoice, pickVoice, moveToVoiceKey, voiceKey, selectOnlyVoice, everyVoice, stepElement, voicePresentAtCursor,
   } = useVoicePick(editor, { whole, track, voice, setVoice, stepToElement: picking.stepToElement });
-  // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
-  const [railPanel, setRailPanel] = useOpenPanel();
+  // The palettes' layout; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
+  const palettes = usePalettes();
   /**
    * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424). The model's changes go through `chatClip`: a reply's first is an undo step, and its
    * later ones join it, unless the viewer edited in between.
@@ -315,9 +315,13 @@ export default function TabPage() {
   });
   // The conversation is the page's, not the panel's, so closing the panel keeps it and its running reply (issue #442).
   const chat = useChatSession({
-    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: railPanel === 'chat',
+    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: palettes.shown('chat'),
   });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
+  // Chords folded or the column collapsed drops its ask, so opening it again doesn't open the chord asked for before.
+  const chordsShown = palettes.shown('chords');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the palette closing is an outside event for the ask.
+  useEffect(() => { if (!chordsShown) setChordsAt(null); }, [chordsShown]);
   /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord follows it (Jeremy, 2026-11-07). */
   const [chordFollow, setChordFollow] = useState<{ name: string } | null>(null);
   useEffect(() => {
@@ -333,7 +337,7 @@ export default function TabPage() {
     setCursor(c => ({ ...c, ...place }));
     setPicked(null);
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
-    setRailPanel('chords');
+    palettes.show('chords');
     editorRef.current?.focus();
   };
   /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
@@ -343,7 +347,7 @@ export default function TabPage() {
     if (owner !== track) chooseTrack(owner);
     setPicked(null);
     setChordsAt({ name: chord.name });
-    setRailPanel('chords');
+    palettes.show('chords');
   };
   /** A picked thing's Edit: a chord name's Chords panel, a word's or dynamic's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
@@ -513,6 +517,7 @@ export default function TabPage() {
   const onTool = (id: ToolId) => {
     if (!tabFocused) return;
     if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
+    else if (id === 'lyrics') head.openLyric(cursor);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
     else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
@@ -857,10 +862,9 @@ export default function TabPage() {
         </div>
       </header>
 
-      {/* The tools, in panels on a rail to the clip's left (issue #301). */}
+      {/* The tools, in palettes in a column on the clip's left (issue #454). */}
       <TabRail
-        palette={drawPalette} open={railPanel} openAsk={chordsAt}
-        onOpen={id => { setRailPanel(id); setChordsAt(null); }}
+        palette={drawPalette} palettes={palettes}
         chords={(
           <ChordPanel
             key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} tabFocused={tabFocused} at={chordsAt} follow={chordFollow}
@@ -965,6 +969,7 @@ export default function TabPage() {
                       highlight={highlight}
                       shadow={noteInputMode ? inputLength.value : null} gridStep={noteInputMode ? gridStep : null} gridLook={gridLook}
                       picked={tabFocused ? picked : null}
+                      typing={head.typing}
                       errors={errors} mutedVoices={tabFocused} voiceSelections={shownVoiceSelections}
                     />
                   </HoverTips>

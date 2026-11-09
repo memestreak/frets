@@ -1,0 +1,10 @@
+\title "Lyrics are typed note by note"
+\ts (4 4)
+0.3.4{txt "1. Tab view: press this 0, then the Shift+L keys. Type Hel, then the minus key, lo, the Space key, my, then the Enter key. Hel-lo my is drawn under these three notes, with a hyphen between Hel and lo"}
+  2.3.4 4.3.4 r.4 |
+5.3.4{txt "2. Press this 5, then the Shift+L keys, then the Down arrow key: the field says Lyric line 2. Type two, then the Enter key: two is drawn on a second line under this 5"}
+  4.3.4 2.3.2 |
+0.3.4{lyrics "pick"}
+  2.3.4{txt "3. Press the word pick under the 0 before this: it turns blue. Press the Delete key: it goes. Then double-click the word me under this 2, type you, then the Enter key: me turns into you" lyrics "me"}
+  r.2 |
+

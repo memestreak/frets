@@ -253,10 +253,17 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  /** Where the panel opens, in window pixels: under the button, left edges lined up. Fixed, so a palette that scrolls doesn't cut it off (issue #454). */
+  const [at, setAt] = useState({ left: 0, top: 0 });
   const boxRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Fixed where it opened, so it closes once the page or its palette scrolls the button away.
+    const onScroll = (e: Event) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('scroll', onScroll, true);
     const onDown = (e: PointerEvent) => {
       if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -270,6 +277,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey, true);
     return () => {
+      window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey, true);
     };
@@ -282,7 +290,11 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         aria-label={caption ? `${tool.label}: ${caption}` : tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
-        onClick={() => setOpen(o => !o)}
+        onClick={e => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setAt({ left: r.left, top: r.bottom + 6 });
+          setOpen(o => !o);
+        }}
       >
         <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
           {icon}
@@ -294,7 +306,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         )}
       </button>
       {open && !disabled && (
-        <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
+        <span className="tab-tool-panel card" role="dialog" aria-label={tool.label} style={at}>
           <span className="tab-bar-time-title">{tool.label}</span>
           <span className="seg" role="group" aria-label={`${tool.label} choices`}>
             {(noneLabel ? [null, ...choices] : [...choices, null]).map(choice => (
@@ -442,6 +454,8 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   chordName: <Label y={16} size={10}>Am</Label>,
   // Words in italics, as free text is drawn over the tab.
   beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
+  // A syllable joined to the next, as Lyrics are drawn under the notes.
+  lyrics: <text x={12} y={16} fontSize={9} fill="currentColor" stroke="none" textAnchor="middle">la-la</text>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
   // A capo: a bar clamped across the strings.
   capo: <>{[7, 11, 15, 19].map(y => <line key={y} x1={3} y1={y} x2={21} y2={y} strokeWidth={1} />)}<rect x={10} y={4} width={4.5} height={18} rx={2} fill="currentColor" stroke="none" /></>,

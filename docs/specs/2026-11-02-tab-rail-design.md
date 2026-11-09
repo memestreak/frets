@@ -1,5 +1,7 @@
 # Tab: the tools in a rail of panels on the left (issue #301)
 
+Superseded by `2026-11-09-tab-palettes-design.md` (issue #454): the rail is gone; every palette is listed in one column, several open at once.
+
 Jeremy, 2026-11-01: "cleans up our tool sets and arranges them in terms of palettes that will exist on
 the left side of the page … Several notation applications do something similar, including Dorico,
 MuseScore, and Guitar Pro." 2026-11-02: "Make use of the left side of the screen such that we have

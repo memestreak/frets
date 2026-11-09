@@ -2,7 +2,7 @@
 \ts (4 4)
 \chord ("G" 3 0 0 0 2 3)
 \chord ("C" 0 1 0 2 3 x)
-3.6.4{ch "G" txt "1. Tab view: open the Chords panel (the last button in the rail on the left). Press G in its list: it is only picked, nothing opens"}
+3.6.4{ch "G" txt "1. Tab view: open the Chords palette (press Chords in the column on the left). Press G in its list: it is only picked, nothing opens"}
   r.4 r.2 |
 (0.1 1.2 0.3 2.4 3.5).4{ch "C" txt "2. Double-click this C: its chord editor opens in the panel, the C tile and major lit, its shape picked. Press the Escape key: it closes, nothing changed"}
   r.4 r.2 |

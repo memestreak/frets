@@ -77,7 +77,8 @@ export interface ReadVoice {
 /** Note marks that last the whole note: a split copies them to every piece. Every other mark is an attack mark. */
 const HELD_NOTE_MARKS = ['palmMute', 'letRing', 'vibrato'] as const;
 const HELD_COLUMN_MARKS = ['tremolo', 'ottava', 'hairpin'] as const;
-const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'wah', 'fermata', 'dynamic', 'whammy', 'beam', 'extra'] as const;
+// Lyrics are sung where the note starts, so they stay on its first piece (issue #408).
+const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'lyrics', 'wah', 'fermata', 'dynamic', 'whammy', 'beam', 'extra'] as const;
 
 function picked<T extends object>(from: T, keys: readonly string[]): Partial<T> {
   const out: Record<string, unknown> = {};

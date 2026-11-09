@@ -140,7 +140,7 @@ and in its spec.
   (`PlacedBar.voices`), stems, rests and heads by Voice —
   `2026-11-04-tab-voices-drawn-edited-design.md`.
 - `rows.ts` — `rowsFor` (the rows each line uses, top to bottom: words,
-  the staff, the tab's marks, the tab), `textRowOf`, the staff's `stepY`
+  the staff, the tab's marks, the tab, and the Lyrics' row in each view), `textRowOf`, the staff's `stepY`
   and `SPACE`, and the bend constants with `bendShape` (issue #413).
 - `widths.ts` — how wide each thing on a line is drawn: `columnWidth`,
   `noteInset`, `noteLabel`, `chordWidth` and `prettyChord`, a bar's lead,
@@ -161,6 +161,9 @@ and in its spec.
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
   `2026-11-06-tab-section-overlap-design.md`.
+- `lyrics.ts` — the Lyrics under the notes: their size and room, which
+  notes take a syllable (`takesLyric`), `setLyric`, and where the Lyrics
+  field goes next (`lyricNote`) — `2026-11-09-tab-lyrics-design.md`.
 - `stackWords.ts` — words along a line that wrap and move up clear of each
   other, without moving the music: the Text's and the section's rule.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
@@ -272,7 +275,8 @@ and in its spec.
   keeps the hit testing and the layers, and draws each line's strings and notes
   with the parts below. `rangeBoxes`.
 - `ClipWords.tsx` — `SystemWords`: the words over a line (endings, the capo,
-  sections, tempos, "Free time", chord names and their diagrams, free text).
+  sections, tempos, "Free time", chord names and their diagrams, free text),
+  and the Lyrics under its notes with their hyphens.
 - `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
   (P.M., let ring, w/ bar, fermatas, hairpins, dynamics, vibrato, mordents,
   strokes, `WahMark`, accents).
@@ -315,11 +319,12 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 ## Palette, panels and fields
 
 - `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`); Duration's note values get a row of their own, shortest to longest (`docs/specs/2026-11-09-tab-duration-row-design.md`); the Input group holds the note input mode pencil and, after it, the Grid button naming its setting (`2026-11-01-tab-note-input-grid-design.md`, issue #449).
-- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode and the Grid, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout` with the panels' width, set by dragging the line between the panel and the clip (`docs/specs/2026-11-08-tab-rail-width-design.md`, issue #431); it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `TabRail.tsx` — the palettes, in one column on the clip's left: Notes (note input mode and the Grid, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and Chat (`chat/ChatPanel.tsx`), each opened or folded from its header, several at once, moved by dragging its header, its height set by the line under it; one button collapses the column to a strip; the column's width set by dragging the line between it and the clip; all kept across visits in `frets.tab.layout` (`docs/specs/2026-11-09-tab-palettes-design.md`, issue #454; before it, a rail of panels: `2026-11-02-tab-rail-design.md`, `2026-11-08-tab-rail-width-design.md`).
 - `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): `ChatPanel.tsx` the panel; `useChatSession.ts` its conversation and running reply, held by the page so they outlast the panel, and the status the rail's Chat button shows (issue #442); `markdown.ts` and `ReplyMarkdown.tsx` a reply's markdown read and drawn as elements, never HTML (`docs/specs/2026-11-08-tab-chat-markdown-design.md`, issue #427); `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the instructions, the agent guide, the custom prompt; `docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426); `guide.ts` the agent guide fetched once a visit; `promptFields.tsx` Settings' Instructions and Custom prompt fields; `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`, with the default instructions).
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, each with a dot counting its uses (none when unused), as many to a row as the panel's width holds and two rows to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
+- `LyricField.tsx` — the small Lyrics field Shift+L opens over the staff at a note, as Dorico's lyrics popover (its grip drags it out of the way): Space, hyphen, Shift+Space, Up and Down set the syllable and move on (`useHeadPanels` keeps it going note to note, where it was dragged to); Alt+Space and Alt+hyphen type their character — `2026-11-09-tab-lyrics-design.md`.
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
@@ -453,6 +458,14 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 - `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
   drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
   picked, edited and deleted like any Mark (issue #437).
+- `docs/specs/2026-11-09-tab-lyrics-design.md`: Lyrics, a syllable on a
+  note per Lyric line, read and written as alphaTex `lyrics`, drawn under
+  the staff, between staff and tab, or under the tab; typed with Shift+L as
+  in Dorico; MusicXML and ASCII carry them (issue #408)
+- `docs/specs/2026-11-09-tab-palettes-design.md`: the rail gives way to one
+  column listing every palette, several open at once, each folded from its
+  header, moved by dragging it, its height dragged from the line under it;
+  one button collapses the column (issue #454)
 - `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
   the open Rail panel and the clip to set every panel's width, 224 to 560px,
   kept across visits (issue #431)

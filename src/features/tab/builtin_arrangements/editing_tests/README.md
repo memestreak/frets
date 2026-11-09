@@ -34,6 +34,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `grace-before.atex` | `/` adds a grace note before the picked note, and a second makes them sixteenths | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `insert-pushes.atex` | Insert pushes the music on over the bar line, and Ctrl/⌘+Delete pulls it back | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `longer-note-writes-over.atex` | A longer note, or a run made longer, writes over what follows, split and tied at the bar line | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294, `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
+| `lyrics-typing.atex` | Shift+L types Lyrics note by note (the minus key joins syllables, Space moves on, Down a second Lyric line); a press picks a syllable, Delete takes it away, a double-click edits it | `docs/specs/2026-11-09-tab-lyrics-design.md` |
 | `note-input-new-arrangement.atex` | In a new arrangement, a double-click on the staff puts the caret there with the Grid, and a paste of two eighths fills the bar with rests | `docs/specs/2026-10-30-tab-note-input-mode-design.md`, #421, #422 |
 | `notes-into-tuplet.atex` | Selected notes squeezed into a tuplet, a Gap left after it | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `pick-every-mark.atex` | A chord name, accent, fermata, bend, tie and time signature picked: Attachment lines and the notes' tint, and a signature's panel opened by Enter | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
