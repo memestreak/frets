@@ -3,7 +3,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writePart, writeBars } from '@/features/tab/alphatex';
 import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab/clip';
 import { parseEditing } from '@/features/tab/editingPrefs';
-import { clampCursor, copyText, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
+import { clampCursor, copyText, deleteBars, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke } from '@/features/tab/noteEdits';
 
@@ -342,3 +342,43 @@ describe('setEnding', () => {
   });
 });
 
+
+describe('deleteBars', () => {
+  it('takes the bars away whole and puts the cursor on the bar after them', () => {
+    const { clip, cursor } = deleteBars(clipOf('0.6.1 | 2.6.1 | 3.6.1 | 5.6.1 |'), 1, 2);
+    expect(bars(clip).split('\n')).toEqual(['0.6.1 |', '5.6.1 |']);
+    expect(cursor).toEqual({ bar: 1, column: 0 });
+  });
+
+  it('puts the cursor on the last bar when the span ran to the end', () => {
+    const { clip, cursor } = deleteBars(clipOf('0.6.1 | 2.6.1 | 3.6.1 |'), 2, 2);
+    expect(bars(clip).split('\n')).toEqual(['0.6.1 |', '2.6.1 |']);
+    expect(cursor).toEqual({ bar: 1, column: 0 });
+  });
+
+  it('keeps the time signature in force after the span: the next bar takes it, unless it has its own', () => {
+    const clip = clipOf('\\ts (4 4) 0.6.1 | \\ts (3 4) 0.5.2{d} | 0.5.2{d} | \\ts (2 4) 0.4.2 |');
+    expect(bars(deleteBars(clip, 1, 1).clip).split('\n')).toEqual(['0.6.1 |', '\\ts (3 4) 0.5.2{d} |', '\\ts (2 4) 0.4.2 |']);
+    expect(bars(deleteBars(clip, 1, 2).clip).split('\n')).toEqual(['0.6.1 |', '\\ts (2 4) 0.4.2 |']);
+    // From the start: the time in force becomes the clip's.
+    const fromStart = deleteBars(clip, 0, 1).clip;
+    expect(fromStart.time).toEqual({ beats: 3, value: 4 });
+    expect(bars(fromStart).split('\n')[0]).toBe('0.5.2{d} |');
+  });
+
+  it('keeps the key and tempo in force after the span, and drops a repeat of the one before it', () => {
+    const clip = clipOf('\\tempo 90 0.6.1 | \\ks G \\tempo 120 2.6.1 | 3.6.1 |');
+    const next = deleteBars(clip, 1, 1).clip;
+    expect(next.bars[1].key).toEqual(clip.bars[1].key);
+    expect(next.bars[1].tempo?.bpm).toBe(120);
+    const back = deleteBars(clipOf('\\tempo 90 0.6.1 | \\tempo 90 2.6.1 | 3.6.1 |'), 1, 1).clip;
+    expect(back.bars[1].tempo).toBeUndefined();
+  });
+
+  it('leaves one bar of rests in the time in force when every bar goes', () => {
+    const { clip, cursor } = deleteBars(clipOf('\\ts (3 4) 0.6.2{d} | 2.6.2{d} |'), 0, 1);
+    expect(bars(clip)).toBe('r.2{d} |');
+    expect(clip.time).toEqual({ beats: 3, value: 4 });
+    expect(cursor).toEqual({ bar: 0, column: 0 });
+  });
+});

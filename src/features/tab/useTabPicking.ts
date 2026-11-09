@@ -184,7 +184,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
-  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false) => {
+  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -196,7 +196,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
       const there = hasColumn && noteAt(clip, hit);
-      if (noteInputMode && hasColumn && !there) {
+      // A right-click only moves the caret, for the bar menu (Jeremy, 2026-11-09).
+      if (noteInputMode && hasColumn && !there && !menu) {
         // In note input mode a press on a string enters an open string there, as MuseScore's does; digits then change it.
         // Inside a rest it goes at the grid line pressed (issue #293).
         const here = splitRestAt(clip, hit, into);
@@ -263,7 +264,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the staff: the staff cursor there, on the head pressed or the line or space. */
-  const onPickStaff = (hit: StaffHit, extend: boolean, alone = false) => {
+  const onPickStaff = (hit: StaffHit, extend: boolean, alone = false, menu = false) => {
     lastDigitRef.current = null;
     // A head pressed doesn't take the focus until now (issue #337); taken first, so the focus's own
     // staff cursor (with the staff alone) gives way to the one set below.
@@ -279,7 +280,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (note) {
       toPitch(clip, notePlace(at, alone), pitch);
       markAlone(at, alone);
-    } else if (noteInputMode && clip.bars[hit.bar].columns.length > 0) {
+    } else if (noteInputMode && clip.bars[hit.bar].columns.length > 0 && !menu) {
       // In note input mode a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).
       // The caret goes on past the note by its length, as with A–G and Enter (Jeremy, 2026-11-07, issue #396).

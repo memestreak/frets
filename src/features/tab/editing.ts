@@ -7,7 +7,7 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barSpan, beatGroupsAt, defaultGroupCounts, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, hasNotes, isUneven, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barSpan, beatGroupsAt, defaultGroupCounts, groupCountsAt, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, hasNotes, isUneven, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
 import { emptyBarRests } from './sounding';
 import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
@@ -67,6 +67,14 @@ export function columnCount(clip: Part): number {
 /** A whole bar selected, as a press beside its notes selects it (issue #238). */
 export function barSelection(clip: Part, bar: number): Selection {
   return { anchor: indexOf(clip, bar, 0), focus: indexOf(clip, bar, clip.bars[bar].columns.length - 1) };
+}
+
+/** Whether a selection starts on its first bar's first column and ends on its last bar's last. */
+export function coversWholeBars(clip: Part, selection: Selection): boolean {
+  const [from, to] = selectedRange(selection);
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  return first.column === 0 && last.column === clip.bars[last.bar].columns.length - 1;
 }
 
 /** The first and last selected places, in order. */
@@ -442,6 +450,42 @@ export function insertBar(clip: Part, cursor: Cursor, where: 'before' | 'after')
 }
 
 /* — removing, copying and pasting columns — */
+
+/**
+ * The bars `first` to `last` (inclusive) taken away whole, notes, marks and other Voices with them
+ * (the menu's Delete bar). The music after them is unchanged: the bar that follows takes the time
+ * signature, key and tempo in force at the end of the span, unless it sets its own. With every bar
+ * gone, one bar of rests in the clip's time is left. The cursor goes to the first bar after the
+ * span, else the last bar.
+ */
+export function deleteBars(clip: Part, first: number, last: number): { clip: Part; cursor: { bar: number; column: number } } {
+  const gone = clip.bars.slice(first, last + 1);
+  const kept = [...clip.bars.slice(0, first), ...clip.bars.slice(last + 1)];
+  if (kept.length === 0) {
+    const time = timeAt(clip, last);
+    const rests = emptyBarRests(time, beatGroupsAt(clip, last)).map(emptyColumn);
+    return { clip: normalize({ ...clip, time, bars: [{ columns: rests }] }), cursor: { bar: 0, column: 0 } };
+  }
+  if (first < kept.length) {
+    const next: Bar = { ...kept[first] };
+    // Repeats of what is already in force are dropped: a time by `tidyTimes`, a key or tempo here.
+    if (!next.time) {
+      next.time = timeAt(clip, last);
+      next.beatGroups = groupCountsAt(clip, last);
+    }
+    const lastSet = <K extends 'key' | 'tempo'>(bars: Bar[], field: K) => bars.findLast(bar => bar[field])?.[field];
+    const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    for (const field of ['key', 'tempo'] as const) {
+      const set = lastSet(gone, field);
+      if (set && !next[field] && !same(set, lastSet(clip.bars.slice(0, first), field))) Object.assign(next, { [field]: set });
+    }
+    // On the first bar, the time is the clip's own.
+    kept[first] = first === 0 ? without(next, 'time') : next;
+    if (first === 0) clip = { ...clip, time: next.time! };
+  }
+  const left = normalize({ ...clip, bars: kept });
+  return { clip: left, cursor: { bar: Math.min(first, left.bars.length - 1), column: 0 } };
+}
 
 /**
  * Ctrl/⌘+Delete: the time of the columns in `range` (places, inclusive) taken away, the music after it

@@ -73,7 +73,7 @@ export interface DoubleClickPlace {
   rest: { bar: number; column: number } | null;
 }
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onMenuPress, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
   /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
   chordDiagrams?: boolean;
@@ -116,7 +116,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
   /** `alone`: Alt was held, so a Tied note is picked by itself, not its whole Tie chain. */
-  onPick?: (hit: Hit, extend: boolean, alone?: boolean) => void;
+  /** `menu`: a right-click, which never enters a note (in note input mode it only moves the caret). */
+  onPick?: (hit: Hit, extend: boolean, alone?: boolean, menu?: boolean) => void;
   /** A press on a chord name, section or tempo, or a time or key signature; with the press, in the drawing's own units. */
   onPickText?: (hit: TextHit, at: { x: number; y: number }) => void;
   /** A press on an Uneven bar's ⚠: its bar, and where, in the drawing's units. */
@@ -129,7 +130,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    */
   onPickColumn?: (index: number, extend: boolean) => void;
   /** A press on the notation staff: the column and line or space (and string, on a head); `extend` with Shift. */
-  onPickStaff?: (hit: StaffHit, extend: boolean, alone?: boolean) => void;
+  onPickStaff?: (hit: StaffHit, extend: boolean, alone?: boolean, menu?: boolean) => void;
   /**
    * A note head on the staff dragged up or down (issue #174). A press on a head that doesn't move is
    * still `onPickStaff`, when the pointer lets go.
@@ -176,6 +177,12 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   gridLook?: GridLook | null;
   /** A press on neither the staff nor a P.M. or let ring line (nor, with `onPickColumn`, a column). */
   onMiss?: () => void;
+  /**
+   * A right-click or touch (which may become a long press) on neither a word nor a mark: whether it is on a
+   * note, of any Voice, for the note menu, or beside the notes, for the bar menu (Jeremy, 2026-11-09). Null
+   * for any other press, so Shift+F10 after it goes by what is picked.
+   */
+  onMenuPress?: (onNote: boolean | null) => void;
   /**
    * How far above and below the drawing a press still picks a column with `onPickColumn` (Jeremy,
    * 2026-10-27: "more clickable area above and below"), in pixels; the page's margin round the clip.
@@ -322,6 +329,11 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       return;
     }
     const { text, mark, rest, staff, hit, column, px, py } = target(e);
+    if (onMenuPress && (e.button === 2 || e.pointerType === 'touch') && !text && !mark) {
+      // A note is what a left press would pick as one; a rest or blank space is the bar's.
+      const ownNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+      onMenuPress(!!ownNote || otherVoiceAt(px, py, staff, hit) !== null);
+    } else onMenuPress?.(null);
     // A right-click inside the selection keeps it, for its menu, as Dorico, MuseScore and GP8 do (step 9).
     if (e.button === 2 && highlight?.range && !text && !mark) {
       const on = rest ?? staff ?? hit;
@@ -364,8 +376,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     }
     if (text) onPickText!(text, { x: px, y: py });
     else if (mark) onPickMark!(mark);
-    else if (staff) onPickStaff!(staff, e.shiftKey, e.altKey);
-    else if (hit) onPick(hit, e.shiftKey, e.altKey);
+    else if (staff) onPickStaff!(staff, e.shiftKey, e.altKey, e.button === 2);
+    else if (hit) onPick(hit, e.shiftKey, e.altKey, e.button === 2);
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
   };
