@@ -136,30 +136,29 @@ function colourField(key: 'text' | 'background', label: string): SettingsField<C
 const PART_NAMES: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Both' };
 
 /**
- * Which of the browser's typing aids the key field allows, while Jeremy finds the one that blocks macOS text
- * replacement there (it works in Tab Texts, which set none of these).
+ * Which of the browser's typing hints the Chat section's fields set, while Jeremy finds the one that blocks macOS
+ * text replacement there in Chrome (it works in the Chat panel's Model box, which sets only spellcheck off).
  */
-const KEY_AIDS: Mock = {
-  param: 'mock', label: 'Key field',
+const FIELD_HINTS: Mock = {
+  param: 'mock', label: 'Key and Model fields',
   options: [
-    { value: 'a', label: 'A: as now (spellcheck and autocorrect off)' },
-    { value: 'b', label: 'B: autocorrect on' },
-    { value: 'c', label: 'C: spellcheck on' },
-    { value: 'd', label: 'D: both on, like Tab Texts' },
+    { value: 'a', label: 'A: as now' },
+    { value: 'b', label: 'B: no autocomplete="off"' },
+    { value: 'c', label: 'C: no autocapitalize or autocorrect="off"' },
+    { value: 'd', label: 'D: none of them, like the Chat panel’s Model box' },
   ],
 };
 
 function TextInput({ secret, placeholder, value, onChange, labelId }: {
   secret?: boolean; placeholder?: string; value: string; onChange: (value: string) => void; labelId: string;
 }) {
-  const aids = useMock(KEY_AIDS);
-  const autocorrect = secret && (aids === 'b' || aids === 'd');
-  const spellcheck = secret && (aids === 'c' || aids === 'd');
+  const hints = useMock(FIELD_HINTS);
+  const autocomplete = hints === 'a' || hints === 'c' ? 'off' : undefined;
+  const correctOff = hints === 'a' || hints === 'b' ? 'off' : undefined;
   return (
     <input
       className="input settings-text" type="text" aria-labelledby={labelId} value={value}
-      placeholder={placeholder} spellCheck={spellcheck} autoComplete="off" autoCorrect={autocorrect ? 'on' : 'off'}
-      autoCapitalize="off"
+      placeholder={placeholder} spellCheck={false} autoComplete={autocomplete} autoCorrect={correctOff} autoCapitalize={correctOff}
       data-1p-ignore={secret || undefined} data-lpignore={secret ? 'true' : undefined} data-bwignore={secret || undefined}
       onChange={e => onChange(e.target.value)}
     />
