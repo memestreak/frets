@@ -68,12 +68,14 @@ describe('the Chat panel', () => {
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Open Settings' }));
     const key = await screen.findByLabelText('OpenRouter key');
-    // Shown as typed, so the OS's text replacement works; nothing offers to remember it.
-    expect(key).toHaveAttribute('type', 'text');
-    expect(key).toHaveAttribute('autocomplete', 'off');
-    expect(key).toHaveAttribute('spellcheck', 'false');
-    expect(key).toHaveAttribute('autocorrect', 'off');
-    expect(key).toHaveAttribute('autocapitalize', 'off');
+    // Shown as typed, and no autocorrect or autocapitalize "off": each stops macOS text replacement in Chrome.
+    for (const field of [key, within(screen.getByRole('dialog')).getByLabelText('Model')]) {
+      expect(field).toHaveAttribute('type', 'text');
+      expect(field).toHaveAttribute('autocomplete', 'off');
+      expect(field).toHaveAttribute('spellcheck', 'false');
+      expect(field).not.toHaveAttribute('autocorrect');
+      expect(field).not.toHaveAttribute('autocapitalize');
+    }
     fireEvent.change(key, { target: { value: '  sk-or-typed ' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5', instructions: null, custom: '' });

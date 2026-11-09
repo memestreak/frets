@@ -35,7 +35,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   the ask), so the model needn't spend a call reading it first; the
   conversation keeps the ask alone, so earlier asks don't resend it.
 - **Settings › Tab › Chat (Q2, Q5).** Two fields, saved under
-  `frets.tab.chat`: **OpenRouter key** (a plain text field, shown as typed so the OS's text replacement works; autocomplete, spellcheck, autocorrect and autocapitalize off, and password managers told to ignore it) and **Model**
+  `frets.tab.chat`: **OpenRouter key** (a plain text field, shown as typed; autocomplete and spellcheck off and password managers told to ignore it, but autocorrect and autocapitalize left alone, because on macOS dots, a password field or either of those set "off" stop Chrome's text replacement) and **Model**
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
 - **The panel (Q7).** From the top: the **Model** field (the same setting as
@@ -176,7 +176,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   with no step before it is a step of its own; it clears redo.
 - On the page, with nothing in the address: the rail ends Chords, Chat, and
   Settings lists Tab › Chat. With no key, the box is disabled and Open Settings opens Tab › Chat, whose key
-  field is plain text shown as typed, with autocomplete, spellcheck, autocorrect and autocapitalize off; saving `  sk-or-typed ` keeps `sk-or-typed` and
+  and Model fields are plain text shown as typed, with autocomplete and spellcheck off and no autocorrect or autocapitalize attribute; saving `  sk-or-typed ` keeps `sk-or-typed` and
   enables the box.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the
   answer and the usage summed; the bars change; one Undo puts both back. The

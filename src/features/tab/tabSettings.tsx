@@ -14,7 +14,6 @@ import { checkField, choiceField } from '@/components/settings/fields';
 import { section, type SettingsField, type SettingsGroup } from '@/components/settings/types';
 import { NumberField } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
-import { useMock, type Mock } from '@/components/mocks/useMock';
 import { chooseScheme } from './ViewOptions';
 import {
   DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_ROLL, MAX_TRANSPOSE, METRONOME_KEY, MIN_ROLL, ROLL_STEP, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
@@ -136,46 +135,19 @@ function colourField(key: 'text' | 'background', label: string): SettingsField<C
 const PART_NAMES: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Both' };
 
 /**
- * Which of the browser's typing hints the Chat section's fields set, while Jeremy finds the one that blocks macOS
- * text replacement there in Chrome (it works in the Chat panel's Model box, which sets only spellcheck off).
- */
-const FIELD_HINTS: Mock = {
-  param: 'mock', label: 'Key and Model fields',
-  options: [
-    { value: 'a', label: 'A: as now' },
-    { value: 'b', label: 'B: no autocomplete="off"' },
-    { value: 'c', label: 'C: no autocapitalize or autocorrect="off"' },
-    { value: 'd', label: 'D: none of them, like the Chat panel’s Model box' },
-  ],
-};
-
-function TextInput({ secret, placeholder, value, onChange, labelId }: {
-  secret?: boolean; placeholder?: string; value: string; onChange: (value: string) => void; labelId: string;
-}) {
-  const hints = useMock(FIELD_HINTS);
-  const autocomplete = hints === 'a' || hints === 'c' ? 'off' : undefined;
-  const correctOff = hints === 'a' || hints === 'b' ? 'off' : undefined;
-  return (
-    <input
-      className="input settings-text" type="text" aria-labelledby={labelId} value={value}
-      placeholder={placeholder} spellCheck={false} autoComplete={autocomplete} autoCorrect={correctOff} autoCapitalize={correctOff}
-      data-1p-ignore={secret || undefined} data-lpignore={secret ? 'true' : undefined} data-bwignore={secret || undefined}
-      onChange={e => onChange(e.target.value)}
-    />
-  );
-}
-
-/**
- * A line of text, as the Chat section's key and model. `secret` marks a key: it shows as typed (a password field,
- * or dots, would block the OS's text replacement), and password managers are told to leave it alone.
+ * A line of text, as the Chat section's key and model. `secret` marks a key: it shows as typed, and password
+ * managers are told to leave it alone. Neither field sets autocorrect or autocapitalize "off", nor is a password
+ * field or drawn as dots: on macOS each of those stops Chrome's text replacement.
  */
 function textField<V, K extends keyof V & string>(key: K, label: string, opts: { secret?: boolean; placeholder?: string } = {}): SettingsField<V> {
   return {
     key, label,
     control: ({ value, set, labelId }) => (
-      <TextInput
-        secret={opts.secret} placeholder={opts.placeholder} labelId={labelId} value={value[key] as string}
-        onChange={text => set({ ...value, [key]: text })}
+      <input
+        className="input settings-text" type="text" aria-labelledby={labelId} value={value[key] as string}
+        placeholder={opts.placeholder} spellCheck={false} autoComplete="off"
+        data-1p-ignore={opts.secret || undefined} data-lpignore={opts.secret ? 'true' : undefined} data-bwignore={opts.secret || undefined}
+        onChange={e => set({ ...value, [key]: e.target.value })}
       />
     ),
   };
