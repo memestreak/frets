@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type TimeSignature } from './clip';
+import { changesKey, isRest, keyAt, startsFreeTime, timeAt, type Part, type Column, type Fermata, type Roll, type TimeSignature } from './clip';
 import { type PlacedBar, type PlacedColumn, type System } from './layout';
 import { BEND_LABEL_STEP, SPACE, STEM_STEPS, stepY, type ScoreRows } from './rows';
 import { ACCIDENTAL_ROOM, accidentalRoom, BEND_FROM_ROOM, HEAD_WIDTH } from './widths';
@@ -12,6 +12,7 @@ import { mordentSign, vibratoWave, type MarkHit } from './marks';
 import { sameWord, type WordHit } from './layoutText';
 import { litLook, type TabLook } from './tabLook';
 import { TapSign } from './TapSign';
+import { rollSign } from './rollSign';
 
 /**
  * One line of the notation staff (issue #122; `docs/specs/2026-10-27-tab-notation-design.md`): the
@@ -257,6 +258,20 @@ function StaffBarLines({ bar, score, look: plain, final, word }: { bar: PlacedBa
 }
 
 const FERMATA_GLYPHS: Record<Fermata, GlyphName> = { short: 'fermataShortAbove', medium: 'fermataAbove', long: 'fermataLongAbove' };
+
+/** A Strum's or Rolled chord's sign (`rollSign.ts`); shared with the tab (`ClipMarks.tsx`). */
+export function RollSign({ roll, x, top, bottom, look, picked, testId }: {
+  roll: Roll; x: number; top: number; bottom: number; look: TabLook; picked: boolean; testId: string;
+}) {
+  const { line, head } = rollSign(roll, x, top, bottom);
+  const ink = litLook(look, picked).ink;
+  return (
+    <g data-testid={testId} data-roll={`${roll.sign}-${roll.direction}`} data-selected={picked || undefined}>
+      <path d={line} fill="none" stroke={ink} strokeWidth={roll.sign === 'strum' ? 1.2 : 1.1} />
+      <path d={head} fill={ink} stroke="none" />
+    </g>
+  );
+}
 
 /** A fermata centred over x, its foot (the dot) at y. Shared with the tab (`TabClip.tsx`). */
 export function FermataSign({ fermata, x, y, look }: { fermata: Fermata; x: number; y: number; look: TabLook }) {
@@ -579,6 +594,8 @@ function StaffMarkDrawing({ mark, look }: { mark: StaffMark; look: TabLook }) {
       return <TapSign x={mark.x} y={mark.y} look={look} testId="staff-tap" />;
     case 'fermata':
       return <FermataSign fermata={mark.fermata} x={mark.x} y={mark.y} look={look} />;
+    case 'roll':
+      return <RollSign roll={mark.roll} x={mark.x} top={mark.top} bottom={mark.bottom} look={look} picked={false} testId="staff-roll" />;
     case 'tuplet': {
       const { bracket } = mark;
       // The bracket runs through the number's middle, with a gap for it, and hooks 4px toward the notes.

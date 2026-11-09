@@ -78,7 +78,7 @@ export interface ReadVoice {
 const HELD_NOTE_MARKS = ['palmMute', 'letRing', 'vibrato'] as const;
 const HELD_COLUMN_MARKS = ['tremolo', 'ottava', 'hairpin'] as const;
 // Lyrics are sung where the note starts, so they stay on its first piece (issue #408).
-const POINT_COLUMN_MARKS = ['stroke', 'chord', 'text', 'lyrics', 'wah', 'fermata', 'dynamic', 'whammy', 'beam', 'extra'] as const;
+const POINT_COLUMN_MARKS = ['stroke', 'roll', 'chord', 'text', 'lyrics', 'wah', 'fermata', 'dynamic', 'whammy', 'beam', 'extra'] as const;
 
 function picked<T extends object>(from: T, keys: readonly string[]): Partial<T> {
   const out: Record<string, unknown> = {};

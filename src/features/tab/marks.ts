@@ -13,12 +13,13 @@ import { staffMarks } from './staffMarks';
 import type { ToolId } from './tools';
 import { whammyDrawings } from './whammy';
 import { drawnDynamics, hairpinSpan } from './dynamics';
+import { tabRollPlace } from './rollSign';
 
 /** The marks a press can pick (every Mark but the words and bar lines, `layoutText.ts`). */
 export type DrawnMark =
   | 'palmMute' | 'letRing'
   | 'bend' | 'slideOut' | 'tap' | 'legato' | 'slide' | 'tie'
-  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
+  | 'vibrato' | 'mordent' | 'pinch' | 'artificial' | 'accent' | 'staccato' | 'stroke' | 'roll' | 'wah' | 'tremolo' | 'tuplet' | 'ottava' | 'fermata'
   | 'whammy' | 'hairpin' | 'dynamic';
 
 /** A drawn mark: what it is, its column's place in the clip, and its note's string (null for a mark over the whole column). */
@@ -135,6 +136,8 @@ export function markBoxes(layout: Layout): { hit: MarkHit; box: Box }[] {
           add('mordent', index, null, box.x - 2, rows.vibrato - THIN_REACH, box.x + box.width + 2, rows.vibrato + THIN_REACH);
         }
         if (column.stroke && rows.strokes !== null) rowMark('stroke', index, x - 7, x + 7, rows.strokes);
+        const roll = tabRollPlace(placed, rows);
+        if (roll) add('roll', index, null, roll.x - 6, roll.top - 2, roll.x + 6, roll.bottom + 2);
         if (column.wah && rows.wah !== null) rowMark('wah', index, x - 7, x + 7, rows.wah);
         if (column.fermata && rows.fermatas !== null) add('fermata', index, null, x - 12, rows.fermatas - 8, x + 12, rows.fermatas + 6);
         if (notes.some(n => n.harmonic === 'pinch') && rows.harmonics !== null) rowMark('pinch', index, x - 11, x + 11, rows.harmonics);
@@ -325,6 +328,11 @@ export function markTool(clip: Part, hit: MarkHit): ToolId | null {
       return mordent === 'upper' ? 'mordent' : mordent === 'lower' ? 'lowerMordent' : null;
     }
     case 'stroke': return column?.stroke === 'down' ? 'strokeDown' : column?.stroke === 'up' ? 'strokeUp' : null;
+    case 'roll': {
+      const roll = column?.roll;
+      if (!roll) return null;
+      return roll.sign === 'strum' ? (roll.direction === 'down' ? 'strumDown' : 'strumUp') : (roll.direction === 'down' ? 'rolledDown' : 'rolledUp');
+    }
     case 'wah': return column?.wah ? 'wah' : null;
     case 'whammy': return column?.whammy ? 'whammy' : null;
     case 'tremolo': {

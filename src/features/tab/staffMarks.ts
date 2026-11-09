@@ -6,14 +6,15 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, columnMordent, whammyGoesOn, whammySemitones, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava } from './clip';
+import { columnAccent, columnMordent, whammyGoesOn, whammySemitones, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava, type Roll } from './clip';
 import { OTTAVA_CLEAR, stemUpFor, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
 import { BEND_LABEL_STEP, SPACE, STEM_STEPS, stepY, TAP_RADIUS, type StaffReach } from './rows';
-import { HEAD_WIDTH } from './widths';
+import { accidentalRoom, bendFromRoom, HEAD_WIDTH, ROLL_ROOM } from './widths';
 import { columnRuns, vibratoRuns } from './runs';
 import { mordentSign, vibratoWave, type Box, type MarkHit } from './marks';
 import { previousHeads, staffBar, type StaffColumn } from './staffGeometry';
 import { whammyLabel } from './whammy';
+import { rollSpan } from './rollSign';
 
 type Hit = Omit<MarkHit, 'kind' | 'on'>;
 
@@ -40,6 +41,8 @@ export type StaffShape =
   | { kind: 'whammy'; points: [number, number][]; labels: { x: number; y: number; text: string }[] }
   /** A fermata centred over x, its foot at y. */
   | { kind: 'fermata'; x: number; y: number; fermata: Fermata }
+  /** A Strum's or Rolled chord's sign (`rollSign.ts`) centred on x, from `top` to `bottom`. */
+  | { kind: 'roll'; roll: Roll; x: number; top: number; bottom: number }
   /** A tuplet's number at (x, y) in its bracket from `x0` to `x1`, the ends hooking toward the notes (up when it is under them). */
   | { kind: 'tuplet'; x: number; y: number; label: string; bracket: { x0: number; x1: number; up: boolean } };
 
@@ -51,6 +54,9 @@ export const FERMATA_HEIGHT = 12;
 const FERMATA_CLEAR = 3;
 /** The bar number's room over the staff's top line, which a fermata over a bar's first note stands over. */
 const BAR_NUMBER_ROOM = 10;
+
+/** How far a Strum's or Rolled chord's sign reaches past the outer heads. */
+const ROLL_REACH = SPACE * 0.9;
 
 /** How far a thin mark's box reaches past it, so the mouse finds it. */
 const REACH = 6;
@@ -101,6 +107,13 @@ export function staffMarks(layout: Layout): StaffMark[][] {
         const x = placed.x;
         const topY = stepY(score, heads[heads.length - 1].step);
         const bottomY = stepY(score, heads[0].step);
+
+        // A Strum or Rolled chord: its sign left of the heads, their accidentals and a bent note's starting head.
+        if (column.roll) {
+          const rx = Math.min(...c.xs) - accidentalRoom(heads) - bendFromRoom(heads) - ROLL_ROOM / 2;
+          const { top, bottom } = rollSpan(topY - ROLL_REACH, bottomY + ROLL_REACH);
+          add({ mark: 'roll', index, string: null }, around(rx, top, rx, bottom, 6), { kind: 'roll', roll: column.roll, x: rx, top, bottom });
+        }
 
         // Accents and staccato: at the heads, away from the stem (over a whole note, which has none).
         const accent = columnAccent(column);

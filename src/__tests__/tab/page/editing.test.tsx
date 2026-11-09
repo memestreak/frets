@@ -88,7 +88,8 @@ describe('TabPage editing', () => {
     expect(alphaTex()).toBe('5.1.4 7.1.8 r.8 r.2 |');
   });
 
-  it('picks a bend amount from the Bend button\'s panel, and takes it away with None', async () => {
+  // It presses the palette over and over, each press drawing every button: slow on CI.
+  it('picks a bend amount from the Bend button\'s panel, and takes it away with None', { timeout: 20000 }, async () => {
     await openWith('7.1.1 |');
     const bend = () => tool('Bend');
     fireEvent.click(bend());

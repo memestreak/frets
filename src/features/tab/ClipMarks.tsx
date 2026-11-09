@@ -5,10 +5,11 @@ import type { System } from './layout';
 import type { Rows } from './rows';
 import { mordentSign, vibratoWave, type MarkLit } from './marks';
 import { columnRuns, RUN_MARKS, runLabelWidth, runsIn, vibratoRuns } from './runs';
-import { FermataSign } from './StaffDrawing';
+import { FermataSign, RollSign } from './StaffDrawing';
 import { columnMarks } from './TabColumn';
 import { drawnDynamics, hairpinSpan } from './dynamics';
 import { litLook, type TabLook } from './tabLook';
+import { tabRollPlace } from './rollSign';
 
 /** What a whammy bar's run is labelled, as guitar books print it. */
 const WHAMMY_LABEL = 'w/ bar';
@@ -114,7 +115,10 @@ export function SystemRowMarks({ system, rows, look, selected = null, lit, withD
   }
 
   for (const bar of system.bars) {
-    for (const { column, x, index } of bar.columns) {
+    for (const placed of bar.columns) {
+      const { column, x, index } = placed;
+      const roll = tabRollPlace(placed, rows);
+      if (roll) parts.push(<RollSign key={`roll-${index}`} {...roll} look={look} picked={lit('roll', index, null)} testId="roll" />);
       const mordent = columnMordent(column);
       if (mordent && rows.vibrato !== null) {
         const { d, transform } = mordentSign(x, rows.vibrato, mordent);

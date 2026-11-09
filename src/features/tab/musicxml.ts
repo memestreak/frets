@@ -372,6 +372,8 @@ function noteXml(ctx: TrackContext, column: Column, s: number | null, opts: {
     if (ctx.joins.vibratoStarts.has(note)) ornaments.push(el('wavy-line', { type: 'start' }));
     if (ctx.joins.vibratoStops.has(note)) ornaments.push(el('wavy-line', { type: 'stop' }));
     if (staff === 2) technical.push(text('string', s! + 1), text('fret', note.fret ?? 0));
+    // A Strum or Rolled chord is an arpeggio on every note of the chord, MusicXML having no strum; up starts low.
+    if (column.roll && staff === 1) notations.push(el('arpeggiate', { direction: column.roll.direction === 'down' ? 'up' : 'down' }));
   }
   // The column's own marks, once a chord, on the staff: accents, the fermata, the mordent, tremolo, strokes and the wah.
   if (opts.first && staff === 1) {

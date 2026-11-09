@@ -9,7 +9,7 @@ import { whammyShape, type WhammyShape } from './whammy';
 import { columnAt, indexOf, noteAt, placeOf, setDead, type Target } from './editing';
 import { chainDuration, chainPlaces, lengthAnchor, tieForward } from './ties';
 import { cycleEnding, cycleRepeatEnd, toggleDoubleBar, toggleRepeatStart } from './barEdits';
-import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, setBeam, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleLegato, toggleStroke, type MarkKind } from './noteEdits';
+import { cycleBend, cycleBendShape, cycleDots, cycleMark, cycleSlide, cycleTremolo, cycleWah, setBeam, setMark, setSlide, setTremolo, setValue, toggleBendPart, toggleLegato, toggleRoll, toggleStroke, type MarkKind } from './noteEdits';
 
 export type ToolId =
   | 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond' | 'sixtyFourth' | 'dot' | 'rest'
@@ -17,7 +17,7 @@ export type ToolId =
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
-  | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
+  | 'strokeDown' | 'strokeUp' | 'strumDown' | 'strumUp' | 'rolledDown' | 'rolledUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
   | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo' | 'capo';
 
@@ -94,6 +94,10 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'tap', label: 'Tap', key: 'Alt+T' },
       { id: 'strokeDown', label: 'Down stroke', key: 'D' },
       { id: 'strokeUp', label: 'Up stroke', key: 'U' },
+      { id: 'strumDown', label: 'Strum down: low string first', key: '' },
+      { id: 'strumUp', label: 'Strum up: high string first', key: '' },
+      { id: 'rolledDown', label: 'Rolled chord down: low string first', key: '' },
+      { id: 'rolledUp', label: 'Rolled chord up: high string first', key: '' },
       { id: 'wah', label: 'Wah: closed (+), open (o), then off', key: '' },
       { id: 'whammy', label: 'Whammy bar', key: '' },
     ],
@@ -229,6 +233,10 @@ export function applyTool(clip: Part, target: Target, id: ToolId): Part {
     case 'dead': return setDead(clip, target.cursor);
     case 'strokeDown': return toggleStroke(clip, target, 'down');
     case 'strokeUp': return toggleStroke(clip, target, 'up');
+    case 'strumDown': return toggleRoll(clip, target, 'strum', 'down');
+    case 'strumUp': return toggleRoll(clip, target, 'strum', 'up');
+    case 'rolledDown': return toggleRoll(clip, target, 'rolled', 'down');
+    case 'rolledUp': return toggleRoll(clip, target, 'rolled', 'up');
     case 'wah': return cycleWah(clip, target);
     case 'repeatStart': return toggleRepeatStart(clip, target.cursor);
     case 'repeatEnd': return cycleRepeatEnd(clip, target.cursor);
@@ -329,6 +337,10 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'dead': return note?.fret === null;
     case 'strokeDown': return column?.stroke === 'down';
     case 'strokeUp': return column?.stroke === 'up';
+    case 'strumDown': return column?.roll?.sign === 'strum' && column.roll.direction === 'down';
+    case 'strumUp': return column?.roll?.sign === 'strum' && column.roll.direction === 'up';
+    case 'rolledDown': return column?.roll?.sign === 'rolled' && column.roll.direction === 'down';
+    case 'rolledUp': return column?.roll?.sign === 'rolled' && column.roll.direction === 'up';
     case 'wah': return !!column?.wah;
     case 'whammy': return !!column?.whammy;
     case 'repeatStart': return !!bar?.repeatStart;

@@ -5,7 +5,7 @@
  */
 
 import type { MarkHit } from './marks';
-import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, ticks, timeAt, type BendQuarters, type Column, type Part, type Duration, type Note, type Ottava, type Slide, type TremoloValue, type BeamOverride } from './clip';
+import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALUES, barTicks, fewestRests, isRest, ticks, timeAt, type BendQuarters, type Column, type Part, type Duration, type Note, type Ottava, type Roll, type Slide, type TremoloValue, type BeamOverride } from './clip';
 import { readVoice } from './sounding';
 import { chainDuration, chainPlaces, chainStart, isTaken, lengthAnchor, takenNotes } from './ties';
 import { isBeamable, unbeamed } from './beams';
@@ -221,6 +221,27 @@ export function toggleStroke(clip: Part, target: Target, stroke: 'down' | 'up'):
   });
 }
 
+/** A Strum or Rolled chord kept as written (`{bd 60}` beside another), which a new one replaces. */
+const KEPT_ROLL = /^(bd|bu|ad|au)\b/;
+
+/**
+ * A Strum or Rolled chord on the target columns, in place of any other (a chord has one); the same one
+ * again takes it away. A length written for the one it replaces goes with it. Rests are left as they are.
+ */
+export function toggleRoll(clip: Part, target: Target, sign: Roll['sign'], direction: Roll['direction']): Part {
+  const now = columnAt(clip, target.cursor)?.roll;
+  const on = now?.sign !== sign || now.direction !== direction;
+  return changeColumns(clip, target, column => {
+    // A rest has no strings to roll across.
+    if (isRest(column)) return column;
+    const rest = without(column, 'roll');
+    if (!on) return rest;
+    const extra = rest.extra?.filter(e => !KEPT_ROLL.test(e));
+    const kept = extra?.length ? { ...rest, extra } : without(rest, 'extra');
+    return { ...kept, roll: { sign, direction } };
+  });
+}
+
 /* — note marks — */
 
 /**
@@ -350,6 +371,7 @@ export function removeMark(clip: Part, hit: MarkHit): Part {
     case 'staccato': return changeNotes(clip, wholeColumn, n => without(n, 'staccato'));
     case 'mordent': return changeNotes(clip, wholeColumn, n => without(n, 'mordent'));
     case 'stroke': return changeColumns(clip, wholeColumn, c => without(c, 'stroke'));
+    case 'roll': return changeColumns(clip, wholeColumn, c => without(c, 'roll'));
     case 'wah': return changeColumns(clip, wholeColumn, c => without(c, 'wah'));
     case 'whammy': return changeColumns(clip, wholeColumn, c => without(c, 'whammy'));
     case 'fermata': return changeColumns(clip, wholeColumn, c => without(c, 'fermata'));

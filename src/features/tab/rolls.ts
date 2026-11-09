@@ -38,7 +38,7 @@ export function sameRolls(a: Rolls, b: Rolls): boolean {
   return a.strokes === b.strokes && a.strums === b.strums && a.rolledChords === b.rolledChords;
 }
 
-/** A Strum or Rolled chord with its length written (`bd 60`, `au (120)`), which the settings leave as it is. */
+/** A Strum or Rolled chord kept as written (two on one beat) with a length, which the settings leave as it is, as they do `roll.length`. */
 const WRITTEN_LENGTH = /^(bd|bu|ad|au)\b\s*\S/;
 
 /**
@@ -52,7 +52,7 @@ export function rollChords(at: AlphaTab, score: Score, clip: Part, rolls: Rolls)
       const columns = columnsOf(clip, bar.index, voice.index);
       voice.beats.forEach((beat, k) => {
         const column = columns && columns.length === voice.beats.length ? columns[k] : undefined;
-        if (column?.extra?.some(e => WRITTEN_LENGTH.test(e))) return;
+        if (column?.roll?.length !== undefined || column?.extra?.some(e => WRITTEN_LENGTH.test(e))) return;
         if (beat.brushType === BrushType.BrushDown || beat.brushType === BrushType.BrushUp) {
           beat.brushDuration = rolls.strums * beat.playbackDuration;
         } else if (beat.brushType === BrushType.ArpeggioDown || beat.brushType === BrushType.ArpeggioUp) {

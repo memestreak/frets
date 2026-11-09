@@ -245,6 +245,15 @@ then "." and its duration:
                tab, over the staff when it is drawn alone. A chord with one
                plays as a slight strum, low string first for sd (the
                player's Settings set how much, or turn it off)
+    bd  bu     strum down / up: a straight arrow left of the chord on the
+               staff and the tab, pointing to the string the strum ends
+               on (bd starts on the low string, so its arrow points up).
+               Plays as a quick roll: (0.6 2.5 2.4 1.3 0.2 0.1).4{bd}.
+               bd 60 sets the roll's length in ticks; leave it out and
+               the player's Settings set it. One of bd bu ad au a beat.
+    ad  au     rolled chord down / up: a wavy arrow left of the chord, the
+               chord's strings played one after another across its beat,
+               ad from the low string up. ad 120 sets the length, as bd.
     wahc waho  the wah pedal closed (+) or open (o) from this beat, drawn
                over the music: 10.2.8{wahc} 8.1.16{waho}. Playback ignores it.
     cre  dec   getting louder / softer from this beat: neighbouring beats
@@ -585,8 +594,11 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    often not printed; it is still a tie, "-"); a wavy line to v, a
    wide or heavy one to vw; "P.M." to pm and "let ring" (or "l.r.") to lr
    on every note from where its line starts to its end tick, muted (x)
-   notes included; "P.H." or "PH" to ph; strum signs to sd / su (the
-   square or a down arrow is down, the V or an up arrow is up); a "+"
+   notes included; "P.H." or "PH" to ph; strum signs over the music to
+   sd / su (the square or a down arrow is down, the V or an up arrow is
+   up); an arrow standing beside a chord, along its strings, to bd / bu
+   (pointing up the tab or staff, to the high strings, is bd) and a wavy
+   line there to ad / au (its arrowhead at the top, or none, is ad); a "+"
    over a beat to wahc and an "o" to waho; a line from a fret down under
    the tab to a number in steps ("-6", "-1 1/2"), often under "w/ bar",
    to tb on that beat, four quarter tones a step: a slanted line from the
