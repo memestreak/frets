@@ -8,11 +8,11 @@ import { setUpPage, RIFF, TEX, renderAt, heading, alphaTexBox, alphaTexText, SLO
 setUpPage();
 
 describe('TabPage export', () => {
-  it('offers Insert ›, Delete bar and Insert paste on a right-click on the tab, Insert first', () => {
+  it('offers the bar menu on Shift+F10 with no note picked', () => {
     keepOpen((readAscii(RIFF) as { clip: unknown }).clip);
     renderAt();
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
-    const menu = screen.getByRole('menu', { name: 'Tab' });
+    const menu = screen.getByRole('menu', { name: 'Bar' });
     expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert›', 'Delete bar', 'Insert paste']);
   });
 

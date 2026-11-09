@@ -69,6 +69,14 @@ export function barSelection(clip: Part, bar: number): Selection {
   return { anchor: indexOf(clip, bar, 0), focus: indexOf(clip, bar, clip.bars[bar].columns.length - 1) };
 }
 
+/** Whether a selection starts on its first bar's first column and ends on its last bar's last. */
+export function coversWholeBars(clip: Part, selection: Selection): boolean {
+  const [from, to] = selectedRange(selection);
+  const first = placeOf(clip, from);
+  const last = placeOf(clip, to);
+  return first.column === 0 && last.column === clip.bars[last.bar].columns.length - 1;
+}
+
 /** The first and last selected places, in order. */
 export function selectedRange(selection: Selection): [number, number] {
   return [Math.min(selection.anchor, selection.focus), Math.max(selection.anchor, selection.focus)];

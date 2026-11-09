@@ -211,11 +211,12 @@ describe('picking on the page (issue #276)', () => {
     }
   });
 
-  it('opens the bar menu, not a picked thing’s, on a right-click off any word or mark', async () => {
+  it('opens the note menu, not a picked thing’s, on a right-click on a note off any word or mark', async () => {
     await open();
     const first = LAYOUT.systems[0].bars[0].columns[0];
     const y = LAYOUT.systems[0].top + LAYOUT.systems[0].rows.staffTop;
+    // The first column's 5 on the top string.
     press({ clientX: first.x, clientY: y }, 2);
-    expect(screen.getByRole('menu', { name: 'Tab' })).toBeInTheDocument();
+    expect(screen.getByRole('menu', { name: 'Note' })).toBeInTheDocument();
   });
 });

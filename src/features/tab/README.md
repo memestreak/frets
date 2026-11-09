@@ -557,8 +557,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   column wraps onto more lines
 - `docs/specs/2026-11-07-tab-short-text-under-chords-design.md`: a short
   Text goes under the chord names and their diagrams, a long one over
-- `docs/specs/2026-11-09-tab-delete-bars-menu-design.md`: the right-click
-  menu's Insert › (Bar before, Bar after) and Delete bar
+- `docs/specs/2026-11-09-tab-delete-bars-menu-design.md`: the bar menu
+  (Insert › Bar before or after, Delete bar) and the note menu on a right-click
 - `docs/specs/2026-11-09-tab-text-markdown-design.md`: `**bold**` and new
   lines in a Text; Ctrl/⌘+B and Shift+Enter in its field
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
