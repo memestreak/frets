@@ -310,8 +310,6 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
 }
 .settings-guide:focus { outline: none; }
 .settings-guide:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
-/* A secret drawn as dots without being a password field, which password managers offer to save as a login. */
-.settings-secret { -webkit-text-security: disc; text-security: disc; }
 /* Fields that belong together (a toggle and what it turns on), framed and named; their rows keep the pane's columns. */
 .settings-box {
   grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; gap: 12px 16px; align-items: center;
