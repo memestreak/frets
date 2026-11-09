@@ -1,0 +1,16 @@
+\title "A Text draws bold and new lines"
+\ts (4 4)
+0.6.4{txt "1. Tab view. These words are **bold**"} 2.5.4 3.4.4 0.3.4 |
+0.6.4{txt "2. Double-click this text:\nthe field shows the stars"} 2.5.4
+  3.4.4{txt "3. Double-click this text, select a word, then Ctrl/⌘+B"} 0.3.4 |
+0.6.4{txt "4. Press the Enter key:\nthat word is now bold"} 2.5.4
+  3.4.4{txt "5. Double-click, select the bold word, Ctrl/⌘+B again: it is plain"}
+  0.3.4 |
+0.6.4{txt "6. Double-click this text, put the caret after it"}
+  2.5.4{txt "7. Shift+Enter, type a word, Enter: it is on a new line"} 3.4.4
+  0.3.4 |
+0.6.4{ch "Am" txt "**let ring**"}
+  2.5.4{txt "8. A short bold Text stays under the chord name"} 3.4.4 0.3.4 |
+0.6.4{txt "9. Other marks stay as typed: *one star*, `code`, **open"} 2.5.4
+  3.4.4 0.3.4 |
+

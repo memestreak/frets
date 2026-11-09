@@ -43,7 +43,7 @@ export interface PlacedColumn {
   /** On the staff: its note heads, low to high, and which way its stem goes. */
   heads: Head[];
   stemUp: boolean;
-  /** Its free text, wrapped to the room before the next text on the line (`beatText.ts`); empty without one. */
+  /** Its free text's drawn letters (its Markdown marks left out), wrapped to the room before the next text on the line (`beatText.ts`); empty without one. */
   textLines: string[];
   /** The diagram drawn under its chord name, when Chord diagrams are on and its chord has a shape (issue #242). */
   diagram?: ShapedChord;

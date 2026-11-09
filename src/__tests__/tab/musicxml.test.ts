@@ -185,6 +185,15 @@ describe('the MusicXML file', () => {
     expect(texts(doc, 'direction words')).toEqual(['P.H.']);
   });
 
+  it('writes a Text with bold as a words per run, the bold ones font-weight bold, a new line kept (issues #446, #445)', () => {
+    const doc = docOf(clipOf('0.6.4{txt "Press **Esc**, *then*\\nDelete"} r.4 r.2 |'));
+    const runs = [...doc.querySelectorAll('direction-type')].filter(t => t.querySelector('words')).map(t => [...t.querySelectorAll('words')]);
+    expect(runs).toHaveLength(1);
+    expect(runs[0].map(w => [w.textContent, w.getAttribute('font-weight')])).toEqual([
+      ['Press ', null], ['Esc', 'bold'], [', *then*\nDelete', null],
+    ]);
+  });
+
   it('writes accents, staccato, the fermata, mordents, tremolo picking, strokes and the wah on the staff, once a chord', () => {
     const doc = docOf(clipOf('(5.2{hac} 7.3{hac}).4{sd} 5.2{st}.4{su fermata long} 5.2{umordent}.4{waho} 5.2{lmordent}.4{tp 16 wahc} |'));
     const staff = staffNotes(doc, 1);

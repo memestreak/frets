@@ -3,7 +3,10 @@
  * docs/specs/2026-11-03-tab-text-wrap-design.md).
  */
 import * as alphaTab from '@coderline/alphatab';
-import { BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_MAX_ROOM, BEAT_TEXT_MIN_ROOM, beatTextWidth, placeBeatTexts, wrapBeatText } from '@/features/tab/beatText';
+import {
+  BEAT_TEXT_GAP, BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_MAX_ROOM, BEAT_TEXT_MIN_ROOM, BOLD_WIDER, beatTextLines, beatTextWidth, placeBeatTexts, textGoesUnder,
+  wrapBeatText,
+} from '@/features/tab/beatText';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
@@ -221,5 +224,53 @@ describe('layoutClip wraps free text', () => {
     expect(box.y).toBeLessThanOrEqual(system.top + system.rows.text! - 8);
     expect(box.y + box.height).toBeGreaterThanOrEqual(system.top + lastLine + 8);
     expect(box.x + box.width).toBeLessThan(placedOf(layout)[2].x - BEAT_TEXT_INSET);
+  });
+});
+
+describe('bold and new lines in a Text (issues #446, #445)', () => {
+  it('measures the drawn letters, not the marks, and a bold letter 12% wider', () => {
+    expect(BOLD_WIDER).toBe(1.12);
+    expect(beatTextLines('**Esc**', ['Esc']).width).toBeCloseTo(3 * 5.6 * 1.12);
+    expect(beatTextLines('a **b**', ['a b']).width).toBeCloseTo(2 * 5.6 + 5.6 * 1.12);
+  });
+
+  it('wraps the drawn letters, and a bold run carries on to the next line', () => {
+    const lines = wrapBeatText('**press the first note, then press Delete**', 100);
+    expect(lines).toEqual(wrapBeatText('press the first note, then press Delete', 100 / 1.12));
+    expect(lines.join(' ')).toBe('press the first note, then press Delete');
+    const { runs } = beatTextLines('**press the first note, then press Delete**', lines);
+    expect(runs.every(line => line.every(run => run.bold))).toBe(true);
+  });
+
+  it('keeps the space a line broke at, so the text copies as typed, but not a new line', () => {
+    const { runs } = beatTextLines('one **two**\nthree', ['one', 'two', 'three']);
+    expect(runs).toEqual([
+      [{ text: 'one ', bold: false }],
+      [{ text: 'two', bold: true }],
+      [{ text: 'three', bold: false }],
+    ]);
+  });
+
+  it('starts a new line at each new line, and wraps within each', () => {
+    expect(wrapBeatText('1. Press this\n2. Then Delete', 1000)).toEqual(['1. Press this', '2. Then Delete']);
+    expect(wrapBeatText('a\n\nb', 1000)).toEqual(['a', '', 'b']);
+    expect(wrapBeatText(`${LONG}\nend`, 100)).toEqual([...wrapBeatText(LONG, 100), 'end']);
+  });
+
+  it('counts drawn letters for a short text under the chord names, and never puts one with a new line under', () => {
+    expect(textGoesUnder('**let ring throughout**', true)).toBe(true);
+    expect(textGoesUnder('let\nring', true)).toBe(false);
+  });
+
+  it('places and boxes a bold text by its drawn width', () => {
+    const plain = placeBeatTexts([{ x0: 0, text: 'press Delete twice' }], 1000).placed[0];
+    const bold = placeBeatTexts([{ x0: 0, text: '**press Delete twice**' }], 1000).placed[0];
+    expect(bold.lines).toEqual(plain.lines);
+    const layout = layoutClip(clipOf('0.6.4{txt "**press Delete twice**\\nnow"} r.4 r.2 |'), 800);
+    const placed = placedOf(layout).find(c => c.column.text)!;
+    expect(placed.textLines).toEqual(['press Delete twice', 'now']);
+    const box = textBox(layout, { kind: 'text', index: placed.index }, null)!;
+    // The box reaches 3px past the text at each end.
+    expect(box.width - 6).toBeCloseTo(18 * 5.6 * 1.12);
   });
 });

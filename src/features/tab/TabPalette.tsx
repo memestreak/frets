@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { mordentSign } from './marks';
-import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
+import { TOOL_GROUPS, toolValue, type noteKinds, type Tool, type ToolId } from './tools';
 import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
 import type { NoteValue } from './clip';
 import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy';
@@ -52,6 +52,44 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
    */
   voices?: { active: number | null; onVoice: (voice: number) => void; present: (voice: number) => boolean };
 }) {
+  /** One tool's button, or its button with a panel. */
+  const toolButton = (tool: Tool) => tool.id === 'bend' ? (
+    <PanelTool
+      key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
+      icon={<BendGlyph amount={kinds.bend ? BEND_AMOUNTS[kinds.bend] : ''} />} onPick={onBend} disabled={disabled}
+    />
+  ) : tool.id === 'tuplet' ? (
+    <PanelTool
+      key={tool.id} tool={tool}
+      // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
+      current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
+      icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
+    />
+  ) : tool.id === 'ottava' ? (
+    <PanelTool
+      key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
+      icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
+    />
+  ) : tool.id === 'whammy' ? (
+    <PanelTool
+      key={tool.id} tool={tool} pressed={kinds.whammy !== null}
+      current={kinds.whammy === 'other' ? null : kinds.whammy} choices={WHAMMY_SHAPE_IDS} label={s => WHAMMY_SHAPE_NAMES[s]}
+      icon={<WhammyGlyph />} onPick={onWhammy} disabled={disabled}
+    />
+  ) : (
+    <button
+      key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
+      aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
+      data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
+      // Keep the focus, and so the cursor, on the tab.
+      onMouseDown={e => e.preventDefault()}
+      onClick={() => onTool(tool.id)}
+    >
+      <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+        {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : tool.id === 'wah' ? <WahGlyph open={kinds.wah === 'open'} /> : ICONS[tool.id]}
+      </svg>
+    </button>
+  );
   const shown = groups ? TOOL_GROUPS.filter(group => groups.includes(group.label)) : TOOL_GROUPS;
   return (
     <div className={className ? `tab-palette ${className}` : 'tab-palette'} role="toolbar" aria-label="Symbols">
@@ -99,50 +137,24 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
           </div>
         </div>
       )}
-      {shown.map(group => (
-        <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
-          <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
-          <div className="tab-palette-tools">
-            {group.tools.map(tool => tool.id === 'bend' ? (
-              <PanelTool
-                key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
-                icon={<BendGlyph amount={kinds.bend ? BEND_AMOUNTS[kinds.bend] : ''} />} onPick={onBend} disabled={disabled}
-              />
-            ) : tool.id === 'tuplet' ? (
-              <PanelTool
-                key={tool.id} tool={tool}
-                // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
-                current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
-                icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
-              />
-            ) : tool.id === 'ottava' ? (
-              <PanelTool
-                key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
-                icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
-              />
-            ) : tool.id === 'whammy' ? (
-              <PanelTool
-                key={tool.id} tool={tool} pressed={kinds.whammy !== null}
-                current={kinds.whammy === 'other' ? null : kinds.whammy} choices={WHAMMY_SHAPE_IDS} label={s => WHAMMY_SHAPE_NAMES[s]}
-                icon={<WhammyGlyph />} onPick={onWhammy} disabled={disabled}
-              />
+      {shown.map(group => {
+        // The note values (Duration's) get a row of their own, shortest to longest; the group's other tools go under them.
+        const values = group.tools.filter(tool => toolValue(tool.id) !== undefined);
+        const others = group.tools.filter(tool => toolValue(tool.id) === undefined);
+        return (
+          <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
+            <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
+            {values.length > 0 ? (
+              <div className="tab-palette-rows">
+                <div className="tab-palette-tools tab-palette-values">{values.map(toolButton)}</div>
+                <div className="tab-palette-tools">{others.map(toolButton)}</div>
+              </div>
             ) : (
-              <button
-                key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
-                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
-                data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
-                // Keep the focus, and so the cursor, on the tab.
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => onTool(tool.id)}
-              >
-                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : tool.id === 'wah' ? <WahGlyph open={kinds.wah === 'open'} /> : ICONS[tool.id]}
-                </svg>
-              </button>
-            ))}
+              <div className="tab-palette-tools">{others.map(toolButton)}</div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
