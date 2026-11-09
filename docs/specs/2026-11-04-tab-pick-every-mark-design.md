@@ -44,6 +44,13 @@ its Handles are there to drag it to the length wanted (Jeremy,
 2026-11-09). Taking it off picks nothing. In note input mode the caret
 stays where it is.
 
+Two let ring (or P.M.) lines that touch are one line: alphaTex keeps
+`lr` and `pm` per note, so there is nowhere to say where one ends and
+the next begins, and Frets adds no comment line of its own for it. Let
+ring sounds as alphaTab plays it either way: a note rings until a rest,
+the next note on its string or a bar's time, wherever the line ends
+(Jeremy, 2026-11-09).
+
 ## Time and key signatures (Q3)
 
 A press on a time or key signature picks it, blue, as a chord name is
