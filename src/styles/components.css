@@ -295,6 +295,21 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
 .settings-row { display: contents; }
 /* A line of text (the Chat section's key and model). */
 .settings-text { width: 100%; max-width: 24rem; min-width: 0; font-family: var(--font-mono); }
+/* A prompt (the Chat section's instructions and custom prompt): as wide as the pane, taller by dragging. */
+.settings-textarea { width: 100%; min-width: 0; resize: vertical; font: 400 13px/19px var(--font-sans); padding-block: 8px; }
+.settings-prompt { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; }
+.settings-prompt-foot { display: flex; align-items: center; gap: 4px; min-height: var(--control-height); }
+.settings-prompt-note { flex: 1 1 auto; min-width: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
+.settings-prompt-btn { flex: none; white-space: nowrap; }
+/* A prompt's label stays by the box's first line, so unfolding the guide never moves it. */
+.settings-row:has(.settings-textarea) > .settings-label { align-self: start; padding-top: 9px; }
+/* The agent guide, read-only: its own scroll, never the pane's width. */
+.settings-guide {
+  width: 100%; min-width: 0; margin: 0; overflow: auto; resize: vertical; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-sunken); color: var(--ink); font: 400 12px/17px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.settings-guide:focus { outline: none; }
+.settings-guide:focus-visible { box-shadow: 0 0 0 2px var(--primary-soft); }
 /* A secret drawn as dots without being a password field, which password managers offer to save as a login. */
 .settings-secret { -webkit-text-security: disc; text-security: disc; }
 /* Fields that belong together (a toggle and what it turns on), framed and named; their rows keep the pane's columns. */
@@ -339,6 +354,9 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
   /* Label left, control right; a control too wide for the row goes under its label. */
   .settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
   .settings-box { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  /* A prompt always goes under its label, at the pane's full width. */
+  .settings-row:has(.settings-textarea) > .settings-label { padding-top: 0; }
+  .settings-row:has(.settings-textarea) > .settings-control { flex: 1 1 100%; }
 }
 
 /* The keyboard shortcuts overlay (`?`, issue #180). */

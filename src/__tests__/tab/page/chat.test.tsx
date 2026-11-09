@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { OPENROUTER_URL, MODELS_URL, PRESETS_URL } from '@/features/tab/chat/openRouter';
 import { BUILTIN_URL } from '@/features/tab/builtins';
-import { CHAT_KEY } from '@/features/tab/chat/chatPrefs';
+import { CHAT_KEY, DEFAULT_INSTRUCTIONS } from '@/features/tab/chat/chatPrefs';
 import { setUpPage, renderAt, alphaTex, undo, BUILTIN_FILES, SLOW } from './helpers';
 
 setUpPage();
@@ -65,7 +65,7 @@ describe('the Chat panel', () => {
     expect(key).toHaveClass('settings-secret');
     fireEvent.change(key, { target: { value: '  sk-or-typed ' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
-    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5' });
+    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5', instructions: null, custom: '' });
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeEnabled();
   });
 
@@ -176,5 +176,100 @@ describe('the Chat panel', () => {
     expect(within(chatPanel()).queryByRole('listbox')).toBeNull();
     fireEvent.change(within(chatPanel()).getByRole('combobox', { name: 'Model' }), { target: { value: 'openai/gpt-5' } });
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).model).toBe('openai/gpt-5');
+  });
+});
+
+// `docs/specs/2026-11-09-tab-chat-prompt-design.md` (issue #426): the prompt in Settings › Tab › Chat.
+/** A request's system prompt, sent as one text block marked for caching. */
+const systemText = (message: { content: unknown }) => (message.content as { text: string }[])[0].text;
+describe('the Chat prompt in Settings', () => {
+  const openChatSettings = async () => {
+    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(await screen.findByRole('treeitem', { name: 'Chat' }));
+    return screen.getByLabelText('Instructions') as HTMLTextAreaElement;
+  };
+  const saved = () => JSON.parse(localStorage.getItem(CHAT_KEY)!);
+
+  it('shows the default instructions; Reset shows only while they are edited, and puts the default back', async () => {
+    withKey();
+    serve();
+    renderAt(`?chat${TEX}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    const box = await openChatSettings();
+    expect(box.value).toBe(DEFAULT_INSTRUCTIONS);
+    expect(screen.queryByRole('button', { name: 'Reset to default' })).toBeNull();
+    fireEvent.change(box, { target: { value: 'Be brief.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
+    expect(box.value).toBe(DEFAULT_INSTRUCTIONS);
+    expect(screen.queryByRole('button', { name: 'Reset to default' })).toBeNull();
+    // Typed back word for word is not an edit.
+    fireEvent.change(box, { target: { value: 'Be brief.' } });
+    fireEvent.change(box, { target: { value: DEFAULT_INSTRUCTIONS } });
+    expect(screen.queryByRole('button', { name: 'Reset to default' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(saved()).toMatchObject({ instructions: null, custom: '' });
+  });
+
+  it('saves edited instructions as typed; a double-click on the label resets them', async () => {
+    withKey();
+    serve();
+    renderAt(`?chat${TEX}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    let box = await openChatSettings();
+    fireEvent.change(box, { target: { value: ' Be brief. ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(saved().instructions).toBe(' Be brief. ');
+    box = await openChatSettings();
+    expect(box.value).toBe(' Be brief. ');
+    fireEvent.doubleClick(screen.getByText('Instructions'));
+    expect(box.value).toBe(DEFAULT_INSTRUCTIONS);
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(saved().instructions).toBeNull();
+  });
+
+  it('unfolds the guide read-only with Show, and folds it with Hide', async () => {
+    withKey();
+    serve();
+    renderAt(`?chat${TEX}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    await openChatSettings();
+    expect(screen.queryByLabelText('The alphaTex guide')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show guide' }));
+    const guide = screen.getByLabelText('The alphaTex guide') as HTMLTextAreaElement;
+    await waitFor(() => expect(guide.value).toBe('THE GUIDE'));
+    expect(guide.readOnly).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide guide' }));
+    expect(screen.queryByLabelText('The alphaTex guide')).toBeNull();
+  });
+
+  it('keeps Settings open on Enter in the Custom prompt box', async () => {
+    withKey();
+    serve();
+    renderAt(`?chat${TEX}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    await openChatSettings();
+    const custom = screen.getByLabelText('Custom prompt');
+    fireEvent.keyDown(custom, { key: 'Enter' });
+    expect(screen.getByLabelText('Custom prompt')).toBeInTheDocument();
+  });
+
+  it('sends a custom prompt saved mid-conversation with the next message', async () => {
+    withKey();
+    const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
+    renderAt(`?chat${TEX}`);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(railButton('Chat')!);
+    ask('What rhythm is this?');
+    await within(chatPanel()).findByText('Four quarter notes a bar.');
+    expect(systemText(sent[0].body.messages[0])).toBe(`${DEFAULT_INSTRUCTIONS}\n\nTHE GUIDE`);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(await screen.findByRole('treeitem', { name: 'Chat' }));
+    fireEvent.change(screen.getByLabelText('Custom prompt'), { target: { value: 'Answer in Spanish.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    ask('And bar 2?');
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(systemText(sent[1].body.messages[0])).toBe(`${DEFAULT_INSTRUCTIONS}\n\nTHE GUIDE\n\nThe guitarist's own instructions:\nAnswer in Spanish.`);
+    expect(sent[1].body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
   });
 });

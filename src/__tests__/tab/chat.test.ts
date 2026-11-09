@@ -3,9 +3,9 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { clipReducer, type ClipState } from '@/features/tab/clipState';
 import { describeArrangement, runTool, spliceBars, TOOLS, type PageSpot } from '@/features/tab/chat/arrangementTools';
-import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_MODEL, parseChatPrefs, readChatParam } from '@/features/tab/chat/chatPrefs';
+import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_INSTRUCTIONS, DEFAULT_MODEL, parseChatPrefs, readChatParam } from '@/features/tab/chat/chatPrefs';
 import { ChatError, errorText, fetchPresets, PRESETS_URL, readCompletion, wireMessages, type ChatMessage, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
-import { askWithArrangement, MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
+import { askWithArrangement, CUSTOM_HEADING, MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
 import { runsOf, usageLine } from '@/features/tab/chat/ChatPanel';
 import type { Clip } from '@/features/tab/clip';
 
@@ -203,6 +203,25 @@ describe('one reply', () => {
 
   it('puts the agent guide after its own instructions', () => {
     expect(systemPrompt('GUIDE TEXT')).toMatch(/Frets[\s\S]*Undo[\s\S]*\n\nGUIDE TEXT$/);
+    expect(systemPrompt('GUIDE TEXT')).toBe(`${DEFAULT_INSTRUCTIONS}\n\nGUIDE TEXT`);
+  });
+});
+
+// `docs/specs/2026-11-09-tab-chat-prompt-design.md` (issue #426): the prompt's editable parts.
+describe('the system prompt from Settings', () => {
+  it('sends edited instructions in place of the default, the guide still after them', () => {
+    expect(systemPrompt('GUIDE', { instructions: 'Only talk about fingering.', custom: '' })).toBe('Only talk about fingering.\n\nGUIDE');
+  });
+
+  it('sends the guide alone when the instructions are cleared', () => {
+    expect(systemPrompt('GUIDE', { instructions: '', custom: '' })).toBe('GUIDE');
+  });
+
+  it('puts the custom prompt last, under its heading; spaces alone send nothing', () => {
+    expect(CUSTOM_HEADING).toBe("The guitarist's own instructions:");
+    expect(systemPrompt('GUIDE', { instructions: null, custom: 'Suggest beginner fingerings.' }))
+      .toBe(`${DEFAULT_INSTRUCTIONS}\n\nGUIDE\n\nThe guitarist's own instructions:\nSuggest beginner fingerings.`);
+    expect(systemPrompt('GUIDE', { instructions: null, custom: '  \n ' })).toBe(`${DEFAULT_INSTRUCTIONS}\n\nGUIDE`);
   });
 });
 
@@ -254,10 +273,21 @@ describe('OpenRouter', () => {
 describe('Settings › Tab › Chat', () => {
   it('keeps a key and model as saved, trimmed, and falls back to Opus 5.5', () => {
     expect(CHAT_KEY).toBe('frets.tab.chat');
-    expect(parseChatPrefs({ apiKey: ' sk-or-1 ', model: ' openai/gpt-5 ' })).toEqual({ apiKey: 'sk-or-1', model: 'openai/gpt-5' });
+    expect(parseChatPrefs({ apiKey: ' sk-or-1 ', model: ' openai/gpt-5 ' })).toEqual({ ...DEFAULT_CHAT, apiKey: 'sk-or-1', model: 'openai/gpt-5' });
     expect(parseChatPrefs(null)).toEqual(DEFAULT_CHAT);
-    expect(parseChatPrefs({ apiKey: 3, model: '  ' })).toEqual({ apiKey: '', model: DEFAULT_MODEL });
+    expect(parseChatPrefs({ apiKey: 3, model: '  ' })).toEqual({ ...DEFAULT_CHAT, apiKey: '', model: DEFAULT_MODEL });
     expect(DEFAULT_MODEL).toBe('anthropic/claude-opus-5.5');
+  });
+
+  it('keeps the prompts as typed, and instructions equal to the default as none', () => {
+    expect(DEFAULT_CHAT.instructions).toBeNull();
+    expect(DEFAULT_CHAT.custom).toBe('');
+    expect(parseChatPrefs({ instructions: DEFAULT_INSTRUCTIONS }).instructions).toBeNull();
+    expect(parseChatPrefs({ instructions: '  Be brief.\n' }).instructions).toBe('  Be brief.\n');
+    expect(parseChatPrefs({ instructions: '' }).instructions).toBe('');
+    expect(parseChatPrefs({ instructions: 7 }).instructions).toBeNull();
+    expect(parseChatPrefs({ custom: ' Use drop D. ' }).custom).toBe(' Use drop D. ');
+    expect(parseChatPrefs({ custom: ['x'] }).custom).toBe('');
   });
 
   it('shows the panel only for ?chat', () => {
