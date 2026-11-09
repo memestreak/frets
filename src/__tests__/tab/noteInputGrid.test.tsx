@@ -306,12 +306,39 @@ describe('note input mode’s grid (issue #293)', () => {
     keys(altKey('KeyG'));
     await waitFor(() => expect(savedFixed()).toBe(false));
     fireEvent.click(gridButton());
-    expect(screen.getByRole('button', { name: 'Note length' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Follow note length' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'None' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Quarter' }));
     await waitFor(() => expect([savedFixed(), savedGrid()]).toEqual([true, 4]));
     fireEvent.click(gridButton());
-    fireEvent.click(screen.getByRole('button', { name: 'Note length' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Follow note length' }));
     await waitFor(() => expect(savedFixed()).toBe(false));
+  });
+});
+
+describe('the Grid button beside the pencil (issue #449)', () => {
+  it('sits right after the note input mode pencil, not in Duration', async () => {
+    await open();
+    const input = screen.getByRole('group', { name: 'Input' });
+    const buttons = within(input).getAllByRole('button');
+    expect(buttons[0]).toHaveAccessibleName('Note input mode');
+    expect(buttons[1]).toBe(gridButton());
+    expect(within(screen.getByRole('group', { name: 'Duration' })).queryByRole('button', { name: /^Note input grid/ })).toBeNull();
+  });
+
+  it('names its setting: Follow note length, then the fixed grid picked or stepped to', async () => {
+    await open();
+    expect(gridButton()).toHaveAccessibleName('Note input grid: Follow note length');
+    expect(gridButton()).toHaveTextContent(/^Follow note length/);
+    fireEvent.click(gridButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Thirty-second' }));
+    await waitFor(() => expect(gridButton()).toHaveAccessibleName('Note input grid: Thirty-second'));
+    expect(gridButton()).toHaveTextContent(/^Thirty-second/);
+    // Alt+] from a 32nd makes it a 16th, and the button says so.
+    keys(altKey('BracketRight'));
+    await waitFor(() => expect(gridButton()).toHaveAccessibleName('Note input grid: Sixteenth'));
+    // Alt+G goes back to following note input mode's length.
+    keys(altKey('KeyG'));
+    await waitFor(() => expect(gridButton()).toHaveAccessibleName('Note input grid: Follow note length'));
   });
 });

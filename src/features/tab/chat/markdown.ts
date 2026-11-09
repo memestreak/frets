@@ -197,22 +197,40 @@ export function safeHref(href: string): string | null {
   }
 }
 
+/**
+ * Which marks a run of text may hold. A chat reply takes them all; a Tab Text over a column takes only
+ * `**bold**` or `__bold__` (issue #446), so its italics, code, strike and links stay as typed, a new
+ * line is a letter like any other, and only a star, an underscore or a backslash can be escaped.
+ */
+export interface InlineRules {
+  /** Only bold. */
+  boldOnly?: boolean;
+  /** Inside a link's words, where another link is text. */
+  inLink?: boolean;
+}
+
+const BOLD_ESCAPES = /[*_\\]/;
+
 /** One paragraph's or cell's text as inlines; a newline is a line break, as the plain reply showed it. */
-export function parseInlines(text: string, inLink = false): Inline[] {
+export function parseInlines(text: string, rules: InlineRules = {}): Inline[] {
+  const { boldOnly = false, inLink = false } = rules;
   const out: Inline[] = [];
   let plain = '';
   const flush = () => { if (plain) { out.push({ kind: 'text', text: plain }); plain = ''; } };
   const push = (inline: Inline) => { flush(); out.push(inline); };
+  const escapes = boldOnly ? BOLD_ESCAPES : PUNCTUATION;
+  // Links, code, strike and line breaks are read only in a chat reply.
+  const full = !boldOnly;
 
   let i = 0;
   while (i < text.length) {
     const ch = text[i];
     const rest = text.slice(i);
 
-    if (ch === '\\' && i + 1 < text.length && PUNCTUATION.test(text[i + 1])) { plain += text[i + 1]; i += 2; continue; }
-    if (ch === '\n') { push({ kind: 'break' }); i++; continue; }
+    if (ch === '\\' && i + 1 < text.length && escapes.test(text[i + 1])) { plain += text[i + 1]; i += 2; continue; }
+    if (full && ch === '\n') { push({ kind: 'break' }); i++; continue; }
 
-    if (ch === '`') {
+    if (full && ch === '`') {
       const run = /^`+/.exec(rest)![0];
       const end = text.indexOf(run, i + run.length);
       // A longer run of backticks isn't a closer for this one.
@@ -228,11 +246,11 @@ export function parseInlines(text: string, inLink = false): Inline[] {
       continue;
     }
 
-    if (!inLink && (ch === '[' || (ch === '!' && text[i + 1] === '['))) {
+    if (full && !inLink && (ch === '[' || (ch === '!' && text[i + 1] === '['))) {
       const link = readLink(text, ch === '!' ? i + 1 : i);
       if (link) {
         const href = safeHref(link.href);
-        const children = parseInlines(link.label, true);
+        const children = parseInlines(link.label, { inLink: true });
         // An image is shown as a link to it: the panel never loads pictures from a reply.
         if (href) push({ kind: 'link', href, children: children.length ? children : [{ kind: 'text', text: href }] });
         else { flush(); out.push(...children); }
@@ -241,13 +259,13 @@ export function parseInlines(text: string, inLink = false): Inline[] {
       }
     }
 
-    if (!inLink && ch === '<') {
+    if (full && !inLink && ch === '<') {
       const auto = /^<((?:https?:\/\/|mailto:)[^\s<>]+)>/.exec(rest);
       const href = auto && safeHref(auto[1]);
       if (auto && href) { push({ kind: 'link', href, children: [{ kind: 'text', text: auto[1] }] }); i += auto[0].length; continue; }
     }
 
-    if (!inLink && (ch === 'h' || ch === 'm') && !/\w/.test(text[i - 1] ?? '')) {
+    if (full && !inLink && (ch === 'h' || ch === 'm') && !/\w/.test(text[i - 1] ?? '')) {
       const bare = BARE_URL.exec(rest);
       if (bare) {
         const url = trimUrl(bare[0]);
@@ -256,8 +274,8 @@ export function parseInlines(text: string, inLink = false): Inline[] {
       }
     }
 
-    if (ch === '*' || ch === '_' || ch === '~') {
-      const emphasis = readEmphasis(text, i);
+    if (ch === '*' || ch === '_' || (full && ch === '~')) {
+      const emphasis = readEmphasis(text, i, rules);
       if (emphasis) { push(emphasis.inline); i = emphasis.end; continue; }
       // An unmatched run stays as typed.
       const run = new RegExp(`^\\${ch}+`).exec(rest)![0];
@@ -314,7 +332,7 @@ function trimUrl(url: string): string {
  * (del). The opener is followed by a non-space and the closer preceded by one; `_` never works
  * inside a word, so snake_case stays as typed.
  */
-function readEmphasis(text: string, at: number): { inline: Inline; end: number } | null {
+function readEmphasis(text: string, at: number, rules: InlineRules): { inline: Inline; end: number } | null {
   const ch = text[at];
   const run = new RegExp(`^\\${ch}+`).exec(text.slice(at))![0];
   const tries: { delim: string; wrap: (children: Inline[]) => Inline }[] =
@@ -326,23 +344,23 @@ function readEmphasis(text: string, at: number): { inline: Inline; end: number }
           { delim: ch, wrap: children => ({ kind: 'em', children }) },
         ];
   for (const { delim, wrap } of tries) {
-    if (run.length < delim.length) continue;
+    if (run.length < delim.length || (rules.boldOnly && delim.length !== 2)) continue;
     const start = at + delim.length;
     // The opener takes its whole run: "**open" is never an empty em.
     if (start >= text.length || /\s/.test(text[start]) || text[start] === ch) continue;
     if (ch === '_' && /\w/.test(text[at - 1] ?? '')) return null;
-    const end = findCloser(text, start, delim);
+    const end = findCloser(text, start, delim, rules);
     if (end === -1) continue;
-    return { inline: wrap(parseInlines(text.slice(start, end))), end: end + delim.length };
+    return { inline: wrap(parseInlines(text.slice(start, end), { boldOnly: rules.boldOnly })), end: end + delim.length };
   }
   return null;
 }
 
-function findCloser(text: string, from: number, delim: string): number {
+function findCloser(text: string, from: number, delim: string, rules: InlineRules): number {
   const ch = delim[0];
   for (let i = from; i < text.length; i++) {
     if (text[i] === '\\') { i++; continue; }
-    if (text[i] === '`') {
+    if (!rules.boldOnly && text[i] === '`') {
       // Code spans hide their contents from emphasis.
       const run = /^`+/.exec(text.slice(i))![0];
       const end = text.indexOf(run, i + run.length);

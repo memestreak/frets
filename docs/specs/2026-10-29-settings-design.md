@@ -52,7 +52,7 @@ The dialog is shaped like REAPER's Preferences.
 
 | Group › Section | Fields | Saved under |
 |---|---|---|
-| General › Appearance | Theme: Auto / Light / Dark | `frets.general.appearance` |
+| General › Appearance | Theme: Auto / Light / Dark (Light by default; `2026-11-09-light-default-theme-design.md`) | `frets.general.appearance` |
 | Tab › Playback | Show playback controls, Volume, Transpose, Hear notes as you enter them, Stop leaves the cursor where it stopped, Stop playback at region end, Pause between loops, Pause length (Play's right-click menu) | `frets.tab.playback` |
 | Tab › Metronome | Metronome, Count in, Count-in bars, Click volume (the Metronome toggle's right-click menu) | `frets.tab.metronome` |
 | Tab › Notation | Show (Staff / Tab / Both), Bar numbers, Size, Clip's line breaks | `frets.tab.notation` |

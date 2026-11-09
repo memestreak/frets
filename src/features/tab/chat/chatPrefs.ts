@@ -61,11 +61,3 @@ export function parseChatPrefs(raw: unknown): ChatPrefs {
   const custom = typeof saved.custom === 'string' ? saved.custom : DEFAULT_CHAT.custom;
   return { apiKey, model, instructions, custom };
 }
-
-/** The query parameter that shows the Chat panel while it is unfinished (Q8): `/tab?chat`. */
-export const CHAT_PARAM = 'chat';
-
-/** Whether the address asks for the Chat panel: `?chat`, with any value or none. */
-export function readChatParam(search: string): boolean {
-  return new URLSearchParams(search).has(CHAT_PARAM);
-}

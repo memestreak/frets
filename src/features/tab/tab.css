@@ -349,6 +349,11 @@
 .tab-editor { position: relative; cursor: text; }
 .tab-palette { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .tab-palette-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+/* Duration's two rows: the note values, shortest to longest, over the grid, dot and rest. */
+.tab-palette-rows { display: grid; gap: 2px; }
+/* The note values stay on one row: in a narrow rail panel (224px) the buttons narrow to fit, never wrap. */
+.tab-palette-values { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 30px); justify-content: start; }
+.tab-palette-values .tab-tool { width: 100%; }
 /* Each group's name, 6px over its buttons. */
 .tab-palette-label {
   display: block; margin-bottom: 6px;
@@ -385,6 +390,8 @@
   transform: translateX(-50%); color: var(--ink);
 }
 .tab-word-input { width: 100%; }
+/* The Text field: a line until Shift+Enter adds more (issue #445), never dragged bigger. */
+.tab-word-text { display: block; resize: none; line-height: 1.4; }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
 .tab-word-fit { width: auto; white-space: nowrap; }
@@ -398,6 +405,11 @@
 .tab-bar-fix { gap: 8px; }
 .tab-bar-fix-text { font-size: 13px; max-width: 280px; color: var(--ink-muted); }
 .tab-tool { width: 30px; height: 30px; padding: 0; }
+/* The Grid button: its glyph, then its setting in words, as wide as the longest so nothing moves (issue #449). */
+.tab-tool.tab-tool-worded { width: auto; min-width: 30px; gap: 2px; padding: 0 8px 0 3px; }
+.tab-tool-caption { display: inline-grid; font-size: 12px; font-weight: 600; white-space: nowrap; text-align: left; }
+.tab-tool-caption > span { grid-area: 1 / 1; }
+.tab-tool-caption-room { visibility: hidden; }
 /* A lit tool is in the selection's denim, as what it applies to is (issue #276), not the primary red. */
 .tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
@@ -520,6 +532,17 @@
   content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
 }
 .tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
+/* The Chat button while a reply runs (issue #442): three dots in the bubble pulse one after another, in the button's own muted ink. */
+.tab-rail-typing circle { animation: tab-rail-typing 1.2s ease-in-out infinite; }
+.tab-rail-typing circle:nth-child(2) { animation-delay: 0.2s; }
+.tab-rail-typing circle:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tab-rail-typing { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tab-rail-typing circle { animation: none; } }
+/* A reply that ended while the panel was closed: a small dot on the button's corner until Chat opens. */
+.tab-rail-button[data-status='unread']::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
 /* The page fills the window over the footer, and the rail's row takes the spare height, so the open
    panel can run down to the footer without making a short clip's page scroll. */
 main:has(> .tab-page) { display: flex; flex-direction: column; }

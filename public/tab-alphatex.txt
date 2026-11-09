@@ -280,7 +280,13 @@ then "." and its duration:
                ("let ring", "P.M.") is drawn under the names and their
                diagrams, a longer one over them. Write words
                printed over the tab that aren't a chord name, section or
-               tempo ("rit.", "harm.", "fade out") this way.
+               tempo ("rit.", "harm.", "fade out") this way. **Two
+               stars** round words draw them bold (__two underscores__
+               too), the stars not drawn and not counted; \\* in the
+               string is a star drawn as typed. Every other mark
+               (*one star*, `code`, links) is drawn as typed. \n starts
+               a new line: {txt "1. Press **this**\n2. Then Delete"};
+               a text with one is always drawn over the chord names.
     lyrics "Hel-"  the syllable sung on this beat, drawn under it: under
                the staff, between the staff and the tab when both are
                drawn, under the tab alone. Put one on each sung note,

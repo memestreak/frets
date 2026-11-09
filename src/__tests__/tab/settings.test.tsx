@@ -49,7 +49,7 @@ describe('Settings', () => {
     // Most used first (G3).
     const tab = inDialog().getByRole('treeitem', { name: /^Tab/ });
     expect(within(tab).getAllByRole('treeitem').map(i => i.textContent))
-      .toEqual(['Playback', 'Metronome', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export']);
+      .toEqual(['Playback', 'Metronome', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export', 'Chat']);
   });
 
   it('stages changes: Apply saves and stays, Cancel drops them, and Apply is enabled only while something differs', () => {
@@ -136,7 +136,7 @@ describe('Settings', () => {
     openSettings();
     fireEvent.click(section('Editing'));
     const follows = inDialog().getByRole('group', { name: 'Note input grid' });
-    expect(within(follows).getByRole('button', { name: 'Note length' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(follows).getByRole('button', { name: 'Follow note length' })).toHaveAttribute('aria-pressed', 'true');
     const fixed = inDialog().getByRole('group', { name: 'Fixed grid' });
     expect(within(fixed).getByRole('button', { name: 'Eighth' })).toBeDisabled();
     fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));

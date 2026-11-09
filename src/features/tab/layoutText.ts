@@ -7,7 +7,7 @@ import { barLineAt, barLineBox, isBarLine, type BarLineHit } from './barLines';
 import { type Tempo } from './clip';
 import { BAR_TEXT_INSET, boldTextWidth, SECTION_BOX_HEIGHT, SECTION_LINE, sectionBoxes, sectionTextWidth } from './sectionText';
 import { tempoNoteWidth } from './TempoNote';
-import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextWidth } from './beatText';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextLines } from './beatText';
 import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System } from './layout';
 import { textRowOf } from './rows';
@@ -18,7 +18,7 @@ import { LYRIC_LINE, lyricWidth, syllableOf } from './lyrics';
 function beatTextBox(placed: PlacedColumn, textRow: number): { x0: number; x1: number; y0: number; y1: number } {
   const x0 = placed.x - BEAT_TEXT_INSET;
   const y0 = textRow + placed.textTop * BEAT_TEXT_LINE;
-  return { x0, x1: x0 + Math.max(0, ...placed.textLines.map(beatTextWidth)), y0, y1: y0 + (placed.textLines.length - 1) * BEAT_TEXT_LINE };
+  return { x0, x1: x0 + beatTextLines(placed.column.text ?? '', placed.textLines).width, y0, y1: y0 + (placed.textLines.length - 1) * BEAT_TEXT_LINE };
 }
 
 /**

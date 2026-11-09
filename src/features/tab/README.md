@@ -152,7 +152,11 @@ and in its spec.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
   which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`; and
   `textGoesUnder`, which puts a short one under the chord names (`Rows.textUnder`) —
-  `2026-11-07-tab-short-text-under-chords-design.md`.
+  `2026-11-07-tab-short-text-under-chords-design.md`; and `beatTextLines`, the
+  wrapped lines as bold and plain runs to draw — `2026-11-09-tab-text-markdown-design.md`.
+- `textMarks.ts` — a Text's `**bold**` read by the Chat panel's Markdown
+  reader with only bold on, and `toggleBold` for Ctrl/⌘+B in the Text field —
+  `2026-11-09-tab-text-markdown-design.md`.
 - `sectionText.ts` — a section over its bar: its size, `sectionBoxes`, and
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
@@ -312,9 +316,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Palette, panels and fields
 
-- `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`).
-- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and, with `?chat`, Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout` with the panels' width, set by dragging the line between the panel and the clip (`docs/specs/2026-11-08-tab-rail-width-design.md`, issue #431); it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
-- `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424), shown with `?chat`: `ChatPanel.tsx` the panel; `markdown.ts` and `ReplyMarkdown.tsx` a reply's markdown read and drawn as elements, never HTML (`docs/specs/2026-11-08-tab-chat-markdown-design.md`, issue #427); `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the instructions, the agent guide, the custom prompt; `docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426); `guide.ts` the agent guide fetched once a visit; `promptFields.tsx` Settings' Instructions and Custom prompt fields; `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`, with the default instructions) and `?chat`.
+- `TabPalette.tsx` — the symbol palette, Guitar Pro style, from `tools.ts`; draws all its groups or only some (`groups`); Duration's note values get a row of their own, shortest to longest (`docs/specs/2026-11-09-tab-duration-row-design.md`); the Input group holds the note input mode pencil and, after it, the Grid button naming its setting (`2026-11-01-tab-note-input-grid-design.md`, issue #449).
+- `TabRail.tsx` — the tools in a rail of panels on the clip's left, as Dorico has them: Notes (note input mode and the Grid, Duration, Rhythm), Articulations (Joins, Bends, Techniques, Accents), Bars (Bars, Text), Chords (`ChordPanel.tsx`) and Chat (`chat/ChatPanel.tsx`), one open at a time and kept across visits in `frets.tab.layout` with the panels' width, set by dragging the line between the panel and the clip (`docs/specs/2026-11-08-tab-rail-width-design.md`, issue #431); it grows into the page's left margin, so the clip keeps its right edge (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301).
+- `chat/` — the Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): `ChatPanel.tsx` the panel; `useChatSession.ts` its conversation and running reply, held by the page so they outlast the panel, and the status the rail's Chat button shows (issue #442); `markdown.ts` and `ReplyMarkdown.tsx` a reply's markdown read and drawn as elements, never HTML (`docs/specs/2026-11-08-tab-chat-markdown-design.md`, issue #427); `reply.ts` one reply's loop of model calls and tool runs, and the system prompt (the instructions, the agent guide, the custom prompt; `docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426); `guide.ts` the agent guide fetched once a visit; `promptFields.tsx` Settings' Instructions and Custom prompt fields; `arrangementTools.ts` the tools a model gets (read the arrangement with numbered bars, replace a run of bars or the whole) and how each is checked by the alphaTex reader; `openRouter.ts` the call to OpenRouter from the browser with the viewer's key; `chatPrefs.ts` Settings › Tab › Chat (`frets.tab.chat`, with the default instructions).
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, as many to a row as the panel's width holds and two rows to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
@@ -328,7 +332,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
 - `barPanel.ts` — keeps the bar panels inside the tab.
 - `WordField.tsx` — the field over the tab for a chord name, text, section,
-  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`.
+  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`; the
+  Text's is a textarea taking Shift+Enter and Ctrl/⌘+B —
+  `2026-11-09-tab-text-markdown-design.md`.
 - `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
@@ -454,13 +460,16 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 - `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
   the open Rail panel and the clip to set every panel's width, 224 to 560px,
   kept across visits (issue #431)
+- `docs/specs/2026-11-09-tab-duration-row-design.md`: the palette's note
+  values on a row of their own, shortest to longest, over the Grid button,
+  dot and rest
 - `docs/specs/2026-11-09-tab-chat-prompt-design.md`: Settings › Tab › Chat
   edits the system prompt's instructions (with Reset to default), shows the
   alphaTex guide read-only, and adds a custom prompt sent last (issue #426)
 - `docs/specs/2026-11-08-tab-chat-markdown-design.md`: the Chat panel draws
   a reply's markdown, links in a new tab, never raw HTML (issue #427)
-- `docs/specs/2026-11-08-tab-chat-design.md`: the Chat panel, behind
-  `?chat`: ask a model through OpenRouter about the arrangement or for a
+- `docs/specs/2026-11-08-tab-chat-design.md`: the Chat panel, on
+  the rail for everyone since 2026-11-09: ask a model through OpenRouter about the arrangement or for a
   change; each reply's changes are one Undo step (issue #424)
 - `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`: Delete and cut
   leave rests that keep the column's text, chord name and other marks of
@@ -524,6 +533,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   column wraps onto more lines
 - `docs/specs/2026-11-07-tab-short-text-under-chords-design.md`: a short
   Text goes under the chord names and their diagrams, a long one over
+- `docs/specs/2026-11-09-tab-text-markdown-design.md`: `**bold**` and new
+  lines in a Text; Ctrl/⌘+B and Shift+Enter in its field
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
 - `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input mode's grid,

@@ -6,14 +6,17 @@ import { setUpPage, renderAt, alphaTex, undo, BUILTIN_FILES, SLOW } from './help
 
 setUpPage();
 
-// `docs/specs/2026-11-08-tab-chat-design.md` (issue #424): the Chat panel, behind ?chat.
+// `docs/specs/2026-11-08-tab-chat-design.md` (issue #424): the Chat panel.
 const TEX = `#tab=${encodeURIComponent('\\title "Four"\n:4 0.6 1.6 2.6 3.6 | 5.6 6.6 7.6 8.6 |')}`;
 const railButton = (name: string) => screen.queryByRole('button', { name });
 const chatPanel = () => screen.getByRole('complementary', { name: 'Chat' });
 const call = (id: string, name: string, args: object) => ({ id, type: 'function', function: { name, arguments: JSON.stringify(args) } });
 
-/** Serves the built-ins, the guide, the model list and OpenRouter's answers, one per request, in order. */
-function serve(...answers: object[]) {
+/**
+ * Serves the built-ins, the guide, the model list and OpenRouter's answers, one per request, in order. An answer
+ * may be a promise, to hold the reply until the test resolves it; Stop rejects it, as a real request is.
+ */
+function serve(...answers: (object | Promise<object>)[]) {
   const sent: { headers: Record<string, string>; body: { model: string; messages: { role: string; content: string | null }[] } }[] = [];
   vi.stubGlobal('fetch', vi.fn(async (url: unknown, init?: RequestInit) => {
     const at = String(url);
@@ -27,7 +30,11 @@ function serve(...answers: object[]) {
     }
     if (at === OPENROUTER_URL) {
       sent.push({ headers: init?.headers as Record<string, string>, body: JSON.parse(String(init?.body)) });
-      const answer = answers[Math.min(sent.length - 1, answers.length - 1)];
+      const signal = init?.signal;
+      const answer = await new Promise<object>((resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason));
+        void Promise.resolve(answers[Math.min(sent.length - 1, answers.length - 1)]).then(resolve);
+      });
       return new Response(JSON.stringify(answer), { status: 'status' in answer ? (answer as { status: number }).status : 200 });
     }
     throw new Error(`Not fetched in tests: ${at}`);
@@ -43,18 +50,19 @@ const ask = (text: string) => {
 };
 
 describe('the Chat panel', () => {
-  it('is not on the rail, nor in Settings, without ?chat', async () => {
+  it('is on the rail after Chords, and in Settings, with no flag in the address', async () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    expect(railButton('Chat')).toBeNull();
+    const names = within(screen.getByRole('navigation', { name: 'Panels' })).getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    expect(names.slice(-2)).toEqual(['Chords', 'Chat']);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(screen.queryByRole('treeitem', { name: 'Chat' })).toBeNull();
+    expect(screen.getByRole('treeitem', { name: 'Chat' })).toBeInTheDocument();
   });
 
-  it('with ?chat and no key, asks for one and opens Settings at Tab › Chat', async () => {
+  it('with no key, asks for one and opens Settings at Tab › Chat', async () => {
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
@@ -76,7 +84,7 @@ describe('the Chat panel', () => {
       reply({ content: null, tool_calls: [call('b', 'replace_bars', { track: 1, first_bar: 2, last_bar: 2, alphatex: ':1 9.5 |' })] }),
       reply({ content: 'Both bars are whole notes now.' }),
     );
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -107,7 +115,7 @@ describe('the Chat panel', () => {
   it('keeps the conversation for the next ask, and New chat forgets it', async () => {
     withKey();
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     ask('What rhythm is this?');
@@ -129,7 +137,7 @@ describe('the Chat panel', () => {
   it('shows a refused key as an error, and changes nothing', async () => {
     withKey();
     serve({ status: 401, error: { message: 'User not found.' } });
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -141,7 +149,7 @@ describe('the Chat panel', () => {
   it('keeps the page’s keys out of the message box', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -156,7 +164,7 @@ describe('the Chat panel', () => {
   it('offers the presets saved on OpenRouter first, then the models that take tools, and saves the one typed', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     const field = within(chatPanel()).getByRole('combobox', { name: 'Model' });
@@ -179,6 +187,105 @@ describe('the Chat panel', () => {
   });
 });
 
+// Issue #442: the conversation is the page's, so it outlasts the panel, and the rail shows a reply running.
+describe('the Chat conversation outside the panel', () => {
+  const chatButton = () => railButton('Chat')!;
+  /** A reply held until `release` is called. */
+  const held = () => {
+    let release!: (answer: object) => void;
+    const answer = new Promise<object>(resolve => { release = resolve; });
+    return { answer, release };
+  };
+
+  it('keeps a reply running when another panel opens, shows it on the Chat button, and marks it unread', async () => {
+    withKey();
+    const first = held();
+    serve(
+      reply({ content: null, tool_calls: [call('a', 'replace_bars', { track: 1, first_bar: 1, last_bar: 1, alphatex: ':1 12.6 |' })] }),
+      first.answer,
+    );
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await within(chatPanel()).findByText('Changed bar 1 of track 1', undefined, SLOW);
+    expect(chatButton()).toHaveAttribute('data-status', 'working');
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: Replying…');
+    // Notes opens: the Chat panel goes, the reply goes on.
+    fireEvent.click(railButton('Notes')!);
+    expect(screen.queryByRole('complementary', { name: 'Chat' })).toBeNull();
+    expect(chatButton()).toHaveAttribute('data-status', 'working');
+    expect(screen.getAllByRole('status').some(s => s.textContent === 'Chat: Replying…')).toBe(true);
+    await act(async () => first.release(reply({ content: 'Bar 1 is a whole note now.' })));
+    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'unread'));
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: New reply');
+    expect(alphaTex()).toBe('12.6.1 |\n5.6.4 6.6.4 7.6.4 8.6.4 |');
+    // Chat again: the ask, its notes and the reply are there, and the mark is gone.
+    fireEvent.click(chatButton());
+    expect(within(chatPanel()).getByText('Make bar 1 a whole note')).toBeInTheDocument();
+    expect(within(chatPanel()).getByText('Changed bar 1 of track 1')).toBeInTheDocument();
+    expect(within(chatPanel()).getByText('Bar 1 is a whole note now.')).toBeInTheDocument();
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat');
+    // The mark doesn't come back on closing the panel.
+    fireEvent.click(chatButton());
+    expect(chatButton()).not.toHaveAttribute('data-status');
+  });
+
+  it('keeps the conversation and the half-written message when the panel closes', async () => {
+    withKey();
+    const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('What rhythm is this?');
+    await within(chatPanel()).findByText('Four quarter notes a bar.');
+    // A reply ended with the panel open is read: no mark.
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    fireEvent.change(within(chatPanel()).getByRole('textbox', { name: 'Message' }), { target: { value: 'And bar' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close Chat' }));
+    fireEvent.click(chatButton());
+    expect(within(chatPanel()).getByText('What rhythm is this?')).toBeInTheDocument();
+    expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toHaveValue('And bar');
+    ask('And bar 2?');
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1].body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
+  });
+
+  it('can be stopped after the panel is opened again, and nothing changes after', async () => {
+    withKey();
+    const first = held();
+    serve(first.answer);
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    const before = alphaTex();
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'working'));
+    fireEvent.click(chatButton());
+    fireEvent.click(chatButton());
+    fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Stop' }));
+    await within(chatPanel()).findByText('Stopped.');
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    await act(async () => first.release(reply({ content: null, tool_calls: [call('a', 'replace_bars', { track: 1, first_bar: 1, last_bar: 1, alphatex: ':1 12.6 |' })] })));
+    expect(alphaTex()).toBe(before);
+  });
+
+  it('stops a running reply when the viewer leaves the page', async () => {
+    withKey();
+    const first = held();
+    const sent = serve(first.answer);
+    const page = renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const signal = vi.mocked(fetch).mock.calls.find(([url]) => url === OPENROUTER_URL)![1]!.signal!;
+    page.unmount();
+    expect(signal.aborted).toBe(true);
+  });
+});
+
 // `docs/specs/2026-11-09-tab-chat-prompt-design.md` (issue #426): the prompt in Settings › Tab › Chat.
 /** A request's system prompt, sent as one text block marked for caching. */
 const systemText = (message: { content: unknown }) => (message.content as { text: string }[])[0].text;
@@ -194,7 +301,7 @@ describe('the Chat prompt in Settings', () => {
   it('shows the default instructions; Reset shows only while they are edited, and puts the default back', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const box = await openChatSettings();
     expect(box.value).toBe(DEFAULT_INSTRUCTIONS);
@@ -214,7 +321,7 @@ describe('the Chat prompt in Settings', () => {
   it('saves edited instructions as typed; a double-click on the label resets them', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     let box = await openChatSettings();
     fireEvent.change(box, { target: { value: ' Be brief. ' } });
@@ -231,7 +338,7 @@ describe('the Chat prompt in Settings', () => {
   it('unfolds the guide read-only with Show, and folds it with Hide', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     await openChatSettings();
     expect(screen.queryByLabelText('The alphaTex guide')).toBeNull();
@@ -246,7 +353,7 @@ describe('the Chat prompt in Settings', () => {
   it('keeps Settings open on Enter in the Custom prompt box', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     await openChatSettings();
     const custom = screen.getByLabelText('Custom prompt');
@@ -257,7 +364,7 @@ describe('the Chat prompt in Settings', () => {
   it('sends a custom prompt saved mid-conversation with the next message', async () => {
     withKey();
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     ask('What rhythm is this?');

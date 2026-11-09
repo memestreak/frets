@@ -16,9 +16,9 @@ import { chordDefTex } from './chordSet';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
-/** A string in alphaTex quotes. */
+/** A string in alphaTex quotes; a new line (a Text's, issue #445) as `\n`, so the string stays on one line. */
 export function quoted(text: string): string {
-  return `"${text.replace(/["\\]/g, '\\$&')}"`;
+  return `"${text.replace(/["\\]/g, '\\$&').replace(/\n/g, '\\n')}"`;
 }
 
 /** Where a note sits: bar, column and string (0 = high e), in one Voice. */

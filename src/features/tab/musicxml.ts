@@ -18,6 +18,7 @@ import { instrumentName } from './instrument';
 import { isWholeBarRest, multiRests, plainRestColumn } from './layout';
 import { keyAccidentals, spellPitch, type Accidental, type Key } from '@/lib/theory/keys';
 import { openStrings, tuningShift, writtenStrings } from './notation';
+import { readTextMarks, runsOf } from './textMarks';
 
 /* — a small XML tree, written out indented — */
 
@@ -170,12 +171,23 @@ function frameOf(diagram: ShapedChord): XmlNode {
 
 /* — what goes between notes: words, lines and signs over or under the staff — */
 
-function direction(placement: 'above' | 'below', ...types: XmlNode[]): XmlNode {
-  return el('direction', { placement }, ...types.map(t => el('direction-type', {}, t)), text('staff', 1));
+/** A direction over or under the staff; a type given as several nodes (a Text's runs) shares one `direction-type`. */
+function direction(placement: 'above' | 'below', ...types: (XmlNode | XmlNode[])[]): XmlNode {
+  return el('direction', { placement }, ...types.map(t => el('direction-type', {}, ...[t].flat())), text('staff', 1));
 }
 
 function words(value: string): XmlNode {
   return text('words', value);
+}
+
+/**
+ * A Text over a column with its bold (issue #446) as a `words` per run, its marks left out, a bold run
+ * `font-weight="bold"`, as MuseScore writes styled text. A new line in it (issue #445) stays a new
+ * line, which MusicXML's words keep.
+ */
+function markedWords(value: string): XmlNode[] {
+  const marked = readTextMarks(value);
+  return runsOf(marked, 0, marked.drawn.length).map(run => text('words', run.text, { 'font-weight': run.bold ? 'bold' : undefined }));
 }
 
 /** MusicXML says which way an octave line moves the notes as drawn: under 8va they are drawn down. */
@@ -586,7 +598,7 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
       }
       if (when === 'before') {
         if (column.chord) out.push(harmonyOf(column.chord, diagramOf(voice.part, column.chord)) ?? direction('above', words(column.chord)));
-        if (column.text) out.push(direction('above', words(column.text)));
+        if (column.text) out.push(direction('above', markedWords(column.text)));
         if (column.notes.some(n => n?.harmonic === 'pinch')) out.push(direction('above', words('P.H.')));
       }
       return out;
