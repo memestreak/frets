@@ -9,8 +9,9 @@
  * issue #431). Which panel is open, and the panels' width, are kept across visits (`frets.tab.layout`), but
  * they are not preferences, so Settings doesn't list them.
  */
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject } from 'react';
 import { HoverTips } from '@/components/HoverTips';
+import { useMock, type Mock } from '@/components/mocks/useMock';
 import { ICONS } from './TabPalette';
 import type { ChatStatus } from './chat/useChatSession';
 
@@ -205,13 +206,34 @@ interface TabRailProps {
   chordsHead?: ReactNode;
   /** The Chat panel's contents (issue #424). */
   chat: ReactNode;
+  /** Mocks only: a new value each time the page asks for Chords again (a chord's Edit), though `open` is already Chords. */
+  openAsk?: unknown;
   /** Whether a Chat reply is running, or ended unseen, shown on the Chat button (issue #442). */
   chatStatus?: ChatStatus;
   children: ReactNode;
 }
 
+/**
+ * Mocks for several palettes open at once (issue #454): a, the rail picks which palettes stack in the
+ * column; b, every palette is listed and folds from its header, the column scrolls; c, every palette is
+ * listed and the open ones share the window's height. Today's one-at-a-time rail is the default.
+ */
+const PALETTES_MOCK: Mock = {
+  param: 'mock', label: 'Palettes', options: [
+    { value: 'today', label: 'Today' },
+    { value: 'a', label: 'a: Rail picks' },
+    { value: 'b', label: 'b: All, scroll' },
+    { value: 'c', label: 'c: All, fill' },
+  ],
+};
+
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps) {
+export function TabRail(props: TabRailProps) {
+  const mock = useMock(PALETTES_MOCK);
+  return mock === 'today' ? <OnePanelRail {...props} /> : <PaletteStack {...props} kind={mock as StackKind} />;
+}
+
+function OnePanelRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps) {
   const panel = RAIL.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
   const [width, setWidth] = usePanelWidth();
@@ -264,6 +286,245 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
             {tools ? palette(tools.groups, 'tab-rail-tools', tools.input) : panel.id === 'chat' ? chat : chords}
             <PanelDivider width={width} onWidth={setWidth} />
           </aside>
+        </HoverTips>
+      )}
+      <div className="tab-rail-clip">{children}</div>
+    </div>
+  );
+}
+
+type StackKind = 'a' | 'b' | 'c';
+
+/** A palette's least height, below its header, when dragged shorter. */
+const BODY_MIN = 48;
+
+/**
+ * The line under a palette, as a handle: drag it up or down, or tab to it and press ↑ ↓ (Shift for bigger
+ * steps), to set how tall the palette is; a double-click gives it back its own height.
+ */
+function HeightHandle({ name, body, height, onHeight }: {
+  name: string;
+  body: RefObject<HTMLDivElement | null>;
+  height: number | undefined;
+  onHeight: (px: number | undefined) => void;
+}) {
+  const drag = useRef<{ y: number; start: number; max: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  /** The tallest it may be: as tall as its tools, so it never shows empty room. */
+  const tallest = () => {
+    const el = body.current;
+    return el ? Math.max(BODY_MIN, el.scrollHeight) : 2000;
+  };
+  const down = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !body.current) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    drag.current = { y: e.clientY, start: body.current.getBoundingClientRect().height, max: tallest() };
+    setDragging(true);
+  };
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const px = Math.round(Math.min(Math.max(d.start + e.clientY - d.y, BODY_MIN), d.max));
+    onHeight(px >= d.max ? undefined : px);
+  };
+  const up = () => {
+    drag.current = null;
+    setDragging(false);
+  };
+  const key = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 64 : 16;
+    const by = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    if (!by || !body.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const max = tallest();
+    const px = Math.min(Math.max(body.current.getBoundingClientRect().height + by, BODY_MIN), max);
+    onHeight(px >= max ? undefined : px);
+  };
+  /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
+  return (
+    <div
+      className="tab-stack-handle" role="separator" aria-orientation="horizontal" aria-label={`${name} height`}
+      aria-valuenow={height} tabIndex={0} data-dragging={dragging ? '' : undefined} data-tip="Drag to resize; double-click for full height"
+      onMouseDown={e => e.preventDefault()}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up}
+      onDoubleClick={() => onHeight(undefined)} onKeyDown={key}
+    />
+  );
+  /* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
+}
+
+/** A chevron: down when open, right when folded. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}
+      className="tab-stack-chevron" data-open={open ? '' : undefined}>
+      <path d="M6 3.5L10.5 8 6 12.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** One palette in the column: its header folds it, and the line under it sets its height. */
+function StackPanel({ id, name, expanded, height, onToggle, onHeight, head, children }: {
+  id: PanelId;
+  name: string;
+  expanded: boolean;
+  height: number | undefined;
+  onToggle: () => void;
+  onHeight: (px: number | undefined) => void;
+  head?: ReactNode;
+  children: ReactNode;
+}) {
+  const body = useRef<HTMLDivElement>(null);
+  return (
+    <section className="tab-stack-panel" data-panel={id} data-expanded={expanded ? '' : undefined}
+      data-sized={height === undefined ? undefined : ''} aria-label={name}>
+      <div className="tab-stack-head">
+        <button
+          type="button" className="tab-stack-toggle" aria-expanded={expanded}
+          onMouseDown={e => e.preventDefault()} onClick={onToggle}
+        >
+          <Chevron open={expanded} />
+          <h2 className="tab-rail-panel-title">{name}</h2>
+        </button>
+        {expanded && head}
+      </div>
+      {expanded && (
+        <>
+          <div ref={body} className="tab-stack-body" style={height === undefined ? undefined : { height }}>{children}</div>
+          <HeightHandle name={name} body={body} height={height} onHeight={onHeight} />
+        </>
+      )}
+    </section>
+  );
+}
+
+/** The column's own button on the rail: hides every palette into the rail, and shows them again. */
+function HideAllIcon({ hidden }: { hidden: boolean }) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+      <rect x="4" y="5" width="16" height="14" rx="1.5" />
+      <path d="M9.5 5v14" />
+      <path d={hidden ? 'M13 10l2 2-2 2' : 'M15 10l-2 2 2 2'} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Mocks a–c of issue #454: several palettes open at once in one column beside the rail. */
+function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps & { kind: StackKind }) {
+  const [width, setWidth] = usePanelWidth();
+  /** Mock a only: the palettes the rail has put in the column, in the rail's order. */
+  const [shown, setShown] = useState<readonly PanelId[]>(['notes', 'chords']);
+  const [expanded, setExpanded] = useState<readonly PanelId[]>(['notes', 'chords']);
+  const [heights, setHeights] = useState<Partial<Record<PanelId, number>>>({});
+  const [hidden, setHidden] = useState(false);
+  const column = useRef<HTMLDivElement>(null);
+
+  const listed = kind === 'a' ? RAIL.filter(p => shown.includes(p.id)) : RAIL;
+  const isOpen = (id: PanelId) => expanded.includes(id);
+  const expand = (id: PanelId) => setExpanded(e => (e.includes(id) ? e : [...e, id]));
+  const fold = (id: PanelId) => setExpanded(e => e.filter(x => x !== id));
+  /** Scrolls the column, never the page, to show a palette's header once it is drawn. */
+  const reveal = (id: PanelId) => requestAnimationFrame(() => {
+    const box = column.current;
+    const panel = box?.querySelector<HTMLElement>(`[data-panel="${id}"]`);
+    if (!box || !panel) return;
+    const top = panel.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+    if (top < box.scrollTop || top + 40 > box.scrollTop + box.clientHeight) box.scrollTop = top;
+  });
+
+  // A chord name's Edit asks the page for Chords: show it, open.
+  useEffect(() => {
+    if (!open) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- the page's ask arrives as a prop. */
+    setHidden(false);
+    setShown(s => (s.includes(open) ? s : [...s, open]));
+    expand(open);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    requestAnimationFrame(() => reveal(open));
+  }, [open, openAsk]);
+
+  const railPress = (id: PanelId) => {
+    if (kind === 'a') {
+      if (shown.includes(id) && !hidden) {
+        setShown(s => s.filter(x => x !== id));
+      } else {
+        setShown(s => (s.includes(id) ? s : [...s, id]));
+        expand(id);
+        setHidden(false);
+        reveal(id);
+      }
+      return;
+    }
+    if (hidden) {
+      setHidden(false);
+      expand(id);
+      reveal(id);
+    } else if (isOpen(id)) {
+      fold(id);
+    } else {
+      expand(id);
+      reveal(id);
+    }
+  };
+  const pressed = (id: PanelId) => !hidden && (kind === 'a' ? shown.includes(id) : isOpen(id));
+  const showColumn = !hidden && listed.length > 0;
+
+  const contents = (id: PanelId) => {
+    const tools = PANELS.find(p => p.id === id);
+    if (tools) return palette(tools.groups, 'tab-rail-tools', tools.input);
+    return id === 'chat' ? chat : chords;
+  };
+
+  return (
+    <div
+      className="tab-rail-layout" data-open={showColumn ? '' : undefined} data-stack={kind}
+      style={width === PANEL_WIDTH.start ? undefined : { '--rail-panel-width': `${width}px` } as CSSProperties}
+    >
+      <HoverTips className="tab-rail-column">
+        <nav className="tab-rail" aria-label="Panels">
+          <button
+            type="button" className="tab-rail-button tab-rail-hide" aria-label={hidden ? 'Show palettes' : 'Hide palettes'}
+            data-tip={hidden ? 'Show palettes' : 'Hide palettes'} disabled={listed.length === 0}
+            onMouseDown={e => e.preventDefault()} onClick={() => setHidden(h => !h)}
+          >
+            <HideAllIcon hidden={!showColumn} />
+          </button>
+          {RAIL.map(p => {
+            const status = p.id === 'chat' ? CHAT_STATUS[chatStatus] : undefined;
+            return (
+              <button
+                key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={pressed(p.id)}
+                data-tip={status ? `${p.name}: ${status}` : p.name}
+                data-status={p.id === 'chat' && chatStatus !== 'idle' ? chatStatus : undefined}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => railPress(p.id)}
+              >
+                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  {p.id === 'chat' && chatStatus === 'working' ? CHAT_WORKING_ICON : p.icon}
+                </svg>
+              </button>
+            );
+          })}
+        </nav>
+      </HoverTips>
+      {showColumn && (
+        <HoverTips className="tab-rail-column">
+          <div className="tab-rail-panel tab-stack-frame" data-stack={kind}>
+          <div ref={column} className="tab-stack" data-stack={kind}>
+            {listed.map(p => (
+              <StackPanel
+                key={p.id} id={p.id} name={p.name} expanded={isOpen(p.id)} height={heights[p.id]}
+                onToggle={() => (isOpen(p.id) ? fold(p.id) : expand(p.id))}
+                onHeight={px => setHeights(h => ({ ...h, [p.id]: px }))}
+                head={p.id === 'chords' ? chordsHead : undefined}
+              >
+                {contents(p.id)}
+              </StackPanel>
+            ))}
+          </div>
+            <PanelDivider width={width} onWidth={setWidth} />
+          </div>
         </HoverTips>
       )}
       <div className="tab-rail-clip">{children}</div>

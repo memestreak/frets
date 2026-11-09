@@ -859,7 +859,7 @@ export default function TabPage() {
 
       {/* The tools, in panels on a rail to the clip's left (issue #301). */}
       <TabRail
-        palette={drawPalette} open={railPanel}
+        palette={drawPalette} open={railPanel} openAsk={chordsAt}
         onOpen={id => { setRailPanel(id); setChordsAt(null); }}
         chords={(
           <ChordPanel
