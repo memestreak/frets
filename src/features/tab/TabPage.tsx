@@ -39,6 +39,7 @@ import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
+import { useChatSession } from './chat/useChatSession';
 import type { PageSpot } from './chat/arrangementTools';
 import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
@@ -311,6 +312,10 @@ export default function TabPage() {
     track,
     cursorBar: cursor.bar,
     selectedBars: selection ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar] : null,
+  });
+  // The conversation is the page's, not the panel's, so closing the panel keeps it and its running reply (issue #442).
+  const chat = useChatSession({
+    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: railPanel === 'chat',
   });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
   /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord follows it (Jeremy, 2026-11-07). */
@@ -863,11 +868,11 @@ export default function TabPage() {
         )}
         chat={
           <ChatPanel
-            prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))}
-            current={() => ({ clip: wholeNow.current, spot: chatSpot() })} onClip={chatClip}
+            prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))} session={chat}
             onOpenSettings={() => openSettings({ group: 'tab', section: 'chat' })}
           />
         }
+        chatStatus={chat.status}
         chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
       >
       <section className="card tab-card" aria-label="Clip">
