@@ -4,7 +4,7 @@
  * columns a Span covers, and moving its ends, as its Handles and Alt+Shift+← → do. Pure.
  */
 import { STRING_COUNT, type Column, type Note, type Part } from './clip';
-import { normalize, placeOf } from './editing';
+import { indexOf, normalize, placeOf, type Cursor, type Selection } from './editing';
 import type { MarkHit } from './marks';
 
 export type SpanMark = 'letRing' | 'palmMute' | 'vibrato' | 'ottava' | 'hairpin';
@@ -146,11 +146,14 @@ export function firstString(clip: Part, index: number): number {
 
 /**
  * The Span a palette press just put on (let ring, P.M.), to pick it so it can be dragged to the length
- * wanted (Jeremy, 2026-11-09): the Span round `at`, the first column the press acted on. Null when the
+ * wanted (Jeremy, 2026-11-09): the Span round the first column the press acted on (the selection's,
+ * else the cursor's). Null when the
  * press took the Mark away or changed nothing.
  */
-export function addedSpan(before: Part, after: Part, mark: SpanMark, at: number): MarkHit | null {
+export function addedSpan(before: Part, after: Part, mark: SpanMark, target: { cursor: Cursor; selection: Selection | null }): MarkHit | null {
   if (before === after) return null;
+  const { selection, cursor } = target;
+  const at = selection ? Math.min(selection.anchor, selection.focus) : indexOf(before, cursor.bar, cursor.column);
   const columns = columnsOf(after);
   if (spanKind(columns[at], mark) === null) return null;
   const [from, to] = spanAround(columns, mark, at);

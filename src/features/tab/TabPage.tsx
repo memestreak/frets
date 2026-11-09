@@ -542,7 +542,7 @@ export default function TabPage() {
     else if (!(columnOnly && id === 'dead')) {
       // On a selection, a Mark goes on every Voice's notes in its time (Q19).
       const next = applyTool(clip, target, id);
-      const added = spanTool(id) ? addedSpan(clip, next, id, selectedRange(target.selection ?? { anchor: cursorIndex, focus: cursorIndex })[0]) : null;
+      const added = spanTool(id) ? addedSpan(clip, next, id, target) : null;
       if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
         if (added) pickAdded(next, added);
         return;
