@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { toggleBold, type TypedText } from './textMarks';
 import type { WordKind } from './tools';
 import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
 import { DYNAMIC_REACH, dynamicWord } from './dynamics';
@@ -33,9 +34,14 @@ function settable(kind: FieldKind, value: string): boolean {
   return kind !== 'dynamic' || value.trim() === '' || dynamicOf(value) !== null;
 }
 
+/** The most rows the Text field grows to as new lines are typed; past them it scrolls. */
+const TEXT_ROWS = 6;
+
 /**
  * A small field over the tab for a chord name, free text, a section or the capo, at the spot it is drawn.
- * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was.
+ * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was. The Text
+ * field takes more: Shift+Enter starts a new line in it (issue #445), and Cmd+B makes the selected words
+ * bold, `**` round them (issue #446).
  */
 
 interface WordFieldProps {
@@ -64,7 +70,7 @@ export function dynamicsFor(typed: string): readonly Dynamic[] {
 export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   const [value, setValue] = useState(initial);
   const digits = NUMBER_LENGTH[kind];
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   // The field opens from a press or a key on the tab, so typing goes straight into it.
   useEffect(() => inputRef.current?.focus(), []);
   // Enter and then the blur it causes would both finish; only the first counts.
@@ -74,6 +80,14 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     done.current = true;
     onDone(result, byKey);
   };
+  // Where the selection goes once a Cmd+B change is drawn.
+  const selectAfter = useRef<TypedText | null>(null);
+  useLayoutEffect(() => {
+    const next = selectAfter.current;
+    selectAfter.current = null;
+    if (next) inputRef.current?.setSelectionRange(next.start, next.end);
+  }, [value]);
+  const isText = kind === 'text';
   // Enter on what isn't a dynamic keeps the field open with its ⚠, as Dorico's popover turns red.
   const [refused, setRefused] = useState(false);
   // A dynamic's list (Jeremy, 2026-11-09): ↓ opens it, filtered by what is typed; ↑ ↓ move, Enter or a press picks.
@@ -87,7 +101,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   useEffect(() => {
     activeRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [active, listOpen]);
-  const onListKey = (e: KeyboardEvent<HTMLInputElement>): boolean => {
+  const onListKey = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): boolean => {
     if (kind !== 'dynamic') return false;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -116,36 +130,59 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     }
     return false;
   };
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
     if (onListKey(e)) return;
-    if (e.key === 'Enter' && !settable(kind, value)) setRefused(true);
-    else if (e.key === 'Enter') finish(value, true);
+    // Shift+Enter is a new line in a Text: the textarea's own.
+    if (e.key === 'Enter' && !(isText && e.shiftKey)) {
+      e.preventDefault();
+      if (settable(kind, value)) finish(value, true);
+      else setRefused(true);
+    }
     if (e.key === 'Escape') finish(null, true);
+    // Cmd+B, as in Dorico's and MuseScore's text editors.
+    if (isText && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      const field = e.currentTarget;
+      const next = toggleBold({ value, start: field.selectionStart ?? value.length, end: field.selectionEnd ?? value.length });
+      if (next.value.length > WORD_LENGTH(kind)) return;
+      selectAfter.current = next;
+      setValue(next.value);
+    }
+  };
+  const shared = {
+    ref: inputRef, 'aria-label': CAPTIONS[kind], placeholder: PLACEHOLDERS[kind], value, maxLength: digits ?? WORD_LENGTH(kind),
+    // Leaving a field with what can't be set leaves things as they were.
+    onFocus: (e: { target: HTMLInputElement | HTMLTextAreaElement }) => e.target.select(), onKeyDown,
+    onBlur: () => finish(settable(kind, value) ? value : null, false),
   };
   const showList = kind === 'dynamic' && listOpen;
   return (
     <span className={`tab-word card${digits ? ' tab-word-fit' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
-      <span className="tab-word-row">
-        <input
-          ref={inputRef} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
-          value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? WORD_LENGTH(kind)}
-          onChange={e => {
-            setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value);
-            setRefused(false);
-            setActive(0);
-          }}
-          // Leaving a field with what can't be set leaves things as they were.
-          onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(settable(kind, value) ? value : null, false)}
-          aria-invalid={refused || undefined}
-          {...(kind === 'dynamic' && {
-            role: 'combobox', 'aria-autocomplete': 'list' as const, 'aria-expanded': showList, 'aria-controls': listId,
-            'aria-activedescendant': showList && choices[active] ? `${listId}-${choices[active]}` : undefined,
-          })}
+      {isText ? (
+        <textarea
+          {...shared} className="input tab-word-input tab-word-text" rows={Math.min(TEXT_ROWS, value.split('\n').length)}
+          onChange={e => setValue(e.target.value)}
         />
-        {refused && <span className="tab-word-problem" role="img" aria-label={NOT_A_DYNAMIC} title={NOT_A_DYNAMIC}>⚠</span>}
-      </span>
+      ) : (
+        <span className="tab-word-row">
+          <input
+            {...shared} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} inputMode={digits ? 'numeric' : 'text'}
+            onChange={e => {
+              setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value);
+              setRefused(false);
+              setActive(0);
+            }}
+            aria-invalid={refused || undefined}
+            {...(kind === 'dynamic' && {
+              role: 'combobox', 'aria-autocomplete': 'list' as const, 'aria-expanded': showList, 'aria-controls': listId,
+              'aria-activedescendant': showList && choices[active] ? `${listId}-${choices[active]}` : undefined,
+            })}
+          />
+          {refused && <span className="tab-word-problem" role="img" aria-label={NOT_A_DYNAMIC} title={NOT_A_DYNAMIC}>⚠</span>}
+        </span>
+      )}
       {showList && (
         // A press in the list keeps the field focused (its blur would set what is typed), and picks the option pressed.
         <div

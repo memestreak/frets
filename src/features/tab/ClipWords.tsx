@@ -1,6 +1,6 @@
 // The words over a line, drawn by `TabClip`: endings, the capo, sections, tempos, chord names and free text.
 import type { ReactNode } from 'react';
-import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE } from './beatText';
+import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, BEAT_TEXT_SIZE, beatTextLines } from './beatText';
 import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { ChordGrid } from './ChordGrid';
 import { startsFreeTime, type Part } from './clip';
@@ -135,14 +135,18 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
         const textRow = textRowOf(rows, placed);
         if (!placed.column.text || textRow === null) continue;
         const look = lookOf({ kind: 'text', index: placed.index });
+        // Each line a tspan, and in it a tspan per bold run (issue #446). An empty line (two new lines,
+        // issue #445) holds a no-break space, as an empty tspan would not move down.
+        const { runs } = beatTextLines(placed.column.text, placed.textLines);
         parts.push(
           <text
             key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
             fill={look.ink} data-testid="beat-text"
           >
-            {/* A wrapped line keeps its space at the end, so the text reads (and copies) as typed. */}
-            {placed.textLines.map((line, k, lines) => (
-              <tspan key={k} x={placed.x - BEAT_TEXT_INSET} dy={k === 0 ? 0 : BEAT_TEXT_LINE}>{k < lines.length - 1 ? `${line} ` : line}</tspan>
+            {runs.map((line, k) => (
+              <tspan key={k} x={placed.x - BEAT_TEXT_INSET} dy={k === 0 ? 0 : BEAT_TEXT_LINE}>
+                {line.length === 0 ? '\u00a0' : line.map((run, r) => (run.bold ? <tspan key={r} fontWeight={700}>{run.text}</tspan> : run.text))}
+              </tspan>
             ))}
           </text>,
         );

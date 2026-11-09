@@ -7,7 +7,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { builtinsFrom } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
-import { writeGuitarProWith } from '@/features/tab/guitarPro';
+import { withPlainTexts, writeGuitarProWith } from '@/features/tab/guitarPro';
 
 type Score = alphaTab.model.Score;
 type Beat = alphaTab.model.Beat;
@@ -75,7 +75,15 @@ describe('Download Guitar Pro', () => {
     const read = readAlphaTexWith(alphaTab, example.text);
     if (!read.ok) throw new Error(read.errors.join('\n'));
     const bytes = writeGuitarProWith(alphaTab, read.clip);
-    expect(shapeOf(fromGuitarPro(bytes))).toEqual(shapeOf(fromAlphaTex(writeAlphaTex(read.clip))));
+    // A Text's Markdown marks are left out (issue #446), so it is compared with them left out.
+    expect(shapeOf(fromGuitarPro(bytes))).toEqual(shapeOf(fromAlphaTex(writeAlphaTex(withPlainTexts(read.clip)))));
+  });
+
+  it('writes a Text as drawn: its bold marks left out, a new line as a space (issues #446, #445)', () => {
+    const read = readAlphaTexWith(alphaTab, '0.6.4{txt "Press **Esc** to *leave*,\\n`code` and \\\\*star"} r.4 r.2 |');
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    const beat = fromGuitarPro(writeGuitarProWith(alphaTab, read.clip)).tracks[0].staves[0].bars[0].voices[0].beats[0];
+    expect(beat.text).toBe('Press Esc to *leave*, `code` and *star');
   });
 
   it('writes a Guitar Pro 7 file, a zip holding Content/score.gpif, with every track', () => {

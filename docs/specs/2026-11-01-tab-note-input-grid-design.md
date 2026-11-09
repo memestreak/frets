@@ -14,7 +14,7 @@ first.
    may come later; Shift+← → already grow the selection, so it would need its own key.
 2. **Values: quarter, eighth, sixteenth and thirty-second; a sixteenth by default.** Triplet grids
    may come later.
-3. **Shown on the page and kept.** A Grid button first in the palette's Duration group shows the
+3. **Shown on the page and kept.** A Grid button in the palette's Duration group (first under the note values, `2026-11-09-tab-duration-row-design.md`) shows the
    grid's note over a ruler; a press opens the four values. The grid is a preference, Settings ›
    Tab › Editing › Note input grid, kept between visits.
 
@@ -22,9 +22,10 @@ first.
 
 4. **The grid follows note input mode's length by default**, as MuseScore's placement does: with a quarter
    picked, ← → and presses step through a rest by quarters. A **fixed grid** is turned on when wanted:
-   the Grid panel lists Note length first, then the four values; **Alt+G** switches between Note length
-   and the last fixed grid; Alt+[ ] turn the fixed grid on, then make it finer or coarser. Settings ›
-   Tab › Editing has "Note input grid: Fixed | Note length" and "Fixed grid".
+   the Grid panel lists Follow note length first, then the four values; **Alt+G** switches between
+   following note length and the last fixed grid; Alt+[ ] turn the fixed grid on, then make it finer or
+   coarser. Settings › Tab › Editing has "Note input grid: Fixed | Follow note length" and "Fixed grid".
+   ("Note length" became "Follow note length"; Jeremy, 2026-11-09, issue #449.)
 5. **Space always plays**, as in MuseScore. **Shift+Space** moves the cursor on by note input mode's length,
    over notes and rests alike, as Dorico's Space moves its caret: inside a rest it stops there, inside
    a note at the column after it, and past the clip's end a bar of rests is added.
@@ -49,6 +50,16 @@ first.
    inside a note's length, which the same voice can't take (Jeremy, 2026-11-03). Entering inside a note,
    as Dorico does, is issue #332.
 
+### Round 3 (Jeremy, 2026-11-09, issue #449: the grid was hard to find)
+
+8. **The Grid button sits right after the note input mode pencil**, in the Notes panel's Input group,
+   no longer first in Duration (Dorico shows its rhythmic grid in the status bar, away from the note
+   values; MuseScore and Guitar Pro 8 have none).
+9. **It names its setting**: the note-over-a-ruler glyph, then the word, "Sixteenth" or "Follow note
+   length" (mock b of three; a was the glyph alone, c the words alone). The button keeps the width of
+   its longest word, so nothing moves when the grid changes.
+10. No new keys: Alt+[ ], Alt+] and Alt+G already set the grid, and the button's tip names them.
+
 ## How it works
 
 - Grid lines are counted from the bar's start, not the rest's: on a 16th grid a rest after a dotted
@@ -68,6 +79,13 @@ first.
   not in a text field, dialog or menu. They match by key position (`code`), so they work where Alt
   types another character. Both are listed on the `?` overlay under Note input mode.
 - Normal mode is unchanged: ← → select a column at a time.
+
+## Tests (round 3)
+
+- The Grid button is in the Input group, right after the pencil, and not in the Duration group.
+- With no fixed grid it reads "Follow note length"; after picking Thirty-second, or Alt+[ from there, it
+  reads the grid's name.
+- Settings › Tab › Editing offers "Fixed" and "Follow note length".
 
 ## Not in this change
 
