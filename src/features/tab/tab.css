@@ -873,6 +873,15 @@ body:has(.tab-stack-handle[data-dragging]) { cursor: ns-resize; user-select: non
   background: var(--ink-muted); animation: tab-rail-typing 1.2s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .tab-stack-collapse[data-status='working']::after { animation: none; } }
+/* b: dragging a palette by its header moves it; a line shows where it lands. */
+.tab-stack-panel { position: relative; }
+.tab-stack-panel[data-dragging] { opacity: 0.5; }
+.tab-stack-panel[data-drop]::before {
+  content: ''; position: absolute; left: 8px; right: 8px; height: 3px; border-radius: 2px; background: var(--select); z-index: 2;
+}
+.tab-stack-panel[data-drop='before']::before { top: -2px; }
+.tab-stack-panel[data-drop='after']::before { bottom: -2px; }
+body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none; }
 @media (max-width: 899px) {
   .tab-rail-layout[data-railless], .tab-rail-layout[data-railless][data-open] { grid-template-columns: minmax(0, 1fr); }
   .tab-stack-frame[data-stack='c'] { height: auto; }

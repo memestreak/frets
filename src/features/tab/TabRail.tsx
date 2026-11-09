@@ -365,7 +365,7 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 /** One palette in the column: its header folds it, and the line under it sets its height. */
-function StackPanel({ id, name, icon, status, expanded, height, onToggle, onHeight, head, children }: {
+function StackPanel({ id, name, icon, status, expanded, height, onToggle, onHeight, onGrab, onMoveKey, drop, dragging, head, children }: {
   id: PanelId;
   name: string;
   /** Mock b: the palette's icon, before its name, in place of the rail's button. */
@@ -375,6 +375,13 @@ function StackPanel({ id, name, icon, status, expanded, height, onToggle, onHeig
   expanded: boolean;
   height: number | undefined;
   onToggle: () => void;
+  /** Mock b: a press on the header, which may become a drag to move the palette. */
+  onGrab?: (e: PointerEvent<HTMLButtonElement>) => void;
+  /** Mock b: Alt+↑ ↓ on the header moves the palette up or down one. */
+  onMoveKey?: (by: -1 | 1) => void;
+  /** Mock b: where a dragged palette would land, drawn as a line on this palette's top or bottom edge. */
+  drop?: 'before' | 'after';
+  dragging?: boolean;
   onHeight: (px: number | undefined) => void;
   head?: ReactNode;
   children: ReactNode;
@@ -382,11 +389,19 @@ function StackPanel({ id, name, icon, status, expanded, height, onToggle, onHeig
   const body = useRef<HTMLDivElement>(null);
   return (
     <section className="tab-stack-panel" data-panel={id} data-expanded={expanded ? '' : undefined}
+      data-drop={drop} data-dragging={dragging ? '' : undefined}
       data-sized={height === undefined ? undefined : ''} aria-label={name}>
       <div className="tab-stack-head">
         <button
           type="button" className="tab-stack-toggle" aria-expanded={expanded}
-          onMouseDown={e => e.preventDefault()} onClick={onToggle}
+          data-tip={onGrab ? 'Press to open or fold; drag to move' : undefined}
+          onMouseDown={e => e.preventDefault()} onClick={onToggle} onPointerDown={onGrab}
+          onKeyDown={e => {
+            if (!onMoveKey || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onMoveKey(e.key === 'ArrowUp' ? -1 : 1);
+          }}
         >
           <Chevron open={expanded} />
           {icon && (
@@ -432,7 +447,54 @@ function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, 
   const [hidden, setHidden] = useState(false);
   const column = useRef<HTMLDivElement>(null);
 
-  const listed = kind === 'a' ? RAIL.filter(p => shown.includes(p.id)) : RAIL;
+  /** Mock b: the palettes' order, set by dragging a header (Jeremy, 2026-11-09). */
+  const [order, setOrder] = useState<readonly PanelId[]>(RAIL.map(p => p.id));
+  /** Mock b: the palette being dragged and the place it would land, as an index into `order`. */
+  const [drag, setDrag] = useState<{ id: PanelId; to: number } | null>(null);
+  /** A drag ends in a click on the header; that click must not fold it. */
+  const dragged = useRef(false);
+  const listed = kind === 'a' ? RAIL.filter(p => shown.includes(p.id))
+    : kind === 'b' ? order.map(id => RAIL.find(p => p.id === id)!) : RAIL;
+  /** Moves `id` to land before the palette now at `to` (`order.length`: last). */
+  const moveTo = (id: PanelId, to: number) => setOrder(o => {
+    const from = o.indexOf(id);
+    const rest = o.filter(x => x !== id);
+    const at = to > from ? to - 1 : to;
+    return [...rest.slice(0, at), id, ...rest.slice(at)];
+  });
+  /** Where a pointer at `y` would drop a palette: before the first palette whose middle is below it. */
+  const dropIndex = (y: number) => {
+    const sections = [...(column.current?.querySelectorAll<HTMLElement>('.tab-stack-panel') ?? [])];
+    const i = sections.findIndex(el => {
+      const r = el.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    });
+    return i < 0 ? sections.length : i;
+  };
+  const grab = (id: PanelId) => (e: PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    const startY = e.clientY;
+    let moving = false;
+    let to = -1;
+    dragged.current = false;
+    const move = (ev: globalThis.PointerEvent) => {
+      if (!moving && Math.abs(ev.clientY - startY) < 5) return;
+      moving = true;
+      dragged.current = true;
+      to = dropIndex(ev.clientY);
+      setDrag({ id, to });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      if (moving && to >= 0) moveTo(id, to);
+      setDrag(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  };
   const isOpen = (id: PanelId) => expanded.includes(id);
   const expand = (id: PanelId) => setExpanded(e => (e.includes(id) ? e : [...e, id]));
   const fold = (id: PanelId) => setExpanded(e => e.filter(x => x !== id));
@@ -544,11 +606,26 @@ function PaletteStack({ kind, palette, open, openAsk, chords, chordsHead, chat, 
           <div className="tab-rail-panel tab-stack-frame" data-stack={kind}>
           {railless && <div className="tab-stack-top">{collapseButton}</div>}
           <div ref={column} className="tab-stack" data-stack={kind}>
-            {listed.map(p => (
+            {listed.map((p, i) => (
               <StackPanel
                 icon={railless ? p.icon : undefined} status={railless && p.id === 'chat' ? chatStatus : undefined}
                 key={p.id} id={p.id} name={p.name} expanded={isOpen(p.id)} height={heights[p.id]}
-                onToggle={() => (isOpen(p.id) ? fold(p.id) : expand(p.id))}
+                onToggle={() => {
+                  if (dragged.current) {
+                    dragged.current = false;
+                    return;
+                  }
+                  if (isOpen(p.id)) fold(p.id);
+                  else expand(p.id);
+                }}
+                onGrab={railless ? grab(p.id) : undefined}
+                onMoveKey={railless ? by => {
+                  const at = order.indexOf(p.id);
+                  if (at + by >= 0 && at + by < order.length) moveTo(p.id, by < 0 ? at - 1 : at + 2);
+                } : undefined}
+                dragging={drag?.id === p.id}
+                drop={!drag || drag.id === p.id ? undefined
+                  : drag.to === i ? 'before' : drag.to === listed.length && i === listed.length - 1 ? 'after' : undefined}
                 onHeight={px => setHeights(h => ({ ...h, [p.id]: px }))}
                 head={p.id === 'chords' ? chordsHead : undefined}
               >
